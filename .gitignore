@@ -1,0 +1,3 @@
+cloudshield/DesktopUI/node_modules
+cloudshield/WebUI/node_modules
+**/node_modules
