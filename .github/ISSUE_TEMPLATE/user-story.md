@@ -1,19 +1,39 @@
----
 name: User Story
-about: User Story for features that will be brokendown into sub-tasks
-title: ''
-labels: ''
-assignees: ''
+description: Standard user story template
+title: "[Story] <User Story Title>"
+labels: ["user story"]
+body:
 
----
+- type: markdown
+  attributes:
+  value: | ## User Story
+  As a [role], I want [goal], so that [benefit].
 
-As <>, I want to <>.
-Story Points: 
-Priority: 
-Risk: 
-Child of: 
-Acceptance Criteria:
-Task Breakdown:
-Implementation Breakdown:(FRONT END) (By hours)
-Implementation Breakdown: (BACK END) (By hours)
-Blackbox Testing: (By hours)
+- type: textarea
+  id: description
+  attributes:
+  label: Description
+  description: Expand on the story if needed.
+
+- type: textarea
+  id: acceptance
+  attributes:
+  label: Acceptance Criteria
+  description: Define clear pass/fail conditions.
+  placeholder: - Condition 1  
+   - Condition 2
+
+- type: textarea
+  id: tasks
+  attributes:
+  label: Implementation Tasks
+  description: Break this story into smaller tasks (optional).
+  placeholder: - [ ] Task 1  
+   - [ ] Task 2
+
+- type: textarea
+  id: dependencies
+  attributes:
+  label: Dependencies
+  description: Note any related issues or blockers.
+  placeholder: Depends on #45
