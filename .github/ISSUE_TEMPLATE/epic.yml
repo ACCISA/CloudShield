@@ -3,30 +3,37 @@ description: High-level epic issue template
 title: "[Epic] <Epic Title>"
 labels: ["epic"]
 body:
+  - type: markdown
+    name: Epic
+    description: High-level epic issue template
+    title: "[Epic] <Epic Title>"
+    labels: ["epic"]
+    body:
+      - type: markdown
+        attributes:
+          value: |-
+            ## Epic Summary
+            Describe the high-level objective of this epic.
 
-- type: markdown
-  attributes:
-  value: | ## Epic Summary
-  Describe the high-level objective of this epic.
+      - type: textarea
+        id: description
+        attributes:
+          label: Description
+          description: What problem are we solving and why?
+          placeholder: This epic will deliver ...
 
-- type: textarea
-  id: description
-  attributes:
-  label: Description
-  description: What problem are we solving and why?
-  placeholder: This epic will deliver ...
+      - type: textarea
+        id: user_stories
+        attributes:
+          label: Linked User Stories
+          description: Add related user stories (issue numbers or links).
+          placeholder: #12, #15
 
-- type: textarea
-  id: user_stories
-  attributes:
-  label: Linked User Stories
-  description: Add related user stories (issue numbers or links).
-  placeholder: #12, #15
-
-- type: textarea
-  id: acceptance
-  attributes:
-  label: Success Criteria
-  description: What outcomes define this epic as complete?
-  placeholder: - All linked stories completed  
-   - Documentation updated
+      - type: textarea
+        id: acceptance
+        attributes:
+          label: Success Criteria
+          description: What outcomes define this epic as complete?
+          placeholder: |-
+            - All linked stories completed
+            - Documentation updated
