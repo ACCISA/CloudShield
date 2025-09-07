@@ -3,7 +3,7 @@ description: Standard user story template
 title: "[Story] <User Story Title>"
 labels: ["user story"]
 body:
-  - type: input
+  - type: textarea
     id: story
     attributes:
       label: User Story
