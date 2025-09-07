@@ -1,0 +1,14 @@
+# GitHub Issue Template configuration for CloudShield
+
+# Prevent opening a blank issue; require choosing a template (if templates exist)
+blank_issues_enabled: false
+
+contact_links:
+	- name: Open Epic template
+		url: https://github.com/ACCISA/CloudShield/issues/new?template=epic.yml
+		about: Create a new epic using the Epic template.
+
+	- name: Open User Story template
+		url: https://github.com/ACCISA/CloudShield/issues/new?template=user-story.yml
+		about: Create a new user story using the User Story template.
+
