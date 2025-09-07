@@ -3,46 +3,40 @@ description: Standard user story template
 title: "[Story] <User Story Title>"
 labels: ["user story"]
 body:
+  - type: input
+    id: story
+    attributes:
+      label: User Story
+      description: Fill in the format: As a [role], I want [goal], so that [benefit].
+      placeholder: As a tenant, I want an isolated VPC, so that my resources are secure.
 
-name: User Story
-description: Standard user story template
-title: "[Story] <User Story Title>"
-labels: ["user story"]
-body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Expand on the story if needed.
 
-- type: markdown
-  attributes:
-    value: |-
-      ## User Story
-      As a [role], I want [goal], so that [benefit].
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Define clear pass/fail conditions.
+      placeholder: |
+        - Condition 1
+        - Condition 2
 
-- type: textarea
-  id: description
-  attributes:
-    label: Description
-    description: Expand on the story if needed.
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Implementation Tasks
+      description: Break this story into smaller tasks (optional).
+      placeholder: |
+        - [ ] Task 1
+        - [ ] Task 2
 
-- type: textarea
-  id: acceptance
-  attributes:
-    label: Acceptance Criteria
-    description: Define clear pass/fail conditions.
-    placeholder: |-
-      - Condition 1
-      - Condition 2
-
-- type: textarea
-  id: tasks
-  attributes:
-    label: Implementation Tasks
-    description: Break this story into smaller tasks (optional).
-    placeholder: |-
-      - [ ] Task 1
-      - [ ] Task 2
-
-- type: textarea
-  id: dependencies
-  attributes:
-    label: Dependencies
-    description: Note any related issues or blockers.
-    placeholder: Depends on #45
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Note any related issues or blockers.
+      placeholder: Depends on #45
