@@ -1,0 +1,8 @@
+# If false, users must choose one of the issue templates instead of opening a blank issue.
+blank_issues_enabled: false
+
+# Optional contact links shown to users when they click "Open an issue".
+contact_links:
+  - name: Create an issue using templates
+    url: https://github.com/ACCISA/CloudShield/issues/new/choose
+    about: Use a template to report a bug, request a feature, or submit a user story.
