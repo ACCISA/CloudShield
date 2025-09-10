@@ -1,3 +1,8 @@
 cloudshield/DesktopUI/node_modules
 cloudshield/WebUI/node_modules
 **/node_modules
+**/__pycache__
+cloudshield/Server/__pycache__
+cloudshield/Server/dump.rdb
+cloudshield/Server/venv
+**.swp
