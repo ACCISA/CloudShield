@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import proto.agent_pb2 as agent__pb2
+from proto import agent_pb2 as agent__pb2
 
 GRPC_GENERATED_VERSION = '1.74.0'
 GRPC_VERSION = grpc.__version__
@@ -34,9 +34,9 @@ class AgentServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.StreamData = channel.stream_unary(
-                '/agentdata.AgentService/StreamData',
-                request_serializer=agent__pb2.AgentData.SerializeToString,
+        self.SendProcessList = channel.unary_unary(
+                '/AgentService/SendProcessList',
+                request_serializer=agent__pb2.ProcessList.SerializeToString,
                 response_deserializer=agent__pb2.Ack.FromString,
                 _registered_method=True)
 
@@ -44,7 +44,7 @@ class AgentServiceStub(object):
 class AgentServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def StreamData(self, request_iterator, context):
+    def SendProcessList(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,16 +53,16 @@ class AgentServiceServicer(object):
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'StreamData': grpc.stream_unary_rpc_method_handler(
-                    servicer.StreamData,
-                    request_deserializer=agent__pb2.AgentData.FromString,
+            'SendProcessList': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendProcessList,
+                    request_deserializer=agent__pb2.ProcessList.FromString,
                     response_serializer=agent__pb2.Ack.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'agentdata.AgentService', rpc_method_handlers)
+            'AgentService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('agentdata.AgentService', rpc_method_handlers)
+    server.add_registered_method_handlers('AgentService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -70,7 +70,7 @@ class AgentService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def StreamData(request_iterator,
+    def SendProcessList(request,
             target,
             options=(),
             channel_credentials=None,
@@ -80,11 +80,11 @@ class AgentService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.stream_unary(
-            request_iterator,
+        return grpc.experimental.unary_unary(
+            request,
             target,
-            '/agentdata.AgentService/StreamData',
-            agent__pb2.AgentData.SerializeToString,
+            '/AgentService/SendProcessList',
+            agent__pb2.ProcessList.SerializeToString,
             agent__pb2.Ack.FromString,
             options,
             channel_credentials,

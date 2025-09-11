@@ -24,23 +24,19 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\x12\tagentdata\"\x83\x01\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x65xe\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x13\n\x0b\x63pu_percent\x18\x05 \x01(\x01\x12\x14\n\x0cmemory_usage\x18\x06 \x01(\x03\x12\x13\n\x0b\x63reate_time\x18\x07 \x01(\x03\"\x88\x01\n\x11NetworkConnection\x12\x15\n\rlocal_address\x18\x01 \x01(\t\x12\x12\n\nlocal_port\x18\x02 \x01(\x05\x12\x16\n\x0eremote_address\x18\x03 \x01(\t\x12\x13\n\x0bremote_port\x18\x04 \x01(\x05\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x0b\n\x03pid\x18\x06 \x01(\x05\"1\n\x0fWindowsEventLog\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\xc5\x01\n\tAgentData\x12%\n\x07process\x18\x01 \x01(\x0b\x32\x12.agentdata.ProcessH\x00\x12\x30\n\x08net_conn\x18\x02 \x01(\x0b\x32\x1c.agentdata.NetworkConnectionH\x00\x12/\n\tevent_log\x18\x03 \x01(\x0b\x32\x1a.agentdata.WindowsEventLogH\x00\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\x10\n\x08\x61gent_id\x18\x05 \x01(\tB\t\n\x07payload\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2D\n\x0c\x41gentService\x12\x34\n\nStreamData\x12\x14.agentdata.AgentData\x1a\x0e.agentdata.Ack(\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\"\xa2\x01\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x65xe\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x13\n\x0b\x63pu_percent\x18\x05 \x01(\t\x12\x14\n\x0cmemory_usage\x18\x06 \x01(\t\x12\x13\n\x0b\x63reate_time\x18\x07 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x08 \x03(\t\x12\x0c\n\x04ppid\x18\t \x01(\x05\"O\n\x0bProcessList\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\x12\x1b\n\tprocesses\x18\x03 \x03(\x0b\x32\x08.Process\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t25\n\x0c\x41gentService\x12%\n\x0fSendProcessList\x12\x0c.ProcessList\x1a\x04.Ackb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'agent_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_PROCESS']._serialized_start=27
-  _globals['_PROCESS']._serialized_end=158
-  _globals['_NETWORKCONNECTION']._serialized_start=161
-  _globals['_NETWORKCONNECTION']._serialized_end=297
-  _globals['_WINDOWSEVENTLOG']._serialized_start=299
-  _globals['_WINDOWSEVENTLOG']._serialized_end=348
-  _globals['_AGENTDATA']._serialized_start=351
-  _globals['_AGENTDATA']._serialized_end=548
-  _globals['_ACK']._serialized_start=550
-  _globals['_ACK']._serialized_end=589
-  _globals['_AGENTSERVICE']._serialized_start=591
-  _globals['_AGENTSERVICE']._serialized_end=659
+  _globals['_PROCESS']._serialized_start=16
+  _globals['_PROCESS']._serialized_end=178
+  _globals['_PROCESSLIST']._serialized_start=180
+  _globals['_PROCESSLIST']._serialized_end=259
+  _globals['_ACK']._serialized_start=261
+  _globals['_ACK']._serialized_end=300
+  _globals['_AGENTSERVICE']._serialized_start=302
+  _globals['_AGENTSERVICE']._serialized_end=355
 # @@protoc_insertion_point(module_scope)

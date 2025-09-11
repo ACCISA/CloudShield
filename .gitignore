@@ -6,3 +6,4 @@ cloudshield/Server/__pycache__
 cloudshield/Server/dump.rdb
 cloudshield/Server/venv
 **.swp
+**.log

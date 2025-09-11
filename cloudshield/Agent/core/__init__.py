@@ -1,1 +1,2 @@
-from .agent_core import Agent
+from .agent import Agent
+from .logging_setup import logger

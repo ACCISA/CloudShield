@@ -2,4 +2,4 @@ grpcio
 grpcio-tools
 psutil
 pyinstaller
-pywin32
+schedule
