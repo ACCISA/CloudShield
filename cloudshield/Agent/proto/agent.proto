@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package agentdata;
+
+// Process information collected via psutil
+message Process {
+  int32 pid = 1;
+  string name = 2;
+  string exe = 3;
+  string username = 4;
+  double cpu_percent = 5;
+  int64 memory_usage = 6; // in bytes
+  int64 create_time = 7;  // epoch timestamp
+}
+
+// Network connection information (like netstat output)
+message NetworkConnection {
+  string local_address = 1;
+  int32 local_port = 2;
+  string remote_address = 3;
+  int32 remote_port = 4;
+  string status = 5; // ESTABLISHED, LISTEN
+  int32 pid = 6;     // owning process
+}
+
+// Windows event log files (.evtx)
+message WindowsEventLog {
+  string filename = 1;
+  bytes data = 2;
+}
+
+// Generic wrapper for agent data
+message AgentData {
+  oneof payload {
+    Process process = 1;
+    NetworkConnection net_conn = 2;
+    WindowsEventLog event_log = 3;
+  }
+  int64 timestamp = 4;
+  string agent_id = 5;
+}
+
+// Response from server
+message Ack {
+  bool success = 1;
+  string message = 2;
+}
+
+service AgentService {
+  rpc StreamData(stream AgentData) returns (Ack);
+}
+
