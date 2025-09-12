@@ -25,7 +25,9 @@ class Agent:
         })
         schedule.every(interval).seconds.do(task.run)
         logger.info(f"Task {name} added to scheduler (interval={interval})")
-        
+    
+    def check_workstation(self):
+        pass
 
     def start_core(self):
         """

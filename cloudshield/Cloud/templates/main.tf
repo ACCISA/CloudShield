@@ -145,6 +145,56 @@ resource "aws_security_group" "allow_ssh" {
   tags = { Name = "AllowSSH" }
 }
 
+resource "aws_security_group" "allow_rdp" {
+  vpc_id = aws_vpc.org_id_vpc.id
+
+  ingress {
+    description = "RDP from anywhere (use with caution)"
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # or restrict to your IP, e.g. ["203.0.113.10/32"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "allow-rdp" }
+}
+
+# TODO this is for dev, in prod this will be replaced with proper rules
+resource "aws_security_grou" "allow_all_tcp_udp" {
+  vpc_id = aws_vpc.org_id_vpc.id
+
+  ingress {
+    description = "Allow all TCP"
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow all UDP"
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "allow-all-tcp-udp" }
+}
+
 ##########################
 # 9. EC2 instance in Public Subnet
 ##########################
@@ -170,3 +220,11 @@ resource "aws_instance" "org_id_domain_controller" {
   tags = { Name = "org_id_domain_controller" }
 }
 
+resource "aws_instance" "org_id_workstation" {
+  ami                   = var.workstation_ami
+  instance_type         = "t2.medium"
+  subnet_id             = aws_subnet.org_id_private_subnet.id
+  vpc_security_group_ids = [aws_security_group.allow_rdp.id]
+  key_name              = aws_key_pair.org_id_key.key_name
+  tags = { Name = "org_id_workstation" }
+}

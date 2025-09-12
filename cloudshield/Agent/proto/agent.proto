@@ -18,6 +18,12 @@ message ProcessList {
   repeated Process processes = 3;
 }
 
+
+message WorkstationInit {
+        string agent_id = 1;
+        string domain = 2;
+}
+
 message Ack {
   bool success = 1;
   string message = 2;
@@ -25,4 +31,5 @@ message Ack {
 
 service AgentService {
   rpc SendProcessList(ProcessList) returns (Ack);
+  rpc SendWorkstationInit(WorkstationInit) returns (Ack);
 }
