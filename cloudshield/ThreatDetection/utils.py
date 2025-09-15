@@ -1,6 +1,10 @@
 import json
 import urllib.parse
 
+def ingest_processes(processes):
+    return processes
+
+
 def get_agents():
 
     # TODO replace this with mongodb
