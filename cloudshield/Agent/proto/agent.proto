@@ -8,7 +8,7 @@ message Process {
   string cpu_percent = 5;
   string memory_usage = 6;
   string create_time = 7;
-  repeated string cmdline = 8;
+  string cmdline = 8;
   int32 ppid = 9;
 }
 

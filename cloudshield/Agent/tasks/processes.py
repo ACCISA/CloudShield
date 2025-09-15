@@ -26,7 +26,7 @@ class GetProcessListTask(BaseTask):
                     'create_time': str(info['create_time']),
                     'cpu_percent': str(info['cpu_percent']),
                     'memory_usage': str(info['memory_info'].rss) if info['memory_info'] else "",
-                    'cmdline': info['cmdline'],
+                    'cmdline': " ".join(info['cmdline']),
                     'ppid': info['ppid']
                 })
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
