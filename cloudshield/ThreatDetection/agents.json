@@ -1,0 +1,10 @@
+{
+	"agents": [
+		{
+			"agent_id": "agent-1",
+			"ip": "127.0.0.1",
+			"hostname": "cena"
+		}
+	]
+
+}

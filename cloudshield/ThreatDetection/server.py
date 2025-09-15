@@ -1,0 +1,64 @@
+import signal
+import time
+import grpc
+import urllib.parse
+from concurrent import futures
+
+import proto.agent_pb2 as agent_pb2
+import proto.agent_pb2_grpc as agent_pb2_grpc
+
+from utils import get_agents, get_ip, is_valid_agent
+from servicer import AgentServiceServicer
+
+agents = get_agents()
+
+class ClientIPInterceptor(grpc.ServerInterceptor):
+    def intercept_service(self, continuation, handler_call_details):
+        handler = continuation(handler_call_details)
+        if handler is None:
+            return None  # no handler found, skip
+
+        # Wrap unary-unary calls (most common)
+        if handler.unary_unary:
+            def new_unary_unary(request, context):
+                peer = context.peer()
+                if peer.startswith("ipv4:"):
+                    ip = peer.split(":")[1]
+                elif peer.startswith("ipv6:"):
+                    ip = peer.split("]:")[0][5:]
+                else:
+                    ip = "unknown"
+                print(f"[Interceptor] Client IP: {ip}")
+                if not is_valid_agent(agents, ip):
+                    print("invalid agent tried to talk to grpc")
+                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid Agent")
+
+                return handler.unary_unary(request, context)
+
+            return grpc.unary_unary_rpc_method_handler(
+                new_unary_unary,
+                request_deserializer=handler.request_deserializer,
+                response_serializer=handler.response_serializer
+            )
+
+        return handler
+
+def serve(bind_address="0.0.0.0:50051"):
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors=[ClientIPInterceptor()]
+    )
+
+    agent_pb2_grpc.add_AgentServiceServicer_to_server(
+        AgentServiceServicer(), server
+    )
+    server.add_insecure_port(bind_address)
+
+    server.start()
+    print(f"gRPC server listening on {bind_address}")
+    server.wait_for_termination()
+    print("Server stopped.")
+
+
+if __name__ == "__main__":
+    serve()
