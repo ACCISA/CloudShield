@@ -48,3 +48,6 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             return agent_pb2.ProcessListAck(action=True, pids=pids)
         
         return agent_pb2.ProcessListAck(action=True, pids=pids)
+
+    def SendProcessListInformation(self, request, context):
+        return agent_pb2.Ack(success=True, message="test") 

@@ -95,5 +95,6 @@ if __name__ == "__main__":
     t = threading.Thread(target=print_heartbeats, daemon=True)
     t2= threading.Thread(target=monitor_state, daemon=True)
     t.start()
+    t2.start()
 
     serve()
