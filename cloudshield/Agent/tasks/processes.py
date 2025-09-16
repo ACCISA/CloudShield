@@ -1,5 +1,6 @@
 from tasks import BaseTask
 from proto import agent_pb2
+from logger import logger
 
 import psutil
 import time
@@ -33,6 +34,9 @@ class GetProcessListTask(BaseTask):
                 continue
         return processes
 
+    def get_process_information(self, pid):
+        return {"pid": 1, "name":"name"}
+
     def run(self):
         processes = self.get_process_list()
         request = agent_pb2.ProcessList(
@@ -41,4 +45,21 @@ class GetProcessListTask(BaseTask):
             processes=processes
         )
 
-        self.send("SendProcessList", request)
+        response = self.send("SendProcessList", request)
+
+        if response.action is True:
+            logger.info("Responding to GRPC Server with detailed process info")
+            pids = response.pids
+            processes_info = []
+            for pid in pids:
+                processes_info.append(self.get_process_information(pid))
+            
+            request_res = agent_pb2.ProcessListAckRes(
+                    agent_id=self.agent_state["agent_id"],
+                    timestamp=int(time.time()),
+                    processes=processes_info
+            )
+
+            response_res = self.send("SendProcessListInformation", request_res)
+
+

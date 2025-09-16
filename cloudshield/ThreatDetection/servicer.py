@@ -27,7 +27,6 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
         print(f"[INIT] Agent {request.agent_id} from domain {request.domain}")
         return agent_pb2.Ack(success=True, message="Workstation registered")
 
-    @loggable
     def SendProcessList(self, request, context):
         
         print(f"[PROCESS LIST] From {request.agent_id} ({get_ip(context.peer())}) at {request.timestamp}")
@@ -42,7 +41,10 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 "data": process
             })
         unknown_processes = ingest_processes(process_data)
-        print(unknown_processes)
-        return agent_pb2.Ack(success=True, message="Process list received")
-
-
+        pids = [proc["data"].pid for proc in unknown_processes]
+        print(type(pids))
+        print(type(pids[0]))
+        if len(unknown_processes) != 0:
+            return agent_pb2.ProcessListAck(action=True, pids=pids)
+        
+        return agent_pb2.ProcessListAck(action=True, pids=pids)

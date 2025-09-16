@@ -1,5 +1,6 @@
 from proto import agent_pb2
 from proto import agent_pb2_grpc
+from logger import logger
 
 import grpc
 from abc import ABC, abstractmethod
@@ -25,6 +26,8 @@ class BaseTask(ABC):
         """
         if not hasattr(self.stub, grpc_call_name):
             raise AttributeError(f"gRPC call '{gRPC_call}' does not exist")
+
+        logger.info(f"Sending RPC '{grpc_call_name}'")
         
         grpc_call = getattr(self.stub, grpc_call_name)
 

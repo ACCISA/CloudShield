@@ -12,9 +12,11 @@ import proto.agent_pb2_grpc as agent_pb2_grpc
 
 from utils import get_agents, get_ip, is_valid_agent
 from servicer import AgentServiceServicer
+from state import GRPCStateManager
 
 agents = get_agents()
 heartbeats = {}
+state_manager = GRPCStateManager()
 
 
 def log_heartbeat(agent_id, method):
@@ -83,9 +85,15 @@ def print_heartbeats():
         print(heartbeats)
         time.sleep(5)
 
+def monitor_state():
+    while True:
+        print("state_manager -------------")
+        state_manager.get_missing_responses()
+        time.sleep(5)
 
 if __name__ == "__main__":
     t = threading.Thread(target=print_heartbeats, daemon=True)
+    t2= threading.Thread(target=monitor_state, daemon=True)
     t.start()
 
     serve()
