@@ -12,11 +12,10 @@ import proto.agent_pb2_grpc as agent_pb2_grpc
 
 from utils import get_agents, get_ip, is_valid_agent
 from servicer import AgentServiceServicer
-from state import GRPCStateManager
+from state import state_manager
 
 agents = get_agents()
 heartbeats = {}
-state_manager = GRPCStateManager()
 
 
 def log_heartbeat(agent_id, method):
@@ -81,8 +80,6 @@ def serve(bind_address="0.0.0.0:50051"):
 
 def print_heartbeats():
     while True:
-        print("heartbeats ----------------")
-        print(heartbeats)
         time.sleep(5)
 
 def monitor_state():

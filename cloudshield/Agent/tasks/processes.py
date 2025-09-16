@@ -61,5 +61,3 @@ class GetProcessListTask(BaseTask):
             )
 
             response_res = self.send("SendProcessListInformation", request_res)
-
-

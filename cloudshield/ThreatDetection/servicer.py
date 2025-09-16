@@ -5,6 +5,7 @@ from utils import get_ip, ingest_processes
 import hashlib
 from elasticsearch import Elasticsearch
 from google.protobuf.json_format import MessageToDict
+from state import state_manager
 
 def loggable(func):
 
@@ -42,12 +43,17 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             })
         unknown_processes = ingest_processes(process_data)
         pids = [proc["data"].pid for proc in unknown_processes]
-        print(type(pids))
-        print(type(pids[0]))
+
         if len(unknown_processes) != 0:
+            state_manager.set_expected_response(request.agent_id,"SendProcessListInformation")
             return agent_pb2.ProcessListAck(action=True, pids=pids)
         
         return agent_pb2.ProcessListAck(action=True, pids=pids)
 
     def SendProcessListInformation(self, request, context):
+        if state_manager.is_expected(request.agent_id, "SendProcessListInformation"):
+            print("expected")
+        else:
+            print("should of been expected")
+
         return agent_pb2.Ack(success=True, message="test") 
