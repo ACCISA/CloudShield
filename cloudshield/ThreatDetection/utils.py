@@ -14,10 +14,10 @@ def get_agents():
 
     return data["agents"]
 
-def is_valid_agent(agents, ip):
+def is_valid_agent(agents, ip, agent_id):
 
     for agent in agents:
-        if ip == agent["ip"]: return True
+        if ip == agent["ip"] and agent_id == agent["agent_id"]: return True
     return False
 
 def get_ip(peer: str) -> str:
