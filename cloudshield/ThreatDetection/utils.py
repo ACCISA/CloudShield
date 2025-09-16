@@ -1,8 +1,23 @@
 import json
 import urllib.parse
+def read_hashes():
+    hashes = []
+    f = open("hashes", "r")
+    for line in f:
+        hashes.append(line.strip())
+    return hashes
+
+hashes = read_hashes()
 
 def ingest_processes(processes):
-    return processes
+    
+    unknown_processes = []
+
+    for proc in processes:
+        if proc["hash"] not in hashes:
+            unknown_processes.append(proc)
+
+    return unknown_processes
 
 
 def get_agents():
@@ -14,10 +29,10 @@ def get_agents():
 
     return data["agents"]
 
-def is_valid_agent(agents, ip):
+def is_valid_agent(agents, ip, agent_id):
 
     for agent in agents:
-        if ip == agent["ip"]: return True
+        if ip == agent["ip"] and agent_id == agent["agent_id"]: return True
     return False
 
 def get_ip(peer: str) -> str:
@@ -35,4 +50,3 @@ def get_ip(peer: str) -> str:
         host = decoded.split("]")[0].strip("[")
         return host
     return "unknown"
-
