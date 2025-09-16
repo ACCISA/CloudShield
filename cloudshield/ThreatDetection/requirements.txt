@@ -1,0 +1,6 @@
+grpcio
+elasticsearch
+grpcio-tools
+psutil
+pyinstaller
+schedule
