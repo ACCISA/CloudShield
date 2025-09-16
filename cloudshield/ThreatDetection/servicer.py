@@ -41,8 +41,8 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 "hash":hashlib.sha256(process.cmdline.encode()).hexdigest(),
                 "data": process
             })
-        ingest_processes(process_data)
-
+        unknown_processes = ingest_processes(process_data)
+        print(unknown_processes)
         return agent_pb2.Ack(success=True, message="Process list received")
 
 
