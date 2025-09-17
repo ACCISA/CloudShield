@@ -1,44 +1,82 @@
 import time
 
-from logger import logger
+from logger import state_logger
 
 class GRPCStateManager:
+    """
+    The GRPC state manager allows our central server to detect anomalies in requests sent by agents. Certain RPCs should only be made if the server is expecting it.
+    """
     
-    def __init__(self):
-        self.expected = {}
-        self.delay = 180
+    def __init__(self, delay):
+        self.expected = []
+        self.delay = delay
 
-    def set_expected_response(self, agent_id, method):
-        # TODO fix this so that we can make the server wait for different type of rpcs
-        expected_rpc = self.expected.get(agent_id, None)
-        if expected_rpc is not None and expected_rpc["method"] == method:
-            logger.warning(f"Agent '{agent_id}' is already expecting a response for '{method}'")
-            return
-        self.expected[agent_id] = {
-            "method": method,
-            "timestamp": int(time.time())
-        }
+    def is_duplicated(self, agent_id, request_method, response_method):
+        """
+        Check if the state manager already has an entry for this RPC combination.
+        """
+        expected_requests = self.get_agent_requests(agent_id)
+        if len([request for request in expected_requests if request_method == request["request_method"] and response_method == request["response_method"]]) == 0: return False
+        return True
+
+    def set_expected_response(self, agent_id, request_method, response_method):
+        """
+        Set an expected RPC response after a RPC request made by an agent.
+        Example: A SendProcessList should follow with a SendProcessListInformation
+        """
         
-        logger.info(f"Expected response added for '{agent_id}' (method='{method}')")
+        if self.is_duplicated(agent_id, request_method, response_method):
+            state_logger.info(f"'{agent_id}' is already expecting a response (request_method='{request_method}', response_method='{response_method}'")
+            return
+
+        self.expected.append({
+            "agent_id": agent_id,
+            "request_method": request_method,
+            "request_timestamp": int(time.time()),
+            "response_method": response_method
+        })
+
+        state_logger.info(f"Expected response added for '{agent_id}' (request_method='{request_method}', response_method='{response_method}')")
     
-    def get_missing_responses(self):
-        for agent_id in self.expected.keys():
-            method = self.expected[agent_id]["method"]
+    def get_agent_requests(self, agent_id):
+        """
+        Get the expected RPCs from an agent.
+        """
+        return [request for request in self.expected if request["agent_id"] == agent_id]
+        
+    def alert_missing_responses(self): 
+        """
+        This function is ran to log agents that have not responded with expected RPCs.
+        Example: An agent sent a SendProcessList and the server notified the agent to send a SendProcessListInformation. If the agent never replies back with a SendProcessListInformation, an event should be logged.
+        """
+        for request in self.expected:
+            request_method = request["request_method"]
+            response_method = request["response_method"]
+            agent_id = request["agent_id"]
+            request_timestamp = request["request_timestamp"]
             curtime = int(time.time())
-            timestamp = self.expected[agent_id]["timestamp"]
-            if (curtime - timestamp) > self.delay:
-                logger.warning(f"Agent '{agent_id}' was expected to respond with '{method}'")
+            if (curtime - request_timestamp) > self.delay:
+                state_logger.warning(f"Agent '{agent_id}' was expected to respond with '{response_method}' after a '{request_method}' call")
 
-    def is_expected(self, agent_id, method):
-        if self.expected.get(agent_id, None) is None:
-            return False
-        expected_method = self.expected[agent_id]["method"]
-        if method == expected_method:
-            logger.info(f"Agent '{agent_id}' has responded with '{method}' as expected")
-            del self.expected[agent_id]
-            return True
+    def is_expected(self, agent_id, new_response_method):
+        """
+        This function is ran on RPCs that are meant to be responses from previous RPC calls.
+        Example: SendProcessListInformation should only be sent after a SendProcessList.
+        If a SendProcessListInformation is sent without a SendProcessList, an event should be logged.
+        """
+        agent_requests = self.get_agent_requests(agent_id)
 
-        logging.warning(f"Agent '{agent_id}' was expecting '{expected_method}' but received '{method}'")
+        if len(agent_requests) == 0: return False
+
+        for idx, request in enumerate(agent_requests):
+            request_method = request["request_method"]
+            response_method = request["response_method"]
+            if new_response_method == response_method:
+                state_logger.info(f"Agent '{agent_id}' has responded with '{response_method}' after '{request_method}' as expected")
+                self.expected.pop(idx)
+                return True
+
+        state_logger.warning(f"Agent '{agent_id}' was not expecting a '{new_response_method}'")
         return False
 
-state_manager = GRPCStateManager()
+state_manager = GRPCStateManager(delay=180)

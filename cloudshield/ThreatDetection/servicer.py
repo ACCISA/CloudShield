@@ -6,6 +6,8 @@ import hashlib
 from elasticsearch import Elasticsearch
 from google.protobuf.json_format import MessageToDict
 from state import state_manager
+from logger import servicer_logger
+
 
 def loggable(func):
 
@@ -30,8 +32,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
 
     def SendProcessList(self, request, context):
         
-        print(f"[PROCESS LIST] From {request.agent_id} ({get_ip(context.peer())}) at {request.timestamp}")
-        print(f"  Received {len(request.processes)} processes")
+        servicer_logger.info(f"Received {len(request.processes)} processes from {request.agent_id} (ip={get_ip(context.peer())})")
         process_data = []
         for process in request.processes:
             if process.cmdline.strip(" ") == "": 
@@ -45,15 +46,14 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
         pids = [proc["data"].pid for proc in unknown_processes]
 
         if len(unknown_processes) != 0:
-            state_manager.set_expected_response(request.agent_id,"SendProcessListInformation")
+            state_manager.set_expected_response(request.agent_id, "SendProcessList", "SendProcessListInformation")
             return agent_pb2.ProcessListAck(action=True, pids=pids)
         
         return agent_pb2.ProcessListAck(action=True, pids=pids)
 
     def SendProcessListInformation(self, request, context):
-        if state_manager.is_expected(request.agent_id, "SendProcessListInformation"):
-            print("expected")
-        else:
-            print("should of been expected")
+        if not state_manager.is_expected(request.agent_id, "SendProcessListInformation"):
+            # what should we send back if we get an unexpected call?
+            return
 
         return agent_pb2.Ack(success=True, message="test") 
