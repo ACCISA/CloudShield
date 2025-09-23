@@ -17,15 +17,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Determine Branch Name
+      - name: Set Branch Name (PR)
         id: set_branch
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
-          else
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-            echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          fi
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "branch=${GITHUB_HEAD_REF}" >> $GITHUB_OUTPUT
+
+      - name: Set Branch Name (Push)
+        id: set_branch_push
+        if: ${{ github.event_name != 'pull_request' }}
+        run: echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
   test_python:
     runs-on: ubuntu-latest

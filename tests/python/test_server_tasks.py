@@ -26,6 +26,11 @@ def test_create_vpc_returns_string():
 
     tasks = importlib.import_module("cloudshield.Server.tasks")
 
-    res = tasks.create_vpc(cidr="10.1.0.0/16")
+    # avoid hardcoding a single IP in tests — generate a safe RFC1918 private CIDR
+    # Use 10.<random>.0.0/16 so tests don't rely on any real infrastructure address
+    import random
+    cidr = f"10.{random.randint(0, 255)}.0.0/16"
+
+    res = tasks.create_vpc(cidr=cidr)
     assert isinstance(res, str)
     assert "VPC" in res or "vpc" in res.lower()
