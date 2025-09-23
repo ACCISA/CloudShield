@@ -7,3 +7,7 @@ cloudshield/Server/dump.rdb
 cloudshield/Server/venv
 **.swp
 **.log
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.lock.hcl
+**/.terraform/
