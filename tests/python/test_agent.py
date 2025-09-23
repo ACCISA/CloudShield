@@ -1,17 +1,20 @@
-import importlib.util
+import importlib
+import sys
 import pathlib
 
 
-def _load_module(path_parts, name="mod"):
-    path = pathlib.Path(__file__).parents[2].joinpath(*path_parts)
-    spec = importlib.util.spec_from_file_location(name, str(path))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def _repo_root():
+    return pathlib.Path(__file__).parents[2]
 
 
 def test_register_task_adds_task():
-    agent_mod = _load_module(["cloudshield", "Agent", "core", "agent.py"], "agent_mod")
+    # Ensure repo root is on sys.path so package imports work
+    repo = str(_repo_root())
+    if repo not in sys.path:
+        sys.path.insert(0, repo)
+
+    # Import as a proper package
+    agent_mod = importlib.import_module("cloudshield.Agent.core.agent")
 
     class DummyTask:
         def __init__(self):

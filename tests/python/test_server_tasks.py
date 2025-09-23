@@ -1,17 +1,18 @@
-import importlib.util
+import importlib
+import sys
 import pathlib
 
 
-def _load_module(path_parts, name="mod"):
-    path = pathlib.Path(__file__).parents[2].joinpath(*path_parts)
-    spec = importlib.util.spec_from_file_location(name, str(path))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def _repo_root():
+    return pathlib.Path(__file__).parents[2]
 
 
 def test_create_ec2_returns_string():
-    tasks = _load_module(["cloudshield", "Server", "tasks.py"], "tasks_mod")
+    repo = str(_repo_root())
+    if repo not in sys.path:
+        sys.path.insert(0, repo)
+
+    tasks = importlib.import_module("cloudshield.Server.tasks")
 
     res = tasks.create_ec2(instance_type="t2.micro", ami="ami-test")
     assert isinstance(res, str)
@@ -19,8 +20,12 @@ def test_create_ec2_returns_string():
 
 
 def test_create_vpc_returns_string():
-    tasks = _load_module(["cloudshield", "Server", "tasks.py"], "tasks_mod")
+    repo = str(_repo_root())
+    if repo not in sys.path:
+        sys.path.insert(0, repo)
+
+    tasks = importlib.import_module("cloudshield.Server.tasks")
 
     res = tasks.create_vpc(cidr="10.1.0.0/16")
     assert isinstance(res, str)
-    assert "VPC" in res or "VPC".lower()
+    assert "VPC" in res or "vpc" in res.lower()
