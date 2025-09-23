@@ -5,7 +5,7 @@ import secrets
 
 
 def _repo_root():
-    return pathlib.Path(__file__).parents[2]
+    return pathlib.Path(__file__).parents[3]
 
 
 def test_create_ec2_returns_string():

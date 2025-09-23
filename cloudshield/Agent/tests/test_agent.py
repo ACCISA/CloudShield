@@ -4,7 +4,7 @@ import pathlib
 
 
 def _repo_root():
-    return pathlib.Path(__file__).parents[2]
+    return pathlib.Path(__file__).parents[3]
 
 
 def test_register_task_adds_task():
