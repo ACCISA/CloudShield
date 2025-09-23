@@ -78,12 +78,6 @@ jobs:
           name: python-coverage
           path: tests/python/coverage
 
-      - name: Download Frontend coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-coverage
-          path: cloudshield/DesktopUI/coverage
-
       - name: Install SonarQube Scanner
         run: |
           curl -sL -o scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
@@ -103,4 +97,5 @@ jobs:
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${SONAR_HOST_URL} \
             -Dsonar.login=${SONAR_TOKEN} \
+            -Dsonar.coverage.exclusions=**/tests/**,**/*.test.js \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/lcov.info || true
