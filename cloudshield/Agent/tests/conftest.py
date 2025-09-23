@@ -1,51 +1,16 @@
+import importlib.util
+import pathlib
 import sys
-import types
 
+# Delegate to the repository root conftest.py to avoid duplicating fixture/stub code.
+# This loader imports the file and injects its public names into this module's globals
+# so pytest finds the fixtures as if they were defined here.
+root_conftest = pathlib.Path(__file__).resolve().parents[3] / "conftest.py"
+spec = importlib.util.spec_from_file_location("root_conftest", str(root_conftest))
+module = importlib.util.module_from_spec(spec)
+sys.modules["root_conftest"] = module
+spec.loader.exec_module(module)
 
-def _stub_module(name, attrs=None):
-    if name in sys.modules:
-        return sys.modules[name]
-    m = types.ModuleType(name)
-    if attrs:
-        for k, v in attrs.items():
-            setattr(m, k, v)
-    sys.modules[name] = m
-    return m
-
-
-# Provide lightweight stubs for optional dependencies used by the codebase so
-# tests run in CI/local envs that don't have every library installed.
-_stub_module("grpc", {"insecure_channel": lambda *a, **k: None})
-
-
-class _Sched:
-    def __init__(self, interval=None):
-        self.interval = interval
-        # emulate schedule.every(...).seconds returning an object with .do()
-        self.seconds = self
-
-    def do(self, func):
-        # no-op scheduler in tests
-        return None
-
-
-_stub_module("schedule", {"every": lambda interval=None: _Sched(interval), "run_pending": lambda: None})
-
-
-# boto3, rq, redis are common optional dependencies in repo; provide minimal stubs
-_stub_module("boto3")
-
-
-def _get_current_job_stub():
-    job = types.SimpleNamespace()
-    job.meta = {}
-    job.save_meta = lambda: None
-    job.id = "test-job"
-    job.is_finished = False
-    job.result = None
-    job.get_status = lambda: "queued"
-    return job
-
-
-_stub_module("rq", {"get_current_job": lambda: _get_current_job_stub()})
-_stub_module("redis")
+for name in dir(module):
+    if not name.startswith("_"):
+        globals()[name] = getattr(module, name)
