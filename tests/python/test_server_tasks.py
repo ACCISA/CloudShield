@@ -1,6 +1,7 @@
 import importlib
 import sys
 import pathlib
+import secrets
 
 
 def _repo_root():
@@ -28,8 +29,7 @@ def test_create_vpc_returns_string():
 
     # avoid hardcoding a single IP in tests — generate a safe RFC1918 private CIDR
     # Use 10.<random>.0.0/16 so tests don't rely on any real infrastructure address
-    import random
-    cidr = f"10.{random.randint(0, 255)}.0.0/16"
+    cidr = f"10.{secrets.randbelow(256)}.0.0/16"
 
     res = tasks.create_vpc(cidr=cidr)
     assert isinstance(res, str)

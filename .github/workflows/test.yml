@@ -97,5 +97,6 @@ jobs:
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${SONAR_HOST_URL} \
             -Dsonar.login=${SONAR_TOKEN} \
-            -Dsonar.coverage.exclusions=**/tests/**,**/*.test.js \
+            -Dsonar.coverage.exclusions=**/tests \
+            -Dsonar.exclusions=**/tests \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/lcov.info || true
