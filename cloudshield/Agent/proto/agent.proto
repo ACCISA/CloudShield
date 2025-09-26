@@ -32,6 +32,7 @@ message Ack {
 message ProcessInformation {
 	int32 pid = 1;
 	string name = 2;
+        repeated string handles = 3;
 }
 
 
@@ -49,5 +50,6 @@ message ProcessListAck {
 service AgentService {
 	rpc SendProcessList(ProcessList) returns (ProcessListAck);
 	rpc SendProcessListInformation(ProcessListAckRes) returns (Ack);
+
 	rpc SendWorkstationInit(WorkstationInit) returns (Ack);
 }
