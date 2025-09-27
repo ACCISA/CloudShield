@@ -1,12 +1,9 @@
-line-length = 100
+# ruff.toml
+line-length = 200
 target-version = "py311"
 
 [lint]
-select = ["E", "F"]
+select = ["E", "F"]  # keep it simple for now
 
 [lint.per-file-ignores]
-"cloudshield/Agent/core/__init__.py" = ["F401"]
-"cloudshield/Agent/tasks/__init__.py" = ["F401"]
-"cloudshield/Agent/proto/*" = ["F401", "F541"]
-"cloudshield/Server/tasks.py" = ["F401", "F541"]
-"cloudshield/Agent/tasks/task.py" = ["F401"]
+"cloudshield/Agent/proto/*.py" = ["E501", "F401", "F541"]

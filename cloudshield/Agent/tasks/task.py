@@ -24,7 +24,7 @@ class BaseTask(ABC):
         Send the result of the task to the server using the provided grpc name. For this to work the RPC call has to be defined in a .proto file and the stub code has to be generated inside of proto/
         """
         if not hasattr(self.stub, grpc_call_name):
-            raise AttributeError(f"gRPC call '{gRPC_call}' does not exist")
+            raise AttributeError(f"gRPC call '{grpc_call_name}' does not exist")
         
         grpc_call = getattr(self.stub, grpc_call_name)
 
