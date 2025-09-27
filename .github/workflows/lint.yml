@@ -1,7 +1,18 @@
-name: Lint
+name: Lint (Ruff)
+
 on:
+  push:
+    paths:
+      - 'cloudshield/Server/**'
+      - 'cloudshield/Agent/**'
+      - 'ruff.toml'
+      - '.github/workflows/lint.yml'
   pull_request:
-    branches: ["main"]
+    paths:
+      - 'cloudshield/Server/**'
+      - 'cloudshield/Agent/**'
+      - 'ruff.toml'
+      - '.github/workflows/lint.yml'
 
 jobs:
   python-lint:
