@@ -17,10 +17,10 @@ jobs:
         component: [Server, Agent]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -33,7 +33,7 @@ jobs:
           echo "COMPONENT_LC=$(echo '${{ matrix.component }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build & Push Nightly
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: ./cloudshield/${{ matrix.component }}
           file: ./cloudshield/${{ matrix.component }}/Dockerfile
