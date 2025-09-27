@@ -13,7 +13,7 @@ import proto.agent_pb2_grpc as agent_pb2_grpc
 from utils import get_agents, get_ip, is_valid_agent
 from servicer import AgentServiceServicer
 from state import state_manager
-from logger import state_logger
+from logger import state_logger, server_logger, interceptor_logger
 
 agents = get_agents()
 heartbeats = {}
@@ -50,8 +50,13 @@ class ClientIPInterceptor(grpc.ServerInterceptor):
                     ip = "unknown"
                 #print(f"[Interceptor] Client IP: {ip}")
                 if not is_valid_agent(agents, ip, agent_id):
-                    print("invalid agent tried to talk to grpc")
+                    interceptor_logger.warning("invalid agent tried to talk to grpc")
                     context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid Agent")
+
+                if agent_id is None:
+                    interceptor_logger.warning("rpc message received with no agent_id")
+                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid RPC call")
+                
                 log_heartbeat(agent_id, method_name)
                 return handler.unary_unary(request, context)
 
@@ -70,14 +75,14 @@ def serve(bind_address="0.0.0.0:50051"):
     )
 
     agent_pb2_grpc.add_AgentServiceServicer_to_server(
-        AgentServiceServicer(), server
+        AgentServiceServicer(""), server
     )
     server.add_insecure_port(bind_address)
 
     server.start()
-    print(f"gRPC server listening on {bind_address}")
+    server_logger.info(f"gRPC server listening on {bind_address}")
     server.wait_for_termination()
-    print("Server stopped.")
+    server_logger.info("Server stopped.")
 
 def print_heartbeats():
     while True:

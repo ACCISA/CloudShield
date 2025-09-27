@@ -27,3 +27,4 @@ def create_logger(name: str, log_file: str, prefix: str) -> logging.Logger:
 state_logger = create_logger("state", "logs/state.log", "STATE")
 server_logger = create_logger("server", "logs/server.log", "SERVER")
 servicer_logger = create_logger("servicer", "logs/servicer.log", "SERVICER")
+interceptor_logger = create_logger("interceptor", "logs/interceptor.log", "INTERCEPTOR")

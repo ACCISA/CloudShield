@@ -1,5 +1,9 @@
 import json
 import urllib.parse
+from elasticsearch import Elasticsearch
+
+from logger import server_logger
+
 def read_hashes():
     hashes = []
     f = open("hashes", "r")
@@ -8,6 +12,23 @@ def read_hashes():
     return hashes
 
 hashes = read_hashes()
+
+es = Elasticsearch(
+    "http://localhost:9200",
+    http_auth=("elastic","enKPRIhK")
+)
+try:
+    es.ping()
+except:
+    server_logger.warning("Unable to connect to ElasticSearch instance")
+
+def es_log(index, doc):
+    try:
+        es.index(index=index, document=doc)
+    except:
+        pass
+
+
 
 def ingest_processes(processes):
     
