@@ -1,4 +1,4 @@
-name: Build Images (GHCR)
+name: Build
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  docker-images:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
     strategy:
@@ -83,3 +83,31 @@ jobs:
         run: |
           test -f "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
           ls -lh "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
+
+  desktopui:
+    name: Build DesktopUI (no container)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudshield/DesktopUI
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: cloudshield/DesktopUI/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload DesktopUI build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktopui-build-${{ github.sha }}
+          path: cloudshield/DesktopUI/build
+          if-no-files-found: error
+          retention-days: 7
