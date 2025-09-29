@@ -1,0 +1,12 @@
+node_modules
+.git
+.github
+Dockerfile
+nginx.conf
+*.log
+*.map
+.env
+.env.*
+coverage
+__tests__/
+tests/
