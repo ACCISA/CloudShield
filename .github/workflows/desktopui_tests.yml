@@ -1,7 +1,6 @@
 name: DesktopUI JS Tests
 
 on:
-  push:
   pull_request:
 
 permissions:

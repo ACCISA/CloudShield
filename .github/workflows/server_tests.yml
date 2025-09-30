@@ -1,7 +1,6 @@
 name: Server Python Tests
 
 on:
-  push:
   pull_request:
 
 permissions:

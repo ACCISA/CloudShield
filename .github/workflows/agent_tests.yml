@@ -1,7 +1,6 @@
 name: Agent Python Tests
 
 on:
-  push:
   pull_request:
 
 permissions:
