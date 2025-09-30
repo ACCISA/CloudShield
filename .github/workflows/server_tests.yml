@@ -2,11 +2,7 @@ name: Server Python Tests
 
 on:
   push:
-    paths:
-      - 'cloudshield/Server/**'
   pull_request:
-    paths:
-      - 'cloudshield/Server/**'
 
 permissions:
   contents: read

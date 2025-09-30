@@ -2,11 +2,7 @@ name: Agent Python Tests
 
 on:
   push:
-    paths:
-      - 'cloudshield/Agent/**'
   pull_request:
-    paths:
-      - 'cloudshield/Agent/**'
 
 permissions:
   contents: read

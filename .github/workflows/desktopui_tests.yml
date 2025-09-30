@@ -2,11 +2,7 @@ name: DesktopUI JS Tests
 
 on:
   push:
-    paths:
-      - 'cloudshield/DesktopUI/**'
   pull_request:
-    paths:
-      - 'cloudshield/DesktopUI/**'
 
 permissions:
   contents: read
