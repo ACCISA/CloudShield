@@ -166,7 +166,7 @@ resource "aws_security_group" "allow_rdp" {
 }
 
 # TODO this is for dev, in prod this will be replaced with proper rules
-resource "aws_security_grou" "allow_all_tcp_udp" {
+resource "aws_security_group" "allow_all_tcp_udp" {
   vpc_id = aws_vpc.org_id_vpc.id
 
   ingress {
