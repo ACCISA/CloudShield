@@ -9,9 +9,11 @@ from concurrent import futures
 
 import proto.agent_pb2 as agent_pb2
 import proto.agent_pb2_grpc as agent_pb2_grpc
+import proto.bootstrap_pb2 as bootstrap_pb2
+import proto.bootstrap_pb2_grpc as bootstrap_pb2_grpc
 
 from utils import get_agents, get_ip, is_valid_agent
-from servicer import AgentServiceServicer
+from servicer import AgentServiceServicer, BootstrapServiceServicer
 from state import state_manager
 from logger import state_logger, server_logger, interceptor_logger
 
@@ -76,6 +78,9 @@ def serve(bind_address="0.0.0.0:50051"):
 
     agent_pb2_grpc.add_AgentServiceServicer_to_server(
         AgentServiceServicer(""), server
+    )
+    bootstrap_pb2_grpc.add_BootstrapServiceServicer_to_server(
+        BootstrapServiceServicer(), server,    
     )
     server.add_insecure_port(bind_address)
 

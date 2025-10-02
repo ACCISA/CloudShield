@@ -1,5 +1,7 @@
 import proto.agent_pb2 as agent_pb2
 import proto.agent_pb2_grpc as agent_pb2_grpc
+import proto.bootstrap_pb2 as bootstrap_pb2
+import proto.bootstrap_pb2_grpc as bootstrap_pb2_grpc
 from utils import get_ip, ingest_processes
 
 import hashlib
@@ -18,7 +20,21 @@ def loggable(func):
         return func(*args, **kwargs)
 
     return wrapper
-    
+
+class BootstrapServiceServicer(bootstrap_pb2_grpc.BootstrapServiceServicer):
+
+    def __init__(self):
+        pass
+
+    def ValidateVersion(self, request, context):
+        checksum = request.md5sum
+
+        servicer_logger.info(f"CHECKSUM: {checksum}")
+
+        return bootstrap_pb2.VersionCheckAck(
+            status=bootstrap_pb2.VersionCheckAck.UPDATE_REQUIRED,
+            binary=b"aaaaaaaaaaaaaaaaa"
+        )
 
 class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
 
