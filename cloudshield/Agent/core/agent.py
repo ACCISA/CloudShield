@@ -103,6 +103,9 @@ class Agent:
         return None
 
     def register_task(self, name, task, interval):
+        """
+        Register a task to the scheduler. This task must inherit from BaseTask. Tasks that fail sending messages will write them to cache.
+        """
         self.tasks.append({
             "task_name": name,
             "function": task,
