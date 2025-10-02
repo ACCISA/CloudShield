@@ -157,11 +157,11 @@ jobs:
         run: |
           sonar-scanner \
             -Dsonar.organization=${SONAR_ORG} \
-            -Dsonar.projectKey=${{ github.repository }} \
+            -Dsonar.projectKey=my-org_my-project \
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${SONAR_HOST_URL} \
             -Dsonar.login=${SONAR_TOKEN} \
-            -Dsonar.coverage.exclusions="**/tests/**,**/agent_pb2.py,**/agent_pb2_grpc.py,**/logger.py" \
-            -Dsonar.exclusions="**/tests/**,**/agent_pb2.py,**/agent_pb2_grpc.py,**/logger.py" \
+            -Dsonar.coverage.exclusions=tests/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/logger.py \
+            -Dsonar.exclusions=tests/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/logger.py \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || true
