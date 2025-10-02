@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   # 1️⃣ Agent Python tests
@@ -126,21 +127,18 @@ jobs:
         with:
           name: agent-coverage
           path: tests/python/coverage/agent
-        continue-on-error: true
 
       - name: Download Server coverage
         uses: actions/download-artifact@v4
         with:
           name: server-coverage
           path: tests/python/coverage/server
-        continue-on-error: true
 
       - name: Download DesktopUI coverage
         uses: actions/download-artifact@v4
         with:
           name: js-coverage-desktopui
           path: tests/js/coverage/desktopui
-        continue-on-error: true
 
       - name: Install SonarQube Scanner
         run: |
