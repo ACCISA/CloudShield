@@ -1,21 +1,117 @@
-name: Sonar Coverage Analysis
+name: CI + Sonar Coverage Analysis
 
 on:
-  workflow_run:
-    workflows:
-      - Agent Python Tests
-      - DesktopUI JS Tests
-      - Server Python Tests
-    types:
-      - completed
+  pull_request:
+    paths:
+      - 'cloudshield/**'
 
 permissions:
   contents: read
 
 jobs:
+  # 1️⃣ Agent Python tests
+  test_agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test requirements
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt || true; fi
+          pip install pytest pytest-cov
+
+      - name: Prepare coverage directory
+        run: mkdir -p tests/python/coverage/agent
+
+      - name: Run pytest with coverage (Agent)
+        run: |
+          pytest --rootdir=cloudshield/Agent --cov=cloudshield.Agent \
+            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || true
+
+      - name: Upload Agent coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-coverage
+          path: tests/python/coverage/agent/coverage.xml
+
+  # 2️⃣ Server Python tests
+  test_server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test requirements
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f cloudshield/Server/requirements.txt ]; then pip install -r cloudshield/Server/requirements.txt || true; fi
+          pip install pytest pytest-cov
+
+      - name: Prepare coverage directory
+        run: mkdir -p tests/python/coverage/server
+
+      - name: Run pytest with coverage (Server)
+        run: |
+          pytest --rootdir=cloudshield/Server --cov=cloudshield.Server \
+            --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml || true
+
+      - name: Upload Server coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: tests/python/coverage/server/coverage.xml
+
+  # 3️⃣ DesktopUI JS tests
+  test_desktopui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install DesktopUI dependencies
+        working-directory: cloudshield/DesktopUI
+        run: npm ci
+
+      - name: Run DesktopUI tests with coverage
+        working-directory: cloudshield/DesktopUI
+        run: CI=true npm test -- --coverage --watchAll=false || true
+
+      - name: Collect JS coverage
+        run: |
+          mkdir -p tests/js/coverage/desktopui
+          if [ -f cloudshield/DesktopUI/coverage/lcov.info ]; then
+            cp cloudshield/DesktopUI/coverage/lcov.info tests/js/coverage/desktopui/lcov.info
+          else
+            echo "" > tests/js/coverage/desktopui/lcov.info
+          fi
+
+      - name: Upload JS coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-coverage-desktopui
+          path: tests/js/coverage/desktopui/lcov.info
+
+  # 4️⃣ Sonar scan (runs AFTER all three tests finish)
   sonar_scan:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    needs: [test_agent, test_server, test_desktopui]
     steps:
       - name: Checkout Code with Full History
         uses: actions/checkout@v4
