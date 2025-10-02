@@ -1,4 +1,4 @@
-from proto import agent_pb2
+
 from proto import agent_pb2_grpc
 from logger import task_logger
 
@@ -57,6 +57,7 @@ class BaseTask(ABC):
             raise AttributeError(f"gRPC call '{grpc_call_name}' does not exist")
 
         task_logger.info(f"Sending RPC '{grpc_call_name}'")
+
         
         grpc_call = getattr(self.stub, grpc_call_name)
         

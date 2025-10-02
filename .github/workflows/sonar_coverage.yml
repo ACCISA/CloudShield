@@ -1,0 +1,68 @@
+name: Sonar Coverage Analysis
+
+on:
+  workflow_run:
+    workflows:
+      - Agent Python Tests
+      - DesktopUI JS Tests
+      - Server Python Tests
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  sonar_scan:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Checkout Code with Full History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Java (required for SonarQube scanner)
+        run: sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
+
+      - name: Download Agent coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-coverage
+          path: tests/python/coverage/agent || true
+
+      - name: Download Server coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: server-coverage
+          path: tests/python/coverage/server || true
+
+      - name: Download DesktopUI coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: js-coverage-desktopui
+          path: tests/js/coverage/desktopui || true
+
+      - name: Install SonarQube Scanner
+        run: |
+          curl -sL -o scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip -q scanner.zip
+          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
+
+      - name: Run SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ secrets.SONAR_ORG }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.organization=${SONAR_ORG} \
+            -Dsonar.projectKey=${{ github.repository }} \
+            -Dsonar.sources=cloudshield \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.login=${SONAR_TOKEN} \
+            -Dsonar.coverage.exclusions=**/tests \
+            -Dsonar.exclusions=**/tests \
+            -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml \
+            -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || true

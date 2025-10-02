@@ -1,0 +1,44 @@
+name: Agent Python Tests
+
+on:
+  push:
+    paths:
+      - 'cloudshield/Agent/**'
+  pull_request:
+    paths:
+      - 'cloudshield/Agent/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test_agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test requirements
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt || true; fi
+          pip install pytest pytest-cov
+
+      - name: Prepare coverage directory
+        run: mkdir -p tests/python/coverage/agent
+
+      - name: Run pytest with coverage (Agent)
+        run: |
+          pytest --rootdir=cloudshield/Agent --cov=cloudshield.Agent \
+            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || true
+
+      - name: Upload Agent coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-coverage
+          path: tests/python/coverage/agent/coverage.xml
