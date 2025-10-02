@@ -20,16 +20,16 @@ class GetProcessListTask(BaseTask):
                                          'cpu_percent', 'memory_info', 'cmdline', 'ppid']):
             try:
                 info = proc.info
-                processes.append({
-                    'pid': info['pid'],
-                    'name': info['name'],
-                    'username': info['username'],
-                    'create_time': str(info['create_time']),
-                    'cpu_percent': str(info['cpu_percent']),
-                    'memory_usage': str(info['memory_info'].rss) if info['memory_info'] else "",
-                    'cmdline': " ".join(info['cmdline']),
-                    'ppid': info['ppid']
-                })
+                processes.append(agent_pb2.Process(
+                    pid=info['pid'],
+                    name=info['name'],
+                    username=info['username'],
+                    create_time=str(info['create_time']),
+                    cpu_percent=str(info['cpu_percent']),
+                    memory_usage=str(info['memory_info'].rss) if info['memory_info'] else "",
+                    cmdline=" ".join(info['cmdline']),
+                    ppid=info['ppid']
+                ))
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
         return processes
@@ -42,7 +42,8 @@ class GetProcessListTask(BaseTask):
         request = agent_pb2.ProcessList(
             agent_id=self.agent_state["agent_id"],
             timestamp=int(time.time()),
-            processes=processes
+            processes=processes,
+            is_pending=False
         )
 
         response = self.send("SendProcessList", request)
@@ -59,7 +60,8 @@ class GetProcessListTask(BaseTask):
             request_res = agent_pb2.ProcessListAckRes(
                     agent_id=self.agent_state["agent_id"],
                     timestamp=int(time.time()),
-                    processes=processes_info
+                    processes=processes_info,
+                    is_pending=False
             )
 
             response_res = self.send("SendProcessListInformation", request_res)

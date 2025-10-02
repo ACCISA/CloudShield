@@ -1,3 +1,5 @@
+from proto import agent_pb2
+from proto import agent_pb2_grpc
 from logger import core_logger
 
 import os
@@ -5,6 +7,13 @@ import json
 import time
 import schedule
 import grpc
+import code
+from google.protobuf.json_format import ParseDict
+
+PROTOBUFS = {
+    "SendProcessList":"ProcessList",
+    "SendProcessListInformation":"ProcessListAckRes"
+}
 
 class Agent:
 
@@ -29,7 +38,7 @@ class Agent:
         self.port = port
         self.cache_path = cache_path
         self.core_interval = 10
-        self.conn_attempt_interval = 30
+        self.conn_attempt_interval = 10
         self.state = {
             "agent_id": agent_id,
             "server_addr": server_addr,
@@ -42,15 +51,16 @@ class Agent:
             os.mkdir(cache_path)
 
         self.channel = None
+        self.stub = None
         self.conn_attempt_job = None
         self.create_grpc_channel()
 
         if self.channel is None:
             self.conn_attempt_job = schedule.every(self.conn_attempt_interval).seconds.do(self.create_grpc_channel)
     
-    def set_task_channels(self, channel):
+    def set_task_channels(self, channel, stub):
         for task in self.tasks:
-            task['function'].set_channel(channel)
+            task['function'].set_channel(channel, stub)
         core_logger.info("Channel has been set to registered tasks")
 
     def create_grpc_channel_cb(self):
@@ -61,6 +71,7 @@ class Agent:
         to the gRPC server. If the agent loses its connection, this callback ensures
         that the connection attempt is rescheduled according to the agent's retry policy.
         """
+        self.channel = None
         self.create_grpc_channel()
         schedule.every(self.conn_attempt_interval).seconds.do(self.create_grpc_channel)
         core_logger.info("Rescheduled 'create_grpc_channel' from callback function")
@@ -83,8 +94,9 @@ class Agent:
         channel = grpc.insecure_channel(f"{self.server_addr}:{str(self.port)}")
 
         if self.is_grpc_server_up(channel) is True:
+            self.stub = agent_pb2_grpc.AgentServiceStub(channel)
             schedule.cancel_job(self.conn_attempt_job)
-            self.set_task_channels(channel)
+            self.set_task_channels(channel, self.stub)
             self.channel = channel
             return
 
@@ -97,7 +109,7 @@ class Agent:
             "function": task,
             "interval": interval
         })
-        task.set_channel(self.channel)
+        task.set_channel(self.channel, self.stub)
         schedule.every(interval).seconds.do(task.run)
         core_logger.info(f"Task {name} added to scheduler (interval={interval})")
     
@@ -120,21 +132,54 @@ class Agent:
     
     def send_pending_messages(self):
         """
-        Checks for cached messages on disk and resends them to the central server.
+        Checks for cached messages on disk and resends them to the central server. Cached messages are delete after being successfully sent
 
         If the server was unavailable when logs were generated, the agent stores them
         locally. This function is invoked by the agent core to retrieve any cached
         messages and attempt delivery once the server is reachable again.
         """
+        if self.channel is None: return
+
         messages = []
         for filename in os.listdir(self.cache_path):
             filepath = os.path.join(self.cache_path, filename)
             if os.path.isfile(filepath) and ".json" in filepath:
                 with open(filepath, "r") as f:
                     try:
-                        messages.append(json.load(f))
+                        messages.append({"filename":filepath, "cache":json.load(f)})
                     except json.JSONDecodeError:
                         core_logger.warning(f"Skipping corrupted file: {filename}")
+
+        for message in messages:
+            filename = message["filename"]
+            grpc_call_name = message["cache"]["grpc"]
+            data = message["cache"]["data"]
+
+            if not hasattr(self.stub, grpc_call_name):
+                raise AttributeError(f"gRPC call '{grpc_call_name}' does not exist")
+
+            core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
+
+            protobuf_str = PROTOBUFS[grpc_call_name]
+            if not hasattr(agent_pb2, protobuf_str):
+                raise AttributeError(f"gRPC call '{grpc_call_name}' does not have a protobuf '{protobuf_str}'")
+
+            protobuf = getattr(agent_pb2, protobuf_str)
+            
+            request = ParseDict(data, agent_pb2.ProcessList())
+
+            request.is_pending = True
+
+            grpc_call = getattr(self.stub, grpc_call_name)
+            try:
+                grpc_call(request)
+                os.remove(filename)
+            except grpc.RpcError as e:
+                core_logger.error(e)
+                core_logger.error("Unable to send pending messages. A cache message may be invalid")
+        
+
+        core_logger.info(f"{len(messages)} cached message will be sent to server")
     
     def start_core(self):
         """

@@ -16,6 +16,7 @@ message ProcessList {
   string agent_id = 1;
   int64 timestamp = 2;
   repeated Process processes = 3;
+  bool is_pending = 4;
 }
 
 
@@ -40,6 +41,7 @@ message ProcessListAckRes {
 	string agent_id = 1;
 	int64 timestamp = 2;
 	repeated ProcessInformation processes = 3;
+        bool is_pending = 4;
 }
 
 message ProcessListAck {
