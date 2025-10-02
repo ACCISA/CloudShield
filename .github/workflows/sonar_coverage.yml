@@ -29,19 +29,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: agent-coverage
-          path: tests/python/coverage/agent || true
+          path: cloudshield/Agent/tests || true
 
       - name: Download Server coverage
         uses: actions/download-artifact@v4
         with:
           name: server-coverage
-          path: tests/python/coverage/server || true
-
-      - name: Download DesktopUI coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: js-coverage-desktopui
-          path: tests/js/coverage/desktopui || true
+          path: cloudshieled/Server/tests || true
 
       - name: Install SonarQube Scanner
         run: |
@@ -50,3 +44,18 @@ jobs:
           sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
           echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
 
+      - name: Run SonarCloud Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ secrets.SONAR_ORG }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.organization=${SONAR_ORG} \
+            -Dsonar.projectKey=${{ github.repository }} \
+            -Dsonar.sources=cloudshield \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.login=${SONAR_TOKEN} \
+            -Dsonar.coverage.exclusions="**/tests/**,**/agent_pb2.py,**/agent_pb2_grpc.py,**/logger.py" \
+            -Dsonar.exclusions="**/tests/**,**/agent_pb2.py,**/agent_pb2_grpc.py,**/logger.py" \
+            -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml 
