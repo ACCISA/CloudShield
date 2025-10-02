@@ -1,2 +1,4 @@
-from .task import BaseTask
-from .processes import GetProcessListTask
+from .task import BaseTask as BaseTask
+from .processes import GetProcessListTask as GetProcessListTask
+
+__all__ = ["BaseTask", "GetProcessListTask"]

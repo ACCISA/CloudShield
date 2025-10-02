@@ -1,0 +1,22 @@
+# Python junk
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Venvs & build outputs
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Tests & coverage (not needed in runtime image)
+tests/
+.coverage
+htmlcov/
+
+# Logs & env files
+*.log
+.env
+.env.*
