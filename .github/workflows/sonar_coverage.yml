@@ -165,5 +165,5 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || true
 
       - name: Get SonarCloud Results
-        run: "echo 'Check SonarCloud Report: https://sonarcloud.io/summary/new_code?id=ACCISA_CloudShield&pullRequest={{ github.event.pull_request.number }}'"
+        run: "echo 'Check SonarCloud Report: https://sonarcloud.io/summary/new_code?id=ACCISA_CloudShield&branch=${GITHUB_REF##*/}'"
 
