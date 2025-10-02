@@ -1,5 +1,4 @@
 
-from proto import agent_pb2_grpc
 from logger import task_logger
 
 import os
@@ -18,7 +17,8 @@ class BaseTask(ABC):
         self.stub = None
 
     def set_channel(self, channel, stub):
-        if channel is None: return
+        if channel is None: 
+            return
         self.channel = channel
         self.stub = stub
 

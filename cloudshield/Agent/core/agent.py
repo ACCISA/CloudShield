@@ -7,7 +7,6 @@ import json
 import time
 import schedule
 import grpc
-import code
 from google.protobuf.json_format import ParseDict
 
 PROTOBUFS = {
@@ -138,7 +137,8 @@ class Agent:
         locally. This function is invoked by the agent core to retrieve any cached
         messages and attempt delivery once the server is reachable again.
         """
-        if self.channel is None: return
+        if self.channel is None: 
+            return
 
         messages = []
         for filename in os.listdir(self.cache_path):
@@ -164,7 +164,7 @@ class Agent:
             if not hasattr(agent_pb2, protobuf_str):
                 raise AttributeError(f"gRPC call '{grpc_call_name}' does not have a protobuf '{protobuf_str}'")
 
-            protobuf = getattr(agent_pb2, protobuf_str)
+            getattr(agent_pb2, protobuf_str)
             
             request = ParseDict(data, agent_pb2.ProcessList())
 

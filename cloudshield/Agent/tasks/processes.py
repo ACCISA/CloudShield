@@ -48,7 +48,8 @@ class GetProcessListTask(BaseTask):
 
         response = self.send("SendProcessList", request)
 
-        if response is None: return
+        if response is None: 
+            return
 
         if response.action is True:
             task_logger.info("Responding to GRPC Server with detailed process info")
@@ -64,4 +65,4 @@ class GetProcessListTask(BaseTask):
                     is_pending=False
             )
 
-            response_res = self.send("SendProcessListInformation", request_res)
+            self.send("SendProcessListInformation", request_res)
