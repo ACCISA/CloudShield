@@ -38,11 +38,12 @@ class BaseTask(ABC):
         unavailable and resend them later.
         """
         # TODO set limit for cache size
-        curtime = datetime.now().strftime(f"%Y-%m-%d_%H:%M:%S_{grpc_call_name}_message.json")
-        f = open(os.path.join(self.agent_state["cache_path"],curtime), "w")
+        # Use a safe filename (no colons) to support Windows filesystems
+        curtime = datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S_{grpc_call_name}_message.json")
+        filepath = os.path.join(self.agent_state["cache_path"], curtime)
         request_json = MessageToDict(request, preserving_proto_field_name=True)
-        json.dump({"grpc":grpc_call_name, "data": request_json}, f)
-        f.close()
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump({"grpc": grpc_call_name, "data": request_json}, f, ensure_ascii=False)
 
     def send(self, grpc_call_name, request):
         """

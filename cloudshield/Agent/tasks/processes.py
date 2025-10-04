@@ -20,15 +20,37 @@ class GetProcessListTask(BaseTask):
                                          'cpu_percent', 'memory_info', 'cmdline', 'ppid']):
             try:
                 info = proc.info
+                # Normalize fields that can be None or unexpected types
+                pid = info.get('pid')
+                name = info.get('name') or ''
+                username = info.get('username') or ''
+                create_time = str(info.get('create_time') or '')
+                cpu_percent = str(info.get('cpu_percent') or '')
+                memory_usage = ''
+                if info.get('memory_info') and hasattr(info['memory_info'], 'rss'):
+                    memory_usage = str(info['memory_info'].rss)
+
+                # cmdline may be a list of strings or a single string; ensure it's iterable
+                raw_cmdline = info.get('cmdline') or []
+                if isinstance(raw_cmdline, str):
+                    cmdline_str = raw_cmdline
+                else:
+                    try:
+                        # Filter out non-string items and convert to string as fallback
+                        cmdline_parts = [str(x) for x in raw_cmdline if x is not None]
+                        cmdline_str = " ".join(cmdline_parts)
+                    except TypeError:
+                        cmdline_str = ''
+
                 processes.append(agent_pb2.Process(
-                    pid=info['pid'],
-                    name=info['name'],
-                    username=info['username'],
-                    create_time=str(info['create_time']),
-                    cpu_percent=str(info['cpu_percent']),
-                    memory_usage=str(info['memory_info'].rss) if info['memory_info'] else "",
-                    cmdline=" ".join(info['cmdline']),
-                    ppid=info['ppid']
+                    pid=pid,
+                    name=name,
+                    username=username,
+                    create_time=create_time,
+                    cpu_percent=cpu_percent,
+                    memory_usage=memory_usage,
+                    cmdline=cmdline_str,
+                    ppid=info.get('ppid') or 0
                 ))
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
