@@ -1,29 +1,17 @@
-
 from rq import get_current_job
-import time
 import os
 import shutil
 import subprocess
 from pathlib import Path
-
-
-def create_ec2(instance_type="t2.micro", ami="ami-1234567890abcdef0"):
-    job = get_current_job()
-    job.meta["progress"] = "starting this task"
-    print(job.meta)
-    job.save_meta()
-    """Create an EC2 instance"""
-    time.sleep(10)
-    return "EC2 instance created."
-
-def create_vpc(cidr="10.0.0.0/16"):
-    """Create a VPC"""
-    time.sleep(10)
-    return "VPC created."
+from logging_setup import logger
 
 
 def _run(cmd: list[str], cwd: str, env: dict | None = None):
     """Run a shell command yielding output lines and raising on nonzero exit."""
+    logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
+    
+    all_output = []  # Capture everything
+    
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,
@@ -34,10 +22,19 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None):
     )
     assert proc.stdout is not None
     for line in proc.stdout:
-        yield line.rstrip()
+        stripped = line.rstrip()
+        all_output.append(stripped)  # Save it
+        logger.debug("[cmd output] %s", stripped)
+        yield stripped
+    
     proc.wait()
     if proc.returncode != 0:
+        logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
+        # Log the last 30 lines before failure
+        logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
         raise subprocess.CalledProcessError(proc.returncode, cmd)
+    
+    logger.debug("Command succeeded: %s", " ".join(cmd))
 
 
 def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
@@ -46,6 +43,7 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
     Copies the templates to a per-org working directory, injects org_id/region,
     optionally overrides AMIs via terraform.tfvars, and runs terraform init/apply.
     """
+    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
     job = get_current_job()
     if job is not None:
         job.meta["progress"] = "starting"
@@ -57,17 +55,20 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
     runs_dir.mkdir(parents=True, exist_ok=True)
     work_dir = runs_dir / org_id
     if work_dir.exists():
+        logger.warning("Work dir already exists for org '%s', removing: %s", org_id, work_dir)
         shutil.rmtree(work_dir)
+    logger.debug("Copying templates from %s to %s", templates_dir, work_dir)
     shutil.copytree(templates_dir, work_dir)
 
     # Templating: replace org_id token and region/AZ in main.tf
     main_tf_path = work_dir / "main.tf"
     main_tf = main_tf_path.read_text(encoding="utf-8")
     main_tf = main_tf.replace("org_id", org_id)
-    main_tf = main_tf.replace('region = "us-west-2"', f'region = "{region}"')
+    main_tf = main_tf.replace('region = "ca-central-1"', f'region = "{region}"')
     # naive AZ mapping: use "a" for requested region
-    main_tf = main_tf.replace('"us-west-2a"', f'"{region}a"')
+    main_tf = main_tf.replace('"ca-central-1a"', f'"{region}a"')
     main_tf_path.write_text(main_tf, encoding="utf-8")
+    logger.debug("Patched main.tf for org %s region %s", org_id, region)
 
     # Optional variable overrides
     tfvars_lines: list[str] = []
@@ -77,56 +78,7 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         tfvars_lines.append(f'workstation_ami = "{workstation_ami}"')
     if tfvars_lines:
         (work_dir / "terraform.tfvars").write_text("\n".join(tfvars_lines) + "\n", encoding="utf-8")
-
-    # Decide whether to run in mock mode (no real terraform) either when requested
-    # via env var or when terraform is not available on PATH.
-    mock_mode = os.getenv("CLOUDSHIELD_MOCK_TERRAFORM") == "1" or shutil.which("terraform") is None
-
-    # Fast path: mock provisioning to exercise Redis/RQ and API without real AWS.
-    if mock_mode:
-        logs_tail: list[str] = []
-        try:
-            if job is not None:
-                job.meta["progress"] = "terraform init (mock)"
-                job.save_meta()
-            time.sleep(1)
-            logs_tail.append("Initializing the backend... (mock)")
-
-            if job is not None:
-                job.meta["progress"] = "terraform plan (mock)"
-                job.save_meta()
-            time.sleep(1)
-            logs_tail.append("Planning changes... (mock)")
-
-            if job is not None:
-                job.meta["progress"] = "terraform apply (mock)"
-                job.save_meta()
-            # Simulate a few steps with progress updates
-            for step in [
-                "Creating VPC (mock)",
-                "Creating subnets (mock)",
-                "Attaching IGW (mock)",
-                "Creating route tables (mock)",
-                "Launching instances (mock)",
-            ]:
-                time.sleep(0.8)
-                logs_tail.append(step)
-                if job is not None:
-                    job.meta["progress"] = step
-                    job.save_meta()
-
-            # Write a small mock file so work_dir has artifacts
-            (work_dir / "apply.log").write_text("\n".join(logs_tail) + "\n", encoding="utf-8")
-
-            if job is not None:
-                job.meta["progress"] = "completed (mock)"
-                job.save_meta()
-            return {"message": "Provisioning complete (mock)", "work_dir": str(work_dir), "logs_tail": logs_tail, "mock": True}
-        except Exception as e:
-            if job is not None:
-                job.meta["progress"] = f"failed (mock): {e}"
-                job.save_meta()
-            raise
+        logger.debug("Wrote terraform.tfvars overrides: %s", ", ".join(tfvars_lines))
 
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
@@ -136,6 +88,7 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         if job is not None:
             job.meta["progress"] = "terraform init"
             job.save_meta()
+        logger.info("Running terraform init for org %s", org_id)
         for line in _run(["terraform", "init", "-input=false"], cwd=str(work_dir), env=env):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
@@ -146,6 +99,7 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         if job is not None:
             job.meta["progress"] = "terraform apply"
             job.save_meta()
+        logger.info("Running terraform apply for org %s", org_id)
         for line in _run(["terraform", "apply", "-auto-approve", "-input=false"], cwd=str(work_dir), env=env):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
@@ -156,10 +110,13 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         if job is not None:
             job.meta["progress"] = "completed"
             job.save_meta()
+        logger.info("Provisioning complete for org %s", org_id)
         return {"message": "Provisioning complete", "work_dir": str(work_dir), "logs_tail": logs_tail}
     except Exception as e:
+        logger.exception("Provisioning failed for org %s: %s", org_id, e)
         if job is not None:
             job.meta["progress"] = f"failed: {e}"
+            job.meta["logs_tail"] = logs_tail
             job.save_meta()
         raise
 
@@ -169,6 +126,7 @@ def destroy_environment(org_id: str, force: bool = False):
     Destroys an environment for the given org_id and removes the run directory.
     In mock mode (or when terraform is missing), simulates a destroy and deletes the folder.
     """
+    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     job = get_current_job()
     if job is not None:
         job.meta["progress"] = "starting destroy"
@@ -178,36 +136,10 @@ def destroy_environment(org_id: str, force: bool = False):
     runs_dir = base_dir / "Cloud" / "runs"
     work_dir = runs_dir / org_id
 
-    mock_mode = os.getenv("CLOUDSHIELD_MOCK_TERRAFORM") == "1" or shutil.which("terraform") is None
-
     logs_tail: list[str] = []
     try:
-        if mock_mode:
-            if job is not None:
-                job.meta["progress"] = "terraform destroy (mock)"
-                job.save_meta()
-            for step in [
-                "Reading state (mock)",
-                "Destroying resources (mock)",
-                "Cleanup files (mock)",
-            ]:
-                time.sleep(0.6)
-                logs_tail.append(step)
-                if job is not None:
-                    job.meta["progress"] = step
-                    job.save_meta()
-
-            # Remove working directory if present
-            if work_dir.exists():
-                shutil.rmtree(work_dir, ignore_errors=True)
-
-            if job is not None:
-                job.meta["progress"] = "completed (mock destroy)"
-                job.save_meta()
-            return {"message": "Destroy complete (mock)", "removed_dir": True, "logs_tail": logs_tail, "mock": True}
-
-        # Real terraform destroy path
         if not work_dir.exists():
+            logger.warning("Destroy requested for org %s but work dir not found (%s)", org_id, work_dir)
             if job is not None:
                 job.meta["progress"] = "no run directory found"
                 job.save_meta()
@@ -215,10 +147,22 @@ def destroy_environment(org_id: str, force: bool = False):
 
         env = os.environ.copy()
         env.setdefault("TF_IN_AUTOMATION", "1")
+        logger.info("Current working directory: %s", os.getcwd())
+        logger.info("Subprocess working directory: %s", work_dir)
+        logger.info("AWS_PROFILE in env: %s", env.get("AWS_PROFILE", "NOT SET"))
+        logger.info("AWS_ACCESS_KEY_ID in env: %s", "SET" if env.get("AWS_ACCESS_KEY_ID") else "NOT SET")
+        logger.info("Terraform path: %s", shutil.which("terraform"))
+        logger.info("Work dir exists: %s", work_dir.exists())
+        logger.info("Work dir contents: %s", list(work_dir.iterdir()) if work_dir.exists() else "N/A")
+
+        logs_tail: list[str] = []
+
+        
 
         if job is not None:
             job.meta["progress"] = "terraform init (destroy)"
             job.save_meta()
+        logger.info("Running terraform init (destroy) for org %s", org_id)
         for line in _run(["terraform", "init", "-input=false"], cwd=str(work_dir), env=env):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
@@ -233,6 +177,7 @@ def destroy_environment(org_id: str, force: bool = False):
         if force:
             # No direct force flag in terraform destroy, but we keep param for API compatibility
             pass
+        logger.info("Running terraform destroy for org %s", org_id)
         for line in _run(destroy_cmd, cwd=str(work_dir), env=env):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
@@ -242,17 +187,20 @@ def destroy_environment(org_id: str, force: bool = False):
 
         # Remove directory after successful destroy
         shutil.rmtree(work_dir, ignore_errors=True)
+        logger.info("Removed work dir for org %s: %s", org_id, work_dir)
 
         if job is not None:
             job.meta["progress"] = "completed destroy"
             job.save_meta()
+        logger.info("Destroy complete for org %s", org_id)
         return {"message": "Destroy complete", "removed_dir": True, "logs_tail": logs_tail}
     except Exception as e:
+        logger.exception("Destroy failed for org %s: %s", org_id, e)
         if job is not None:
             job.meta["progress"] = f"failed destroy: {e}"
             job.save_meta()
-        # Optionally still try to remove directory if force is True
         if force and work_dir.exists():
             shutil.rmtree(work_dir, ignore_errors=True)
+            logger.warning("Force flag: removed work dir after failure for org %s", org_id)
         raise
 

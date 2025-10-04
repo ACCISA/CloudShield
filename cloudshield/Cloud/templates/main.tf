@@ -4,7 +4,7 @@
 #########################
 
 provider "aws" {
-  region = "us-west-2"
+  region = "ca-central-1"
 }
 
 # Key pairs
@@ -49,7 +49,7 @@ resource "aws_internet_gateway" "org_id_igw" {
 resource "aws_subnet" "org_id_public_subnet" {
   vpc_id                  = aws_vpc.org_id_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-west-2a"
+  availability_zone       = "ca-central-1a"
   map_public_ip_on_launch = true
 
   tags = { Name = "org_id_public_subnet" }
@@ -61,7 +61,7 @@ resource "aws_subnet" "org_id_public_subnet" {
 resource "aws_subnet" "org_id_private_subnet" {
   vpc_id            = aws_vpc.org_id_vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "ca-central-1b"
 
   tags = { Name = "org_id_private_subnet" }
 }
@@ -153,7 +153,7 @@ resource "aws_security_group" "allow_rdp" {
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # or restrict to your IP, e.g. ["203.0.113.10/32"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
     from_port   = 0
@@ -221,10 +221,10 @@ resource "aws_instance" "org_id_domain_controller" {
 }
 
 resource "aws_instance" "org_id_workstation" {
-  ami                   = var.workstation_ami
-  instance_type         = "t2.medium"
-  subnet_id             = aws_subnet.org_id_private_subnet.id
+  ami                    = var.workstation_ami
+  instance_type          = "t2.medium"
+  subnet_id              = aws_subnet.org_id_private_subnet.id
   vpc_security_group_ids = [aws_security_group.allow_rdp.id]
-  key_name              = aws_key_pair.org_id_key.key_name
+  key_name               = aws_key_pair.org_id_key.key_name
   tags = { Name = "org_id_workstation" }
 }
