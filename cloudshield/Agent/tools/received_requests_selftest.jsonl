@@ -1,0 +1,1 @@
+{"rpc": "SendWorkstationInit", "agent_id": "selftest-agent", "timestamp": 1759616802.941821, "payload": {"agent_id": "selftest-agent", "domain": "example.local"}}
