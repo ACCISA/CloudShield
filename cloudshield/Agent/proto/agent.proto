@@ -19,10 +19,9 @@ message ProcessList {
   bool is_pending = 4;
 }
 
-
 message WorkstationInit {
-        string agent_id = 1;
-        string domain = 2;
+  string agent_id = 1;
+  string domain = 2;
 }
 
 message Ack {
@@ -31,27 +30,92 @@ message Ack {
 }
 
 message ProcessInformation {
-	int32 pid = 1;
-	string name = 2;
-        repeated string handles = 3;
+  int32 pid = 1;
+  string name = 2;
+  repeated string handles = 3;
 }
 
-
 message ProcessListAckRes {
-	string agent_id = 1;
-	int64 timestamp = 2;
-	repeated ProcessInformation processes = 3;
-        bool is_pending = 4;
+  string agent_id = 1;
+  int64 timestamp = 2;
+  repeated ProcessInformation processes = 3;
+  bool is_pending = 4;
 }
 
 message ProcessListAck {
-	bool action = 1;
-	repeated int32 pids = 2;
+  bool action = 1;
+  repeated int32 pids = 2;
+}
+
+message NetConn {
+  string laddr_ip = 1;
+  uint32 laddr_port = 2;
+  string raddr_ip = 3;
+  uint32 raddr_port = 4;
+  string status = 5;
+  int32 pid = 6;
+  string process_name = 7;
+}
+
+message NetConnList {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  repeated NetConn conns = 3;
+  bool is_pending = 4;
+}
+
+message EventLog {
+  int64 timestamp = 1;
+  string source = 2;
+  string level = 3;
+  int32 event_id = 4;
+  string message = 5;
+}
+
+message EventLogBatch {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  repeated EventLog logs = 3;
+  bool is_pending = 4;
+}
+
+message Service {
+  string name = 1;
+  string display_name = 2;
+  string status = 3;
+  string start_type = 4;
+  int32 pid = 5;
+  string binary_path = 6;
+}
+
+message ServiceList {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  repeated Service services = 3;
+  bool is_pending = 4;
+}
+
+message Driver {
+  string name = 1;
+  string display_name = 2;
+  string state = 3;
+  string start_type = 4;
+  string path = 5;
+}
+
+message DriverList {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  repeated Driver drivers = 3;
+  bool is_pending = 4;
 }
 
 service AgentService {
-	rpc SendProcessList(ProcessList) returns (ProcessListAck);
-	rpc SendProcessListInformation(ProcessListAckRes) returns (Ack);
-
-	rpc SendWorkstationInit(WorkstationInit) returns (Ack);
+  rpc SendProcessList(ProcessList) returns (ProcessListAck);
+  rpc SendProcessListInformation(ProcessListAckRes) returns (Ack);
+  rpc SendWorkstationInit(WorkstationInit) returns (Ack);
+  rpc SendNetworkConnections(NetConnList) returns (Ack);
+  rpc SendEventLogs(EventLogBatch) returns (Ack);
+  rpc SendServiceList(ServiceList) returns (Ack);
+  rpc SendDriverList(DriverList) returns (Ack);
 }
