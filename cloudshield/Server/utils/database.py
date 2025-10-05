@@ -1,6 +1,5 @@
 import os
 from pymongo import MongoClient
-from dotenv import load_dotenv
 
 # Environment configuration
 MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
