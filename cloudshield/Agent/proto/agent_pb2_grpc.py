@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-import proto.agent_pb2 as agent__pb2
+import agent_pb2 as agent__pb2
 
-GRPC_GENERATED_VERSION = '1.74.0'
+GRPC_GENERATED_VERSION = '1.75.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -49,6 +49,26 @@ class AgentServiceStub(object):
                 request_serializer=agent__pb2.WorkstationInit.SerializeToString,
                 response_deserializer=agent__pb2.Ack.FromString,
                 _registered_method=True)
+        self.SendNetworkConnections = channel.unary_unary(
+                '/AgentService/SendNetworkConnections',
+                request_serializer=agent__pb2.NetConnList.SerializeToString,
+                response_deserializer=agent__pb2.Ack.FromString,
+                _registered_method=True)
+        self.SendEventLogs = channel.unary_unary(
+                '/AgentService/SendEventLogs',
+                request_serializer=agent__pb2.EventLogBatch.SerializeToString,
+                response_deserializer=agent__pb2.Ack.FromString,
+                _registered_method=True)
+        self.SendServiceList = channel.unary_unary(
+                '/AgentService/SendServiceList',
+                request_serializer=agent__pb2.ServiceList.SerializeToString,
+                response_deserializer=agent__pb2.Ack.FromString,
+                _registered_method=True)
+        self.SendDriverList = channel.unary_unary(
+                '/AgentService/SendDriverList',
+                request_serializer=agent__pb2.DriverList.SerializeToString,
+                response_deserializer=agent__pb2.Ack.FromString,
+                _registered_method=True)
 
 
 class AgentServiceServicer(object):
@@ -72,6 +92,30 @@ class AgentServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SendNetworkConnections(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendEventLogs(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendServiceList(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendDriverList(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -88,6 +132,26 @@ def add_AgentServiceServicer_to_server(servicer, server):
             'SendWorkstationInit': grpc.unary_unary_rpc_method_handler(
                     servicer.SendWorkstationInit,
                     request_deserializer=agent__pb2.WorkstationInit.FromString,
+                    response_serializer=agent__pb2.Ack.SerializeToString,
+            ),
+            'SendNetworkConnections': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendNetworkConnections,
+                    request_deserializer=agent__pb2.NetConnList.FromString,
+                    response_serializer=agent__pb2.Ack.SerializeToString,
+            ),
+            'SendEventLogs': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendEventLogs,
+                    request_deserializer=agent__pb2.EventLogBatch.FromString,
+                    response_serializer=agent__pb2.Ack.SerializeToString,
+            ),
+            'SendServiceList': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendServiceList,
+                    request_deserializer=agent__pb2.ServiceList.FromString,
+                    response_serializer=agent__pb2.Ack.SerializeToString,
+            ),
+            'SendDriverList': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendDriverList,
+                    request_deserializer=agent__pb2.DriverList.FromString,
                     response_serializer=agent__pb2.Ack.SerializeToString,
             ),
     }
@@ -171,6 +235,114 @@ class AgentService(object):
             target,
             '/AgentService/SendWorkstationInit',
             agent__pb2.WorkstationInit.SerializeToString,
+            agent__pb2.Ack.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendNetworkConnections(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendNetworkConnections',
+            agent__pb2.NetConnList.SerializeToString,
+            agent__pb2.Ack.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendEventLogs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendEventLogs',
+            agent__pb2.EventLogBatch.SerializeToString,
+            agent__pb2.Ack.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendServiceList(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendServiceList',
+            agent__pb2.ServiceList.SerializeToString,
+            agent__pb2.Ack.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendDriverList(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendDriverList',
+            agent__pb2.DriverList.SerializeToString,
             agent__pb2.Ack.FromString,
             options,
             channel_credentials,
