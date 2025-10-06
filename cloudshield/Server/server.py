@@ -1,9 +1,14 @@
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify
 from redis_client import task_queue, redis_conn
 from tasks import create_ec2, create_vpc
 from rq.job import Job
+from routes.users import users_bp
 
 app = Flask(__name__)
+
+app.register_blueprint(users_bp, url_prefix="/api")
 
 @app.route("/task/ec2", methods=["POST"])
 def task_ec2():
@@ -33,5 +38,5 @@ def job_status(job_id):
     return jsonify(response), 200
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5050)
 
