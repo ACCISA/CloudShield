@@ -3,4 +3,7 @@ redis
 rq
 boto3
 pytest
-
+pydantic
+pydantic[email]
+python-dotenv
+pymongo

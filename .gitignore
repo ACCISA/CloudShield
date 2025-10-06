@@ -5,6 +5,7 @@ cloudshield/WebUI/node_modules
 cloudshield/Server/__pycache__
 cloudshield/Server/dump.rdb
 cloudshield/Server/venv
+cloudshield/Server/.env
 **.swp
 **.log
 **/terraform.tfstate
