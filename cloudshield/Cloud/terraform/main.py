@@ -66,25 +66,58 @@ def copy_and_replace_templates(org_id: str):
 
 
 # RUN TERRAFORM
-def run_terraform_apply():
-    """Initializes and applies Terraform for the org-specific folder."""
+def run_terraform_two_phase_apply():
+    """
+    Phase 1: targeted apply to create S3 bucket, upload agent, create IAM role, create builder instance and AMI.
+    Phase 2: full apply for the rest of the infra, passing the created Windows AMI id as workstation_ami.
+    """
     print(f"[+] Initializing Terraform for {ORG_ID}...")
     subprocess.run(["terraform", "init"], cwd=TERRAFORM_DIR, check=True)
 
-    print(f"[+] Applying Terraform templates for {ORG_ID}...")
-    subprocess.run(
-        [
-            "terraform", "apply",
-            "-auto-approve",
-            "-var", f"org_id={ORG_ID}",
-            "-var", f"region={AWS_REGION}"
-        ],
-        cwd=TERRAFORM_DIR,
-        check=True
-    )
+    # ---------- PHASE 1: targeted plan/apply for builder + AMI ----------
+    print(f"[+] Phase 1: creating S3, IAM, builder instance and AMI for {ORG_ID}...")
 
-    print(f"[✓] Terraform apply complete for {ORG_ID}.")
+    phase1_targets = [
+        "-target=aws_s3_bucket.agent_bucket",
+        "-target=aws_s3_bucket_object.agent_exe",
+        "-target=aws_iam_role.builder_role",
+        "-target=aws_iam_instance_profile.builder_profile",
+        "-target=aws_instance.windows_builder",
+        "-target=aws_ami_from_instance.cloudshield_windows"
+    ]
 
+    phase1_plan_cmd = ["terraform", "plan", "-out", "phase1.plan", "-var", f"org_id={ORG_ID}", "-var", f"region={AWS_REGION}"] + phase1_targets
+    print("[+] Running:", " ".join(phase1_plan_cmd))
+    subprocess.run(phase1_plan_cmd, cwd=TERRAFORM_DIR, check=True)
+
+    print("[+] Applying phase1.plan ... (this may take several minutes while the AMI is created)")
+    subprocess.run(["terraform", "apply", "phase1.plan"], cwd=TERRAFORM_DIR, check=True)
+
+    # ---------- retrieve AMI id output ----------
+    print("[+] Retrieving created AMI id from Terraform outputs...")
+    # Give Terraform a moment to ensure outputs are available; this is usually instantaneous but safe to be robust
+    out = subprocess.run(["terraform", "output", "-raw", "created_windows_ami_id"], cwd=TERRAFORM_DIR, check=True, capture_output=True, text=True)
+    ami_id = out.stdout.strip()
+    if not ami_id:
+        raise RuntimeError("Failed to obtain created_windows_ami_id from terraform output.")
+
+    print(f"[+] Phase 1 finished. Created AMI: {ami_id}")
+
+    # ---------- PHASE 2: full apply for the rest of the infra, using the new AMI ----------
+    print(f"[+] Phase 2: applying full Terraform stack with workstation_ami={ami_id} ...")
+    phase2_plan_cmd = [
+        "terraform", "plan", "-out", "phase2.plan",
+        "-var", f"org_id={ORG_ID}",
+        "-var", f"region={AWS_REGION}",
+        "-var", f"workstation_ami={ami_id}"
+    ]
+    print("[+] Running:", " ".join(phase2_plan_cmd))
+    subprocess.run(phase2_plan_cmd, cwd=TERRAFORM_DIR, check=True)
+
+    print("[+] Applying phase2.plan ...")
+    subprocess.run(["terraform", "apply", "phase2.plan"], cwd=TERRAFORM_DIR, check=True)
+
+    print("[✓] Terraform apply complete for all resources.")
 
 # FETCH EC2 IPS
 def get_ec2_ips(region: str, org_id: str):
@@ -124,7 +157,8 @@ def get_ec2_ips(region: str, org_id: str):
 def main():
     print(f"[*] Provisioning for org: {ORG_ID} in region: {AWS_REGION}")
     copy_and_replace_templates(ORG_ID)
-    run_terraform_apply()
+    # Use the new two-phase apply
+    run_terraform_two_phase_apply()
     get_ec2_ips(AWS_REGION, ORG_ID)
     print(f"[✓] Finished provisioning for {ORG_ID}.\nTerraform files are in: {GENERATED_DIR}")
 
