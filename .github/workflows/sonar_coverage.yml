@@ -240,8 +240,8 @@ jobs:
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.coverage.exclusions=**/tests/**,cloudshield/Cloud/template/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
-            -Dsonar.exclusions=**/tests/**,cloudshield/Cloud/template/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
+            -Dsonar.coverage.exclusions=**/tests/**,cloudshield/**/template/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
+            -Dsonar.exclusions=**/tests/**,cloudshield/**/template/*.yf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml,tests/python/coverage/cloud/coverage.xml \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || (echo "SonarCloud analysis failed" && exit 1)
 

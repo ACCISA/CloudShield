@@ -38,3 +38,36 @@ def test_destroy_success(monkeypatch, tmp_path):
     assert called['cwd'].endswith(org)
     # directory should be removed
     assert not base.exists()
+
+
+def test_destroy_handles_calledprocesserror(monkeypatch, tmp_path, capfd):
+    """Covers the except branch and directory removal after failure."""
+    org = "ERR"
+    base = tmp_path / "generated" / org
+    base.mkdir(parents=True)
+
+    class FakeError(subprocess.CalledProcessError):
+        def __init__(self):
+            super().__init__(1, "terraform destroy")
+
+    def fake_run_fail(cmd, cwd=None, check=False):
+        raise FakeError()
+
+    monkeypatch.setattr(destroy_infra.subprocess, "run", fake_run_fail)
+
+    destroy_infra.GENERATED_DIR = str(tmp_path / "generated")
+    destroy_infra.destroy(org)
+
+    captured = capfd.readouterr()
+    assert "Terraform destroy failed" in captured.out
+    assert "Directory removed" in captured.out
+    assert not base.exists()
+
+
+def test_destroy_entrypoint(monkeypatch):
+    """Covers the __main__ block by reloading the module with sys.argv patched."""
+    monkeypatch.setattr("sys.argv", ["destroy_infra.py", "--org-id", "XYZ", "--region", "ca-central-1"])
+    monkeypatch.setattr(destroy_infra, "destroy", lambda org, region=None: True)
+
+    import importlib
+    importlib.reload(destroy_infra)

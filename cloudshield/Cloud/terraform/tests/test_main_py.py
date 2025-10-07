@@ -86,3 +86,34 @@ def test_get_ec2_ips(monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert "EC2 Instances for TEST" in captured.out
+
+
+def test_main_invokes_all(monkeypatch, tmp_path, capsys):
+    """Covers the main() function and argparse parsing path."""
+    called = {"copy": False, "run": False, "ips": False}
+
+    def fake_copy(org_id, templates_dir=None, generated_dir=None):
+        called["copy"] = True
+
+    def fake_run(org_id, region=None, terraform_dir=None):
+        called["run"] = True
+
+    def fake_ips(region, org_id):
+        called["ips"] = True
+        return []
+
+    monkeypatch.setattr(terraform_main, "copy_and_replace_templates", fake_copy)
+    monkeypatch.setattr(terraform_main, "run_terraform_apply", fake_run)
+    monkeypatch.setattr(terraform_main, "get_ec2_ips", fake_ips)
+
+    terraform_main.main([
+        "--org-id", "TEST",
+        "--region", "ca-central-1",
+        "--templates-dir", str(tmp_path),
+        "--generated-dir", str(tmp_path / "gen")
+    ])
+
+    captured = capsys.readouterr()
+    assert "[*] Provisioning for org: TEST" in captured.out
+    assert "[✓] Finished provisioning for TEST." in captured.out
+    assert all(called.values())
