@@ -7,6 +7,16 @@ except Exception:
     SimpleWorker = None  # type: ignore
 
 if __name__ == "__main__":
+    scheduler = Scheduler(connection=redis_conn)
+    # Run cleanup every day
+    scheduler.schedule(
+        scheduled_time=datetime.utcnow(),
+        func=cleanup_old_logs,
+        args=(30,),
+        interval=86400,
+        repeat=None
+    )
+
     queue = Queue(connection=redis_conn)
     queues = [queue]
     # On Windows, use SimpleWorker (no fork). Else, use standard Worker.

@@ -103,3 +103,17 @@ def summarize_job_log(job_id: str, org_id: str, status: str = "completed") -> di
 def get_job_log_path(job_id: str) -> Path:
     """Return absolute path of a job's log file."""
     return JOB_LOG_DIR / f"job_{job_id}.log"
+
+
+def cleanup_old_logs(days: int = 30):
+    """Delete job logs older than N days"""
+    cutoff = datetime.now() - timedelta(days=days)
+    deleted = 0
+    for log_file in JOB_LOG_DIR.glob("job_*.log"):
+        try:
+            if datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff:
+                log_file.unlink()
+                deleted += 1
+        except Exception as e:
+            print(f"Could not delete {log_file}: {e}")
+    print(f"Cleanup complete: deleted {deleted} old logs (> {days} days)")

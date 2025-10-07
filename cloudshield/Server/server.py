@@ -26,6 +26,7 @@ def task_provision():
         data.get("ubuntu_ami"),
         data.get("workstation_ami"),
         job_timeout=JOB_TIMEOUT,
+        retry = Retry(max=3, interval=[10, 30, 60])
     )
     logger.info("Enqueued provision job id=%s org_id=%s", job.id, org_id)
     return jsonify({"job_id": job.id}), 202
@@ -66,6 +67,7 @@ def task_destroy():
         org_id,
         data.get("force", False),
         job_timeout=JOB_TIMEOUT,
+        retry = Retry(max=3, interval=[10, 30, 60])
     )
     logger.info("Enqueued destroy job id=%s org_id=%s", job.id, org_id)
     return jsonify({"job_id": job.id}), 202
