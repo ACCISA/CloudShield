@@ -55,13 +55,26 @@ jobs:
       - name: Run pytest with coverage (Agent)
         run: |
           pytest --rootdir=cloudshield/Agent --cov=cloudshield.Agent \
-            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || true
+            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || echo "⚠️ Tests failed but continuing..."
+
+      - name: Debug coverage output
+        run: |
+          echo "Listing coverage files..."
+          ls -R tests/python/coverage || echo "⚠️ Coverage directory empty!"
+
+      - name: Create empty coverage if missing
+        run: |
+          if [ ! -f tests/python/coverage/agent/coverage.xml ]; then
+            echo "<coverage></coverage>" > tests/python/coverage/agent/coverage.xml
+            echo "⚠️ Created empty coverage.xml to avoid artifact errors."
+          fi
 
       - name: Upload Agent coverage
         uses: actions/upload-artifact@v4
         with:
           name: agent-coverage
           path: tests/python/coverage/agent/coverage.xml
+          if-no-files-found: warn
 
   # 2️⃣ Server Python tests
   test_server:
@@ -87,13 +100,26 @@ jobs:
       - name: Run pytest with coverage (Server)
         run: |
           pytest --rootdir=cloudshield/Server --cov=cloudshield.Server \
-            --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml || true
+            --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml || echo "⚠️ Tests failed but continuing..."
+
+      - name: Debug coverage output
+        run: |
+          echo "Listing coverage files..."
+          ls -R tests/python/coverage || echo "⚠️ Coverage directory empty!"
+
+      - name: Create empty coverage if missing
+        run: |
+          if [ ! -f tests/python/coverage/server/coverage.xml ]; then
+            echo "<coverage></coverage>" > tests/python/coverage/server/coverage.xml
+            echo "⚠️ Created empty coverage.xml to avoid artifact errors."
+          fi
 
       - name: Upload Server coverage
         uses: actions/upload-artifact@v4
         with:
           name: server-coverage
           path: tests/python/coverage/server/coverage.xml
+          if-no-files-found: warn
 
   # 3️⃣ DesktopUI JS tests
   test_desktopui:
@@ -113,7 +139,7 @@ jobs:
 
       - name: Run DesktopUI tests with coverage
         working-directory: cloudshield/DesktopUI
-        run: CI=true npm test -- --coverage --watchAll=false || true
+        run: CI=true npm test -- --coverage --watchAll=false || echo "⚠️ JS tests failed but continuing..."
 
       - name: Collect JS coverage
         run: |
@@ -122,13 +148,18 @@ jobs:
             cp cloudshield/DesktopUI/coverage/lcov.info tests/js/coverage/desktopui/lcov.info
           else
             echo "" > tests/js/coverage/desktopui/lcov.info
+            echo "⚠️ Created empty lcov.info to avoid artifact errors."
           fi
+
+      - name: Debug JS coverage
+        run: ls -R tests/js/coverage || echo "⚠️ JS coverage directory empty!"
 
       - name: Upload JS coverage
         uses: actions/upload-artifact@v4
         with:
           name: js-coverage-desktopui
           path: tests/js/coverage/desktopui/lcov.info
+          if-no-files-found: warn
 
   # 4️⃣ Sonar scan (runs AFTER all three tests finish)
   sonar_scan:
@@ -161,6 +192,15 @@ jobs:
           name: js-coverage-desktopui
           path: tests/js/coverage/desktopui
 
+      - name: Debug downloaded artifacts
+        run: |
+          echo "Agent coverage:"
+          ls -l tests/python/coverage/agent || true
+          echo "Server coverage:"
+          ls -l tests/python/coverage/server || true
+          echo "JS coverage:"
+          ls -l tests/js/coverage/desktopui || true
+
       - name: Install SonarQube Scanner
         run: |
           curl -sL -o scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
@@ -180,7 +220,7 @@ jobs:
             -Dsonar.coverage.exclusions=tests/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
             -Dsonar.exclusions=tests/**,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml \
-            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info || (echo "SonarCloud analysis failed" && exit 1)
+            -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || (echo "SonarCloud analysis failed" && exit 1)
       
       - name: Get SonarCloud Results
         run: "echo 'Check SonarCloud Report: https://sonarcloud.io/summary/new_code?id=ACCISA_CloudShield&branch=${GITHUB_REF##*/}'"
