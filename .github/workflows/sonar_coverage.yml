@@ -54,7 +54,7 @@ jobs:
 
       - name: Run pytest with coverage (Agent)
         run: |
-          pytest --rootdir=cloudshield/Agent --cov=cloudshield.Agent \
+          pytest --rootdir=cloudshield --cov=cloudshield \
             --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Debug coverage output
@@ -99,7 +99,7 @@ jobs:
 
       - name: Run pytest with coverage (Server)
         run: |
-          pytest --rootdir=cloudshield/Server --cov=cloudshield.Server \
+          pytest --rootdir=cloudshield --cov=cloudshield \
             --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Debug coverage output
@@ -184,7 +184,7 @@ jobs:
 
       - name: Run pytest with coverage (Cloud)
         run: |
-          pytest --rootdir=cloudshield/Cloud --cov=cloudshield.Cloud \
+          pytest --rootdir=cloudshield --cov=cloudshield \
             --cov-report=term --cov-report=xml:tests/python/coverage/cloud/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Debug coverage output
