@@ -6,8 +6,9 @@ route definitions to the routes package and logic to the services layer.
 from __future__ import annotations
 
 from flask import Flask
-from .logging_setup import logger
+from .utils.logging_setup import get_logger
 from .routes import api_bp
+logger = get_logger("api")
 
 
 def create_app() -> Flask:

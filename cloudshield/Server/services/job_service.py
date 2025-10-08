@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import os
 from typing import Tuple, Dict, Any
-from rq.job import Job
+import rq
 from ..redis_client import task_queue, redis_conn
 from ..tasks import provision_network, destroy_environment
-from ..logging_setup import logger
+from ..utils.logging_setup import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
+Job = rq.job.Job  # type: ignore[attr-defined]
+logger = get_logger("service")
 
 
 def enqueue_provision(org_id: str, region: str = "us-west-2", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
