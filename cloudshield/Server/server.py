@@ -4,6 +4,7 @@ from redis_client import task_queue, redis_conn
 from tasks import provision_network, destroy_environment
 from rq.job import Job
 from logging_setup import logger
+from rq import Retry
 
 app = Flask(__name__)
 
