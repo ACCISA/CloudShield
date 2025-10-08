@@ -117,3 +117,61 @@ def test_main_invokes_all(monkeypatch, tmp_path, capsys):
     assert "[*] Provisioning for org: TEST" in captured.out
     assert "[✓] Finished provisioning for TEST." in captured.out
     assert all(called.values())
+
+def test_get_ec2_ips_no_instances(monkeypatch, capsys):
+    """Covers the 'no instances found' branch."""
+    class FakeBoto:
+        def client(self, service_name, region_name=None):
+            class C:
+                def describe_instances(self):
+                    # Simulate no EC2 instances for the org
+                    return {"Reservations": []}
+            return C()
+
+    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
+
+    result = terraform_main.get_ec2_ips("ca-central-1", "ORGEMPTY")
+    captured = capsys.readouterr()
+
+    # Assertions for the no-instance path
+    assert result == []
+    assert "[!] No EC2 instances found for org: ORGEMPTY" in captured.out
+
+
+def test_get_ec2_ips_with_instances_print(monkeypatch, capsys):
+    """Covers the printing loop and return path."""
+    def fake_client(service_name, region_name=None):
+        class C:
+            def describe_instances(self):
+                return {
+                    "Reservations": [
+                        {
+                            "Instances": [
+                                {
+                                    "InstanceId": "i-456",
+                                    "State": {"Name": "running"},
+                                    "PrivateIpAddress": "10.0.0.2",
+                                    "PublicIpAddress": "2.3.4.5",
+                                    "Tags": [{"Key": "Name", "Value": "ORG-instance"}],
+                                }
+                            ]
+                        }
+                    ]
+                }
+        return C()
+
+    class FakeBoto:
+        def client(self, service_name, region_name=None):
+            return fake_client(service_name, region_name=region_name)
+
+    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
+
+    instances = terraform_main.get_ec2_ips("ca-central-1", "ORG")
+    captured = capsys.readouterr()
+
+    # Assertions for the print path and metadata return
+    assert instances
+    assert instances[0]["InstanceId"] == "i-456"
+    assert "EC2 Instances for ORG" in captured.out
+    assert "Private IP" in captured.out
+    assert "Public IP" in captured.out
