@@ -3,7 +3,6 @@ import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime
-import json
 
 # Base configuration
 BASE_LOG_DIR = Path(os.getenv("CLOUDSHIELD_LOG_DIR", "logs"))

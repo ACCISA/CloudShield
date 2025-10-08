@@ -6,9 +6,6 @@ layer.
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
-from ..redis_client import task_queue, redis_conn
-from ..tasks import provision_network, destroy_environment
-from rq.job import Job
 from ..logging_setup import logger
 from ..services.job_service import enqueue_provision, enqueue_destroy, get_job_status, health_status
 
