@@ -1,0 +1,51 @@
+"""API route definitions (Flask Blueprint).
+
+This module defines the HTTP endpoints and delegates logic to the services
+layer.
+"""
+from __future__ import annotations
+
+from flask import Blueprint, request, jsonify
+from ..redis_client import task_queue, redis_conn
+from ..tasks import provision_network, destroy_environment
+from rq.job import Job
+from ..logging_setup import logger
+from ..services.job_service import enqueue_provision, enqueue_destroy, get_job_status, health_status
+
+api_bp = Blueprint("api", __name__)
+
+
+@api_bp.route("/task/provision", methods=["POST"])
+def task_provision():
+    data = request.get_json() or {}
+    logger.info("/task/provision POST body=%s", data)
+    org_id = data.get("org_id")
+    if not org_id:
+        logger.warning("Provision request missing org_id")
+        return jsonify({"error": "org_id is required"}), 400
+    job = enqueue_provision(org_id=org_id, region=data.get("region", "us-west-2"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
+    return jsonify({"job_id": job.id}), 202
+
+
+@api_bp.route("/task/destroy", methods=["POST"])
+def task_destroy():
+    data = request.get_json() or {}
+    logger.info("/task/destroy POST body=%s", data)
+    org_id = data.get("org_id")
+    if not org_id:
+        logger.warning("Destroy request missing org_id")
+        return jsonify({"error": "org_id is required"}), 400
+    job = enqueue_destroy(org_id=org_id, force=data.get("force", False))
+    return jsonify({"job_id": job.id}), 202
+
+
+@api_bp.route("/status/<job_id>", methods=["GET"])
+def job_status(job_id: str):
+    status_payload, code = get_job_status(job_id)
+    return jsonify(status_payload), code
+
+
+@api_bp.route("/health", methods=["GET"])
+def health():
+    payload, code = health_status()
+    return jsonify(payload), code
