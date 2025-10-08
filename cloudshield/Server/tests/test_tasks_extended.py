@@ -1,4 +1,3 @@
-import types
 import pathlib
 import pytest
 import cloudshield.Server.tasks as tasks
@@ -8,7 +7,7 @@ class FakeProc:
     def __init__(self, lines, returncode=0):
         self._lines = lines
         self.returncode = returncode
-        self.stdout = (l + "\n" for l in lines)
+        self.stdout = (line + "\n" for line in lines)
 
     def wait(self):
         # no-op

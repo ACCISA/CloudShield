@@ -1,5 +1,4 @@
 import types
-import pytest
 from cloudshield.Server.services import job_service
 
 
