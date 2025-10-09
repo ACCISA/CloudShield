@@ -11,3 +11,4 @@ cloudshield/Server/venv
 **/terraform.tfstate.backup
 **/.terraform.lock.hcl
 **/.terraform/
+cloudshield/Cloud/terraform/generated/**
