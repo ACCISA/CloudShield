@@ -4,7 +4,7 @@ data "aws_ssm_parameter" "windows_base" {
 }
 
 locals {
-  ami_name = "cloudshield-${var.org_id}-${formatdate("YYYYMMDD", timestamp())}"
+  ami_name = "cloudshield-${var.org_id}"
 }
 
 # Builder instance (only created if create_windows_ami=true)
