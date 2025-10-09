@@ -5,7 +5,8 @@ import os
 import re
 import shutil
 import subprocess
-
+import re
+import argparse
 import boto3
 from botocore.exceptions import ClientError
 from botocore.exceptions import WaiterError
@@ -20,27 +21,29 @@ args = parser.parse_args()
 ORG_ID = args.org_id
 AWS_REGION = args.region
 
+from datetime import datetime
 
 # PATHS
 BASE_DIR = os.path.dirname(__file__)
-TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
-GENERATED_DIR = os.path.join(BASE_DIR, f"generated/{ORG_ID}")
-TERRAFORM_DIR = GENERATED_DIR  # where terraform will run
+DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 
 
 # COPY & REPLACE TEMPLATES
-def copy_and_replace_templates(org_id: str):
+def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str = None):
     """
     Copies Terraform templates into a dedicated org folder
-    and replaces all placeholders — but keeps 'variable "org_id"' intact.
+    and replaces placeholders with the organization ID.
     """
-    if os.path.exists(GENERATED_DIR):
+    if generated_dir is None:
+        generated_dir = os.path.join(os.path.dirname(__file__), f"generated/{org_id}")
+
+    if os.path.exists(generated_dir):
         print(f"[!] Directory for {org_id} already exists. Removing it to start fresh...")
-        shutil.rmtree(GENERATED_DIR)
+        shutil.rmtree(generated_dir)
 
-    shutil.copytree(TEMPLATES_DIR, GENERATED_DIR)
+    shutil.copytree(templates_dir, generated_dir)
 
-    for root, _, files in os.walk(GENERATED_DIR):
+    for root, _, files in os.walk(generated_dir):
         for fname in files:
             path = os.path.join(root, fname)
             if not fname.endswith((".tf", ".tfvars")):
@@ -49,17 +52,10 @@ def copy_and_replace_templates(org_id: str):
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # -----------------------
-            # FIX: Do NOT replace variable name "org_id" inside variables.tf
-            # -----------------------
             if fname == "variables.tf":
-                # Only ensure the variable block exists — no replacements here.
                 new_content = content
             else:
-                # Replace all org_id occurrences *except* var.org_id
-                # e.g., aws_vpc org_id_vpc → aws_vpc TEST_vpc
-                new_content = re.sub(r'\borg_id\b(?!\s*\})', org_id, content)
-                # Keep var.org_id untouched
+                new_content = content.replace("org_id", org_id)
                 new_content = new_content.replace(f"var.{org_id}", "var.org_id")
 
             with open(path, "w", encoding="utf-8") as f:
@@ -237,27 +233,58 @@ def run_terraform_two_phase_apply():
 
     print("[✓] Terraform apply complete for all resources.")
 
-# FETCH EC2 IPS
+# FETCH EC2 METADATA
 def get_ec2_ips(region: str, org_id: str):
-    """Fetches and prints EC2 instance IP addresses for this org."""
+    """
+    Fetch detailed EC2 instance metadata for a given org.
+    Returns a list of instance dicts including name, IPs, specs, and status.
+    """
     ec2 = boto3.client("ec2", region_name=region)
     reservations = ec2.describe_instances()["Reservations"]
+
+    def extract_name(tags):
+        for tag in tags or []:
+            if tag["Key"] == "Name":
+                return tag["Value"]
+        return None
 
     instances = []
     for res in reservations:
         for inst in res["Instances"]:
-            name = None
-            for tag in inst.get("Tags", []):
-                if tag["Key"] == "Name":
-                    name = tag["Value"]
-            if name and org_id in name:
-                instances.append({
-                    "Name": name,
-                    "InstanceId": inst["InstanceId"],
-                    "State": inst["State"]["Name"],
-                    "PrivateIP": inst.get("PrivateIpAddress"),
-                    "PublicIP": inst.get("PublicIpAddress")
-                })
+            name = extract_name(inst.get("Tags"))
+            if not name or org_id not in name:
+                continue
+
+            # Get key and volume info
+            volumes = inst.get("BlockDeviceMappings", [])
+            storage_size_gb = 0
+            for vol in volumes:
+                ebs = vol.get("Ebs")
+                if ebs:
+                    vol_info = ec2.describe_volumes(VolumeIds=[ebs["VolumeId"]])["Volumes"][0]
+                    storage_size_gb += vol_info["Size"]
+
+            metadata = {
+                "org_id": org_id,
+                "name": name,
+                "instance_id": inst["InstanceId"],
+                "vpc_id": inst.get("VpcId"),
+                "subnet_id": inst.get("SubnetId"),
+                "ssh_key": inst.get("KeyName"),
+                "ami_id": inst.get("ImageId"),
+                "os": inst.get("PlatformDetails", "Linux/UNIX"),
+                "cpu": inst.get("CpuOptions", {}).get("CoreCount"),
+                "ram_gb": inst.get("InstanceType"),
+                "storage_size_gb": storage_size_gb,
+                "created_at": inst["LaunchTime"].strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "ports": [sg["GroupId"] for sg in inst.get("SecurityGroups", [])],
+                "status": inst["State"]["Name"],
+                "private_ip": inst.get("PrivateIpAddress"),
+                "public_ip": inst.get("PublicIpAddress"),
+            }
+
+            instances.append(metadata)
 
     if not instances:
         print(f"[!] No EC2 instances found for org: {org_id}")
@@ -265,20 +292,35 @@ def get_ec2_ips(region: str, org_id: str):
 
     print(f"\n[+] EC2 Instances for {org_id}:")
     for i in instances:
-        print(f"  - {i['Name']} ({i['InstanceId']}): {i['State']}")
-        print(f"      Private IP: {i['PrivateIP']}")
-        print(f"      Public IP:  {i['PublicIP']}\n")
+        print(f"  - {i['name']} ({i['instance_id']}) → {i['status']}")
+        print(f"      Private IP: {i['private_ip']}")
+        print(f"      Public IP:  {i['public_ip']}\n")
 
     return instances
 
 
-def main():
-    print(f"[*] Provisioning for org: {ORG_ID} in region: {AWS_REGION}")
-    copy_and_replace_templates(ORG_ID)
+# MAIN
+def main(argv: list = None):
+    parser = argparse.ArgumentParser(description="Provision AWS infrastructure for a specific organization.")
+    parser.add_argument("--org-id", required=True, help="Organization ID (used to replace placeholders and tag resources)")
+    parser.add_argument("--region", default="ca-central-1", help="AWS region to deploy resources (default: ca-central-1)")
+    parser.add_argument("--templates-dir", default=DEFAULT_TEMPLATES_DIR, help="Path to templates (for testing)")
+    parser.add_argument("--generated-dir", default=None, help="Directory to write generated terraform files (for testing)")
+    args = parser.parse_args(argv)
+
+    org_id = args.org_id
+    region = args.region
+    templates_dir = args.templates_dir
+    generated_dir = args.generated_dir
+
+    print(f"[*] Provisioning for org: {org_id} in region: {region}")
+    copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
     # Use the new two-phase apply
-    run_terraform_two_phase_apply()
-    get_ec2_ips(AWS_REGION, ORG_ID)
-    print(f"[✓] Finished provisioning for {ORG_ID}.\nTerraform files are in: {GENERATED_DIR}")
+    run_terraform_two_phase_apply(org_id, region=region, terraform_dir=generated_dir)
+    metadata = get_ec2_ips(region, org_id)
+    print(f"[✓] Finished provisioning for {org_id}.")
+    return metadata
+
 
 if __name__ == "__main__":
     main()
