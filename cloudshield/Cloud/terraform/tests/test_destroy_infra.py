@@ -1,73 +1,299 @@
+import builtins
+import importlib
 import os
-import shutil
+import runpy
 import subprocess
+import sys
+import types
+from types import SimpleNamespace
+
 import pytest
 
 from cloudshield.Cloud.terraform import destroy_infra
 
 
-def test_destroy_no_dir(capfd, tmp_path):
-    org = "NOPE"
-    # point generated dir to tmp where it doesn't exist
-    destroy_infra.GENERATED_DIR = str(tmp_path / "generated")
+@pytest.fixture(autouse=True)
+def reset_module_state(monkeypatch, tmp_path):
+    generated_root = tmp_path / "generated"
+    generated_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(destroy_infra, "GENERATED_DIR", str(generated_root))
+    monkeypatch.setattr(destroy_infra, "BASE_DIR", str(tmp_path))
+    yield
 
-    destroy_infra.destroy(org)
-    captured = capfd.readouterr()
-    assert "No Terraform directory found" in captured.out
 
+def test_run_cmd_invokes_subprocess(monkeypatch):
+    recorded = {}
 
-def test_destroy_success(monkeypatch, tmp_path):
-    org = "TST"
-    base = tmp_path / "generated" / org
-    base.mkdir(parents=True)
-
-    called = {}
-
-    def fake_run(cmd, cwd=None, check=False):
-        called['cmd'] = cmd
-        called['cwd'] = cwd
-        return subprocess.CompletedProcess(cmd, 0)
+    def fake_run(cmd, cwd=None, check=None, capture_output=None, text=None):
+        recorded["cmd"] = cmd
+        recorded["cwd"] = cwd
+        recorded["check"] = check
+        recorded["capture_output"] = capture_output
+        recorded["text"] = text
+        return "ok"
 
     monkeypatch.setattr(destroy_infra.subprocess, "run", fake_run)
 
-    # ensure directory exists then destroyed
-    destroy_infra.GENERATED_DIR = str(tmp_path / "generated")
-    destroy_infra.destroy(org)
+    result = destroy_infra.run_cmd(["terraform", "version"], cwd="/tmp", capture_output=True)
 
-    assert 'cmd' in called
-    assert called['cwd'].endswith(org)
-    # directory should be removed
-    assert not base.exists()
+    assert result == "ok"
+    assert recorded == {
+        "cmd": ["terraform", "version"],
+        "cwd": "/tmp",
+        "check": True,
+        "capture_output": True,
+        "text": True,
+    }
 
 
-def test_destroy_handles_calledprocesserror(monkeypatch, tmp_path, capfd):
-    """Covers the except branch and directory removal after failure."""
-    org = "ERR"
-    base = tmp_path / "generated" / org
-    base.mkdir(parents=True)
+def test_terraform_init_if_needed_success(monkeypatch):
+    calls = []
 
+    monkeypatch.setattr(destroy_infra, "run_cmd", lambda cmd, cwd=None, capture_output=False: calls.append((cmd, cwd)))
+
+    destroy_infra.terraform_init_if_needed("/org")
+
+    assert calls == [(["terraform", "init", "-input=false"], "/org")]
+
+
+def test_terraform_init_if_needed_failure(monkeypatch):
+    class FakeError(subprocess.CalledProcessError):
+        def __init__(self):
+            super().__init__(1, "terraform init")
+
+    def fake_run(*_args, **_kwargs):
+        raise FakeError()
+
+    monkeypatch.setattr(destroy_infra, "run_cmd", fake_run)
+
+    with pytest.raises(FakeError):
+        destroy_infra.terraform_init_if_needed("/org")
+
+
+def test_terraform_destroy_success(monkeypatch):
+    monkeypatch.setattr(destroy_infra, "run_cmd", lambda *args, **kwargs: None)
+
+    assert destroy_infra.terraform_destroy("/org", "ORG", "ca-central-1") is True
+
+
+def test_terraform_destroy_failure(monkeypatch):
     class FakeError(subprocess.CalledProcessError):
         def __init__(self):
             super().__init__(1, "terraform destroy")
 
-    def fake_run_fail(cmd, cwd=None, check=False):
+    def fake_run(*_args, **_kwargs):
         raise FakeError()
 
-    monkeypatch.setattr(destroy_infra.subprocess, "run", fake_run_fail)
+    monkeypatch.setattr(destroy_infra, "run_cmd", fake_run)
 
-    destroy_infra.GENERATED_DIR = str(tmp_path / "generated")
-    destroy_infra.destroy(org)
-
-    captured = capfd.readouterr()
-    assert "Terraform destroy failed" in captured.out
-    assert "Directory removed" in captured.out
-    assert not base.exists()
+    assert destroy_infra.terraform_destroy("/org", "ORG", "ca-central-1") is False
 
 
-def test_destroy_entrypoint(monkeypatch):
-    """Covers the __main__ block by reloading the module with sys.argv patched."""
-    monkeypatch.setattr("sys.argv", ["destroy_infra.py", "--org-id", "XYZ", "--region", "ca-central-1"])
-    monkeypatch.setattr(destroy_infra, "destroy", lambda org, region=None: True)
+def test_get_terraform_output_returns_value(monkeypatch):
+    result = SimpleNamespace(stdout="value\n")
+    monkeypatch.setattr(destroy_infra, "run_cmd", lambda *args, **kwargs: result)
 
-    import importlib
-    importlib.reload(destroy_infra)
+    assert destroy_infra.get_terraform_output("/org", "bucket") == "value"
+
+
+def test_get_terraform_output_handles_error(monkeypatch):
+    monkeypatch.setattr(destroy_infra, "run_cmd", lambda *args, **kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "terraform output")))
+
+    assert destroy_infra.get_terraform_output("/org", "bucket") is None
+
+
+def test_empty_s3_bucket_without_boto3():
+    destroy_infra.BOTO3_AVAILABLE = False
+
+    assert destroy_infra.empty_s3_bucket("bucket", "region") is False
+
+
+def test_empty_s3_bucket_success(monkeypatch):
+    destroy_infra.BOTO3_AVAILABLE = True
+
+    calls = {"deleted": False}
+
+    class FakeBucket:
+        def __init__(self, name):
+            self.name = name
+            self.object_versions = SimpleNamespace(delete=lambda: calls.setdefault("versions", True))
+            self.objects = SimpleNamespace(delete=lambda: calls.setdefault("objects", True))
+
+    class FakeS3:
+        def Bucket(self, name):
+            calls["bucket"] = name
+            return FakeBucket(name)
+
+    fake_boto3 = SimpleNamespace(resource=lambda _service, region_name=None: FakeS3())
+    monkeypatch.setattr(destroy_infra, "boto3", fake_boto3)
+    monkeypatch.setattr(destroy_infra.time, "sleep", lambda *_args: calls.setdefault("slept", True))
+
+    assert destroy_infra.empty_s3_bucket("bucket", "ca" ) is True
+    assert calls["bucket"] == "bucket"
+    assert calls["versions"] is True
+    assert calls["objects"] is True
+    assert calls["slept"] is True
+
+
+def test_empty_s3_bucket_client_error(monkeypatch):
+    destroy_infra.BOTO3_AVAILABLE = True
+
+    class FakeClientError(Exception):
+        pass
+
+    class FakeBucket:
+        def object_versions(self):
+            raise FakeClientError()
+
+    class FakeS3:
+        def Bucket(self, _name):
+            class _Bucket:
+                object_versions = SimpleNamespace(delete=lambda: (_ for _ in ()).throw(FakeClientError("boom")))
+                objects = SimpleNamespace(delete=lambda: None)
+            return _Bucket()
+
+    monkeypatch.setattr(destroy_infra, "ClientError", FakeClientError)
+    monkeypatch.setattr(destroy_infra, "boto3", SimpleNamespace(resource=lambda *_args, **_kwargs: FakeS3()))
+
+    assert destroy_infra.empty_s3_bucket("bucket", "ca") is False
+
+
+def test_destroy_missing_directory(capfd):
+    destroy_infra.destroy("UNKNOWN")
+
+    out = capfd.readouterr().out
+    assert "No Terraform directory" in out
+
+
+def test_destroy_successful_cleanup(monkeypatch, tmp_path, capfd):
+    org = "SUCCESS"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda _dir, _org, _region: True)
+
+    removed = []
+    monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: removed.append(path))
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+
+    out = capfd.readouterr().out
+    assert "Terraform resources destroyed successfully" in out
+    assert removed == [org_dir]
+
+
+def test_destroy_failure_no_force(monkeypatch, tmp_path, capfd):
+    org = "FAIL"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+
+    out = capfd.readouterr().out
+    assert "destroy still failed" in out
+    assert os.path.exists(org_dir)
+
+
+def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, capfd):
+    org = "RETRY"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+
+    destroy_calls = {"count": 0}
+
+    def fake_destroy(*_args):
+        destroy_calls["count"] += 1
+        return destroy_calls["count"] == 2
+
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", fake_destroy)
+    monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: "bucket")
+    monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: True)
+    monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: None)
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+
+    out = capfd.readouterr().out
+    assert "Retrying terraform destroy" in out
+    assert destroy_calls["count"] == 2
+
+
+def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, capfd):
+    org = "NOBUCKET"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
+    monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: None)
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+
+    out = capfd.readouterr().out
+    assert "Could not find 'agent_s3_bucket'" in out
+    assert os.path.exists(org_dir)
+
+
+def test_destroy_directory_removal_failure(monkeypatch, tmp_path, capfd):
+    org = "RMERR"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: True)
+
+    def failing_rmtree(path):
+        raise OSError("cannot remove")
+
+    monkeypatch.setattr(destroy_infra.shutil, "rmtree", failing_rmtree)
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+
+    out = capfd.readouterr().out
+    assert "Failed to remove local directory" in out
+
+
+def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, capfd):
+    org = "RETRYFAIL"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
+    monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: "bucket")
+    monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: False)
+
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+
+    out = capfd.readouterr().out
+    assert "destroy still failed" in out
+    assert os.path.exists(org_dir)
+
+
+def test_main_warns_when_force_empty_without_boto3(monkeypatch, capsys):
+    module_name = "cloudshield.Cloud.terraform.destroy_infra"
+    sys.modules.pop(module_name, None)
+
+    original_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name in {"boto3", "botocore", "botocore.exceptions"}:
+            raise ImportError("no module")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.setattr(sys, "argv", ["destroy_infra.py", "--org-id", "CLI", "--force-empty-s3"])
+    monkeypatch.setattr(os.path, "exists", lambda _path: False)
+
+    runpy.run_module(module_name, run_name="__main__")
+
+    out = capsys.readouterr().out
+    assert "--force-empty-s3 requested but boto3 is not installed" in out
+
+    module = importlib.import_module(module_name)
+    globals()["destroy_infra"] = module
