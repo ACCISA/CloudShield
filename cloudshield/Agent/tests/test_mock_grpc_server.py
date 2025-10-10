@@ -70,10 +70,14 @@ if "proto.agent_pb2_grpc" not in sys.modules:
     agent_pb2_grpc_module = types.ModuleType("proto.agent_pb2_grpc")
 
     class AgentServiceServicer:
-        pass
+        def __init__(self, *args, **kwargs):
+            pass
 
     def add_servicer_to_server(servicer, server):
-        setattr(server, "attached_servicer", servicer)
+        if hasattr(server, "register_servicer"):
+            server.register_servicer(servicer)
+        else:
+            setattr(server, "attached_servicer", servicer)
 
     agent_pb2_grpc_module.AgentServiceServicer = AgentServiceServicer
     agent_pb2_grpc_module.add_AgentServiceServicer_to_server = add_servicer_to_server
