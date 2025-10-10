@@ -1,0 +1,6 @@
+flask
+redis
+rq
+boto3
+pytest
+
