@@ -47,15 +47,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt || true; fi
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov coverage
 
       - name: Prepare coverage directory
         run: mkdir -p tests/python/coverage/agent
 
       - name: Run pytest with coverage (Agent)
         run: |
-          PYTHONPATH=cloudshield/Agent/ pytest --rootdir=cloudshield/Agent --cov=cloudshield.Agent \
-            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || true
+          PYTHONPATH=cloudshield/Agent/ coverage run -m pytest cloudshield/Agent/tests
+          coverage report -m
+          coverage xml -o tests/python/coverage/agent/coverage.xml
+
 
       - name: Upload Agent coverage
         uses: actions/upload-artifact@v4
