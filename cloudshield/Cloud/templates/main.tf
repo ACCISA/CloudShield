@@ -14,7 +14,7 @@ resource "tls_private_key" "org_id" {
 }
 
 resource "aws_key_pair" "org_id_key" {
-  key_name = "org_id_key"
+  key_name   = "${var.org_id}_key"
   public_key = tls_private_key.org_id.public_key_openssh
 }
 

@@ -10,3 +10,13 @@ variable "workstation_ami" {
   default     = "ami-0dd67d541aa70c8b9"
 
 }
+
+variable "org_id" {
+  description = "Organization ID passed from backend"
+  type        = string
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+}
