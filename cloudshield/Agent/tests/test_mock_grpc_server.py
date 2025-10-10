@@ -84,7 +84,7 @@ else:
 setattr(proto_module, "agent_pb2", agent_pb2_module)
 setattr(proto_module, "agent_pb2_grpc", agent_pb2_grpc_module)
 
-from cloudshield.Agent.tools import mock_grpc_server
+from cloudshield.Agent.tools import mock_grpc_server  # noqa: E402
 
 
 ORIGINAL_MESSAGE_TO_DICT = mock_grpc_server.MessageToDict

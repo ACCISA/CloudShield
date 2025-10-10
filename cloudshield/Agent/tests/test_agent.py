@@ -60,7 +60,7 @@ else:
     if not hasattr(logger_module, "core_logger"):
         logger_module.core_logger = SimpleNamespace(info=lambda *_a, **_k: None, error=lambda *_a, **_k: None, warning=lambda *_a, **_k: None, critical=lambda *_a, **_k: None)
 
-from cloudshield.Agent.core import agent as agent_module
+from cloudshield.Agent.core import agent as agent_module  # noqa: E402
 
 
 class FakeFutureTimeoutError(Exception):
@@ -393,7 +393,6 @@ def test_is_grpc_server_up_timeout(agent_env):
 
 
 def test_send_pending_messages_returns_when_channel_missing(agent_env, tmp_path):
-    mod = agent_env.module
     agent = make_agent(str(tmp_path))
     agent.channel = None
 
@@ -403,7 +402,6 @@ def test_send_pending_messages_returns_when_channel_missing(agent_env, tmp_path)
 
 
 def test_send_pending_messages_skips_corrupted_json(agent_env, tmp_path):
-    mod = agent_env.module
     agent = make_agent(str(tmp_path))
     bad_file = os.path.join(agent.cache_path, "bad.json")
     with open(bad_file, "w", encoding="utf-8") as fh:
@@ -419,7 +417,6 @@ def test_send_pending_messages_skips_corrupted_json(agent_env, tmp_path):
 
 
 def test_send_pending_messages_missing_stub_raises(agent_env, tmp_path):
-    mod = agent_env.module
     agent = make_agent(str(tmp_path))
     payload = {"grpc": "SendProcessList", "data": {"foo": "bar"}}
     file_path = os.path.join(agent.cache_path, "pending.json")
