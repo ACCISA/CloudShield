@@ -3,3 +3,5 @@ grpcio-tools
 psutil
 pyinstaller
 schedule
+pytest
+pytest-cov
