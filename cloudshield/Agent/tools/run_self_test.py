@@ -3,13 +3,10 @@ Start the mock server in a thread, send one WorkstationInit RPC, and print the r
 This runs in a single process so you don't need multiple terminals.
 """
 import threading
-import time
 import os
 import json
-import tempfile
 
 import sys
-import os
 import grpc
 
 # Ensure the Agent package root is on sys.path when running this script
@@ -18,9 +15,9 @@ AGENT_ROOT = os.path.dirname(SCRIPT_DIR)
 if AGENT_ROOT not in sys.path:
     sys.path.insert(0, AGENT_ROOT)
 
-from proto import agent_pb2, agent_pb2_grpc
+from proto import agent_pb2, agent_pb2_grpc  # noqa: E402
 
-from tools.mock_grpc_server import serve
+from tools.mock_grpc_server import serve  # noqa: E402
 
 
 def main():
@@ -45,7 +42,6 @@ def main():
     t.start()
 
     # wait for server to be ready
-    deadline = time.time() + 5
     channel = grpc.insecure_channel(f"{host}:{port}")
     try:
         grpc.channel_ready_future(channel).result(timeout=5)
@@ -64,7 +60,7 @@ def main():
     # print recorded file
     if os.path.exists(out_file):
         with open(out_file, 'r', encoding='utf-8') as fh:
-            data = [json.loads(l) for l in fh if l.strip()]
+            data = [json.loads(line) for line in fh if line.strip()]
         print('Recorded entries:', json.dumps(data, indent=2))
     else:
         print('No recorded file found at', out_file)

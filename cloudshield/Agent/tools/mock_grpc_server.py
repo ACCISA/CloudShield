@@ -25,8 +25,8 @@ AGENT_ROOT = os.path.dirname(SCRIPT_DIR)
 if AGENT_ROOT not in sys.path:
     sys.path.insert(0, AGENT_ROOT)
 
-from proto import agent_pb2, agent_pb2_grpc
-from google.protobuf.json_format import MessageToDict
+from proto import agent_pb2, agent_pb2_grpc  # noqa: E402
+from google.protobuf.json_format import MessageToDict  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('mock_grpc_server')

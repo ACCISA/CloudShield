@@ -45,7 +45,7 @@ def test_mock_server_records_rpc():
 
     # read the recorded file and assert content
     with open(tmp_path, 'r', encoding='utf-8') as fh:
-        lines = [json.loads(l) for l in fh if l.strip()]
+        lines = [json.loads(line) for line in fh if line.strip()]
 
     assert any(entry.get('rpc') == 'SendWorkstationInit' for entry in lines)
 

@@ -31,8 +31,6 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
 
     shutil.copytree(templates_dir, target_dir)
 
-    pattern = re.compile(r"\borg_id\b(?!\s*\})")
-
     for root, _, files in os.walk(target_dir):
         for fname in files:
             path = os.path.join(root, fname)
@@ -45,8 +43,10 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
             if fname == "variables.tf":
                 new_content = content
             else:
-                new_content = pattern.sub(org_id, content)
-                new_content = new_content.replace(f"var.{org_id}", "var.org_id")
+                sentinel = "__VAR_ORG_ID__"
+                new_content = content.replace("var.org_id", sentinel)
+                new_content = new_content.replace("org_id", org_id)
+                new_content = new_content.replace(sentinel, "var.org_id")
 
             with open(path, "w", encoding="utf-8") as f:
                 f.write(new_content)
