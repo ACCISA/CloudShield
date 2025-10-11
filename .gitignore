@@ -15,3 +15,4 @@ cloudshield/Cloud/terraform/generated/**
 cloudshield/Agent/build
 **.exe
 **.xml
+.coverage
