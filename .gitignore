@@ -12,3 +12,4 @@ cloudshield/Server/dump.rdb
 **/.terraform.lock.hcl
 **/.terraform/
 cloudshield/Cloud/terraform/generated/**
+cloudshield/Agent/build/

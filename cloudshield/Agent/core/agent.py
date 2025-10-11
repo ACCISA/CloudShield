@@ -9,6 +9,8 @@ import schedule
 import grpc
 from google.protobuf.json_format import ParseDict
 
+from core.workstation_setup import ensure_domain_membership
+
 PROTOBUFS = {
     "SendProcessList":"ProcessList",
     "SendProcessListInformation":"ProcessListAckRes"
@@ -50,6 +52,20 @@ class Agent:
         self.stub = None
         self.conn_attempt_job = None
 
+        # Domain bootstrap configuration is controlled via environment to keep
+        # the agent lightweight and adaptable per tenant.
+        self._skip_domain_check = os.getenv("CLOUDSHIELD_SKIP_DOMAIN_CHECK", "").lower() in {"1", "true", "yes"}
+        self._expected_domain = os.getenv("CLOUDSHIELD_EXPECTED_DOMAIN")
+        self._domain_setup_script = os.getenv("CLOUDSHIELD_DOMAIN_SETUP_SCRIPT")
+        self._domain_setup_args = os.getenv("CLOUDSHIELD_DOMAIN_SETUP_ARGS")
+        try:
+            self._domain_setup_timeout = int(os.getenv("CLOUDSHIELD_DOMAIN_SETUP_TIMEOUT", "300"))
+        except ValueError:
+            core_logger.warning(
+                "Invalid CLOUDSHIELD_DOMAIN_SETUP_TIMEOUT value. Falling back to 300 seconds."
+            )
+            self._domain_setup_timeout = 300
+
         # Ensure the cache directory exists. Use makedirs to create parent directories
         # and handle Windows paths like '/tmp/...' by falling back to a system temp dir
         try:
@@ -65,6 +81,11 @@ class Agent:
             except OSError as e2:
                 core_logger.critical(f"Unable to create fallback cache path '{fallback}': {e2}")
                 raise
+
+        if self._skip_domain_check:
+            core_logger.info("Skipping domain membership check (per environment configuration)")
+        else:
+            self.check_workstation()
 
         self.create_grpc_channel()
 
@@ -130,10 +151,15 @@ class Agent:
         core_logger.info(f"Task {name} added to scheduler (interval={interval})")
     
     def check_workstation(self):
-        """
-        Check if our gRPC server is reachable.
-        """
-        pass
+        """Ensure the workstation is attached to the expected domain."""
+        status = ensure_domain_membership(
+            expected_domain=self._expected_domain,
+            setup_script=self._domain_setup_script,
+            setup_args=self._domain_setup_args,
+            timeout_seconds=self._domain_setup_timeout,
+        )
+        self.state["domain_status"] = status
+        return status
 
     def is_grpc_server_up(self, channel):
         """
