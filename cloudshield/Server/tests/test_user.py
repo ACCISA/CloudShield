@@ -6,7 +6,7 @@ from pydantic import ValidationError
 # Add the Server directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.user import UserCreate, UserUpdate
+from cloudshield.Server.models.user import UserCreate, UserUpdate
 
 class TestUserCreate:
     """Test the UserCreate model validation"""
