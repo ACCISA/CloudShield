@@ -63,7 +63,7 @@ class UserUpdate(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def norm_email(cls, v: EmailStr | None) -> EmailStr | None:
+    def norm_email(cls, v: Optional[EmailStr]) -> Optional[EmailStr]:
         return EmailStr(str(v).strip().lower()) if v else None
 
     @field_validator("full_name")
