@@ -14,7 +14,7 @@ resource "tls_private_key" "org_id" {
 }
 
 resource "aws_key_pair" "org_id_key" {
-  key_name = "org_id_key"
+  key_name   = "${var.org_id}_key"
   public_key = tls_private_key.org_id.public_key_openssh
 }
 
@@ -61,7 +61,7 @@ resource "aws_subnet" "org_id_public_subnet" {
 resource "aws_subnet" "org_id_private_subnet" {
   vpc_id            = aws_vpc.org_id_vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = "ca-central-1b"
+  availability_zone = "ca-central-1a"
 
   tags = { Name = "org_id_private_subnet" }
 }
