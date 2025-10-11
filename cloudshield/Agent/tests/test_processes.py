@@ -1,14 +1,8 @@
-import sys
 from types import SimpleNamespace
 
 import psutil
-import pytest
 
-from cloudshield.Agent import tasks as tasks_pkg
-
-sys.modules.setdefault("tasks", tasks_pkg)
-
-from tasks.processes import GetProcessListTask
+from cloudshield.Agent.tasks.processes import GetProcessListTask
 
 
 class FakeProc:
