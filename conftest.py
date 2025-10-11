@@ -24,8 +24,6 @@ class _Sched:
         return None
 
 
-_stub_module("schedule", {"every": lambda interval=None: _Sched(interval), "run_pending": lambda: None})
-
 
 # boto3, rq, redis are common optional dependencies in repo; provide minimal stubs
 _stub_module("boto3")
