@@ -54,7 +54,7 @@ jobs:
 
       - name: Run pytest with coverage (Agent)
         run: |
-          PYTHONPATH=cloudshield/Agent/ coverage run -m pytest cloudshield/Agent/tests
+          PYTHONPATH=cloudshield/Agent/ coverage run -m pytest -s cloudshield/Agent/tests
           coverage report -m
           coverage xml -o tests/python/coverage/agent/coverage.xml
 
@@ -87,7 +87,7 @@ jobs:
 
       - name: Run pytest with coverage (ThreatDetection)
         run: |
-          PYTHONPATH=cloudshield/ThreatDetection/ coverage run -m pytest cloudshield/ThreatDetection/tests
+          PYTHONPATH=cloudshield/ThreatDetection/ coverage run -m pytest -s cloudshield/ThreatDetection/tests
           coverage report -m
           coverage xml -o tests/python/coverage/threat_detection/coverage.xml
       - name: Create empty coverage if missing
