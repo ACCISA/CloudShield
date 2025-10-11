@@ -87,9 +87,9 @@ jobs:
 
       - name: Run pytest with coverage (ThreatDetection)
         run: |
-          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest cloudshield/ThreatDetection/tests --cov=cloudshield.ThreatDetection \
-            --cov-report=term --cov-report=xml:tests/python/coverage/threat_detection/coverage.xml || echo "⚠️ Tests failed but continuing..."
+          PYTHONPATH=cloudshield/ThreatDetection/ coverage run -m pytest cloudshield/ThreatDetection/tests
+          coverage report -m
+          coverage xml -o tests/python/coverage/threat_detection/coverage.xml
       - name: Create empty coverage if missing
         run: |
           if [ ! -f tests/python/coverage/threat_detection/coverage.xml ]; then
