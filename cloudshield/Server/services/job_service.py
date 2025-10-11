@@ -24,7 +24,8 @@ def enqueue_provision(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         workstation_ami,
         job_timeout=JOB_TIMEOUT,
     )
-    logger.info("Enqueued provision job id=%s org_id=%s", job.id, org_id)
+    # Avoid logging user-controlled identifiers
+    logger.info("Enqueued provision job")
     return job
 
 
@@ -35,7 +36,8 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
         force,
         job_timeout=JOB_TIMEOUT,
     )
-    logger.info("Enqueued destroy job id=%s org_id=%s", job.id, org_id)
+    # Avoid logging user-controlled identifiers
+    logger.info("Enqueued destroy job")
     return job
 
 
@@ -43,7 +45,8 @@ def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
     try:
         job = Job.fetch(job_id, connection=redis_conn)
     except Exception:
-        logger.warning("Status requested for unknown job_id=%s", job_id)
+        # Avoid logging user-controlled identifiers
+        logger.warning("Status requested for unknown job")
         return {"error": "job not found"}, 404
 
     status = job.get_status()

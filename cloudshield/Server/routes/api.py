@@ -17,7 +17,8 @@ api_bp = Blueprint("api", __name__)
 @api_bp.route("/task/provision", methods=["POST"])
 def task_provision():
     data = request.get_json() or {}
-    logger.info("/task/provision POST body=%s", data)
+    # Avoid logging user-controlled request body
+    logger.info("Received /task/provision POST request")
     org_id = data.get("org_id")
     if not org_id:
         logger.warning("Provision request missing org_id")
@@ -29,7 +30,8 @@ def task_provision():
 @api_bp.route("/task/destroy", methods=["POST"])
 def task_destroy():
     data = request.get_json() or {}
-    logger.info("/task/destroy POST body=%s", data)
+    # Avoid logging user-controlled request body
+    logger.info("Received /task/destroy POST request")
     org_id = data.get("org_id")
     if not org_id:
         logger.warning("Destroy request missing org_id")
