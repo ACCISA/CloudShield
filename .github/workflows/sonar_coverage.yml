@@ -249,6 +249,12 @@ jobs:
           name: cloud-coverage
           path: tests/python/coverage/cloud
 
+      - name: Download ThreatDetection coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: threat-detection-coverage
+          path: tests/python/coverage/threat_detection
+
       - name: Download DesktopUI coverage
         uses: actions/download-artifact@v4
         with:
