@@ -1,9 +1,8 @@
 import unittest
-import time
 from unittest.mock import patch, MagicMock
 from proto import agent_pb2_grpc
 from proto import agent_pb2
-from tasks import GetProcessListTask, BaseTask
+from tasks import GetProcessListTask
 from core import Agent
 
 class DummyTask:
@@ -66,6 +65,25 @@ class TestSendProcessList(unittest.TestCase):
             mock_cache.assert_not_called()
 
             
+
+        mock_stub.SendProcessList.assert_called_once()
+
+    def test_send_process_list_information(self):
+        """
+        This test should not write the result of the task on disk since there is a mocked connection to a grpc server
+        """
+        real_stub = agent_pb2_grpc.AgentServiceStub(MagicMock())
+        mock_stub = MagicMock(spec=real_stub)
+        mock_stub.SendProcessList.return_value = agent_pb2.ProcessListAck(action=True, pids=[])
+
+        task = GetProcessListTask(MagicMock())
+        task.agent_state = {"agent_id":"agent-1", "cache_path":"/tmp/agent_cache"}
+
+        with patch("proto.agent_pb2_grpc.AgentServiceStub", return_value=mock_stub), patch.object(task, "cache_message") as mock_cache:
+            task.channel = mock_stub
+            task.stub = mock_stub
+            task.run()
+            mock_cache.assert_not_called()
 
         mock_stub.SendProcessList.assert_called_once()
 
