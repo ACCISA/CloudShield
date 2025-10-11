@@ -1,5 +1,17 @@
-import importlib
+import unittest.mock
+import os
+
+# Create a mock for MongoClient
+mock_mongo_client = unittest.mock.MagicMock()
+mock_mongo_client.return_value.admin.command.return_value = None
+
 import sys
+sys.modules['pymongo'] = unittest.mock.MagicMock()
+sys.modules['pymongo'].MongoClient = mock_mongo_client
+sys.modules['pymongo'].errors = unittest.mock.MagicMock()
+sys.modules['pymongo'].errors.PyMongoError = Exception
+
+import importlib
 import types
 import pathlib
 from flask import Flask, jsonify, g, request
