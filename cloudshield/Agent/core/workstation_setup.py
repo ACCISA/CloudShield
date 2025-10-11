@@ -1,4 +1,5 @@
-"""Utility helpers for agent workstation preflight checks.
+"""
+Utility helpers for agent workstation preflight checks.
 
 The agent needs to verify that the underlying workstation is joined to the
 expected domain before it begins forwarding telemetry. When the machine is not
@@ -25,6 +26,14 @@ _DOMAIN_QUERY = (
     "Get-CimInstance -ClassName Win32_ComputerSystem "
     "| Select-Object PartOfDomain, Domain, DomainRole "
     "| ConvertTo-Json -Depth 2"
+)
+
+_DNS_QUERY = (
+    "Get-DnsClientServerAddress -AddressFamily IPv4,IPv6 "
+    "| ForEach-Object { $_.ServerAddresses } "
+    "| Where-Object { $_ } "
+    "| Select-Object -Unique "
+    "| ConvertTo-Json"
 )
 
 
@@ -109,6 +118,18 @@ def query_domain_status() -> DomainStatus:
         domain_role=domain_role,
         detail=None,
     )
+
+
+def query_dns_servers() -> List[str]:
+    """Return the list of DNS server addresses configured on the host."""
+    if platform.system() != "Windows":
+        return []
+    data = _run_powershell_json(_DNS_QUERY)
+    if not data:
+        return []
+    if isinstance(data, list):
+        return [str(entry) for entry in data]
+    return [str(data)]
 
 
 def _build_script_command(script_path: str, extra_args: Iterable[str]) -> List[str]:

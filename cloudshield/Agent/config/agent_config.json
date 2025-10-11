@@ -1,0 +1,9 @@
+{
+  "expected_domain": "WORKGROUP",
+  "expected_dns_servers": [
+    "192.168.0.1",
+    "fec0:0:0:ffff::1",
+    "fec0:0:0:ffff::2",
+    "fec0:0:0:ffff::3"
+  ]
+}
