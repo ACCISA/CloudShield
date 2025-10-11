@@ -57,6 +57,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    password: Optional[str] = None
     role: Optional[Literal["admin", "employee"]] = None
     status: Optional[Literal["active", "inactive"]] = None
     full_name: Optional[str] = None
@@ -65,6 +66,21 @@ class UserUpdate(BaseModel):
     @classmethod
     def norm_email(cls, v: Optional[EmailStr]) -> Optional[EmailStr]:
         return EmailStr(str(v).strip().lower()) if v else None
+
+    @field_validator("password")
+    @classmethod
+    def strong_password(cls, v: Optional[str], info) -> Optional[str]:
+        if v is None:
+            return v
+        email = info.data.get("email", "")
+        local = email.split("@", 1)[0] if email else ""
+        if not PASSWORD_RX.match(v):
+            raise ValueError(
+                "Password must be 8+ chars with uppercase, lowercase, digit, and special char"
+            )
+        if local and local.lower() in v.lower():
+            raise ValueError("Password must not contain your email name")
+        return v
 
     @field_validator("full_name")
     @classmethod
