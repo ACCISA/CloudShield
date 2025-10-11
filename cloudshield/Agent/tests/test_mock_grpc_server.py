@@ -85,6 +85,23 @@ if "proto.agent_pb2_grpc" not in sys.modules:
 else:
     agent_pb2_grpc_module = sys.modules["proto.agent_pb2_grpc"]
 
+    # Ensure required attributes exist when another test installed a minimal stub.
+    if not hasattr(agent_pb2_grpc_module, "AgentServiceServicer"):
+        class AgentServiceServicer:
+            def __init__(self, *args, **kwargs):
+                pass
+
+        agent_pb2_grpc_module.AgentServiceServicer = AgentServiceServicer
+
+    if not hasattr(agent_pb2_grpc_module, "add_AgentServiceServicer_to_server"):
+        def add_servicer_to_server(servicer, server):
+            if hasattr(server, "register_servicer"):
+                server.register_servicer(servicer)
+            else:
+                setattr(server, "attached_servicer", servicer)
+
+        agent_pb2_grpc_module.add_AgentServiceServicer_to_server = add_servicer_to_server
+
 setattr(proto_module, "agent_pb2", agent_pb2_module)
 setattr(proto_module, "agent_pb2_grpc", agent_pb2_grpc_module)
 

@@ -135,7 +135,7 @@ jobs:
       - name: Run pytest with coverage (Cloud)
         run: |
           export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest --rootdir=cloudshield --cov=cloudshield.Cloud \
+          pytest cloudshield/Cloud/terraform/tests --cov=cloudshield.Cloud.terraform \
             --cov-report=term --cov-report=xml:tests/python/coverage/cloud/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Create empty coverage if missing
@@ -175,7 +175,7 @@ jobs:
       - name: Run pytest with coverage (ThreatDetection)
         run: |
           export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest --rootdir=cloudshield --cov=cloudshield.ThreatDetection \
+          pytest cloudshield/ThreatDetection/tests --cov=cloudshield.ThreatDetection \
             --cov-report=term --cov-report=xml:tests/python/coverage/threat_detection/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Create empty coverage if missing

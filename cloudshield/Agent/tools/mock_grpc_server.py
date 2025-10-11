@@ -26,6 +26,17 @@ if AGENT_ROOT not in sys.path:
     sys.path.insert(0, AGENT_ROOT)
 
 from proto import agent_pb2, agent_pb2_grpc  # noqa: E402
+
+# Some unit-test environments stub proto modules without the helper that normally
+# comes with generated gRPC code. Patch in a minimal version so `serve` keeps working.
+if not hasattr(agent_pb2_grpc, "add_AgentServiceServicer_to_server"):
+    def _fallback_add_servicer(servicer, server):
+        if hasattr(server, "register_servicer"):
+            server.register_servicer(servicer)
+        else:
+            setattr(server, "attached_servicer", servicer)
+
+    agent_pb2_grpc.add_AgentServiceServicer_to_server = _fallback_add_servicer
 from google.protobuf.json_format import MessageToDict  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
