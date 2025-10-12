@@ -26,7 +26,10 @@ class _Sched:
 
 
 # boto3, rq, redis are common optional dependencies in repo; provide minimal stubs
-_stub_module("boto3")
+try:  # use real boto3 if available
+    import boto3  # noqa: F401
+except Exception:
+    _stub_module("boto3")
 
 
 def _get_current_job_stub():
@@ -40,5 +43,19 @@ def _get_current_job_stub():
     return job
 
 
-_stub_module("rq", {"get_current_job": lambda: _get_current_job_stub()})
-_stub_module("redis")
+try:  # prefer real rq for tests (provides Job, Queue, etc.)
+    import rq  # noqa: F401
+except Exception:
+    _stub_module("rq", {"get_current_job": lambda: _get_current_job_stub()})
+
+try:  # prefer real redis (for Redis class). If missing, provide minimal stub.
+    import redis  # noqa: F401
+except Exception:
+    class _Redis:  # minimal placeholder
+        def __init__(self, *a, **k):
+            pass
+
+        def ping(self):
+            return True
+
+    _stub_module("redis", {"Redis": _Redis})

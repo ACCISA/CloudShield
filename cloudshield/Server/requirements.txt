@@ -3,6 +3,7 @@ redis
 rq
 boto3
 pytest
+pytest-cov
 pydantic
 pydantic[email]
 python-dotenv
