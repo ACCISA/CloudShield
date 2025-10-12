@@ -77,11 +77,10 @@ cloudshield/WebUI/node_modules
 **/__pycache__
 cloudshield/Server/__pycache__
 cloudshield/Server/dump.rdb
-cloudshield/Server/venv
+**/venv/
 **.swp
 **.log
 **/terraform.tfstate
 **/terraform.tfstate.backup
 **/.terraform.lock.hcl
 **/.terraform/
-cloudshield/Cloud/terraform/generated/**

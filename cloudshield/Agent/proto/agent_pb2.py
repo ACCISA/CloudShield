@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\"\xa2\x01\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x65xe\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x13\n\x0b\x63pu_percent\x18\x05 \x01(\t\x12\x14\n\x0cmemory_usage\x18\x06 \x01(\t\x12\x13\n\x0b\x63reate_time\x18\x07 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x08 \x03(\t\x12\x0c\n\x04ppid\x18\t \x01(\x05\"O\n\x0bProcessList\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\x12\x1b\n\tprocesses\x18\x03 \x03(\x0b\x32\x08.Process\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t25\n\x0c\x41gentService\x12%\n\x0fSendProcessList\x12\x0c.ProcessList\x1a\x04.Ackb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\"\xa2\x01\n\x07Process\x12\x0b\n\x03pid\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x65xe\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x13\n\x0b\x63pu_percent\x18\x05 \x01(\t\x12\x14\n\x0cmemory_usage\x18\x06 \x01(\t\x12\x13\n\x0b\x63reate_time\x18\x07 \x01(\t\x12\x0f\n\x07\x63mdline\x18\x08 \x01(\t\x12\x0c\n\x04ppid\x18\t \x01(\x05\"c\n\x0bProcessList\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\x12\x1b\n\tprocesses\x18\x03 \x03(\x0b\x32\x08.Process\x12\x12\n\nis_pending\x18\x04 \x01(\x08\"3\n\x0fWorkstationInit\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x0e\n\x06\x64omain\x18\x02 \x01(\t\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"@\n\x12ProcessInformation\x12\x0b\n\x03pid\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07handles\x18\x03 \x03(\t\"t\n\x11ProcessListAckRes\x12\x10\n\x08\x61gent_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\x12&\n\tprocesses\x18\x03 \x03(\x0b\x32\x13.ProcessInformation\x12\x12\n\nis_pending\x18\x04 \x01(\x08\".\n\x0eProcessListAck\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\x08\x12\x0c\n\x04pids\x18\x02 \x03(\x05\x32\xa7\x01\n\x0c\x41gentService\x12\x30\n\x0fSendProcessList\x12\x0c.ProcessList\x1a\x0f.ProcessListAck\x12\x36\n\x1aSendProcessListInformation\x12\x12.ProcessListAckRes\x1a\x04.Ack\x12-\n\x13SendWorkstationInit\x12\x10.WorkstationInit\x1a\x04.Ackb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,9 +34,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PROCESS']._serialized_start=16
   _globals['_PROCESS']._serialized_end=178
   _globals['_PROCESSLIST']._serialized_start=180
-  _globals['_PROCESSLIST']._serialized_end=259
-  _globals['_ACK']._serialized_start=261
-  _globals['_ACK']._serialized_end=300
-  _globals['_AGENTSERVICE']._serialized_start=302
-  _globals['_AGENTSERVICE']._serialized_end=355
+  _globals['_PROCESSLIST']._serialized_end=279
+  _globals['_WORKSTATIONINIT']._serialized_start=281
+  _globals['_WORKSTATIONINIT']._serialized_end=332
+  _globals['_ACK']._serialized_start=334
+  _globals['_ACK']._serialized_end=373
+  _globals['_PROCESSINFORMATION']._serialized_start=375
+  _globals['_PROCESSINFORMATION']._serialized_end=439
+  _globals['_PROCESSLISTACKRES']._serialized_start=441
+  _globals['_PROCESSLISTACKRES']._serialized_end=557
+  _globals['_PROCESSLISTACK']._serialized_start=559
+  _globals['_PROCESSLISTACK']._serialized_end=605
+  _globals['_AGENTSERVICE']._serialized_start=608
+  _globals['_AGENTSERVICE']._serialized_end=775
 # @@protoc_insertion_point(module_scope)

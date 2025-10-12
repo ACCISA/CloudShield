@@ -194,7 +194,25 @@ resource "aws_security_group" "allow_all_tcp_udp" {
 
   tags = { Name = "allow-all-tcp-udp" }
 }
+resource "aws_security_group" "allow_openvpn" {
+  vpc_id = aws_vpc.org_id_vpc.id
 
+  ingress {
+    description = "OpenVPN ${var.openvpn_protocol} ${var.openvpn_port}"
+    from_port   = var.openvpn_port
+    to_port     = var.openvpn_port
+    protocol    = var.openvpn_protocol
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "AllowOpenVPN" }
+}
 ##########################
 # 9. EC2 instance in Public Subnet
 ##########################
@@ -202,9 +220,18 @@ resource "aws_instance" "org_id_openvpn_server" {
   ami                         = var.ubuntu_ami
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.org_id_public_subnet.id
-  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids      = [aws_security_group.allow_ssh.id, aws_security_group.allow_openvpn.id, aws_security_group.allow_all_tcp_udp.id]
   associate_public_ip_address = true
   key_name                    = aws_key_pair.org_id_key.key_name
+  user_data = templatefile("${path.module}/scripts/setup_openvpn.tftpl", {
+  openvpn_port      = var.openvpn_port
+  openvpn_protocol  = var.openvpn_protocol
+  openvpn_subnet    = var.openvpn_subnet
+  openvpn_client_name = var.openvpn_client_name
+  openvpn_dns      = var.openvpn_dns
+  openvpn_address  = var.openvpn_address
+  openvpn_routes   = var.openvpn_routes
+})
   tags = { Name = "org_id_openvpn_server" }
 }
 
