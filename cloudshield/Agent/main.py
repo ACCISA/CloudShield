@@ -3,7 +3,7 @@ from pathlib import Path
 
 from core import Agent 
 from tasks import GetProcessListTask
-from tasks import GetProcessListTask, CallBootstrapTask
+from tasks import CallBootstrapTask
 
 
 def resolve_cache_path() -> str:
