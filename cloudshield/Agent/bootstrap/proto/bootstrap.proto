@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+message VersionCheck {
+        string agent_id = 1;
+        string md5sum = 2;
+}
+
+message VersionCheckAck {
+        enum Status {
+                UP_TO_DATE = 0;
+                UPDATE_REQUIRED = 1;
+        }
+        Status status = 1;
+        bytes binary = 2;
+}
+
+service BootstrapService {
+        rpc ValidateVersion(VersionCheck) returns (VersionCheckAck);
+}
