@@ -4,4 +4,4 @@ rq
 boto3
 pytest
 pytest-cov
-
+rq-scheduler
