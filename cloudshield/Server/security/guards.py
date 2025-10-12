@@ -1,6 +1,6 @@
 import os, functools
 from flask import request, jsonify, g
-from security.jwt_utils import verify_token
+from cloudshield.Server.security.jwt_utils import verify_token
 
 # Optional audit logging
 try:

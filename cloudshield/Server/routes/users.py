@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from security.guards import require_auth, require_role
-from models.user import UserCreate, UserUpdate
-from services.user_service import create_user, update_user, deactivate_user, delete_user
+from cloudshield.Server.security.guards import require_auth, require_role
+from cloudshield.Server.models.user import UserCreate, UserUpdate
+from cloudshield.Server.services.user_service import create_user, update_user, deactivate_user, delete_user
 
 users_bp = Blueprint('users', __name__)
 

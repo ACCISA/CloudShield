@@ -17,7 +17,7 @@ from tasks import create_ec2, create_vpc
 from rq.job import Job
 
 # App blueprints
-from routes.users import users_bp
+from cloudshield.Server.routes.users import users_bp
 # optional audit blueprint; may fail if DB/view not set up
 try:
     from routes.audit import audit_bp # type: ignore[import]
