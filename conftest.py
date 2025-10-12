@@ -13,11 +13,6 @@ def _stub_module(name, attrs=None):
     return m
 
 
-# Provide lightweight stubs for optional dependencies used by the codebase so
-# tests run in CI/local envs that don't have every library installed.
-_stub_module("grpc", {"insecure_channel": lambda *a, **k: None})
-
-
 class _Sched:
     def __init__(self, interval=None):
         self.interval = interval
@@ -28,8 +23,6 @@ class _Sched:
         # no-op scheduler in tests
         return None
 
-
-_stub_module("schedule", {"every": lambda interval=None: _Sched(interval), "run_pending": lambda: None})
 
 
 # boto3, rq, redis are common optional dependencies in repo; provide minimal stubs
