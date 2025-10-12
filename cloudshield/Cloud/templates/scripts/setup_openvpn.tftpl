@@ -2,7 +2,6 @@
 
 exec > /home/ubuntu/openvpn-userdata.log 2>&1
 set -x
-sleep 10 
 sudo apt update -y
 wget https://git.io/vpn -O /home/ubuntu/openvpn-install.sh
 sudo chmod +x /home/ubuntu/openvpn-install.sh
@@ -39,7 +38,7 @@ if { [string length \$OPENVPN_DNS] == 0 } {
     expect -re {DNS.*servers: }
     send "\$OPENVPN_DNS\r"
 }
-expect "Name \[client\]: "
+expect ".*Name \[client\]:.*"
 send "\$OPENVPN_CLIENT_NAME\r"
 expect "Press any key to continue"
 send "\r"
