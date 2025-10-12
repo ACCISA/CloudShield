@@ -19,7 +19,7 @@ try:
     admin_client = _mk_client(MONGO_URL_ADMIN or MONGO_URL_FALLBACK)
     emp_client   = _mk_client(MONGO_URL_EMP   or MONGO_URL_FALLBACK)
 
-    #TODO: Check how we want to adapt main logic to our new logic, we add the following to not have breaking changes
+    
 
     # Initialize MongoDB client
     client = MongoClient(MONGO_URI)
