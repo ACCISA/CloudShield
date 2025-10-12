@@ -1,13 +1,8 @@
 import json
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
-import cloudshield.Agent.core as core_pkg
-
-sys.modules.setdefault("core", core_pkg)
 
 from cloudshield.Agent.tasks import domain_dns
 from cloudshield.Agent.tasks.domain_dns import DomainDnsCheckTask

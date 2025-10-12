@@ -4,7 +4,7 @@ from typing import List, Optional, Set
 
 from logger import task_logger
 
-from core.workstation_setup import query_dns_servers, query_domain_status
+from ..core.workstation_setup import query_dns_servers, query_domain_status
 from .task import BaseTask
 
 
