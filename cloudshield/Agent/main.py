@@ -3,7 +3,7 @@ from pathlib import Path
 
 import tempfile
 from core import Agent 
-from tasks import GetProcessListTask, CallBootstrapTask
+from tasks import GetProcessListTask
 
 cache_dir = os.path.join(tempfile.gettempdir(), "agent_cache")
 
