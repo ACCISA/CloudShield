@@ -20,3 +20,48 @@ variable "region" {
   description = "AWS region"
   type        = string
 }
+
+// Open VPN config
+
+variable "openvpn_address"{
+  description = "Address for OpenVPN server"
+  type        = string
+  default     = ""
+}
+variable "openvpn_port"{
+  description = "Port for OpenVPN server"
+  type        = number
+  default     = 1194
+}
+
+variable "openvpn_protocol"{
+  description = "Protocol for OpenVPN server"
+  type        = string
+  default     = "udp"
+}
+
+variable "openvpn_subnet"{
+  description = "Subnet for OpenVPN clients"
+  type        = string
+  default     = ""
+  
+}
+
+variable "openvpn_client_name"{
+  description = "Client name for OpenVPN"
+  type        = string
+  default     = "client1"
+  
+}
+
+variable "openvpn_dns" {
+  description = "DNS servers for OpenVPN seperated by space"
+  type        = string
+  default     = ""
+}
+
+variable "openvpn_routes"{
+  description = "Additional routes for OpenVPN clients"
+  type        = list(string)
+  default     = []
+}

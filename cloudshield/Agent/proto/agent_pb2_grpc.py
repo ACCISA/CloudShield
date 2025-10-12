@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from proto import agent_pb2 as agent__pb2
+import proto.agent_pb2 as agent__pb2
 
 GRPC_GENERATED_VERSION = '1.74.0'
 GRPC_VERSION = grpc.__version__
@@ -37,6 +37,16 @@ class AgentServiceStub(object):
         self.SendProcessList = channel.unary_unary(
                 '/AgentService/SendProcessList',
                 request_serializer=agent__pb2.ProcessList.SerializeToString,
+                response_deserializer=agent__pb2.ProcessListAck.FromString,
+                _registered_method=True)
+        self.SendProcessListInformation = channel.unary_unary(
+                '/AgentService/SendProcessListInformation',
+                request_serializer=agent__pb2.ProcessListAckRes.SerializeToString,
+                response_deserializer=agent__pb2.Ack.FromString,
+                _registered_method=True)
+        self.SendWorkstationInit = channel.unary_unary(
+                '/AgentService/SendWorkstationInit',
+                request_serializer=agent__pb2.WorkstationInit.SerializeToString,
                 response_deserializer=agent__pb2.Ack.FromString,
                 _registered_method=True)
 
@@ -50,12 +60,34 @@ class AgentServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SendProcessListInformation(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendWorkstationInit(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendProcessList': grpc.unary_unary_rpc_method_handler(
                     servicer.SendProcessList,
                     request_deserializer=agent__pb2.ProcessList.FromString,
+                    response_serializer=agent__pb2.ProcessListAck.SerializeToString,
+            ),
+            'SendProcessListInformation': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendProcessListInformation,
+                    request_deserializer=agent__pb2.ProcessListAckRes.FromString,
+                    response_serializer=agent__pb2.Ack.SerializeToString,
+            ),
+            'SendWorkstationInit': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendWorkstationInit,
+                    request_deserializer=agent__pb2.WorkstationInit.FromString,
                     response_serializer=agent__pb2.Ack.SerializeToString,
             ),
     }
@@ -85,6 +117,60 @@ class AgentService(object):
             target,
             '/AgentService/SendProcessList',
             agent__pb2.ProcessList.SerializeToString,
+            agent__pb2.ProcessListAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendProcessListInformation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendProcessListInformation',
+            agent__pb2.ProcessListAckRes.SerializeToString,
+            agent__pb2.Ack.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendWorkstationInit(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/AgentService/SendWorkstationInit',
+            agent__pb2.WorkstationInit.SerializeToString,
             agent__pb2.Ack.FromString,
             options,
             channel_credentials,
