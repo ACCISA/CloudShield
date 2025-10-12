@@ -3,7 +3,6 @@ import sys
 from types import ModuleType
 from pathlib import Path
 
-import pytest
 
 
 def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
