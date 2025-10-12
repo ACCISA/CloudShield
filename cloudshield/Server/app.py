@@ -1,10 +1,22 @@
+import sys
+import os
+# Add the root directory to Python path so we can import debug_db
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 from debug_db import debug_db_bp
-from pymongo.errors import OperationFailure
+
+# Import OperationFailure conditionally to avoid test issues
+try:
+    from pymongo.errors import OperationFailure
+    MONGO_AVAILABLE = True
+except ImportError:
+    OperationFailure = None
+    MONGO_AVAILABLE = False
 
 # App setup
 app = Flask(__name__)
@@ -30,15 +42,17 @@ def handle_unexpected(e: Exception):
     # Log the error here as needed
     return jsonify({"error": "Internal server error"}), 500
 
-@app.errorhandler(OperationFailure)
-def handle_mongo_opfail(e: OperationFailure):
-    msg = str(e)
-    status = 403 if "not authorized" in msg.lower() else 500
-    return jsonify({
-        "error": "Forbidden (database)" if status == 403 else "Database error",
-        "code": "DB_UNAUTHORIZED" if status == 403 else "DB_OPERATION_FAILURE",
-        "details": msg
-    }), status
+# Register MongoDB error handler only if pymongo is available
+if MONGO_AVAILABLE and OperationFailure is not None:
+    @app.errorhandler(OperationFailure)
+    def handle_mongo_opfail(e: OperationFailure):
+        msg = str(e)
+        status = 403 if "not authorized" in msg.lower() else 500
+        return jsonify({
+            "error": "Forbidden (database)" if status == 403 else "Database error",
+            "code": "DB_UNAUTHORIZED" if status == 403 else "DB_OPERATION_FAILURE",
+            "details": msg
+        }), status
 
 # Import and register blueprints
 from cloudshield.Server.routes.users import users_bp
