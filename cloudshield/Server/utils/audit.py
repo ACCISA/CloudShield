@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, has_request_context
 from cloudshield.Server.utils.database import db_admin
 from cloudshield.Server.security.guards import require_auth, require_role
@@ -34,7 +34,7 @@ def log_audit(
         ua = request.headers.get("User-Agent")
 
     doc = {
-        "ts": datetime.utcnow(),
+        "ts": datetime.now(timezone.utc),
         "severity": severity,
         "action": action,           # e.g., "create", "update", "deactivate", "delete"
         "resource": resource,       # e.g., "users"

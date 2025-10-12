@@ -173,7 +173,7 @@ def task_ec2():
 @app.route("/task/vpc", methods=["POST"])
 def task_vpc():
     data = request.get_json(silent=True) or {}
-    cidr = data.get("cidr", "10.0.0.0/16")
+    cidr = data.get("cidr", "10.0.0.0/16")  # NOSONAR S1313
     job = task_queue.enqueue(create_vpc, cidr)
     return jsonify({"job_id": job.id, "request_id": g.request_id}), 202
 

@@ -1,5 +1,5 @@
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from cloudshield.Server.utils.database import users_admin, users_public
 from cloudshield.Server.utils.audit import log_audit
 from cloudshield.Server.models.user import UserCreate, UserUpdate
@@ -22,8 +22,8 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
         "role": user_data.role,
         "full_name": user_data.full_name,
         "status": "active",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
     res = users_admin.insert_one(user_doc)
     
@@ -45,12 +45,12 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    updates = {k: v for k, v in update_data.dict(exclude_unset=True).items()}
+    updates = update_data.dict(exclude_unset=True)
     if not updates:
         raise ValueError("No fields to update")
     if "password" in updates:
         updates["password"] = hash_password(updates["password"])
-    updates["updated_at"] = datetime.utcnow()
+    updates["updated_at"] = datetime.now(timezone.utc)
 
     users_admin.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
     after = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
@@ -72,7 +72,7 @@ def deactivate_user(user_id: str, current_user: dict, reason: str | None = None)
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    users_admin.update_one({"_id": ObjectId(user_id)}, {"$set": {"status": "inactive", "updated_at": datetime.utcnow()}})
+    users_admin.update_one({"_id": ObjectId(user_id)}, {"$set": {"status": "inactive", "updated_at": datetime.now(timezone.utc)}})
     after = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
 
     log_audit(

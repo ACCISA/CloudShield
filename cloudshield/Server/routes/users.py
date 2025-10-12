@@ -6,6 +6,9 @@ from cloudshield.Server.services.user_service import create_user, update_user, d
 
 users_bp = Blueprint('users', __name__)
 
+# Constants
+INTERNAL_SERVER_ERROR = "Internal server error"
+
 def _json_or_empty():
     # Safely get JSON body or return empty dict
     return request.get_json(silent=True) or {}
@@ -37,7 +40,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 # Update user endpoint
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
@@ -57,7 +60,7 @@ def update_user_endpoint(user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 # Deactivate user endpoint
 @users_bp.route("/users/<user_id>/deactivate", methods=["POST"])
@@ -73,7 +76,7 @@ def deactivate_user_endpoint(user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 # Delete user endpoint
 @users_bp.route("/users/<user_id>", methods=["DELETE"])
@@ -90,4 +93,4 @@ def delete_user_endpoint(user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception:
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
