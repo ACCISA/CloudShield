@@ -4,4 +4,9 @@ rq
 boto3
 pytest
 pytest-cov
-
+pydantic
+pydantic[email]
+python-dotenv
+pymongo
+PyJWT
+bcrypt
