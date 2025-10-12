@@ -2,6 +2,7 @@
 # Usage:
 #   python destroy_infra.py --org-id ORG123
 #   python destroy_infra.py --org-id ORG123 --force-empty-s3
+# python cloudshield/Cloud/terraform/destroy_infra.py --org-id=<ORG ID>
 
 import argparse
 import os
@@ -22,24 +23,19 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
 
 
-def run_cmd(cmd, cwd=None, capture_output=False):
-    print(f"[+] Running: {' '.join(cmd)} (cwd={cwd})")
-    return subprocess.run(cmd, cwd=cwd, check=True, capture_output=capture_output, text=True)
+# DESTROY INFRASTRUCTURE
+def destroy(org_id, region="ca-central-1"):
+    org_dir = os.path.join(GENERATED_DIR, org_id)
 
+    if not os.path.exists(org_dir):
+        print(f"[!] No Terraform directory found for org {org_id} at {org_dir}")
+        return
 
-def terraform_init_if_needed(org_dir):
-    # run terraform init to ensure providers/plugins are present
+    print(f"[*] Destroying infrastructure for org: {org_id}...")
+
     try:
-        run_cmd(["terraform", "init", "-input=false"], cwd=org_dir)
-    except subprocess.CalledProcessError as e:
-        print("[!] terraform init failed:")
-        print(e)
-        raise
-
-
-def terraform_destroy(org_dir, org_id, region):
-    try:
-        run_cmd(
+        # Pass org_id and region so Terraform doesn't prompt
+        subprocess.run(
             [
                 "terraform", "destroy",
                 "-auto-approve",
@@ -143,3 +139,6 @@ if __name__ == "__main__":
     if args.force_empty_s3 and not BOTO3_AVAILABLE:
         print("[!] Warning: --force-empty-s3 requested but boto3 is not installed. Install boto3 to enable this feature.")
     destroy(args.org_id, args.region, args.force_empty_s3)
+    args = parser.parse_args()
+
+    destroy(args.org_id, args.region)

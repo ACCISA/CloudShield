@@ -10,6 +10,24 @@ if "proto" not in sys.modules:
     proto_pkg = types.ModuleType("proto")
     proto_pkg.__path__ = []
     sys.modules["proto"] = proto_pkg
+import unittest
+import os
+import shutil
+from unittest.mock import patch, MagicMock
+from proto import agent_pb2_grpc
+from proto import agent_pb2
+from tasks import GetProcessListTask
+from core import Agent
+
+class DummyTask:
+            def __init__(self):
+                self.run = lambda: "ok"
+            
+            def set_channel(self, channel, stub):
+                pass
+
+            def run(self):
+                pass
 
 if "proto.agent_pb2" not in sys.modules:
     agent_pb2_module = types.ModuleType("proto.agent_pb2")

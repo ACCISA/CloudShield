@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
 
+import tempfile
 from core import Agent 
-from tasks import GetProcessListTask
+from tasks import GetProcessListTask, CallBootstrapTask
 
+cache_dir = os.path.join(tempfile.gettempdir(), "agent_cache")
 
 def resolve_cache_path() -> str:
 	"""Create a cache directory in a non-publicly writable location."""

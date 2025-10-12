@@ -18,9 +18,10 @@ class BaseTask(ABC):
 
     def set_channel(self, channel, stub):
         if channel is None: 
-            return
+            return False
         self.channel = channel
         self.stub = stub
+        return True
 
     @abstractmethod
     def run(self):

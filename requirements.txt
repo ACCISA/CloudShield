@@ -1,4 +1,5 @@
 pytest
+schedule
 pytest-cov
 psutil
 grpcio

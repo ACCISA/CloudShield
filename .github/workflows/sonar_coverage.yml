@@ -47,28 +47,59 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt || true; fi
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov coverage
 
       - name: Prepare coverage directory
         run: mkdir -p tests/python/coverage/agent
 
       - name: Run pytest with coverage (Agent)
         run: |
-          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest --rootdir=cloudshield --cov=cloudshield.Agent \
-            --cov-report=term --cov-report=xml:tests/python/coverage/agent/coverage.xml || echo "⚠️ Tests failed but continuing..."
+          PYTHONPATH=cloudshield/Agent/ coverage run -m pytest -s cloudshield/Agent/tests
+          coverage report -m
+          coverage xml -o tests/python/coverage/agent/coverage.xml
 
-      - name: Create empty coverage if missing
-        run: |
-          if [ ! -f tests/python/coverage/agent/coverage.xml ]; then
-            echo "<coverage></coverage>" > tests/python/coverage/agent/coverage.xml
-          fi
 
       - name: Upload Agent coverage
         uses: actions/upload-artifact@v4
         with:
           name: agent-coverage
           path: tests/python/coverage/agent/coverage.xml
+          if-no-files-found: warn
+# ThreatDetection Python tests
+  test_threat_detection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test requirements
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f cloudshield/ThreatDetection/requirements.txt ]; then pip install -r cloudshield/ThreatDetection/requirements.txt || true; fi
+          pip install pytest pytest-cov
+      - name: Prepare coverage directory
+        run: mkdir -p tests/python/coverage/threat_detection
+
+      - name: Run pytest with coverage (ThreatDetection)
+        run: |
+          PYTHONPATH=cloudshield/ThreatDetection/ coverage run -m pytest -s cloudshield/ThreatDetection/tests
+          coverage report -m
+          coverage xml -o tests/python/coverage/threat_detection/coverage.xml
+      - name: Create empty coverage if missing
+        run: |
+          if [ ! -f tests/python/coverage/threat_detection/coverage.xml ]; then
+            echo "<coverage></coverage>" > tests/python/coverage/threat_detection/coverage.xml
+          fi
+      - name: Upload ThreatDetection coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: threat-detection-coverage
+          path: tests/python/coverage/threat_detection/coverage.xml
           if-no-files-found: warn
 
   # Server Python tests
@@ -135,7 +166,7 @@ jobs:
       - name: Run pytest with coverage (Cloud)
         run: |
           export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest cloudshield/Cloud/terraform/tests --cov=cloudshield.Cloud.terraform \
+          pytest --rootdir=cloudshield --cov=cloudshield.Cloud \
             --cov-report=term --cov-report=xml:tests/python/coverage/cloud/coverage.xml || echo "⚠️ Tests failed but continuing..."
 
       - name: Create empty coverage if missing
@@ -149,46 +180,6 @@ jobs:
         with:
           name: cloud-coverage
           path: tests/python/coverage/cloud/coverage.xml
-          if-no-files-found: warn
-
-  # ThreatDetection Python tests
-  test_threat_detection:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install test requirements
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f cloudshield/ThreatDetection/requirements.txt ]; then pip install -r cloudshield/ThreatDetection/requirements.txt || true; fi
-          pip install pytest pytest-cov
-
-      - name: Prepare coverage directory
-        run: mkdir -p tests/python/coverage/threat_detection
-
-      - name: Run pytest with coverage (ThreatDetection)
-        run: |
-          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest cloudshield/ThreatDetection/tests --cov=cloudshield.ThreatDetection \
-            --cov-report=term --cov-report=xml:tests/python/coverage/threat_detection/coverage.xml || echo "⚠️ Tests failed but continuing..."
-
-      - name: Create empty coverage if missing
-        run: |
-          if [ ! -f tests/python/coverage/threat_detection/coverage.xml ]; then
-            echo "<coverage></coverage>" > tests/python/coverage/threat_detection/coverage.xml
-          fi
-
-      - name: Upload ThreatDetection coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: threat-detection-coverage
-          path: tests/python/coverage/threat_detection/coverage.xml
           if-no-files-found: warn
 
   # DesktopUI JS tests
@@ -286,8 +277,8 @@ jobs:
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.coverage.exclusions=**/tests/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html \
-            -Dsonar.exclusions=**/tests/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html \
+            -Dsonar.coverage.exclusions=**/tests/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/** \
+            -Dsonar.exclusions=**/tests/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/** \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml,tests/python/coverage/cloud/coverage.xml,tests/python/coverage/threat_detection/coverage.xml,*.html \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info || (echo "SonarCloud analysis failed" && exit 1)
 
