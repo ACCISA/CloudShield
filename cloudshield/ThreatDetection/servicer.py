@@ -73,7 +73,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             f"(ip={get_ip(context.peer())})"
         )
     
-        # Optional: ship to Elasticsearch (keeps your existing pattern)
+        
         for c in request.conns:
             doc = MessageToDict(c, preserving_proto_field_name=True)
             doc["agent_id"] = request.agent_id
