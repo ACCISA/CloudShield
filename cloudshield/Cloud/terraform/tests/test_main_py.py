@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from cloudshield.Cloud.terraform import main as terraform_main
 
 
@@ -13,6 +15,7 @@ def test_copy_and_replace_templates_replaces_org_id(tmp_path):
         'resource "aws_vpc" "org_id_vpc" { name = "org_id" value = var.org_id }',
         encoding="utf-8",
     )
+    (templates / "README.md").write_text("ignore me", encoding="utf-8")
 
     target_dir = terraform_main.copy_and_replace_templates(
         "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
@@ -22,6 +25,25 @@ def test_copy_and_replace_templates_replaces_org_id(tmp_path):
     assert "ACME_vpc" in content
     assert 'name = "ACME"' in content
     assert "var.org_id" in content
+
+
+def test_copy_and_replace_templates_overwrites_existing_directory(tmp_path, capsys):
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    (templates / "variables.tf").write_text('variable "org_id" { type = string }', encoding="utf-8")
+
+    first_run = terraform_main.copy_and_replace_templates(
+        "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
+    )
+    assert Path(first_run).exists()
+
+    second_run = terraform_main.copy_and_replace_templates(
+        "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
+    )
+
+    captured = capsys.readouterr()
+    assert "Removing it to start fresh" in captured.out
+    assert Path(second_run).exists()
 
 
 class _FakeIAM:
@@ -150,6 +172,90 @@ def test_cleanup_iam_artifacts_handles_absent_resources(monkeypatch):
     assert any(op[0] == "delete_key_pair" for op in calls)
 
 
+def test_cleanup_iam_artifacts_swallows_nosuchentity_errors(monkeypatch):
+    class MissingIAM:
+        def __init__(self):
+            self.profile_called = False
+
+        def get_instance_profile(self, InstanceProfileName):
+            return {
+                "InstanceProfile": {
+                    "Roles": [
+                        {
+                            "RoleName": "ACME-cloudshield-builder-role",
+                        }
+                    ]
+                }
+            }
+
+        def remove_role_from_instance_profile(self, InstanceProfileName, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "remove_role")
+
+        def delete_instance_profile(self, InstanceProfileName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "delete_profile")
+
+        def get_role(self, RoleName):
+            return {"Role": {"RoleName": RoleName}}
+
+        def list_role_policies(self, RoleName):
+            return {"PolicyNames": []}
+
+        def delete_role_policy(self, RoleName, PolicyName):
+            raise terraform_main.ClientError(
+                {"Error": {"Code": "NoSuchEntityException"}}, "delete_role_policy"
+            )
+
+        def list_attached_role_policies(self, RoleName):
+            return {"AttachedPolicies": [{"PolicyArn": "arn", "PolicyName": "managed"}]}
+
+        def detach_role_policy(self, RoleName, PolicyArn):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "detach_role_policy")
+
+        def delete_role(self, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "delete_role")
+
+    class SilentEC2:
+        def delete_key_pair(self, KeyName):
+            return None
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return MissingIAM()
+        if service_name == "ec2":
+            return SilentEC2()
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+
+
+def test_cleanup_iam_artifacts_handles_absent_role(monkeypatch, capsys):
+    class MissingRoleIAM:
+        def get_instance_profile(self, InstanceProfileName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "get_instance_profile")
+
+        def get_role(self, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "get_role")
+
+    class SilentEC2:
+        def delete_key_pair(self, KeyName):
+            return None
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return MissingRoleIAM()
+        if service_name == "ec2":
+            return SilentEC2()
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+    captured = capsys.readouterr()
+    assert "No leftover IAM role" in captured.out
+
+
 def test_wait_for_ami_uses_waiter(monkeypatch):
     wait_calls = []
 
@@ -166,6 +272,23 @@ def test_wait_for_ami_uses_waiter(monkeypatch):
     monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
     terraform_main.wait_for_ami("ami-123", "ca-central-1")
     assert wait_calls == [("ami-123",)]
+
+
+def test_wait_for_ami_raises_on_timeout(monkeypatch):
+    class FakeWaiter:
+        def wait(self, ImageIds):
+            raise terraform_main.WaiterError(name="image_available", reason="timeout", last_response={})
+
+    class FakeEC2:
+        def get_waiter(self, name):
+            return FakeWaiter()
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    with pytest.raises(RuntimeError) as exc:
+        terraform_main.wait_for_ami("ami-123", "ca-central-1")
+
+    assert "did not become available" in str(exc.value)
 
 
 def test_run_terraform_two_phase_apply_executes_commands(tmp_path, monkeypatch):
@@ -187,6 +310,45 @@ def test_run_terraform_two_phase_apply_executes_commands(tmp_path, monkeypatch):
     assert init_cmd[0][:2] == ("terraform", "init")
     assert ("cleanup", "ACME", "ca-central-1") in commands
     assert ("wait_for_ami", "ami-9999", "ca-central-1") in commands
+
+
+def test_run_terraform_two_phase_apply_raises_when_output_missing(tmp_path, monkeypatch):
+    def fake_run(cmd, cwd=None, check=None, capture_output=False, text=False):
+        if cmd[:3] == ["terraform", "output", "-raw"]:
+            return SimpleNamespace(stdout="")
+        return SimpleNamespace(stdout="ignored")
+
+    monkeypatch.setattr(terraform_main, "cleanup_iam_artifacts", lambda org, region: None)
+    monkeypatch.setattr(terraform_main, "wait_for_ami", lambda ami, region: None)
+    monkeypatch.setattr(terraform_main.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError):
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", terraform_dir=str(tmp_path))
+
+
+def test_get_ec2_ips_skips_instances_without_matching_name(monkeypatch):
+    class FakeEC2:
+        def describe_instances(self):
+            return {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-1",
+                                "Tags": [{"Key": "Owner", "Value": "Other"}],
+                                "State": {"Name": "running"},
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        def describe_volumes(self, VolumeIds):
+            raise AssertionError("volume lookup should not happen")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    assert terraform_main.get_ec2_ips("ca-central-1", "ACME") == []
 
 
 def test_get_ec2_ips_returns_metadata(monkeypatch):
