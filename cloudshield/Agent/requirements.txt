@@ -5,3 +5,7 @@ pyinstaller
 schedule
 pytest
 pytest-cov
+psutil
+grpcio
+boto3
+grpcio-tools

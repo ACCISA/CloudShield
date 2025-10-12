@@ -60,9 +60,18 @@ CloudShield has four main components:
 git clone <https://github.com/ACCISA/CloudShield>
 cd <repo>
 
-# Python backend
+# Python backend (Unix/Linux)
 python -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
+cd cloudshield/Agent
+pip install -r requirements.txt
+python main.py
+
+# Python backend (Windows)
+python -m venv
+.venv/Scripts/activate
+cd cloudshield/Agent
+pip install -r requirements.txt
+python main.py
 
 # Web UI
 cd webui && npm ci && cd ..
