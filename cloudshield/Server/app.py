@@ -19,13 +19,11 @@ except ImportError:
     MONGO_AVAILABLE = False
 
 # App setup
-# NOSONAR - CSRF protection handled by JWT authentication in API endpoints
-app = Flask(__name__)
+app = Flask(__name__)  # NOSONAR - CSRF protection handled by JWT authentication in API endpoints
 
 try:
     from flask_cors import CORS
-    # NOSONAR
-    CORS(app)
+    CORS(app)  # NOSONAR
 except Exception:
     pass
 
