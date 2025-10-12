@@ -1,32 +1,32 @@
-# Mock MongoDB connection
 import unittest.mock
 import os
 import sys
 import pytest
 
-# Create a permanent mock for MongoClient before importing anything
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None
 
-# Mock pymongo modules to prevent actual MongoDB connections
 mock_pymongo = unittest.mock.MagicMock()
 mock_pymongo.MongoClient = mock_mongo_client
 mock_pymongo.errors = unittest.mock.MagicMock()
 mock_pymongo.errors.PyMongoError = Exception
 
-# Assign mocked modules to sys.modules
-sys.modules['pymongo'] = mock_pymongo
-sys.modules['pymongo.errors'] = mock_pymongo.errors
-
 import importlib
 from unittest.mock import patch, MagicMock
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_pymongo_mocks(monkeypatch):
+    """Set up pymongo mocks with proper cleanup"""
+    monkeypatch.setitem(sys.modules, 'pymongo', mock_pymongo)
+    monkeypatch.setitem(sys.modules, 'pymongo.errors', mock_pymongo.errors)
 
 
 class TestDatabase:
     """Test the database.py module"""
 
     def test_database_module_imports(self):
-        # Import the database module using relative import
         from cloudshield.Server.utils import database
         
         # Check that required objects exist
