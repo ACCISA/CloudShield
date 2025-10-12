@@ -11,10 +11,8 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
-# RQ / Redis bits (unchanged)
-from redis_client import task_queue, redis_conn
-from tasks import create_ec2, create_vpc
-from rq.job import Job
+from .utils.logging_setup import get_logger
+from .routes import api_bp
 
 # App blueprints
 from cloudshield.Server.routes.users import users_bp
@@ -26,12 +24,19 @@ except Exception:  # pragma: no cover
 
 load_dotenv()
 
-# App setup
-app = Flask(__name__)
 
 # Logging setup
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
-logger = logging.getLogger("cloudshield.server")
+server_logger = logging.getLogger("cloudshield.server")
+logger = get_logger("api")
+
+def create_app() -> Flask:
+    app = Flask(__name__)
+    app.register_blueprint(api_bp)
+    logger.debug("Registered api blueprint: %s", api_bp.name)
+    return app
+
+app = create_app()
 
 # Helpers
 def _request_id() -> str:
@@ -140,7 +145,7 @@ def _handle_http_exception(e: HTTPException):
 @app.errorhandler(Exception)
 def _handle_generic(e: Exception):
     # Last-resort handler; don't leak internals in production
-    logger.exception("Unhandled error: %s", e)
+    server_logger.exception("Unhandled error: %s", e)
     details = str(e) if app.debug else "An unexpected error occurred"
     return _error_json(
         error="Internal Server Error",
@@ -161,39 +166,7 @@ def healthz():
     return jsonify({"status": "ok", "request_id": g.request_id}), 200
 
 
-# Task endpoints (kept as-is, with small JSON safety)
-@app.route("/task/ec2", methods=["POST"])
-def task_ec2():
-    data = request.get_json(silent=True) or {}
-    instance_type = data.get("instance_type", "t2.micro")
-    job = task_queue.enqueue(create_ec2, instance_type)
-    return jsonify({"job_id": job.id, "request_id": g.request_id}), 202
-
-
-@app.route("/task/vpc", methods=["POST"])
-def task_vpc():
-    data = request.get_json(silent=True) or {}
-    cidr = data.get("cidr", "10.0.0.0/16")  # NOSONAR S1313
-    job = task_queue.enqueue(create_vpc, cidr)
-    return jsonify({"job_id": job.id, "request_id": g.request_id}), 202
-
-
-@app.route("/status/<job_id>", methods=["GET"])
-def job_status(job_id):
-    try:
-        job = Job.fetch(job_id, connection=redis_conn)
-    except Exception:
-        return _error_json("Job not found", "JOB_NOT_FOUND", status=404)
-
-    response = {
-        "job_id": job.id,
-        "status": job.get_status(),
-        "progress": job.meta.get("progress", "No updates yet"),
-        "result": job.result if job.is_finished else None,
-        "request_id": g.request_id,
-    }
-    return jsonify(response), 200
-
+# Task endpoints removed - functionality moved to api_bp routes
 
 # Entrypoint
 if __name__ == "__main__":
