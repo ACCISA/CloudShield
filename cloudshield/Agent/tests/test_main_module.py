@@ -21,12 +21,13 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
             self.started = False
             created["instance"] = self
 
-        def register_task(self, name, task, interval):
+        def register_task(self, name, task, interval=5, run_once=False):
             self.registered.append((name, task, interval))
             created["task_call"] = {
                 "name": name,
                 "interval": interval,
                 "task_state": getattr(task, "state", None),
+                "run_once": run_once
             }
 
         def start_core(self):
@@ -37,10 +38,15 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
         def __init__(self, state):
             self.state = state
 
+    class FakeCallBootstrapTask:
+        def __init__(self, state):
+            self.state = state
+
     fake_core = ModuleType("core")
     fake_core.Agent = FakeAgent
     fake_tasks = ModuleType("tasks")
     fake_tasks.GetProcessListTask = FakeGetProcessListTask
+    fake_tasks.CallBootstrapTask = FakeCallBootstrapTask
 
     monkeypatch.setitem(sys.modules, "core", fake_core)
     monkeypatch.setitem(sys.modules, "tasks", fake_tasks)
