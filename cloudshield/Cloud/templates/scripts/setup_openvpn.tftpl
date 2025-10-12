@@ -48,9 +48,8 @@ expect eof
 EOF
 sudo chmod +x /home/ubuntu/openvpn-auto-install.sh
 /home/ubuntu/openvpn-auto-install.sh
-sleep 10
 %{ for route in openvpn_routes ~}
-echo "push \"route ${route}\"" | sudo tee -a /etc/openvpn/server.conf
+echo "push \"route ${route}\"" | sudo tee -a /etc/openvpn/server/server.conf
 %{ endfor ~}
 sudo sysctl -w net.ipv4.ip_forward=1
 echo "Script Completed" >> /home/ubuntu/openvpn-userdata.log
