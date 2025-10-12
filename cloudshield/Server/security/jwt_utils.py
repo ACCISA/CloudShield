@@ -1,5 +1,6 @@
-import os, time, jwt
-from datetime import datetime, timedelta
+import os
+import time
+import jwt
 
 JWT_SECRET   = os.getenv("JWT_SECRET")
 JWT_ISSUER   = os.getenv("JWT_ISSUER", "cloudshield")

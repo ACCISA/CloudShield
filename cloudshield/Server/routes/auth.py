@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify
 from cloudshield.Server.security.passwords import verify_password, hash_password, is_bcrypt_string
 from cloudshield.Server.security.jwt_utils import issue_token, verify_token
 from cloudshield.Server.utils.database import users_admin

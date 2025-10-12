@@ -1,5 +1,4 @@
 import unittest.mock
-import os
 
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None
@@ -100,8 +99,10 @@ class FakeCollection:
     
     def update_one(self, filt, upd):
         _id = filt.get("_id")
-        if _id not in self._docs: return _UpdateRes(0, 0)
-        if "$set" in upd: self._docs[_id].update(upd["$set"])
+        if _id not in self._docs: 
+            return _UpdateRes(0, 0)
+        if "$set" in upd: 
+            self._docs[_id].update(upd["$set"])
         return _UpdateRes(1, 1)
     
     def delete_one(self, filt):

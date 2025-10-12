@@ -1,9 +1,8 @@
 import unittest.mock
 import sys
 import types
-import importlib
 import pytest
-from flask import Flask, jsonify, g
+from flask import Flask
 
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None

@@ -1,9 +1,8 @@
-import unittest
 import pytest
 import os
 import sys
-from unittest.mock import patch, MagicMock
-from flask import Flask, request, jsonify, g
+from unittest.mock import MagicMock
+from flask import Flask, jsonify, g
 
 # Set up environment
 os.environ['JWT_SECRET'] = 'test_secret_key_for_testing'

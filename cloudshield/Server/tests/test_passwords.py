@@ -1,6 +1,4 @@
-import unittest
 import pytest
-import bcrypt
 from cloudshield.Server.security.passwords import hash_password, verify_password
 
 
@@ -62,7 +60,7 @@ class TestPasswords:
         password = "correct_password_123"
         hashed = hash_password(password)
         
-        assert verify_password(password, hashed) == True
+        assert verify_password(password, hashed)
 
     def test_verify_password_incorrect_password(self):
         """Test verification with incorrect password"""
@@ -70,31 +68,31 @@ class TestPasswords:
         wrong_password = "wrong_password"
         hashed = hash_password(password)
         
-        assert verify_password(wrong_password, hashed) == False
+        assert not verify_password(wrong_password, hashed)
 
     def test_verify_password_empty_strings(self):
         """Test verification with empty strings"""
         hashed_empty = hash_password("")
         
-        assert verify_password("", hashed_empty) == True
-        assert verify_password("not_empty", hashed_empty) == False
+        assert verify_password("", hashed_empty)
+        assert not verify_password("not_empty", hashed_empty)
 
     def test_verify_password_case_sensitive(self):
         """Test that password verification is case sensitive"""
         password = "CaseSensitive123"
         hashed = hash_password(password)
         
-        assert verify_password(password, hashed) == True
-        assert verify_password(password.lower(), hashed) == False
-        assert verify_password(password.upper(), hashed) == False
+        assert verify_password(password, hashed)
+        assert not verify_password(password.lower(), hashed)
+        assert not verify_password(password.upper(), hashed)
 
     def test_verify_password_unicode(self):
         """Test verification with unicode passwords"""
         password = "pássw0rd_üñíc0dé_123"
         hashed = hash_password(password)
         
-        assert verify_password(password, hashed) == True
-        assert verify_password("different_üñíc0dé", hashed) == False
+        assert verify_password(password, hashed)
+        assert not verify_password("different_üñíc0dé", hashed)
 
     def test_hash_format_is_valid_bcrypt(self):
         """Test that the hash format is valid bcrypt"""
@@ -135,6 +133,6 @@ class TestPasswords:
         
         for password in passwords:
             hashed = hash_password(password)
-            assert verify_password(password, hashed) == True
+            assert verify_password(password, hashed)
             if len(password) < 71:
-                assert verify_password(password + "x", hashed) == False
+                assert not verify_password(password + "x", hashed)

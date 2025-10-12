@@ -1,7 +1,6 @@
 import unittest.mock
 import sys
 import types
-import importlib
 import pytest
 from datetime import datetime
 from flask import Flask, jsonify, g

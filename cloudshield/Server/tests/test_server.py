@@ -1,10 +1,6 @@
 import unittest.mock
 import sys
 import pytest
-import json
-from flask import Flask
-from werkzeug.exceptions import BadRequest, HTTPException
-from pydantic import ValidationError
 
 # Create proper exception classes for mocking
 class MockDuplicateKeyError(Exception):
@@ -50,7 +46,7 @@ sys.modules['routes.users'].users_bp = mock_users_bp
 sys.modules['routes.audit'] = unittest.mock.MagicMock()
 sys.modules['routes.audit'].audit_bp = None
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from cloudshield.Server.server import app, _request_id, _error_json
 

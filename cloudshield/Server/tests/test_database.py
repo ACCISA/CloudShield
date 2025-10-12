@@ -12,8 +12,7 @@ mock_pymongo.errors = unittest.mock.MagicMock()
 mock_pymongo.errors.PyMongoError = Exception
 
 import importlib
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 
 @pytest.fixture(autouse=True)
@@ -67,7 +66,7 @@ class TestDatabase:
         
         # Test with a mock URL
         with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
-            result = database._mk_client("mongodb://test:27017/")
+            database._mk_client("mongodb://test:27017/")
             
             # Verify MongoClient was called with correct parameters
             mock_client.assert_called_once_with("mongodb://test:27017/", serverSelectionTimeoutMS=5000)

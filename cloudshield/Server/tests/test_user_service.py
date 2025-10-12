@@ -1,8 +1,6 @@
 import unittest.mock
 import sys
-import types
 import pytest
-from datetime import datetime
 from bson import ObjectId
 
 

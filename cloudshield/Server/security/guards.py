@@ -1,4 +1,4 @@
-import os, functools
+import functools
 from flask import request, jsonify, g
 from cloudshield.Server.security.jwt_utils import verify_token
 
