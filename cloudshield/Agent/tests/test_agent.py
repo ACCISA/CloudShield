@@ -1,7 +1,6 @@
 import unittest
 import os
 import shutil
-import schedule
 from unittest.mock import patch, MagicMock
 from proto import agent_pb2_grpc
 from proto import agent_pb2
@@ -79,7 +78,7 @@ class TestSendProcessList(unittest.TestCase):
         cache = "/tmp/agent_cache"
         if os.path.exists(cache):
             shutil.rmtree(cache)
-        ag = Agent("agent1", "localhost", 1234, cache)
+        Agent("agent1", "localhost", 1234, cache)
         assert os.path.isdir(cache), "Directory does not exist"
     
     def test_set_task_channels(self):

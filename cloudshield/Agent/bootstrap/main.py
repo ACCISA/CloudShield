@@ -1,5 +1,7 @@
 import grpc
+import hashlib
 import os
+import subprocess
 
 from proto import bootstrap_pb2
 from proto import bootstrap_pb2_grpc
@@ -10,7 +12,16 @@ AGENT_BINARY = "agent.exe"
 SERVICE_NAME = "CloudShieldAgent"
 
 def get_agent_checksum():
-    return "aasdasdasdasdasd"
+    file_path = AGENT_BINARY
+    try:
+        hash_md5 = hashlib.md5()  # create MD5 hash object
+        with open(file_path, "rb") as f:  # open file in binary mode
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)  # feed each chunk to the hash
+        return hash_md5.hexdigest()
+    except Exception as e:
+        print(e)
+        return 0
 
 def write_agent_binary(binary):
     f = open(TEMP_AGENT_BINARY, "wb")

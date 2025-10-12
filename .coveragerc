@@ -1,0 +1,15 @@
+[run]
+branch = True
+source = cloudshield
+omit =
+    */tests/*
+    */__init__.py
+    */migrations/*
+    */some_file_to_ignore.py
+    */*_pb2.py
+    */*_pb2_grpc.py
+
+[report]
+show_missing = True
+skip_covered = True
+

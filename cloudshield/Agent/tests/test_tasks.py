@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock
 from proto import agent_pb2_grpc
 from proto import agent_pb2
 from tasks import BaseTask, GetProcessListTask
-from core import Agent
 
 class DummyTask(BaseTask):
             def __init__(self, agent_state):
@@ -31,7 +30,7 @@ class TestSendProcessList(unittest.TestCase):
         task.agent_state = {"agent_id":"agent-1", "cache_path":"/tmp/agent_cache"}
 
         with patch("proto.agent_pb2_grpc.AgentServiceStub", return_value=mock_stub):
-            result = task.run()
+            task.run()
 
 
 
@@ -50,7 +49,7 @@ class TestSendProcessList(unittest.TestCase):
             task.stub = mock_stub
             task.channel = mock_stub
             with pytest.raises(AttributeError) as errorStr:
-                result = task.run()
+                task.run()
             assert "does not exist" in str(errorStr)
             mock_cache.assert_not_called()
 
