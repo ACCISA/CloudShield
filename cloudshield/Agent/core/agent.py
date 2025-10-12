@@ -102,19 +102,21 @@ class Agent:
         core_logger.error("Unable to connect to grpc server")
         return None
 
-    def register_task(self, name, task, interval):
+    def register_task(self, name, task, interval=5, run_once=False):
         """
         Register a task to the scheduler. This task must inherit from BaseTask. Tasks that fail sending messages will write them to cache.
         """
         self.tasks.append({
             "task_name": name,
             "function": task,
-            "interval": interval
+            "interval": interval,
+            "run_once": run_once
         })
         task.set_channel(self.channel, self.stub)
-        schedule.every(interval).seconds.do(task.run)
+        if run_once is False:
+            schedule.every(interval).seconds.do(task.run)
         core_logger.info(f"Task {name} added to scheduler (interval={interval})")
-    
+
     def check_workstation(self):
         """
         Check if our gRPC server is reachable.
@@ -186,8 +188,10 @@ class Agent:
     
     def start_core(self):
         """
-        Main agent loop, run tasks at their respective intervals
+        Main agent loop, run tasks at their respective intervals. Also runs tasks that should only be executed once
         """
+        run_once_tasks = [task["function"].run() for task in self.tasks if task["run_once"] is True]
+        core_logger.info(f"{len(run_once_tasks)} unique task were executed on startup")
         schedule.every(self.core_interval).seconds.do(self.send_pending_messages)
         core_logger.info("Main agent loop has started")
         while True:
