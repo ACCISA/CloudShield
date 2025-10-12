@@ -1,180 +1,342 @@
-import os
-import subprocess
-import pytest
 from datetime import datetime
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from cloudshield.Cloud.terraform import main as terraform_main
 
 
-# COPY AND REPLACE TESTS
-def test_copy_and_replace_templates(tmp_path):
-    # create fake templates
+def test_copy_and_replace_templates_replaces_org_id(tmp_path):
     templates = tmp_path / "templates"
     templates.mkdir()
+    (templates / "variables.tf").write_text('variable "org_id" { type = string }', encoding="utf-8")
+    (templates / "resource.tf").write_text(
+        'resource "aws_vpc" "org_id_vpc" { name = "org_id" value = var.org_id }',
+        encoding="utf-8",
+    )
+    (templates / "README.md").write_text("ignore me", encoding="utf-8")
 
-    main_tf = templates / "main.tf"
-    main_tf.write_text('resource "aws_instance" "t" { name = "org_id" }')
+    target_dir = terraform_main.copy_and_replace_templates(
+        "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
+    )
 
-    vars_tf = templates / "variables.tf"
-    vars_tf.write_text('variable "org_id" { type = string }')
-
-    generated = tmp_path / "generated" / "TEST"
-    terraform_main.copy_and_replace_templates("TEST", templates_dir=str(templates), generated_dir=str(generated))
-
-    assert generated.exists()
-    content = (generated / "main.tf").read_text()
-    # main.tf should have 'org_id' replaced with the org id value
-    assert "TEST" in content
-
-    # variables.tf should be preserved
-    vcontent = (generated / "variables.tf").read_text()
-    assert 'variable "org_id"' in vcontent
+    content = Path(target_dir, "resource.tf").read_text(encoding="utf-8")
+    assert "ACME_vpc" in content
+    assert 'name = "ACME"' in content
+    assert "var.org_id" in content
 
 
-# TERRAFORM APPLY TESTS
-def test_run_terraform_apply_calls(monkeypatch, tmp_path):
+def test_copy_and_replace_templates_overwrites_existing_directory(tmp_path, capsys):
+    templates = tmp_path / "templates"
+    templates.mkdir()
+    (templates / "variables.tf").write_text('variable "org_id" { type = string }', encoding="utf-8")
+
+    first_run = terraform_main.copy_and_replace_templates(
+        "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
+    )
+    assert Path(first_run).exists()
+
+    second_run = terraform_main.copy_and_replace_templates(
+        "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
+    )
+
+    captured = capsys.readouterr()
+    assert "Removing it to start fresh" in captured.out
+    assert Path(second_run).exists()
+
+
+class _FakeIAM:
+    def __init__(self, calls):
+        self.calls = calls
+
+    def get_instance_profile(self, InstanceProfileName):
+        self.calls.append(("get_instance_profile", InstanceProfileName))
+        return {
+            "InstanceProfile": {
+                "Roles": [
+                    {
+                        "RoleName": "ACME-cloudshield-builder-role",
+                    }
+                ]
+            }
+        }
+
+    def remove_role_from_instance_profile(self, InstanceProfileName, RoleName):
+        self.calls.append(("remove_role", InstanceProfileName, RoleName))
+
+    def delete_instance_profile(self, InstanceProfileName):
+        self.calls.append(("delete_instance_profile", InstanceProfileName))
+
+    def get_role(self, RoleName):
+        self.calls.append(("get_role", RoleName))
+        return {"Role": {"RoleName": RoleName}}
+
+    def list_role_policies(self, RoleName):
+        self.calls.append(("list_role_policies", RoleName))
+        return {"PolicyNames": ["inline-policy"]}
+
+    def delete_role_policy(self, RoleName, PolicyName):
+        self.calls.append(("delete_role_policy", RoleName, PolicyName))
+
+    def list_attached_role_policies(self, RoleName):
+        self.calls.append(("list_attached", RoleName))
+        return {
+            "AttachedPolicies": [
+                {
+                    "PolicyArn": "arn:aws:iam::123:policy/managed",
+                    "PolicyName": "managed",
+                }
+            ]
+        }
+
+    def detach_role_policy(self, RoleName, PolicyArn):
+        self.calls.append(("detach_role_policy", RoleName, PolicyArn))
+
+    def delete_role(self, RoleName):
+        self.calls.append(("delete_role", RoleName))
+
+
+class _FakeEC2:
+    def __init__(self, calls, keypair_error=None):
+        self.calls = calls
+        self.keypair_error = keypair_error
+
+    def delete_key_pair(self, KeyName):
+        self.calls.append(("delete_key_pair", KeyName))
+        if self.keypair_error:
+            raise self.keypair_error
+
+    def get_waiter(self, name):
+        assert name == "image_available"
+
+        calls = self.calls
+
+        class Waiter:
+            def wait(self_inner, ImageIds):
+                calls.append(("wait", tuple(ImageIds)))
+
+        return Waiter()
+
+    def describe_instances(self):  # pragma: no cover - other tests use dedicated fakes
+        return {}
+
+
+def test_cleanup_iam_artifacts_removes_resources(monkeypatch):
     calls = []
 
-    def fake_run(cmd, cwd=None, check=False):
-        calls.append((cmd, cwd, check))
-        return subprocess.CompletedProcess(cmd, 0)
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return _FakeIAM(calls)
+        if service_name == "ec2":
+            return _FakeEC2(calls)
+        raise AssertionError("unexpected service")
 
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+
+    recorded_ops = {op[0] for op in calls}
+    assert {
+        "get_instance_profile",
+        "remove_role",
+        "delete_instance_profile",
+        "get_role",
+        "list_role_policies",
+        "delete_role_policy",
+        "list_attached",
+        "detach_role_policy",
+        "delete_role",
+        "delete_key_pair",
+    }.issubset(recorded_ops)
+
+
+def test_cleanup_iam_artifacts_handles_absent_resources(monkeypatch):
+    calls = []
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return _FakeIAM(calls)
+        if service_name == "ec2":
+            return _FakeEC2(
+                calls,
+                keypair_error=terraform_main.ClientError(
+                    {"Error": {"Code": "InvalidKeyPair.NotFound"}}, "delete_key_pair"
+                ),
+            )
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+    assert any(op[0] == "delete_key_pair" for op in calls)
+
+
+def test_cleanup_iam_artifacts_swallows_nosuchentity_errors(monkeypatch):
+    class MissingIAM:
+        def __init__(self):
+            self.profile_called = False
+
+        def get_instance_profile(self, InstanceProfileName):
+            return {
+                "InstanceProfile": {
+                    "Roles": [
+                        {
+                            "RoleName": "ACME-cloudshield-builder-role",
+                        }
+                    ]
+                }
+            }
+
+        def remove_role_from_instance_profile(self, InstanceProfileName, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "remove_role")
+
+        def delete_instance_profile(self, InstanceProfileName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "delete_profile")
+
+        def get_role(self, RoleName):
+            return {"Role": {"RoleName": RoleName}}
+
+        def list_role_policies(self, RoleName):
+            return {"PolicyNames": []}
+
+        def delete_role_policy(self, RoleName, PolicyName):
+            raise terraform_main.ClientError(
+                {"Error": {"Code": "NoSuchEntityException"}}, "delete_role_policy"
+            )
+
+        def list_attached_role_policies(self, RoleName):
+            return {"AttachedPolicies": [{"PolicyArn": "arn", "PolicyName": "managed"}]}
+
+        def detach_role_policy(self, RoleName, PolicyArn):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "detach_role_policy")
+
+        def delete_role(self, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "delete_role")
+
+    class SilentEC2:
+        def delete_key_pair(self, KeyName):
+            return None
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return MissingIAM()
+        if service_name == "ec2":
+            return SilentEC2()
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+
+
+def test_cleanup_iam_artifacts_handles_absent_role(monkeypatch, capsys):
+    class MissingRoleIAM:
+        def get_instance_profile(self, InstanceProfileName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "get_instance_profile")
+
+        def get_role(self, RoleName):
+            raise terraform_main.ClientError({"Error": {"Code": "NoSuchEntity"}}, "get_role")
+
+    class SilentEC2:
+        def delete_key_pair(self, KeyName):
+            return None
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return MissingRoleIAM()
+        if service_name == "ec2":
+            return SilentEC2()
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+    captured = capsys.readouterr()
+    assert "No leftover IAM role" in captured.out
+
+
+def test_wait_for_ami_uses_waiter(monkeypatch):
+    wait_calls = []
+
+    class FakeEC2:
+        def get_waiter(self, name):
+            assert name == "image_available"
+
+            class Waiter:
+                def wait(self_inner, ImageIds):
+                    wait_calls.append(tuple(ImageIds))
+
+            return Waiter()
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+    terraform_main.wait_for_ami("ami-123", "ca-central-1")
+    assert wait_calls == [("ami-123",)]
+
+
+def test_wait_for_ami_raises_on_timeout(monkeypatch):
+    class FakeWaiter:
+        def wait(self, ImageIds):
+            raise terraform_main.WaiterError(name="image_available", reason="timeout", last_response={})
+
+    class FakeEC2:
+        def get_waiter(self, name):
+            return FakeWaiter()
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    with pytest.raises(RuntimeError) as exc:
+        terraform_main.wait_for_ami("ami-123", "ca-central-1")
+
+    assert "did not become available" in str(exc.value)
+
+
+def test_run_terraform_two_phase_apply_executes_commands(tmp_path, monkeypatch):
+    commands = []
+
+    def fake_run(cmd, cwd=None, check=None, capture_output=False, text=False):
+        commands.append((tuple(cmd), cwd, capture_output, text))
+        if cmd[:3] == ["terraform", "output", "-raw"]:
+            return SimpleNamespace(stdout="ami-9999")
+        return SimpleNamespace()
+
+    monkeypatch.setattr(terraform_main, "cleanup_iam_artifacts", lambda org, region: commands.append(("cleanup", org, region)))
+    monkeypatch.setattr(terraform_main, "wait_for_ami", lambda ami, region: commands.append(("wait_for_ami", ami, region)))
     monkeypatch.setattr(terraform_main.subprocess, "run", fake_run)
 
-    td = tmp_path / "generated" / "TEST"
-    td.mkdir(parents=True)
+    terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", terraform_dir=str(tmp_path))
 
-    terraform_main.run_terraform_apply("TEST", region="ca-central-1", terraform_dir=str(td))
-
-    assert len(calls) >= 2
-    assert calls[0][0] == ["terraform", "init"]
-    assert calls[0][1] == str(td)
-    # second call should be apply
-    assert "apply" in calls[1][0]
-
-# EC2 FETCH TESTS
-def test_get_ec2_ips(monkeypatch, capsys):
-    """Covers standard EC2 instance retrieval and print output."""
-    def fake_client(service_name, region_name=None):
-        class C:
-            def describe_instances(self):
-                return {
-                    "Reservations": [
-                        {
-                            "Instances": [
-                                {
-                                    "InstanceId": "i-123",
-                                    "State": {"Name": "running"},
-                                    "PrivateIpAddress": "10.0.0.1",
-                                    "PublicIpAddress": "1.2.3.4",
-                                    "Tags": [{"Key": "Name", "Value": "TEST-instance"}],
-                                }
-                            ]
-                        }
-                    ]
-                }
-        return C()
-
-    class FakeBoto:
-        def client(self, service_name, region_name=None):
-            return fake_client(service_name, region_name=region_name)
-
-    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
-
-    instances = terraform_main.get_ec2_ips("ca-central-1", "TEST")
-    assert instances
-    assert instances[0]["InstanceId"] == "i-123"
-
-    captured = capsys.readouterr()
-    assert "EC2 Instances for TEST" in captured.out
-    assert "Private IP" in captured.out
-    assert "Public IP" in captured.out
+    init_cmd = next(entry for entry in commands if isinstance(entry[0], tuple) and entry[0][0] == "terraform")
+    assert init_cmd[0][:2] == ("terraform", "init")
+    assert ("cleanup", "ACME", "ca-central-1") in commands
+    assert ("wait_for_ami", "ami-9999", "ca-central-1") in commands
 
 
-def test_get_ec2_ips_no_instances(monkeypatch, capsys):
-    """Covers the 'no instances found' branch."""
-    class FakeBoto:
-        def client(self, service_name, region_name=None):
-            class C:
-                def describe_instances(self):
-                    # Simulate no EC2 instances for the org
-                    return {"Reservations": []}
-            return C()
+def test_run_terraform_two_phase_apply_raises_when_output_missing(tmp_path, monkeypatch):
+    def fake_run(cmd, cwd=None, check=None, capture_output=False, text=False):
+        if cmd[:3] == ["terraform", "output", "-raw"]:
+            return SimpleNamespace(stdout="")
+        return SimpleNamespace(stdout="ignored")
 
-    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
+    monkeypatch.setattr(terraform_main, "cleanup_iam_artifacts", lambda org, region: None)
+    monkeypatch.setattr(terraform_main, "wait_for_ami", lambda ami, region: None)
+    monkeypatch.setattr(terraform_main.subprocess, "run", fake_run)
 
-    result = terraform_main.get_ec2_ips("ca-central-1", "ORGEMPTY")
-    captured = capsys.readouterr()
-
-    assert result == []
-    assert "[!] No EC2 instances found for org: ORGEMPTY" in captured.out
+    with pytest.raises(RuntimeError):
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", terraform_dir=str(tmp_path))
 
 
-def test_get_ec2_ips_with_instances_print(monkeypatch, capsys):
-    """Covers print loop and return path."""
-    def fake_client(service_name, region_name=None):
-        class C:
-            def describe_instances(self):
-                return {
-                    "Reservations": [
-                        {
-                            "Instances": [
-                                {
-                                    "InstanceId": "i-456",
-                                    "State": {"Name": "running"},
-                                    "PrivateIpAddress": "10.0.0.2",
-                                    "PublicIpAddress": "2.3.4.5",
-                                    "Tags": [{"Key": "Name", "Value": "ORG-instance"}],
-                                }
-                            ]
-                        }
-                    ]
-                }
-        return C()
-
-    class FakeBoto:
-        def client(self, service_name, region_name=None):
-            return fake_client(service_name, region_name=region_name)
-
-    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
-
-    instances = terraform_main.get_ec2_ips("ca-central-1", "ORG")
-    captured = capsys.readouterr()
-
-    assert instances
-    assert instances[0]["InstanceId"] == "i-456"
-    assert "EC2 Instances for ORG" in captured.out
-    assert "Private IP" in captured.out
-    assert "Public IP" in captured.out
-
-
-def test_get_ec2_ips_with_volumes_and_metadata(monkeypatch, capsys):
-    """Covers EBS volume size calculation, metadata dictionary, and print loop."""
-    class FakeEC2Client:
+def test_get_ec2_ips_skips_instances_without_matching_name(monkeypatch):
+    class FakeEC2:
         def describe_instances(self):
             return {
                 "Reservations": [
                     {
                         "Instances": [
                             {
-                                "InstanceId": "i-999",
-                                "VpcId": "vpc-123",
-                                "SubnetId": "subnet-999",
-                                "KeyName": "test-key",
-                                "ImageId": "ami-abc",
-                                "PlatformDetails": "Linux",
-                                "CpuOptions": {"CoreCount": 2},
-                                "InstanceType": "t2.micro",
-                                "BlockDeviceMappings": [
-                                    {"Ebs": {"VolumeId": "vol-abc"}},
-                                    {"Ebs": {"VolumeId": "vol-def"}}
-                                ],
-                                "LaunchTime": datetime(2024, 1, 1, 12, 0, 0),
-                                "SecurityGroups": [{"GroupId": "sg-001"}],
+                                "InstanceId": "i-1",
+                                "Tags": [{"Key": "Owner", "Value": "Other"}],
                                 "State": {"Name": "running"},
-                                "PrivateIpAddress": "10.0.0.9",
-                                "PublicIpAddress": "44.55.66.77",
-                                "Tags": [{"Key": "Name", "Value": "VOLUMEORG-instance"}],
                             }
                         ]
                     }
@@ -182,78 +344,98 @@ def test_get_ec2_ips_with_volumes_and_metadata(monkeypatch, capsys):
             }
 
         def describe_volumes(self, VolumeIds):
-            # Return different sizes for each volume
-            if VolumeIds == ["vol-abc"]:
-                return {"Volumes": [{"Size": 50}]}
-            elif VolumeIds == ["vol-def"]:
-                return {"Volumes": [{"Size": 75}]}
-            return {"Volumes": [{"Size": 0}]}
+            raise AssertionError("volume lookup should not happen")
 
-    class FakeBoto:
-        def client(self, service_name, region_name=None):
-            return FakeEC2Client()
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
 
-    monkeypatch.setattr(terraform_main, "boto3", FakeBoto())
+    assert terraform_main.get_ec2_ips("ca-central-1", "ACME") == []
 
-    result = terraform_main.get_ec2_ips("ca-central-1", "VOLUMEORG")
-    captured = capsys.readouterr()
 
-    assert result and isinstance(result, list)
-    instance = result[0]
+def test_get_ec2_ips_returns_metadata(monkeypatch):
+    now = datetime.utcnow()
 
-    # Validate all metadata fields
-    assert instance["storage_size_gb"] == 125
+    class FakeEC2:
+        def describe_instances(self):
+            return {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-123",
+                                "ImageId": "ami-1",
+                                "InstanceType": "t3.micro",
+                                "Tags": [{"Key": "Name", "Value": "cloudshield-ACME-node"}],
+                                "State": {"Name": "running"},
+                                "VpcId": "vpc-1",
+                                "SubnetId": "subnet-1",
+                                "KeyName": "ACME_key",
+                                "CpuOptions": {"CoreCount": 2},
+                                "LaunchTime": now,
+                                "SecurityGroups": [{"GroupId": "sg-1"}],
+                                "PrivateIpAddress": "10.0.0.10",
+                                "PublicIpAddress": "3.3.3.3",
+                                "PlatformDetails": "Windows",
+                                "BlockDeviceMappings": [
+                                    {"Ebs": {"VolumeId": "vol-1"}},
+                                    {"Ebs": {"VolumeId": "vol-2"}},
+                                ],
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        def describe_volumes(self, VolumeIds):
+            return {"Volumes": [{"Size": 15} for _ in VolumeIds]}
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    results = terraform_main.get_ec2_ips("ca-central-1", "ACME")
+    assert results
+    instance = results[0]
+    assert instance["storage_size_gb"] == 30
     assert instance["cpu"] == 2
-    assert instance["ram_gb"] == "t2.micro"
-    assert instance["os"] == "Linux"
-    assert instance["vpc_id"] == "vpc-123"
-    assert instance["subnet_id"] == "subnet-999"
-    assert instance["ssh_key"] == "test-key"
-    assert instance["ami_id"] == "ami-abc"
-    assert instance["ports"] == ["sg-001"]
-    assert instance["status"] == "running"
-    assert instance["private_ip"] == "10.0.0.9"
-    assert instance["public_ip"] == "44.55.66.77"
-    assert "created_at" in instance and "updated_at" in instance
-
-    # Validate printed output (covers print loop)
-    assert "EC2 Instances for VOLUMEORG" in captured.out
-    assert "VOLUMEORG-instance" in captured.out
-    assert "Private IP" in captured.out
-    assert "Public IP" in captured.out
-    assert "running" in captured.out
+    assert instance["ram_gb"] == "t3.micro"
+    assert instance["os"] == "Windows"
+    assert instance["ports"] == ["sg-1"]
 
 
+def test_get_ec2_ips_returns_empty(monkeypatch):
+    class FakeEC2:
+        def describe_instances(self):
+            return {"Reservations": []}
 
-# MAIN FUNCTION TEST
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+    assert terraform_main.get_ec2_ips("ca-central-1", "ACME") == []
 
 
-def test_main_invokes_all(monkeypatch, tmp_path, capsys):
-    """Covers the main() function and argparse parsing path."""
-    called = {"copy": False, "run": False, "ips": False}
+def test_main_invokes_helpers(monkeypatch, tmp_path):
+    calls = []
 
     def fake_copy(org_id, templates_dir=None, generated_dir=None):
-        called["copy"] = True
-
-    def fake_run(org_id, region=None, terraform_dir=None):
-        called["run"] = True
-
-    def fake_ips(region, org_id):
-        called["ips"] = True
-        return []
+        calls.append(("copy", org_id, templates_dir, generated_dir))
+        target = tmp_path / "generated"
+        target.mkdir(exist_ok=True)
+        return str(target)
 
     monkeypatch.setattr(terraform_main, "copy_and_replace_templates", fake_copy)
-    monkeypatch.setattr(terraform_main, "run_terraform_apply", fake_run)
-    monkeypatch.setattr(terraform_main, "get_ec2_ips", fake_ips)
+    monkeypatch.setattr(
+        terraform_main,
+        "run_terraform_two_phase_apply",
+        lambda org, region, terraform_dir: calls.append(("run", org, region, terraform_dir)),
+    )
+    monkeypatch.setattr(terraform_main, "get_ec2_ips", lambda region, org: calls.append(("ips", region, org)) or ["meta"])
 
-    terraform_main.main([
-        "--org-id", "TEST",
-        "--region", "ca-central-1",
-        "--templates-dir", str(tmp_path),
-        "--generated-dir", str(tmp_path / "gen")
+    result = terraform_main.main([
+        "--org-id",
+        "ACME",
+        "--region",
+        "us-west-2",
+        "--templates-dir",
+        str(tmp_path / "templates"),
+        "--generated-dir",
+        str(tmp_path / "generated"),
     ])
 
-    captured = capsys.readouterr()
-    assert "[*] Provisioning for org: TEST" in captured.out
-    assert "[✓] Finished provisioning for TEST." in captured.out
-    assert all(called.values())
+    assert result == ["meta"]
+    assert any(op[0] == "run" for op in calls)

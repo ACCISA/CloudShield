@@ -101,4 +101,4 @@ def test_get_ip_variants(utils_module):
 
     assert module.get_ip("ipv4:203.0.113.10:5000") == "203.0.113.10"
     assert module.get_ip("ipv6:%5B2001:db8::1%5D:7000") == "2001:db8::1"
-    assert module.get_ip("peer") == "unknown" 
+    assert module.get_ip("peer") == "unknown"

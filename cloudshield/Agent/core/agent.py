@@ -46,12 +46,26 @@ class Agent:
             "create_grpc_channel_cb": self.create_grpc_channel_cb
         }
         self.tasks = []
-        if not os.path.exists(cache_path) or not os.path.isdir(cache_path):
-            os.mkdir(cache_path)
-
         self.channel = None
         self.stub = None
         self.conn_attempt_job = None
+
+        # Ensure the cache directory exists. Use makedirs to create parent directories
+        # and handle Windows paths like '/tmp/...' by falling back to a system temp dir
+        try:
+            os.makedirs(self.cache_path, exist_ok=True)
+        except OSError as e:
+            core_logger.error(f"Unable to create cache path '{self.cache_path}': {e}")
+            import tempfile
+            fallback = os.path.join(tempfile.gettempdir(), "agent_cache")
+            try:
+                os.makedirs(fallback, exist_ok=True)
+                self.cache_path = fallback
+                core_logger.info(f"Falling back to cache path: {self.cache_path}")
+            except OSError as e2:
+                core_logger.critical(f"Unable to create fallback cache path '{fallback}': {e2}")
+                raise
+
         self.create_grpc_channel()
 
         if self.channel is None:

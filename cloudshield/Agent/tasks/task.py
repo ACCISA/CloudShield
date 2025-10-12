@@ -8,6 +8,26 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from google.protobuf.json_format import MessageToDict
 
+
+def _to_json_compatible(value):
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, dict):
+        return {k: _to_json_compatible(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_to_json_compatible(v) for v in value]
+    if hasattr(value, "__dict__"):
+        return {k: _to_json_compatible(v) for k, v in vars(value).items() if not k.startswith("_")}
+    return str(value)
+
+
+def _serialize_request(request):
+    """Return a JSON-serialisable representation of a gRPC request."""
+    try:
+        return MessageToDict(request, preserving_proto_field_name=True)
+    except (AttributeError, TypeError, ValueError):
+        return _to_json_compatible(request)
+
 class BaseTask(ABC):
 
     def __init__(self, agent_state):
@@ -39,11 +59,13 @@ class BaseTask(ABC):
         unavailable and resend them later.
         """
         # TODO set limit for cache size
-        curtime = datetime.now().strftime(f"%Y-%m-%d_%H:%M:%S_{grpc_call_name}_message.json")
-        f = open(os.path.join(self.agent_state["cache_path"],curtime), "w")
-        request_json = MessageToDict(request, preserving_proto_field_name=True)
-        json.dump({"grpc":grpc_call_name, "data": request_json}, f)
-        f.close()
+        # Use a safe filename (no colons) to support Windows filesystems
+        curtime = datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S_{grpc_call_name}_message.json")
+        filepath = os.path.join(self.agent_state["cache_path"], curtime)
+        os.makedirs(self.agent_state["cache_path"], exist_ok=True)
+        request_json = _serialize_request(request)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump({"grpc": grpc_call_name, "data": request_json}, f, ensure_ascii=False)
 
     def send(self, grpc_call_name, request):
         """
