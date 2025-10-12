@@ -20,6 +20,7 @@ def test_issue_token():
 
 
 @patch('cloudshield.Server.security.jwt_utils.JWT_SECRET', 'test-secret-key')
+@patch('cloudshield.Server.security.jwt_utils.JWT_AUDIENCE', 'cloudshield-app')
 def test_verify_token_basic_structure():
     """Test basic token structure without timing validation"""
     # Test with a known valid token payload
@@ -75,6 +76,8 @@ def test_issue_token_different_users():
 
 
 @patch('cloudshield.Server.security.jwt_utils.JWT_SECRET', 'test-secret-key')
+@patch('cloudshield.Server.security.jwt_utils.JWT_ISSUER', 'cloudshield')
+@patch('cloudshield.Server.security.jwt_utils.JWT_AUDIENCE', 'cloudshield-app')
 def test_token_contains_expected_fields():
     """Test that issued tokens contain expected fields in structure"""  
     token = issue_token("test_user", "test_role", "test_org")
