@@ -4,7 +4,7 @@
 #########################
 
 provider "aws" {
-  region = "us-west-2"
+  region = "ca-central-1"
 }
 
 # Key pairs
@@ -14,7 +14,7 @@ resource "tls_private_key" "org_id" {
 }
 
 resource "aws_key_pair" "org_id_key" {
-  key_name = "org_id_key"
+  key_name   = "${var.org_id}_key"
   public_key = tls_private_key.org_id.public_key_openssh
 }
 
@@ -49,7 +49,7 @@ resource "aws_internet_gateway" "org_id_igw" {
 resource "aws_subnet" "org_id_public_subnet" {
   vpc_id                  = aws_vpc.org_id_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-west-2a"
+  availability_zone       = "ca-central-1a"
   map_public_ip_on_launch = true
 
   tags = { Name = "org_id_public_subnet" }
@@ -61,7 +61,7 @@ resource "aws_subnet" "org_id_public_subnet" {
 resource "aws_subnet" "org_id_private_subnet" {
   vpc_id            = aws_vpc.org_id_vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-west-2a"
+  availability_zone = "ca-central-1a"
 
   tags = { Name = "org_id_private_subnet" }
 }
@@ -166,7 +166,7 @@ resource "aws_security_group" "allow_rdp" {
 }
 
 # TODO this is for dev, in prod this will be replaced with proper rules
-resource "aws_security_grou" "allow_all_tcp_udp" {
+resource "aws_security_group" "allow_all_tcp_udp" {
   vpc_id = aws_vpc.org_id_vpc.id
 
   ingress {
