@@ -42,6 +42,7 @@ def handle_mongo_opfail(e: OperationFailure):
 
 # Import and register blueprints
 from cloudshield.Server.routes.users import users_bp
+from cloudshield.Server.routes.users_read import users_read_bp
 from cloudshield.Server.routes.auth import auth_bp
 from cloudshield.Server.utils.audit import audit_bp
 
@@ -53,6 +54,7 @@ from cloudshield.Server.utils.audit import audit_bp
 #   DELETE /api/users/<user_id>
 app.register_blueprint(auth_bp,  url_prefix="/api")
 app.register_blueprint(users_bp, url_prefix="/api")
+app.register_blueprint(users_read_bp, url_prefix="/api")
 app.register_blueprint(debug_db_bp, url_prefix="/api")
 app.register_blueprint(audit_bp, url_prefix="/api")
 
