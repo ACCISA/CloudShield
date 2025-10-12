@@ -3,7 +3,8 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from logging_setup import logger
+from .utils.logging_setup import get_logger
+logger = get_logger("tasks")
 
 
 def _run(cmd: list[str], cwd: str, env: dict | None = None):

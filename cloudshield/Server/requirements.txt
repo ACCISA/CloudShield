@@ -3,4 +3,5 @@ redis
 rq
 boto3
 pytest
+pytest-cov
 
