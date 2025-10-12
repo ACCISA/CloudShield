@@ -11,3 +11,15 @@ cloudshield/Server/dump.rdb
 **/terraform.tfstate.backup
 **/.terraform.lock.hcl
 **/.terraform/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.dist-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
