@@ -116,3 +116,27 @@ def test_main_connection_error(monkeypatch):
 
     with pytest.raises(RuntimeError):
         module.main()
+
+
+def test_main_stub_called(monkeypatch, test_client_module):
+    module, response = test_client_module
+    calls = {}
+
+    def fake_ready_future(channel):
+        calls["channel"] = channel
+
+        class _Future:
+            def result(self_inner, timeout=None):
+                return True
+
+        return _Future()
+
+    monkeypatch.setattr(module.grpc, "channel_ready_future", fake_ready_future)
+
+    stub_instance = module.agent_pb2_grpc.AgentServiceStub(module.grpc.insecure_channel("127.0.0.1:50051"))
+    monkeypatch.setattr(module.agent_pb2_grpc, "AgentServiceStub", lambda channel: stub_instance)
+
+    module.main()
+
+    assert stub_instance.calls
+    assert calls["channel"].target == "127.0.0.1:50051"

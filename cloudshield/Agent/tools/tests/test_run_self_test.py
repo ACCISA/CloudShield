@@ -238,3 +238,52 @@ def test_main_no_recorded_file(monkeypatch, tmp_path, capsys, run_self_test_modu
 
     captured = capsys.readouterr()
     assert "No recorded file found" in captured.out
+
+
+def test_main_handles_remove_errors(monkeypatch, tmp_path, capsys, run_self_test_module):
+    monkeypatch.setattr(run_self_test_module, "SCRIPT_DIR", str(tmp_path))
+    module_path = tmp_path / "run_self_test.py"
+    monkeypatch.setattr(run_self_test_module, "__file__", str(module_path))
+
+    out_file = tmp_path / "received_requests_selftest.jsonl"
+    out_file.write_text("stale", encoding="utf-8")
+    out_file_str = str(out_file)
+
+    exists_calls = {"count": 0}
+    real_exists = run_self_test_module.os.path.exists
+
+    def fake_exists(path):
+        if path == out_file_str:
+            exists_calls["count"] += 1
+            # First call returns True to trigger os.remove; subsequent calls report False.
+            return exists_calls["count"] == 1
+        return real_exists(path)
+
+    monkeypatch.setattr(run_self_test_module.os.path, "exists", fake_exists)
+    monkeypatch.setattr(run_self_test_module.os, "remove", lambda _path: (_ for _ in ()).throw(PermissionError("denied")))
+
+    future = DummyChannelFuture()
+    channel = DummyChannel(future)
+    monkeypatch.setattr(run_self_test_module.grpc, "insecure_channel", lambda addr: channel)
+    monkeypatch.setattr(run_self_test_module.grpc, "channel_ready_future", lambda ch: ch.future)
+
+    stub = DummyStub(SimpleNamespace(message="ok"))
+    monkeypatch.setattr(run_self_test_module.agent_pb2_grpc, "AgentServiceStub", lambda ch: stub)
+    monkeypatch.setattr(run_self_test_module.agent_pb2, "WorkstationInit", lambda **_: SimpleNamespace())
+
+    monkeypatch.setattr(run_self_test_module, "serve", lambda **_: None)
+
+    class DummyThread:
+        def start(self):
+            return None
+
+        def join(self, timeout=None):
+            return None
+
+    monkeypatch.setattr(run_self_test_module.threading, "Thread", lambda *args, **kwargs: DummyThread())
+
+    run_self_test_module.main()
+
+    captured = capsys.readouterr()
+    assert "No recorded file found" in captured.out
+    assert exists_calls["count"] >= 2
