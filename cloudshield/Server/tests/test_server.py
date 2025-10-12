@@ -5,7 +5,13 @@ import json
 from flask import Flask
 from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
-from pymongo.errors import DuplicateKeyError, OperationFailure
+
+# Create proper exception classes for mocking
+class MockDuplicateKeyError(Exception):
+    pass
+
+class MockOperationFailure(Exception):
+    pass
 
 mock_task_queue = unittest.mock.MagicMock()
 mock_redis_conn = unittest.mock.MagicMock()
@@ -15,6 +21,12 @@ mock_job_class = unittest.mock.MagicMock()
 
 # Mock users blueprint
 mock_users_bp = unittest.mock.MagicMock()
+
+# Mock pymongo.errors with proper exception classes
+mock_pymongo_errors = unittest.mock.MagicMock()
+mock_pymongo_errors.DuplicateKeyError = MockDuplicateKeyError
+mock_pymongo_errors.OperationFailure = MockOperationFailure
+sys.modules['pymongo.errors'] = mock_pymongo_errors
 
 # Patch modules
 sys.modules['redis_client'] = unittest.mock.MagicMock()
