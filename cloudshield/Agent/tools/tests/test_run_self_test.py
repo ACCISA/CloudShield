@@ -9,15 +9,35 @@ import pytest
 def _create_fake_grpc():
     fake_grpc = ModuleType("grpc")
     fake_grpc.__version__ = "1.74.0"
-    fake_grpc.insecure_channel = lambda *_args, **_kwargs: None
-    fake_grpc.channel_ready_future = lambda channel: SimpleNamespace(result=lambda timeout=None: True)
-    fake_grpc.server = lambda *_args, **_kwargs: SimpleNamespace()
+
+    def _fake_channel(*_args, **_kwargs):
+        return SimpleNamespace()
+
+    def _fake_future(*_args, **_kwargs):
+        return SimpleNamespace(result=lambda timeout=None: True)
+
+    class _FakeServer:
+        def __init__(self):
+            self.bound = []
+
+        def add_insecure_port(self, addr):
+            self.bound.append(addr)
+
+        def start(self):
+            return None
+
+        def stop(self, *_args):
+            return None
+
+    fake_grpc.insecure_channel = _fake_channel
+    fake_grpc.channel_ready_future = _fake_future
+    fake_grpc.server = lambda *_args, **_kwargs: _FakeServer()
     return fake_grpc
 
 
 def _create_fake_proto_modules():
     proto_pkg = ModuleType("proto")
-    proto_pkg.__path__ = []  # Mark as package.
+    proto_pkg.__path__ = []
 
     agent_pb2 = ModuleType("proto.agent_pb2")
 
@@ -26,22 +46,40 @@ def _create_fake_proto_modules():
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
+    class _Ack:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    class _ProcessListAck:
+        def __init__(self, action=False, **kwargs):
+            self.action = action
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
     agent_pb2.WorkstationInit = _WorkstationInit
+    agent_pb2.Ack = _Ack
+    agent_pb2.ProcessListAck = _ProcessListAck
 
     agent_pb2_grpc = ModuleType("proto.agent_pb2_grpc")
 
     class _AgentServiceStub:
         def __init__(self, *_args, **_kwargs):
-            pass
+            self.calls = []
+
+        def SendWorkstationInit(self, request):
+            self.calls.append(request)
+            return SimpleNamespace(message="ok")
 
     class _AgentServiceServicer:
         pass
 
     def _add_servicer_to_server(servicer, server):
+        # Mock server stub used by tests expects this hook.
         if hasattr(server, "register_servicer"):
             server.register_servicer(servicer)
-        else:
-            setattr(server, "attached_servicer", servicer)
+        if hasattr(server, "add_servicer"):
+            server.add_servicer(servicer)
 
     agent_pb2_grpc.AgentServiceStub = _AgentServiceStub
     agent_pb2_grpc.AgentServiceServicer = _AgentServiceServicer
@@ -50,35 +88,14 @@ def _create_fake_proto_modules():
     return proto_pkg, agent_pb2, agent_pb2_grpc
 
 
-class DummyChannelFuture:
-    def __init__(self, *, exc=None):
-        self._exc = exc
-
-    def result(self, timeout=None):
-        if self._exc:
-            raise self._exc
-        return True
-
-
-class DummyChannel:
-    def __init__(self, future):
-        self.future = future
-
-
-class DummyStub:
-    def __init__(self, response):
-        self._response = response
-        self.requests = []
-
-    def SendWorkstationInit(self, request):
-        self.requests.append(request)
-        return self._response
-
-
 @pytest.fixture
-def run_self_test_module(monkeypatch, tmp_path):
+def run_self_test_module(monkeypatch):
     fake_grpc = _create_fake_grpc()
-    monkeypatch.setitem(sys.modules, "grpc", fake_grpc)
+    existing_grpc = sys.modules.get("grpc")
+    if existing_grpc is None:
+        sys.modules["grpc"] = fake_grpc
+    else:
+        monkeypatch.setitem(sys.modules, "grpc", fake_grpc)
 
     proto_pkg, agent_pb2, agent_pb2_grpc = _create_fake_proto_modules()
     monkeypatch.setitem(sys.modules, "proto", proto_pkg)
@@ -87,50 +104,80 @@ def run_self_test_module(monkeypatch, tmp_path):
 
     monkeypatch.delitem(sys.modules, "cloudshield.Agent.tools.run_self_test", raising=False)
     module = importlib.import_module("cloudshield.Agent.tools.run_self_test")
-
-    monkeypatch.setattr(module, "SCRIPT_DIR", str(tmp_path))
-    monkeypatch.setattr(module, "AGENT_ROOT", str(tmp_path))
-    monkeypatch.setattr(module, "__file__", str(tmp_path / "run_self_test.py"))
     return module
 
 
+class DummyStub:
+    def __init__(self, response):
+        self.response = response
+        self.requests = []
+
+    def SendWorkstationInit(self, request):
+        self.requests.append(request)
+        return self.response
+
+
+class DummyChannelFuture:
+    def __init__(self, ready=True, exc=None):
+        self._ready = ready
+        self._exc = exc
+
+    def result(self, timeout=None):
+        if self._exc:
+            raise self._exc
+        return self._ready
+
+
+class DummyChannel:
+    def __init__(self, future):
+        self.future = future
+
+
+@pytest.fixture(autouse=True)
+def ensure_tmp_dir(tmp_path, monkeypatch, run_self_test_module):
+    monkeypatch.setattr(run_self_test_module, "AGENT_ROOT", str(tmp_path))
+    return tmp_path
+
+
 @pytest.fixture
-def stubbed_grpc(monkeypatch, run_self_test_module):
-    future = DummyChannelFuture()
-    channel = DummyChannel(future)
-
-    monkeypatch.setattr(run_self_test_module.grpc, "insecure_channel", lambda addr: channel)
-    monkeypatch.setattr(run_self_test_module.grpc, "channel_ready_future", lambda ch: ch.future)
-    return channel
+def log_file(tmp_path):
+    return tmp_path / "received_requests_selftest.jsonl"
 
 
-def test_main_success(monkeypatch, tmp_path, capsys, run_self_test_module, stubbed_grpc):
-    served = {}
-    out_file = tmp_path / "received_requests_selftest.jsonl"
+def test_main_success(monkeypatch, tmp_path, log_file, capsys, run_self_test_module):
+    monkeypatch.setattr(run_self_test_module, "SCRIPT_DIR", str(tmp_path))
+    monkeypatch.setattr(run_self_test_module, "__file__", str(tmp_path / "run_self_test.py"))
+
+    served = []
+
+    out_file = log_file
 
     def fake_serve(**kwargs):
-        served.update(kwargs)
+        served.append(kwargs)
         payload = {"grpc": "SendWorkstationInit", "data": {"agent_id": "selftest-agent"}}
         out_file.write_text(json.dumps(payload) + "\n", encoding="utf-8")
 
     monkeypatch.setattr(run_self_test_module, "serve", fake_serve)
 
+    future = DummyChannelFuture()
+    channel = DummyChannel(future)
+    monkeypatch.setattr(run_self_test_module.grpc, "insecure_channel", lambda addr: channel)
+    monkeypatch.setattr(run_self_test_module.grpc, "channel_ready_future", lambda ch: ch.future)
+
     response = SimpleNamespace(message="ok")
     stub = DummyStub(response)
     monkeypatch.setattr(run_self_test_module.agent_pb2_grpc, "AgentServiceStub", lambda ch: stub)
-    monkeypatch.setattr(run_self_test_module.agent_pb2, "WorkstationInit", lambda **_: SimpleNamespace())
+
+    request = SimpleNamespace(agent_id="selftest-agent", domain="example.local")
+    monkeypatch.setattr(run_self_test_module.agent_pb2, "WorkstationInit", lambda **_: request)
 
     def thread_factory(target, kwargs=None, **_thread_kwargs):
         kwargs = kwargs or {}
 
-        class _Thread:
-            def start(self_inner):
-                target(**kwargs)
+        def start():
+            target(**kwargs)
 
-            def join(self_inner, timeout=None):
-                return None
-
-        return _Thread()
+        return SimpleNamespace(start=start, join=lambda timeout=None: None)
 
     monkeypatch.setattr(run_self_test_module.threading, "Thread", thread_factory)
 
@@ -139,13 +186,16 @@ def test_main_success(monkeypatch, tmp_path, capsys, run_self_test_module, stubb
     captured = capsys.readouterr()
     assert "RPC response:" in captured.out
     assert "Recorded entries:" in captured.out
-    assert served["host"] == "127.0.0.1"
+    assert served[0]["host"] == "127.0.0.1"
 
-    payload = [json.loads(line) for line in out_file.read_text(encoding="utf-8").splitlines()]
-    assert payload[0]["grpc"] == "SendWorkstationInit"
+    payload_lines = [json.loads(line) for line in out_file.read_text(encoding="utf-8").splitlines()]
+    assert payload_lines[0]["grpc"] == "SendWorkstationInit"
 
 
-def test_main_connection_failure(monkeypatch, capsys, run_self_test_module):
+def test_main_connection_failure(monkeypatch, tmp_path, capsys, run_self_test_module):
+    monkeypatch.setattr(run_self_test_module, "SCRIPT_DIR", str(tmp_path))
+    monkeypatch.setattr(run_self_test_module, "__file__", str(tmp_path / "run_self_test.py"))
+
     future = DummyChannelFuture(exc=RuntimeError("boom"))
     channel = DummyChannel(future)
     monkeypatch.setattr(run_self_test_module.grpc, "insecure_channel", lambda addr: channel)
@@ -157,21 +207,32 @@ def test_main_connection_failure(monkeypatch, capsys, run_self_test_module):
     assert "Failed to connect" in captured.out
 
 
-def test_main_no_recorded_file(monkeypatch, capsys, run_self_test_module, stubbed_grpc):
+def test_main_no_recorded_file(monkeypatch, tmp_path, capsys, run_self_test_module):
+    monkeypatch.setattr(run_self_test_module, "SCRIPT_DIR", str(tmp_path))
+    monkeypatch.setattr(run_self_test_module, "__file__", str(tmp_path / "run_self_test.py"))
+
+    future = DummyChannelFuture()
+    channel = DummyChannel(future)
+    monkeypatch.setattr(run_self_test_module.grpc, "insecure_channel", lambda addr: channel)
+    monkeypatch.setattr(run_self_test_module.grpc, "channel_ready_future", lambda ch: ch.future)
+
     stub = DummyStub(SimpleNamespace(message="ok"))
     monkeypatch.setattr(run_self_test_module.agent_pb2_grpc, "AgentServiceStub", lambda ch: stub)
     monkeypatch.setattr(run_self_test_module.agent_pb2, "WorkstationInit", lambda **_: SimpleNamespace())
 
-    monkeypatch.setattr(run_self_test_module, "serve", lambda **kwargs: None)
+    monkeypatch.setattr(run_self_test_module, "serve", lambda **_: None)
 
-    class _Thread:
+    class DummyThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
         def start(self):
-            return None
+            pass
 
         def join(self, timeout=None):
-            return None
+            pass
 
-    monkeypatch.setattr(run_self_test_module.threading, "Thread", lambda *a, **kw: _Thread())
+    monkeypatch.setattr(run_self_test_module.threading, "Thread", lambda *args, **kwargs: DummyThread())
 
     run_self_test_module.main()
 
