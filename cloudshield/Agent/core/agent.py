@@ -151,7 +151,8 @@ class Agent:
     
     def send_pending_messages(self):
         """
-        Checks for cached messages on disk and resends them to the central server. Cached messages are deleted after being successfully sent.
+        Checks for cached messages on disk and resends them to the central server.
+        Cached messages are deleted after being successfully sent.
 
         If the server was unavailable when logs were generated, the agent stores them
         locally. This function is invoked by the agent core to retrieve any cached

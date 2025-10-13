@@ -21,7 +21,7 @@ agent.register_task(name="bootstrap_check", task=CallBootstrapTask(agent.state),
 # Register a task that will fetch the running processes every 30 seconds
 agent.register_task(name="get_process_list", task=GetProcessListTask(agent.state), interval=5)
 
-# NEW: Network listing task (every 5s)
+# Network listing task (every 5s)
 agent.register_task(name="network_list", task=NetworkListingTask(agent.state), interval=5)
 
 # Start core 
