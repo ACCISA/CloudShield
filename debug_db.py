@@ -1,7 +1,6 @@
 # debug_db.py
 from flask import Blueprint, jsonify, request
 from bson import ObjectId
-from pymongo.errors import OperationFailure
 
 from cloudshield.Server.utils.database import db_admin, db_emp, users_admin, users_public
 from cloudshield.Server.security.guards import require_auth, require_role

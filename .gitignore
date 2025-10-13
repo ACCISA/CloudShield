@@ -86,3 +86,7 @@ cloudshield/Server/.env
 **/.terraform.lock.hcl
 **/.terraform/
 cloudshield/Cloud/terraform/generated/**
+cloudshield/Agent/build
+**.exe
+**.xml
+.coverage

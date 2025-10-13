@@ -1,6 +1,9 @@
-from proto import agent_pb2
-from proto import agent_pb2_grpc
-from logger import core_logger
+try:  # First honour legacy flat modules used by tests/standalone scripts
+    from proto import agent_pb2, agent_pb2_grpc  # type: ignore
+    from logger import core_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative imports
+    from ..proto import agent_pb2, agent_pb2_grpc
+    from ..logger import core_logger
 
 import os
 import json
@@ -116,7 +119,7 @@ class Agent:
         core_logger.error("Unable to connect to grpc server")
         return None
 
-    def register_task(self, name, task, interval=5, run_once=False):
+    def register_task(self, name, task, interval=5, run_once=False, run_immediately=False):
         """
         Register a task to the scheduler. This task must inherit from BaseTask. Tasks that fail sending messages will write them to cache.
         """
@@ -124,18 +127,22 @@ class Agent:
             "task_name": name,
             "function": task,
             "interval": interval,
-            "run_once": run_once
+            "run_once": run_once,
+            "run_immediately": run_immediately,
         })
         task.set_channel(self.channel, self.stub)
         if run_once is False:
             schedule.every(interval).seconds.do(task.run)
         core_logger.info(f"Task {name} added to scheduler (interval={interval})")
-
+        if run_immediately:
+            try:
+                task.run()
+            except Exception as exc:
+                core_logger.error("Task '%s' failed during immediate run: %s", name, exc)
+    
     def check_workstation(self):
-        """
-        Check if our gRPC server is reachable.
-        """
-        pass
+        """Placeholder for workstation checks. Maintained for compatibility."""
+        return None
 
     def is_grpc_server_up(self, channel):
         """
