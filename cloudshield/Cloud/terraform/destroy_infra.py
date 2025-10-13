@@ -8,7 +8,6 @@ import os
 import subprocess
 import shutil
 import time
-import sys
 
 # optional boto3 usage for emptying S3 buckets
 try:
@@ -49,7 +48,7 @@ def terraform_destroy(org_dir, org_id, region):
             cwd=org_dir
         )
         return True
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         print("[!] terraform destroy failed (see error above).")
         return False
 

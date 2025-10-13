@@ -1,6 +1,5 @@
 import builtins
 import json
-import runpy
 import sys
 import types
 from types import SimpleNamespace

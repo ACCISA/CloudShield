@@ -1,7 +1,5 @@
 import json
-from pathlib import Path
 
-import pytest
 
 from cloudshield.Agent.tasks import workstation
 from cloudshield.Agent.tasks.workstation import EnsureDomainMembershipTask

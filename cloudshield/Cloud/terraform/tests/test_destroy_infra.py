@@ -4,7 +4,6 @@ import os
 import runpy
 import subprocess
 import sys
-import types
 from types import SimpleNamespace
 
 import pytest
