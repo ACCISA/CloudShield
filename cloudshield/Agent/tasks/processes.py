@@ -1,6 +1,11 @@
-from tasks import BaseTask
-from proto import agent_pb2
-from logger import task_logger
+from .task import BaseTask
+
+try:  # Honour legacy flat modules first for compatibility with tests
+    from proto import agent_pb2  # type: ignore
+    from logger import task_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative imports
+    from ..proto import agent_pb2
+    from ..logger import task_logger
 
 import psutil
 import time

@@ -4,7 +4,6 @@ from types import ModuleType
 from pathlib import Path
 
 
-
 def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
     created = {}
 
@@ -21,14 +20,16 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
             self.started = False
             created["instance"] = self
 
-        def register_task(self, name, task, interval=5, run_once=False):
-            self.registered.append((name, task, interval))
-            created["task_call"] = {
+        def register_task(self, name, task, interval=5, run_once=False, run_immediately=False):
+            record = {
                 "name": name,
+                "task": task,
                 "interval": interval,
-                "task_state": getattr(task, "state", None),
-                "run_once": run_once
+                "run_once": run_once,
+                "run_immediately": run_immediately,
             }
+            self.registered.append(record)
+            created.setdefault("registered", []).append(record)
 
         def start_core(self):
             self.started = True
@@ -42,14 +43,30 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
         def __init__(self, state):
             self.state = state
 
-    fake_core = ModuleType("core")
+    class FakeDomainDnsTask:
+        def __init__(self, state, config_path=None):
+            self.state = state
+            self.config_path = config_path
+            created.setdefault("domain_task_configs", []).append(config_path)
+
+    class FakeEnsureDomainTask:
+        def __init__(self, state, config_path=None):
+            self.state = state
+            self.config_path = config_path
+            created.setdefault("ensure_task_configs", []).append(config_path)
+
+    fake_core = ModuleType("cloudshield.Agent.core")
     fake_core.Agent = FakeAgent
-    fake_tasks = ModuleType("tasks")
+    fake_tasks = ModuleType("cloudshield.Agent.tasks")
     fake_tasks.GetProcessListTask = FakeGetProcessListTask
     fake_tasks.CallBootstrapTask = FakeCallBootstrapTask
+    fake_tasks.DomainDnsCheckTask = FakeDomainDnsTask
+    fake_tasks.EnsureDomainMembershipTask = FakeEnsureDomainTask
 
-    monkeypatch.setitem(sys.modules, "core", fake_core)
-    monkeypatch.setitem(sys.modules, "tasks", fake_tasks)
+    monkeypatch.delitem(sys.modules, "cloudshield.Agent.core", raising=False)
+    monkeypatch.delitem(sys.modules, "cloudshield.Agent.tasks", raising=False)
+    monkeypatch.setitem(sys.modules, "cloudshield.Agent.core", fake_core)
+    monkeypatch.setitem(sys.modules, "cloudshield.Agent.tasks", fake_tasks)
 
     if program_data is None:
         monkeypatch.delenv("PROGRAMDATA", raising=False)
@@ -74,9 +91,27 @@ def test_main_initializes_agent_with_programdata(monkeypatch, tmp_path):
     assert created["init"]["port"] == 50051
 
     assert created["started"] is True
-    assert created["task_call"]["name"] == "get_process_list"
-    assert created["task_call"]["interval"] == 5
-    assert created["task_call"]["task_state"] == created["instance"].state
+    registered_names = [entry["name"] for entry in created["registered"]]
+    assert registered_names == [
+        "ensure_domain_membership",
+        "bootstrap_check",
+        "get_process_list",
+        "domain_dns_check",
+    ]
+
+    process_task = next(entry for entry in created["registered"] if entry["name"] == "get_process_list")
+    assert process_task["interval"] == 5
+    assert process_task["task"].state == created["instance"].state
+    assert process_task["run_once"] is False
+
+    ensure_task = next(entry for entry in created["registered"] if entry["name"] == "ensure_domain_membership")
+    assert ensure_task["run_once"] is True
+
+    domain_task_configs = created.get("domain_task_configs", [])
+    ensure_task_configs = created.get("ensure_task_configs", [])
+    assert domain_task_configs
+    assert ensure_task_configs
+    assert domain_task_configs[0] == ensure_task_configs[0]
     assert expected_cache.is_dir()
 
 

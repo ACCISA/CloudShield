@@ -1,9 +1,7 @@
 {
-  "expected_domain": "WORKGROUP",
-  "expected_dns_servers": [
-    "192.168.0.1",
-    "fec0:0:0:ffff::1",
-    "fec0:0:0:ffff::2",
-    "fec0:0:0:ffff::3"
-  ]
+  "expected_domain": "CORPDOMAIN",
+  "expected_dns_servers": ["192.168.0.1"],
+  "workstation_setup_script": "../scripts/mock_join_domain.ps1",
+  "workstation_setup_args": "-Domain CORPDOMAIN -User demo-user -LogPath ../logs/mock-domain.log",
+  "workstation_setup_timeout": 300
 }

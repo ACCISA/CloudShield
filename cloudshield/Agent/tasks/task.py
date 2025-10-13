@@ -1,5 +1,7 @@
-
-from logger import task_logger
+try:  # Honour legacy flat module first for compatibility with tests
+    from logger import task_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative import
+    from ..logger import task_logger
 
 import os
 import grpc

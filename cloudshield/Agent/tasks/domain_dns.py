@@ -2,7 +2,10 @@ import json
 from pathlib import Path
 from typing import List, Optional, Set
 
-from logger import task_logger
+try:  # Honour legacy flat module first for compatibility with tests
+    from logger import task_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative import
+    from ..logger import task_logger
 
 from ..core.workstation_setup import query_dns_servers, query_domain_status
 from .task import BaseTask

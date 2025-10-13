@@ -20,7 +20,10 @@ import subprocess
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
-from logger import core_logger
+try:  # Honour legacy flat module first for compatibility with tests
+    from logger import core_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative import
+    from ..logger import core_logger
 
 _DOMAIN_QUERY = (
     "Get-CimInstance -ClassName Win32_ComputerSystem "

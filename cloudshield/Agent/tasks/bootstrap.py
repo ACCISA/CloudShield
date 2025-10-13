@@ -1,5 +1,9 @@
-from tasks import BaseTask
-from logger import task_logger
+from .task import BaseTask
+
+try:  # Honour legacy flat module first
+    from logger import task_logger  # type: ignore
+except ImportError:  # pragma: no cover - fallback to package-relative import
+    from ..logger import task_logger
 
 import subprocess
 
