@@ -1,9 +1,83 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / distribution
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# IDE / Editor
+.vscode/
+.idea/
+.history/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Node / Frontend ---
+cloudshield/DesktopUI/node_modules/
+cloudshield/DesktopUI/.vite/
+cloudshield/DesktopUI/.parcel-cache/
+cloudshield/DesktopUI/.next/
+cloudshield/DesktopUI/build/
+cloudshield/DesktopUI/dist/
+cloudshield/DesktopUI/.env.local
+cloudshield/DesktopUI/.env*
+
+# --- Terraform ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+# keep the lock file tracked for provider versions
+!.terraform.lock.hcl
+
+# --- Project generated artifacts ---
+cloudshield/Cloud/runs/
+
+# PyInstaller / Bundling (Agent)
+*.spec
+
+# Certificates/keys commonly generated during runs (kept inside runs/ anyway)
+*.pem
+*.key
 cloudshield/DesktopUI/node_modules
 cloudshield/WebUI/node_modules
 **/node_modules
 **/__pycache__
 cloudshield/Server/__pycache__
 cloudshield/Server/dump.rdb
+cloudshield/Server/.env
 **/venv/
 **.swp
 **.log

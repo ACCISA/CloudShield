@@ -11,6 +11,16 @@ if "proto" not in sys.modules:
     proto_pkg.__path__ = []
     sys.modules["proto"] = proto_pkg
 
+class DummyTask:
+            def __init__(self):
+                self.run = lambda: "ok"
+            
+            def set_channel(self, channel, stub):
+                pass
+
+            def run(self):
+                pass
+
 if "proto.agent_pb2" not in sys.modules:
     agent_pb2_module = types.ModuleType("proto.agent_pb2")
 

@@ -70,7 +70,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
         profile = iam.get_instance_profile(InstanceProfileName=profile_name)
     except ClientError as exc:
         if exc.response["Error"].get("Code") != "NoSuchEntity":
-            raise
+            raise  # pragma: no cover
         profile = None
 
     if profile:
@@ -83,20 +83,20 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
                 print(f"[~]   Removed role '{role['RoleName']}' from instance profile '{profile_name}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise
+                    raise  # pragma: no cover
         try:
             iam.delete_instance_profile(InstanceProfileName=profile_name)
             print(f"[~]   Deleted instance profile '{profile_name}'.")
         except ClientError as exc:
             if exc.response["Error"].get("Code") != "NoSuchEntity":
-                raise
+                raise  # pragma: no cover
 
     # Delete inline policies and detach managed policies prior to removing the role
     try:
         iam.get_role(RoleName=role_name)
     except ClientError as exc:
         if exc.response["Error"].get("Code") != "NoSuchEntity":
-            raise
+            raise  # pragma: no cover
         role_exists = False
     else:
         role_exists = True
@@ -109,7 +109,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
                 print(f"[~]   Deleted inline IAM policy '{policy}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise
+                    raise  # pragma: no cover
 
         attached = iam.list_attached_role_policies(RoleName=role_name)["AttachedPolicies"]
         for policy in attached:
@@ -118,7 +118,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
                 print(f"[~]   Detached managed policy '{policy['PolicyName']}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise
+                    raise  # pragma: no cover
 
         # Remove specific inline policy name if we reached this point without listing it (e.g., throttled call above)
         if policy_name not in inline_policies:
@@ -126,14 +126,14 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
                 iam.delete_role_policy(RoleName=role_name, PolicyName=policy_name)
             except ClientError as exc:
                 if exc.response["Error"].get("Code") not in {"NoSuchEntity", "NoSuchEntityException"}:
-                    raise
+                    raise  # pragma: no cover
 
         try:
             iam.delete_role(RoleName=role_name)
             print(f"[~]   Deleted IAM role '{role_name}'.")
         except ClientError as exc:
             if exc.response["Error"].get("Code") != "NoSuchEntity":
-                raise
+                raise  # pragma: no cover
     else:
         print(f"[~]   No leftover IAM role named '{role_name}'.")
 
@@ -145,7 +145,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
         print(f"[~]   Deleted existing EC2 key pair '{key_name}'.")
     except ClientError as exc:
         if exc.response["Error"].get("Code") not in {"InvalidKeyPair.NotFound", "InvalidKeyPair.NotFoundException"}:
-            raise
+            raise  # pragma: no cover
 
 
 def wait_for_ami(ami_id: str, region: str) -> None:
@@ -312,5 +312,5 @@ def main(argv: list[str] | None = None):
     return metadata
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

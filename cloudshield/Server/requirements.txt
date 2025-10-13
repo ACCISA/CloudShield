@@ -3,4 +3,11 @@ redis
 rq
 boto3
 pytest
-
+pytest-cov
+rq-scheduler
+pydantic
+pydantic[email]
+python-dotenv
+pymongo
+PyJWT
+bcrypt
