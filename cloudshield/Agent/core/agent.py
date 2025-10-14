@@ -158,13 +158,13 @@ class Agent:
     
     def send_pending_messages(self):
         """
-        Checks for cached messages on disk and resends them to the central server. Cached messages are deleted after being successfully sent.
+        Checks for cached messages on disk and resends them to the central server. Cached messages are delete after being successfully sent
 
         If the server was unavailable when logs were generated, the agent stores them
         locally. This function is invoked by the agent core to retrieve any cached
         messages and attempt delivery once the server is reachable again.
         """
-        if self.channel is None or self.stub is None:
+        if self.channel is None:
             return
 
         try:
@@ -184,42 +184,42 @@ class Agent:
                 with open(filepath, "r", encoding="utf-8") as f:
                     cached = json.load(f)
             except json.JSONDecodeError:
-                core_logger.warning("Skipping corrupted file: %s", os.path.basename(filepath))
+                core_logger.warning(f"Skipping corrupted file: {os.path.basename(filepath)}")
                 continue
             except Exception as e:
-                core_logger.warning("Skipping unreadable file %s: %s", os.path.basename(filepath), e)
+                core_logger.warning(f"Skipping unreadable file {os.path.basename(filepath)}: {e}")
                 continue
 
             grpc_call_name = cached.get("grpc")
             data = cached.get("data")
             if not grpc_call_name or data is None:
-                core_logger.warning("Skipping malformed cache: %s", os.path.basename(filepath))
+                core_logger.warning(f"Skipping malformed cache: {os.path.basename(filepath)}")
                 continue
 
-            # Let AttributeError bubble up as tests expect
-            method = getattr(self.stub, grpc_call_name)
+            # Let AttributeError bubble if stub method is missing (matches tests)
+            grpc_call = getattr(self.stub, grpc_call_name)
 
-            # Derive the protobuf message class name and let AttributeError bubble up
+            # Resolve correct protobuf message type (let AttributeError bubble if missing)
             msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
             msg_cls = getattr(agent_pb2, msg_name)
 
-            # Build request and force pending flag
+            # Rebuild message and mark as pending when supported
             request = ParseDict(data, msg_cls())
             try:
                 setattr(request, "is_pending", True)
             except Exception:
                 pass
 
-            core_logger.info("Sending pending RPC '%s'", grpc_call_name)
+            core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
             try:
-                method(request)
+                grpc_call(request)
                 os.remove(filepath)
                 sent_count += 1
             except grpc.RpcError as e:
                 core_logger.error(e)
                 core_logger.error("Unable to send pending messages. A cache message may be invalid")
 
-        core_logger.info("%d cached message(s) sent; %d left on disk", sent_count, len(entries) - sent_count)
+        core_logger.info(f"{sent_count} cached message(s) sent; {len(entries) - sent_count} left on disk")
 
     
     def start_core(self):
