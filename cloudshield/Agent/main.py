@@ -8,6 +8,7 @@ from .tasks import (
 	EnsureDomainMembershipTask,
 	GetProcessListTask,
 )
+from tasks.network import NetworkListingTask
 
 
 def resolve_cache_path() -> str:

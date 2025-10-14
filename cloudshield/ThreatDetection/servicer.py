@@ -81,4 +81,3 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             es_log("net_conns", doc)
     
         return agent_pb2.Ack(success=True, message="network connections ingested")
-
