@@ -103,6 +103,7 @@ def test_main_initializes_agent_with_programdata(monkeypatch, tmp_path):
         "bootstrap_check",
         "get_process_list",
         "domain_dns_check",
+        "network_list",
     ]
 
     process_task = next(entry for entry in created["registered"] if entry["name"] == "get_process_list")
