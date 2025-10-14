@@ -167,7 +167,6 @@ class Agent:
         if self.channel is None or self.stub is None:
             return
 
-        # Collect cache files (oldest first if filenames contain a timestamp)
         try:
             entries = []
             for fn in os.listdir(self.cache_path):
@@ -181,65 +180,46 @@ class Agent:
         sent_count = 0
 
         for filepath in entries:
-            # Load cached envelope: {"grpc": "<MethodName>", "data": { ... }}
             try:
-                with open(filepath, "r") as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     cached = json.load(f)
             except json.JSONDecodeError:
-                core_logger.warning(f"Skipping corrupted file: {os.path.basename(filepath)}")
+                core_logger.warning("Skipping corrupted file: %s", os.path.basename(filepath))
                 continue
             except Exception as e:
-                core_logger.warning(f"Skipping unreadable file {os.path.basename(filepath)}: {e}")
+                core_logger.warning("Skipping unreadable file %s: %s", os.path.basename(filepath), e)
                 continue
 
             grpc_call_name = cached.get("grpc")
             data = cached.get("data")
-
             if not grpc_call_name or data is None:
-                core_logger.warning(f"Skipping malformed cache: {os.path.basename(filepath)}")
+                core_logger.warning("Skipping malformed cache: %s", os.path.basename(filepath))
                 continue
 
-            if not hasattr(self.stub, grpc_call_name):
-                core_logger.error(f"gRPC call '{grpc_call_name}' does not exist on stub; skipping {os.path.basename(filepath)}")
-                continue
+            # Let AttributeError bubble up as tests expect
+            method = getattr(self.stub, grpc_call_name)
 
-            # Map RPC -> protobuf message class name (e.g., "SendNetworkConnections" -> "NetConnList")
-            protobuf_str = PROTOBUFS.get(grpc_call_name)
-            if not protobuf_str or not hasattr(agent_pb2, protobuf_str):
-                core_logger.error(
-                    f"No protobuf mapping for cached RPC '{grpc_call_name}' "
-                    f"(mapping='{protobuf_str}'); skipping {os.path.basename(filepath)}"
-                )
-                continue
+            # Derive the protobuf message class name and let AttributeError bubble up
+            msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
+            msg_cls = getattr(agent_pb2, msg_name)
 
-            message_cls = getattr(agent_pb2, protobuf_str)
-
-            # Reconstruct the message from the cached JSON
+            # Build request and force pending flag
+            request = ParseDict(data, msg_cls())
             try:
-                request = ParseDict(data, message_cls())
-            except Exception as e:
-                core_logger.error(
-                    f"Could not parse cached message {os.path.basename(filepath)} into {protobuf_str}: {e}"
-                )
-                continue
+                setattr(request, "is_pending", True)
+            except Exception:
+                pass
 
-            # Mark as pending if the message type supports it
-            if hasattr(request, "is_pending"):
-                request.is_pending = True
-
-            core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
-            grpc_call = getattr(self.stub, grpc_call_name)
-
+            core_logger.info("Sending pending RPC '%s'", grpc_call_name)
             try:
-                grpc_call(request)
+                method(request)
                 os.remove(filepath)
                 sent_count += 1
             except grpc.RpcError as e:
                 core_logger.error(e)
                 core_logger.error("Unable to send pending messages. A cache message may be invalid")
-                # Leave the file on disk for a future retry
 
-        core_logger.info(f"{sent_count} cached message(s) sent; {len(entries) - sent_count} left on disk")
+        core_logger.info("%d cached message(s) sent; %d left on disk", sent_count, len(entries) - sent_count)
 
     
     def start_core(self):
