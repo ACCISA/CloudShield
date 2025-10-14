@@ -54,6 +54,11 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
             self.state = state
             self.config_path = config_path
             created.setdefault("ensure_task_configs", []).append(config_path)
+    class FakeNetworkListingTask:
+        def __init__(self, state, config_path=None):
+            self.state = state
+            self.config_path = config_path
+
 
     fake_core = ModuleType("cloudshield.Agent.core")
     fake_core.Agent = FakeAgent
@@ -62,6 +67,7 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
     fake_tasks.CallBootstrapTask = FakeCallBootstrapTask
     fake_tasks.DomainDnsCheckTask = FakeDomainDnsTask
     fake_tasks.EnsureDomainMembershipTask = FakeEnsureDomainTask
+    fake_tasks.NetworkListingTask = FakeNetworkListingTask  
 
     monkeypatch.delitem(sys.modules, "cloudshield.Agent.core", raising=False)
     monkeypatch.delitem(sys.modules, "cloudshield.Agent.tasks", raising=False)
