@@ -7,9 +7,8 @@ from .tasks import (
 	DomainDnsCheckTask,
 	EnsureDomainMembershipTask,
 	GetProcessListTask,
+	NetworkListingTask,
 )
-from tasks.network import NetworkListingTask
-
 
 def resolve_cache_path() -> str:
 	"""Create a cache directory in a non-publicly writable location."""

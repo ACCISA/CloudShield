@@ -13,6 +13,7 @@ __all__ = [
 	"CallBootstrapTask",
 	"DomainDnsCheckTask",
 	"EnsureDomainMembershipTask",
+	"NetworkListingTask",
 ]
 
 # Expose this package as top-level 'tasks' so legacy imports keep working.
@@ -24,6 +25,8 @@ def __getattr__(name: str):
 		module = importlib.import_module(".domain_dns", __name__)
 	elif name == "EnsureDomainMembershipTask":
 		module = importlib.import_module(".workstation", __name__)
+	elif name == "NetworkListingTask":
+		module = importlib.import_module(".network", __name__)
 	else:
 		raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 

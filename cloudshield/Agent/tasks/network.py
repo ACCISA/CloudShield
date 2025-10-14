@@ -1,5 +1,5 @@
 # cloudshield/Agent/tasks/network.py
-from tasks import BaseTask
+from .task import BaseTask
 from proto import agent_pb2
 from logger import task_logger
 
