@@ -205,3 +205,4 @@ def destroy_environment(org_id: str, force: bool = False):
             logger.warning("Force flag: removed work dir after failure for org %s", org_id)
         raise
 
+
