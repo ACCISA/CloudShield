@@ -65,3 +65,10 @@ variable "openvpn_routes"{
   type        = list(string)
   default     = []
 }
+
+variable "dc_admin_password" {
+  description = "Administrator password for the Samba Domain Controller"
+  type        = string
+  default     = "CloudShield2024!"
+  sensitive   = true
+}
