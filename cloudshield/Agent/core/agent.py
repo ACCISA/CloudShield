@@ -14,7 +14,8 @@ from google.protobuf.json_format import ParseDict
 
 PROTOBUFS = {
     "SendProcessList":"ProcessList",
-    "SendProcessListInformation":"ProcessListAckRes"
+    "SendProcessListInformation":"ProcessListAckRes",
+    "SendNetworkConnections": "NetConnList",
 }
 
 class Agent:
@@ -163,49 +164,63 @@ class Agent:
         locally. This function is invoked by the agent core to retrieve any cached
         messages and attempt delivery once the server is reachable again.
         """
-        if self.channel is None: 
+        if self.channel is None:
             return
 
-        messages = []
-        for filename in os.listdir(self.cache_path):
-            filepath = os.path.join(self.cache_path, filename)
-            if os.path.isfile(filepath) and ".json" in filepath:
-                with open(filepath, "r") as f:
-                    try:
-                        messages.append({"filename":filepath, "cache":json.load(f)})
-                    except json.JSONDecodeError:
-                        core_logger.warning(f"Skipping corrupted file: {filename}")
+        try:
+            entries = []
+            for fn in os.listdir(self.cache_path):
+                path = os.path.join(self.cache_path, fn)
+                if os.path.isfile(path) and fn.endswith(".json"):
+                    entries.append(path)
+            entries.sort()
+        except FileNotFoundError:
+            return
 
-        for message in messages:
-            filename = message["filename"]
-            grpc_call_name = message["cache"]["grpc"]
-            data = message["cache"]["data"]
+        sent_count = 0
 
-            if not hasattr(self.stub, grpc_call_name):
-                raise AttributeError(f"gRPC call '{grpc_call_name}' does not exist")
+        for filepath in entries:
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+            except json.JSONDecodeError:
+                core_logger.warning(f"Skipping corrupted file: {os.path.basename(filepath)}")
+                continue
+            except Exception as e:
+                core_logger.warning(f"Skipping unreadable file {os.path.basename(filepath)}: {e}")
+                continue
+
+            grpc_call_name = cached.get("grpc")
+            data = cached.get("data")
+            if not grpc_call_name or data is None:
+                core_logger.warning(f"Skipping malformed cache: {os.path.basename(filepath)}")
+                continue
+
+            # Let AttributeError bubble if stub method is missing (matches tests)
+            grpc_call = getattr(self.stub, grpc_call_name)
+
+            # Resolve correct protobuf message type (let AttributeError bubble if missing)
+            msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
+            msg_cls = getattr(agent_pb2, msg_name)
+
+            # Rebuild message and mark as pending when supported
+            request = ParseDict(data, msg_cls())
+            try:
+                setattr(request, "is_pending", True)
+            except Exception:
+                pass
 
             core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
-
-            protobuf_str = PROTOBUFS[grpc_call_name]
-            if not hasattr(agent_pb2, protobuf_str):
-                raise AttributeError(f"gRPC call '{grpc_call_name}' does not have a protobuf '{protobuf_str}'")
-
-            getattr(agent_pb2, protobuf_str)
-            
-            request = ParseDict(data, agent_pb2.ProcessList())
-
-            request.is_pending = True
-
-            grpc_call = getattr(self.stub, grpc_call_name)
             try:
                 grpc_call(request)
-                os.remove(filename)
+                os.remove(filepath)
+                sent_count += 1
             except grpc.RpcError as e:
                 core_logger.error(e)
                 core_logger.error("Unable to send pending messages. A cache message may be invalid")
-        
 
-        core_logger.info(f"{len(messages)} cached message will be sent to server")
+        core_logger.info(f"{sent_count} cached message(s) sent; {len(entries) - sent_count} left on disk")
+
     
     def start_core(self):
         """

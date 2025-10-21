@@ -65,3 +65,19 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             es_log("unknown_procs", proc)
 
         return agent_pb2.Ack(success=True, message="test") 
+    
+    def SendNetworkConnections(self, request, context):
+        # Log basic info
+        servicer_logger.info(
+            f"Received {len(request.conns)} network connections from {request.agent_id} "
+            f"(ip={get_ip(context.peer())})"
+        )
+    
+        
+        for c in request.conns:
+            doc = MessageToDict(c, preserving_proto_field_name=True)
+            doc["agent_id"] = request.agent_id
+            doc["timestamp"] = request.timestamp
+            es_log("net_conns", doc)
+    
+        return agent_pb2.Ack(success=True, message="network connections ingested")

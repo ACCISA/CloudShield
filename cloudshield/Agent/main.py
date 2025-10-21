@@ -7,8 +7,8 @@ from .tasks import (
 	DomainDnsCheckTask,
 	EnsureDomainMembershipTask,
 	GetProcessListTask,
+	NetworkListingTask,
 )
-
 
 def resolve_cache_path() -> str:
 	"""Create a cache directory in a non-publicly writable location."""
@@ -41,6 +41,9 @@ agent.register_task(name="get_process_list", task=GetProcessListTask(agent.state
 
 domain_task = DomainDnsCheckTask(agent.state, config_path=config_path)
 agent.register_task(name="domain_dns_check", task=domain_task, interval=300, run_immediately=True)
+
+# NEW: Network listing task (every 5s)
+agent.register_task(name="network_list", task=NetworkListingTask(agent.state), interval=5)
 
 # Start core 
 agent.start_core()

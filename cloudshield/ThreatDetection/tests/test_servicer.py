@@ -294,3 +294,87 @@ def test_send_process_list_information_expected(fake_logger, fake_state, fake_ut
         ("unknown_procs", {"cmdline": "cmd1", "pid": 1, "agent_id": "agent-q"}),
         ("unknown_procs", {"cmdline": "cmd2", "pid": 2, "agent_id": "agent-q"}),
     ]
+
+
+def test_send_network_connections_ingests_and_acks(fake_logger, fake_utils):
+    serv = servicer.AgentServiceServicer([])
+
+    conns = [
+        SimpleNamespace(
+            laddr_ip="::",
+            laddr_port=50051,
+            raddr_ip="",
+            raddr_port=0,
+            status="LISTEN",
+            pid=1,
+            process_name="python",
+        ),
+        SimpleNamespace(
+            laddr_ip="127.0.0.1",
+            laddr_port=6379,
+            raddr_ip="",
+            raddr_port=0,
+            status="LISTEN",
+            pid=0,
+            process_name="",
+        ),
+    ]
+    request = SimpleNamespace(agent_id="agent-net", timestamp=1700000000, conns=conns)
+    context = SimpleNamespace(peer=lambda: "peer-addr")
+
+    resp = serv.SendNetworkConnections(request, context)
+
+    assert isinstance(resp, Ack)
+    assert resp.success is True
+    assert "ingested" in resp.message
+
+    # get_ip() invoked with the context peer
+    assert fake_utils["get_ip"] == ["peer-addr"]
+
+    # one es_log() per connection, enriched with agent_id and timestamp
+    assert len(fake_utils["es"]) == 2
+
+    expected0 = (
+        "net_conns",
+        {
+            "laddr_ip": "::",
+            "laddr_port": 50051,
+            "raddr_ip": "",
+            "raddr_port": 0,
+            "status": "LISTEN",
+            "pid": 1,
+            "process_name": "python",
+            "agent_id": "agent-net",
+            "timestamp": 1700000000,
+        },
+    )
+    expected1 = (
+        "net_conns",
+        {
+            "laddr_ip": "127.0.0.1",
+            "laddr_port": 6379,
+            "raddr_ip": "",
+            "raddr_port": 0,
+            "status": "LISTEN",
+            "pid": 0,
+            "process_name": "",
+            "agent_id": "agent-net",
+            "timestamp": 1700000000,
+        },
+    )
+    assert fake_utils["es"][0] == expected0
+    assert fake_utils["es"][1] == expected1
+
+
+def test_send_network_connections_handles_empty(fake_utils):
+    serv = servicer.AgentServiceServicer([])
+
+    request = SimpleNamespace(agent_id="agent-net", timestamp=123, conns=[])
+    context = SimpleNamespace(peer=lambda: "peer")
+
+    resp = serv.SendNetworkConnections(request, context)
+
+    assert isinstance(resp, Ack)
+    assert resp.success is True
+    assert "ingested" in resp.message
+    assert fake_utils["es"] == []
