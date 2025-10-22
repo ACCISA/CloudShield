@@ -1,6 +1,4 @@
 #!/bin/bash
-exec > /home/ubuntu/openvpn-userdata.log 2>&1
-set -x
 set -euo pipefail
 
 DOMAIN_NAME=$1
@@ -14,10 +12,6 @@ if [ -z "$DOMAIN_NAME" ]; then
     exit 1
 fi
 
-# ============================================================
-# STEP 5: EC2 installs and configures the samba DC
-# ============================================================
-
 echo "=== Installing Samba Domain Controller ==="
 echo "Domain: $DOMAIN_NAME"
 echo "Realm: $REALM"
@@ -29,10 +23,10 @@ hostnamectl set-hostname "$HOSTNAME"
 
 # --- Configure /etc/hosts ---
 IP_ADDR=$(hostname -I | awk '{print $1}')
-sudo bash -c "cat <<EOF >/etc/hosts
+cat <<EOF >/etc/hosts
 127.0.0.1   localhost
 ${IP_ADDR}  ${HOSTNAME} ${DOMAIN_NAME}
-EOF"
+EOF
 
 # --- Update system and install packages ---
 echo "Updating and installing required packages..."
@@ -68,11 +62,11 @@ systemctl enable --now samba-ad-dc
 
 # --- Configure DNS resolver ---
 echo "Configuring DNS resolver..."
-sudo rm -f /etc/resolv.conf
-sudo bash -c "cat <<EOF >/etc/resolv.conf
+rm -f /etc/resolv.conf
+cat <<EOF >/etc/resolv.conf
 nameserver 127.0.0.1
 domain ${DOMAIN_NAME}
-EOF"
+EOF
 
 # --- Done ---
 echo "✅ Samba Domain Controller setup complete!"
@@ -83,11 +77,7 @@ echo "Administrator Password: ${ADMIN_PASSWORD}"
 
 systemctl status samba-ad-dc --no-pager
 
-# ============================================================
-# STEP 6: Backend server does a check on the EC2 instance
-#         to make sure the installation process is completed
-# ============================================================
-
+# --- STEP 6: Verification Checks ---
 echo ""
 echo "=== Running Verification Checks ==="
 
