@@ -1,14 +1,10 @@
 #!/bin/bash
-exec > /home/ubuntu/openvpn-userdata.log 2>&1
+exec > /home/ubuntu/samba-userdata.log 2>&1
 set -x
 set -euo pipefail
 
-DOMAIN_NAME=$1
-REALM=$(echo "$DOMAIN_NAME" | tr '[:lower:]' '[:upper:]')
-ADMIN_PASSWORD=${2:-"CloudShield2024!"}
-HOSTNAME="dc.${DOMAIN_NAME%%.*}"
 
-if [ -z "$DOMAIN_NAME" ]; then
+if [ -z "${domain_name}" ]; then
     echo "Usage: $0 <domain_name> [admin_password]"
     echo "Example: $0 somecompany.local"
     exit 1
@@ -19,69 +15,76 @@ fi
 # ============================================================
 
 echo "=== Installing Samba Domain Controller ==="
-echo "Domain: $DOMAIN_NAME"
-echo "Realm: $REALM"
-echo "Admin Password: $ADMIN_PASSWORD"
+echo "Domain: ${domain_name}"
+echo "Realm: ${realm_name}"
+echo "Admin Password: ${dc_admin_password}"
 
 # --- Set hostname ---
 echo "Setting hostname..."
-hostnamectl set-hostname "$HOSTNAME"
+sudo hostnamectl set-hostname "dc.${domain_name}.local"
 
 # --- Configure /etc/hosts ---
 IP_ADDR=$(hostname -I | awk '{print $1}')
 sudo bash -c "cat <<EOF >/etc/hosts
 127.0.0.1   localhost
-${IP_ADDR}  ${HOSTNAME} ${DOMAIN_NAME}
+$(hostname -I | awk '{print $1}')  \$HOSTNAME ${domain_name}
 EOF"
+
 
 # --- Update system and install packages ---
 echo "Updating and installing required packages..."
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y samba krb5-config winbind smbclient dnsutils acl net-tools
+sudo apt-get update -y
+sudo apt-get install -y -q samba winbind smbclient dnsutils acl net-tools
+echo "krb5-config krb5-config/default_realm string ${realm_name}" | sudo debconf-set-selections
+echo "krb5-config krb5-config/default_realm string EXAMPLE.COM" | sudo debconf-set-selections
+echo "krb5-config krb5-config/kerberos_servers string kerberos.example.com" | sudo debconf-set-selections
+echo "krb5-config krb5-config/admin_server string kerberos.example.com" | sudo debconf-set-selections
+sudo apt-get install -y -q krb5-config
 
 # --- Backup old Samba config ---
-[ -f /etc/samba/smb.conf ] && mv /etc/samba/smb.conf /etc/samba/smb.conf.original
+ [ -f /etc/samba/smb.conf ] && sudo mv /etc/samba/smb.conf /etc/samba/smb.conf.original
 
 # --- Stop conflicting services ---
-systemctl stop smbd nmbd winbind systemd-resolved || true
-systemctl disable smbd nmbd winbind || true
-systemctl unmask samba-ad-dc || true
+sudo systemctl stop smbd nmbd winbind systemd-resolved || true
+sudo systemctl disable smbd nmbd winbind || true
+sudo systemctl unmask samba-ad-dc || true
 
 # --- Provision Samba Domain Controller ---
+#if enx0 samba will listen on local host only
 echo "Provisioning Samba DC..."
-samba-tool domain provision \
+ sudo samba-tool domain provision \
   --use-rfc2307 \
-  --realm="${REALM}" \
-  --domain="${REALM%%.*}" \
+  --realm="${realm_name}" \
+  --domain="${domain_name}" \
   --server-role=dc \
   --dns-backend=SAMBA_INTERNAL \
-  --adminpass="${ADMIN_PASSWORD}" \
-  --option="interfaces=lo eth0" \
+  --adminpass=${dc_admin_password} \
+  --option="interfaces=lo enX0" \   
   --option="bind interfaces only=yes"
 
 # --- Copy Kerberos config ---
-cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+sudo cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
 
 # --- Enable Samba AD DC service ---
-systemctl enable --now samba-ad-dc
+sudo systemctl enable --now samba-ad-dc
 
 # --- Configure DNS resolver ---
 echo "Configuring DNS resolver..."
 sudo rm -f /etc/resolv.conf
 sudo bash -c "cat <<EOF >/etc/resolv.conf
 nameserver 127.0.0.1
-domain ${DOMAIN_NAME}
+domain ${domain_name}
 EOF"
 
 # --- Done ---
 echo "✅ Samba Domain Controller setup complete!"
-echo "Hostname: ${HOSTNAME}"
-echo "IP Address: ${IP_ADDR}"
-echo "Realm: ${REALM}"
-echo "Administrator Password: ${ADMIN_PASSWORD}"
+echo "Hostname: dc.${domain_name}.local"
+echo "IP Address: \$IP_ADDR"
+echo "Realm: ${realm_name}"
+echo "Administrator Password: ${dc_admin_password}"
 
-systemctl status samba-ad-dc --no-pager
+sudo systemctl status samba-ad-dc --no-pager
 
 # ============================================================
 # STEP 6: Backend server does a check on the EC2 instance

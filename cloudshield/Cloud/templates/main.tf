@@ -266,6 +266,11 @@ resource "aws_instance" "org_id_samba" {
   vpc_security_group_ids      = [aws_security_group.allow_ssh.id, aws_security_group.allow_all_tcp_udp.id]
   associate_public_ip_address = true
   key_name                    = aws_key_pair.org_id_key.key_name
-  user_data                   = file("${path.module}/scripts/samba.sh")
-  tags                        = { Name = "org_id_samba" }
+  user_data = templatefile("${path.module}/scripts/samba.tftpl", {
+    domain_name       = var.domain_name
+    dc_admin_password = var.dc_admin_password
+    realm_name        = var.realm_name
+
+  })
+  tags = { Name = "org_id_samba" }
 }

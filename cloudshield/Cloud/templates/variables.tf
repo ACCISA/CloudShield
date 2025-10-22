@@ -23,35 +23,35 @@ variable "region" {
 
 // Open VPN config
 
-variable "openvpn_address"{
+variable "openvpn_address" {
   description = "Address for OpenVPN server"
   type        = string
   default     = ""
 }
-variable "openvpn_port"{
+variable "openvpn_port" {
   description = "Port for OpenVPN server"
   type        = number
   default     = 1194
 }
 
-variable "openvpn_protocol"{
+variable "openvpn_protocol" {
   description = "Protocol for OpenVPN server"
   type        = string
   default     = "udp"
 }
 
-variable "openvpn_subnet"{
+variable "openvpn_subnet" {
   description = "Subnet for OpenVPN clients"
   type        = string
   default     = ""
-  
+
 }
 
-variable "openvpn_client_name"{
+variable "openvpn_client_name" {
   description = "Client name for OpenVPN"
   type        = string
   default     = "client1"
-  
+
 }
 
 variable "openvpn_dns" {
@@ -60,7 +60,7 @@ variable "openvpn_dns" {
   default     = ""
 }
 
-variable "openvpn_routes"{
+variable "openvpn_routes" {
   description = "Additional routes for OpenVPN clients"
   type        = list(string)
   default     = []
@@ -69,6 +69,20 @@ variable "openvpn_routes"{
 variable "dc_admin_password" {
   description = "Administrator password for the Samba Domain Controller"
   type        = string
-  default     = "CloudShield2024!"
+  default     = "4162728abb29acc12090e6432cdb6fd8%$@!"
+  sensitive   = true
+}
+
+variable "domain_name" {
+  description = "Domain name for the Samba Domain Controller"
+  type        = string
+  default     = "samba"
+  sensitive   = true
+}
+
+variable "realm_name" {
+  description = "Realm name for the Samba Domain Controller"
+  type        = string
+  default     = "samba.local"
   sensitive   = true
 }
