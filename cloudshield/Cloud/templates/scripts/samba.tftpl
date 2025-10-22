@@ -59,8 +59,8 @@ echo "Provisioning Samba DC..."
   --domain="${domain_name}" \
   --server-role=dc \
   --dns-backend=SAMBA_INTERNAL \
-  --adminpass=${dc_admin_password} \
-  --option="interfaces=lo enX0" \   
+  --adminpass="${dc_admin_password}" \
+  --option="interfaces=lo enX0" \
   --option="bind interfaces only=yes"
 
 # --- Copy Kerberos config ---
