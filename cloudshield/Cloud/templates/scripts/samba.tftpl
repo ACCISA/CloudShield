@@ -86,6 +86,8 @@ echo "Administrator Password: ${dc_admin_password}"
 
 sudo systemctl status samba-ad-dc --no-pager
 
+sudo samba-tool user setpassword Administrator --newpassword="${dc_admin_password}"
+
 # ============================================================
 # STEP 6: Backend server does a check on the EC2 instance
 #         to make sure the installation process is completed
