@@ -78,7 +78,7 @@ domain ${domain_name}
 EOF"
 
 # --- Done ---
-echo "✅ Samba Domain Controller setup complete!"
+echo "Samba Domain Controller setup complete!"
 echo "Hostname: dc.${domain_name}.local"
 echo "IP Address: \$IP_ADDR"
 echo "Realm: ${realm_name}"
@@ -97,30 +97,30 @@ echo "=== Running Verification Checks ==="
 # Check 1: Service is active
 echo -n "Checking Samba service status... "
 if systemctl is-active --quiet samba-ad-dc; then
-    echo "✅ Active"
+    echo "Active"
 else
-    echo "❌ Failed - service not active"
+    echo "Failed - service not active"
     exit 1
 fi
 
 # Check 2: DNS is responding
 echo -n "Checking DNS resolution... "
 if dig @127.0.0.1 localhost +short > /dev/null 2>&1; then
-    echo "✅ Working"
+    echo "Working"
 else
-    echo "❌ Failed - DNS not responding"
+    echo "Failed - DNS not responding"
     exit 1
 fi
 
 # Check 3: Domain level
 echo -n "Checking domain provision... "
 if samba-tool domain level show > /dev/null 2>&1; then
-    echo "✅ Verified"
+    echo "Verified"
 else
-    echo "❌ Failed - domain not properly provisioned"
+    echo "Failed - domain not properly provisioned"
     exit 1
 fi
 
 echo ""
-echo "✅ All verification checks passed!"
+echo "All verification checks passed!"
 echo "Domain Controller is ready for use."
