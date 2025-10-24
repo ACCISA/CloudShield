@@ -90,3 +90,4 @@ cloudshield/Agent/build
 **.exe
 **.xml
 .coverage
+chatmodes

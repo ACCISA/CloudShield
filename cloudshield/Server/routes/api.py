@@ -50,3 +50,4 @@ def job_status(job_id: str):
 def health():
     payload, code = health_status()
     return jsonify(payload), code
+

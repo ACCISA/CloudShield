@@ -1,0 +1,126 @@
+#!/bin/bash
+exec > /home/ubuntu/samba-userdata.log 2>&1
+set -x
+set -euo pipefail
+
+
+if [ -z "${domain_name}" ]; then
+    echo "Usage: $0 <domain_name> [admin_password]"
+    echo "Example: $0 somecompany.local"
+    exit 1
+fi
+
+# ============================================================
+# STEP 5: EC2 installs and configures the samba DC
+# ============================================================
+
+echo "=== Installing Samba Domain Controller ==="
+echo "Domain: ${domain_name}"
+echo "Realm: ${realm_name}"
+echo "Admin Password: ${dc_admin_password}"
+
+# --- Set hostname ---
+echo "Setting hostname..."
+sudo hostnamectl set-hostname "dc.${domain_name}.local"
+
+# --- Configure /etc/hosts ---
+IP_ADDR=$(hostname -I | awk '{print $1}')
+sudo bash -c "cat <<EOF >/etc/hosts
+127.0.0.1   localhost
+$(hostname -I | awk '{print $1}')  \$HOSTNAME ${domain_name}
+EOF"
+
+
+# --- Update system and install packages ---
+echo "Updating and installing required packages..."
+export DEBIAN_FRONTEND=noninteractive
+sudo apt-get update -y
+sudo apt-get install -y -q samba winbind smbclient dnsutils acl net-tools
+echo "krb5-config krb5-config/default_realm string ${realm_name}" | sudo debconf-set-selections
+echo "krb5-config krb5-config/default_realm string EXAMPLE.COM" | sudo debconf-set-selections
+echo "krb5-config krb5-config/kerberos_servers string kerberos.example.com" | sudo debconf-set-selections
+echo "krb5-config krb5-config/admin_server string kerberos.example.com" | sudo debconf-set-selections
+sudo apt-get install -y -q krb5-config
+
+# --- Backup old Samba config ---
+ [ -f /etc/samba/smb.conf ] && sudo mv /etc/samba/smb.conf /etc/samba/smb.conf.original
+
+# --- Stop conflicting services ---
+sudo systemctl stop smbd nmbd winbind systemd-resolved || true
+sudo systemctl disable smbd nmbd winbind || true
+sudo systemctl unmask samba-ad-dc || true
+
+# --- Provision Samba Domain Controller ---
+#if enx0 samba will listen on local host only
+echo "Provisioning Samba DC..."
+ sudo samba-tool domain provision \
+  --use-rfc2307 \
+  --realm="${realm_name}" \
+  --domain="${domain_name}" \
+  --server-role=dc \
+  --dns-backend=SAMBA_INTERNAL \
+  --adminpass="${dc_admin_password}" \
+  --option="interfaces=lo enX0" \
+  --option="bind interfaces only=yes"
+
+# --- Copy Kerberos config ---
+sudo cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+
+# --- Enable Samba AD DC service ---
+sudo systemctl enable --now samba-ad-dc
+
+# --- Configure DNS resolver ---
+echo "Configuring DNS resolver..."
+sudo rm -f /etc/resolv.conf
+sudo bash -c "cat <<EOF >/etc/resolv.conf
+nameserver 127.0.0.1
+domain ${domain_name}
+EOF"
+
+# --- Done ---
+echo "Samba Domain Controller setup complete!"
+echo "Hostname: dc.${domain_name}.local"
+echo "IP Address: \$IP_ADDR"
+echo "Realm: ${realm_name}"
+echo "Administrator Password: ${dc_admin_password}"
+
+sudo systemctl status samba-ad-dc --no-pager
+
+# ============================================================
+# STEP 6: Backend server does a check on the EC2 instance
+#         to make sure the installation process is completed
+# ============================================================
+
+echo ""
+echo "=== Running Verification Checks ==="
+
+# Check 1: Service is active
+echo -n "Checking Samba service status... "
+if systemctl is-active --quiet samba-ad-dc; then
+    echo "Active"
+else
+    echo "Failed - service not active"
+    exit 1
+fi
+
+# Check 2: DNS is responding
+echo -n "Checking DNS resolution... "
+if dig @127.0.0.1 localhost +short > /dev/null 2>&1; then
+    echo "Working"
+else
+    echo "Failed - DNS not responding"
+    exit 1
+fi
+
+# Check 3: Domain level
+echo -n "Checking domain provision... "
+if samba-tool domain level show > /dev/null 2>&1; then
+    echo "Verified"
+else
+    echo "Failed - domain not properly provisioned"
+    exit 1
+fi
+
+echo ""
+echo "All verification checks passed!"
+echo "Domain Controller is ready for use."

@@ -11,6 +11,7 @@ sudo cat > /home/ubuntu/openvpn-auto-install.sh <<EOF
 #!/usr/bin/expect
 set timeout 120
 set OPENVPN_ADDRESS "${openvpn_address}"
+
 set OPENVPN_PROTOCOL "${openvpn_protocol}"
 set OPENVPN_DNS "${openvpn_dns}"
 set OPENVPN_PORT "${openvpn_port}"
