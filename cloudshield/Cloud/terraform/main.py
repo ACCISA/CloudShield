@@ -306,6 +306,12 @@ def main(argv: list[str] | None = None):
     print(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
     run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir)
+    
+    # Get EC2 metadata
+    metadata = get_ec2_ips(region, org_id)
+    
+    print(f"[✓] Finished provisioning for {org_id}.")
+    return metadata
 
 
 if __name__ == "__main__":  # pragma: no cover
