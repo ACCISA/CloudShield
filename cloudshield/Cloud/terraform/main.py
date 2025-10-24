@@ -310,29 +310,6 @@ def main(argv: list[str] | None = None):
     # Get EC2 metadata
     metadata = get_ec2_ips(region, org_id)
     
-    # Get Domain Controller info from Terraform outputs
-    print("\n[~] Retrieving Domain Controller information...")
-    try:
-        dc_info_cmd = subprocess.run(
-            ["terraform", "output", "-json", "domain_controller_info"],
-            cwd=target_dir,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        import json
-        dc_info = json.loads(dc_info_cmd.stdout)
-        
-        print("\n[✓] Domain Controller Deployment:")
-        print(f"    Domain Name: {dc_info.get('domain_name')}")
-        print(f"    Realm: {dc_info.get('realm')}")
-        print(f"    Private IP: {dc_info.get('private_ip')}")
-        print(f"    Instance ID: {dc_info.get('instance_id')}")
-        print(f"    Admin User: {dc_info.get('admin_user')}")
-        print(f"    Status: ✅ Deployed and Verified\n")
-    except Exception as e:
-        print(f"[!] Could not retrieve DC info: {e}")
-    
     print(f"[✓] Finished provisioning for {org_id}.")
     return metadata
 
