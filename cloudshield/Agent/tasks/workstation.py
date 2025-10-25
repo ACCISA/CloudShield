@@ -4,12 +4,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-try:  # Honour legacy flat module first for compatibility with tests
-    from logger import task_logger  # type: ignore
-except ImportError:  # pragma: no cover - fallback to package-relative import
-    from ..logger import task_logger
+from logger import task_logger
 
-from ..core.workstation_setup import DomainStatus, ensure_domain_membership
+from .workstation_setup import DomainStatus, ensure_domain_membership
 from .task import BaseTask
 
 

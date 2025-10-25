@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from .core import Agent
-from .tasks import (
+from core import Agent
+from tasks import (
 	CallBootstrapTask,
 	DomainDnsCheckTask,
 	EnsureDomainMembershipTask,
