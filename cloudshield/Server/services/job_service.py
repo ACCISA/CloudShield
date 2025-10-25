@@ -52,6 +52,7 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     return job
 
 
+
 def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
     try:
         job = Job.fetch(job_id, connection=redis_conn)
