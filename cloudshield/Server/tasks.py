@@ -37,6 +37,53 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None):
     
     logger.debug("Command succeeded: %s", " ".join(cmd))
 
+def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
+    """
+    Provisions only the workstations using Terraform templates.
+    Copies the templates to a per-org working directory, injects org_id/region,
+    optionally overrides AMIs via terraform.tfvars, and runs terraform init/apply.
+    """
+    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
+    job = get_current_job()
+    if job is not None:
+        job.meta["progress"] = "starting destroy"
+        job.save_meta()
+    base_dir = Path(__file__).resolve().parents[1]  # .../cloudshield
+    templates_dir = base_dir / "Cloud" / "templates"
+    runs_dir = base_dir / "Cloud" / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    work_dir = runs_dir / org_id
+    if not work_dir.exists():
+        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, work_dir)
+        raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
+    env = os.environ.copy()
+    env.setdefault("TF_IN_AUTOMATION", "1")
+
+    logs_tail: list[str] = []
+    try:
+        if job is not None:
+            job.meta["progress"] = "terraform apply"
+            job.save_meta()
+        logger.info("Running terraform apply for org %s", org_id)
+        for line in _run(["terraform", "apply", "-auto-approve", "-input=false","-target=aws_instance.workstation",f"-var=\"workstation_count={count}\"",f"-var=\"workstation_enable=true\""], cwd=str(work_dir), env=env):
+            logs_tail.append(line)
+            logs_tail = logs_tail[-50:]
+            if job is not None and line.strip():
+                job.meta["progress"] = line[-200:]
+                job.save_meta()
+
+        if job is not None:
+            job.meta["progress"] = "completed"
+            job.save_meta()
+        logger.info("Provisioning workstations complete for org %s", org_id)
+        return {"message": "Provisioning workstations complete", "work_dir": str(work_dir), "logs_tail": logs_tail}
+    except Exception as e:
+        logger.exception("Provisioning workstations failed for org %s: %s", org_id, e)
+        if job is not None:
+            job.meta["progress"] = f"failed: {e}"
+            job.meta["logs_tail"] = logs_tail
+            job.save_meta()
+        raise
 
 def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
     """
