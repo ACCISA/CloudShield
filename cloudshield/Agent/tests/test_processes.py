@@ -129,6 +129,38 @@ def test_run_returns_when_send_none(monkeypatch, tmp_path):
     assert len(send_calls) == 1
     assert send_calls[0][0] == "SendProcessList"
 
+def test_run_sends_follow_up_when_action_requested_real(monkeypatch, tmp_path):
+    task = _make_task(tmp_path)
+    monkeypatch.setattr(task, "get_process_list", lambda: ["proc-list"])
+    monkeypatch.setattr("cloudshield.Agent.tasks.processes.time.time", lambda: 1700000000)
+
+    send_calls = []
+
+    def fake_get_info(pid):
+        return {"pid": pid, "name": f"proc-{pid}", "open_files":[], "memory_maps":[], "threads":[]}
+
+    def fake_send(name, request):
+        send_calls.append((name, request))
+        if len(send_calls) == 1:
+            return SimpleNamespace(action=True, pids=[10, 20])
+        return SimpleNamespace(success=True)
+
+    monkeypatch.setattr(task, "send", fake_send)
+
+    task.run()
+
+    assert len(send_calls) == 2
+    first_name, first_request = send_calls[0]
+    assert first_name == "SendProcessList"
+    assert first_request.agent_id == "test-agent"
+    assert first_request.timestamp == 1700000000
+    assert first_request.processes == ["proc-list"]
+
+    second_name, second_request = send_calls[1]
+    assert second_name == "SendProcessListInformation"
+
+    if len(second_request.processes) != 0:
+        assert "ProcessInformation" in str(type(second_request.processes[0]))
 
 def test_run_sends_follow_up_when_action_requested(monkeypatch, tmp_path):
     task = _make_task(tmp_path)
@@ -165,6 +197,29 @@ def test_run_sends_follow_up_when_action_requested(monkeypatch, tmp_path):
     assert len(second_request.processes) == 2
     assert "ProcessInformation" in str(type(second_request.processes[0]))
 
+def test_get_md5_sum(monkeypatch, tmp_path):
+    task = _make_task(tmp_path)
+    f = open("/tmp/testfile", "w")
+    f.write("aaaaaaaaaaaaaaa")
+    f.close()
+    import hashlib
+    f = open("/tmp/testfile", "rb")
+    file_hash = hashlib.md5()
+    while c := f.read(8192):
+        file_hash.update(c)
+    f.close()
+
+    assert task.get_md5_sum("/tmp/testfile") == file_hash.hexdigest()
+
+def test_get_process_information_pids(monkeypatch, tmp_path):
+    task = _make_task(tmp_path)
+
+    import psutil
+    all_pids = psutil.pids()
+
+    for proc in all_pids:
+        proc_info = task.get_process_information(proc)
+        print(proc_info)
 
 def test_run_skips_follow_up_when_not_requested(monkeypatch, tmp_path):
     task = _make_task(tmp_path)

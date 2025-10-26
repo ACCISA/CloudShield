@@ -120,6 +120,18 @@ def ensure_proto_stubs():
         def __init__(self, pid,name,open_files,memory_maps,threads):
             pass
 
+    class MemoryMap(_BaseMessage):
+        def __init(self, md5sum, file_path, rss):
+            pass
+
+    class Thread(_BaseMessage):
+        def __init(self, thread_count):
+            pass
+
+    class OpenFile(_BaseMessage):
+        def __init(self, md5sum, file_path, position, moded, flags):
+            pass
+
 
     class Ack(_BaseMessage):
         def __init__(self, success=True, message="OK"):
@@ -139,6 +151,9 @@ def ensure_proto_stubs():
         "ProcessListAck": ProcessListAck,
         "ProcessListAckRes": ProcessListAckRes,
         "ProcessInformation": ProcessInformation,
+        "MemoryMap": MemoryMap,
+        "Thread": Thread,
+        "OpenFile": OpenFile,
         "Ack": Ack,
         "WorkstationInit": WorkstationInit,
     }.items():

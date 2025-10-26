@@ -31,7 +31,9 @@ class GetProcessListTask(BaseTask):
 
             return md5sum
 
-        except:
+        except Exception as e:
+            task_logger.error(e)
+            task_logger.error(f"error getting md5sum for {path}")
             return ""
         
     def get_process_list(self):
@@ -87,7 +89,7 @@ class GetProcessListTask(BaseTask):
         Given a process ID, gather network connections (listening & established), open files
         (with hashing), memory maps (modules) and thread info.
         """
-        connections = [c for c in psutil.net_connections(kind='inet') if c.pid == pid]
+        [c for c in psutil.net_connections(kind='inet') if c.pid == pid]
         open_files_grpc = []
         memory_maps_grpc = []
         threads_grpc = []
@@ -138,7 +140,7 @@ class GetProcessListTask(BaseTask):
                 "memory_maps": memory_maps_grpc,
                 "threads": threads_grpc
             }
-        except psutil.NoSuchProcess as e:
+        except psutil.NoSuchProcess:
             task_logger.warning(f"psutil no such process (pid={pid}")
         except psutil.AccessDenied as e:
             task_logger.warning(f"psutil access denied (pid={pid}")
@@ -166,7 +168,7 @@ class GetProcessListTask(BaseTask):
             process_info = []
             for pid in pids:
                 proc_info_data = self.get_process_information(pid)
-                if proc_info_data == None:
+                if proc_info_data is None:
                     task_logger.warning(f"pid {pid} no longer exists")
                     continue
 
