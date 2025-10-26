@@ -77,5 +77,3 @@ def test_destroy_failure_force_cleanup(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError):
         tasks.destroy_environment("org1", force=True)
 
-    # Note: The current implementation doesn't remove the directory on failure with force flag
-    # This test documents the actual behavior
