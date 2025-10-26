@@ -22,6 +22,7 @@ class GetProcessListTask(BaseTask):
             return self.md5sum_cache[path]
         try:
             f = open(path, "rb")
+            # nosec: B303
             file_hash = hashlib.md5()
             while chunk := f.read(8192):
                 file_hash.update(chunk)
