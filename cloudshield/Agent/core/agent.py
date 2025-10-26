@@ -135,7 +135,7 @@ class Agent:
             try:
                 task.run()
             except Exception as exc:
-                core_logger.error("Task '%s' failed during immediate run: %s", name, exc)
+                core_logger.error(f"Task '{name}' failed during immediate run: {exc}")
     
     def check_workstation(self):
         """Placeholder for workstation checks. Maintained for compatibility."""

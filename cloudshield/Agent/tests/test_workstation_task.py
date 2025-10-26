@@ -3,7 +3,7 @@ import json
 
 from cloudshield.Agent.tasks import workstation
 from cloudshield.Agent.tasks.workstation import EnsureDomainMembershipTask
-from cloudshield.Agent.core.workstation_setup import DomainStatus
+from cloudshield.Agent.tasks.workstation_setup import DomainStatus
 
 
 class DummyLogger:

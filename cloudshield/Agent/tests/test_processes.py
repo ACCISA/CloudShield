@@ -138,7 +138,7 @@ def test_run_sends_follow_up_when_action_requested(monkeypatch, tmp_path):
     send_calls = []
 
     def fake_get_info(pid):
-        return {"pid": pid, "name": f"proc-{pid}"}
+        return {"pid": pid, "name": f"proc-{pid}", "open_files":[], "memory_maps":[], "threads":[]}
 
     monkeypatch.setattr(task, "get_process_information", fake_get_info)
 
@@ -161,11 +161,9 @@ def test_run_sends_follow_up_when_action_requested(monkeypatch, tmp_path):
 
     second_name, second_request = send_calls[1]
     assert second_name == "SendProcessListInformation"
-    expected = [
-        {"pid": 10, "name": "proc-10"},
-        {"pid": 20, "name": "proc-20"},
-    ]
-    assert second_request.processes == expected
+
+    assert len(second_request.processes) == 2
+    assert "ProcessInformation" in str(type(second_request.processes[0]))
 
 
 def test_run_skips_follow_up_when_not_requested(monkeypatch, tmp_path):

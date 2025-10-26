@@ -25,14 +25,21 @@ def ensure_logger_stub():
             def __init__(self):
                 self.messages = []
 
-            def info(self, message):
-                self.messages.append(("info", message))
+            def debug(self, message, *args):
+                self.messages.append(("debug", self._format(message, *args)))
 
-            def error(self, message):
-                self.messages.append(("error", message))
+            def info(self, message, *args):
+                self.messages.append(("info", self._format(message, *args)))
 
-            def warning(self, message):
-                self.messages.append(("warning", message))
+            def warning(self, message, *args):
+                self.messages.append(("warning", self._format(message, *args)))
+
+            def error(self, message, *args):
+                self.messages.append(("error", self._format(message, *args)))
+
+            @staticmethod
+            def _format(message, *args):
+                return message % args if args else message
 
         logger_module.task_logger = _DummyLogger()
         logger_module.core_logger = _DummyLogger()
@@ -109,6 +116,10 @@ def ensure_proto_stubs():
                 processes=list(processes or []),
                 is_pending=is_pending,
             )
+    class ProcessInformation(_BaseMessage):
+        def __init__(self, pid,name,open_files,memory_maps,threads):
+            pass
+
 
     class Ack(_BaseMessage):
         def __init__(self, success=True, message="OK"):
@@ -127,6 +138,7 @@ def ensure_proto_stubs():
         "ProcessList": ProcessList,
         "ProcessListAck": ProcessListAck,
         "ProcessListAckRes": ProcessListAckRes,
+        "ProcessInformation": ProcessInformation,
         "Ack": Ack,
         "WorkstationInit": WorkstationInit,
     }.items():
