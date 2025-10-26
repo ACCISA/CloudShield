@@ -1,5 +1,4 @@
 import pathlib
-import pytest
 import cloudshield.Server.tasks as tasks
 
 
@@ -15,7 +14,6 @@ def test_provision_network_basic(monkeypatch, tmp_path):
     if str(terraform_dir) not in sys.path:
         sys.path.insert(0, str(terraform_dir))
     
-    import cloudshield.Server.tasks as tasks_module
     monkeypatch.setattr("cloudshield.Server.tasks.provision_main", fake_provision_main)
 
     result = tasks.provision_network("acme", region="us-east-1")
