@@ -7,7 +7,7 @@ import os
 from typing import Tuple, Dict, Any
 import rq
 from ..redis_client import task_queue, redis_conn
-from ..tasks import provision_network, destroy_environment
+from ..tasks import provision_network, destroy_environment, provision_workstations
 from ..utils.logging_setup import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
@@ -28,6 +28,17 @@ def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     logger.info("Enqueued provision job")
     return job
 
+def enqueue_provision_workstations(org_id: str, region: str = "us-west-2", count: int = 1) -> Job:
+    job = task_queue.enqueue(
+        provision_workstations,
+        org_id,
+        region,
+        count,
+        job_timeout=JOB_TIMEOUT,
+    )
+    # Avoid logging user-controlled identifiers
+    logger.info("Enqueued provision workstations job")
+    return job
 
 def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     job = task_queue.enqueue(

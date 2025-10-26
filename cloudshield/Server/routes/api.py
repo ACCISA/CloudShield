@@ -6,7 +6,7 @@ layer.
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
-from ..services.job_service import enqueue_provision, enqueue_destroy, get_job_status, health_status
+from ..services.job_service import enqueue_provision, enqueue_provision_workstations, enqueue_destroy, get_job_status, health_status
 from ..utils.logging_setup import get_logger
 
 logger = get_logger("api")
@@ -26,6 +26,18 @@ def task_provision():
     job = enqueue_provision(org_id=org_id, region=data.get("region", "us-west-2"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
     return jsonify({"job_id": job.id}), 202
 
+@api_bp.route("/task/provisionworkstations", methods=["POST"])
+def task_provision_workstations():
+    data = request.get_json() or {}
+    # Avoid logging user-controlled request body
+    logger.info("Received /task/provisionworkstations POST request")
+    org_id = data.get("org_id")
+    if not org_id:
+        logger.warning("Provision workstations request missing org_id")
+        return jsonify({"error": "org_id is required"}), 400
+    count = data.get("count", 1)
+    job = enqueue_provision_workstations(org_id=org_id, region=data.get("region", "us-west-2"), count=count)
+    return jsonify({"job_id": job.id}), 202
 
 @api_bp.route("/task/destroy", methods=["POST"])
 def task_destroy():
