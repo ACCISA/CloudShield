@@ -30,6 +30,14 @@ resource "aws_s3_bucket_object" "agent_exe" {
   content_type = "application/octet-stream"
 }
 
+resource "aws_s3_bucket_object" "agent_install_script" {
+  bucket = aws_s3_bucket.agent_bucket.id
+  key    = "scripts/${var.org_id}/install_agent_service.ps1"
+  source = "${path.module}/install_agent_service.ps1"
+  etag   = filemd5("${path.module}/install_agent_service.ps1")
+  content_type = "text/plain"
+}
+
 # ---- IAM role for EC2 builder to read the S3 object ----
 data "aws_iam_policy_document" "ec2_assume_role" {
   statement {
@@ -66,7 +74,8 @@ resource "aws_iam_role_policy" "allow_s3_get" {
           "s3:GetObjectAcl"
         ]
         Resource = [
-          "arn:aws:s3:::${aws_s3_bucket.agent_bucket.bucket}/binaries/${var.org_id}/*"
+          "arn:aws:s3:::${aws_s3_bucket.agent_bucket.bucket}/binaries/${var.org_id}/*",
+          "arn:aws:s3:::${aws_s3_bucket.agent_bucket.bucket}/scripts/${var.org_id}/*"
         ]
       }
     ]
