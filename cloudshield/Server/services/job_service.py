@@ -15,7 +15,7 @@ Job = rq.job.Job  # type: ignore[attr-defined]
 logger = get_logger("service")
 
 
-def enqueue_provision(org_id: str, region: str = "us-west-2", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
+def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
     job = task_queue.enqueue(
         provision_network,
         org_id,

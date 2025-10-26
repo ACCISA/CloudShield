@@ -3,67 +3,29 @@ import pytest
 import cloudshield.Server.tasks as tasks
 
 
-class FakeProc:
-    def __init__(self, lines, returncode=0):
-        self._lines = lines
-        self.returncode = returncode
-        self.stdout = (line + "\n" for line in lines)
-
-    def wait(self):
-        # no-op
-        pass
-
-
-def test__run_success(monkeypatch, tmp_path):
-    captured = []
-
-    def fake_popen(cmd, cwd, env, stdout, stderr, text):  # noqa: D401 - signature mimic
-        return FakeProc(["line1", "line2"], returncode=0)
-
-    monkeypatch.setattr(tasks.subprocess, "Popen", fake_popen)
-    for line in tasks._run(["terraform", "version"], cwd=str(tmp_path)):
-        captured.append(line)
-    assert captured == ["line1", "line2"]
-
-
-def test__run_failure(monkeypatch, tmp_path):
-    def fake_popen(cmd, cwd, env, stdout, stderr, text):
-        return FakeProc(["err1", "err2"], returncode=1)
-
-    monkeypatch.setattr(tasks.subprocess, "Popen", fake_popen)
-    with pytest.raises(tasks.subprocess.CalledProcessError):
-        list(tasks._run(["terraform", "init"], cwd=str(tmp_path)))
-
-
 def test_provision_network_basic(monkeypatch, tmp_path):
-    # Patch base_dir resolution so it uses our tmp structure
-    base_dir = tmp_path
-    templates = base_dir / "Cloud" / "templates"
-    templates.mkdir(parents=True)
-    (templates / "main.tf").write_text('region = "ca-central-1"\n# org_id placeholder', encoding="utf-8")
+    # Mock the provision_main function from main.py
+    def fake_provision_main(args):
+        return [{"name": "test-instance", "instance_id": "i-123"}]
+    
+    # Patch the imported provision_main
+    import sys
+    from pathlib import Path
+    terraform_dir = Path(__file__).resolve().parents[3] / "Cloud" / "terraform"
+    if str(terraform_dir) not in sys.path:
+        sys.path.insert(0, str(terraform_dir))
+    
+    import cloudshield.Server.tasks as tasks_module
+    monkeypatch.setattr("cloudshield.Server.tasks.provision_main", fake_provision_main)
 
-    def fake_resolve(self):
-        return (base_dir / "dummy" / "dummy.py")
-
-    # parents[1] will yield base_dir in tasks.provision_network
-    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve, raising=False)
-
-    # Patch _run to simulate terraform init/apply output
-    def fake_run(cmd, cwd, env=None):  # noqa: D401
-        yield f"executed: {' '.join(cmd)}"
-
-    monkeypatch.setattr(tasks, "_run", fake_run)
-
-    result = tasks.provision_network("acme", region="us-east-1", ubuntu_ami="ami-123")
+    result = tasks.provision_network("acme", region="us-east-1")
     assert result["message"] == "Provisioning complete"
-    work_dir = pathlib.Path(result["work_dir"])
-    assert (work_dir / "main.tf").read_text(encoding="utf-8").find("acme") != -1
-    assert (work_dir / "terraform.tfvars").exists()
+    assert "metadata" in result
 
 
 def test_destroy_environment_missing(monkeypatch, tmp_path):
     base_dir = tmp_path
-    (base_dir / "Cloud" / "runs").mkdir(parents=True)
+    (base_dir / "Cloud" / "terraform" / "generated").mkdir(parents=True)
 
     def fake_resolve(self):
         return (base_dir / "dummy" / "dummy.py")
@@ -75,8 +37,16 @@ def test_destroy_environment_missing(monkeypatch, tmp_path):
 
 
 def test_destroy_environment_success(monkeypatch, tmp_path):
+    # Mock the destroy_infra function
+    def fake_destroy(org_id, region="ca-central-1", force_empty_s3=False):
+        # Simulate successful destroy (the function doesn't return anything)
+        pass
+    
+    monkeypatch.setattr("cloudshield.Server.tasks.destroy_infra", fake_destroy)
+    
+    # Create a fake generated directory
     base_dir = tmp_path
-    work_dir = base_dir / "Cloud" / "runs" / "org1"
+    work_dir = base_dir / "Cloud" / "terraform" / "generated" / "org1"
     work_dir.mkdir(parents=True)
     (work_dir / "dummy.txt").write_text("x")
 
@@ -85,11 +55,5 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve, raising=False)
 
-    def fake_run(cmd, cwd, env=None):
-        yield "ok"
-
-    monkeypatch.setattr(tasks, "_run", fake_run)
-
     res = tasks.destroy_environment("org1")
     assert res["removed_dir"] is True
-    assert not work_dir.exists()

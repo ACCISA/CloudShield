@@ -58,6 +58,7 @@ if MONGO_AVAILABLE and OperationFailure is not None:
 from cloudshield.Server.routes.users import users_bp
 from cloudshield.Server.routes.users_read import users_read_bp
 from cloudshield.Server.routes.auth import auth_bp
+from cloudshield.Server.routes.api import api_bp
 from cloudshield.Server.utils.audit import audit_bp
 
 # Routes overview:
@@ -66,11 +67,16 @@ from cloudshield.Server.utils.audit import audit_bp
 #   PATCH  /api/users/<user_id>
 #   POST   /api/users/<user_id>/deactivate
 #   DELETE /api/users/<user_id>
+#   POST   /task/provision
+#   POST   /task/destroy
+#   GET    /status/<job_id>
+#   GET    /health
 app.register_blueprint(auth_bp,  url_prefix="/api")
 app.register_blueprint(users_bp, url_prefix="/api")
 app.register_blueprint(users_read_bp, url_prefix="/api")
 app.register_blueprint(debug_db_bp, url_prefix="/api")
 app.register_blueprint(audit_bp, url_prefix="/api")
+app.register_blueprint(api_bp, url_prefix="/")
 
 if __name__ == "__main__":
     # Run the app
