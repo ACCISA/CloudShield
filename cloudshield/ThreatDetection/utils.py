@@ -51,11 +51,9 @@ def ingest_processes(processes):
 
 
 def get_agents():
-
     # TODO replace with mongodb later
-    
     if not os.getenv("CLOUDSHIELD_RUNTIME"):
-        return [{"ip": "10.0.0.8", "agent_id": "agent-123"}]
+        return [{"ip": "127.0.0.1", "agent_id": "agent-test"}]
     agents_path = BASE_DIR / "agents.json"
     with open(agents_path, "r") as f:
         data = json.load(f)
