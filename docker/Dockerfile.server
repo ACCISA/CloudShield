@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 EXPOSE 50051
 
-CMD ["python", "-m", "cloudshield.ThreatDetection.server"]
+CMD ["python3", "cloudshield/ThreatDetection/server.py"]

@@ -1,14 +1,18 @@
 import json
 import urllib.parse
 from elasticsearch import Elasticsearch
+from pathlib import Path
 
 from logger import server_logger
 
+BASE_DIR = Path(__file__).resolve().parent
+
 def read_hashes():
     hashes = []
-    f = open("hashes", "r")
-    for line in f:
-        hashes.append(line.strip())
+    hashes_path = BASE_DIR / "hashes"
+    with open(hashes_path, "r") as f:
+        for line in f:
+            hashes.append(line.strip())
     return hashes
 
 hashes = read_hashes()
@@ -43,11 +47,11 @@ def ingest_processes(processes):
 
 def get_agents():
 
-    # TODO replace this with mongodb
+    # TODO replace with mongodb later
     
-    f = open("agents.json", "r")
-    data = json.load(f)
-
+    agents_path = BASE_DIR / "agents.json"
+    with open(agents_path, "r") as f:
+        data = json.load(f)
     return data["agents"]
 
 def is_valid_agent(agents, ip, agent_id):
