@@ -29,7 +29,17 @@ def resolve_config_path() -> str:
 
 if __name__ == "__main__":
 
-    agent = Agent(agent_id="agent-1", server_addr="127.0.0.1", port=50051, cache_path=resolve_cache_path())
+    agent_id = os.getenv("AGENT_ID", "agent-1")
+    server_addr = os.getenv("SERVER_ADDR", "127.0.0.1")
+    server_port = int(os.getenv("SERVER_PORT", "50051"))
+
+
+    agent = Agent(
+        agent_id=agent_id,
+        server_addr=server_addr,
+        port=server_port,
+        cache_path=resolve_cache_path(),
+    )
 
     config_path = resolve_config_path()
 
