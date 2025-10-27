@@ -1,5 +1,6 @@
 import json
 import urllib.parse
+import os
 from elasticsearch import Elasticsearch
 from pathlib import Path
 
@@ -8,11 +9,15 @@ from logger import server_logger
 BASE_DIR = Path(__file__).resolve().parent
 
 def read_hashes():
+    if not os.getenv("CLOUDSHIELD_RUNTIME"):
+        return ["knownhash"]
     hashes = []
     hashes_path = BASE_DIR / "hashes"
     with open(hashes_path, "r") as f:
         for line in f:
-            hashes.append(line.strip())
+            line = line.strip()
+            if line and not line.startswith("#"):
+                hashes.append(line)
     return hashes
 
 hashes = read_hashes()
@@ -49,6 +54,8 @@ def get_agents():
 
     # TODO replace with mongodb later
     
+    if not os.getenv("CLOUDSHIELD_RUNTIME"):
+        return [{"ip": "10.0.0.8", "agent_id": "agent-123"}]
     agents_path = BASE_DIR / "agents.json"
     with open(agents_path, "r") as f:
         data = json.load(f)

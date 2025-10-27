@@ -19,6 +19,7 @@ services:
     container_name: server
     environment:
       ES_URL: "http://elasticsearch:9200"
+      CLOUDSHIELD_RUNTIME: "1"
     depends_on:
       - elasticsearch
     networks:
