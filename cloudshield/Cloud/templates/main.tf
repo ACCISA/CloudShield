@@ -273,4 +273,77 @@ resource "aws_instance" "org_id_samba" {
 
   })
   tags = { Name = "org_id_samba" }
+
+  # Wait for instance to be ready and copy helper scripts
+  provisioner "remote-exec" {
+    inline = [
+      "cloud-init status --wait",
+      "sudo mkdir -p /usr/local/bin/cloudshield"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.org_id_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  # Copy roaming profiles helper scripts
+  provisioner "file" {
+    source      = "${path.module}/scripts/configure_user_profile.sh"
+    destination = "/tmp/configure_user_profile.sh"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.org_id_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/scripts/configure_all_roaming_profiles.sh"
+    destination = "/tmp/configure_all_roaming_profiles.sh"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.org_id_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/scripts/verify_roaming_profiles.sh"
+    destination = "/tmp/verify_roaming_profiles.sh"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.org_id_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+
+  # Install scripts and create symlinks
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mv /tmp/configure_user_profile.sh /usr/local/bin/cloudshield/",
+      "sudo mv /tmp/configure_all_roaming_profiles.sh /usr/local/bin/cloudshield/",
+      "sudo mv /tmp/verify_roaming_profiles.sh /usr/local/bin/cloudshield/",
+      "sudo chmod +x /usr/local/bin/cloudshield/*.sh",
+      "sudo ln -sf /usr/local/bin/cloudshield/configure_user_profile.sh /usr/local/bin/configure_user_profile",
+      "sudo ln -sf /usr/local/bin/cloudshield/configure_all_roaming_profiles.sh /usr/local/bin/configure_all_roaming_profiles",
+      "sudo ln -sf /usr/local/bin/cloudshield/verify_roaming_profiles.sh /usr/local/bin/verify_roaming_profiles",
+      "echo 'Roaming profiles helper scripts installed successfully'"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.org_id_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
 }
