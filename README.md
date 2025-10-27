@@ -37,6 +37,7 @@ CloudShield has four main components:
 
 3. **Backend Cloud Services**  
    - Python services use provider SDKs (AWS/Azure) to create EC2 VMs, configure VPC networking, and wire S3 storage.  
+   - Samba Active Directory with roaming profiles for consistent user experience across workstations.
 
 4. **IAM, Security & Threat Detection**  
    - RBAC/SSO for tenants.  

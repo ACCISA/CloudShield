@@ -77,6 +77,29 @@ nameserver 127.0.0.1
 domain ${domain_name}
 EOF"
 
+# --- Setup Roaming Profiles ---
+echo "Configuring roaming profiles..."
+# Create directory for roaming profiles
+sudo mkdir -p /home/profiles
+sudo chmod 1777 /home/profiles
+
+# Add roaming profiles share to smb.conf
+sudo bash -c "cat <<EOF >>/etc/samba/smb.conf
+
+[profiles]
+    path = /home/profiles
+    browseable = no
+    read only = no
+    create mask = 0600
+    directory mask = 0700
+    profile acls = yes
+    csc policy = disable
+EOF"
+
+# Restart Samba to apply the new share configuration
+echo "Restarting Samba service to apply roaming profiles configuration..."
+sudo systemctl restart samba-ad-dc
+
 # --- Done ---
 echo "Samba Domain Controller setup complete!"
 echo "Hostname: dc.${domain_name}.local"
@@ -123,6 +146,15 @@ else
     exit 1
 fi
 
+# Check 4: Roaming profiles share
+echo -n "Checking roaming profiles share... "
+if smbclient -L localhost -U% 2>/dev/null | grep -q "profiles"; then
+    echo "Configured"
+else
+    echo "Warning - profiles share not found"
+fi
+
 echo ""
 echo "All verification checks passed!"
 echo "Domain Controller is ready for use."
+echo "Roaming profiles share: //dc.${domain_name}.local/profiles"
