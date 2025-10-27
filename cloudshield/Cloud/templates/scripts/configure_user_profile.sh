@@ -21,7 +21,7 @@ fi
 USERNAME="$1"
 
 # Get domain information
-DOMAIN=$(samba-tool domain info $(hostname -I | awk '{print $1}') | grep "Domain" | head -1 | awk '{print $3}')
+DOMAIN=$(sudo samba-tool domain info $(hostname -I | awk '{print $1}') | grep "Domain" | head -1 | awk '{print $3}')
 DC_HOSTNAME=$(hostname -f)
 
 if [ -z "$DOMAIN" ]; then
@@ -34,10 +34,10 @@ echo "Domain: $DOMAIN"
 echo "DC Hostname: $DC_HOSTNAME"
 
 # Check if user exists
-if ! samba-tool user list | grep -q "^${USERNAME}$"; then
+if ! sudo samba-tool user list | sudo grep -q "^${USERNAME}$"; then
     echo "Error: User $USERNAME does not exist in Active Directory"
     echo "Available users:"
-    samba-tool user list
+    sudo samba-tool user list
     exit 1
 fi
 
@@ -60,10 +60,10 @@ profilePath: ${PROFILE_PATH}
 EOF
 
 # Apply the change
-ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF"
+sudo ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF"
 
 # Clean up
-rm -f "$TEMP_LDIF"
+sudo rm -f "$TEMP_LDIF"
 
 echo ""
 echo "✓ Roaming profile configured successfully!"

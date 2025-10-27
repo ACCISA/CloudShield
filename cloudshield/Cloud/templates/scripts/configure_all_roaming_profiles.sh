@@ -15,7 +15,7 @@ echo "=== Configuring Roaming Profiles for All Users ==="
 echo ""
 
 # Get domain information
-DOMAIN=$(samba-tool domain info $(hostname -I | awk '{print $1}') | grep "Domain" | head -1 | awk '{print $3}')
+DOMAIN=$(sudo samba-tool domain info $(hostname -I | awk '{print $1}') | grep "Domain" | head -1 | awk '{print $3}')
 DC_HOSTNAME=$(hostname -f)
 
 if [ -z "$DOMAIN" ]; then
@@ -28,7 +28,7 @@ echo "DC Hostname: $DC_HOSTNAME"
 echo ""
 
 # Get all users (excluding built-in accounts)
-USERS=$(samba-tool user list | grep -v "^Administrator$\|^Guest$\|^krbtgt$")
+USERS=$(sudo samba-tool user list | sudo grep -v "^Administrator$\|^Guest$\|^krbtgt$")
 
 if [ -z "$USERS" ]; then
     echo "No regular users found in the domain."
@@ -39,7 +39,7 @@ echo "Found the following users:"
 echo "$USERS"
 echo ""
 
-read -p "Configure roaming profiles for all these users? (y/n) " -n 1 -r
+sudo read -p "Configure roaming profiles for all these users? (y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Cancelled."
@@ -68,7 +68,7 @@ profilePath: ${PROFILE_PATH}
 EOF
     
     # Apply the change
-    if ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF" 2>/dev/null; then
+    if sudo ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF" 2>/dev/null; then
         echo "✓ Success"
         ((SUCCESS_COUNT++))
     else
@@ -77,7 +77,7 @@ EOF
     fi
     
     # Clean up
-    rm -f "$TEMP_LDIF"
+    sudo rm -f "$TEMP_LDIF"
 done
 
 echo ""
