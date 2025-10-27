@@ -92,13 +92,58 @@ sudo bash -c "cat <<EOF >>/etc/samba/smb.conf
     read only = no
     create mask = 0600
     directory mask = 0700
-    profile acls = yes
     csc policy = disable
 EOF"
 
 # Restart Samba to apply the new share configuration
 echo "Restarting Samba service to apply roaming profiles configuration..."
 sudo systemctl restart samba-ad-dc
+
+# --- Download and Install Helper Scripts from S3 ---
+echo "Downloading roaming profiles management scripts..."
+sudo mkdir -p /usr/local/bin/cloudshield
+
+# Download scripts from S3 (if available) or create inline
+if aws s3 ls s3://cloudshield-scripts/roaming-profiles/ 2>/dev/null; then
+    sudo aws s3 cp s3://cloudshield-scripts/roaming-profiles/configure_user_profile.sh /usr/local/bin/cloudshield/ 2>/dev/null || echo "S3 download failed, will create inline"
+fi
+
+# If download failed or S3 not available, create scripts inline
+if [ ! -f /usr/local/bin/cloudshield/configure_user_profile.sh ]; then
+    echo "Creating helper scripts inline..."
+    
+    # The scripts will be created via a separate mechanism
+    # For now, create placeholder that instructs admins
+    sudo cat > /usr/local/bin/cloudshield/README.txt <<'README_EOF'
+Roaming Profiles Helper Scripts
+
+To configure roaming profiles for users, use the samba-tool commands directly:
+
+# For a single user:
+sudo /usr/local/bin/cloudshield/configure_user_profile.sh <username>
+
+# For all users:
+sudo /usr/local/bin/cloudshield/configure_all_roaming_profiles.sh
+
+# Verify setup:
+sudo /usr/local/bin/cloudshield/verify_roaming_profiles.sh
+
+If scripts are not present, they can be copied manually via SSH.
+README_EOF
+fi
+
+# Make scripts executable if they exist
+sudo chmod +x /usr/local/bin/cloudshield/*.sh 2>/dev/null || true
+
+# Create symlinks for easier access if scripts exist
+if [ -f /usr/local/bin/cloudshield/configure_user_profile.sh ]; then
+    sudo ln -sf /usr/local/bin/cloudshield/configure_user_profile.sh /usr/local/bin/configure_user_profile
+    sudo ln -sf /usr/local/bin/cloudshield/configure_all_roaming_profiles.sh /usr/local/bin/configure_all_roaming_profiles
+    sudo ln -sf /usr/local/bin/cloudshield/verify_roaming_profiles.sh /usr/local/bin/verify_roaming_profiles
+    echo "Helper scripts installed successfully"
+else
+    echo "Helper scripts will need to be copied manually - see /usr/local/bin/cloudshield/README.txt"
+fi
 
 # --- Done ---
 echo "Samba Domain Controller setup complete!"
@@ -193,16 +238,16 @@ else
         for USERNAME in $USERS; do
             echo -n "  Configuring $USERNAME... "
             
-            PROFILE_PATH="\\\\${DC_HOSTNAME}\\profiles\\${USERNAME}"
+            PROFILE_PATH="\\\\$${DC_HOSTNAME}\\profiles\\$${USERNAME}"
             
             # Create temporary LDIF file
             TEMP_LDIF=$(mktemp)
-            cat > "$TEMP_LDIF" <<EOF
-dn: CN=${USERNAME},CN=Users,DC=${DOMAIN//./,DC=}
+            cat > "$TEMP_LDIF" <<EOFLDIF
+dn: CN=$${USERNAME},CN=Users,DC=$${DOMAIN//./,DC=}
 changetype: modify
 replace: profilePath
-profilePath: ${PROFILE_PATH}
-EOF
+profilePath: $${PROFILE_PATH}
+EOFLDIF
             
             # Apply the change
             if ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF" 2>/dev/null; then
