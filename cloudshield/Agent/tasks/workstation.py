@@ -4,12 +4,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-try:  # Honour legacy flat module first for compatibility with tests
-    from logger import task_logger  # type: ignore
-except ImportError:  # pragma: no cover - fallback to package-relative import
-    from ..logger import task_logger
+from logger import task_logger
 
-from ..core.workstation_setup import DomainStatus, ensure_domain_membership
+from .workstation_setup import DomainStatus, ensure_domain_membership
 from .task import BaseTask
 
 
@@ -94,11 +91,7 @@ class EnsureDomainMembershipTask(BaseTask):
         try:
             timeout = int(raw_value)
         except (TypeError, ValueError):
-            task_logger.warning(
-                "Invalid workstation_setup_timeout '%s'; using default of %s seconds",
-                raw_value,
-                self.default_timeout,
-            )
+            task_logger.warning(f"Invalid workstation_setup_timeout '{raw_value}'; using default of {self.default_timeout} seconds")
             return self.default_timeout
         return max(1, timeout)
 
@@ -126,8 +119,7 @@ class EnsureDomainMembershipTask(BaseTask):
             )
         else:
             task_logger.warning(
-                "Workstation remains outside expected domain after bootstrap (detail=%s)",
-                status.detail or status.domain,
+                f"Workstation remains outside expected domain after bootstrap (detail={status.detail or status.domain})",
             )
 
         return status

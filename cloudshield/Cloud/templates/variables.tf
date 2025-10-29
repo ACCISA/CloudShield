@@ -98,3 +98,9 @@ variable "realm_name" {
   default     = "samba.local"
   sensitive   = true
 }
+
+variable "domain_admin_user" {
+  description = "Administrator username for the Samba Domain Controller"
+  type        = string
+  default     = "Administrator"
+}

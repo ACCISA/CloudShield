@@ -78,9 +78,10 @@ def test_get_agents_and_validation(utils_module):
     module, _logger = utils_module
 
     agents = module.get_agents()
-    assert agents == [{"ip": "10.0.0.8", "agent_id": "agent-123"}]
-    assert module.is_valid_agent(agents, "10.0.0.8", "agent-123")
-    assert not module.is_valid_agent(agents, "10.0.0.9", "agent-123")
+    assert agents == [{"ip": "127.0.0.1", "agent_id": "agent-test"}]
+
+    assert module.is_valid_agent(agents, "127.0.0.1", "agent-test")
+    assert not module.is_valid_agent(agents, "10.0.0.9", "agent-test")
 
 
 def test_es_log_records_and_swallow_errors(utils_module, monkeypatch):
@@ -102,3 +103,69 @@ def test_get_ip_variants(utils_module):
     assert module.get_ip("ipv4:203.0.113.10:5000") == "203.0.113.10"
     assert module.get_ip("ipv6:%5B2001:db8::1%5D:7000") == "2001:db8::1"
     assert module.get_ip("peer") == "unknown"
+
+def test_runtime_mode_uses_disk_and_allows_multiple_agents(monkeypatch, tmp_path):
+    (tmp_path / "hashes").write_text("# comment line\n\nruntimehash\n")
+    runtime_agents = {
+        "agents": [
+            {"ip": "172.28.0.11", "agent_id": "agent-1", "hostname": "agent1"},
+            {"ip": "127.0.0.1", "agent_id": "agent-1", "hostname": "agent1-local"},
+        ]
+    }
+    (tmp_path / "agents.json").write_text(json.dumps(runtime_agents))
+
+    class CapturingLogger:
+        def __init__(self):
+            self.messages = []
+        def warning(self, message: str) -> None:
+            self.messages.append(message)
+
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parents[3]
+    monkeypatch.syspath_prepend(str(repo_root))
+
+    import cloudshield.ThreatDetection.logger as logger_module
+    sys.modules["logger"] = logger_module
+    capturing_logger = CapturingLogger()
+    monkeypatch.setattr(logger_module, "server_logger", capturing_logger)
+
+    class DummyES:
+        def __init__(self, *args, **kwargs):
+            self.index_calls = []
+        def ping(self):
+            raise RuntimeError("ping failure")
+        def index(self, index, document):
+            self.index_calls.append((index, document))
+
+    fake_es_module = types.ModuleType("elasticsearch")
+    fake_es_module.Elasticsearch = DummyES
+    monkeypatch.setitem(sys.modules, "elasticsearch", fake_es_module)
+
+    monkeypatch.setenv("CLOUDSHIELD_RUNTIME", "1")
+
+    monkeypatch.chdir(tmp_path)
+    sys.modules.pop("cloudshield.ThreatDetection.utils", None)
+    module = importlib.import_module("cloudshield.ThreatDetection.utils")
+
+    monkeypatch.setattr(module, "BASE_DIR", tmp_path)
+    module.hashes = module.read_hashes()
+
+    assert module.read_hashes() == ["runtimehash"]
+
+    procs = [
+        {"hash": "runtimehash", "name": "ok-proc"},
+        {"hash": "weirdhash", "name": "suspicious"},
+    ]
+    assert module.ingest_processes(procs) == [
+        {"hash": "weirdhash", "name": "suspicious"}
+    ]
+
+    agents = module.get_agents()
+    assert agents == runtime_agents["agents"]
+
+    assert module.is_valid_agent(agents, "172.28.0.11", "agent-1")
+    assert not module.is_valid_agent(agents, "10.0.0.8", "agent-1")
+
+    assert capturing_logger.messages == ["Unable to connect to ElasticSearch instance"]
+
+    sys.modules.pop("cloudshield.ThreatDetection.utils", None)

@@ -29,10 +29,30 @@ message Ack {
   string message = 2;
 }
 
+message OpenFile {
+  string file_path = 1;
+  string position = 2;
+  string mode = 3;
+  string flags = 4;
+  string md5sum = 5;
+}
+
+message MemoryMap { 
+  string file_path = 1;
+  string md5sum = 2;
+  string rss = 3;
+}
+
+message Thread {
+  int32 thread_count = 1;
+}
+
 message ProcessInformation {
   int32 pid = 1;
   string name = 2;
-  repeated string handles = 3;
+  repeated OpenFile open_files = 3;
+  repeated MemoryMap memory_maps = 4;
+  Thread threads = 5;
 }
 
 message ProcessListAckRes {

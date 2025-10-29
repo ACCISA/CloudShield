@@ -1,14 +1,23 @@
 import json
 import urllib.parse
+import os
 from elasticsearch import Elasticsearch
+from pathlib import Path
 
 from logger import server_logger
 
+BASE_DIR = Path(__file__).resolve().parent
+
 def read_hashes():
+    if not os.getenv("CLOUDSHIELD_RUNTIME"):
+        return ["knownhash"]
     hashes = []
-    f = open("hashes", "r")
-    for line in f:
-        hashes.append(line.strip())
+    hashes_path = BASE_DIR / "hashes"
+    with open(hashes_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                hashes.append(line)
     return hashes
 
 hashes = read_hashes()
@@ -42,12 +51,12 @@ def ingest_processes(processes):
 
 
 def get_agents():
-
-    # TODO replace this with mongodb
-    
-    f = open("agents.json", "r")
-    data = json.load(f)
-
+    # TODO replace with mongodb later
+    if not os.getenv("CLOUDSHIELD_RUNTIME"):
+        return [{"ip": "127.0.0.1", "agent_id": "agent-test"}]
+    agents_path = BASE_DIR / "agents.json"
+    with open(agents_path, "r") as f:
+        data = json.load(f)
     return data["agents"]
 
 def is_valid_agent(agents, ip, agent_id):

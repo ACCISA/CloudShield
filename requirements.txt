@@ -5,3 +5,4 @@ psutil
 grpcio
 boto3
 grpcio-tools
+elasticsearch
