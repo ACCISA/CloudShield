@@ -6,13 +6,14 @@ import subprocess
 from datetime import datetime
 
 import boto3
+import logging
 from botocore.exceptions import ClientError, WaiterError
 
 
 # PATHS
 BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
-logger = None
+logger = logging.getLogger() # This logger should only get used during testing, prod logger is set from func call to provision_network_terraform
 
 
 # COPY & REPLACE TEMPLATES
@@ -181,6 +182,7 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
 
 # FETCH EC2 METADATA
 def get_ec2_ips(region: str, org_id: str):
+    global logger
     """
     Fetch detailed EC2 instance metadata for a given org.
     Returns a list of instance dicts including name, IPs, specs, and status.
