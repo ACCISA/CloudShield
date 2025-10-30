@@ -26,8 +26,8 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
     target_dir = os.path.abspath(target_dir)
 
     if os.path.exists(target_dir):
-        logger.info(f"[!] Directory for {org_id} already exists. Removing it to start fresh...")
-        shutil.rmtree(target_dir)
+        logger.info(f"[!] Directory for {org_id} already exists. Assuming this is a duplicate provision request")
+        return None
 
     shutil.copytree(templates_dir, target_dir)
 
@@ -257,6 +257,10 @@ def provision_network_terraform(org_id, region, templates_dir, generated_dir, se
 
     logger.info(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
+
+    if target_dir is None:
+        return None
+
     run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir)
     
     # Get EC2 metadata

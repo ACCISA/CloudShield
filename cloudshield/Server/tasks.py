@@ -133,6 +133,16 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 generated_dir=generated_dir,
                 server_logger=logger
         )
+        
+        if metadata is None:
+            details = "Provisioning failed since the generated directory already exists"
+            job.meta["progress"] = "failed"
+            job.meta["details"] = details
+            job.save_meta()
+            return {
+                    "message": "Provisioning failed",
+                    "details": details
+            }
 
         if job is not None:
             job.meta["progress"] = "completed"
@@ -162,7 +172,7 @@ def destroy_environment(org_id: str, force: bool = False):
         job.meta["progress"] = "starting destroy"
         job.save_meta()
 
-    generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "Cloud" / "terraform" / "generated" / org_id
+    generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "terraform" / "generated" / org_id
 
     try:
         if not generated_dir.exists():
@@ -181,7 +191,7 @@ def destroy_environment(org_id: str, force: bool = False):
         # Note: destroy_infra.destroy() doesn't return a value, it prints to console
         # We'll assume region is ca-central-1 by default (can be made configurable if needed)
         region = "ca-central-1"
-        destroy_infra(org_id, region=region, force_empty_s3=force)
+        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir)
 
         if job is not None:
             job.meta["progress"] = "completed destroy"

@@ -1,6 +1,7 @@
 services:
   redis:
     image: redis:7
+    command: ["redis-server", "--stop-writes-on-bgsave-error", "no"]
     ports:
       - "6379:6379"
   api:
