@@ -1,6 +1,5 @@
 from rq import get_current_job
 import os
-import sys
 import subprocess
 from pathlib import Path
 from utils import get_logger
@@ -13,7 +12,7 @@ from utils import get_logger
 # This setup only works in the docker container
 # run: sudo docker-compose up api
 from provisioner import provision_network_terraform  # noqa: E402
-from provisioner import destroy_infra  # noqa: E402
+from provisioner import destroy as destroy_infra  # noqa: E402
 
 logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"

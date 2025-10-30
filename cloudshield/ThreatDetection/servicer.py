@@ -12,7 +12,7 @@ def loggable(func):
 
     def wrapper(*args, **kwargs):
         request = args[1]
-        context = args[2]
+        args[2]
        
         es_log("rpc_logs", MessageToDict(request))
         return func(*args, **kwargs)

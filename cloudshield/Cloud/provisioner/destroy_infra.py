@@ -3,7 +3,6 @@
 #   python destroy_infra.py --org-id ORG123
 #   python destroy_infra.py --org-id ORG123 --force-empty-s3
 
-import argparse
 import os
 import subprocess
 import shutil

@@ -1,6 +1,5 @@
 # python cloudshield/Cloud/terraform/main.py --org-id=<THE ORG ID>
 
-import argparse
 import os
 import shutil
 import subprocess
