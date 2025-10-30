@@ -290,18 +290,11 @@ def get_ec2_ips(region: str, org_id: str):
 
 
 # MAIN
-def main(argv: list[str] | None = None):
-    parser = argparse.ArgumentParser(description="Provision AWS infrastructure for a specific organization.")
-    parser.add_argument("--org-id", required=True, help="Organization ID (used to replace placeholders and tag resources)")
-    parser.add_argument("--region", default="ca-central-1", help="AWS region to deploy resources (default: ca-central-1)")
-    parser.add_argument("--templates-dir", default=DEFAULT_TEMPLATES_DIR, help="Path to templates (for testing)")
-    parser.add_argument("--generated-dir", default=None, help="Directory to write generated terraform files (for testing)")
-    args = parser.parse_args(argv)
-
-    org_id = args.org_id
-    region = args.region
-    templates_dir = os.path.abspath(args.templates_dir)
-    generated_dir = args.generated_dir
+def provision_network_terraform(org_id, region, templates_dir, generated_dir):
+    org_id = org_id
+    region = region
+    templates_dir = os.path.abspath(templates_dir)
+    generated_dir = generated_dir
 
     print(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
@@ -312,7 +305,3 @@ def main(argv: list[str] | None = None):
     
     print(f"[✓] Finished provisioning for {org_id}.")
     return metadata
-
-
-if __name__ == "__main__":  # pragma: no cover
-    main()

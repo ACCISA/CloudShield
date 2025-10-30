@@ -11,11 +11,10 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
-from .utils.logging_setup import get_logger
-from .routes import api_bp
+from utils import get_logger
+from routes import api_bp
 
-# App blueprints
-from cloudshield.Server.routes.users import users_bp
+from routes.users import users_bp
 # optional audit blueprint; may fail if DB/view not set up
 try:
     from routes.audit import audit_bp # type: ignore[import]
@@ -170,6 +169,7 @@ def healthz():
 
 # Entrypoint
 if __name__ == "__main__":
+    print("tttt")
     app.run(
         debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
         host="0.0.0.0",

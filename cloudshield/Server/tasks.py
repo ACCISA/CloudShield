@@ -3,15 +3,17 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from .utils.logging_setup import get_logger
+from utils import get_logger
 
 # Add the Cloud/terraform directory to the path to import main and destroy_infra
-base_dir = Path(__file__).resolve().parents[1]
-terraform_dir = base_dir / "Cloud" / "terraform"
-sys.path.insert(0, str(terraform_dir))
-
-from main import main as provision_main  # noqa: E402
-from destroy_infra import destroy as destroy_infra  # noqa: E402
+#base_dir = Path(__file__).resolve().parents[1]
+#terraform_dir = base_dir / "Cloud" / "terraform"
+#sys.path.insert(0, str(terraform_dir))
+# we wont be running the above code because we can just move the scripts to the same location using docker.
+# This setup only works in the docker container
+# run: sudo docker-compose up api
+from provisioner import provision_network_terraform  # noqa: E402
+from provisioner import destroy_infra  # noqa: E402
 
 logger = get_logger("tasks")
 
@@ -121,14 +123,14 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
             job.meta["progress"] = "provisioning infrastructure"
             job.save_meta()
         
-        logger.info("Calling provision_main for org %s", org_id)
+        logger.info("Calling provision_network_terraform for org %s", org_id)
         # Call the main function from main.py with the appropriate arguments
-        metadata = provision_main([
-            "--org-id", org_id,
-            "--region", region,
-            "--templates-dir", str(templates_dir),
-            "--generated-dir", str(generated_dir)
-        ])
+        metadata = provision_network_terraform(
+                org_id=org_id,
+                region=region,
+                templates_dir=templates_dir,
+                generated_dir=generated_dir
+        )
 
         if job is not None:
             job.meta["progress"] = "completed"

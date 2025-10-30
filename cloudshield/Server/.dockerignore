@@ -18,5 +18,5 @@ htmlcov/
 
 # Logs & env files
 *.log
-.env
-.env.*
+#.env Why would this be in our .dockerignore if its needed in the container to connect to mongodb?
+#.env.*

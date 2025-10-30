@@ -1,8 +1,10 @@
 import os
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from dotenv import load_dotenv
 
 # Load environment variables
+load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 DB_NAME          = os.getenv("MONGO_DB", "cloudshield")
 MONGO_URL_ADMIN  = os.getenv("MONGO_URL_ADMIN") # admin user (read-write)

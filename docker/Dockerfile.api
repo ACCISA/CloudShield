@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y bash
+
+WORKDIR /app
+
+COPY cloudshield/Server/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install awscli
+RUN env
+
+# If any are missing, build will fail
+#RUN test -n "$AWS_ACCESS_KEY_ID" || (echo "AWS_ACCESS_KEY_ID not set" && exit 1)
+#RUN test -n "$AWS_SECRET_ACCESS_KEY" || (echo "AWS_SECRET_ACCESS_KEY not set" && exit 1)
+#RUN test -n "$AWS_DEFAULT_REGION" || (echo "AWS_DEFAULT_REGION not set" && exit 1)
+
+
+RUN ls -la
+
+COPY cloudshield/Cloud .
+COPY cloudshield/Server .
+
+RUN ls -la
+# drop root
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+  && chown -R appuser:appuser /app
+USER appuser
+
+CMD ["python", "server.py"]
+#CMD ["/bin/bash"]
