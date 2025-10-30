@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cloudshield.Cloud.terraform import destroy_infra
+import destroy_infra
 
 
 @pytest.fixture(autouse=True)

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cloudshield.Cloud.terraform import main as terraform_main
+from provision import provision_network_terraform as terraform_main
 
 
 def test_copy_and_replace_templates_replaces_org_id(tmp_path):
