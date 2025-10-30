@@ -169,7 +169,6 @@ def healthz():
 
 # Entrypoint
 if __name__ == "__main__":
-    print("tttt")
     app.run(
         debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
         host="0.0.0.0",

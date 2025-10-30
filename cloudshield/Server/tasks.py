@@ -16,6 +16,7 @@ from provisioner import provision_network_terraform  # noqa: E402
 from provisioner import destroy_infra  # noqa: E402
 
 logger = get_logger("tasks")
+CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
 
 def _run(cmd: list[str], cwd: str, env: dict | None = None):
@@ -103,7 +104,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         raise
 
 
-def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
+def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
     """
     Provisions the full network using Terraform templates.
     Calls the main() function from cloudshield/Cloud/terraform/main.py
@@ -114,9 +115,9 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
         job.meta["progress"] = "starting"
         job.save_meta()
 
-    base_dir = Path(__file__).resolve().parents[1]  # .../cloudshield
-    templates_dir = base_dir / "Cloud" / "templates"
-    generated_dir = base_dir / "Cloud" / "terraform" / "generated" / org_id
+    base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+    templates_dir = base_dir / "templates"
+    generated_dir = base_dir / "terraform" / "generated" / org_id
 
     try:
         if job is not None:
@@ -124,12 +125,13 @@ def provision_network(org_id: str, region: str = "us-west-2", ubuntu_ami: str | 
             job.save_meta()
         
         logger.info("Calling provision_network_terraform for org %s", org_id)
-        # Call the main function from main.py with the appropriate arguments
+        # Call the provisioner function with the appropriate arguments
         metadata = provision_network_terraform(
                 org_id=org_id,
                 region=region,
                 templates_dir=templates_dir,
-                generated_dir=generated_dir
+                generated_dir=generated_dir,
+                server_logger=logger
         )
 
         if job is not None:
@@ -160,8 +162,7 @@ def destroy_environment(org_id: str, force: bool = False):
         job.meta["progress"] = "starting destroy"
         job.save_meta()
 
-    base_dir = Path(__file__).resolve().parents[1]
-    generated_dir = base_dir / "Cloud" / "terraform" / "generated" / org_id
+    generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "Cloud" / "terraform" / "generated" / org_id
 
     try:
         if not generated_dir.exists():

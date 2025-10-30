@@ -23,7 +23,7 @@ def task_provision():
     if not org_id:
         logger.warning("Provision request missing org_id")
         return jsonify({"error": "org_id is required"}), 400
-    job = enqueue_provision(org_id=org_id, region=data.get("region", "us-west-2"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
+    job = enqueue_provision(org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
     return jsonify({"job_id": job.id}), 202
 
 @api_bp.route("/task/provisionworkstations", methods=["POST"])
