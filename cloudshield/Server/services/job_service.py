@@ -7,13 +7,42 @@ import os
 from typing import Tuple, Dict, Any
 import rq
 from redis_client import task_queue, redis_conn
-from tasks import provision_network, destroy_environment, provision_workstations
+from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
 from utils import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
 logger = get_logger("service")
 
+def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
+    try:
+        job = Job.fetch(job_id, connection=redis_conn)
+    except Exception:
+        # Avoid logging user-controlled identifiers
+        logger.warning("Status requested for unknown job")
+        return {"error": "job not found"}, 404
+
+    status = job.get_status()
+    meta = getattr(job, "meta", {}) or {}
+    response: Dict[str, Any] = {
+        "job_id": job.id,
+        "status": status,
+        "progress": meta.get("progress"),
+    }
+    if status == "finished":
+        response["result"] = job.result
+    elif status == "failed":
+        response["error"] = (job.exc_info or "failed").splitlines()[-1] if job.exc_info else "failed"
+    return response, 200
+
+
+def health_status() -> Tuple[Dict[str, Any], int]:
+    try:
+        ping = redis_conn.ping()
+    except Exception as e:  # pragma: no cover - network error path
+        logger.error("Health check failed: %s", e)
+        return {"status": "degraded", "redis": False, "error": str(e)}, 503
+    return {"status": "ok", "redis": bool(ping)}, 200
 
 def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
     job = task_queue.enqueue(
@@ -51,34 +80,36 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     logger.info("Enqueued destroy job")
     return job
 
+def enqueue_dc_add_user(org_id: str, username: str, password: str):
+    job = task_queue.enqueue(
+            dc_add_user,
+            org_id,
+            username,
+            password
+    )
+    logger.info("Enqueued dc add user job")
+    return job
+
+def enqueue_dc_change_password(org_id: str, username: str, password:str):
+    pass
+def enqueue_dc_remove_user(org_id: str, username: str, password: str):
+    pass
+
+SERVICES = {
+    "provision_network": enqueue_provision,
+    "provision_workstations": enqueue_provision_workstations,
+    "destroy": enqueue_destroy,
+    "dc_add_user": enqueue_dc_add_user
+}
+
+def service_dispatcher(service_name: str, *args, **kwargs):
+    if service_name not in SERVICES:
+        raise Exception(f"Unknown service called: {service_name}")
+
+    logger.info(f"Service dispatched to {service_name}")
+
+    service = SERVICES[service_name]
+    return service(*args, **kwargs)
 
 
-def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
-    try:
-        job = Job.fetch(job_id, connection=redis_conn)
-    except Exception:
-        # Avoid logging user-controlled identifiers
-        logger.warning("Status requested for unknown job")
-        return {"error": "job not found"}, 404
 
-    status = job.get_status()
-    meta = getattr(job, "meta", {}) or {}
-    response: Dict[str, Any] = {
-        "job_id": job.id,
-        "status": status,
-        "progress": meta.get("progress"),
-    }
-    if status == "finished":
-        response["result"] = job.result
-    elif status == "failed":
-        response["error"] = (job.exc_info or "failed").splitlines()[-1] if job.exc_info else "failed"
-    return response, 200
-
-
-def health_status() -> Tuple[Dict[str, Any], int]:
-    try:
-        ping = redis_conn.ping()
-    except Exception as e:  # pragma: no cover - network error path
-        logger.error("Health check failed: %s", e)
-        return {"status": "degraded", "redis": False, "error": str(e)}, 503
-    return {"status": "ok", "redis": bool(ping)}, 200

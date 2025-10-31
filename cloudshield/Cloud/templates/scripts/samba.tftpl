@@ -77,29 +77,6 @@ nameserver 127.0.0.1
 domain ${domain_name}
 EOF"
 
-# --- Setup Roaming Profiles ---
-echo "Configuring roaming profiles..."
-# Create directory for roaming profiles
-sudo mkdir -p /home/profiles
-sudo chmod 1777 /home/profiles
-
-# Add roaming profiles share to smb.conf
-sudo bash -c "cat <<EOF >>/etc/samba/smb.conf
-
-[profiles]
-    path = /home/profiles
-    browseable = no
-    read only = no
-    create mask = 0600
-    directory mask = 0700
-    profile acls = yes
-    csc policy = disable
-EOF"
-
-# Restart Samba to apply the new share configuration
-echo "Restarting Samba service to apply roaming profiles configuration..."
-sudo systemctl restart samba-ad-dc
-
 # --- Done ---
 echo "Samba Domain Controller setup complete!"
 echo "Hostname: dc.${domain_name}.local"
@@ -146,88 +123,6 @@ else
     exit 1
 fi
 
-# Check 4: Roaming profiles share
-echo -n "Checking roaming profiles share... "
-if smbclient -L localhost -U% 2>/dev/null | grep -q "profiles"; then
-    echo "Configured"
-else
-    echo "Warning - profiles share not found"
-fi
-
 echo ""
 echo "All verification checks passed!"
 echo "Domain Controller is ready for use."
-echo "Roaming profiles share: //dc.${domain_name}.local/profiles"
-
-# ============================================================
-# STEP 7: Automatically configure roaming profiles for all users
-# ============================================================
-
-echo ""
-echo "=== Configuring Roaming Profiles for All Users ==="
-
-# Wait a moment for Samba to fully settle
-sleep 5
-
-# Get domain and hostname info
-DOMAIN=$(samba-tool domain info $(hostname -I | awk '{print $1}') | grep "Domain" | head -1 | awk '{print $3}')
-DC_HOSTNAME=$(hostname -f)
-
-if [ -z "$DOMAIN" ]; then
-    echo "Warning: Could not determine domain name for automatic profile configuration"
-else
-    echo "Domain: $DOMAIN"
-    echo "DC Hostname: $DC_HOSTNAME"
-    
-    # Get all users except system accounts
-    USERS=$(samba-tool user list | grep -v "^Administrator$\|^Guest$\|^krbtgt$")
-    
-    if [ -z "$USERS" ]; then
-        echo "No regular user accounts found - skipping automatic profile configuration"
-    else
-        echo "Configuring roaming profiles for existing users..."
-        
-        SUCCESS_COUNT=0
-        FAIL_COUNT=0
-        
-        for USERNAME in $USERS; do
-            echo -n "  Configuring $USERNAME... "
-            
-            PROFILE_PATH="\\\\${DC_HOSTNAME}\\profiles\\${USERNAME}"
-            
-            # Create temporary LDIF file
-            TEMP_LDIF=$(mktemp)
-            cat > "$TEMP_LDIF" <<EOF
-dn: CN=${USERNAME},CN=Users,DC=${DOMAIN//./,DC=}
-changetype: modify
-replace: profilePath
-profilePath: ${PROFILE_PATH}
-EOF
-            
-            # Apply the change
-            if ldbmodify -H /var/lib/samba/private/sam.ldb "$TEMP_LDIF" 2>/dev/null; then
-                echo "✓"
-                ((SUCCESS_COUNT++))
-            else
-                echo "✗"
-                ((FAIL_COUNT++))
-            fi
-            
-            # Clean up
-            rm -f "$TEMP_LDIF"
-        done
-        
-        echo ""
-        echo "Roaming profiles configured for $SUCCESS_COUNT user(s)"
-        if [ $FAIL_COUNT -gt 0 ]; then
-            echo "Warning: $FAIL_COUNT user(s) failed to configure"
-        fi
-    fi
-fi
-
-echo ""
-echo "=== Samba Domain Controller Setup Complete ==="
-echo "New users added in the future can be configured using:"
-echo "  /usr/local/bin/configure_user_profile <username>"
-echo "Or reconfigure all users with:"
-echo "  /usr/local/bin/configure_all_roaming_profiles"

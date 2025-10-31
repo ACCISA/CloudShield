@@ -1,6 +1,4 @@
-from .job_service import enqueue_provision as enqueue_provision
-from .job_service import enqueue_provision_workstations as enqueue_provision_workstations
-from .job_service import enqueue_destroy as enqueue_destroy
+from .job_service import service_dispatcher as service_dispatcher
 from .job_service import get_job_status as get_job_status
 from .job_service import health_status as health_status
 

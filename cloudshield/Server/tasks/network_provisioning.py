@@ -203,5 +203,3 @@ def destroy_environment(org_id: str, force: bool = False):
             job.meta["progress"] = f"failed destroy: {e}"
             job.save_meta()
         raise
-
-
