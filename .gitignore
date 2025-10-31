@@ -9,6 +9,8 @@ venv/
 env/
 ENV/
 .env
+**/.env
+
 
 # Packaging / distribution
 build/
