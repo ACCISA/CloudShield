@@ -11,6 +11,18 @@ variable "workstation_ami" {
 
 }
 
+variable "workstation_count" {
+  description = "The number of workstations to create"
+  type        = number
+  default     = 1
+}
+
+variable "workstation_enable"{
+  description = "Enable workstation creation"
+  type        = bool
+  default     = false
+}
+
 variable "org_id" {
   description = "Organization ID passed from backend"
   type        = string
@@ -85,4 +97,10 @@ variable "realm_name" {
   type        = string
   default     = "samba.local"
   sensitive   = true
+}
+
+variable "domain_admin_user" {
+  description = "Administrator username for the Samba Domain Controller"
+  type        = string
+  default     = "Administrator"
 }

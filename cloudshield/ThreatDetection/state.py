@@ -16,7 +16,8 @@ class GRPCStateManager:
         Check if the state manager already has an entry for this RPC combination.
         """
         expected_requests = self.get_agent_requests(agent_id)
-        if len([request for request in expected_requests if request_method == request["request_method"] and response_method == request["response_method"]]) == 0: return False
+        if len([request for request in expected_requests if request_method == request["request_method"] and response_method == request["response_method"]]) == 0: 
+            return False
         return True
 
     def set_expected_response(self, agent_id, request_method, response_method):
@@ -47,7 +48,8 @@ class GRPCStateManager:
     def alert_missing_responses(self): 
         """
         This function is ran to log agents that have not responded with expected RPCs.
-        Example: An agent sent a SendProcessList and the server notified the agent to send a SendProcessListInformation. If the agent never replies back with a SendProcessListInformation, an event should be logged.
+        Example: An agent sent a SendProcessList and the server notified the agent to send a 
+        SendProcessListInformation. If the agent never replies back with a SendProcessListInformation, an event should be logged.
         """
         for request in self.expected:
             request_method = request["request_method"]
@@ -66,7 +68,8 @@ class GRPCStateManager:
         """
         agent_requests = self.get_agent_requests(agent_id)
 
-        if len(agent_requests) == 0: return False
+        if len(agent_requests) == 0: 
+            return False
 
         for idx, request in enumerate(agent_requests):
             request_method = request["request_method"]

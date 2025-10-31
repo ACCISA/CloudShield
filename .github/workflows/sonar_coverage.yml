@@ -165,9 +165,9 @@ jobs:
 
       - name: Run pytest with coverage (Cloud)
         run: |
-          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
-          pytest cloudshield/Cloud/terraform/tests \
-            --cov=cloudshield.Cloud.terraform \
+          export PYTHONPATH=cloudshield/Cloud/provisioner
+          pytest cloudshield/Cloud/provisioner/tests \
+            --cov=cloudshield.Cloud.provisioner \
             --cov-report=term \
             --cov-report=xml:tests/python/coverage/cloud/coverage.xml
 

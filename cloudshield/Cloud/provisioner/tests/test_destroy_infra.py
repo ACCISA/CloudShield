@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cloudshield.Cloud.terraform import destroy_infra
+import destroy_infra
 
 
 @pytest.fixture(autouse=True)
@@ -158,7 +158,7 @@ def test_empty_s3_bucket_client_error(monkeypatch):
 
 
 def test_destroy_missing_directory(capfd):
-    destroy_infra.destroy("UNKNOWN")
+    destroy_infra.destroy("UNKNOWN", "UNKNOWN")
 
     out = capfd.readouterr().out
     assert "No Terraform directory" in out
@@ -175,7 +175,7 @@ def test_destroy_successful_cleanup(monkeypatch, tmp_path, capfd):
     removed = []
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: removed.append(path))
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "Terraform resources destroyed successfully" in out
@@ -190,7 +190,7 @@ def test_destroy_failure_no_force(monkeypatch, tmp_path, capfd):
     monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
     monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False,org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "destroy still failed" in out
@@ -215,7 +215,7 @@ def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, capfd):
     monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: True)
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: None)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "Retrying terraform destroy" in out
@@ -231,7 +231,7 @@ def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, capfd):
     monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
     monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: None)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "Could not find 'agent_s3_bucket'" in out
@@ -251,7 +251,7 @@ def test_destroy_directory_removal_failure(monkeypatch, tmp_path, capfd):
 
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", failing_rmtree)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "Failed to remove local directory" in out
@@ -267,7 +267,7 @@ def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, capfd):
     monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: "bucket")
     monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: False)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True)
+    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     out = capfd.readouterr().out
     assert "destroy still failed" in out
@@ -275,17 +275,12 @@ def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, capfd):
 
 
 def test_main_warns_when_force_empty_without_boto3(monkeypatch, capsys):
-    module_name = "cloudshield.Cloud.terraform.destroy_infra"
+    module_name = "cloudshield.Cloud.provisioner.destroy_infra"
     sys.modules.pop(module_name, None)
 
     original_import = builtins.__import__
 
-    def fake_import(name, *args, **kwargs):
-        if name in {"boto3", "botocore", "botocore.exceptions"}:
-            raise ImportError("no module")
-        return original_import(name, *args, **kwargs)
 
-    monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setattr(sys, "argv", ["destroy_infra.py", "--org-id", "CLI", "--force-empty-s3"])
     monkeypatch.setattr(os.path, "exists", lambda _path: False)
 

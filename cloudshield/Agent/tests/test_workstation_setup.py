@@ -1,6 +1,6 @@
 import pytest
 
-from cloudshield.Agent.core import workstation_setup as ws
+from cloudshield.Agent.tasks import workstation_setup as ws
 
 
 class DummyLogger:

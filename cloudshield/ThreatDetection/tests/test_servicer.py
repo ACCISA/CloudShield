@@ -3,6 +3,7 @@ import types
 from types import SimpleNamespace
 
 import pytest
+from cloudshield.ThreatDetection import servicer
 
 
 def ensure_module(name, module):
@@ -101,7 +102,6 @@ state_module.state_manager = SimpleNamespace(
 )
 sys.modules["state"] = state_module
 
-from cloudshield.ThreatDetection import servicer
 
 
 class FakeLogger:

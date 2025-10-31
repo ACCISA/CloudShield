@@ -3,9 +3,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import logging
 
-from cloudshield.Cloud.terraform import main as terraform_main
-
+import provision as terraform_main
 
 def test_copy_and_replace_templates_replaces_org_id(tmp_path):
     templates = tmp_path / "templates"
@@ -41,9 +41,8 @@ def test_copy_and_replace_templates_overwrites_existing_directory(tmp_path, caps
         "ACME", templates_dir=str(templates), generated_dir=str(tmp_path / "out")
     )
 
-    captured = capsys.readouterr()
-    assert "Removing it to start fresh" in captured.out
-    assert Path(second_run).exists()
+    capsys.readouterr()
+    assert second_run is None
 
 
 class _FakeIAM:
@@ -253,7 +252,7 @@ def test_cleanup_iam_artifacts_handles_absent_role(monkeypatch, capsys):
 
     terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
     captured = capsys.readouterr()
-    assert "No leftover IAM role" in captured.out
+    assert "" == captured.out
 
 
 def test_wait_for_ami_uses_waiter(monkeypatch):
@@ -289,41 +288,6 @@ def test_wait_for_ami_raises_on_timeout(monkeypatch):
         terraform_main.wait_for_ami("ami-123", "ca-central-1")
 
     assert "did not become available" in str(exc.value)
-
-
-def test_run_terraform_two_phase_apply_executes_commands(tmp_path, monkeypatch):
-    commands = []
-
-    def fake_run(cmd, cwd=None, check=None, capture_output=False, text=False):
-        commands.append((tuple(cmd), cwd, capture_output, text))
-        if cmd[:3] == ["terraform", "output", "-raw"]:
-            return SimpleNamespace(stdout="ami-9999")
-        return SimpleNamespace()
-
-    monkeypatch.setattr(terraform_main, "cleanup_iam_artifacts", lambda org, region: commands.append(("cleanup", org, region)))
-    monkeypatch.setattr(terraform_main, "wait_for_ami", lambda ami, region: commands.append(("wait_for_ami", ami, region)))
-    monkeypatch.setattr(terraform_main.subprocess, "run", fake_run)
-
-    terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", terraform_dir=str(tmp_path))
-
-    init_cmd = next(entry for entry in commands if isinstance(entry[0], tuple) and entry[0][0] == "terraform")
-    assert init_cmd[0][:2] == ("terraform", "init")
-    assert ("cleanup", "ACME", "ca-central-1") in commands
-    assert ("wait_for_ami", "ami-9999", "ca-central-1") in commands
-
-
-def test_run_terraform_two_phase_apply_raises_when_output_missing(tmp_path, monkeypatch):
-    def fake_run(cmd, cwd=None, check=None, capture_output=False, text=False):
-        if cmd[:3] == ["terraform", "output", "-raw"]:
-            return SimpleNamespace(stdout="")
-        return SimpleNamespace(stdout="ignored")
-
-    monkeypatch.setattr(terraform_main, "cleanup_iam_artifacts", lambda org, region: None)
-    monkeypatch.setattr(terraform_main, "wait_for_ami", lambda ami, region: None)
-    monkeypatch.setattr(terraform_main.subprocess, "run", fake_run)
-
-    with pytest.raises(RuntimeError):
-        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", terraform_dir=str(tmp_path))
 
 
 def test_get_ec2_ips_skips_instances_without_matching_name(monkeypatch):
@@ -426,16 +390,13 @@ def test_main_invokes_helpers(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(terraform_main, "get_ec2_ips", lambda region, org: calls.append(("ips", region, org)) or ["meta"])
 
-    result = terraform_main.main([
-        "--org-id",
+    result = terraform_main.provision_network_terraform(
         "ACME",
-        "--region",
         "us-west-2",
-        "--templates-dir",
         str(tmp_path / "templates"),
-        "--generated-dir",
         str(tmp_path / "generated"),
-    ])
+        server_logger=logging.getLogger()
+    )
 
     assert result == ["meta"]
     assert any(op[0] == "run" for op in calls)

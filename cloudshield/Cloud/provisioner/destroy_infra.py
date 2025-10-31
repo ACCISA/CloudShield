@@ -3,7 +3,6 @@
 #   python destroy_infra.py --org-id ORG123
 #   python destroy_infra.py --org-id ORG123 --force-empty-s3
 
-import argparse
 import os
 import subprocess
 import shutil
@@ -84,9 +83,7 @@ def empty_s3_bucket(bucket_name, region):
         return False
 
 
-def destroy(org_id, region="ca-central-1", force_empty_s3=False):
-    org_dir = os.path.join(GENERATED_DIR, org_id)
-
+def destroy(org_id, org_dir, region="ca-central-1", force_empty_s3=False):
     if not os.path.exists(org_dir):
         print(f"[!] No Terraform directory found for org {org_id} at {org_dir}")
         return
@@ -130,15 +127,3 @@ def destroy(org_id, region="ca-central-1", force_empty_s3=False):
             print("[+] Directory removed.")
     except Exception as e:
         print(f"[!] Failed to remove local directory: {e}")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Destroy Terraform infrastructure for an org")
-    parser.add_argument("--org-id", required=True, help="Organization ID (e.g., TEST)")
-    parser.add_argument("--region", default="ca-central-1", help="AWS region used for provisioning")
-    parser.add_argument("--force-empty-s3", action="store_true", help="If destroy fails, attempt to empty agent S3 bucket (requires boto3 and AWS creds)")
-    args = parser.parse_args()
-
-    if args.force_empty_s3 and not BOTO3_AVAILABLE:
-        print("[!] Warning: --force-empty-s3 requested but boto3 is not installed. Install boto3 to enable this feature.")
-    destroy(args.org_id, args.region, args.force_empty_s3)
