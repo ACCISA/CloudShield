@@ -199,6 +199,9 @@ def get_ec2_ips(region: str, org_id: str):
     instances = []
     for res in reservations:
         for inst in res["Instances"]:
+            state = inst["State"]["Name"]
+            if state != "running":
+                continue
             name = extract_name(inst.get("Tags"))
             if not name or org_id not in name:
                 continue

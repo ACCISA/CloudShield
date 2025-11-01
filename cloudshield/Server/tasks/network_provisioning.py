@@ -2,7 +2,6 @@ from rq import get_current_job
 import os
 import subprocess
 from pathlib import Path
-from utils import get_logger
 
 # Add the Cloud/terraform directory to the path to import main and destroy_infra
 #base_dir = Path(__file__).resolve().parents[1]
@@ -13,6 +12,8 @@ from utils import get_logger
 # run: sudo docker-compose up api
 from provisioner import provision_network_terraform  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
+from utils import get_logger, db
+from models import Inventory, EC2Instance
 
 logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
@@ -92,6 +93,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         if job is not None:
             job.meta["progress"] = "completed"
             job.save_meta()
+            
         logger.info("Provisioning workstations complete for org %s", org_id)
         return {"message": "Provisioning workstations complete", "work_dir": str(work_dir), "logs_tail": logs_tail}
     except Exception as e:
@@ -146,7 +148,44 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         if job is not None:
             job.meta["progress"] = "completed"
             job.save_meta()
+            
+            assets = []
+            # Store our aws assets into mongo db for future automated operations
+            logger.info(metadata)
+            for asset in metadata:
+                assets.append(EC2Instance(
+                    public_ip       = asset["public_ip"] or "",
+                    private_ip      = asset["private_ip"],
+                    vpc_id          = asset["vpc_id"],
+                    name            = asset["name"],
+                    priv_key_path   = asset["ssh_key"],
+                    ami_id          = asset["ami_id"],
+                    cpu             = asset["cpu"],
+                    created_at      = asset["created_at"],
+                    instance_id     = asset["instance_id"],
+                    os              = asset["os"],
+                    ports           = asset["ports"],
+                    ram_gb          = asset["ram_gb"],
+                    status          = asset["status"],
+                    storage_size_gb = asset["storage_size_gb"],
+                    subnet_id       = asset["subnet_id"],
+                    updated_at      = asset["updated_at"]
+                ))
+
+            itam_db = db.itam
+
+            # Instances will be stored in an inventory under an org_id
+            res = itam_db.insert_one(Inventory(
+                org_id = org_id,
+                assets = assets
+            ).dict(by_alias=True))
+
+            logger.info(f"Stored assets (invetory_id={res.inserted_id})")
+
         logger.info("Provisioning complete for org %s", org_id)
+
+        
+
         return {
             "message": "Provisioning complete",
             "work_dir": str(generated_dir),
@@ -184,6 +223,7 @@ def destroy_environment(org_id: str, force: bool = False):
         if job is not None:
             job.meta["progress"] = "destroying infrastructure"
             job.save_meta()
+
         
         logger.info("Calling destroy_infra for org %s", org_id)
         # Call the destroy function from destroy_infra.py
@@ -195,6 +235,16 @@ def destroy_environment(org_id: str, force: bool = False):
         if job is not None:
             job.meta["progress"] = "completed destroy"
             job.save_meta()
+
+            itam_db = db.itam
+
+            res = itam_db.find_one_and_delete({"org_id": org_id})
+
+            if res:
+                logger.info(f"Delete assets from database (org_id={org_id})")
+            else:
+                logger.error(f"AWS resources were destroyed but no assets were found in ITAM inventory (org_id={org_id})")
+
         logger.info("Destroy complete for org %s", org_id)
         return {"message": "Destroy complete", "removed_dir": True}
     except Exception as e:
@@ -203,5 +253,3 @@ def destroy_environment(org_id: str, force: bool = False):
             job.meta["progress"] = f"failed destroy: {e}"
             job.save_meta()
         raise
-
-
