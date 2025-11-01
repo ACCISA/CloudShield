@@ -1,12 +1,14 @@
 import proto.agent_pb2 as agent_pb2
 import proto.agent_pb2_grpc as agent_pb2_grpc
-from utils import get_ip, ingest_processes
 
 import hashlib
+
 from google.protobuf.json_format import MessageToDict
 from state import state_manager
+
 from logger import servicer_logger
-from utils import es_log
+from utils import es_log, get_ip, ingest_processes
+
 
 def loggable(func):
 
