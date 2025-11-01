@@ -1,6 +1,5 @@
 import importlib
 import os
-import runpy
 import subprocess
 import sys
 from types import SimpleNamespace

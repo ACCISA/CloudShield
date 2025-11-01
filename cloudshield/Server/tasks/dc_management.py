@@ -5,8 +5,8 @@ import re
 from rq import get_current_job
 from .forward import forward_tunnel
 
-from utils import get_logger, db, get_inventory_from_org_id
-from models import Inventory, EC2Instance
+from utils import get_logger, get_inventory_from_org_id
+from models import Inventory
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
@@ -92,8 +92,7 @@ def exec_ssh(org_id: str, command: str):
     inventory = get_inventory_from_org_id(org_id)
 
     if not inventory:
-        job
-        return
+        return None
 
     exec_ssh_config = ExecSSHConfig(inventory)
 

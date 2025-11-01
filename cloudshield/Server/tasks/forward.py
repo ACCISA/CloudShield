@@ -25,8 +25,6 @@ This script connects to the requested SSH server and sets up local port
 forwarding (the openssh -L option) from a local port through a tunneled
 connection to a destination reachable from the SSH server machine.
 """
-import os
-import socket
 import select
 
 try:
@@ -34,10 +32,7 @@ try:
 except ImportError:
     import socketserver as SocketServer
 
-import sys
-from optparse import OptionParser
 
-import paramiko
 
 SSH_PORT = 22
 DEFAULT_PORT = 4000

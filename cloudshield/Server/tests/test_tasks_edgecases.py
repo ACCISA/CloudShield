@@ -54,7 +54,7 @@ def test_provision_failure_updates_meta(monkeypatch, tmp_path):
     # Capture job meta and ensure it's updated on failure
     monkeypatch.setattr(rq, "get_current_job", lambda: job)
 
-    res = tasks.provision_network("oops")
+    tasks.provision_network("oops")
 
     assert "failed" == job.meta.get("progress", "")
 
