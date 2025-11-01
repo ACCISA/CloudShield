@@ -1,9 +1,14 @@
 import os
-from redis_client import redis_conn
+try:
+    from cloudshield.Server.redis_client import redis_conn
+    from cloudshield.Server.utils.logging_setup import cleanup_old_logs
+except ImportError:
+    from redis_client import redis_conn
+    from utils.logging_setup import cleanup_old_logs
+
 from rq import Worker, Queue
 from rq_scheduler import Scheduler
 from datetime import datetime
-from utils.logging_setup import cleanup_old_logs
 
 try:
     from rq import SimpleWorker

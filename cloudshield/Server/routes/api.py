@@ -6,8 +6,8 @@ layer.
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
-from services import service_dispatcher, get_job_status
-from utils.logging_setup import get_logger
+from ..services import service_dispatcher, get_job_status, health_status
+from ..utils.logging_setup import get_logger
 
 logger = get_logger("api")
 

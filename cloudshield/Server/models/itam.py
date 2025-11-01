@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, field_validator
-from typing import Literal, Optional, List
+from pydantic import BaseModel
+from typing import List
 
 class EC2Instance(BaseModel):
     public_ip: str

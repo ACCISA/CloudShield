@@ -3,7 +3,13 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 
-from models import Inventory
+try:
+    from cloudshield.Server.models import Inventory
+except ImportError:
+    try:
+        from ..models import Inventory  # type: ignore[no-redef]
+    except ImportError:
+        from models import Inventory  # type: ignore[no-redef]
 
 # Load environment variables
 load_dotenv()

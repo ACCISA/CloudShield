@@ -156,3 +156,21 @@ except Exception:
             return True
 
     _stub_module("redis", {"Redis": _Redis})
+
+
+# Stub provisioner module for tests
+def _provision_network_terraform_stub(*args, **kwargs):
+    return {"status": "success", "message": "Provisioned (test stub)"}
+
+
+def _destroy_stub(*args, **kwargs):
+    return {"status": "success", "message": "Destroyed (test stub)"}
+
+
+_stub_module(
+    "provisioner",
+    {
+        "provision_network_terraform": _provision_network_terraform_stub,
+        "destroy": _destroy_stub,
+    },
+)

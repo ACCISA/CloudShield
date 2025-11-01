@@ -5,8 +5,8 @@ import re
 from rq import get_current_job
 from .forward import forward_tunnel
 
-from utils import get_logger, get_inventory_from_org_id
-from models import Inventory
+from ..utils import get_logger, get_inventory_from_org_id
+from ..models import Inventory
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
