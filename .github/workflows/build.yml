@@ -38,8 +38,8 @@ jobs:
       - name: Build & Push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: ./cloudshield/docker
-          file: ./cloudshield/docker/Dockerfile.api
+          context: ./docker
+          file: ./docker/Dockerfile.api
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_LC }}/cloudshield-${{ env.COMPONENT_LC }}:latest
