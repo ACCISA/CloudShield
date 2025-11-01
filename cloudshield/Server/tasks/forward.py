@@ -44,6 +44,9 @@ DEFAULT_PORT = 4000
 
 g_verbose = True
 
+def verbose(s):
+    if g_verbose:
+        print(s)
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
     daemon_threads = True

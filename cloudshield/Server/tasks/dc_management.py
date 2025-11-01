@@ -2,13 +2,16 @@ import paramiko
 import socket
 import threading
 import re
+from rq import get_current_job
 from .forward import forward_tunnel
 
-from utils import get_logger
+from utils import get_logger, db, get_inventory_from_org_id
+from models import Inventory, EC2Instance
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
 MAX_PW_LEN = 128
+PRIVATE_KEYS_PATH = "/var/lib/cloudshield/terraform/generated"
 
 logger = get_logger("tasks")
 
@@ -18,7 +21,7 @@ class SSHExecResult:
         self.stdout = stdout
         self.stderr = stderr
 
-def forward_ssh_tunnel(local_port, remote_host, remote_port, transport):
+def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_port):
     """
     Create an SSH tunnel to forward comms via SSH transport.
     """
@@ -52,43 +55,54 @@ def validate_password(password:str ):
     if any(ord(c) < 32 for c in password):
         logger.error("Password contains control characters; not allowed")
         return False
+    return True
 
+class ExecSSHConfig:
+    
+    def __init__(self, inventory: Inventory):
+        self.inventory = inventory
+        self.org_id = inventory.org_id
+        self.openvpn_server_name = f"{inventory.org_id}_openvpn_server"
+        self.dc_name = f"{inventory.org_id}_samba"
+        self.vpn_ip = None
+        self.vpn_key = None
+        self.dc_priv_ip = None
+        self.dc_key = None
 
-def get_priv_key(org_id: str):
-    """
-    Given an org_id, fetch the SSH private key associated to it.
-    """
-    # some mongodb call
-    # keys are stored in /var/lib/cloudshield/<org_id>/
-    return "/var/lib/cloudshield/abc/abc_key.pem"
+        self.populate_config()
 
-def get_vpn_ip(org_id: str):
-    """
-    Given an org_id, fetch the IPv4 address of the OpenVPN server.
-    """
-    # some mongodb call
-    return ""
-
-def get_dc_ip(org_id: str):
-    """
-    Given an org_id, fetch the IPv4 address of the samba active directory domain controller.
-    """
-    # some mongodb call
-    return ""
+    def populate_config(self):
+        for asset in self.inventory.assets:
+            if asset.name == self.openvpn_server_name:
+                self.vpn_ip      = asset.public_ip
+                self.vpn_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
+                continue
+            if asset.name == self.dc_name:
+                self.dc_priv_ip = asset.private_ip
+                self.dc_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
+                continue
 
 def get_available_local_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('',0))
     return s.getsockname()[1]
 
-def exec_ssh(org_id: str):
+def exec_ssh(org_id: str, command: str):
+    
+    inventory = get_inventory_from_org_id(org_id)
 
+    if not inventory:
+        job
+        return
 
-    jump_host       = get_vpn_ip(org_id)
-    dc_host         = get_dc_ip(org_id)
+    exec_ssh_config = ExecSSHConfig(inventory)
+
+    jump_host       = exec_ssh_config.vpn_ip
+    dc_host         = exec_ssh_config.dc_priv_ip
     dc_host_port    = 22
-    jump_key        = get_priv_key(org_id)
+    jump_key        = exec_ssh_config.vpn_key
     local_port      = get_available_local_port()
+    target_port     = 22
 
     logger.info(f"Fetched VPN IPv4: {jump_host}")
     
@@ -99,7 +113,7 @@ def exec_ssh(org_id: str):
 
     transport = jump_client.get_transport()
 
-    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport)
+    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port)
 
     dc_client = paramiko.SSHClient()
     dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -110,16 +124,29 @@ def exec_ssh(org_id: str):
 
     stdin, stdout, stderr = dc_client.exec_command(command)
     
-    return SSHExecResult(stdin, stdout, stderr)
+    return SSHExecResult(stdin, stdout.read().decode().strip(), stderr.read().decode().strip())
 
 def dc_add_user(org_id: str, username: str, password: str):
+    """
+    Note: this job should only be executed if a network was provisioned for that org_id
+    """
+
+    job = get_current_job()
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_add_user"
+        job.save_meta()
 
     if not validate_username(username):
-        return
+        job.meta["progress"] = "invalid username"
+        job.save_meta()
+        return {"message":f"the provider username is invalid (username={username})"}
     if not validate_password(password):
-        return
+        job.meta["progress"] = "invalid password"
+        job.save_meta()
+        return {"message":f"the provider password is invalid (password={password})"}
 
-    command = f"sudo samba-tool user create {username} {password}"
+    command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"
 
     result = exec_ssh(org_id, command)
     logger.info(result.stdout)

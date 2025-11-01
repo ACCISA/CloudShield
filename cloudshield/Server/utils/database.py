@@ -3,6 +3,8 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 
+from models import Inventory
+
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
@@ -63,3 +65,10 @@ __all__ = [
     "db",
     "client"
 ]
+
+def get_inventory_from_org_id(org_id: str):
+    itam_db = db.itam
+
+    doc = itam_db.find_one({"org_id":org_id})
+
+    return Inventory(org_id=doc["org_id"], assets=doc["assets"])
