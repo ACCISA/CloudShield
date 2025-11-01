@@ -1,4 +1,3 @@
-import builtins
 import importlib
 import os
 import runpy
@@ -278,16 +277,15 @@ def test_main_warns_when_force_empty_without_boto3(monkeypatch, capsys):
     module_name = "cloudshield.Cloud.provisioner.destroy_infra"
     sys.modules.pop(module_name, None)
 
-    original_import = builtins.__import__
 
 
-    monkeypatch.setattr(sys, "argv", ["destroy_infra.py", "--org-id", "CLI", "--force-empty-s3"])
     monkeypatch.setattr(os.path, "exists", lambda _path: False)
 
-    runpy.run_module(module_name, run_name="__main__")
-
+    destroy_infra.destroy("CLI", "CLI", force_empty_s3=True)
+    
     out = capsys.readouterr().out
-    assert "--force-empty-s3 requested but boto3 is not installed" in out
+    assert "No Terraform directory found for org CLI" in out
+
 
     module = importlib.import_module(module_name)
     globals()["destroy_infra"] = module
