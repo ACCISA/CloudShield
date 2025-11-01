@@ -15,12 +15,16 @@ from provisioner import destroy as destroy_infra  # noqa: E402
 from utils import get_logger, db
 from models import Inventory, EC2Instance
 
-logger = get_logger("tasks")
+# Module-level logger for non-job logging
+_module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
 
-def _run(cmd: list[str], cwd: str, env: dict | None = None):
+def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
     """Run a shell command yielding output lines and raising on nonzero exit."""
+    if logger is None:
+        logger = _module_logger
+    
     logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
     
     all_output = []  # Capture everything
@@ -56,8 +60,11 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     Copies the templates to a per-org working directory, injects org_id/region,
     optionally overrides AMIs via terraform.tfvars, and runs terraform init/apply.
     """
-    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
@@ -83,7 +90,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             f"-var=\"workstation_count={count}\"",
             "-var=\"workstation_enable=true\""
         ]
-        for line in _run(cmd, cwd=str(work_dir), env=env):
+        for line in _run(cmd, cwd=str(work_dir), env=env, logger=logger):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
             if job is not None and line.strip():
@@ -110,8 +117,11 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     Provisions the full network using Terraform templates.
     Calls the main() function from cloudshield/Cloud/terraform/main.py
     """
-    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
     if job is not None:
         job.meta["progress"] = "starting"
         job.save_meta()
@@ -204,8 +214,11 @@ def destroy_environment(org_id: str, force: bool = False):
     Destroys an environment for the given org_id and removes the run directory.
     Calls the destroy() function from cloudshield/Cloud/terraform/destroy_infra.py
     """
-    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
@@ -230,7 +243,7 @@ def destroy_environment(org_id: str, force: bool = False):
         # Note: destroy_infra.destroy() doesn't return a value, it prints to console
         # We'll assume region is ca-central-1 by default (can be made configurable if needed)
         region = "ca-central-1"
-        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir)
+        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir, server_logger=logger)
 
         if job is not None:
             job.meta["progress"] = "completed destroy"

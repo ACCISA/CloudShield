@@ -7,6 +7,7 @@ import os
 import subprocess
 import shutil
 import time
+import logging
 
 # optional boto3 usage for emptying S3 buckets
 try:
@@ -19,36 +20,57 @@ except Exception:
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
 
+# Default logger for standalone usage
+logger = logging.getLogger(__name__)
+
 
 def run_cmd(cmd, cwd=None, capture_output=False):
-    print(f"[+] Running: {' '.join(cmd)} (cwd={cwd})")
+    logger.info(f"Running: {' '.join(cmd)} (cwd={cwd})")
     return subprocess.run(cmd, cwd=cwd, check=True, capture_output=capture_output, text=True)
 
 
 def terraform_init_if_needed(org_dir):
     # run terraform init to ensure providers/plugins are present
     try:
-        run_cmd(["terraform", "init", "-input=false"], cwd=org_dir)
+        logger.info("Running terraform init...")
+        result = subprocess.run(
+            ["terraform", "init", "-input=false"], 
+            cwd=org_dir,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            logger.error(f"Terraform init failed:\n{result.stdout}\n{result.stderr}")
+            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+        logger.info(f"Terraform init output:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        print("[!] terraform init failed:")
-        print(e)
+        logger.error(f"terraform init failed: {e}")
         raise
 
 
 def terraform_destroy(org_dir, org_id, region):
     try:
-        run_cmd(
+        logger.info(f"Running terraform destroy for org {org_id}...")
+        result = subprocess.run(
             [
                 "terraform", "destroy",
                 "-auto-approve",
                 "-var", f"org_id={org_id}",
                 "-var", f"region={region}"
             ],
-            cwd=org_dir
+            cwd=org_dir,
+            capture_output=True,
+            text=True
         )
+        
+        if result.returncode != 0:
+            logger.error(f"Terraform destroy failed:\n{result.stdout}\n{result.stderr}")
+            return False
+        
+        logger.info(f"Terraform destroy output:\n{result.stdout}")
         return True
-    except subprocess.CalledProcessError:
-        print("[!] terraform destroy failed (see error above).")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"terraform destroy failed: {e}")
         return False
 
 
@@ -62,10 +84,10 @@ def get_terraform_output(org_dir, name):
 
 def empty_s3_bucket(bucket_name, region):
     if not BOTO3_AVAILABLE:
-        print("[!] boto3 not available in this Python environment - cannot empty bucket programmatically.")
+        logger.warning("boto3 not available in this Python environment - cannot empty bucket programmatically.")
         return False
 
-    print(f"[+] Attempting to empty S3 bucket: {bucket_name} (region={region})")
+    logger.info(f"Attempting to empty S3 bucket: {bucket_name} (region={region})")
     s3 = boto3.resource("s3", region_name=region)
     bucket = s3.Bucket(bucket_name)
 
@@ -76,54 +98,59 @@ def empty_s3_bucket(bucket_name, region):
         bucket.objects.delete()
         # Wait a moment for eventual consistency
         time.sleep(2)
-        print("[+] Bucket emptied.")
+        logger.info("Bucket emptied.")
         return True
     except ClientError as e:
-        print(f"[!] Failed to empty bucket: {e}")
+        logger.error(f"Failed to empty bucket: {e}")
         return False
 
 
-def destroy(org_id, org_dir, region="ca-central-1", force_empty_s3=False):
+def destroy(org_id, org_dir, region="ca-central-1", force_empty_s3=False, server_logger=None):
+    global logger
+    # Use the passed logger if provided (for job-specific logging)
+    if server_logger:
+        logger = server_logger
+    
     if not os.path.exists(org_dir):
-        print(f"[!] No Terraform directory found for org {org_id} at {org_dir}")
+        logger.warning(f"No Terraform directory found for org {org_id} at {org_dir}")
         return
 
-    print(f"[*] Destroying infrastructure for org: {org_id} (dir: {org_dir})")
+    logger.info(f"Destroying infrastructure for org: {org_id} (dir: {org_dir})")
 
     try:
         terraform_init_if_needed(org_dir)
     except Exception:
-        print("[!] Aborting due to terraform init failure.")
+        logger.error("Aborting due to terraform init failure.")
         return
 
     success = terraform_destroy(org_dir, org_id, region)
     if success:
-        print("[+] Terraform resources destroyed successfully.")
+        logger.info("Terraform resources destroyed successfully.")
     else:
         # if terraform destroy failed and user requested S3 empty attempt, try that then retry once
         if force_empty_s3:
-            print("[*] destroy failed — attempting to locate and empty S3 bucket, then retrying destroy.")
+            logger.info("destroy failed — attempting to locate and empty S3 bucket, then retrying destroy.")
             bucket = get_terraform_output(org_dir, "agent_s3_bucket")
             if not bucket:
-                print("[!] Could not find 'agent_s3_bucket' terraform output. Cannot auto-empty bucket.")
+                logger.warning("Could not find 'agent_s3_bucket' terraform output. Cannot auto-empty bucket.")
             else:
-                print(f"[+] Found bucket from terraform output: {bucket}")
+                logger.info(f"Found bucket from terraform output: {bucket}")
                 emptied = empty_s3_bucket(bucket, region)
                 if emptied:
-                    print("[+] Retrying terraform destroy once...")
+                    logger.info("Retrying terraform destroy once...")
                     success = terraform_destroy(org_dir, org_id, region)
                     if success:
-                        print("[+] Terraform destroy succeeded on retry after emptying S3 bucket.")
+                        logger.info("Terraform destroy succeeded on retry after emptying S3 bucket.")
         # final check
         if not success:
-            print("[!] Terraform destroy still failed. Leaving generated directory in place for inspection.")
+            logger.error("Terraform destroy still failed. Leaving generated directory in place for inspection.")
             return
 
     # Only remove local generated directory if destroy succeeded
     try:
         if os.path.exists(org_dir):
-            print(f"[*] Removing local Terraform directory: {org_dir}")
+            logger.info(f"Removing local Terraform directory: {org_dir}")
             shutil.rmtree(org_dir)
-            print("[+] Directory removed.")
+            logger.info("Directory removed.")
     except Exception as e:
-        print(f"[!] Failed to remove local directory: {e}")
+        logger.error(f"Failed to remove local directory: {e}")

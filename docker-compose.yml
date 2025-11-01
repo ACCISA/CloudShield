@@ -20,7 +20,9 @@ services:
       - redis
     ports:
       - "5050:5050"
-    
+    volumes:
+      - ./logs:/app/logs
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
     container_name: elasticsearch
@@ -57,7 +59,7 @@ services:
     container_name: agent1
     environment:
       AGENT_ID: "agent-1"
-      SERVER_ADDR: "server"     
+      SERVER_ADDR: "server"
       SERVER_PORT: "50051"
     depends_on:
       - server

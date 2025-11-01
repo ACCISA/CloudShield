@@ -20,6 +20,9 @@ RUN env
 
 RUN mkdir /var/lib/cloudshield
 
+# Create logs directory for job logging
+RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
+
 COPY docker/supervisord.conf .
 COPY cloudshield/Cloud/provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
