@@ -91,3 +91,4 @@ cloudshield/Agent/build
 **.xml
 .coverage
 chatmodes
+cloudshield/WebUI/package-lock.json
