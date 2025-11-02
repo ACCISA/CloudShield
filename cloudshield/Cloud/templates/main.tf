@@ -277,7 +277,6 @@ resource "aws_instance" "org_id_samba" {
     domain_name       = var.domain_name
     dc_admin_password = var.dc_admin_password
     realm_name        = var.realm_name
-
   })
   tags = { Name = "org_id_samba" }
 }

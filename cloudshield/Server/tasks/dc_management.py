@@ -2,6 +2,7 @@ import paramiko
 import socket
 import threading
 import re
+import time
 from rq import get_current_job
 from .forward import forward_tunnel
 
@@ -113,6 +114,9 @@ def exec_ssh(org_id: str, command: str):
     transport = jump_client.get_transport()
 
     forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port)
+    
+    # Avoid a race condition so let the creation of the ssh tunnel complete
+    time.sleep(3)
 
     dc_client = paramiko.SSHClient()
     dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
