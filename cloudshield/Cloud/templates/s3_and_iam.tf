@@ -86,3 +86,23 @@ resource "aws_iam_instance_profile" "builder_profile" {
   name = "${var.org_id}-cloudshield-builder-profile"
   role = aws_iam_role.builder_role.name
 }
+
+# ---- IAM role for workstation instances so SSM can manage them ----
+resource "aws_iam_role" "workstation_role" {
+  name               = "${var.org_id}-cloudshield-workstation-role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
+
+  tags = {
+    Org = var.org_id
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "workstation_ssm" {
+  role       = aws_iam_role.workstation_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "workstation_profile" {
+  name = "${var.org_id}-cloudshield-workstation-profile"
+  role = aws_iam_role.workstation_role.name
+}

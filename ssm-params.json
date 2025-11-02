@@ -1,0 +1,1 @@
+{"commands":["Get-Content -Path \u0027C:\\ProgramData\\Amazon\\EC2Launch\\log\\ec2launch.log\u0027"]}
