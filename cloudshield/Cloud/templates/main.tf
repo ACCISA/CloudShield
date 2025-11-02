@@ -249,6 +249,7 @@ resource "aws_instance" "org_id_domain_controller" {
 
 resource "aws_instance" "org_id_workstation" {
   ami                    = var.workstation_ami
+  count                  = var.workstation_count
   instance_type          = "t2.medium"
   subnet_id              = aws_subnet.org_id_private_subnet.id
   vpc_security_group_ids = [aws_security_group.allow_rdp.id]
