@@ -10,7 +10,7 @@ from pathlib import Path
 # we wont be running the above code because we can just move the scripts to the same location using docker.
 # This setup only works in the docker container
 # run: sudo docker-compose up api
-from provisioner import provision_network_terraform  # noqa: E402
+from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
 from utils import get_logger, db
 from models import Inventory, EC2Instance
@@ -61,12 +61,11 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
-    base_dir = Path(__file__).resolve().parents[1]  # .../cloudshield
-    runs_dir = base_dir / "Cloud" / "runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    work_dir = runs_dir / org_id
-    if not work_dir.exists():
-        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, work_dir)
+    base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+    generated_dir = base_dir / "terraform" / "generated" / org_id
+    target_dir = get_target_dir(org_id,generated_dir.as_posix())
+    if not os.path.exists(target_dir):
+        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, target_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
@@ -80,10 +79,11 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         cmd = [
             "terraform", "apply", "-auto-approve", "-input=false",
             "-target=aws_instance.workstation",
-            f"-var=\"workstation_count={count}\"",
-            "-var=\"workstation_enable=true\""
+            "-var", f"workstation_count={count}",
+            "-var", f"org_id={org_id}",
+            "-var", f"region={region}",
         ]
-        for line in _run(cmd, cwd=str(work_dir), env=env):
+        for line in _run(cmd, cwd=str(target_dir), env=env):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
             if job is not None and line.strip():
@@ -95,7 +95,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             job.save_meta()
             
         logger.info("Provisioning workstations complete for org %s", org_id)
-        return {"message": "Provisioning workstations complete", "work_dir": str(work_dir), "logs_tail": logs_tail}
+        return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "logs_tail": logs_tail}
     except Exception as e:
         logger.exception("Provisioning workstations failed for org %s: %s", org_id, e)
         if job is not None:

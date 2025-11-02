@@ -15,6 +15,13 @@ BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 logger = logging.getLogger() # This logger should only get used during testing, prod logger is set from func call to provision_network_terraform
 
+def get_target_dir(org_id: str, generated_dir: str | None = None) -> str:
+    """
+    Returns the target directory for the given org_id.
+    """
+    target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
+    return os.path.abspath(target_dir)
+
 
 # COPY & REPLACE TEMPLATES
 def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str:
@@ -22,8 +29,7 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
     Copies Terraform templates into a dedicated org folder
     and replaces placeholders with the organization ID.
     """
-    target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
-    target_dir = os.path.abspath(target_dir)
+    target_dir = get_target_dir(org_id, generated_dir)
 
     if os.path.exists(target_dir):
         logger.info(f"[!] Directory for {org_id} already exists. Assuming this is a duplicate provision request")
