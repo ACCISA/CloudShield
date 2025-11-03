@@ -78,7 +78,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         logger.info("Running terraform apply for org %s", org_id)
         cmd = [
             "terraform", "apply", "-auto-approve", "-input=false",
-            "-target=aws_instance.workstation",
+            f"-target=aws_instance.{org_id}_workstation",
             "-var", f"workstation_count={count}",
             "-var", f"org_id={org_id}",
             "-var", f"region={region}",
