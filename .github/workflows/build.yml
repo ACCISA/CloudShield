@@ -35,11 +35,25 @@ jobs:
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
           echo "COMPONENT_LC=$(echo '${{ matrix.component }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
+      - name: Validate docker context
+        shell: bash
+        run: |
+          COMPONENT_LC=$(echo '${{ matrix.component }}' | tr '[:upper:]' '[:lower:]')
+          DOCKERFILE="./docker/Dockerfile.${COMPONENT_LC}"
+          echo "Checking for Dockerfile: $DOCKERFILE"
+          if [ ! -f "$DOCKERFILE" ]; then
+            echo "ERROR: Dockerfile not found at $DOCKERFILE"
+            echo "Available Dockerfiles in docker/:"
+            ls -l docker/Dockerfile.* || true
+            exit 1
+          fi
+          echo "✓ Found $DOCKERFILE"
+
       - name: Build & Push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: ./cloudshield/${{ matrix.component }}
-          file: ./cloudshield/${{ matrix.component }}/Dockerfile
+          context: .
+          file: ./docker/Dockerfile.${{ env.COMPONENT_LC }}
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_LC }}/cloudshield-${{ env.COMPONENT_LC }}:latest
@@ -94,7 +108,7 @@ jobs:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
           cache: npm
           cache-dependency-path: cloudshield/DesktopUI/package-lock.json
 

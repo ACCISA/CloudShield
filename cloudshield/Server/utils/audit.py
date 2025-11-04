@@ -1,7 +1,14 @@
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, has_request_context
-from cloudshield.Server.utils.database import db_admin
-from cloudshield.Server.security.guards import require_auth, require_role
+from . import db_admin
+
+try:
+    from cloudshield.Server.security import require_auth, require_role
+except ImportError:
+    try:
+        from ..security import require_auth, require_role
+    except ImportError:
+        from security import require_auth, require_role  # type: ignore[import]
 
 audit_bp = Blueprint("audit", __name__)
 _audit = db_admin["audit_logs"]

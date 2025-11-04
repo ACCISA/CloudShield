@@ -1,8 +1,18 @@
 import os
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from dotenv import load_dotenv
+
+try:
+    from cloudshield.Server.models import Inventory
+except ImportError:
+    try:
+        from ..models import Inventory  # type: ignore[no-redef]
+    except ImportError:
+        from models import Inventory  # type: ignore[no-redef]
 
 # Load environment variables
+load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 DB_NAME          = os.getenv("MONGO_DB", "cloudshield")
 MONGO_URL_ADMIN  = os.getenv("MONGO_URL_ADMIN") # admin user (read-write)
@@ -61,3 +71,10 @@ __all__ = [
     "db",
     "client"
 ]
+
+def get_inventory_from_org_id(org_id: str):
+    itam_db = db.itam
+
+    doc = itam_db.find_one({"org_id":org_id})
+
+    return Inventory(org_id=doc["org_id"], assets=doc["assets"])
