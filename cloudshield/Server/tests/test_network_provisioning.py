@@ -1,6 +1,5 @@
 import pytest
 import unittest.mock
-from pathlib import Path
 import subprocess
 from types import SimpleNamespace
 
@@ -124,7 +123,6 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     
     # Mock Path(__file__).resolve().parents[1] to return our base_dir
     import cloudshield.Server.tasks.network_provisioning as np_module
-    original_file = np_module.__file__
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
     
     # Mock _run to return success

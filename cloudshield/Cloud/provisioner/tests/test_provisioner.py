@@ -443,15 +443,16 @@ def test_run_terraform_two_phase_apply_raises_on_init_failure(monkeypatch, tmp_p
     import subprocess
     
     class FakeCompletedProcess:
-        def __init__(self, returncode=0, stdout="", stderr=""):
+        def __init__(self, returncode=0, stdout="", stderr="", args=None):
             self.returncode = returncode
             self.stdout = stdout
             self.stderr = stderr
+            self.args = args or []
     
     def fake_run(cmd, cwd=None, capture_output=False, text=False):
         if "init" in cmd:
-            return FakeCompletedProcess(returncode=1, stderr="init failed")
-        return FakeCompletedProcess()
+            return FakeCompletedProcess(returncode=1, stderr="init failed", args=cmd)
+        return FakeCompletedProcess(args=cmd)
     
     monkeypatch.setattr(subprocess, "run", fake_run)
     
@@ -463,15 +464,16 @@ def test_run_terraform_two_phase_apply_raises_on_apply_failure(monkeypatch, tmp_
     import subprocess
     
     class FakeCompletedProcess:
-        def __init__(self, returncode=0, stdout="", stderr=""):
+        def __init__(self, returncode=0, stdout="", stderr="", args=None):
             self.returncode = returncode
             self.stdout = stdout
             self.stderr = stderr
+            self.args = args or []
     
     def fake_run(cmd, cwd=None, capture_output=False, text=False):
         if "apply" in cmd:
-            return FakeCompletedProcess(returncode=1, stderr="apply failed")
-        return FakeCompletedProcess()
+            return FakeCompletedProcess(returncode=1, stderr="apply failed", args=cmd)
+        return FakeCompletedProcess(args=cmd)
     
     monkeypatch.setattr(subprocess, "run", fake_run)
     

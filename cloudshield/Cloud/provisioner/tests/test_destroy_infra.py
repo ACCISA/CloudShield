@@ -324,7 +324,6 @@ def test_destroy_with_server_logger(monkeypatch, tmp_path, caplog):
 
 def test_empty_s3_bucket_handles_empty_bucket(monkeypatch):
     destroy_infra.BOTO3_AVAILABLE = True
-    calls = {"deleted": False}
 
     class FakeBucket:
         def __init__(self, name):

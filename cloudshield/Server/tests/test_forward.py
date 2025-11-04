@@ -1,6 +1,4 @@
-import pytest
 import unittest.mock
-from types import SimpleNamespace
 
 
 def test_get_host_port_with_default_port():
@@ -66,8 +64,7 @@ def test_handler_successful_connection_mock():
 
 def test_forward_tunnel_creates_subhandler():
     """Test that forward_tunnel properly creates a SubHandler class with correct attributes"""
-    from cloudshield.Server.tasks.forward import forward_tunnel, Handler
-    import unittest.mock
+    from cloudshield.Server.tasks.forward import forward_tunnel
     
     mock_transport = unittest.mock.MagicMock()
     
@@ -81,7 +78,7 @@ def test_forward_tunnel_creates_subhandler():
         def run_tunnel():
             try:
                 forward_tunnel(8080, "remote.host", 3389, mock_transport)
-            except:
+            except Exception:
                 pass
         
         thread = threading.Thread(target=run_tunnel, daemon=True)

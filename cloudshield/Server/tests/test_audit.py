@@ -476,7 +476,7 @@ def test_log_audit_with_request_context(monkeypatch):
             'User-Agent': 'TestBrowser/1.0'
         }
     ):
-        result = log_audit(action="login", resource="auth")
+        log_audit(action="login", resource="auth")
         
         call_args = mock_collection.insert_one.call_args[0][0]
         assert call_args["ip"] == "10.0.0.1"
@@ -499,7 +499,7 @@ def test_log_audit_remote_addr_fallback(monkeypatch):
     from cloudshield.Server.utils.audit import log_audit
     
     with app.test_request_context('/', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
-        result = log_audit(action="access", resource="page")
+        log_audit(action="access", resource="page")
         
         call_args = mock_collection.insert_one.call_args[0][0]
         assert call_args["ip"] == "127.0.0.1"

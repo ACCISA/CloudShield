@@ -1,6 +1,4 @@
-import pytest
 import unittest.mock
-import re
 from types import SimpleNamespace
 
 

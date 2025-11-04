@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import logger as logger_module
+from cloudshield.ThreatDetection import servicer
 
 def ensure_module(name, module):
     if name not in sys.modules:
@@ -126,8 +127,6 @@ class FakeStateManager:
     def is_expected(self, agent_id, response_method):
         self.is_expected_calls.append((agent_id, response_method))
         return self.expected_result
-
-from cloudshield.ThreatDetection import servicer
 
 @pytest.fixture
 def fake_logger(monkeypatch):
