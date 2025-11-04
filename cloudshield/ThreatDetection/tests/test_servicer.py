@@ -5,7 +5,6 @@ from types import SimpleNamespace
 import pytest
 
 import logger as logger_module
-from cloudshield.ThreatDetection import servicer
 
 def ensure_module(name, module):
     if name not in sys.modules:
@@ -99,6 +98,8 @@ state_module.state_manager = SimpleNamespace(
 )
 sys.modules["state"] = state_module
 
+# Import after stubs are set up to avoid import errors
+from cloudshield.ThreatDetection import servicer  # noqa: E402
 
 
 class FakeLogger:
