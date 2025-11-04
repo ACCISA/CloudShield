@@ -167,7 +167,7 @@ jobs:
         run: |
           export PYTHONPATH=cloudshield/Cloud/provisioner
           pytest cloudshield/Cloud/provisioner/tests \
-            --cov=cloudshield.Cloud.provisioner \
+            --cov=cloudshield/Cloud/provisioner \
             --cov-report=term \
             --cov-report=xml:tests/python/coverage/cloud/coverage.xml
 
