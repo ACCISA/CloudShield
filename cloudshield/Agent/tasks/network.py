@@ -1,7 +1,12 @@
 # cloudshield/Agent/tasks/network.py
-from .task import BaseTask
-from proto import agent_pb2
-from logger import task_logger
+try:  # Prefer package-relative imports
+    from .task import BaseTask
+    from ..proto import agent_pb2
+    from ..logger import task_logger
+except ImportError:  # pragma: no cover - fallback when executed as top-level package
+    from tasks.task import BaseTask  # type: ignore
+    from proto import agent_pb2  # type: ignore
+    from logger import task_logger  # type: ignore
 
 import psutil
 import time
