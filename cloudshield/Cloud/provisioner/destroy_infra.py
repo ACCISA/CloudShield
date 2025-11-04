@@ -31,46 +31,19 @@ def run_cmd(cmd, cwd=None, capture_output=False):
 
 def terraform_init_if_needed(org_dir):
     # run terraform init to ensure providers/plugins are present
-    try:
-        logger.info("Running terraform init...")
-        result = subprocess.run(
-            ["terraform", "init", "-input=false"], 
-            cwd=org_dir,
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            logger.error(f"Terraform init failed:\n{result.stdout}\n{result.stderr}")
-            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
-        logger.info(f"Terraform init output:\n{result.stdout}")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"terraform init failed: {e}")
-        raise
+    run_cmd(["terraform", "init", "-input=false"], cwd=org_dir, capture_output=True)
 
 
 def terraform_destroy(org_dir, org_id, region):
     try:
-        logger.info(f"Running terraform destroy for org {org_id}...")
-        result = subprocess.run(
-            [
-                "terraform", "destroy",
-                "-auto-approve",
-                "-var", f"org_id={org_id}",
-                "-var", f"region={region}"
-            ],
-            cwd=org_dir,
-            capture_output=True,
-            text=True
-        )
-        
-        if result.returncode != 0:
-            logger.error(f"Terraform destroy failed:\n{result.stdout}\n{result.stderr}")
-            return False
-        
-        logger.info(f"Terraform destroy output:\n{result.stdout}")
+        run_cmd([
+            "terraform", "destroy",
+            "-auto-approve",
+            "-var", f"org_id={org_id}",
+            "-var", f"region={region}"
+        ], cwd=org_dir, capture_output=True)
         return True
-    except subprocess.CalledProcessError as e:
-        logger.error(f"terraform destroy failed: {e}")
+    except subprocess.CalledProcessError:
         return False
 
 

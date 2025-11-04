@@ -1,4 +1,5 @@
 import pytest
+import types
 from cloudshield.Server.server import create_app
 import cloudshield.Server.services.job_service as js
 
@@ -9,21 +10,19 @@ def client(monkeypatch):
         def __init__(self, job_id):
             self.id = job_id
 
-    # Mock service_dispatcher to return appropriate job IDs based on task type
-    def mock_dispatcher(task_name, **kwargs):
-        if task_name == "provision_network":
-            return DummyJob("p1")
-        elif task_name == "destroy":
-            return DummyJob("d1")
-        elif task_name == "provision_workstations":
-            return DummyJob("pw1")
-        elif task_name == "dc_add_user":
-            return DummyJob("dc1")
-        return DummyJob("unknown")
+    # Counter to generate unique job IDs
+    job_counter = {"count": 0}
+    
+    def fake_enqueue(func, *args, **kwargs):
+        job_counter["count"] += 1
+        return DummyJob(f"job{job_counter['count']}")
 
-    monkeypatch.setattr(js, "service_dispatcher", mock_dispatcher)
+    # Mock task_queue to avoid Redis connection
+    monkeypatch.setattr(js, "task_queue", types.SimpleNamespace(enqueue=fake_enqueue))
+    
+    # Mock get_job_status and health_status
     monkeypatch.setattr(js, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
-    monkeypatch.setattr(js, "health_status", lambda: ({"status": "ok", "redis": True}, 200))
+    monkeypatch.setattr(js, "redis_conn", types.SimpleNamespace(ping=lambda: True))
 
     app = create_app()
     app.testing = True

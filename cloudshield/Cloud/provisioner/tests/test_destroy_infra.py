@@ -156,14 +156,16 @@ def test_empty_s3_bucket_client_error(monkeypatch):
     assert destroy_infra.empty_s3_bucket("bucket", "ca") is False
 
 
-def test_destroy_missing_directory(capfd):
+def test_destroy_missing_directory(caplog):
     destroy_infra.destroy("UNKNOWN", "UNKNOWN")
 
-    out = capfd.readouterr().out
-    assert "No Terraform directory" in out
+    assert "No Terraform directory" in caplog.text
 
 
-def test_destroy_successful_cleanup(monkeypatch, tmp_path, capfd):
+def test_destroy_successful_cleanup(monkeypatch, tmp_path, caplog):
+    import logging
+    caplog.set_level(logging.INFO)
+    
     org = "SUCCESS"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -176,12 +178,11 @@ def test_destroy_successful_cleanup(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "Terraform resources destroyed successfully" in out
+    assert "Terraform resources destroyed successfully" in caplog.text
     assert removed == [org_dir]
 
 
-def test_destroy_failure_no_force(monkeypatch, tmp_path, capfd):
+def test_destroy_failure_no_force(monkeypatch, tmp_path, caplog):
     org = "FAIL"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -191,12 +192,14 @@ def test_destroy_failure_no_force(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=False,org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "destroy still failed" in out
+    assert "destroy still failed" in caplog.text
     assert os.path.exists(org_dir)
 
 
-def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, capfd):
+def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, caplog):
+    import logging
+    caplog.set_level(logging.INFO)
+    
     org = "RETRY"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -216,12 +219,11 @@ def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "Retrying terraform destroy" in out
+    assert "Retrying terraform destroy" in caplog.text
     assert destroy_calls["count"] == 2
 
 
-def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, capfd):
+def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, caplog):
     org = "NOBUCKET"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -232,12 +234,11 @@ def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "Could not find 'agent_s3_bucket'" in out
+    assert "Could not find 'agent_s3_bucket'" in caplog.text
     assert os.path.exists(org_dir)
 
 
-def test_destroy_directory_removal_failure(monkeypatch, tmp_path, capfd):
+def test_destroy_directory_removal_failure(monkeypatch, tmp_path, caplog):
     org = "RMERR"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -252,11 +253,10 @@ def test_destroy_directory_removal_failure(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "Failed to remove local directory" in out
+    assert "Failed to remove local directory" in caplog.text
 
 
-def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, capfd):
+def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, caplog):
     org = "RETRYFAIL"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -268,12 +268,11 @@ def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, capfd):
 
     destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
-    out = capfd.readouterr().out
-    assert "destroy still failed" in out
+    assert "destroy still failed" in caplog.text
     assert os.path.exists(org_dir)
 
 
-def test_main_warns_when_force_empty_without_boto3(monkeypatch, capsys):
+def test_main_warns_when_force_empty_without_boto3(monkeypatch, caplog):
     module_name = "cloudshield.Cloud.provisioner.destroy_infra"
     sys.modules.pop(module_name, None)
 
@@ -283,8 +282,7 @@ def test_main_warns_when_force_empty_without_boto3(monkeypatch, capsys):
 
     destroy_infra.destroy("CLI", "CLI", force_empty_s3=True)
     
-    out = capsys.readouterr().out
-    assert "No Terraform directory found for org CLI" in out
+    assert "No Terraform directory found for org CLI" in caplog.text
 
 
     module = importlib.import_module(module_name)
