@@ -151,12 +151,14 @@ def dc_add_user(org_id: str, username: str, password: str):
         job.save_meta()
 
     if not validate_username(username, logger=logger):
-        job.meta["progress"] = "invalid username"
-        job.save_meta()
+        if job is not None:
+            job.meta["progress"] = "invalid username"
+            job.save_meta()
         return {"message":f"the provider username is invalid (username={username})"}
     if not validate_password(password, logger=logger):
-        job.meta["progress"] = "invalid password"
-        job.save_meta()
+        if job is not None:
+            job.meta["progress"] = "invalid password"
+            job.save_meta()
         return {"message":f"the provider password is invalid (password={password})"}
 
     command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"

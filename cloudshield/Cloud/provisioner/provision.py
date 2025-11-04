@@ -270,10 +270,7 @@ def get_ec2_ips(region: str, org_id: str):
 def provision_network_terraform(org_id, region, templates_dir, generated_dir, server_logger):
     global logger
     logger = server_logger
-    org_id = org_id
-    region = region
     templates_dir = os.path.abspath(templates_dir)
-    generated_dir = generated_dir
 
     logger.info(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)

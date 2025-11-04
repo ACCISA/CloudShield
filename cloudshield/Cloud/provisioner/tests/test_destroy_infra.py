@@ -1,6 +1,5 @@
 import importlib
 import os
-import runpy
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -287,3 +286,78 @@ def test_main_warns_when_force_empty_without_boto3(monkeypatch, caplog):
 
     module = importlib.import_module(module_name)
     globals()["destroy_infra"] = module
+
+
+def test_destroy_init_failure(monkeypatch, tmp_path, caplog):
+    org = "INITFAIL"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+    
+    def fake_init(_dir):
+        raise Exception("Init failed")
+    
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", fake_init)
+    
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
+    
+    assert "Aborting due to terraform init failure" in caplog.text
+    assert os.path.exists(org_dir)
+
+
+def test_destroy_with_server_logger(monkeypatch, tmp_path, caplog):
+    import logging
+    custom_logger = logging.getLogger("custom")
+    caplog.set_level(logging.INFO, logger="custom")
+    
+    org = "LOGTEST"
+    org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
+    os.makedirs(org_dir)
+    
+    monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
+    monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: True)
+    monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: None)
+    
+    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir, server_logger=custom_logger)
+    
+    assert "Destroying infrastructure" in caplog.text
+
+
+def test_empty_s3_bucket_handles_empty_bucket(monkeypatch):
+    destroy_infra.BOTO3_AVAILABLE = True
+    calls = {"deleted": False}
+
+    class FakeBucket:
+        def __init__(self, name):
+            self.name = name
+            self.object_versions = SimpleNamespace(delete=lambda: None)
+            self.objects = SimpleNamespace(delete=lambda: None)
+
+    class FakeS3:
+        def Bucket(self, name):
+            return FakeBucket(name)
+
+    fake_boto3 = SimpleNamespace(resource=lambda _service, region_name=None: FakeS3())
+    monkeypatch.setattr(destroy_infra, "boto3", fake_boto3)
+    monkeypatch.setattr(destroy_infra.time, "sleep", lambda *_args: None)
+
+    assert destroy_infra.empty_s3_bucket("empty-bucket", "ca") is True
+
+
+def test_get_terraform_output_strips_whitespace(monkeypatch):
+    result = SimpleNamespace(stdout="  value  \n\t")
+    monkeypatch.setattr(destroy_infra, "run_cmd", lambda *args, **kwargs: result)
+
+    assert destroy_infra.get_terraform_output("/org", "bucket") == "value"
+
+
+def test_terraform_destroy_with_different_region(monkeypatch):
+    calls = []
+    
+    def fake_run(cmd, cwd=None, capture_output=False):
+        calls.append(cmd)
+        return None
+    
+    monkeypatch.setattr(destroy_infra, "run_cmd", fake_run)
+
+    assert destroy_infra.terraform_destroy("/org", "ORG", "us-east-1") is True
+    assert any("us-east-1" in str(call) for call in calls)

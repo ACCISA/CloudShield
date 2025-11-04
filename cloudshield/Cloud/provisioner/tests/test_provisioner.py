@@ -400,3 +400,175 @@ def test_main_invokes_helpers(monkeypatch, tmp_path):
 
     assert result == ["meta"]
     assert any(op[0] == "run" for op in calls)
+
+
+def test_main_returns_none_when_copy_returns_none(monkeypatch, tmp_path):
+    monkeypatch.setattr(terraform_main, "copy_and_replace_templates", lambda *args, **kwargs: None)
+    
+    result = terraform_main.provision_network_terraform(
+        "ACME",
+        "us-west-2",
+        str(tmp_path / "templates"),
+        str(tmp_path / "generated"),
+        server_logger=logging.getLogger()
+    )
+
+    assert result is None
+
+
+def test_run_terraform_two_phase_apply_runs_init_and_apply(monkeypatch, tmp_path):
+    import subprocess
+    calls = []
+    
+    class FakeCompletedProcess:
+        def __init__(self, returncode=0, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+    
+    def fake_run(cmd, cwd=None, capture_output=False, text=False):
+        calls.append(("run", cmd, cwd))
+        return FakeCompletedProcess()
+    
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    
+    terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+    
+    # Should have init and apply calls
+    assert any("init" in str(call) for call in calls)
+    assert any("apply" in str(call) for call in calls)
+
+
+def test_run_terraform_two_phase_apply_raises_on_init_failure(monkeypatch, tmp_path):
+    import subprocess
+    
+    class FakeCompletedProcess:
+        def __init__(self, returncode=0, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+    
+    def fake_run(cmd, cwd=None, capture_output=False, text=False):
+        if "init" in cmd:
+            return FakeCompletedProcess(returncode=1, stderr="init failed")
+        return FakeCompletedProcess()
+    
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    
+    with pytest.raises(subprocess.CalledProcessError):
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+
+
+def test_run_terraform_two_phase_apply_raises_on_apply_failure(monkeypatch, tmp_path):
+    import subprocess
+    
+    class FakeCompletedProcess:
+        def __init__(self, returncode=0, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+    
+    def fake_run(cmd, cwd=None, capture_output=False, text=False):
+        if "apply" in cmd:
+            return FakeCompletedProcess(returncode=1, stderr="apply failed")
+        return FakeCompletedProcess()
+    
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    
+    with pytest.raises(subprocess.CalledProcessError):
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+
+
+def test_cleanup_iam_artifacts_handles_key_pair_not_found_exception(monkeypatch):
+    calls = []
+
+    def fake_client(service_name, region_name=None):
+        if service_name == "iam":
+            return _FakeIAM(calls)
+        if service_name == "ec2":
+            return _FakeEC2(
+                calls,
+                keypair_error=terraform_main.ClientError(
+                    {"Error": {"Code": "InvalidKeyPair.NotFoundException"}}, "delete_key_pair"
+                ),
+            )
+        raise AssertionError("unexpected service")
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=fake_client))
+
+    terraform_main.cleanup_iam_artifacts("ACME", "ca-central-1")
+    assert any(op[0] == "delete_key_pair" for op in calls)
+
+
+def test_get_ec2_ips_skips_non_running_instances(monkeypatch):
+    class FakeEC2:
+        def describe_instances(self):
+            return {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-1",
+                                "Tags": [{"Key": "Name", "Value": "ACME-instance"}],
+                                "State": {"Name": "stopped"},
+                            }
+                        ]
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    assert terraform_main.get_ec2_ips("ca-central-1", "ACME") == []
+
+
+def test_get_ec2_ips_handles_instances_without_tags(monkeypatch):
+    class FakeEC2:
+        def describe_instances(self):
+            return {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-1",
+                                "State": {"Name": "running"},
+                            }
+                        ]
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    assert terraform_main.get_ec2_ips("ca-central-1", "ACME") == []
+
+
+def test_get_ec2_ips_handles_missing_optional_fields(monkeypatch):
+    now = datetime.utcnow()
+
+    class FakeEC2:
+        def describe_instances(self):
+            return {
+                "Reservations": [
+                    {
+                        "Instances": [
+                            {
+                                "InstanceId": "i-123",
+                                "Tags": [{"Key": "Name", "Value": "ACME-node"}],
+                                "State": {"Name": "running"},
+                                "LaunchTime": now,
+                                "BlockDeviceMappings": [],
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        def describe_volumes(self, VolumeIds):
+            return {"Volumes": []}
+
+    monkeypatch.setattr(terraform_main, "boto3", SimpleNamespace(client=lambda svc, region_name=None: FakeEC2()))
+
+    results = terraform_main.get_ec2_ips("ca-central-1", "ACME")
+    assert len(results) == 1
+    assert results[0]["storage_size_gb"] == 0

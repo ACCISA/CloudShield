@@ -357,3 +357,199 @@ class TestAudit:
             query = mock_collection.find.call_args[0][0]
             assert query == {} 
 
+
+def test_log_audit_basic(monkeypatch):
+    """Test basic log_audit functionality without Flask context"""
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "test_id_12345"
+    mock_collection.insert_one.return_value = mock_result
+    
+    # Mock the db_admin
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    result = log_audit(
+        action="create",
+        resource="users",
+        actor={"id": "user1"},
+        target={"id": "user2"}
+    )
+    
+    assert result == "test_id_12345"
+    assert mock_collection.insert_one.called
+
+
+def test_log_audit_with_all_fields(monkeypatch):
+    """Test log_audit with all optional fields"""
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "full_test_id"
+    mock_collection.insert_one.return_value = mock_result
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    result = log_audit(
+        action="update",
+        resource="users",
+        actor={"id": "admin", "role": "admin"},
+        target={"id": "user123", "email": "test@example.com"},
+        reason="User profile update",
+        before={"name": "Old Name"},
+        after={"name": "New Name"},
+        severity="warning",
+        meta={"source": "api"}
+    )
+    
+    assert result == "full_test_id"
+    call_args = mock_collection.insert_one.call_args[0][0]
+    assert call_args["action"] == "update"
+    assert call_args["resource"] == "users"
+    assert call_args["severity"] == "warning"
+    assert call_args["reason"] == "User profile update"
+    assert call_args["before"] == {"name": "Old Name"}
+    assert call_args["after"] == {"name": "New Name"}
+    assert call_args["meta"] == {"source": "api"}
+
+
+def test_log_audit_minimal_fields(monkeypatch):
+    """Test log_audit with only required fields"""
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "minimal_id"
+    mock_collection.insert_one.return_value = mock_result
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    result = log_audit(action="read", resource="data")
+    
+    assert result == "minimal_id"
+    call_args = mock_collection.insert_one.call_args[0][0]
+    assert call_args["action"] == "read"
+    assert call_args["resource"] == "data"
+    assert call_args["actor"] is None
+    assert call_args["target"] is None
+    assert call_args["before"] == {}
+    assert call_args["after"] == {}
+    assert call_args["meta"] == {}
+
+
+def test_log_audit_exception_handling(monkeypatch):
+    """Test log_audit when database insert fails"""
+    mock_collection = unittest.mock.MagicMock()
+    mock_collection.insert_one.side_effect = Exception("Database error")
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    result = log_audit(action="test", resource="test")
+    
+    # Should return empty string on exception
+    assert result == ""
+
+
+def test_log_audit_with_request_context(monkeypatch):
+    """Test log_audit captures IP and User-Agent from Flask request context"""
+    from flask import Flask
+    
+    app = Flask(__name__)
+    
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "context_id"
+    mock_collection.insert_one.return_value = mock_result
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    with app.test_request_context(
+        '/',
+        headers={
+            'X-Forwarded-For': '10.0.0.1',
+            'User-Agent': 'TestBrowser/1.0'
+        }
+    ):
+        result = log_audit(action="login", resource="auth")
+        
+        call_args = mock_collection.insert_one.call_args[0][0]
+        assert call_args["ip"] == "10.0.0.1"
+        assert call_args["ua"] == "TestBrowser/1.0"
+
+
+def test_log_audit_remote_addr_fallback(monkeypatch):
+    """Test log_audit uses remote_addr when X-Forwarded-For is not present"""
+    from flask import Flask
+    
+    app = Flask(__name__)
+    
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "remote_id"
+    mock_collection.insert_one.return_value = mock_result
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    with app.test_request_context('/', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
+        result = log_audit(action="access", resource="page")
+        
+        call_args = mock_collection.insert_one.call_args[0][0]
+        assert call_args["ip"] == "127.0.0.1"
+
+
+def test_log_audit_different_severities(monkeypatch):
+    """Test log_audit with different severity levels"""
+    mock_collection = unittest.mock.MagicMock()
+    mock_result = unittest.mock.MagicMock()
+    mock_result.inserted_id = "severity_id"
+    mock_collection.insert_one.return_value = mock_result
+    
+    monkeypatch.setattr("cloudshield.Server.utils.audit._audit", mock_collection)
+    
+    from cloudshield.Server.utils.audit import log_audit
+    
+    for severity in ["info", "warning", "error", "critical"]:
+        mock_collection.reset_mock()
+        log_audit(action="test", resource="test", severity=severity)
+        
+        call_args = mock_collection.insert_one.call_args[0][0]
+        assert call_args["severity"] == severity
+
+
+def test_audit_blueprint_registered():
+    """Test that audit_bp can be imported and is a Blueprint"""
+    from cloudshield.Server.utils.audit import audit_bp
+    from flask import Blueprint
+    
+    assert isinstance(audit_bp, Blueprint)
+    assert audit_bp.name == "audit"
+
+
+def test_audit_module_exports():
+    """Test that audit module exports expected items"""
+    from cloudshield.Server.utils import audit
+    
+    assert hasattr(audit, "audit_bp")
+    assert hasattr(audit, "log_audit")
+    assert "audit_bp" in audit.__all__
+    assert "log_audit" in audit.__all__
+
+
+def test_audit_collection_accessible():
+    """Test that audit collection is accessible"""
+    from cloudshield.Server.utils.audit import _audit
+    
+    assert _audit is not None
+    # Collection should have MongoDB methods (or be a mock)
+    assert hasattr(_audit, 'insert_one') or hasattr(_audit, '_mock_name')
+    assert hasattr(_audit, 'find') or hasattr(_audit, '_mock_name')
+
+
