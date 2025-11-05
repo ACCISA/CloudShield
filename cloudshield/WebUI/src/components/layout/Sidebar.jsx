@@ -6,6 +6,9 @@
  *   navigation items, and small accordion previews for sections like Workstations or Users.
  *
  * Props:
+ *   - mode: 'full' | 'provisioning'
+ *       'full'          -> show normal nav
+ *       'provisioning'  -> show top/company block + collapse button only (no tabs, no bottom actions)
  *   - collapsed: boolean to render compact collapsed sidebar
  *   - onToggleCollapse: callback to toggle collapse state
  *
@@ -35,21 +38,6 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
-/**
- * Single navigation item in the sidebar with optional accordion expansion.
- * @param {Object} props
- * @param {boolean} props.collapsed - Whether sidebar is in collapsed mode
- * @param {React.ReactNode} props.icon - Icon element to display
- * @param {string} props.label - Nav item label
- * @param {string} props.to - Route path
- * @param {boolean} props.active - Whether this route is currently active
- * @param {number} [props.count] - Optional count badge
- * @param {string} [props.countColor] - Badge background color
- * @param {boolean} [props.expanded] - Whether accordion is expanded
- * @param {Function} [props.onToggleExpand] - Toggle accordion handler
- * @param {Function} props.onNavigate - Navigation click handler
- * @returns {JSX.Element} Navigation item with optional accordion
- */
 function NavItem({
   collapsed,
   icon,
@@ -166,69 +154,10 @@ function NavItem({
           />
         )}
       </Box>
-
-      {/* accordion content */}
-      {!collapsed && expanded && (
-        <Box sx={{ px: 1.5, pb: 1 }}>
-          <Box
-            sx={{
-              borderRadius: '10px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              overflow: 'hidden',
-            }}
-          >
-            {/* You can swap these previews for live data later */}
-            {label === 'Workstations' && (
-              <AccordionGrid
-                items={[
-                  { text: 'All', to: '/workstations' },
-                  { text: 'Active', to: '/workstations?status=connected' },
-                  { text: 'Busy', to: '/workstations?status=busy' },
-                  { text: 'Disconnected', to: '/workstations?status=disconnected' },
-                ]}
-              />
-            )}
-            {label === 'Users' && (
-              <AccordionGrid
-                items={[
-                  { text: 'All users', to: '/users' },
-                  { text: 'Invites', to: '/users?tab=invites' },
-                  { text: 'Admins', to: '/users?role=admin' },
-                ]}
-              />
-            )}
-            {label === 'Groups' && (
-              <AccordionGrid
-                items={[
-                  { text: 'All groups', to: '/groups' },
-                  { text: 'Engineering', to: '/groups/engineering' },
-                  { text: 'Marketing', to: '/groups/marketing' },
-                ]}
-              />
-            )}
-            {label === 'Files' && (
-              <AccordionGrid
-                items={[
-                  { text: 'All files', to: '/files' },
-                  { text: 'Recent', to: '/files?view=recent' },
-                  { text: 'Shared', to: '/files?view=shared' },
-                ]}
-              />
-            )}
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 }
 
-/**
- * Renders a grid of clickable accordion sub-items.
- * @param {Object} props
- * @param {Array<{text: string, to: string}>} props.items - Array of sub-navigation items
- * @returns {JSX.Element} Grid of clickable items
- */
 function AccordionGrid({ items }) {
   const navigate = useNavigate();
   return (
@@ -257,25 +186,13 @@ function AccordionGrid({ items }) {
   );
 }
 
-/**
- * Application sidebar with navigation items and collapsible state.
- * @param {Object} props
- * @param {boolean} props.collapsed - Whether sidebar is collapsed
- * @param {Function} props.onToggleCollapse - Callback to toggle collapsed state
- * @returns {JSX.Element} Full sidebar component
- */
-export default function Sidebar({ collapsed, onToggleCollapse }) {
+export default function Sidebar({ mode = 'full', collapsed, onToggleCollapse }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  /**
-   * Check if a given path is currently active.
-   * @param {string} path - Route path to check
-   * @returns {boolean} True if path matches current location
-   */
   const isActive = (path) => pathname === path || pathname.startsWith(path + '/');
 
-  // Track which accordion sections are expanded
+  // accordion open states
   const [open, setOpen] = useState({
     workstations: false,
     users: false,
@@ -287,6 +204,9 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
   const workstationPill = '#3a3a2a';
   const usersPill = '#2f3822';
   const groupsPill = '#1e2438';
+
+  const showNav = mode === 'full';
+  const showBottom = mode === 'full';
 
   return (
     <Box
@@ -327,8 +247,8 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
         role="button"
         tabIndex={0}
         aria-label="Switch company"
-        onClick={() => navigate('/organizations')}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/organizations')}
+        onClick={() => showNav && navigate('/organizations')}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && showNav && navigate('/organizations')}
         sx={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -336,7 +256,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
           paddingRight: collapsed ? '32px' : '48px',
           paddingTop: '40px',
           paddingBottom: '16px',
-          cursor: 'pointer',
+          cursor: showNav ? 'pointer' : 'default',
         }}
       >
         <Box
@@ -394,122 +314,123 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.18)', mb: 2 }} />
 
-      {/* Navigation + accordions */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <NavItem
-          collapsed={collapsed}
-          icon={<DashboardIcon fontSize="small" />}
-          label="Dashboard"
-          to="/dashboard"
-          active={isActive('/dashboard')}
-          onNavigate={() => navigate('/dashboard')}
-        />
-
-        <NavItem
-          collapsed={collapsed}
-          icon={<ComputerIcon fontSize="small" />}
-          label="Workstations"
-          to="/workstations"
-          active={isActive('/workstations')}
-          count={6}
-          countColor={workstationPill}
-          expanded={open.workstations}
-          onToggleExpand={() => setOpen((s) => ({ ...s, workstations: !s.workstations }))}
-          onNavigate={() => navigate('/workstations')}
-        />
-
-        <NavItem
-          collapsed={collapsed}
-          icon={<PeopleAltIcon fontSize="small" />}
-          label="Users"
-          to="/users"
-          active={isActive('/users')}
-          count={6}
-          countColor={usersPill}
-          expanded={open.users}
-          onToggleExpand={() => setOpen((s) => ({ ...s, users: !s.users }))}
-          onNavigate={() => navigate('/users')}
-        />
-
-        <NavItem
-          collapsed={collapsed}
-          icon={<Groups2Icon fontSize="small" />}
-          label="Groups"
-          to="/groups"
-          active={isActive('/groups')}
-          count={6}
-          countColor={groupsPill}
-          expanded={open.groups}
-          onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
-          onNavigate={() => navigate('/groups')}
-        />
-
-        <NavItem
-          collapsed={collapsed}
-          icon={<FolderIcon fontSize="small" />}
-          label="Files"
-          to="/files"
-          active={isActive('/files')}
-          expanded={open.files}
-          onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
-          onNavigate={() => navigate('/files')}
-        />
-      </Box>
-
-      <Box sx={{ flexShrink: 0, mt: 'auto' }} />
+      {/* Navigation + accordions (hidden in provisioning mode) */}
+      {showNav ? (
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <NavItem
+            collapsed={collapsed}
+            icon={<DashboardIcon fontSize="small" />}
+            label="Dashboard"
+            to="/dashboard"
+            active={isActive('/dashboard')}
+            onNavigate={() => navigate('/dashboard')}
+          />
+          <NavItem
+            collapsed={collapsed}
+            icon={<ComputerIcon fontSize="small" />}
+            label="Workstations"
+            to="/workstations"
+            active={isActive('/workstations')}
+            count={6}
+            countColor={workstationPill}
+            expanded={open.workstations}
+            onToggleExpand={() => setOpen((s) => ({ ...s, workstations: !s.workstations }))}
+            onNavigate={() => navigate('/workstations')}
+          />
+          <NavItem
+            collapsed={collapsed}
+            icon={<PeopleAltIcon fontSize="small" />}
+            label="Users"
+            to="/users"
+            active={isActive('/users')}
+            count={6}
+            countColor={usersPill}
+            expanded={open.users}
+            onToggleExpand={() => setOpen((s) => ({ ...s, users: !s.users }))}
+            onNavigate={() => navigate('/users')}
+          />
+          <NavItem
+            collapsed={collapsed}
+            icon={<Groups2Icon fontSize="small" />}
+            label="Groups"
+            to="/groups"
+            active={isActive('/groups')}
+            count={6}
+            countColor={groupsPill}
+            expanded={open.groups}
+            onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
+            onNavigate={() => navigate('/groups')}
+          />
+          <NavItem
+            collapsed={collapsed}
+            icon={<FolderIcon fontSize="small" />}
+            label="Files"
+            to="/files"
+            active={isActive('/files')}
+            expanded={open.files}
+            onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
+            onNavigate={() => navigate('/files')}
+          />
+        </Box>
+      ) : (
+        // Provisioning mode filler to push bottom area down nicely
+        <Box sx={{ flexGrow: 1 }} />
+      )}
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.18)', mt: 2, mb: 2 }} />
 
-      {/* Bottom actions */}
-      <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px', pb: '16px' }}>
-        <Box
-          role="button"
-          tabIndex={0}
-          aria-label="Settings"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#fff',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            borderRadius: '8px',
-            padding: collapsed ? '8px' : '8px 12px',
-            '&:hover': { backgroundColor: '#2a2a2a' },
-          }}
-          onClick={() => navigate('/settings')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/settings')}
-        >
-          <Box sx={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: collapsed ? 0 : '10px' }}>
-            <SettingsOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+      {/* Bottom actions (hidden in provisioning mode) */}
+      {showBottom ? (
+        <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px', pb: '16px' }}>
+          <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Settings"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '8px',
+              padding: collapsed ? '8px' : '8px 12px',
+              '&:hover': { backgroundColor: '#2a2a2a' },
+            }}
+            onClick={() => navigate('/settings')}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/settings')}
+          >
+            <Box sx={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: collapsed ? 0 : '10px' }}>
+              <SettingsOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+            </Box>
+            {!collapsed && <Typography sx={{ fontSize: '0.9rem', fontWeight: 500 }}>Settings</Typography>}
           </Box>
-          {!collapsed && <Typography sx={{ fontSize: '0.9rem', fontWeight: 500 }}>Settings</Typography>}
-        </Box>
 
-        <Box
-          role="button"
-          tabIndex={0}
-          aria-label="Get support"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#fff',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            borderRadius: '8px',
-            padding: collapsed ? '8px' : '8px 12px',
-            '&:hover': { backgroundColor: '#2a2a2a' },
-          }}
-          onClick={() => navigate('/support')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/support')}
-        >
-          <Box sx={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: collapsed ? 0 : '10px' }}>
-            <HelpOutlineOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+          <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Get support"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '8px',
+              padding: collapsed ? '8px' : '8px 12px',
+              '&:hover': { backgroundColor: '#2a2a2a' },
+            }}
+            onClick={() => navigate('/support')}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/support')}
+          >
+            <Box sx={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: collapsed ? 0 : '10px' }}>
+              <HelpOutlineOutlinedIcon sx={{ fontSize: '1.1rem' }} />
+            </Box>
+            {!collapsed && <Typography sx={{ fontSize: '0.9rem', fontWeight: 500 }}>Get support</Typography>}
           </Box>
-          {!collapsed && <Typography sx={{ fontSize: '0.9rem', fontWeight: 500 }}>Get support</Typography>}
         </Box>
-      </Box>
+      ) : null}
     </Box>
   );
 }

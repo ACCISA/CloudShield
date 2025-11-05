@@ -2,25 +2,26 @@
  * AppLayout.jsx
  *
  * Purpose:
- *   Page-level layout that provides the sidebar and main content area.
+ *   Page-level layout. Can optionally control sidebar mode (full vs. provisioning shell).
  *
  * Props:
  *   - children: page content rendered in the main area
+ *   - showSidebar?: boolean (default true)
+ *   - sidebarMode?: 'full' | 'provisioning' (default 'full')
+ *   - collapsed?: boolean (optional) -> controls sidebar collapse when shown
+ *   - onToggleCollapse?: () => void (optional) -> toggles sidebar collapse when shown
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar.jsx';
 
-/**
- * Main application layout wrapper with sidebar and content area.
- * @param {Object} props
- * @param {React.ReactNode} props.children - Page content to render in main area
- * @returns {JSX.Element} Layout with sidebar and main content
- */
-export default function AppLayout({ children }) {
-  // Track whether sidebar is collapsed (narrow mode)
-  const [collapsed, setCollapsed] = useState(false);
-
+export default function AppLayout({
+  children,
+  showSidebar = true,
+  sidebarMode = 'full',
+  collapsed = false,
+  onToggleCollapse,
+}) {
   return (
     <Box
       sx={{
@@ -30,10 +31,13 @@ export default function AppLayout({ children }) {
         display: 'flex',
       }}
     >
-      <Sidebar
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed(!collapsed)}
-      />
+      {showSidebar && (
+        <Sidebar
+          mode={sidebarMode}
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse ?? (() => {})}
+        />
+      )}
 
       <Box
         sx={{

@@ -22,8 +22,6 @@ services:
       - "5050:5050"
     volumes:
       - ./logs:/app/logs
-    networks:
-      cloudshield_net:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
