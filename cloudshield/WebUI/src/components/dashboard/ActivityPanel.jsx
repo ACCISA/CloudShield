@@ -1,3 +1,12 @@
+/**
+ * ActivityPanel.jsx
+ *
+ * Purpose:
+ *   List recent activities with a small search and refresh control. Used on dashboard.
+ *
+ * Notes:
+ *   - Local example data is used; wire to real API in the parent page/service.
+ */
 import React, { useState } from 'react';
 import {
   Box,
@@ -8,8 +17,15 @@ import {
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
+/**
+ * Displays a searchable list of recent user activities.
+ * @returns {JSX.Element} Activity panel with search and refresh controls
+ */
 export default function ActivityPanel() {
+  // Local search filter state
   const [search, setSearch] = useState('');
+  
+  // Mock activity data (replace with API call in production)
   const rows = [
     {
       user: 'Michael Scott',

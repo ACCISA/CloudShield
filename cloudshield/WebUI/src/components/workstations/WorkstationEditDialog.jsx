@@ -1,3 +1,16 @@
+/**
+ * WorkstationEditDialog.jsx
+ *
+ * Purpose:
+ *   Modal dialog for editing an existing workstation's properties (name, users, plan, etc.).
+ *
+ * Props:
+ *   - open: boolean controlling visibility
+ *   - onClose: close handler
+ *   - row: the workstation row being edited
+ *   - onSave: save callback
+ *   - onDelete: delete callback
+ */
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -33,16 +46,33 @@ const plans = [
   { id: 'ULTIMATE', title: 'ULTIMATE', features: ['8 CPU cores', '12 GPU cores', '8 GB RAM', '200 GB SSD'] },
 ];
 
+/**
+ * Modal dialog for editing an existing workstation.
+ * @param {Object} props
+ * @param {boolean} props.open - Controls dialog visibility
+ * @param {Function} props.onClose - Close handler
+ * @param {Object} props.row - Workstation data being edited
+ * @param {Function} props.onSave - Called with updated workstation data
+ * @param {Function} props.onDelete - Called to delete the workstation
+ * @returns {JSX.Element} Edit workstation dialog
+ */
 export default function WorkstationEditDialog({ open, onClose, row, onSave, onDelete }) {
   const [name, setName] = useState(row?.name || '');
   const [group, setGroup] = useState('None');
   const [users, setUsers] = useState([row?.currentUser].filter(Boolean));
   const [allSoftware, setAllSoftware] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('BASIC'); // BASIC shown as CURRENT initially
+  const [selectedPlan, setSelectedPlan] = useState('BASIC');
 
+  /**
+   * Toggle a user in the selected users list.
+   * @param {string} u - User name to toggle
+   */
   const toggleUser = (u) =>
     setUsers((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]));
 
+  /**
+   * Submit updated workstation data to parent.
+   */
   const handleSave = () => {
     onSave?.({
       name,

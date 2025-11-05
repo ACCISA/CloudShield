@@ -1,3 +1,14 @@
+/**
+ * WorkstationList.jsx
+ *
+ * Purpose:
+ *   Render a list/grid of workstation rows with actions like edit and connect/disconnect.
+ *
+ * Props:
+ *   - rows: array of workstation objects to display
+ *   - onEdit: callback(row) when edit icon clicked
+ *   - onToggleStatus: callback(id) to toggle connection status
+ */
 import React from 'react';
 import {
   Box,
@@ -10,6 +21,12 @@ import {
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
+/**
+ * Renders a status chip based on workstation connection state.
+ * @param {Object} props
+ * @param {('connected'|'busy'|string)} props.status - Workstation status
+ * @returns {JSX.Element} Status chip with appropriate styling
+ */
 function StatusChip({ status }) {
   if (status === 'connected') {
     return (
@@ -65,6 +82,14 @@ function StatusChip({ status }) {
   );
 }
 
+/**
+ * Renders a list of workstation rows with edit and status toggle actions.
+ * @param {Object} props
+ * @param {Array<Object>} props.rows - Array of workstation data objects
+ * @param {Function} props.onEdit - Called with workstation row when edit clicked
+ * @param {Function} props.onToggleStatus - Called with workstation ID when status toggled
+ * @returns {JSX.Element} List of workstation rows
+ */
 export default function WorkstationList({ rows, onEdit, onToggleStatus }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

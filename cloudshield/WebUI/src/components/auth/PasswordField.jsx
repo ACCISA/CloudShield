@@ -1,13 +1,33 @@
+/**
+ * PasswordField.jsx
+ *
+ * Purpose:
+ *   Password input with a show/hide toggle and accessory label. Used on auth screens.
+ *
+ * Props:
+ *   - label: string label shown above the input (default: 'Password')
+ *   - value: current password value
+ *   - onChange: change handler (e) => void
+ */
 import React, { useState } from 'react';
 import { Box, Typography, OutlinedInput, IconButton } from '@mui/material';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
+/**
+ * Password input field with show/hide toggle.
+ * @param {Object} props
+ * @param {string} [props.label='Password'] - Label text
+ * @param {string} props.value - Current password value
+ * @param {Function} props.onChange - Change handler
+ * @returns {JSX.Element} Password input with visibility toggle
+ */
 export default function PasswordField({
   label = 'Password',
   value,
   onChange,
 }) {
+  // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
 
   return (

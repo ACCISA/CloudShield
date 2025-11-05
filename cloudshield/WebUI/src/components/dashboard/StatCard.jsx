@@ -1,7 +1,29 @@
+/**
+ * StatCard.jsx
+ *
+ * Purpose:
+ *   Small dashboard statistic card showing a metric, value and change chip.
+ *
+ * Props:
+ *   - title: metric title
+ *   - value: displayed value
+ *   - changeText: small change indicator text
+ *   - gradientFrom/gradientTo: background gradient colors
+ */
 import React from 'react';
 import { Box, Typography, Chip, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
+/**
+ * Dashboard statistic card showing a metric value with gradient background.
+ * @param {Object} props
+ * @param {string} props.title - Metric title
+ * @param {string|number} props.value - Displayed metric value
+ * @param {string} [props.changeText='15.2% ↑'] - Change indicator text
+ * @param {string} [props.gradientFrom='#6a5acd'] - Gradient start color
+ * @param {string} [props.gradientTo='#9f7aea'] - Gradient end color
+ * @returns {JSX.Element} Styled stat card
+ */
 export default function StatCard({
   title,
   value,

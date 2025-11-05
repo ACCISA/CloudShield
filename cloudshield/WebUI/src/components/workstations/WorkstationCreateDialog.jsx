@@ -1,3 +1,14 @@
+/**
+ * WorkstationCreateDialog.jsx
+ *
+ * Purpose:
+ *   Modal dialog used to create a new workstation. Collects name, group, plan and assigned users.
+ *
+ * Props:
+ *   - open: boolean to control dialog visibility
+ *   - onClose: callback when dialog should close
+ *   - onCreate: callback with created workstation payload
+ */
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -31,6 +42,14 @@ const plans = [
   { id: 'ULTIMATE', title: 'ULTIMATE', features: ['8 CPU cores', '12 GPU cores', '8 GB RAM', '200 GB SSD'] },
 ];
 
+/**
+ * Modal dialog for creating a new workstation.
+ * @param {Object} props
+ * @param {boolean} props.open - Controls dialog visibility
+ * @param {Function} props.onClose - Close handler
+ * @param {Function} props.onCreate - Called with new workstation data on submit
+ * @returns {JSX.Element} Create workstation dialog
+ */
 export default function WorkstationCreateDialog({ open, onClose, onCreate }) {
   const [name, setName] = useState('WS-001');
   const [group, setGroup] = useState('None');
@@ -38,9 +57,16 @@ export default function WorkstationCreateDialog({ open, onClose, onCreate }) {
   const [allUsers, setAllUsers] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('BASIC');
 
+  /**
+   * Toggle a user in the selected users list.
+   * @param {string} u - User name to toggle
+   */
   const toggleUser = (u) =>
     setUsers((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]));
 
+  /**
+   * Submit the new workstation data to parent.
+   */
   const handleSubmit = () => {
     onCreate?.({
       name,

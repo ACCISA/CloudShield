@@ -1,9 +1,19 @@
+/**
+ * DashboardPage.jsx
+ *
+ * Purpose:
+ *   Dashboard page assembling StatCard(s) and the ActivityPanel.
+ */
 import React from 'react';
 import { Box } from '@mui/material';
 
 import StatCard from '../components/dashboard/StatCard.jsx';
 import ActivityPanel from '../components/dashboard/ActivityPanel.jsx';
 
+/**
+ * Main dashboard page displaying stat cards and recent activity.
+ * @returns {JSX.Element} Dashboard layout
+ */
 export default function DashboardPage() {
   return (
     <Box

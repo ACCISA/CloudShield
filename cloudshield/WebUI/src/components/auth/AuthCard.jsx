@@ -1,6 +1,25 @@
+/**
+ * AuthCard.jsx
+ *
+ * Purpose:
+ *   Reusable card container for authentication screens (login / 2FA, etc.).
+ *
+ * Props:
+ *   - children: React node(s) to render inside the card (form fields, buttons).
+ *
+ * Notes:
+ *   - Pure presentational component using MUI Paper/Box for layout and styling.
+ *   - Keep styling changes here small; place form logic in consuming pages/components.
+ */
 import React from 'react';
 import { Paper, Box, Typography } from '@mui/material';
 
+/**
+ * AuthCard component wraps auth form content in a styled card container.
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Form elements to display inside card
+ * @returns {JSX.Element} Styled Paper component with logo and footer
+ */
 export default function AuthCard({ children }) {
   return (
     <Paper

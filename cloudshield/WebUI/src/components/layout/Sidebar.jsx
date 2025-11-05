@@ -1,3 +1,18 @@
+/**
+ * Sidebar.jsx
+ *
+ * Purpose:
+ *   Application navigation/sidebar used across the app layout. Supports collapsed state,
+ *   navigation items, and small accordion previews for sections like Workstations or Users.
+ *
+ * Props:
+ *   - collapsed: boolean to render compact collapsed sidebar
+ *   - onToggleCollapse: callback to toggle collapse state
+ *
+ * Notes:
+ *   - Uses react-router hooks (useNavigate/useLocation) for navigation; keep routing logic
+ *     minimal here and handle heavier logic in pages or containers.
+ */
 import React, { useState } from 'react';
 import {
   Box,
@@ -20,6 +35,21 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
+/**
+ * Single navigation item in the sidebar with optional accordion expansion.
+ * @param {Object} props
+ * @param {boolean} props.collapsed - Whether sidebar is in collapsed mode
+ * @param {React.ReactNode} props.icon - Icon element to display
+ * @param {string} props.label - Nav item label
+ * @param {string} props.to - Route path
+ * @param {boolean} props.active - Whether this route is currently active
+ * @param {number} [props.count] - Optional count badge
+ * @param {string} [props.countColor] - Badge background color
+ * @param {boolean} [props.expanded] - Whether accordion is expanded
+ * @param {Function} [props.onToggleExpand] - Toggle accordion handler
+ * @param {Function} props.onNavigate - Navigation click handler
+ * @returns {JSX.Element} Navigation item with optional accordion
+ */
 function NavItem({
   collapsed,
   icon,
@@ -193,6 +223,12 @@ function NavItem({
   );
 }
 
+/**
+ * Renders a grid of clickable accordion sub-items.
+ * @param {Object} props
+ * @param {Array<{text: string, to: string}>} props.items - Array of sub-navigation items
+ * @returns {JSX.Element} Grid of clickable items
+ */
 function AccordionGrid({ items }) {
   const navigate = useNavigate();
   return (
@@ -221,13 +257,25 @@ function AccordionGrid({ items }) {
   );
 }
 
+/**
+ * Application sidebar with navigation items and collapsible state.
+ * @param {Object} props
+ * @param {boolean} props.collapsed - Whether sidebar is collapsed
+ * @param {Function} props.onToggleCollapse - Callback to toggle collapsed state
+ * @returns {JSX.Element} Full sidebar component
+ */
 export default function Sidebar({ collapsed, onToggleCollapse }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  /**
+   * Check if a given path is currently active.
+   * @param {string} path - Route path to check
+   * @returns {boolean} True if path matches current location
+   */
   const isActive = (path) => pathname === path || pathname.startsWith(path + '/');
 
-  // accordion open states
+  // Track which accordion sections are expanded
   const [open, setOpen] = useState({
     workstations: false,
     users: false,

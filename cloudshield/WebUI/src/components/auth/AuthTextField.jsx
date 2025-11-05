@@ -1,6 +1,31 @@
+/**
+ * AuthTextField.jsx
+ *
+ * Purpose:
+ *   Small wrapper around MUI's OutlinedInput with a label and styling used on auth forms.
+ *
+ * Props:
+ *   - label: string label shown above the input
+ *   - placeholder: placeholder text
+ *   - value: current input value
+ *   - onChange: change handler (e) => void
+ *   - type: input type (default: 'text')
+ *   - endAdornment: optional adornment element
+ */
 import React from 'react';
 import { Box, Typography, OutlinedInput } from '@mui/material';
 
+/**
+ * Renders a labeled text input field for auth forms.
+ * @param {Object} props
+ * @param {string} props.label - Label displayed above input
+ * @param {string} props.placeholder - Placeholder text
+ * @param {string} props.value - Current input value
+ * @param {Function} props.onChange - Change handler
+ * @param {string} [props.type='text'] - Input type (text, email, etc.)
+ * @param {React.ReactNode} [props.endAdornment] - Optional end adornment element
+ * @returns {JSX.Element} Styled input with label
+ */
 export default function AuthTextField({
   label,
   placeholder,

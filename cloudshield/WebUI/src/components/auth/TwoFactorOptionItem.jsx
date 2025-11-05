@@ -1,15 +1,37 @@
+/**
+ * TwoFactorOptionItem.jsx
+ *
+ * Purpose:
+ *   Visual option row for choosing a 2FA delivery method (SMS or Email).
+ *
+ * Props:
+ *   - type: 'sms' | 'email' (affects left icon)
+ *   - title: main title text
+ *   - subtitle: secondary descriptive text (e.g. masked phone/email)
+ *   - onClick: click handler
+ */
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined';
 import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
 
+/**
+ * Clickable 2FA delivery method option (SMS or Email).
+ * @param {Object} props
+ * @param {('sms'|'email')} [props.type='sms'] - Type of 2FA method
+ * @param {string} props.title - Main title text (e.g., "SMS")
+ * @param {string} [props.subtitle] - Secondary text (e.g., masked phone/email)
+ * @param {Function} props.onClick - Click handler
+ * @returns {JSX.Element} Styled clickable option row
+ */
 export default function TwoFactorOptionItem({
-  type = 'sms',            // 'sms' | 'email'
-  title,                   // e.g. "SMS"
-  subtitle,                // e.g. "+1 (123) 456 7890"
+  type = 'sms',
+  title,
+  subtitle,
   onClick,
 }) {
+  // Select the appropriate icon based on type
   const IconLeft =
     type === 'sms' ? SmsOutlinedIcon : MailOutlineOutlinedIcon;
 

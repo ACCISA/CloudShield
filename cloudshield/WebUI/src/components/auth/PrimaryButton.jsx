@@ -1,6 +1,25 @@
+/**
+ * PrimaryButton.jsx
+ *
+ * Purpose:
+ *   Styled primary action button used across auth screens and forms.
+ *
+ * Props:
+ *   - children: button label/content
+ *   - fullWidth: whether to stretch to container width (default: true)
+ *   - ...rest: forwarded props to MUI Button
+ */
 import React from 'react';
 import { Button } from '@mui/material';
 
+/**
+ * Styled primary action button for auth forms.
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Button content/label
+ * @param {boolean} [props.fullWidth=true] - Whether button stretches to container width
+ * @param {Object} props.rest - Additional props forwarded to MUI Button
+ * @returns {JSX.Element} Styled button component
+ */
 export default function PrimaryButton({ children, fullWidth = true, ...rest }) {
   return (
     <Button
