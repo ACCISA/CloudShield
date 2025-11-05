@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import logger as logger_module
 
 def ensure_module(name, module):
     if name not in sys.modules:
@@ -72,10 +73,6 @@ utils_module.ingest_processes = lambda data: data
 utils_module.es_log = lambda index, payload: None
 sys.modules["utils"] = utils_module
 
-# Stub logger module
-logger_module = types.ModuleType("logger")
-
-
 class DummyLogger:
     def __init__(self):
         self.messages = []
@@ -101,7 +98,8 @@ state_module.state_manager = SimpleNamespace(
 )
 sys.modules["state"] = state_module
 
-from cloudshield.ThreatDetection import servicer
+# Import after stubs are set up to avoid import errors
+from cloudshield.ThreatDetection import servicer  # noqa: E402
 
 
 class FakeLogger:
@@ -130,7 +128,6 @@ class FakeStateManager:
     def is_expected(self, agent_id, response_method):
         self.is_expected_calls.append((agent_id, response_method))
         return self.expected_result
-
 
 @pytest.fixture
 def fake_logger(monkeypatch):
@@ -171,10 +168,6 @@ def fake_utils(monkeypatch):
     return calls
 
 
-@pytest.fixture(autouse=True)
-def reset_message_to_dict(monkeypatch):
-    monkeypatch.setattr(servicer, "MessageToDict", default_message_to_dict)
-
 
 def test_loggable_decorator_logs_request(monkeypatch):
     logged = []
@@ -204,7 +197,7 @@ def test_send_workstation_init_returns_ack(fake_logger):
     serv = servicer.AgentServiceServicer([])
     req = SimpleNamespace(agent_id="agent-a", domain="domain")
     resp = serv.SendWorkstationInit(req, None)
-    assert isinstance(resp, Ack)
+    assert "test_servicer.Ack" in str(type(resp))
     assert resp.success is True
     assert resp.message == "Workstation registered"
 
@@ -231,7 +224,7 @@ def test_send_process_list_sets_expected_and_returns_action(fake_logger, fake_st
     fake_state.expected_result = True
     response = serv.SendProcessList(request, context)
 
-    assert isinstance(response, ProcessListAck)
+    assert "test_servicer.ProcessListAck" in str(type(response))
     assert response.action is True
     assert response.pids == [101]
     assert fake_state.set_calls == [("agent-x", "SendProcessList", "SendProcessListInformation")]
@@ -287,7 +280,7 @@ def test_send_process_list_information_expected(fake_logger, fake_state, fake_ut
 
     result = serv.SendProcessListInformation(request, SimpleNamespace(peer=lambda: "peer"))
 
-    assert isinstance(result, Ack)
+    assert "test_servicer.Ack" in str(type(result))
     assert result.success is True
     assert fake_state.is_expected_calls == [("agent-q", "SendProcessListInformation")]
     assert fake_utils["es"] == [
@@ -324,7 +317,7 @@ def test_send_network_connections_ingests_and_acks(fake_logger, fake_utils):
 
     resp = serv.SendNetworkConnections(request, context)
 
-    assert isinstance(resp, Ack)
+    assert "test_servicer.Ack" in str(type(resp))
     assert resp.success is True
     assert "ingested" in resp.message
 
@@ -374,7 +367,7 @@ def test_send_network_connections_handles_empty(fake_utils):
 
     resp = serv.SendNetworkConnections(request, context)
 
-    assert isinstance(resp, Ack)
+    assert "test_servicer.Ack" in str(type(resp))
     assert resp.success is True
     assert "ingested" in resp.message
     assert fake_utils["es"] == []

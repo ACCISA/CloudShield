@@ -1,18 +1,19 @@
 # python cloudshield/Cloud/terraform/main.py --org-id=<THE ORG ID>
 
-import argparse
 import os
 import shutil
 import subprocess
 from datetime import datetime
 
 import boto3
+import logging
 from botocore.exceptions import ClientError, WaiterError
 
 
 # PATHS
 BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
+logger = logging.getLogger() # This logger should only get used during testing, prod logger is set from func call to provision_network_terraform
 
 
 # COPY & REPLACE TEMPLATES
@@ -25,8 +26,8 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
     target_dir = os.path.abspath(target_dir)
 
     if os.path.exists(target_dir):
-        print(f"[!] Directory for {org_id} already exists. Removing it to start fresh...")
-        shutil.rmtree(target_dir)
+        logger.info(f"[!] Directory for {org_id} already exists. Assuming this is a duplicate provision request")
+        return None
 
     shutil.copytree(templates_dir, target_dir)
 
@@ -50,7 +51,7 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
             with open(path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
-    print(f"[✓] Prepared Terraform configuration at {target_dir}")
+    logger.info(f"[✓] Prepared Terraform configuration at {target_dir}")
     return target_dir
 
 
@@ -62,7 +63,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
     profile_name = f"{org_id}-cloudshield-builder-profile"
     policy_name = f"{org_id}-allow-get-agent"
 
-    print(f"[~] Checking for leftover IAM role/profile for {org_id}...")
+    logger.info(f"[~] Checking for leftover IAM role/profile for {org_id}...")
 
     # Instance profile must no longer reference the role before either can be deleted
     try:
@@ -79,13 +80,13 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
                     InstanceProfileName=profile_name,
                     RoleName=role["RoleName"],
                 )
-                print(f"[~]   Removed role '{role['RoleName']}' from instance profile '{profile_name}'.")
+                logger.info(f"[~]   Removed role '{role['RoleName']}' from instance profile '{profile_name}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
                     raise  # pragma: no cover
         try:
             iam.delete_instance_profile(InstanceProfileName=profile_name)
-            print(f"[~]   Deleted instance profile '{profile_name}'.")
+            logger.info(f"[~]   Deleted instance profile '{profile_name}'.")
         except ClientError as exc:
             if exc.response["Error"].get("Code") != "NoSuchEntity":
                 raise  # pragma: no cover
@@ -105,7 +106,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
         for policy in inline_policies:
             try:
                 iam.delete_role_policy(RoleName=role_name, PolicyName=policy)
-                print(f"[~]   Deleted inline IAM policy '{policy}'.")
+                logger.info(f"[~]   Deleted inline IAM policy '{policy}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
                     raise  # pragma: no cover
@@ -114,7 +115,7 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
         for policy in attached:
             try:
                 iam.detach_role_policy(RoleName=role_name, PolicyArn=policy["PolicyArn"])
-                print(f"[~]   Detached managed policy '{policy['PolicyName']}'.")
+                logger.info(f"[~]   Detached managed policy '{policy['PolicyName']}'.")
             except ClientError as exc:
                 if exc.response["Error"].get("Code") != "NoSuchEntity":
                     raise  # pragma: no cover
@@ -129,19 +130,19 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
 
         try:
             iam.delete_role(RoleName=role_name)
-            print(f"[~]   Deleted IAM role '{role_name}'.")
+            logger.info(f"[~]   Deleted IAM role '{role_name}'.")
         except ClientError as exc:
             if exc.response["Error"].get("Code") != "NoSuchEntity":
                 raise  # pragma: no cover
     else:
-        print(f"[~]   No leftover IAM role named '{role_name}'.")
+        logger.info(f"[~]   No leftover IAM role named '{role_name}'.")
 
     # Key pairs are regional
     ec2 = boto3.client("ec2", region_name=region)
     key_name = f"{org_id}_key"
     try:
         ec2.delete_key_pair(KeyName=key_name)
-        print(f"[~]   Deleted existing EC2 key pair '{key_name}'.")
+        logger.info(f"[~]   Deleted existing EC2 key pair '{key_name}'.")
     except ClientError as exc:
         if exc.response["Error"].get("Code") not in {"InvalidKeyPair.NotFound", "InvalidKeyPair.NotFoundException"}:
             raise  # pragma: no cover
@@ -162,69 +163,42 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
     Phase 1: targeted apply to create S3 bucket, upload agent, create IAM role, create builder instance and AMI.
     Phase 2: full apply for the rest of the infra, passing the created Windows AMI id as workstation_ami.
     """
-    cleanup_iam_artifacts(org_id, region)
 
-    print(f"[~] Initializing Terraform for {org_id}...")
-    subprocess.run(["terraform", "init"], cwd=terraform_dir, check=True)
-
-    # ---------- PHASE 1: targeted plan/apply for builder + AMI ----------
-    print("[~] Phase 1: building Windows workstation AMI (targeted apply)...")
-
-    phase1_targets = [
-        "-target=aws_s3_bucket.agent_bucket",
-        "-target=aws_s3_bucket_object.agent_exe",
-        "-target=aws_iam_role.builder_role",
-        "-target=aws_iam_instance_profile.builder_profile",
-        "-target=aws_instance.windows_builder",
-        "-target=aws_ami_from_instance.cloudshield_windows"
-    ]
-
-    phase1_plan_cmd = [
-        "terraform",
-        "plan",
-        "-out",
-        "phase1.plan",
-        "-var",
-        f"org_id={org_id}",
-        "-var",
-        f"region={region}",
-    ] + phase1_targets
-    subprocess.run(phase1_plan_cmd, cwd=terraform_dir, check=True)
-
-    print("[~] Applying phase1.plan (AMI creation can take several minutes)...")
-    subprocess.run(["terraform", "apply", "phase1.plan"], cwd=terraform_dir, check=True)
-
-    # ---------- retrieve AMI id output ----------
-    print("[~] Retrieving created AMI id from Terraform outputs...")
-    # Give Terraform a moment to ensure outputs are available; this is usually instantaneous but safe to be robust
-    out = subprocess.run(["terraform", "output", "-raw", "created_windows_ami_id"], cwd=terraform_dir, check=True, capture_output=True, text=True)
-    ami_id = out.stdout.strip()
-    if not ami_id:
-        raise RuntimeError("Failed to obtain created_windows_ami_id from terraform output.")
-
-    print(f"[✓] Phase 1 finished. Created AMI: {ami_id}")
-
-    print("[~] Waiting for AMI to become available...")
-    wait_for_ami(ami_id, region)
-    print("[✓] AMI is available for launch.")
 
     # ---------- PHASE 2: full apply for the rest of the infra, using the new AMI ----------
-    print("[~] Phase 2: provisioning remaining infrastructure with the new AMI...")
+    logger.info("[~] Running terraform init...")
+    init_result = subprocess.run(
+        ["terraform", "init"], 
+        cwd=terraform_dir, 
+        capture_output=True, 
+        text=True
+    )
+    if init_result.returncode != 0:
+        logger.error(f"Terraform init failed:\n{init_result.stdout}\n{init_result.stderr}")
+        raise subprocess.CalledProcessError(init_result.returncode, init_result.args, init_result.stdout, init_result.stderr)
+    logger.info(f"Terraform init output:\n{init_result.stdout}")
+    
+    logger.info("[~] Phase 2: provisioning remaining infrastructure with the new AMI...")
     phase2_plan_cmd = [
-        "terraform", "plan", "-out", "phase2.plan",
+        "terraform", "apply","-auto-approve",
         "-var", f"org_id={org_id}",
         "-var", f"region={region}",
-        "-var", f"workstation_ami={ami_id}"
     ]
-    subprocess.run(phase2_plan_cmd, cwd=terraform_dir, check=True)
+    
+    apply_result = subprocess.run(phase2_plan_cmd, cwd=terraform_dir, capture_output=True, text=True)
+    if apply_result.returncode != 0:
+        logger.error(f"Terraform apply failed:\n{apply_result.stdout}\n{apply_result.stderr}")
+        raise subprocess.CalledProcessError(apply_result.returncode, apply_result.args, apply_result.stdout, apply_result.stderr)
+    logger.info(f"Terraform apply output:\n{apply_result.stdout}")
 
-    print("[~] Applying phase2.plan ...")
-    subprocess.run(["terraform", "apply", "phase2.plan"], cwd=terraform_dir, check=True)
+    logger.info("[~] Applying phase2.plan ...")
+    #subprocess.run(["terraform", "apply", "phase2.plan"], cwd=terraform_dir, check=True)
 
-    print("[✓] Terraform apply complete for all resources.")
+    logger.info("[✓] Terraform apply complete for all resources.")
 
 # FETCH EC2 METADATA
 def get_ec2_ips(region: str, org_id: str):
+    global logger
     """
     Fetch detailed EC2 instance metadata for a given org.
     Returns a list of instance dicts including name, IPs, specs, and status.
@@ -241,6 +215,9 @@ def get_ec2_ips(region: str, org_id: str):
     instances = []
     for res in reservations:
         for inst in res["Instances"]:
+            state = inst["State"]["Name"]
+            if state != "running":
+                continue
             name = extract_name(inst.get("Tags"))
             if not name or org_id not in name:
                 continue
@@ -277,42 +254,34 @@ def get_ec2_ips(region: str, org_id: str):
             instances.append(metadata)
 
     if not instances:
-        print(f"[!] No EC2 instances found for org: {org_id}")
+        logger.info(f"[!] No EC2 instances found for org: {org_id}")
         return []
 
-    print(f"\n[+] EC2 Instances for {org_id}:")
+    logger.info(f"\n[+] EC2 Instances for {org_id}:")
     for i in instances:
-        print(f"  - {i['name']} ({i['instance_id']}) → {i['status']}")
-        print(f"      Private IP: {i['private_ip']}")
-        print(f"      Public IP:  {i['public_ip']}\n")
+        logger.info(f"  - {i['name']} ({i['instance_id']}) → {i['status']}")
+        logger.info(f"      Private IP: {i['private_ip']}")
+        logger.info(f"      Public IP:  {i['public_ip']}\n")
 
     return instances
 
 
 # MAIN
-def main(argv: list[str] | None = None):
-    parser = argparse.ArgumentParser(description="Provision AWS infrastructure for a specific organization.")
-    parser.add_argument("--org-id", required=True, help="Organization ID (used to replace placeholders and tag resources)")
-    parser.add_argument("--region", default="ca-central-1", help="AWS region to deploy resources (default: ca-central-1)")
-    parser.add_argument("--templates-dir", default=DEFAULT_TEMPLATES_DIR, help="Path to templates (for testing)")
-    parser.add_argument("--generated-dir", default=None, help="Directory to write generated terraform files (for testing)")
-    args = parser.parse_args(argv)
+def provision_network_terraform(org_id, region, templates_dir, generated_dir, server_logger):
+    global logger
+    logger = server_logger
+    templates_dir = os.path.abspath(templates_dir)
 
-    org_id = args.org_id
-    region = args.region
-    templates_dir = os.path.abspath(args.templates_dir)
-    generated_dir = args.generated_dir
-
-    print(f"[*] Provisioning for org: {org_id} in region: {region}")
+    logger.info(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
+
+    if target_dir is None:
+        return None
+
     run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir)
     
     # Get EC2 metadata
     metadata = get_ec2_ips(region, org_id)
     
-    print(f"[✓] Finished provisioning for {org_id}.")
+    logger.info(f"[✓] Finished provisioning for {org_id}.")
     return metadata
-
-
-if __name__ == "__main__":  # pragma: no cover
-    main()

@@ -37,6 +37,7 @@ CloudShield has four main components:
 
 3. **Backend Cloud Services**  
    - Python services use provider SDKs (AWS/Azure) to create EC2 VMs, configure VPC networking, and wire S3 storage.  
+   - Samba Active Directory with roaming profiles for consistent user experience across workstations.
 
 4. **IAM, Security & Threat Detection**  
    - RBAC/SSO for tenants.  
@@ -82,7 +83,7 @@ cd desktop && npm ci && cd ..
 
 ---
 
-### Configure Cloud Credentials
+### Configure Cloud Credentials && Mongo URL
 
 ```bash
 aws configure sso --profile cloudshield-dev
@@ -90,52 +91,44 @@ aws sso login --profile cloudshield-dev
 
 export AWS_PROFILE=cloudshield-dev
 export AWS_DEFAULT_REGION=us-east-1
+export MONGO_URL=<>
+export MONGO_DB=<>
 ```
 
+Optionally, you can plase these env variables in .env at the root directory.
+Note: 
 Backend services use Python SDKs to provision EC2/S3/VPC including AMI builds. Credentials must be configured.  
-
 MongoDB should be run locally or via a managed cluster.  
 
 ---
 
-### Running Services Locally
+### Running Services Locally with Docker Compose
+The best way to run all services without managing dependencies manually is by using Docker Compose. It also allows you to run individual services independently while developing.
 
-**Backend**  
+1. Install docker compose (Linux)
 ```bash
-pytest
-python -m backend.app
+sudo apt-get update
+mkdir -p ~/.docker/cli-plugins;
+curl -SL https://github.com/docker/compose/releases/download/v2.36.2/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+
+docker compose version
 ```
 
-**Web UI**  
+2. Build containers
 ```bash
-cd webui
-npm run dev
+docker compose build
+or
+docker compose build <service>
 ```
 
-**Desktop UI**  
+3. Run containeers
 ```bash
-cd desktop
-npm run start
+docker compose run
+docker compose run <service>
 ```
 
----
-
-### OpenVPN to VPC (Dev/Test)
-
-```bash
-wget https://git.io/vpn -O openvpn-install.sh
-sudo chmod +x openvpn-install.sh
-sudo bash openvpn-install.sh
-```
-
-Add VPC routes in `/etc/openvpn/server/server.conf` and enable IP forwarding:  
-```bash
-# push "route 172.31.0.0 255.255.240.0"
-# push "route 172.31.32.0 255.255.240.0"
-sudo sysctl -w net.ipv4.ip_forward=1
-```
-
-Employees can then RDP to workstations via private IPs.  
+Cloudshield will hold all necessary files and states in /var/lib/cloudshield/
 
 ---
 

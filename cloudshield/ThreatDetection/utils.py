@@ -28,13 +28,13 @@ es = Elasticsearch(
 )
 try:
     es.ping()
-except:
+except Exception:
     server_logger.warning("Unable to connect to ElasticSearch instance")
 
 def es_log(index, doc):
     try:
         es.index(index=index, document=doc)
-    except:
+    except Exception:
         pass
 
 
@@ -62,7 +62,8 @@ def get_agents():
 def is_valid_agent(agents, ip, agent_id):
 
     for agent in agents:
-        if ip == agent["ip"] and agent_id == agent["agent_id"]: return True
+        if ip == agent["ip"] and agent_id == agent["agent_id"]: 
+            return True
     return False
 
 def get_ip(peer: str) -> str:
