@@ -44,13 +44,14 @@ def health_status() -> Tuple[Dict[str, Any], int]:
         return {"status": "degraded", "redis": False, "error": str(e)}, 503
     return {"status": "ok", "redis": bool(ping)}, 200
 
-def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
+def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0) -> Job:
     job = task_queue.enqueue(
         provision_network,
         org_id,
         region,
         ubuntu_ami,
         workstation_ami,
+        workstation_count,
         job_timeout=JOB_TIMEOUT,
     )
     # Avoid logging user-controlled identifiers

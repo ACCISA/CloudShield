@@ -116,12 +116,12 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         raise
 
 
-def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
+def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
     """
     Provisions the full network using Terraform templates.
     Calls the main() function from cloudshield/Cloud/terraform/main.py
     """
-    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
+    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d", org_id, region, ubuntu_ami, workstation_ami, workstation_count)
     job = get_current_job()
     if job is not None:
         job.meta["progress"] = "starting"
@@ -143,6 +143,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 region=region,
                 templates_dir=templates_dir,
                 generated_dir=generated_dir,
+                count=workstation_count,
                 server_logger=logger
         )
         
