@@ -2,6 +2,7 @@ from rq import get_current_job
 import os
 import subprocess
 from pathlib import Path
+from collections import deque
 
 # Add the Cloud/terraform directory to the path to import main and destroy_infra
 #base_dir = Path(__file__).resolve().parents[1]
@@ -27,7 +28,7 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
     
     logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
     
-    all_output = []  # Capture everything
+    all_output = deque(maxlen=100)
     
     proc = subprocess.Popen(
         cmd,
@@ -40,15 +41,14 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
     assert proc.stdout is not None
     for line in proc.stdout:
         stripped = line.rstrip()
-        all_output.append(stripped)  # Save it
+        all_output.append(stripped)
         logger.debug("[cmd output] %s", stripped)
         yield stripped
     
     proc.wait()
     if proc.returncode != 0:
         logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
-        # Log the last 30 lines before failure
-        logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
+        logger.error("Last 30 lines of output:\n" + "\n".join(list(all_output)[-30:]))
         raise subprocess.CalledProcessError(proc.returncode, cmd)
     
     logger.debug("Command succeeded: %s", " ".join(cmd))

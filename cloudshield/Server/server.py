@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import logging
 import uuid
+from time import time
 from dotenv import load_dotenv
 
 from flask import Flask, request, jsonify, g
@@ -66,12 +67,41 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
 # Global JSON guard for write methods
 @app.before_request
 def _ensure_json_on_writes():
+    # Track request start time for performance monitoring
+    g.start_time = time()
+    
     _request_id()  # ensure request_id is always set
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         # Allow empty body for certain routes (like DELETE /users/<id>)
         if request.data and not request.is_json:
             # Content-Type missing or not JSON
             raise BadRequest("Expected application/json body")
+
+
+@app.after_request
+def _add_performance_headers(response):
+    """Add response time tracking and log slow requests.
+    
+    Performance optimization: Adds X-Response-Time header to all responses
+    and automatically logs requests that take longer than 500ms for monitoring.
+    """
+    if hasattr(g, 'start_time'):
+        elapsed_ms = (time() - g.start_time) * 1000
+        
+        # Add header for client-side monitoring and debugging
+        response.headers['X-Response-Time'] = f"{elapsed_ms:.2f}ms"
+        
+        # Log slow requests for investigation
+        if elapsed_ms > 500:
+            logger.warning(
+                "Slow request: %s %s - %.2fms (request_id=%s)",
+                request.method,
+                request.path,
+                elapsed_ms,
+                getattr(g, 'request_id', 'unknown')
+            )
+    
+    return response
 
 
 # Error handlers (Validation & Error Handling)
