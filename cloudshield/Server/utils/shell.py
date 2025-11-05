@@ -1,6 +1,6 @@
 from __future__ import annotations
 import subprocess
-from typing import Iterable, Optional, List
+from typing import Optional, List
 
 def run_stream(cmd: list[str], *, cwd: str, env: Optional[dict] = None, logger=None, tail_keep: int = 50) -> List[str]:
     """

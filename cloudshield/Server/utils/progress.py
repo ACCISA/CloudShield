@@ -1,6 +1,5 @@
 from __future__ import annotations
 from rq import get_current_job
-from typing import Optional
 
 def set_progress(text: str) -> None:
     """
