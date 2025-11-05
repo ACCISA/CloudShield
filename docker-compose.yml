@@ -101,14 +101,12 @@ services:
 
   ui:
     build:
-      context: ./WebUI                 # path to your UI project (you were in WebUI %)
+      context: .                # path to your UI project (you were in WebUI %)
       dockerfile: docker/Dockerfile.ui
     container_name: cs-ui
     environment:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
-    depends_on:
-      - api
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.20

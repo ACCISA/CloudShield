@@ -1,13 +1,12 @@
 FROM node:20-alpine
 
-WORKDIR /app
-
-# Install deps first for better layer caching
-COPY package*.json ./
-RUN npm ci
+WORKDIR /
 
 # Bring in the app code
-COPY . .
+COPY cloudshield/WebUI .
+RUN ls -la
+RUN pwd
+RUN npm install
 
 EXPOSE 5173
 
