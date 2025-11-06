@@ -3,250 +3,228 @@ import unittest.mock
 import subprocess
 from types import SimpleNamespace
 
-
-def test_run_command_yields_output(monkeypatch, caplog):
+def test_run_stream_returns_tail_and_logs(monkeypatch, caplog):
     import logging
-    from cloudshield.Server.tasks.network_provisioning import _run
-    
+    from cloudshield.Server.utils.shell import run_stream
+
     logger = logging.getLogger("test")
     caplog.set_level(logging.DEBUG, logger="test")
-    
+
     # Mock Popen
     mock_proc = unittest.mock.MagicMock()
     mock_proc.stdout = iter(["line1\n", "line2\n", "line3\n"])
     mock_proc.returncode = 0
-    
+
     def fake_popen(*args, **kwargs):
         return mock_proc
-    
+
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    
-    output = list(_run(["echo", "test"], cwd="/tmp", logger=logger))
-    
-    assert output == ["line1", "line2", "line3"]
+
+    tail = run_stream(["echo", "test"], cwd="/tmp", logger=logger, tail_keep=50)
+    assert tail == ["line1", "line2", "line3"]
     assert "line1" in caplog.text
 
 
-def test_run_command_raises_on_failure(monkeypatch):
+def test_run_stream_raises_on_failure(monkeypatch):
     import logging
-    from cloudshield.Server.tasks.network_provisioning import _run
-    
+    from cloudshield.Server.utils.shell import run_stream
+
     logger = logging.getLogger("test")
-    
-    # Mock Popen with failure
+
     mock_proc = unittest.mock.MagicMock()
     mock_proc.stdout = iter(["error line\n"])
     mock_proc.returncode = 1
-    
+
     def fake_popen(*args, **kwargs):
         return mock_proc
-    
+
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    
+
     with pytest.raises(subprocess.CalledProcessError):
-        list(_run(["false"], cwd="/tmp", logger=logger))
+        run_stream(["false"], cwd="/tmp", logger=logger)
 
 
-def test_run_command_with_env(monkeypatch):
+def test_run_stream_passes_env(monkeypatch):
     import logging
-    from cloudshield.Server.tasks.network_provisioning import _run
-    
+    from cloudshield.Server.utils.shell import run_stream
+
     logger = logging.getLogger("test")
-    
-    # Track the env passed to Popen
+
     popen_kwargs = {}
-    
     mock_proc = unittest.mock.MagicMock()
-    mock_proc.stdout = iter(["test\n"])
+    mock_proc.stdout = iter(["ok\n"])
     mock_proc.returncode = 0
-    
+
     def fake_popen(*args, **kwargs):
         popen_kwargs.update(kwargs)
         return mock_proc
-    
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    
-    env = {"TEST_VAR": "value"}
-    list(_run(["echo", "test"], cwd="/tmp", env=env, logger=logger))
-    
-    assert popen_kwargs["env"] == env
 
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    env = {"TEST_VAR": "value"}
+    run_stream(["echo", "ok"], cwd="/tmp", env=env, logger=logger)
+    assert popen_kwargs["env"] == env
 
 def test_provision_workstations_work_dir_missing(monkeypatch):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
-    
+
     # Mock get_current_job
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
+
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
+
     with pytest.raises(FileNotFoundError):
         provision_workstations("nonexistent_org")
 
 
 def test_provision_workstations_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
-    
-    # Create work directory structure
+    import cloudshield.Server.tasks.network_provisioning as np_module
+
+    # Create work directory structure mimicking parents[1]/Cloud/runs/{org}
     base_dir = tmp_path / "cloudshield" / "Server"
     runs_dir = base_dir / "Cloud" / "runs" / "test_org"
     runs_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Mock get_current_job
+
+    # Point module __file__ so parents[1] resolves to base_dir
+    monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
+
+    # Mock job/progress
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
+
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock Path(__file__).resolve().parents[1] to return our base_dir
-    import cloudshield.Server.tasks.network_provisioning as np_module
-    monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
-    
-    # Mock _run to return success
-    def fake_run(cmd, cwd, env=None, logger=None):
-        yield "Apply complete!"
-    
+
+    # IMPORTANT: run_stream is imported into the module namespace; patch there
+    def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
+        return ["Apply complete!"]
+
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.network_provisioning._run",
-        fake_run
+        "cloudshield.Server.tasks.network_provisioning.run_stream",
+        fake_run_stream
     )
-    
+
     result = provision_workstations("test_org", count=2)
-    
     assert "complete" in result["message"].lower()
     assert mock_job.meta["progress"] == "completed"
 
 
 def test_provision_workstations_failure(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
-    
-    # Create work directory structure
+    import cloudshield.Server.tasks.network_provisioning as np_module
+
     base_dir = tmp_path / "cloudshield" / "Server"
     runs_dir = base_dir / "Cloud" / "runs" / "test_org"
     runs_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Mock get_current_job
+    monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
+
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
+
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock Path(__file__).resolve().parents[1]
-    import cloudshield.Server.tasks.network_provisioning as np_module
-    monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
-    
-    # Mock _run to raise an error
-    def fake_run(cmd, cwd, env=None, logger=None):
+
+    def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
         raise subprocess.CalledProcessError(1, cmd)
-        yield  # Make it a generator
-    
+
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.network_provisioning._run",
-        fake_run
+        "cloudshield.Server.tasks.network_provisioning.run_stream",
+        fake_run_stream
     )
-    
+
     with pytest.raises(subprocess.CalledProcessError):
         provision_workstations("test_org")
-    
+
     assert "failed" in mock_job.meta["progress"]
 
 
 def test_provision_network_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_network
-    
-    # Mock get_current_job
+
+    # Mock job/logger
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock provision_network_terraform
-    metadata = [
-        {
-            "public_ip": "1.2.3.4",
-            "private_ip": "10.0.0.1",
-            "vpc_id": "vpc-123",
-            "name": "test-instance",
-            "ssh_key": "test_key",
-            "ami_id": "ami-123",
-            "cpu": 2,
-            "created_at": "2025-01-01",
-            "instance_id": "i-123",
-            "os": "Ubuntu",
-            "ports": ["sg-123"],
-            "ram_gb": "4GB",
-            "status": "running",
-            "storage_size_gb": 50,
-            "subnet_id": "subnet-123",
-            "updated_at": "2025-01-01"
-        }
-    ]
-    
+
+    # TF metadata that provisioner returns
+    metadata = [{
+        "public_ip": "1.2.3.4",
+        "private_ip": "10.0.0.1",
+        "vpc_id": "vpc-123",
+        "name": "test-instance",
+        "ssh_key": "test_key",
+        "ami_id": "ami-123",
+        "cpu": 2,
+        "created_at": "2025-01-01",
+        "instance_id": "i-123",
+        "os": "Ubuntu",
+        "ports": ["sg-123"],
+        "ram_gb": "4GB",
+        "status": "running",
+        "storage_size_gb": 50,
+        "subnet_id": "subnet-123",
+        "updated_at": "2025-01-01",
+    }]
+
+    # Mock provisioner
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
         lambda org_id, region, templates_dir, generated_dir, server_logger: metadata
     )
-    
-    # Mock database
+
+    # NEW: we now call insert_inventory(...) not db.itam.insert_one
     mock_insert_result = SimpleNamespace(inserted_id="inventory_123")
-    mock_itam_db = unittest.mock.MagicMock()
-    mock_itam_db.insert_one.return_value = mock_insert_result
-    
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.insert_inventory",
+        lambda db, org_id, assets: mock_insert_result
+    )
+
+    # Still pass a mock db object into the module (used by insert_inventory call)
     mock_db = unittest.mock.MagicMock()
-    mock_db.itam = mock_itam_db
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.db",
         mock_db
     )
-    
+
     result = provision_network("test_org")
-    
     assert "complete" in result["message"].lower()
     assert result["metadata"] == metadata
     assert mock_job.meta["progress"] == "completed"
@@ -254,114 +232,103 @@ def test_provision_network_success(monkeypatch, tmp_path):
 
 def test_provision_network_returns_none(monkeypatch):
     from cloudshield.Server.tasks.network_provisioning import provision_network
-    
-    # Mock get_current_job
+
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock provision_network_terraform to return None
+
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
         lambda org_id, region, templates_dir, generated_dir, server_logger: None
     )
-    
+
     result = provision_network("test_org")
-    
     assert "failed" in result["message"].lower()
     assert mock_job.meta["progress"] == "failed"
-
+    assert "details" in mock_job.meta
 
 def test_provision_network_without_job(monkeypatch):
     from cloudshield.Server.tasks.network_provisioning import provision_network
-    
-    # No job
+
+    # No job present
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: None
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock provision_network_terraform
-    metadata = []
+
+    # Empty metadata
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: metadata
+        lambda org_id, region, templates_dir, generated_dir, server_logger: []
     )
-    
-    # Should not raise an error
+    # insert_inventory still called; stub it
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.insert_inventory",
+        lambda db, org_id, assets: SimpleNamespace(inserted_id="x")
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.db",
+        unittest.mock.MagicMock()
+    )
+
     result = provision_network("test_org")
     assert result is not None
 
 
 def test_destroy_environment_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import destroy_environment
-    
-    # Create generated directory
-    generated_dir = tmp_path / "terraform" / "generated" / "test_org"
+
+    # Create generated directory under CLOUDSHIELD_JOBS_DIR/terraform/generated/{org}
+    jobs_dir = tmp_path
+    generated_dir = jobs_dir / "terraform" / "generated" / "test_org"
     generated_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Mock get_current_job
+
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock CLOUDSHIELD_JOBS_DIR
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
-        str(tmp_path)
+        str(jobs_dir)
     )
-    
-    # Mock destroy_infra
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.destroy_infra",
         lambda org_id, region, force_empty_s3, org_dir, server_logger: None
     )
-    
-    # Mock database
-    mock_itam_db = unittest.mock.MagicMock()
-    mock_itam_db.find_one_and_delete.return_value = {"org_id": "test_org"}
-    
-    mock_db = unittest.mock.MagicMock()
-    mock_db.itam = mock_itam_db
-    
+
+    # NEW: delete via repo helper, not db directly
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.delete_inventory_by_org",
+        lambda db, org_id: {"org_id": org_id}
+    )
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.db",
-        mock_db
+        unittest.mock.MagicMock()
     )
-    
+
     result = destroy_environment("test_org", force=True)
-    
     assert "complete" in result["message"].lower()
     assert result["removed_dir"] is True
     assert mock_job.meta["progress"] == "completed destroy"
@@ -369,76 +336,62 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
 
 def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import destroy_environment
-    
-    # Mock get_current_job
+
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock CLOUDSHIELD_JOBS_DIR to point to non-existent directory
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
         str(tmp_path)
     )
-    
+
     result = destroy_environment("nonexistent_org")
-    
     assert "No run directory found" in result["message"]
     assert result["removed_dir"] is False
 
 
 def test_destroy_environment_failure(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import destroy_environment
-    
-    # Create generated directory
-    generated_dir = tmp_path / "terraform" / "generated" / "test_org"
+
+    jobs_dir = tmp_path
+    generated_dir = jobs_dir / "terraform" / "generated" / "test_org"
     generated_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Mock get_current_job
+
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
-    
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    
-    # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
     )
-    
-    # Mock CLOUDSHIELD_JOBS_DIR
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
-        str(tmp_path)
+        str(jobs_dir)
     )
-    
-    # Mock destroy_infra to raise error
+
     def fake_destroy(*args, **kwargs):
         raise Exception("Destroy failed")
-    
+
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.destroy_infra",
         fake_destroy
     )
-    
+
     with pytest.raises(Exception):
         destroy_environment("test_org")
-    
+
     assert "failed destroy" in mock_job.meta["progress"]
