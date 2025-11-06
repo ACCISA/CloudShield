@@ -228,6 +228,7 @@ export default function Sidebar({ mode = 'full', collapsed, onToggleCollapse }) 
         <IconButton
           size="small"
           onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
             backgroundColor: '#1f1f1f',
             borderRadius: '8px',

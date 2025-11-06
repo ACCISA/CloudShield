@@ -2,13 +2,18 @@
  * WorkstationList.jsx
  *
  * Purpose:
- *   Render a list/grid of workstation rows with actions like edit and connect/disconnect.
+ *   Render a list of workstation rows with actions like edit and connect/disconnect,
+ *   matching the mock (avatar stack for Users, dot-only for Current, chip-style status).
  *
  * Props:
  *   - rows: array of workstation objects to display
- *   - onEdit: callback(row) when edit icon clicked
- *   - onToggleStatus: callback(id) to toggle connection status
+ *   - onEdit(row)
+ *   - onToggleStatus(id)
+ *   - showUsers: boolean (Display control)
+ *   - showCurrent: boolean (Display control)
+ *   - showLastUsed: boolean (Display control)
  */
+
 import React from 'react';
 import {
   Box,
@@ -16,90 +21,124 @@ import {
   IconButton,
   Chip,
   Checkbox,
-  Button,
   Tooltip,
+  Avatar,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
-/**
- * Renders a status chip based on workstation connection state.
- * @param {Object} props
- * @param {('connected'|'busy'|string)} props.status - Workstation status
- * @returns {JSX.Element} Status chip with appropriate styling
- */
+/* ---------------------------- helpers & visuals ---------------------------- */
+
+const colorPool = ['#6573C3', '#00B0FF', '#66BB6A', '#FFB74D', '#BA68C8', '#EF5350'];
+const initials = (name = '—') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(s => s[0]?.toUpperCase())
+    .join('');
+
+function tinyAvatar(name, i) {
+  return (
+    <Avatar
+      key={`${name}-${i}`}
+      sx={{
+        width: 24,
+        height: 24,
+        fontSize: '0.7rem',
+        bgcolor: colorPool[i % colorPool.length],
+        border: '2px solid #0F0F0F',
+      }}
+    >
+      {initials(name)}
+    </Avatar>
+  );
+}
+
+function UsersPill({ row }) {
+  const list = Array.isArray(row.users) && row.users.length
+    ? row.users
+    : [row.currentUser || '—', 'Michael Scott', 'Dwight Schrute'];
+
+  const show = list.slice(0, 3);
+  const extra = Math.max((row.usersCount ?? list.length) - show.length, 0);
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {show.map((n, idx) => (
+          <Box key={n + idx} sx={{ ml: idx === 0 ? 0 : '-8px' }}>
+            {tinyAvatar(n, idx)}
+          </Box>
+        ))}
+      </Box>
+      {extra > 0 && (
+        <Typography sx={{ ml: 1, fontSize: '0.9rem', opacity: 0.85 }}>+ {extra}</Typography>
+      )}
+    </Box>
+  );
+}
+
 function StatusChip({ status }) {
-  if (status === 'connected') {
-    return (
-      <Chip
-        label="Connect"
-        size="small"
-        icon={<Box sx={{
-          width: 10, height: 10, bgcolor: '#1eff6d', borderRadius: '999px', mr: '4px'
-        }}/>}
-        sx={{
-          color: '#fff',
-          backgroundColor: '#0e6b2f',
-          borderRadius: '22px',
-          px: 1,
-          '& .MuiChip-icon': { ml: '4px' },
-        }}
-      />
-    );
-  }
   if (status === 'busy') {
     return (
       <Chip
         label="Disconnect"
         size="small"
-        icon={
-          <Box sx={{
-            width: 10, height: 10, bgcolor: '#fff', borderRadius: '999px', mr: '4px'
-          }}/>
-        }
         sx={{
           color: '#fff',
           backgroundColor: '#7c1d1d',
           borderRadius: '22px',
-          px: 1,
-          '& .MuiChip-icon': { ml: '4px' },
+          px: 1.25,
         }}
       />
     );
   }
+  // connected or disconnected both show green "Connect" in the mock
   return (
     <Chip
       label="Connect"
       size="small"
-      icon={<Box sx={{ width: 10, height: 10, bgcolor: '#1eff6d', borderRadius: '999px', mr: '4px' }}/>}
       sx={{
         color: '#fff',
-        backgroundColor: '#0e6b2f',
+        backgroundColor: '#116e34',
         borderRadius: '22px',
-        px: 1,
-        '& .MuiChip-icon': { ml: '4px' },
+        px: 1.25,
       }}
     />
   );
 }
 
-/**
- * Renders a list of workstation rows with edit and status toggle actions.
- * @param {Object} props
- * @param {Array<Object>} props.rows - Array of workstation data objects
- * @param {Function} props.onEdit - Called with workstation row when edit clicked
- * @param {Function} props.onToggleStatus - Called with workstation ID when status toggled
- * @returns {JSX.Element} List of workstation rows
- */
-export default function WorkstationList({ rows, onEdit, onToggleStatus }) {
+/* --------------------------------- component -------------------------------- */
+
+export default function WorkstationList({
+  rows,
+  onEdit,
+  onToggleStatus,
+  showUsers = true,
+  showCurrent = true,
+  showLastUsed = true,
+}) {
+  // Build grid template dynamically based on which columns are visible.
+  const cols = [
+    '28px',           // checkbox
+    '1.2fr',          // name/code with icon
+    showUsers ? '0.9fr' : null,
+    showCurrent ? '0.6fr' : null,
+    showLastUsed ? '0.8fr' : null,
+    '0.7fr',          // chip
+    '0.25fr',         // status light
+    '0.25fr',         // edit
+  ].filter(Boolean);
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {rows.map((r, idx) => (
         <Box key={r.id}>
-          {/* row */}
+          {/* Row */}
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '28px 1fr 260px 220px 180px 180px 120px 80px',
+              gridTemplateColumns: cols.join(' '),
               alignItems: 'center',
               gap: '12px',
               color: '#fff',
@@ -117,49 +156,35 @@ export default function WorkstationList({ rows, onEdit, onToggleStatus }) {
               }}
             />
 
-            {/* name + code */}
-            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Typography sx={{ fontWeight: 600 }}>{r.name}</Typography>
-              <Typography sx={{ fontSize: '0.85rem', opacity: 0.8 }}>↳ {r.code}</Typography>
+            {/* name + code + leading circle */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Box sx={{ width: 28, height: 28, borderRadius: '999px', bgcolor: '#2A2A2A' }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography sx={{ fontWeight: 600, lineHeight: 1.15 }}>{r.name}</Typography>
+                <Typography sx={{ fontSize: '0.85rem', opacity: 0.85, mt: '2px' }}>↳ {r.code}</Typography>
+              </Box>
             </Box>
 
             {/* users */}
-            <Typography sx={{ opacity: 0.9 }}>
-              Users: <strong>{r.usersCount}</strong>
-            </Typography>
+            {showUsers && <UsersPill row={r} />}
 
-            {/* current */}
-            <Typography sx={{ opacity: 0.9 }}>
-              Current: <strong>{r.currentUser}</strong>
-            </Typography>
+            {/* current -> dot only */}
+            {showCurrent && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ width: 14, height: 14, borderRadius: '999px', bgcolor: '#8A8A8A' }} />
+              </Box>
+            )}
 
             {/* last used */}
-            <Typography sx={{ opacity: 0.9 }}>
-              Last used: <strong>{r.lastUsed}</strong>
-            </Typography>
+            {showLastUsed && <Typography sx={{ opacity: 0.9 }}>{r.lastUsed || '—'}</Typography>}
 
-            {/* connect/disconnect button */}
-            <Box>
-              <Button
-                onClick={() => onToggleStatus(r.id)}
-                variant="contained"
-                disableElevation
-                sx={{
-                  color: '#fff',
-                  backgroundColor: r.status === 'connected' ? '#116e34' : r.status === 'busy' ? '#7c1d1d' : '#116e34',
-                  borderRadius: '999px',
-                  textTransform: 'none',
-                  px: 2,
-                  py: 0.5,
-                  '&:hover': { backgroundColor: r.status === 'busy' ? '#8a2323' : '#0f612d' },
-                }}
-              >
-                {r.status === 'connected' ? 'Connect' : r.status === 'busy' ? 'Disconnect' : 'Connect'}
-              </Button>
+            {/* status chip (click toggles) */}
+            <Box onClick={() => onToggleStatus?.(r.id)} sx={{ cursor: 'pointer' }}>
+              <StatusChip status={r.status} />
             </Box>
 
-            {/* red dot (status light) */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* status light */}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Box
                 sx={{
                   width: 10,
@@ -170,11 +195,11 @@ export default function WorkstationList({ rows, onEdit, onToggleStatus }) {
               />
             </Box>
 
-            {/* edit icon */}
+            {/* edit */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
               <Tooltip title="Edit workstation">
                 <IconButton
-                  onClick={() => onEdit(r)}
+                  onClick={() => onEdit?.(r)}
                   size="small"
                   sx={{
                     color: '#fff',
@@ -189,7 +214,7 @@ export default function WorkstationList({ rows, onEdit, onToggleStatus }) {
             </Box>
           </Box>
 
-          {/* divider line except last */}
+          {/* divider */}
           {idx !== rows.length - 1 && (
             <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', mx: 1 }} />
           )}

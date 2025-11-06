@@ -11,14 +11,15 @@ export default function App() {
   // TEMP auth simulation
   const [isAuthed, setIsAuthed] = useState(true); // set true for quicker dev; flip to false to test auth
 
+  const [isProvisioned, setIsProvisioned] = useState(true);
   // Provisioning gate
-  const [isProvisioned, setIsProvisioned] = useState(() => {
-    try {
-      return localStorage.getItem('isProvisioned') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // const [isProvisioned, setIsProvisioned] = useState(() => {
+  //   try {
+  //     return localStorage.getItem('isProvisioned') === 'true';
+  //   } catch {
+  //     return false;
+  //   }
+  // });
 
   const handleProvisioned = () => {
     setIsProvisioned(true);
@@ -87,7 +88,7 @@ export default function App() {
           element={
             isAuthed ? (
               isProvisioned ? (
-                <Navigate to="/workstations" replace />
+                <Navigate to="/dashboard" replace />
               ) : (
                 <Navigate to="/provisioning" replace />
               )
