@@ -9,6 +9,9 @@ logger = get_logger("api")
 
 api_bp = Blueprint("api", __name__)
 
+# Error messages
+ERROR_ORG_ID_REQUIRED = "org_id is required"
+
 
 @api_bp.route("/task/dc/add_user", methods=["POST"])
 def task_dc_add_user():
@@ -38,7 +41,7 @@ def task_provision():
 
     if not org_id:
         logger.warning("Provision request missing org_id")
-        return jsonify({"error": "org_id is required"}), 400
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
     job = service_dispatcher("provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
 
@@ -54,7 +57,7 @@ def task_provision_workstations():
 
     if not org_id:
         logger.warning("Provision workstations request missing org_id")
-        return jsonify({"error": "org_id is required"}), 400\
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400\
 
     count = data.get("count", 1)
     job = service_dispatcher("provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
@@ -71,7 +74,7 @@ def task_destroy():
 
     if not org_id:
         logger.warning("Destroy request missing org_id")
-        return jsonify({"error": "org_id is required"}), 400
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
     job = service_dispatcher("destroy", org_id=org_id, force=data.get("force", False))
 

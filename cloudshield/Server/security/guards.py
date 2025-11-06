@@ -6,7 +6,9 @@ from .jwt_utils import verify_token
 try:
     from utils.audit import log_denied
 except Exception:
-    def log_denied(**kwargs): pass
+    def log_denied(**kwargs):
+        """Fallback no-op function when audit module is unavailable."""
+        pass
 
 
 def require_auth(fn):

@@ -2,7 +2,7 @@
 import os
 import shutil
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import logging
@@ -232,7 +232,7 @@ def get_ec2_ips(region: str, org_id: str):
                 "ram_gb": inst.get("InstanceType"),
                 "storage_size_gb": storage_size_gb,
                 "created_at": inst["LaunchTime"].strftime("%Y-%m-%d %H:%M:%S"),
-                "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                 "ports": [sg["GroupId"] for sg in inst.get("SecurityGroups", [])],
                 "status": inst["State"]["Name"],
                 "private_ip": inst.get("PrivateIpAddress"),

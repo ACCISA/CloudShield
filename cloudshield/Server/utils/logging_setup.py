@@ -3,7 +3,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 BASE_LOG_DIR = Path(os.getenv("CLOUDSHIELD_LOG_DIR", "logs"))
 BASE_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,7 +87,7 @@ def summarize_job_log(job_id: str, org_id: str, status: str = "completed") -> di
         "status": status,
         "log_path": str(log_path),
         "size_bytes": size_bytes,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -98,11 +98,11 @@ def get_job_log_path(job_id: str) -> Path:
 
 def cleanup_old_logs(days: int = 30):
     """Remove job logs older than specified days."""
-    cutoff = datetime.now() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     deleted = 0
     for log_file in JOB_LOG_DIR.glob("job_*.log"):
         try:
-            if datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff:
+            if datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc) < cutoff:
                 log_file.unlink()
                 deleted += 1
         except Exception as e:
