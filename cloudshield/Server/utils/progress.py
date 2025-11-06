@@ -11,7 +11,6 @@ def set_progress(text: str) -> None:
         job.meta["progress"] = text
         job.save_meta()
 
-
 def get_job_id_fallback() -> str:
     job = get_current_job()
     return job.id if job else "unknown"
