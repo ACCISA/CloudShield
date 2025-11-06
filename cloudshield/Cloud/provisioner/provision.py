@@ -1,5 +1,4 @@
-# python cloudshield/Cloud/terraform/main.py --org-id=<THE ORG ID>
-
+"""Terraform-based AWS infrastructure provisioning for CloudShield organizations."""
 import os
 import shutil
 import subprocess
@@ -10,18 +9,13 @@ import logging
 from botocore.exceptions import ClientError, WaiterError
 
 
-# PATHS
 BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
-logger = logging.getLogger() # This logger should only get used during testing, prod logger is set from func call to provision_network_terraform
+logger = logging.getLogger()
 
 
-# COPY & REPLACE TEMPLATES
 def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str:
-    """
-    Copies Terraform templates into a dedicated org folder
-    and replaces placeholders with the organization ID.
-    """
+    """Copy Terraform templates to org-specific folder and inject organization ID."""
     target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
     target_dir = os.path.abspath(target_dir)
 
@@ -55,9 +49,8 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
     return target_dir
 
 
-# RUN TERRAFORM
 def cleanup_iam_artifacts(org_id: str, region: str) -> None:
-    """Remove leftover IAM role/profile/key pair from previous runs so Terraform can recreate them cleanly."""
+    """Remove leftover IAM resources to allow Terraform clean recreation."""
     iam = boto3.client("iam")
     role_name = f"{org_id}-cloudshield-builder-role"
     profile_name = f"{org_id}-cloudshield-builder-profile"
@@ -65,12 +58,11 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
 
     logger.info(f"[~] Checking for leftover IAM role/profile for {org_id}...")
 
-    # Instance profile must no longer reference the role before either can be deleted
     try:
         profile = iam.get_instance_profile(InstanceProfileName=profile_name)
     except ClientError as exc:
         if exc.response["Error"].get("Code") != "NoSuchEntity":
-            raise  # pragma: no cover
+            raise
         profile = None
 
     if profile:
@@ -192,17 +184,13 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
     logger.info(f"Terraform apply output:\n{apply_result.stdout}")
 
     logger.info("[~] Applying phase2.plan ...")
-    #subprocess.run(["terraform", "apply", "phase2.plan"], cwd=terraform_dir, check=True)
 
     logger.info("[✓] Terraform apply complete for all resources.")
 
-# FETCH EC2 METADATA
+
 def get_ec2_ips(region: str, org_id: str):
+    """Fetch detailed EC2 instance metadata for a given org."""
     global logger
-    """
-    Fetch detailed EC2 instance metadata for a given org.
-    Returns a list of instance dicts including name, IPs, specs, and status.
-    """
     ec2 = boto3.client("ec2", region_name=region)
     reservations = ec2.describe_instances()["Reservations"]
 

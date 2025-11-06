@@ -1,3 +1,4 @@
+"""gRPC threat detection server with agent authentication and heartbeat monitoring."""
 import time
 import threading
 import grpc
@@ -15,6 +16,7 @@ heartbeats = {}
 
 
 def log_heartbeat(agent_id, method):
+    """Record agent heartbeat with method name."""
     global heartbeats
     logged_heartbeats = heartbeats.get(agent_id, None)
 
@@ -26,13 +28,14 @@ def log_heartbeat(agent_id, method):
 
 
 class ClientIPInterceptor(grpc.ServerInterceptor):
+    """gRPC interceptor for IP-based agent authentication and heartbeat tracking."""
+
     def intercept_service(self, continuation, handler_call_details):
         method_name = handler_call_details.method
         handler = continuation(handler_call_details)
         if handler is None:
-            return None  # no handler found, skip
+            return None
 
-        # Wrap unary-unary calls (most common)
         if handler.unary_unary:
             def new_unary_unary(request, context):
                 peer = context.peer()
@@ -43,7 +46,6 @@ class ClientIPInterceptor(grpc.ServerInterceptor):
                     ip = peer.split("]:")[0][5:]
                 else:
                     ip = "unknown"
-                #print(f"[Interceptor] Client IP: {ip}")
                 if not is_valid_agent(agents, ip, agent_id):
                     interceptor_logger.warning("invalid agent tried to talk to grpc")
                     context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid Agent")
@@ -63,7 +65,9 @@ class ClientIPInterceptor(grpc.ServerInterceptor):
 
         return handler
 
+
 def serve(bind_address="0.0.0.0:50051"):
+    """Start gRPC server with agent authentication interceptor."""
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),
         interceptors=[ClientIPInterceptor()]

@@ -1,38 +1,35 @@
+"""Centralized logging configuration for CloudShield with job-specific logging."""
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime, timedelta
 
-# Base configuration
 BASE_LOG_DIR = Path(os.getenv("CLOUDSHIELD_LOG_DIR", "logs"))
 BASE_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 JOB_LOG_DIR = BASE_LOG_DIR / "jobs"
 JOB_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Either DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_LEVEL = os.getenv("CLOUDSHIELD_LOG_LEVEL", "INFO").upper()
-MAX_BYTES = 10 * 1024 * 1024  #10MB
+MAX_BYTES = 10 * 1024 * 1024
 BACKUP_COUNT = 5
 
 
 def _create_formatter() -> logging.Formatter:
-    """Consistent format for all CloudShield logs."""
+    """Create consistent log format for all CloudShield logs."""
     fmt = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
     return logging.Formatter(fmt)
 
 
 def _add_handlers(logger: logging.Logger, log_path: Path):
-    """Attach console + file handlers with rotation."""
+    """Attach console and rotating file handlers to logger."""
     formatter = _create_formatter()
 
-    # Console output
     console = logging.StreamHandler()
     console.setFormatter(formatter)
     logger.addHandler(console)
 
-    # File handler
     file_handler = RotatingFileHandler(
         log_path,
         maxBytes=MAX_BYTES,
@@ -45,7 +42,7 @@ def _add_handlers(logger: logging.Logger, log_path: Path):
 
 def get_logger(context: str = "api", job_id: str | None = None) -> logging.Logger:
     """
-    Get a CloudShield logger instance.
+    Get or create CloudShield logger instance.
 
     Usage:
       - get_logger("api")                  → logs/server.log
@@ -59,11 +56,9 @@ def get_logger(context: str = "api", job_id: str | None = None) -> logging.Logge
     if logger.handlers:
         return logger
 
-    # Level setup
     level = getattr(logging, LOG_LEVEL, logging.INFO)
     logger.setLevel(level)
 
-    # File destination
     if context == "api":
         log_path = BASE_LOG_DIR / "server.log"
     elif context == "job" and job_id:
@@ -79,10 +74,7 @@ def get_logger(context: str = "api", job_id: str | None = None) -> logging.Logge
 
 
 def summarize_job_log(job_id: str, org_id: str, status: str = "completed") -> dict:
-    """
-    Return a JSON-serializable summary for MongoDB.
-    Used after a job finishes.
-    """
+    """Generate JSON-serializable summary of job log for MongoDB storage."""
     log_path = JOB_LOG_DIR / f"job_{job_id}.log"
     try:
         size_bytes = log_path.stat().st_size
@@ -100,12 +92,12 @@ def summarize_job_log(job_id: str, org_id: str, status: str = "completed") -> di
 
 
 def get_job_log_path(job_id: str) -> Path:
-    """Return absolute path of a job's log file."""
+    """Get absolute path to job log file."""
     return JOB_LOG_DIR / f"job_{job_id}.log"
 
 
 def cleanup_old_logs(days: int = 30):
-    """Delete job logs older than N days"""
+    """Remove job logs older than specified days."""
     cutoff = datetime.now() - timedelta(days=days)
     deleted = 0
     for log_file in JOB_LOG_DIR.glob("job_*.log"):

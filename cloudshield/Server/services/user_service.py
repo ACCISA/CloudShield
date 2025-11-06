@@ -1,3 +1,4 @@
+"""User management service layer with audit logging."""
 from bson import ObjectId
 from datetime import datetime, timezone
 from ..utils import users_admin, users_public
@@ -5,11 +6,29 @@ from ..utils import log_audit
 from ..models import UserCreate, UserUpdate
 from ..security import hash_password
 
-def _must_admin(current_user):
+
+def _must_admin(current_user: dict | None) -> None:
+    """Ensure current user has admin role."""
     if not current_user or current_user.get("role") != "admin":
         raise PermissionError("admin_only")
 
-def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None):
+
+def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
+    """
+    Create a new user account with audit logging.
+    
+    Args:
+        user_data: Validated user creation data (email, password, role, org_id)
+        current_user: Admin user performing the creation
+        reason: Optional justification for audit trail
+        
+    Returns:
+        str: MongoDB ObjectId of created user
+        
+    Raises:
+        PermissionError: If current_user is not admin
+        ValueError: If email already exists in database
+    """
     _must_admin(current_user)
 
     if users_admin.find_one({"email": user_data.email}):
@@ -38,7 +57,9 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
     )
     return str(res.inserted_id)
 
-def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None):
+
+def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None) -> bool:
+    """Update user fields with audit logging."""
     _must_admin(current_user)
 
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
@@ -66,7 +87,9 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
     )
     return True
 
-def deactivate_user(user_id: str, current_user: dict, reason: str | None = None):
+
+def deactivate_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
+    """Set user status to inactive with audit logging."""
     _must_admin(current_user)
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
     if not before:
@@ -86,10 +109,11 @@ def deactivate_user(user_id: str, current_user: dict, reason: str | None = None)
     )
     return True
 
-def delete_user(user_id: str, current_user: dict, reason: str | None = None):
+
+def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
+    """Permanently delete user from database with audit logging."""
     _must_admin(current_user)
 
-    # Fetch BEFORE snapshot (to keep for audit even if delete succeeds)
     try:
         _id = ObjectId(user_id)
     except Exception:

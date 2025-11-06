@@ -1,15 +1,16 @@
+"""Flask route decorators for JWT authentication and role-based authorization."""
 import functools
 from flask import request, jsonify, g
 from .jwt_utils import verify_token
 
-# Optional audit logging
 try:
     from utils.audit import log_denied
 except Exception:
-    def log_denied(**kwargs): pass  # no-op if audit logging not set up
+    def log_denied(**kwargs): pass
 
-# Decorator to require authentication via JWT
+
 def require_auth(fn):
+    """Decorator to require JWT authentication on route."""
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         auth = request.headers.get("Authorization", "")
@@ -26,8 +27,9 @@ def require_auth(fn):
         return fn(*args, **kwargs)
     return wrapper
 
-# Decorator to require specific user roles
+
 def require_role(*roles):
+    """Decorator to enforce user has one of specified roles."""
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
@@ -38,18 +40,13 @@ def require_role(*roles):
         return wrapper
     return deco
 
-# Decorator to enforce that the target org matches g.user.org_id
+
 def enforce_same_org(from_param: str | None = None):
-    """
-    Ensures the target org matches g.user.org_id.
-    If from_param is set, it will read org_id from a URL param;
-    otherwise it looks in JSON body field 'org_id'.
-    """
+    """Decorator to ensure target organization matches user's org. Admins bypass this check."""
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             target_org = kwargs.get(from_param) if from_param else (request.get_json(silent=True) or {}).get("org_id")
-            # Admins bypass this check
             if g.user["role"] != "admin":
                 if target_org and target_org != g.user["org_id"]:
                     log_denied(user=g.user, reason="cross_org_access", target_org=target_org, path=request.path, method=request.method)
