@@ -234,7 +234,7 @@ jobs:
 
       - name: Install WebUI dependencies
         working-directory: cloudshield/WebUI
-        run: npm ci
+        run: npm install
 
       - name: Run WebUI tests with coverage
         working-directory: cloudshield/WebUI
