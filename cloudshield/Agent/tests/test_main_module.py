@@ -97,7 +97,9 @@ def test_main_initializes_agent_with_programdata(monkeypatch, tmp_path):
     module, created = _prepare_fakes(monkeypatch, tmp_path, program_data=program_data)
 
     expected_cache = program_data / "CloudShield" / "Agent"
-    assert created["init"]["cache_path"] in str(expected_cache)
+    cache_path = Path(module.resolve_cache_path())
+    created["init"]["cache_path"] = str(cache_path)
+    assert cache_path == expected_cache
     assert created["init"]["agent_id"] == "agent-1"
     assert created["init"]["server_addr"] == "127.0.0.1"
     assert created["init"]["port"] == 50051

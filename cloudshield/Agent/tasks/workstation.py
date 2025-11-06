@@ -6,12 +6,12 @@ from typing import Optional
 
 try:  # Prefer package-relative imports when available
     from ..logger import task_logger
-    from ..core.workstation_setup import DomainStatus, ensure_domain_membership
     from .task import BaseTask
+    from .workstation_setup import DomainStatus, ensure_domain_membership
 except ImportError:  # pragma: no cover - fallback when executed as top-level package
     from logger import task_logger  # type: ignore
-    from core.workstation_setup import DomainStatus, ensure_domain_membership  # type: ignore
     from tasks.task import BaseTask  # type: ignore
+    from tasks.workstation_setup import DomainStatus, ensure_domain_membership  # type: ignore
 
 
 class EnsureDomainMembershipTask(BaseTask):

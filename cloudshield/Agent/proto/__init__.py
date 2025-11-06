@@ -1,11 +1,23 @@
 """Generated gRPC modules for the CloudShield Agent."""
-from proto import agent_pb2, agent_pb2_grpc
 
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import sys
 from types import ModuleType
+
+import grpc
+
+try:
+    # grpc 1.75 dropped ``__version__``; provide a stable fallback so generated
+    # stubs keep working without pinning an older release.
+    grpc.__version__  # type: ignore[attr-defined]
+except AttributeError:
+    try:
+        grpc.__version__ = importlib.metadata.version("grpcio")  # type: ignore[attr-defined]
+    except importlib.metadata.PackageNotFoundError:
+        grpc.__version__ = "0.0.0"  # type: ignore[attr-defined]
 
 __all__ = [
     "agent_pb2",
