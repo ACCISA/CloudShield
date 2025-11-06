@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import agent_pb2 as agent__pb2
+from proto import agent_pb2 as proto_dot_agent__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in agent_pb2_grpc.py depends on'
+        + f' but the generated code in proto/agent_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,38 +36,38 @@ class AgentServiceStub(object):
         """
         self.SendProcessList = channel.unary_unary(
                 '/AgentService/SendProcessList',
-                request_serializer=agent__pb2.ProcessList.SerializeToString,
-                response_deserializer=agent__pb2.ProcessListAck.FromString,
+                request_serializer=proto_dot_agent__pb2.ProcessList.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.ProcessListAck.FromString,
                 _registered_method=True)
         self.SendProcessListInformation = channel.unary_unary(
                 '/AgentService/SendProcessListInformation',
-                request_serializer=agent__pb2.ProcessListAckRes.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.ProcessListAckRes.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
         self.SendWorkstationInit = channel.unary_unary(
                 '/AgentService/SendWorkstationInit',
-                request_serializer=agent__pb2.WorkstationInit.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.WorkstationInit.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
         self.SendNetworkConnections = channel.unary_unary(
                 '/AgentService/SendNetworkConnections',
-                request_serializer=agent__pb2.NetConnList.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.NetConnList.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
         self.SendEventLogs = channel.unary_unary(
                 '/AgentService/SendEventLogs',
-                request_serializer=agent__pb2.EventLogBatch.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.EventLogBatch.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
         self.SendServiceList = channel.unary_unary(
                 '/AgentService/SendServiceList',
-                request_serializer=agent__pb2.ServiceList.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.ServiceList.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
         self.SendDriverList = channel.unary_unary(
                 '/AgentService/SendDriverList',
-                request_serializer=agent__pb2.DriverList.SerializeToString,
-                response_deserializer=agent__pb2.Ack.FromString,
+                request_serializer=proto_dot_agent__pb2.DriverList.SerializeToString,
+                response_deserializer=proto_dot_agent__pb2.Ack.FromString,
                 _registered_method=True)
 
 
@@ -121,38 +121,38 @@ def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendProcessList': grpc.unary_unary_rpc_method_handler(
                     servicer.SendProcessList,
-                    request_deserializer=agent__pb2.ProcessList.FromString,
-                    response_serializer=agent__pb2.ProcessListAck.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.ProcessList.FromString,
+                    response_serializer=proto_dot_agent__pb2.ProcessListAck.SerializeToString,
             ),
             'SendProcessListInformation': grpc.unary_unary_rpc_method_handler(
                     servicer.SendProcessListInformation,
-                    request_deserializer=agent__pb2.ProcessListAckRes.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.ProcessListAckRes.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
             'SendWorkstationInit': grpc.unary_unary_rpc_method_handler(
                     servicer.SendWorkstationInit,
-                    request_deserializer=agent__pb2.WorkstationInit.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.WorkstationInit.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
             'SendNetworkConnections': grpc.unary_unary_rpc_method_handler(
                     servicer.SendNetworkConnections,
-                    request_deserializer=agent__pb2.NetConnList.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.NetConnList.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
             'SendEventLogs': grpc.unary_unary_rpc_method_handler(
                     servicer.SendEventLogs,
-                    request_deserializer=agent__pb2.EventLogBatch.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.EventLogBatch.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
             'SendServiceList': grpc.unary_unary_rpc_method_handler(
                     servicer.SendServiceList,
-                    request_deserializer=agent__pb2.ServiceList.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.ServiceList.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
             'SendDriverList': grpc.unary_unary_rpc_method_handler(
                     servicer.SendDriverList,
-                    request_deserializer=agent__pb2.DriverList.FromString,
-                    response_serializer=agent__pb2.Ack.SerializeToString,
+                    request_deserializer=proto_dot_agent__pb2.DriverList.FromString,
+                    response_serializer=proto_dot_agent__pb2.Ack.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -180,8 +180,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendProcessList',
-            agent__pb2.ProcessList.SerializeToString,
-            agent__pb2.ProcessListAck.FromString,
+            proto_dot_agent__pb2.ProcessList.SerializeToString,
+            proto_dot_agent__pb2.ProcessListAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -207,8 +207,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendProcessListInformation',
-            agent__pb2.ProcessListAckRes.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.ProcessListAckRes.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,
@@ -234,8 +234,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendWorkstationInit',
-            agent__pb2.WorkstationInit.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.WorkstationInit.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,
@@ -261,8 +261,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendNetworkConnections',
-            agent__pb2.NetConnList.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.NetConnList.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,
@@ -288,8 +288,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendEventLogs',
-            agent__pb2.EventLogBatch.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.EventLogBatch.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,
@@ -315,8 +315,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendServiceList',
-            agent__pb2.ServiceList.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.ServiceList.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,
@@ -342,8 +342,8 @@ class AgentService(object):
             request,
             target,
             '/AgentService/SendDriverList',
-            agent__pb2.DriverList.SerializeToString,
-            agent__pb2.Ack.FromString,
+            proto_dot_agent__pb2.DriverList.SerializeToString,
+            proto_dot_agent__pb2.Ack.FromString,
             options,
             channel_credentials,
             insecure,

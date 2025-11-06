@@ -11,14 +11,21 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
-from .utils.logging_setup import get_logger
-from .routes import api_bp
+try:
+    from cloudshield.Server.utils import get_logger
+    from cloudshield.Server.routes import api_bp
+    from cloudshield.Server.routes.users import users_bp
+except ImportError:
+    from utils import get_logger
+    from routes import api_bp
+    from routes.users import users_bp
 
-# App blueprints
-from cloudshield.Server.routes.users import users_bp
 # optional audit blueprint; may fail if DB/view not set up
 try:
-    from routes.audit import audit_bp # type: ignore[import]
+    try:
+        from cloudshield.Server.routes.audit import audit_bp # type: ignore[import]
+    except ImportError:
+        from routes.audit import audit_bp # type: ignore[import]
 except Exception:  # pragma: no cover
     audit_bp = None
 

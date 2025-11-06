@@ -1,9 +1,5 @@
-try:  # First honour legacy flat modules used by tests/standalone scripts
-    from proto import agent_pb2, agent_pb2_grpc  # type: ignore
-    from logger import core_logger  # type: ignore
-except ImportError:  # pragma: no cover - fallback to package-relative imports
-    from ..proto import agent_pb2, agent_pb2_grpc
-    from ..logger import core_logger
+from proto import agent_pb2, agent_pb2_grpc
+from logger import core_logger
 
 import os
 import json
@@ -139,7 +135,7 @@ class Agent:
             try:
                 task.run()
             except Exception as exc:
-                core_logger.error("Task '%s' failed during immediate run: %s", name, exc)
+                core_logger.error(f"Task '{name}' failed during immediate run: {exc}")
     
     def check_workstation(self):
         """Placeholder for workstation checks. Maintained for compatibility."""

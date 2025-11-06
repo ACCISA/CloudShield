@@ -7,8 +7,20 @@ variable "ubuntu_ami" {
 variable "workstation_ami" {
   description = "AMI ID to use for workstations"
   type        = string
-  default     = "ami-0dd67d541aa70c8b9"
+  default     = "ami-00f488e2453f5788f"
 
+}
+
+variable "workstation_count" {
+  description = "The number of workstations to create"
+  type        = number
+  default     = 1
+}
+
+variable "workstation_enable"{
+  description = "Enable workstation creation"
+  type        = bool
+  default     = false
 }
 
 variable "org_id" {
@@ -23,35 +35,35 @@ variable "region" {
 
 // Open VPN config
 
-variable "openvpn_address"{
+variable "openvpn_address" {
   description = "Address for OpenVPN server"
   type        = string
   default     = ""
 }
-variable "openvpn_port"{
+variable "openvpn_port" {
   description = "Port for OpenVPN server"
   type        = number
   default     = 1194
 }
 
-variable "openvpn_protocol"{
+variable "openvpn_protocol" {
   description = "Protocol for OpenVPN server"
   type        = string
   default     = "udp"
 }
 
-variable "openvpn_subnet"{
+variable "openvpn_subnet" {
   description = "Subnet for OpenVPN clients"
   type        = string
   default     = ""
-  
+
 }
 
-variable "openvpn_client_name"{
+variable "openvpn_client_name" {
   description = "Client name for OpenVPN"
   type        = string
   default     = "client1"
-  
+
 }
 
 variable "openvpn_dns" {
@@ -60,8 +72,35 @@ variable "openvpn_dns" {
   default     = ""
 }
 
-variable "openvpn_routes"{
+variable "openvpn_routes" {
   description = "Additional routes for OpenVPN clients"
   type        = list(string)
   default     = []
+}
+
+variable "dc_admin_password" {
+  description = "Administrator password for the Samba Domain Controller"
+  type        = string
+  default     = "4162728abb29acc12090e6432cdb6fd8%$@!"
+  sensitive   = true
+}
+
+variable "domain_name" {
+  description = "Domain name for the Samba Domain Controller"
+  type        = string
+  default     = "samba"
+  sensitive   = true
+}
+
+variable "realm_name" {
+  description = "Realm name for the Samba Domain Controller"
+  type        = string
+  default     = "samba.local"
+  sensitive   = true
+}
+
+variable "domain_admin_user" {
+  description = "Administrator username for the Samba Domain Controller"
+  type        = string
+  default     = "Administrator"
 }

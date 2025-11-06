@@ -1,0 +1,105 @@
+services:
+  redis:
+    image: redis:7
+    command: ["redis-server", "--stop-writes-on-bgsave-error", "no"]
+    ports:
+      - "6379:6379"
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: cs-api
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - MONGO_URL=${MONGO_URL}
+      - MONGO_DB=${MONGO_DB}
+      - CLOUDSHIELD_REDIS_HOST=redis
+    depends_on:
+      - redis
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./logs:/app/logs
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    networks:
+      cloudshield_net:
+        ipv4_address: 172.28.0.5
+    ports:
+      - "9200:9200"
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: server
+    environment:
+      ES_URL: "http://elasticsearch:9200"
+      CLOUDSHIELD_RUNTIME: "1"
+    depends_on:
+      - elasticsearch
+    networks:
+      cloudshield_net:
+        ipv4_address: 172.28.0.10
+    ports:
+      - "50051:50051"
+
+  agent1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: agent1
+    environment:
+      AGENT_ID: "agent-1"
+      SERVER_ADDR: "server"
+      SERVER_PORT: "50051"
+    depends_on:
+      - server
+    networks:
+      cloudshield_net:
+        ipv4_address: 172.28.0.11
+
+  agent2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: agent2
+    environment:
+      AGENT_ID: "agent-2"
+      SERVER_ADDR: "server"
+      SERVER_PORT: "50051"
+    depends_on:
+      - server
+    networks:
+      cloudshield_net:
+        ipv4_address: 172.28.0.12
+
+  agent3:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: agent3
+    environment:
+      AGENT_ID: "agent-3"
+      SERVER_ADDR: "server"
+      SERVER_PORT: "50051"
+    depends_on:
+      - server
+    networks:
+      cloudshield_net:
+        ipv4_address: 172.28.0.13
+
+networks:
+  cloudshield_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

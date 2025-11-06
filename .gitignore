@@ -8,6 +8,9 @@ __pycache__/
 venv/
 env/
 ENV/
+.env
+**/.env
+
 
 # Packaging / distribution
 build/
@@ -90,3 +93,4 @@ cloudshield/Agent/build
 **.exe
 **.xml
 .coverage
+chatmodes

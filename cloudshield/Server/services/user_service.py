@@ -1,9 +1,9 @@
 from bson import ObjectId
 from datetime import datetime, timezone
-from cloudshield.Server.utils.database import users_admin, users_public
-from cloudshield.Server.utils.audit import log_audit
-from cloudshield.Server.models.user import UserCreate, UserUpdate
-from cloudshield.Server.security.passwords import hash_password
+from ..utils import users_admin, users_public
+from ..utils import log_audit
+from ..models import UserCreate, UserUpdate
+from ..security import hash_password
 
 def _must_admin(current_user):
     if not current_user or current_user.get("role") != "admin":

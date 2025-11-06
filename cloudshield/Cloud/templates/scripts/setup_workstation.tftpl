@@ -1,0 +1,29 @@
+<powershell>
+
+$adapterName = "Ethernet"
+$dnsServers = @("${domain_controller_ip}")       # DNS = Samba DC IP
+$domainName = "${realm_name}"                   # ex: samba.local
+$adminUser = "${domain_admin_user}"              # ex: Administrator
+$adminPass = "${domain_admin_password}"          # DC password
+
+Write-Host "=== Starting workstation setup ==="
+
+# 1. Set DNS server to point to DC
+try {
+    Set-DnsClientServerAddress -InterfaceAlias $adapterName -ServerAddresses $dnsServers
+    Write-Host "DNS set to $($dnsServers -join ', ')"
+} catch {
+    Write-Host "Failed to set DNS: $_"
+}
+
+# 2. Join the domain
+try {
+    $password = ConvertTo-SecureString $adminPass -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential ("$adminUser", $password)
+    Add-Computer -DomainName $domainName -Credential $cred -Force -Restart
+    Write-Host "Domain join successful: $domainName"
+} catch {
+    Write-Host "Failed to join domain: $_"
+}
+
+</powershell>

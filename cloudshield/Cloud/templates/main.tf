@@ -10,7 +10,7 @@ provider "aws" {
 # Key pairs
 resource "tls_private_key" "org_id" {
   algorithm = "RSA"
-  rsa_bits = 4096
+  rsa_bits  = 4096
 }
 
 resource "aws_key_pair" "org_id_key" {
@@ -19,9 +19,9 @@ resource "aws_key_pair" "org_id_key" {
 }
 
 resource "local_file" "private_key" {
-  content          = tls_private_key.org_id.private_key_pem
-  filename         = "${path.module}/org_id_key.pem"
-  file_permission  = "0600"
+  content         = tls_private_key.org_id.private_key_pem
+  filename        = "${path.module}/org_id_key.pem"
+  file_permission = "0600"
 }
 
 ##########################
@@ -104,15 +104,15 @@ resource "aws_route_table_association" "private_assoc" {
 # Elastic IP for NAT
 resource "aws_eip" "org_id_nat_eip" {
   domain = "vpc"
-  tags = { Name = "org_id_nat_eip" }
+  tags   = { Name = "org_id_nat_eip" }
 }
 
 # NAT Gateway in public subnet
 resource "aws_nat_gateway" "org_id_nat" {
   allocation_id = aws_eip.org_id_nat_eip.id
   subnet_id     = aws_subnet.org_id_public_subnet.id
-  tags = { Name = "org_id_nat" }
-  depends_on = [aws_internet_gateway.org_id_igw]
+  tags          = { Name = "org_id_nat" }
+  depends_on    = [aws_internet_gateway.org_id_igw]
 }
 
 # Private route to NAT
@@ -224,14 +224,14 @@ resource "aws_instance" "org_id_openvpn_server" {
   associate_public_ip_address = true
   key_name                    = aws_key_pair.org_id_key.key_name
   user_data = templatefile("${path.module}/scripts/setup_openvpn.tftpl", {
-  openvpn_port      = var.openvpn_port
-  openvpn_protocol  = var.openvpn_protocol
-  openvpn_subnet    = var.openvpn_subnet
-  openvpn_client_name = var.openvpn_client_name
-  openvpn_dns      = var.openvpn_dns
-  openvpn_address  = var.openvpn_address
-  openvpn_routes   = var.openvpn_routes
-})
+    openvpn_port        = var.openvpn_port
+    openvpn_protocol    = var.openvpn_protocol
+    openvpn_subnet      = var.openvpn_subnet
+    openvpn_client_name = var.openvpn_client_name
+    openvpn_dns         = var.openvpn_dns
+    openvpn_address     = var.openvpn_address
+    openvpn_routes      = var.openvpn_routes
+  })
   tags = { Name = "org_id_openvpn_server" }
 }
 
@@ -244,7 +244,7 @@ resource "aws_instance" "org_id_domain_controller" {
   subnet_id              = aws_subnet.org_id_private_subnet.id
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name               = aws_key_pair.org_id_key.key_name
-  tags = { Name = "org_id_domain_controller" }
+  tags                   = { Name = "org_id_domain_controller" }
 }
 
 resource "aws_instance" "org_id_workstation" {
@@ -254,5 +254,31 @@ resource "aws_instance" "org_id_workstation" {
   vpc_security_group_ids = [aws_security_group.allow_rdp.id]
   key_name               = aws_key_pair.org_id_key.key_name
   iam_instance_profile   = aws_iam_instance_profile.workstation_profile.name
-  tags = { Name = "org_id_workstation" }
+  tags                   = { Name = "org_id_workstation" }
+  user_data = templatefile("${path.module}/scripts/setup_workstation.tftpl", {
+    domain_controller_ip   = aws_instance.org_id_samba.private_ip
+    domain_name            = var.domain_name
+    realm_name             = var.realm_name
+    domain_admin_user      = var.domain_admin_user
+    domain_admin_password  = var.dc_admin_password
+  })
+}
+
+##########################
+# 11. Provisions Samba DC on Ubuntu instance 
+##########################
+resource "aws_instance" "org_id_samba" {
+  ami                         = var.ubuntu_ami
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.org_id_public_subnet.id
+  vpc_security_group_ids      = [aws_security_group.allow_ssh.id, aws_security_group.allow_all_tcp_udp.id]
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.org_id_key.key_name
+  user_data = templatefile("${path.module}/scripts/samba.tftpl", {
+    domain_name       = var.domain_name
+    dc_admin_password = var.dc_admin_password
+    realm_name        = var.realm_name
+
+  })
+  tags = { Name = "org_id_samba" }
 }
