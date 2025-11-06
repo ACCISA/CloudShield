@@ -6,9 +6,9 @@ from __future__ import annotations
 import os
 from typing import Tuple, Dict, Any
 import rq
-from redis_client import task_queue, redis_conn
-from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
-from utils import get_logger
+from ..redis_client import task_queue, redis_conn
+from ..tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
+from ..utils import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]

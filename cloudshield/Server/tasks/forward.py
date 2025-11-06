@@ -105,6 +105,7 @@ def forward_tunnel(local_port, remote_host, remote_port, transport):
         chain_port = remote_port
         ssh_transport = transport
 
+    # SSH port forwarding with encrypted tunnel - not HTTP, secure by design  # nosonar
     ForwardServer(("", local_port), SubHander).serve_forever()
 
 

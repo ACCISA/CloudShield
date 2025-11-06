@@ -166,14 +166,30 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
 
 
     # ---------- PHASE 2: full apply for the rest of the infra, using the new AMI ----------
-    subprocess.run(["terraform", "init"], cwd=terraform_dir, check=True)
+    logger.info("[~] Running terraform init...")
+    init_result = subprocess.run(
+        ["terraform", "init"], 
+        cwd=terraform_dir, 
+        capture_output=True, 
+        text=True
+    )
+    if init_result.returncode != 0:
+        logger.error(f"Terraform init failed:\n{init_result.stdout}\n{init_result.stderr}")
+        raise subprocess.CalledProcessError(init_result.returncode, init_result.args, init_result.stdout, init_result.stderr)
+    logger.info(f"Terraform init output:\n{init_result.stdout}")
+    
     logger.info("[~] Phase 2: provisioning remaining infrastructure with the new AMI...")
     phase2_plan_cmd = [
         "terraform", "apply","-auto-approve",
         "-var", f"org_id={org_id}",
         "-var", f"region={region}",
     ]
-    subprocess.run(phase2_plan_cmd, cwd=terraform_dir, check=True)
+    
+    apply_result = subprocess.run(phase2_plan_cmd, cwd=terraform_dir, capture_output=True, text=True)
+    if apply_result.returncode != 0:
+        logger.error(f"Terraform apply failed:\n{apply_result.stdout}\n{apply_result.stderr}")
+        raise subprocess.CalledProcessError(apply_result.returncode, apply_result.args, apply_result.stdout, apply_result.stderr)
+    logger.info(f"Terraform apply output:\n{apply_result.stdout}")
 
     logger.info("[~] Applying phase2.plan ...")
     #subprocess.run(["terraform", "apply", "phase2.plan"], cwd=terraform_dir, check=True)
@@ -254,10 +270,7 @@ def get_ec2_ips(region: str, org_id: str):
 def provision_network_terraform(org_id, region, templates_dir, generated_dir, server_logger):
     global logger
     logger = server_logger
-    org_id = org_id
-    region = region
     templates_dir = os.path.abspath(templates_dir)
-    generated_dir = generated_dir
 
     logger.info(f"[*] Provisioning for org: {org_id} in region: {region}")
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)

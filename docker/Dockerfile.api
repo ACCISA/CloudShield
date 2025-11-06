@@ -20,10 +20,19 @@ RUN env
 
 RUN mkdir /var/lib/cloudshield
 
-COPY docker/supervisord.conf .
+# Create logs directory for job logging
+RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
+
+# Copy only necessary cloudshield modules
+COPY cloudshield/__init__.py /app/cloudshield/
+COPY cloudshield/Server /app/cloudshield/Server/
 COPY cloudshield/Cloud/provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
-COPY cloudshield/Server .
+
+# Set PYTHONPATH so cloudshield package can be imported
+ENV PYTHONPATH=/app
+
+COPY docker/supervisord.conf /app/
 
 # drop root not needed for dev
 #RUN useradd --create-home --shell /usr/sbin/nologin appuser \

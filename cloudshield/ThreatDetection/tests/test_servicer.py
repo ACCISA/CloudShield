@@ -98,6 +98,8 @@ state_module.state_manager = SimpleNamespace(
 )
 sys.modules["state"] = state_module
 
+# Import after stubs are set up to avoid import errors
+from cloudshield.ThreatDetection import servicer  # noqa: E402
 
 
 class FakeLogger:
@@ -126,8 +128,6 @@ class FakeStateManager:
     def is_expected(self, agent_id, response_method):
         self.is_expected_calls.append((agent_id, response_method))
         return self.expected_result
-
-from cloudshield.ThreatDetection import servicer
 
 @pytest.fixture
 def fake_logger(monkeypatch):

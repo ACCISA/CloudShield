@@ -14,7 +14,8 @@ MIN_PW_LEN = 8
 MAX_PW_LEN = 128
 PRIVATE_KEYS_PATH = "/var/lib/cloudshield/terraform/generated"
 
-logger = get_logger("tasks")
+# Module-level logger for non-job logging
+_module_logger = get_logger("tasks")
 
 class SSHExecResult:
     def __init__(self, stdin, stdout, stderr):
@@ -22,10 +23,13 @@ class SSHExecResult:
         self.stdout = stdout
         self.stderr = stderr
 
-def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_port):
+def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_port, logger=None):
     """
     Create an SSH tunnel to forward comms via SSH transport.
     """
+    if logger is None:
+        logger = _module_logger
+    
     logger.info(f"SSH tunnel created {local_port}:{remote_host}:{remote_port}")
     t = threading.Thread(
             target=forward_tunnel,
@@ -34,19 +38,25 @@ def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_p
     )
     t.start()
 
-def validate_username(username: str):
+def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
     """
+    if logger is None:
+        logger = _module_logger
+    
     if not USERNAME_RE.fullmatch(username):
         logger.error(f"Invalid username: only A-Z a-z 0-9. Given: {username}")
         return False
     return True
 
-def validate_password(password:str ):
+def validate_password(password:str, logger=None):
     """
     Validate password to prevent CLI Injections
     """
+    if logger is None:
+        logger = _module_logger
+    
     if not (MIN_PW_LEN <= len(password) <= MAX_PW_LEN):
         logger.error(f"Password length must be between {MIN_PW_LEN} and {MAX_PW_LEN}")
         return False
@@ -88,7 +98,9 @@ def get_available_local_port():
     s.bind(('',0))
     return s.getsockname()[1]
 
-def exec_ssh(org_id: str, command: str):
+def exec_ssh(org_id: str, command: str, logger=None):
+    if logger is None:
+        logger = _module_logger
     
     inventory = get_inventory_from_org_id(org_id)
 
@@ -135,23 +147,27 @@ def dc_add_user(org_id: str, username: str, password: str):
     """
 
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
 
     if job is not None:
         job.meta["progress"] = "starting dc_add_user"
         job.save_meta()
 
-    if not validate_username(username):
-        job.meta["progress"] = "invalid username"
-        job.save_meta()
+    if not validate_username(username, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid username"
+            job.save_meta()
         return {"message":f"the provider username is invalid (username={username})"}
-    if not validate_password(password):
-        job.meta["progress"] = "invalid password"
-        job.save_meta()
+    if not validate_password(password, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid password"
+            job.save_meta()
         return {"message":f"the provider password is invalid (password={password})"}
 
     command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"
 
-    result = exec_ssh(org_id, command)
+    result = exec_ssh(org_id, command, logger=logger)
     logger.info(result.stdout)
     logger.info(result.stderr)
     logger.info("User added to samba ad-dc")

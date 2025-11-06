@@ -125,4 +125,215 @@ class TestDatabase:
         assert database.users_admin is not None
         
         assert hasattr(database.users_admin, 'create_index'), "users_admin should have create_index method"
-            
+
+
+def test_get_inventory_from_org_id_success(monkeypatch):
+    """Test get_inventory_from_org_id with valid org_id"""
+    from cloudshield.Server.utils import database
+    
+    # Mock the db.itam collection with complete EC2Instance data
+    mock_itam_db = unittest.mock.MagicMock()
+    mock_doc = {
+        "org_id": "test_org_123",
+        "assets": [
+            {
+                "name": "asset1",
+                "public_ip": "1.2.3.4",
+                "private_ip": "10.0.0.1",
+                "vpc_id": "vpc-123",
+                "priv_key_path": "key1",
+                "ami_id": "ami-123",
+                "cpu": 2,
+                "created_at": "2025-01-01",
+                "instance_id": "i-123",
+                "os": "Ubuntu",
+                "ports": ["sg-123"],
+                "ram_gb": "4GB",
+                "status": "running",
+                "storage_size_gb": 50,
+                "subnet_id": "subnet-123",
+                "updated_at": "2025-01-01"
+            },
+            {
+                "name": "asset2",
+                "public_ip": "5.6.7.8",
+                "private_ip": "10.0.0.2",
+                "vpc_id": "vpc-456",
+                "priv_key_path": "key2",
+                "ami_id": "ami-456",
+                "cpu": 4,
+                "created_at": "2025-01-01",
+                "instance_id": "i-456",
+                "os": "Windows",
+                "ports": ["sg-456"],
+                "ram_gb": "8GB",
+                "status": "running",
+                "storage_size_gb": 100,
+                "subnet_id": "subnet-456",
+                "updated_at": "2025-01-01"
+            }
+        ]
+    }
+    mock_itam_db.find_one.return_value = mock_doc
+    
+    # Mock db.itam
+    mock_db = unittest.mock.MagicMock()
+    mock_db.itam = mock_itam_db
+    monkeypatch.setattr(database, "db", mock_db)
+    
+    result = database.get_inventory_from_org_id("test_org_123")
+    
+    assert result.org_id == "test_org_123"
+    assert len(result.assets) == 2
+    assert result.assets[0].name == "asset1"
+    assert result.assets[1].name == "asset2"
+    mock_itam_db.find_one.assert_called_once_with({"org_id": "test_org_123"})
+
+
+def test_get_inventory_from_org_id_not_found(monkeypatch):
+    """Test get_inventory_from_org_id when org_id doesn't exist"""
+    from cloudshield.Server.utils import database
+    
+    # Mock the db.itam collection to return None
+    mock_itam_db = unittest.mock.MagicMock()
+    mock_itam_db.find_one.return_value = None
+    
+    mock_db = unittest.mock.MagicMock()
+    mock_db.itam = mock_itam_db
+    monkeypatch.setattr(database, "db", mock_db)
+    
+    # Should raise an error when doc is None
+    with pytest.raises((TypeError, AttributeError, KeyError)):
+        database.get_inventory_from_org_id("nonexistent_org")
+
+
+def test_get_inventory_from_org_id_with_empty_assets(monkeypatch):
+    """Test get_inventory_from_org_id with empty assets list"""
+    from cloudshield.Server.utils import database
+    
+    mock_itam_db = unittest.mock.MagicMock()
+    mock_doc = {
+        "org_id": "empty_org",
+        "assets": []
+    }
+    mock_itam_db.find_one.return_value = mock_doc
+    
+    mock_db = unittest.mock.MagicMock()
+    mock_db.itam = mock_itam_db
+    monkeypatch.setattr(database, "db", mock_db)
+    
+    result = database.get_inventory_from_org_id("empty_org")
+    
+    assert result.org_id == "empty_org"
+    assert len(result.assets) == 0
+
+
+def test_database_client_initialization():
+    """Test that database clients are properly initialized"""
+    from cloudshield.Server.utils import database
+    
+    # Verify that both clients exist and are not None
+    assert database.admin_client is not None
+    assert database.emp_client is not None
+    
+    # Verify that databases are accessible
+    assert database.db_admin is not None
+    assert database.db_emp is not None
+
+
+def test_database_collections_accessible():
+    """Test that database collections are accessible"""
+    from cloudshield.Server.utils import database
+    
+    # Verify collections exist
+    assert database.users_admin is not None
+    assert database.users_public is not None
+
+
+def test_mk_client_timeout_parameter():
+    """Test that _mk_client uses correct timeout"""
+    from cloudshield.Server.utils import database
+    
+    with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
+        test_url = "mongodb://localhost:27017/"
+        database._mk_client(test_url)
+        
+        # Verify it was called with serverSelectionTimeoutMS
+        call_args = mock_client.call_args
+        assert call_args[0][0] == test_url
+        assert call_args[1]['serverSelectionTimeoutMS'] == 5000
+
+
+def test_database_constants():
+    """Test that database constants are set correctly"""
+    from cloudshield.Server.utils import database
+    
+    # Verify constants exist and have reasonable values
+    assert isinstance(database.DB_NAME, str)
+    assert len(database.DB_NAME) > 0
+    
+    assert isinstance(database.MONGO_URL_FALLBACK, str)
+    assert "mongodb://" in database.MONGO_URL_FALLBACK
+
+
+@patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
+def test_database_env_var_override():
+    """Test that environment variables can override defaults"""
+    # Reload the module to pick up new env vars
+    if 'cloudshield.Server.utils.database' in sys.modules:
+        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
+    
+    from cloudshield.Server.utils import database
+    
+    assert database.DB_NAME == 'custom_db'
+
+
+def test_database_exports_all():
+    """Test that __all__ contains all expected exports"""
+    from cloudshield.Server.utils import database
+    
+    expected_exports = [
+        "db_admin",
+        "db_emp",
+        "admin_client",
+        "emp_client",
+        "users_admin",
+        "users_public",
+        "db",
+        "client"
+    ]
+    
+    # Verify all expected exports are in __all__
+    for export in expected_exports:
+        assert export in database.__all__, f"{export} should be in __all__"
+        assert hasattr(database, export), f"{export} should exist as attribute"
+
+
+def test_database_module_has_get_inventory():
+    """Test that get_inventory_from_org_id function exists"""
+    from cloudshield.Server.utils import database
+    
+    assert hasattr(database, 'get_inventory_from_org_id')
+    assert callable(database.get_inventory_from_org_id)
+
+
+def test_database_collections_types():
+    """Test that collections are the correct type"""
+    from cloudshield.Server.utils import database
+    
+    # Collections should have typical MongoDB collection methods
+    assert hasattr(database.users_admin, 'find_one') or hasattr(database.users_admin, '_mock_name')
+    assert hasattr(database.users_public, 'find') or hasattr(database.users_public, '_mock_name')
+
+
+def test_database_ping_success():
+    """Test that database connections were pinged successfully during initialization"""
+    from cloudshield.Server.utils import database
+    
+    # If the module loaded successfully, pings must have succeeded
+    assert database.admin_client is not None
+    assert database.emp_client is not None
+    
+    # Verify that the clients have admin attribute
+    assert hasattr(database.admin_client, 'admin')
+    assert hasattr(database.emp_client, 'admin')

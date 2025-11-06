@@ -1,9 +1,9 @@
 from bson import ObjectId
 from datetime import datetime, timezone
-from utils import users_admin, users_public
-from utils import log_audit
-from models import UserCreate, UserUpdate
-from security import hash_password
+from ..utils import users_admin, users_public
+from ..utils import log_audit
+from ..models import UserCreate, UserUpdate
+from ..security import hash_password
 
 def _must_admin(current_user):
     if not current_user or current_user.get("role") != "admin":
