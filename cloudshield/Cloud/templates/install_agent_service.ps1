@@ -279,7 +279,7 @@ public sealed class AgentService : ServiceBase
                 _child.CloseMainWindow();
                 if (!_child.WaitForExit(2000))
                 {
-                    _child.Kill(true);
+                    _child.Kill();
                 }
             }
         }
