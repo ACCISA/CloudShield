@@ -12,8 +12,8 @@ from pathlib import Path
 # run: sudo docker-compose up api
 from provisioner import provision_network_terraform  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
-from ..utils import get_logger, db
-from ..models import Inventory, EC2Instance
+from utils import get_logger, db
+from models import Inventory, EC2Instance
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")

@@ -27,7 +27,7 @@ def task_dc_add_user():
             logger.warning(f"DC add_user request missing {arg}")
             return jsonify({"error":"{arg} is required"})
 
-    job = service_dispatcher("dc_add_user", org_id=org_id, username=username, password=password)
+    job = service_dispatcher(service_name="dc_add_user", org_id=org_id, username=username, password=password)
     return jsonify({"job_id": job.id}), 202
 
 
@@ -44,7 +44,7 @@ def task_provision():
         logger.warning("Provision request missing org_id")
         return jsonify({"error": "org_id is required"}), 400
 
-    job = service_dispatcher("provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
+    job = service_dispatcher(service_name="provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
 
     return jsonify({"job_id": job.id}), 202
 
@@ -60,7 +60,7 @@ def task_provision_workstations():
         return jsonify({"error": "org_id is required"}), 400\
 
     count = data.get("count", 1)
-    job = service_dispatcher("provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
+    job = service_dispatcher(service_name="provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
 
     return jsonify({"job_id": job.id}), 202
 
@@ -75,7 +75,7 @@ def task_destroy():
         logger.warning("Destroy request missing org_id")
         return jsonify({"error": "org_id is required"}), 400
 
-    job = service_dispatcher("destroy", org_id=org_id, force=data.get("force", False))
+    job = service_dispatcher(service_name="destroy", org_id=org_id, force=data.get("force", False))
 
     return jsonify({"job_id": job.id}), 202
 
