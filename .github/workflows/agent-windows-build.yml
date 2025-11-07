@@ -45,17 +45,43 @@ jobs:
         shell: pwsh
         run: |
           $ref = "${{ github.ref }}"
-          if ($ref -like "refs/tags/*") {
-            $version = $ref.Substring("refs/tags/".Length)
+          $refName = "${{ github.ref_name }}"
+          $sha = "${{ github.sha }}"
+          $runNumber = "${{ github.run_number }}"
+
+          if (-not $runNumber) { $runNumber = "0" }
+          if ($sha.Length -ge 7) { $shortSha = $sha.Substring(0,7) } else { $shortSha = $sha }
+
+          if ($ref -like "refs/tags/v*") {
+            $version = $refName
           } else {
-            $describe = git describe --tags --match "v*" --abbrev=0 2>$null
-            if ($LASTEXITCODE -ne 0 -or -not $describe) {
-              $describe = "v0.0.0"
+            $latestTag = $null
+            try {
+              $latestTag = git tag --list "v*" |
+                ForEach-Object { $_.Trim() } |
+                Where-Object { $_ } |
+                Sort-Object {
+                  $normalized = $_.TrimStart('v')
+                  if ($normalized.Contains('-')) {
+                    $normalized = $normalized.Split('-', 2)[0]
+                  }
+                  try { [version]$normalized } catch { [version]'0.0.0' }
+                } -Descending |
+                Select-Object -First 1
+            } catch {
+              $latestTag = $null
             }
-            $version = "$describe+build.${{ github.run_number }}"
+            if (-not $latestTag) { $latestTag = "v0.0.0" }
+            $version = "$latestTag+build.$runNumber.sha.$shortSha"
           }
+
           $artifact = "cloudshield-agent-$version"
           $artifact = $artifact -replace '[^A-Za-z0-9._-]', '-'
+
+          if (-not $env:GITHUB_OUTPUT) {
+            throw "GITHUB_OUTPUT environment variable is not set"
+          }
+
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "artifact=$artifact" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
