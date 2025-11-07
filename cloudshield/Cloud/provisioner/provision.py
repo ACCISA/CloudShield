@@ -1,27 +1,21 @@
-# python cloudshield/Cloud/terraform/main.py --org-id=<THE ORG ID>
-
+"""Terraform-based AWS infrastructure provisioning for CloudShield organizations."""
 import os
 import shutil
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import logging
 from botocore.exceptions import ClientError, WaiterError
 
 
-# PATHS
 BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
-logger = logging.getLogger() # This logger should only get used during testing, prod logger is set from func call to provision_network_terraform
+logger = logging.getLogger()
 
 
-# COPY & REPLACE TEMPLATES
-def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str:
-    """
-    Copies Terraform templates into a dedicated org folder
-    and replaces placeholders with the organization ID.
-    """
+def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str | None:
+    """Copy Terraform templates to org-specific folder and inject organization ID."""
     target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
     target_dir = os.path.abspath(target_dir)
 
@@ -55,9 +49,128 @@ def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLAT
     return target_dir
 
 
-# RUN TERRAFORM
+def _ignore_not_found_error(exc: ClientError, allowed_codes: set = None) -> None:
+    """Raise exception unless it's a 'not found' error."""
+    if allowed_codes is None:
+        allowed_codes = {"NoSuchEntity"}
+    if exc.response["Error"].get("Code") not in allowed_codes:
+        raise  # pragma: no cover
+
+
+def _get_instance_profile(iam, profile_name: str):
+    """Get instance profile or return None if not found."""
+    try:
+        return iam.get_instance_profile(InstanceProfileName=profile_name)
+    except ClientError as exc:
+        _ignore_not_found_error(exc)
+        return None
+
+
+def _remove_roles_from_profile(iam, profile_name: str, profile: dict) -> None:
+    """Remove all roles from an instance profile."""
+    for role in profile["InstanceProfile"].get("Roles", []):
+        try:
+            iam.remove_role_from_instance_profile(
+                InstanceProfileName=profile_name,
+                RoleName=role["RoleName"],
+            )
+            logger.info(f"[~]   Removed role '{role['RoleName']}' from instance profile '{profile_name}'.")
+        except ClientError as exc:
+            _ignore_not_found_error(exc)
+
+
+def _delete_instance_profile(iam, profile_name: str) -> None:
+    """Delete instance profile if it exists."""
+    try:
+        iam.delete_instance_profile(InstanceProfileName=profile_name)
+        logger.info(f"[~]   Deleted instance profile '{profile_name}'.")
+    except ClientError as exc:
+        _ignore_not_found_error(exc)
+
+
+def _cleanup_instance_profile(iam, profile_name: str) -> None:
+    """Remove and delete instance profile."""
+    profile = _get_instance_profile(iam, profile_name)
+    if profile:
+        _remove_roles_from_profile(iam, profile_name, profile)
+        _delete_instance_profile(iam, profile_name)
+
+
+def _check_role_exists(iam, role_name: str) -> bool:
+    """Check if IAM role exists."""
+    try:
+        iam.get_role(RoleName=role_name)
+        return True
+    except ClientError as exc:
+        _ignore_not_found_error(exc)
+        return False
+
+
+def _delete_inline_policies(iam, role_name: str) -> list:
+    """Delete all inline policies from role. Returns list of policy names."""
+    inline_policies = iam.list_role_policies(RoleName=role_name)["PolicyNames"]
+    for policy in inline_policies:
+        try:
+            iam.delete_role_policy(RoleName=role_name, PolicyName=policy)
+            logger.info(f"[~]   Deleted inline IAM policy '{policy}'.")
+        except ClientError as exc:
+            _ignore_not_found_error(exc)
+    return inline_policies
+
+
+def _detach_managed_policies(iam, role_name: str) -> None:
+    """Detach all managed policies from role."""
+    attached = iam.list_attached_role_policies(RoleName=role_name)["AttachedPolicies"]
+    for policy in attached:
+        try:
+            iam.detach_role_policy(RoleName=role_name, PolicyArn=policy["PolicyArn"])
+            logger.info(f"[~]   Detached managed policy '{policy['PolicyName']}'.")
+        except ClientError as exc:
+            _ignore_not_found_error(exc)
+
+
+def _delete_specific_policy_if_missing(iam, role_name: str, policy_name: str, inline_policies: list) -> None:
+    """Delete specific inline policy if it wasn't in the listed policies."""
+    if policy_name not in inline_policies:
+        try:
+            iam.delete_role_policy(RoleName=role_name, PolicyName=policy_name)
+        except ClientError as exc:
+            _ignore_not_found_error(exc, {"NoSuchEntity", "NoSuchEntityException"})
+
+
+def _delete_iam_role(iam, role_name: str) -> None:
+    """Delete IAM role."""
+    try:
+        iam.delete_role(RoleName=role_name)
+        logger.info(f"[~]   Deleted IAM role '{role_name}'.")
+    except ClientError as exc:
+        _ignore_not_found_error(exc)
+
+
+def _cleanup_iam_role(iam, role_name: str, policy_name: str) -> None:
+    """Clean up IAM role and all associated policies."""
+    if not _check_role_exists(iam, role_name):
+        logger.info(f"[~]   No leftover IAM role named '{role_name}'.")
+        return
+
+    inline_policies = _delete_inline_policies(iam, role_name)
+    _detach_managed_policies(iam, role_name)
+    _delete_specific_policy_if_missing(iam, role_name, policy_name, inline_policies)
+    _delete_iam_role(iam, role_name)
+
+
+def _delete_ec2_key_pair(ec2, key_name: str) -> None:
+    """Delete EC2 key pair if it exists."""
+    try:
+        ec2.delete_key_pair(KeyName=key_name)
+        logger.info(f"[~]   Deleted existing EC2 key pair '{key_name}'.")
+    except ClientError as exc:
+        if exc.response["Error"].get("Code") not in {"InvalidKeyPair.NotFound", "InvalidKeyPair.NotFoundException"}:
+            raise  # pragma: no cover
+
+
 def cleanup_iam_artifacts(org_id: str, region: str) -> None:
-    """Remove leftover IAM role/profile/key pair from previous runs so Terraform can recreate them cleanly."""
+    """Remove leftover IAM resources to allow Terraform clean recreation."""
     iam = boto3.client("iam")
     role_name = f"{org_id}-cloudshield-builder-role"
     profile_name = f"{org_id}-cloudshield-builder-profile"
@@ -65,87 +178,13 @@ def cleanup_iam_artifacts(org_id: str, region: str) -> None:
 
     logger.info(f"[~] Checking for leftover IAM role/profile for {org_id}...")
 
-    # Instance profile must no longer reference the role before either can be deleted
-    try:
-        profile = iam.get_instance_profile(InstanceProfileName=profile_name)
-    except ClientError as exc:
-        if exc.response["Error"].get("Code") != "NoSuchEntity":
-            raise  # pragma: no cover
-        profile = None
-
-    if profile:
-        for role in profile["InstanceProfile"].get("Roles", []):
-            try:
-                iam.remove_role_from_instance_profile(
-                    InstanceProfileName=profile_name,
-                    RoleName=role["RoleName"],
-                )
-                logger.info(f"[~]   Removed role '{role['RoleName']}' from instance profile '{profile_name}'.")
-            except ClientError as exc:
-                if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise  # pragma: no cover
-        try:
-            iam.delete_instance_profile(InstanceProfileName=profile_name)
-            logger.info(f"[~]   Deleted instance profile '{profile_name}'.")
-        except ClientError as exc:
-            if exc.response["Error"].get("Code") != "NoSuchEntity":
-                raise  # pragma: no cover
-
-    # Delete inline policies and detach managed policies prior to removing the role
-    try:
-        iam.get_role(RoleName=role_name)
-    except ClientError as exc:
-        if exc.response["Error"].get("Code") != "NoSuchEntity":
-            raise  # pragma: no cover
-        role_exists = False
-    else:
-        role_exists = True
-
-    if role_exists:
-        inline_policies = iam.list_role_policies(RoleName=role_name)["PolicyNames"]
-        for policy in inline_policies:
-            try:
-                iam.delete_role_policy(RoleName=role_name, PolicyName=policy)
-                logger.info(f"[~]   Deleted inline IAM policy '{policy}'.")
-            except ClientError as exc:
-                if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise  # pragma: no cover
-
-        attached = iam.list_attached_role_policies(RoleName=role_name)["AttachedPolicies"]
-        for policy in attached:
-            try:
-                iam.detach_role_policy(RoleName=role_name, PolicyArn=policy["PolicyArn"])
-                logger.info(f"[~]   Detached managed policy '{policy['PolicyName']}'.")
-            except ClientError as exc:
-                if exc.response["Error"].get("Code") != "NoSuchEntity":
-                    raise  # pragma: no cover
-
-        # Remove specific inline policy name if we reached this point without listing it (e.g., throttled call above)
-        if policy_name not in inline_policies:
-            try:
-                iam.delete_role_policy(RoleName=role_name, PolicyName=policy_name)
-            except ClientError as exc:
-                if exc.response["Error"].get("Code") not in {"NoSuchEntity", "NoSuchEntityException"}:
-                    raise  # pragma: no cover
-
-        try:
-            iam.delete_role(RoleName=role_name)
-            logger.info(f"[~]   Deleted IAM role '{role_name}'.")
-        except ClientError as exc:
-            if exc.response["Error"].get("Code") != "NoSuchEntity":
-                raise  # pragma: no cover
-    else:
-        logger.info(f"[~]   No leftover IAM role named '{role_name}'.")
+    _cleanup_instance_profile(iam, profile_name)
+    _cleanup_iam_role(iam, role_name, policy_name)
 
     # Key pairs are regional
     ec2 = boto3.client("ec2", region_name=region)
     key_name = f"{org_id}_key"
-    try:
-        ec2.delete_key_pair(KeyName=key_name)
-        logger.info(f"[~]   Deleted existing EC2 key pair '{key_name}'.")
-    except ClientError as exc:
-        if exc.response["Error"].get("Code") not in {"InvalidKeyPair.NotFound", "InvalidKeyPair.NotFoundException"}:
-            raise  # pragma: no cover
+    _delete_ec2_key_pair(ec2, key_name)
 
 
 def wait_for_ami(ami_id: str, region: str) -> None:
@@ -192,17 +231,13 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
     logger.info(f"Terraform apply output:\n{apply_result.stdout}")
 
     logger.info("[~] Applying phase2.plan ...")
-    #subprocess.run(["terraform", "apply", "phase2.plan"], cwd=terraform_dir, check=True)
 
     logger.info("[✓] Terraform apply complete for all resources.")
 
-# FETCH EC2 METADATA
+
 def get_ec2_ips(region: str, org_id: str):
+    """Fetch detailed EC2 instance metadata for a given org."""
     global logger
-    """
-    Fetch detailed EC2 instance metadata for a given org.
-    Returns a list of instance dicts including name, IPs, specs, and status.
-    """
     ec2 = boto3.client("ec2", region_name=region)
     reservations = ec2.describe_instances()["Reservations"]
 
@@ -244,7 +279,7 @@ def get_ec2_ips(region: str, org_id: str):
                 "ram_gb": inst.get("InstanceType"),
                 "storage_size_gb": storage_size_gb,
                 "created_at": inst["LaunchTime"].strftime("%Y-%m-%d %H:%M:%S"),
-                "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                 "ports": [sg["GroupId"] for sg in inst.get("SecurityGroups", [])],
                 "status": inst["State"]["Name"],
                 "private_ip": inst.get("PrivateIpAddress"),

@@ -4,10 +4,14 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from logger import task_logger
-
-from .workstation_setup import DomainStatus, ensure_domain_membership
-from .task import BaseTask
+try:  # Prefer package-relative imports when available
+    from ..logger import task_logger
+    from .task import BaseTask
+    from .workstation_setup import DomainStatus, ensure_domain_membership
+except ImportError:  # pragma: no cover - fallback when executed as top-level package
+    from logger import task_logger  # type: ignore
+    from tasks.task import BaseTask  # type: ignore
+    from tasks.workstation_setup import DomainStatus, ensure_domain_membership  # type: ignore
 
 
 class EnsureDomainMembershipTask(BaseTask):
