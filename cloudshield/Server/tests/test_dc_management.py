@@ -264,5 +264,100 @@ def test_dc_add_user_without_job(monkeypatch):
         lambda org_id, command, logger: mock_result
     )
     
+    # Mock persist_domain_user
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
     # Should not raise an error
     dc_add_user("test_org", "validuser", "Password123!")
+
+
+def test_dc_add_user_persists_on_success(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from cloudshield.Server.tasks.dc_management import dc_add_user
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.get_logger",
+        lambda name, job_id=None: mock_logger
+    )
+    
+    # Mock exec_ssh to return success (no stderr)
+    mock_result = SimpleNamespace(stdout="User created successfully", stderr="")
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.exec_ssh",
+        lambda org_id, command, logger: mock_result
+    )
+    
+    # Mock persist_domain_user
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    dc_add_user("test_org", "testuser", "Password123!")
+    
+    # Assert persist_domain_user was called with correct args
+    mock_persist.assert_called_once_with("test_org", "testuser", "Password123!")
+    
+    # Assert logger logged the persisted user_id
+    assert any("user_mongo_id_123" in str(call) for call in mock_logger.info.call_args_list)
+
+
+def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
+    """Test that dc_add_user does NOT persist when Samba command fails"""
+    from cloudshield.Server.tasks.dc_management import dc_add_user
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.get_logger",
+        lambda name, job_id=None: mock_logger
+    )
+    
+    # Mock exec_ssh to return error (stderr present)
+    mock_result = SimpleNamespace(
+        stdout="",
+        stderr="ERROR: command failed"
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.exec_ssh",
+        lambda org_id, command, logger: mock_result
+    )
+    
+    # Mock persist_domain_user
+    mock_persist = unittest.mock.MagicMock()
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    dc_add_user("test_org", "testuser", "Password123!")
+    
+    # Assert persist_domain_user was not called
+    mock_persist.assert_not_called()
