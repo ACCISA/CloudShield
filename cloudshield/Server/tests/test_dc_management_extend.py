@@ -8,9 +8,7 @@ import logging
 from cloudshield.Server.tasks.dc_management import (
     exec_ssh,
     forward_ssh_tunnel,
-    SSHExecResult,
-    ExecSSHConfig,
-    get_available_local_port
+    ExecSSHConfig
 )
 
 @pytest.fixture(autouse=True)

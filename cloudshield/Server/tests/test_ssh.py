@@ -1,5 +1,3 @@
-import builtins
-import types
 from types import SimpleNamespace
 import unittest.mock
 
