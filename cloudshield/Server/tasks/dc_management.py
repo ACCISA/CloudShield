@@ -6,6 +6,7 @@ from rq import get_current_job
 from .forward import forward_tunnel
 
 from ..utils import get_logger, get_inventory_from_org_id
+from ..services.user_service import persist_domain_user
 from ..models import Inventory
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
@@ -166,7 +167,12 @@ def dc_add_user(org_id: str, username: str, password: str):
     result = exec_ssh(org_id, command, logger=logger)
     logger.info(result.stdout)
     logger.info(result.stderr)
-    logger.info("User added to samba ad-dc")
+
+    #if no stderr, the command succeeded, the data can be persisted
+    if not result.stderr:
+        logger.info("User added to samba ad-dc")
+        domain_user_id = persist_domain_user(org_id, username, password)
+        logger.info(f"Domain user persisted with id: {domain_user_id}")
 
 
 
