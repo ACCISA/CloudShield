@@ -69,5 +69,6 @@ def get_inventory_from_org_id(org_id: str):
 
     if doc is None:
         return None
+    print(doc)
 
-    return Inventory(org_id=doc["org_id"], assets=doc["assets"])
+    return Inventory(org_id=str(doc["org_id"]), assets=doc["assets"])
