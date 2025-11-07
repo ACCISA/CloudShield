@@ -25,7 +25,6 @@ class TestUserService:
         
         # Create mock objects  
         mock_users_admin = unittest.mock.MagicMock()
-        mock_users_public = unittest.mock.MagicMock()
         mock_log_audit = unittest.mock.MagicMock()
         mock_hash_password = unittest.mock.MagicMock()
         mock_hash_password.side_effect = lambda pwd: f"hashed::{pwd}"
@@ -36,13 +35,11 @@ class TestUserService:
         
         # Patch the imported variables directly in the service module
         monkeypatch.setattr(user_service_module, "users_admin", mock_users_admin)
-        monkeypatch.setattr(user_service_module, "users_public", mock_users_public)
         monkeypatch.setattr(user_service_module, "log_audit", mock_log_audit)
         monkeypatch.setattr(user_service_module, "hash_password", mock_hash_password)
 
         return {
             'users_admin': mock_users_admin,
-            'users_public': mock_users_public,
             'log_audit': mock_log_audit,
             'hash_password': mock_hash_password
         }
@@ -321,4 +318,36 @@ class TestUserService:
             _must_admin({"id": "test", "role": ""})
         
         with pytest.raises(PermissionError, match="admin_only"):
-            _must_admin({"id": "test"})  
+            _must_admin({"id": "test"})
+
+    def test_persist_domain_user(self, setup_mocks):
+        """Test persist_domain_user creates domain user correctly"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import persist_domain_user
+        
+        # Mock insert result
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks['users_admin'].insert_one.return_value = mock_result
+        
+        # Execute
+        result = persist_domain_user("org_123", "domain_user", "SecurePass123!")
+        
+        # Assert
+        assert result == "507f1f77bcf86cd799439011"
+        
+        # Check insert_one was called
+        mocks['users_admin'].insert_one.assert_called_once()
+        call_args = mocks['users_admin'].insert_one.call_args[0][0]
+        
+        # Verify document structure
+        assert call_args["org_id"] == "org_123"
+        assert call_args["username"] == "domain_user"
+        assert call_args["password"] == "hashed::SecurePass123!"  # mocked hash
+        assert call_args["role"] == "employee"
+        assert call_args["status"] == "active"
+        assert "created_at" in call_args
+        assert "updated_at" in call_args
+        
+        # Verify password was hashed
+        mocks['hash_password'].assert_called_once_with("SecurePass123!")  
