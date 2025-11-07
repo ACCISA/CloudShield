@@ -161,31 +161,6 @@ def test_main_initializes_agent_with_programdata(monkeypatch, tmp_path):
     assert created["init"]["server_addr"] == "127.0.0.1"
     assert created["init"]["port"] == 50051
 
-    #registered_names = [entry["name"] for entry in created["registered"]]
-    #assert registered_names == [
-    #    "ensure_domain_membership",
-    #    "bootstrap_check",
-    #    "get_process_list",
-    #    "domain_dns_check",
-    #    "network_list",
-    #]
-
-    #process_task = next(entry for entry in created["registered"] if entry["name"] == "get_process_list")
-    #assert process_task["interval"] == 5
-    #assert process_task["task"].state == created["instance"].state
-    #assert process_task["run_once"] is False
-
-    #ensure_task = next(entry for entry in created["registered"] if entry["name"] == "ensure_domain_membership")
-    
-    #assert ensure_task["run_once"] is True
-
-    #domain_task_configs = created.get("domain_task_configs", [])
-    #ensure_task_configs = created.get("ensure_task_configs", [])
-    #assert domain_task_configs
-    #assert ensure_task_configs
-    #assert domain_task_configs[0] == ensure_task_configs[0]
-    #assert expected_cache.is_dir()
-
 
 def test_resolve_cache_path_uses_home_when_programdata_missing(monkeypatch, tmp_path):
     module, _ = _prepare_fakes(monkeypatch, tmp_path, program_data=None)
