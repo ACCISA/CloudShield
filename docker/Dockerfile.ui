@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /
+
+# Bring in the app code
+COPY cloudshield/WebUI .
+RUN ls -la
+RUN pwd
+RUN npm install
+
+EXPOSE 5173
+
+# Run Vite dev on all interfaces so Docker can expose it
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
