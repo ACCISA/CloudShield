@@ -1,15 +1,36 @@
 """User management service layer with audit logging."""
 from bson import ObjectId
 from datetime import datetime, timezone
+<<<<<<< HEAD
 from utils import users_admin, users_public, log_audit
 from models import UserCreate, UserUpdate
 from security import hash_password
+=======
+from ..utils import users_admin
+from ..utils import log_audit
+from ..models import UserCreate, UserUpdate
+from ..security import hash_password
+>>>>>>> 4db63df860fe4e09c184f14469ba0ae335a3031b
 
 
 def _must_admin(current_user: dict | None) -> None:
     """Ensure current user has admin role."""
     if not current_user or current_user.get("role") != "admin":
         raise PermissionError("admin_only")
+
+def persist_domain_user(org_id: str, username: str, password: str) -> str:
+    """Persist a domain user to the database and return the user ID."""
+    user_doc = {
+        "org_id": org_id,
+        "username": username,
+        "password": hash_password(password),
+        "role": "employee",
+        "status": "active",
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    res = users_admin.insert_one(user_doc)
+    return str(res.inserted_id)
 
 
 def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
