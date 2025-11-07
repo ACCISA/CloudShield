@@ -6,14 +6,9 @@ import time
 from rq import get_current_job
 from .forward import forward_tunnel
 
-<<<<<<< HEAD
 from utils import get_logger, get_inventory_from_org_id
+from services.user_service import persist_domain_user
 from models import Inventory
-=======
-from ..utils import get_logger, get_inventory_from_org_id
-from ..services.user_service import persist_domain_user
-from ..models import Inventory
->>>>>>> 4db63df860fe4e09c184f14469ba0ae335a3031b
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
