@@ -92,10 +92,24 @@ jobs:
           $stageDir = Join-Path $env:RUNNER_TEMP "${{ steps.version.outputs.artifact }}"
           if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
           New-Item -ItemType Directory -Path $stageDir | Out-Null
-          Copy-Item -Path "cloudshield/Agent/dist/main/." -Destination $stageDir -Recurse -Force
-          $exePath = Join-Path $stageDir "main.exe"
+          $distRoot = Join-Path (Get-Location) "cloudshield/Agent/dist"
+          $oneFolderPath = Join-Path $distRoot "main"
+          $oneFilePath = Join-Path $distRoot "main.exe"
+
+          if (Test-Path $oneFolderPath) {
+            Copy-Item -Path (Join-Path $oneFolderPath '*') -Destination $stageDir -Recurse -Force
+            $exePath = Join-Path $stageDir "main.exe"
+          } elseif (Test-Path $oneFilePath) {
+            Copy-Item -Path $oneFilePath -Destination $stageDir -Force
+            $exePath = Join-Path $stageDir "main.exe"
+          } else {
+            throw "PyInstaller output not found in $distRoot"
+          }
+
           if (Test-Path $exePath) {
-            Rename-Item -Path $exePath -NewName "cloudshield-agent.exe"
+            Rename-Item -Path $exePath -NewName "cloudshield-agent.exe" -Force
+          } else {
+            throw "Built executable not found after copy (expected $exePath)"
           }
           $zipPath = Join-Path $env:RUNNER_TEMP "${{ steps.version.outputs.artifact }}.zip"
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
