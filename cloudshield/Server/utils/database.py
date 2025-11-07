@@ -77,4 +77,7 @@ def get_inventory_from_org_id(org_id: str):
 
     doc = itam_db.find_one({"org_id":org_id})
 
+    if doc is None:
+        return None
+
     return Inventory(org_id=doc["org_id"], assets=doc["assets"])
