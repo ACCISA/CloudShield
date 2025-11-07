@@ -126,7 +126,7 @@ jobs:
       - name: Run pytest with coverage (Server)
         run: |
           export PYTHONPATH=cloudshield/Server:cloudshield/Cloud
-          pytest cloudshield/Server/tests --cov=cloudshield.Server \
+          pytest cloudshield/Server/tests --cov=cloudshield/Server \
             --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml
 
       - name: Create empty coverage if missing
