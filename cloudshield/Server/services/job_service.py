@@ -91,8 +91,10 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
     return job
 
 def enqueue_dc_change_password(org_id: str, username: str, password:str):
+    # future job service to change password of a user
     pass
 def enqueue_dc_remove_user(org_id: str, username: str, password: str):
+    # future job service to remove a user from a domain
     pass
 
 SERVICES = {
@@ -104,7 +106,7 @@ SERVICES = {
 
 def service_dispatcher(service_name: str, *args, **kwargs):
     if service_name not in SERVICES:
-        raise Exception(f"Unknown service called: {service_name}")
+        raise ValueError(f"Unknown service called: {service_name}")
 
     logger.info(f"Service dispatched to {service_name}")
 

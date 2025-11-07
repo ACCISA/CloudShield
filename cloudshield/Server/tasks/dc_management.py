@@ -91,7 +91,6 @@ class ExecSSHConfig:
             if asset.name == self.dc_name:
                 self.dc_priv_ip = asset.private_ip
                 self.dc_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
-                continue
 
 def get_available_local_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
