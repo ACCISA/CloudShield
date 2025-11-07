@@ -25,7 +25,6 @@ class TestUserService:
         
         # Create mock objects  
         mock_users_admin = unittest.mock.MagicMock()
-        mock_users_public = unittest.mock.MagicMock()
         mock_log_audit = unittest.mock.MagicMock()
         mock_hash_password = unittest.mock.MagicMock()
         mock_hash_password.side_effect = lambda pwd: f"hashed::{pwd}"
@@ -36,13 +35,11 @@ class TestUserService:
         
         # Patch the imported variables directly in the service module
         monkeypatch.setattr(user_service_module, "users_admin", mock_users_admin)
-        monkeypatch.setattr(user_service_module, "users_public", mock_users_public)
         monkeypatch.setattr(user_service_module, "log_audit", mock_log_audit)
         monkeypatch.setattr(user_service_module, "hash_password", mock_hash_password)
 
         return {
             'users_admin': mock_users_admin,
-            'users_public': mock_users_public,
             'log_audit': mock_log_audit,
             'hash_password': mock_hash_password
         }

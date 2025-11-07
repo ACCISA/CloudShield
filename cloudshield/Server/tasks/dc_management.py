@@ -2,7 +2,6 @@ import paramiko
 import socket
 import threading
 import re
-from datetime import datetime, timezone
 from rq import get_current_job
 from .forward import forward_tunnel
 
