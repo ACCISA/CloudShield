@@ -3,11 +3,16 @@ import os
 from pathlib import Path
 from provisioner import provision_network_terraform  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
-from ..utils import get_logger, db
-from ..utils.progress import set_progress, get_job_id_fallback
-from ..utils.shell import run_stream
-from ..adapters.terraform_to_models import map_metadata_to_ec2_instances
-from ..repos.inventory_repo import insert_inventory, delete_inventory_by_org
+from cloudshield.Server.utils import (
+    get_logger,
+    db,
+    set_progress,
+    get_job_id_fallback,
+    run_stream,
+)
+from cloudshield.Server.adapters import map_metadata_to_ec2_instances
+from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+
 
 """
 Add the Cloud/terraform directory to the path to import main and destroy_infra
