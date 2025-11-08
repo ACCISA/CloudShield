@@ -3,6 +3,7 @@ import unittest.mock
 import subprocess
 from types import SimpleNamespace
 
+# ======== run_stream tests ========
 def test_run_stream_returns_tail_and_logs(monkeypatch, caplog):
     import logging
     from cloudshield.Server.utils.shell import run_stream
@@ -65,6 +66,8 @@ def test_run_stream_passes_env(monkeypatch):
     run_stream(["echo", "ok"], cwd="/tmp", env=env, logger=logger)
     assert popen_kwargs["env"] == env
 
+
+# ======== provision_workstations tests ========
 def test_provision_workstations_work_dir_missing(monkeypatch):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
 
@@ -92,12 +95,12 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
 
-    # Create work directory structure mimicking parents[1]/Cloud/runs/{org}
+    # Create required directory structure
     base_dir = tmp_path / "cloudshield" / "Server"
     runs_dir = base_dir / "Cloud" / "runs" / "test_org"
     runs_dir.mkdir(parents=True, exist_ok=True)
 
-    # Point module __file__ so parents[1] resolves to base_dir
+    # Patch __file__ to point to our temp dir
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
 
     # Mock job/progress
@@ -108,7 +111,10 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
@@ -116,7 +122,7 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         lambda name, job_id=None: mock_logger
     )
 
-    # IMPORTANT: run_stream is imported into the module namespace; patch there
+    # Mock run_stream to simulate successful TF apply
     def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
         return ["Apply complete!"]
 
@@ -146,7 +152,10 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -178,6 +187,11 @@ def test_provision_network_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
+
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -210,7 +224,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
         lambda org_id, region, templates_dir, generated_dir, server_logger: metadata
     )
 
-    # NEW: we now call insert_inventory(...) not db.itam.insert_one
+    # Mock insert_inventory to return a fake result
     mock_insert_result = SimpleNamespace(inserted_id="inventory_123")
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.insert_inventory",
@@ -240,6 +254,10 @@ def test_provision_network_returns_none(monkeypatch):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -256,12 +274,17 @@ def test_provision_network_returns_none(monkeypatch):
     assert mock_job.meta["progress"] == "failed"
     assert "details" in mock_job.meta
 
+
 def test_provision_network_without_job(monkeypatch):
     from cloudshield.Server.tasks.network_provisioning import provision_network
 
     # No job present
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
+        lambda: None
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
         lambda: None
     )
     mock_logger = unittest.mock.MagicMock()
@@ -304,6 +327,10 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -318,7 +345,7 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         lambda org_id, region, force_empty_s3, org_dir, server_logger: None
     )
 
-    # NEW: delete via repo helper, not db directly
+    # Mock delete_inventory_by_org
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.delete_inventory_by_org",
         lambda db, org_id: {"org_id": org_id}
@@ -342,6 +369,10 @@ def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     mock_job.meta = {}
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
+        lambda: mock_job
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -371,6 +402,10 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
     mock_job.meta = {}
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
+        lambda: mock_job
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
