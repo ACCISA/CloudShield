@@ -22,6 +22,18 @@ services:
       - "5050:5050"
     volumes:
       - ./logs:/app/logs
+  api-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api_test
+    container_name: cs-api-test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - ENVIRONMENT=local
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - MONGO_URL=${MONGO_URL_TEST}
+      - MONGO_DB=${MONGO_DB_TEST}
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
