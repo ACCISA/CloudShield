@@ -2,11 +2,13 @@ import paramiko
 import socket
 import threading
 import re
+import time
 from rq import get_current_job
 from .forward import forward_tunnel
 
-from ..utils import get_logger, get_inventory_from_org_id
-from ..models import Inventory
+from utils import get_logger, get_inventory_from_org_id
+from services.user_service import persist_domain_user
+from models import Inventory
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
@@ -78,6 +80,7 @@ class ExecSSHConfig:
         self.vpn_key = None
         self.dc_priv_ip = None
         self.dc_key = None
+        self.failed = False
 
         self.populate_config()
 
@@ -90,7 +93,12 @@ class ExecSSHConfig:
             if asset.name == self.dc_name:
                 self.dc_priv_ip = asset.private_ip
                 self.dc_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
-                continue
+
+        if None in [self.vpn_ip, self.vpn_key, self.dc_priv_ip, self.dc_key]:
+            logger = _module_logger
+            logger.error("missing data from inventory assets")
+            logger.error(self.inventory)
+            self.failed = True
 
 def get_available_local_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,13 +108,20 @@ def get_available_local_port():
 def exec_ssh(org_id: str, command: str, logger=None):
     if logger is None:
         logger = _module_logger
-    
+
+    if len(command) == 0:
+        return None
+
     inventory = get_inventory_from_org_id(org_id)
 
     if not inventory:
-        return
+        logger.error(f"No ITAM inventory found for org_id={org_id}")
+        return None
 
     exec_ssh_config = ExecSSHConfig(inventory)
+
+    if exec_ssh_config.failed is True:
+        logger.error("Database does not contain the necessary data for task management") 
 
     jump_host       = exec_ssh_config.vpn_ip
     dc_host         = exec_ssh_config.dc_priv_ip
@@ -124,7 +139,10 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     transport = jump_client.get_transport()
 
-    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port, logger=logger)
+    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port)
+    
+    # Avoid a race condition so let the creation of the ssh tunnel complete
+    time.sleep(3)
 
     dc_client = paramiko.SSHClient()
     dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -135,7 +153,13 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     stdin, stdout, stderr = dc_client.exec_command(command)
     
-    return SSHExecResult(stdin, stdout.read().decode().strip(), stderr.read().decode().strip())
+    if stdout is None and stderr is None:
+        logger.error("Failed to read output from command execution")
+        return None
+    stdout_str = stdout.read().decode().strip() if stdout is not None else None
+    stderr_str = stderr.read().decode().strip() if stderr is not None else None
+
+    return SSHExecResult(stdin, stdout_str, stderr_str)
 
 def dc_add_user(org_id: str, username: str, password: str):
     """
@@ -166,7 +190,12 @@ def dc_add_user(org_id: str, username: str, password: str):
     result = exec_ssh(org_id, command, logger=logger)
     logger.info(result.stdout)
     logger.info(result.stderr)
-    logger.info("User added to samba ad-dc")
+
+    #if no stderr, the command succeeded, the data can be persisted
+    if not result.stderr:
+        logger.info("User added to samba ad-dc")
+        domain_user_id = persist_domain_user(org_id, username, password)
+        logger.info(f"Domain user persisted with id: {domain_user_id}")
 
 
 

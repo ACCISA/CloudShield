@@ -180,4 +180,6 @@ def test_run_sends_batch(monkeypatch):
     assert calls and calls[0][0] == "SendNetworkConnections"
     req = calls[0][1]
     assert req.agent_id == "agent-1"
-    assert isinstance(req.conns, list) and len(req.conns) == 1
+    assert len(req.conns) == 1
+    first_conn = list(req.conns)[0]
+    assert first_conn.process_name == "svc"

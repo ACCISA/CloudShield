@@ -236,3 +236,11 @@ Where to look for exact RPC names and message fields
 - Generated stubs and usage: `cloudshield/Agent/proto/agent_pb2.py`, `cloudshield/Agent/proto/agent_pb2_grpc.py`.
 - Mock and test implementations: `cloudshield/Agent/tools/mock_grpc_server.py`, `cloudshield/Agent/tests/`.
 
+## Automated builds & releases
+
+- GitHub Actions workflow `Agent Windows Build & Release` builds the Windows binary with PyInstaller on every push to `main`, any `release/**` branch, tagged release `v*`, or manual dispatch.
+- Workflow artifacts: each run uploads a ZIP (`cloudshield-agent-<version>.zip`) containing the executable plus bundled config/scripts; download it from the run summary under the *Artifacts* section.
+- Release automation: pushing an annotated tag such as `v1.2.3` triggers the same build and publishes a GitHub Release with the ZIP attached; tags containing `-rc` are marked as prereleases.
+- Version stamp for non-tagged runs derives from the latest `v*` tag plus the workflow run number (`v1.2.3+build.42`), making it easier to trace binaries back to their CI build.
+- Logs for dependency installation, PyInstaller output, packaging, and smoke-test steps remain available in the workflow run to aid troubleshooting when builds fail.
+

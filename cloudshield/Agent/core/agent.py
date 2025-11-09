@@ -1,3 +1,4 @@
+"""CloudShield agent core managing gRPC connectivity and task scheduling."""
 from proto import agent_pb2, agent_pb2_grpc
 from logger import core_logger
 
@@ -14,7 +15,9 @@ PROTOBUFS = {
     "SendNetworkConnections": "NetConnList",
 }
 
+
 class Agent:
+    """CloudShield monitoring agent with automatic gRPC reconnection."""
 
     def __init__(self, agent_id, server_addr, port, cache_path):
         """
@@ -72,6 +75,12 @@ class Agent:
             self.conn_attempt_job = schedule.every(self.conn_attempt_interval).seconds.do(self.create_grpc_channel)
     
     def set_task_channels(self, channel, stub):
+        """
+        Update all registered tasks with the active gRPC channel.
+
+        This method is called when the agent successfully establishes or re-establishes
+        a connection to the server, ensuring all tasks have access to the current channel.
+        """
         for task in self.tasks:
             task['function'].set_channel(channel, stub)
         core_logger.info("Channel has been set to registered tasks")
@@ -102,7 +111,9 @@ class Agent:
         If the server is not reachable, the function returns, and the
         agent will retry the connection after `self.conn_attempt_interval` seconds.
 
-        Note: This function will block the agent until the connection attempt is completed. We need to decide if we are okay with that. If not, we can implement an async or threaded approach.
+        Note: This function will block the agent until the connection attempt is completed.
+        We need to decide if we are okay with that. If not, we can implement an async
+        or threaded approach.
         """
         channel = grpc.insecure_channel(f"{self.server_addr}:{str(self.port)}")
 
@@ -118,7 +129,8 @@ class Agent:
 
     def register_task(self, name, task, interval=5, run_once=False, run_immediately=False):
         """
-        Register a task to the scheduler. This task must inherit from BaseTask. Tasks that fail sending messages will write them to cache.
+        Register a task to the scheduler. This task must inherit from BaseTask.
+        Tasks that fail sending messages will write them to cache.
         """
         self.tasks.append({
             "task_name": name,
@@ -152,6 +164,67 @@ class Agent:
             return False
 
     
+    def _get_cached_files(self):
+        """Get sorted list of cached JSON files."""
+        try:
+            entries = []
+            for fn in os.listdir(self.cache_path):
+                path = os.path.join(self.cache_path, fn)
+                if os.path.isfile(path) and fn.endswith(".json"):
+                    entries.append(path)
+            entries.sort()
+            return entries
+        except FileNotFoundError:
+            return []
+
+    def _load_cached_message(self, filepath):
+        """Load and validate cached message from file. Returns None if invalid."""
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+        except json.JSONDecodeError:
+            core_logger.warning(f"Skipping corrupted file: {os.path.basename(filepath)}")
+            return None
+        except Exception as e:
+            core_logger.warning(f"Skipping unreadable file {os.path.basename(filepath)}: {e}")
+            return None
+
+        grpc_call_name = cached.get("grpc")
+        data = cached.get("data")
+        if not grpc_call_name or data is None:
+            core_logger.warning(f"Skipping malformed cache: {os.path.basename(filepath)}")
+            return None
+
+        return {"grpc_call_name": grpc_call_name, "data": data}
+
+    def _build_grpc_request(self, grpc_call_name, data):
+        """Build gRPC request from cached data."""
+        grpc_call = getattr(self.stub, grpc_call_name)
+        msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
+        msg_cls = getattr(agent_pb2, msg_name)
+        request = ParseDict(data, msg_cls())
+        
+        try:
+            setattr(request, "is_pending", True)
+        except Exception:
+            pass
+        
+        return grpc_call, request
+
+    def _send_cached_message(self, filepath, grpc_call_name, data):
+        """Send a single cached message. Returns True if successful."""
+        grpc_call, request = self._build_grpc_request(grpc_call_name, data)
+        core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
+        
+        try:
+            grpc_call(request)
+            os.remove(filepath)
+            return True
+        except grpc.RpcError as e:
+            core_logger.error(e)
+            core_logger.error("Unable to send pending messages. A cache message may be invalid")
+            return False
+
     def send_pending_messages(self):
         """
         Checks for cached messages on disk and resends them to the central server. Cached messages are delete after being successfully sent
@@ -163,57 +236,18 @@ class Agent:
         if self.channel is None:
             return
 
-        try:
-            entries = []
-            for fn in os.listdir(self.cache_path):
-                path = os.path.join(self.cache_path, fn)
-                if os.path.isfile(path) and fn.endswith(".json"):
-                    entries.append(path)
-            entries.sort()
-        except FileNotFoundError:
+        entries = self._get_cached_files()
+        if not entries:
             return
 
         sent_count = 0
-
         for filepath in entries:
-            try:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-            except json.JSONDecodeError:
-                core_logger.warning(f"Skipping corrupted file: {os.path.basename(filepath)}")
-                continue
-            except Exception as e:
-                core_logger.warning(f"Skipping unreadable file {os.path.basename(filepath)}: {e}")
+            cached_msg = self._load_cached_message(filepath)
+            if cached_msg is None:
                 continue
 
-            grpc_call_name = cached.get("grpc")
-            data = cached.get("data")
-            if not grpc_call_name or data is None:
-                core_logger.warning(f"Skipping malformed cache: {os.path.basename(filepath)}")
-                continue
-
-            # Let AttributeError bubble if stub method is missing (matches tests)
-            grpc_call = getattr(self.stub, grpc_call_name)
-
-            # Resolve correct protobuf message type (let AttributeError bubble if missing)
-            msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
-            msg_cls = getattr(agent_pb2, msg_name)
-
-            # Rebuild message and mark as pending when supported
-            request = ParseDict(data, msg_cls())
-            try:
-                setattr(request, "is_pending", True)
-            except Exception:
-                pass
-
-            core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
-            try:
-                grpc_call(request)
-                os.remove(filepath)
+            if self._send_cached_message(filepath, cached_msg["grpc_call_name"], cached_msg["data"]):
                 sent_count += 1
-            except grpc.RpcError as e:
-                core_logger.error(e)
-                core_logger.error("Unable to send pending messages. A cache message may be invalid")
 
         core_logger.info(f"{sent_count} cached message(s) sent; {len(entries) - sent_count} left on disk")
 

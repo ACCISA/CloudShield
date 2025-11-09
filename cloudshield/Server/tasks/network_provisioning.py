@@ -1,3 +1,10 @@
+"""
+Network provisioning tasks for CloudShield infrastructure.
+
+This module handles AWS infrastructure provisioning and destruction using Terraform.
+Expects the provisioner module to be available in the same directory (configured
+via Docker volume mounts in docker-compose.yml).
+"""
 from rq import get_current_job
 import os
 from pathlib import Path
@@ -24,7 +31,6 @@ This setup only works in the docker container
 run: sudo docker-compose up api
 """
 
-# Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 

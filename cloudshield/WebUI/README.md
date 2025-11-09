@@ -38,5 +38,8 @@ Administrators use this interface to:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ACCISA/CloudShield.git
+   git clone https://github.com/your-org/WebUI.git
    cd WebUI
+   npm instll
+   npm run dev
+   ```

@@ -104,18 +104,18 @@ class GetProcessListTask(BaseTask):
                     open_files_grpc.append(agent_pb2.OpenFile(
                         md5sum     =   self.get_md5_sum(open_file.path),
                         file_path   =   str(open_file.path),
-                        position    =   str(open_file.position),
-                        mode        =   str(open_file.mode),
-                        flags       =   str(open_file.flags)
+                        position    =   str(getattr(open_file, "position", 0)),
+                        mode        =   str(getattr(open_file, "mode", "")),
+                        flags       =   str(getattr(open_file, "flags", ""))
                     ))
                 else:
                     open_files_grpc.append(agent_pb2.OpenFile(
                         md5sum     =   self.get_md5_sum(open_file.path),
                         file_path   =   str(open_file.path),
-                        fd          =   str(open_file.fd),
-                        position    =   str(open_file.position),
-                        mode        =   str(open_file.mode),
-                        flags       =   str(open_file.flags)
+                        fd          =   str(getattr(open_file, "fd", "")),
+                        position    =   str(getattr(open_file, "position", 0)),
+                        mode        =   str(getattr(open_file, "mode", "")),
+                        flags       =   str(getattr(open_file, "flags", ""))
                     ))
 
 
