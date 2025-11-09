@@ -1,31 +1,32 @@
+"""User management API endpoints."""
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from security.guards import require_auth, require_role
-from models.user import UserCreate, UserUpdate
-from services.user_service import create_user, update_user, deactivate_user, delete_user
+from ..security.guards import require_auth, require_role
+from ..models.user import UserCreate, UserUpdate
+from ..services.user_service import create_user, update_user, deactivate_user, delete_user
 
 users_bp = Blueprint('users', __name__)
 
-# Constants
 INTERNAL_SERVER_ERROR = "Internal server error"
 
-def _json_or_empty():
-    # Safely get JSON body or return empty dict
+
+def _json_or_empty() -> dict:
+    """Return request JSON body or empty dict if missing/invalid."""
     return request.get_json(silent=True) or {}
 
-def _extract_reason():
-    # Try to get 'reason' from JSON body first, then from query params
+
+def _extract_reason() -> str | None:
+    """Extract 'reason' from JSON body or query params."""
     body = _json_or_empty()
-    reason = body.get("reason")
-    if not reason:
-        reason = request.args.get("reason")
+    reason = body.get("reason") or request.args.get("reason")
     return (reason or "").strip() or None
 
-# Create user endpoint
+
 @users_bp.route("/users", methods=["POST"])
 @require_auth
 @require_role("admin")
 def create_user_endpoint():
+    """Create new user account (admin only)."""
     try:
         body = _json_or_empty()
         reason = _extract_reason()
@@ -42,11 +43,12 @@ def create_user_endpoint():
     except Exception:
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
-# Update user endpoint
+
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
 @require_auth
 @require_role("admin")
 def update_user_endpoint(user_id):
+    """Update user fields (admin only)."""
     try:
         body = _json_or_empty()
         reason = _extract_reason()
@@ -62,11 +64,12 @@ def update_user_endpoint(user_id):
     except Exception:
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
-# Deactivate user endpoint
+
 @users_bp.route("/users/<user_id>/deactivate", methods=["POST"])
 @require_auth
 @require_role("admin")
 def deactivate_user_endpoint(user_id):
+    """Deactivate user account (admin only)."""
     try:
         reason = _extract_reason()
         deactivate_user(user_id, current_user=g.user, reason=reason)
@@ -78,13 +81,13 @@ def deactivate_user_endpoint(user_id):
     except Exception:
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
-# Delete user endpoint
+
 @users_bp.route("/users/<user_id>", methods=["DELETE"])
 @require_auth
 @require_role("admin")
 def delete_user_endpoint(user_id):
+    """Permanently delete user account (admin only)."""
     try:
-        # DELETE may not have a JSON body, so also support ?reason=
         reason = _extract_reason()
         delete_user(user_id, current_user=g.user, reason=reason)
         return jsonify({"message": "User deleted"}), 200

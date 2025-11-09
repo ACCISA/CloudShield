@@ -1,29 +1,36 @@
+"""
+Network provisioning tasks for CloudShield infrastructure.
+
+This module handles AWS infrastructure provisioning and destruction using Terraform.
+Expects the provisioner module to be available in the same directory (configured
+via Docker volume mounts in docker-compose.yml).
+"""
 from rq import get_current_job
 import os
 import subprocess
 from pathlib import Path
 
-# Add the Cloud/terraform directory to the path to import main and destroy_infra
-#base_dir = Path(__file__).resolve().parents[1]
-#terraform_dir = base_dir / "Cloud" / "terraform"
-#sys.path.insert(0, str(terraform_dir))
-# we wont be running the above code because we can just move the scripts to the same location using docker.
-# This setup only works in the docker container
-# run: sudo docker-compose up api
-from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
+from provisioner import provision_network_terraform  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
 from utils import get_logger, db
 from models import Inventory, EC2Instance
 
-logger = get_logger("tasks")
+_module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
 
-def _run(cmd: list[str], cwd: str, env: dict | None = None):
-    """Run a shell command yielding output lines and raising on nonzero exit."""
+def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
+    """
+    Execute shell command and yield output lines.
+    
+    Raises subprocess.CalledProcessError on non-zero exit.
+    """
+    if logger is None:
+        logger = _module_logger
+    
     logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
     
-    all_output = []  # Capture everything
+    all_output = []
     
     proc = subprocess.Popen(
         cmd,
@@ -36,14 +43,13 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None):
     assert proc.stdout is not None
     for line in proc.stdout:
         stripped = line.rstrip()
-        all_output.append(stripped)  # Save it
+        all_output.append(stripped)
         logger.debug("[cmd output] %s", stripped)
         yield stripped
     
     proc.wait()
     if proc.returncode != 0:
         logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
-        # Log the last 30 lines before failure
         logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
         raise subprocess.CalledProcessError(proc.returncode, cmd)
     
@@ -52,20 +58,24 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None):
 
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
-    Provisions only the workstations using Terraform templates.
-    Copies the templates to a per-org working directory, injects org_id/region,
-    optionally overrides AMIs via terraform.tfvars, and runs terraform init/apply.
+    Provision workstation instances for an org using Terraform.
+    
+    Requires existing network infrastructure to be provisioned first.
     """
-    logger.info("[TASK] Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
-    base_dir = Path(CLOUDSHIELD_JOBS_DIR)
-    generated_dir = base_dir / "terraform" / "generated" / org_id
-    target_dir = get_target_dir(org_id,generated_dir.as_posix())
-    if not os.path.exists(target_dir):
-        logger.warning("[TASK] Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, target_dir)
+    base_dir = Path(__file__).resolve().parents[1]
+    runs_dir = base_dir / "Cloud" / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    work_dir = runs_dir / org_id
+    if not work_dir.exists():
+        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, work_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
@@ -94,7 +104,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             "-var", f"org_id={org_id}",
             "-var", f"region={region}",
         ]
-        for line in _run(cmd, cwd=str(target_dir), env=env):
+        for line in _run(cmd, cwd=str(work_dir), env=env, logger=logger):
             logs_tail.append(line)
             logs_tail = logs_tail[-50:]
             if job is not None and line.strip():
@@ -118,11 +128,15 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
 
 def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
     """
-    Provisions the full network using Terraform templates.
-    Calls the main() function from cloudshield/Cloud/terraform/main.py
+    Provision AWS network infrastructure with VPC, domain controller, and workstations.
+    
+    Stores asset inventory in MongoDB and updates RQ job metadata with progress.
     """
-    logger.info("[TASK] Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d", org_id, region, ubuntu_ami, workstation_ami, workstation_count)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
     if job is not None:
         job.meta["progress"] = "starting"
         job.save_meta()
@@ -136,8 +150,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             job.meta["progress"] = "provisioning infrastructure"
             job.save_meta()
         
-        logger.info("[TASK] Calling provision_network_terraform for org %s", org_id)
-        # Call the provisioner function with the appropriate arguments
+        logger.info("Calling provision_network_terraform for org %s", org_id)
         metadata = provision_network_terraform(
                 org_id=org_id,
                 region=region,
@@ -163,7 +176,6 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             job.save_meta()
             
             assets = []
-            # Store our aws assets into mongo db for future automated operations
             logger.info(metadata)
             for asset in metadata:
                 assets.append(EC2Instance(
@@ -187,7 +199,6 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
             itam_db = db.itam
 
-            # Instances will be stored in an inventory under an org_id
             res = itam_db.insert_one(Inventory(
                 org_id = org_id,
                 assets = assets
@@ -214,11 +225,15 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
 def destroy_environment(org_id: str, force: bool = False):
     """
-    Destroys an environment for the given org_id and removes the run directory.
-    Calls the destroy() function from cloudshield/Cloud/terraform/destroy_infra.py
+    Destroy AWS infrastructure and remove assets from ITAM inventory.
+    
+    Deletes Terraform state directory and updates RQ job progress.
     """
-    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+    
+    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
@@ -239,11 +254,8 @@ def destroy_environment(org_id: str, force: bool = False):
 
         
         logger.info("Calling destroy_infra for org %s", org_id)
-        # Call the destroy function from destroy_infra.py
-        # Note: destroy_infra.destroy() doesn't return a value, it prints to console
-        # We'll assume region is ca-central-1 by default (can be made configurable if needed)
         region = "ca-central-1"
-        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir)
+        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir, server_logger=logger)
 
         if job is not None:
             job.meta["progress"] = "completed destroy"

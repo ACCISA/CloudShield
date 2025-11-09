@@ -4,3 +4,11 @@ from .network_provisioning import provision_workstations as provision_workstatio
 
 from .dc_management import dc_add_user as dc_add_user
 
+# Alias for backward compatibility with tests
+destroy_infra = destroy_environment
+
+# Import provision_main from provisioner if available (used by tests)
+try:
+    from provisioner import provision_network_terraform as provision_main  # type: ignore[import]
+except ImportError:
+    provision_main = None  # type: ignore[assignment]

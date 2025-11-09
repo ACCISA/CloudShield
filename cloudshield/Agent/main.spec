@@ -1,11 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
 
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=[str(BASE_DIR)],
     binaries=[],
-    datas=[],
+    datas=[('config', 'config'), ('scripts', 'scripts')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -29,7 +33,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

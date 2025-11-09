@@ -23,9 +23,9 @@ resource "aws_instance" "windows_builder" {
 
   # Render userdata and pass installer + S3 bucket/key that templated user-data expects
   user_data = templatefile("${path.module}/userdata.ps1.tpl", {
-    installer      = file("${path.module}/install_agent_service.ps1"),
-    s3_bucket_name = aws_s3_bucket.agent_bucket.bucket,
-    s3_object_key  = aws_s3_bucket_object.agent_exe.key
+    s3_bucket_name       = aws_s3_bucket.agent_bucket.bucket,
+    agent_s3_key         = aws_s3_bucket_object.agent_exe.key,
+    install_script_s3_key = aws_s3_bucket_object.agent_install_script.key
   })
 
   tags = {

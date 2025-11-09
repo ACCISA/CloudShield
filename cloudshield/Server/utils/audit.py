@@ -1,12 +1,19 @@
+"""Audit logging system with MongoDB persistence and admin API."""
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, has_request_context
-from utils import db_admin
-from security import require_auth, require_role
+from . import db_admin
+
+try:
+    from cloudshield.Server.security import require_auth, require_role
+except ImportError:
+    try:
+        from ..security import require_auth, require_role
+    except ImportError:
+        from security import require_auth, require_role  # type: ignore[import]
 
 audit_bp = Blueprint("audit", __name__)
 _audit = db_admin["audit_logs"]
 
-# Ensure indexes
 try:
     _audit.create_index([("ts", -1)])
     _audit.create_index([("action", 1), ("resource", 1)])
@@ -15,19 +22,20 @@ try:
 except Exception:
     pass
 
+
 def log_audit(
     *,
     action: str,
     resource: str,
-    actor: dict | None = None,   # {"id","role","org_id"}
-    target: dict | None = None,  # {"id","email",...}
+    actor: dict | None = None,
+    target: dict | None = None,
     reason: str | None = None,
     before: dict | None = None,
     after: dict | None = None,
     severity: str = "info",
     meta: dict | None = None
 ) -> str:
-    """Write a single audit record; returns inserted _id as str."""
+    """Write audit record to MongoDB and return inserted document ID."""
     ip = ua = None
     if has_request_context():
         ip = request.headers.get("X-Forwarded-For") or request.remote_addr
@@ -36,10 +44,10 @@ def log_audit(
     doc = {
         "ts": datetime.now(timezone.utc),
         "severity": severity,
-        "action": action,           # e.g., "create", "update", "deactivate", "delete"
-        "resource": resource,       # e.g., "users"
-        "actor": actor,             # who initiated
-        "target": target,           # what was acted on
+        "action": action,
+        "resource": resource,
+        "actor": actor,
+        "target": target,
         "reason": reason,
         "before": before or {},
         "after": after or {},
@@ -51,14 +59,14 @@ def log_audit(
         res = _audit.insert_one(doc)
         return str(res.inserted_id)
     except Exception:
-        # swallow audit failures; you can print/log e if you want during dev
         return ""
 
-# List audit records (admin only)
+
 @audit_bp.route("/audit", methods=["GET"])
 @require_auth
 @require_role("admin")
 def list_audit():
+    """Retrieve audit logs with optional filtering (admin only)."""
     q = {}
     action = request.args.get("action")
     actor  = request.args.get("actor")
