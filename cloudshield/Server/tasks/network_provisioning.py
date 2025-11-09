@@ -56,7 +56,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     Copies the templates to a per-org working directory, injects org_id/region,
     optionally overrides AMIs via terraform.tfvars, and runs terraform init/apply.
     """
-    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
+    logger.info("[TASK] Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     job = get_current_job()
     if job is not None:
         job.meta["progress"] = "starting destroy"
@@ -65,7 +65,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id,generated_dir.as_posix())
     if not os.path.exists(target_dir):
-        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, target_dir)
+        logger.warning("[TASK] Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, target_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
@@ -75,19 +75,19 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         if job is not None:
             job.meta["progress"] = "get existing workstation count"
             job.save_meta()
-        logger.info("Getting existing workstation count for org %s", org_id)
+        logger.info("[TASK] Getting existing workstation count for org %s", org_id)
         initial_count=0
         try:
             count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
             output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
             initial_count = int(output.strip())
         except subprocess.CalledProcessError as e:
-            logger.warning("No existing workstations found for org %s: %s", org_id, e)
-        logger.info("Existing workstation count for org %s: %d", org_id, initial_count)
+            logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
+        logger.debug("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
         if job is not None:
             job.meta["progress"] = "terraform apply"
             job.save_meta()
-        logger.info("Running terraform apply for org %s", org_id)
+        logger.info("[TASK] Running terraform apply for org %s", org_id)
         cmd = [
             "terraform", "apply", "-auto-approve", "-input=false",
             "-var", f"workstation_count={count+initial_count}",
@@ -105,7 +105,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             job.meta["progress"] = "completed"
             job.save_meta()
             
-        logger.info("Provisioning workstations complete for org %s", org_id)
+        logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
         return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "logs_tail": logs_tail, "new_workstation_count": count + initial_count}
     except Exception as e:
         logger.exception("Provisioning workstations failed for org %s: %s", org_id, e)

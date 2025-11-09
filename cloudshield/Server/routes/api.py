@@ -37,17 +37,30 @@ def task_provision():
     data = request.get_json() or {}
     # Avoid logging user-controlled request body
 
-    logger.info("Received /task/provision POST request")
+    logger.info("[API] Received /task/provision POST request")
     org_id = data.get("org_id")
     workstation_count = data.get("workstation_count", 0)
 
     if not org_id:
-        logger.warning("Provision request missing org_id")
+        logger.warning("[API] Provision request missing org_id")
         return jsonify({"error": "org_id is required"}), 400
-
-    job = service_dispatcher("provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"), workstation_count=workstation_count)
-
-    return jsonify({"job_id": job.id}), 202
+    
+    logger.debug(
+        "[API] Parsed parameters: org_id=%s, region=%s, ubuntu_ami=%s, "
+        "workstation_ami=%s, workstation_count=%s",
+        org_id,
+        data.get("region", "ca-central-1"),
+        data.get("ubuntu_ami"),
+        data.get("workstation_ami"),
+        data.get("workstation_count", 0),
+    )
+    try:
+        job = service_dispatcher("provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"), workstation_count=workstation_count)
+        logger.info(f"[API] Dispatched provision_network job successfully (job_id={job.id}, org_id={org_id})")
+        return jsonify({"job_id": job.id}), 202
+    except Exception as e:
+        logger.exception(f"[API] Error dispatching provision_network job for org_id={org_id}: {e}")
+        return jsonify({"error": "Failed to dispatch provision job"}), 500
 
 @api_bp.route("/task/provisionworkstations", methods=["POST"])
 def task_provision_workstations():

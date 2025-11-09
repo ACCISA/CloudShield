@@ -45,18 +45,29 @@ def health_status() -> Tuple[Dict[str, Any], int]:
     return {"status": "ok", "redis": bool(ping)}, 200
 
 def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0) -> Job:
-    job = task_queue.enqueue(
-        provision_network,
+    logger.info(
+        "[SERVICE] Enqueueing provision_network job (org_id=%s, region=%s, workstation_count=%s)",
         org_id,
         region,
-        ubuntu_ami,
-        workstation_ami,
         workstation_count,
-        job_timeout=JOB_TIMEOUT,
     )
-    # Avoid logging user-controlled identifiers
-    logger.info("Enqueued provision job")
-    return job
+
+    try:
+        job = task_queue.enqueue(
+            provision_network,
+            org_id,
+            region,
+            ubuntu_ami,
+            workstation_ami,
+            workstation_count,
+            job_timeout=JOB_TIMEOUT,
+        )
+        # Avoid logging user-controlled identifiers
+        logger.info("[SERVICE] Enqueued provision_network job")
+        return job
+    except Exception as e:
+        logger.exception(f"[SERVICE] Error enqueueing provision_network job for org_id={org_id}: {e}")
+        raise
 
 def enqueue_provision_workstations(org_id: str, region: str = "us-west-2", count: int = 1) -> Job:
     job = task_queue.enqueue(
