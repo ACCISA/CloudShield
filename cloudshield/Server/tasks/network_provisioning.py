@@ -121,7 +121,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     Provisions the full network using Terraform templates.
     Calls the main() function from cloudshield/Cloud/terraform/main.py
     """
-    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d", org_id, region, ubuntu_ami, workstation_ami, workstation_count)
+    logger.info("[TASK] Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d", org_id, region, ubuntu_ami, workstation_ami, workstation_count)
     job = get_current_job()
     if job is not None:
         job.meta["progress"] = "starting"
@@ -136,7 +136,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             job.meta["progress"] = "provisioning infrastructure"
             job.save_meta()
         
-        logger.info("Calling provision_network_terraform for org %s", org_id)
+        logger.info("[TASK] Calling provision_network_terraform for org %s", org_id)
         # Call the provisioner function with the appropriate arguments
         metadata = provision_network_terraform(
                 org_id=org_id,
@@ -149,6 +149,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         
         if metadata is None:
             details = "Provisioning failed since the generated directory already exists"
+            logger.error("[TASK] %s (org_id=%s)", details, org_id)
             job.meta["progress"] = "failed"
             job.meta["details"] = details
             job.save_meta()
@@ -192,7 +193,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 assets = assets
             ).dict(by_alias=True))
 
-            logger.info(f"Stored assets (invetory_id={res.inserted_id})")
+            logger.info(f"[TASK] Stored assets (invetory_id={res.inserted_id})")
 
         logger.info("Provisioning complete for org %s", org_id)
 
@@ -204,7 +205,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             "metadata": metadata
         }
     except Exception as e:
-        logger.exception("Provisioning failed for org %s: %s", org_id, e)
+        logger.exception("[TASK] Provisioning failed for org %s: %s", org_id, e)
         if job is not None:
             job.meta["progress"] = f"failed: {e}"
             job.save_meta()

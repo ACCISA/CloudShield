@@ -66,18 +66,29 @@ def task_provision():
 def task_provision_workstations():
     data = request.get_json() or {}
     # Avoid logging user-controlled request body
-    logger.info("Received /task/provisionworkstations POST request")
+    logger.info("[API] Received /task/provisionworkstations POST request")
     org_id = data.get("org_id")
 
     if not org_id:
-        logger.warning("Provision workstations request missing org_id")
-        return jsonify({"error": "org_id is required"}), 400\
+        logger.warning("[API] Provision workstations request missing org_id")
+        return jsonify({"error": "org_id is required"}), 400
 
+    logger.debug(
+        "[API] Parsed parameters: org_id=%s, region=%s, count=%s",
+        org_id,
+        data.get("region", "us-west-2"),
+        data.get("count", 1),
+    )
     count = data.get("count", 1)
-    job = service_dispatcher("provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
 
-    return jsonify({"job_id": job.id}), 202
-
+    try:
+        job = service_dispatcher("provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
+        logger.info("[API] Dispatched provision_workstations job successfully (job_id=%s, org_id=%s)", job.id, org_id)
+        return jsonify({"job_id": job.id}), 202
+    except Exception as e:
+        logger.exception(f"[API] Error dispatching provision_workstations job for org_id={org_id}: {e}")
+        return jsonify({"error": "Failed to dispatch provision workstations job"}), 500
+        
 @api_bp.route("/task/destroy", methods=["POST"])
 def task_destroy():
     data = request.get_json() or {}
