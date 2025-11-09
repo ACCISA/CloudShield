@@ -233,6 +233,9 @@ resource "aws_instance" "org_id_openvpn_server" {
     openvpn_routes      = var.openvpn_routes
   })
   tags = { Name = "org_id_openvpn_server" }
+  root_block_device {
+    delete_on_termination = true
+  }
 }
 
 ##########################
@@ -245,6 +248,9 @@ resource "aws_instance" "org_id_domain_controller" {
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name               = aws_key_pair.org_id_key.key_name
   tags                   = { Name = "org_id_domain_controller" }
+  root_block_device {
+    delete_on_termination = true
+  }
 }
 
 resource "aws_instance" "org_id_workstation" {
@@ -262,6 +268,9 @@ resource "aws_instance" "org_id_workstation" {
     domain_admin_user      = var.domain_admin_user
     domain_admin_password  = var.dc_admin_password
   })
+  root_block_device {
+    delete_on_termination = true
+  }
 }
 
 ##########################
@@ -278,7 +287,9 @@ resource "aws_instance" "org_id_samba" {
     domain_name       = var.domain_name
     dc_admin_password = var.dc_admin_password
     realm_name        = var.realm_name
-
   })
   tags = { Name = "org_id_samba" }
+  root_block_device {
+    delete_on_termination = true
+  }
 }

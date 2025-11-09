@@ -1,33 +1,58 @@
-import pytest
+import sys
 import types
-from cloudshield.Server.server import create_app
-import cloudshield.Server.services.job_service as js
+import unittest.mock
+# create a reusable mock client and a fake redis module that returns it
+_mock_redis_client = unittest.mock.MagicMock()
+_mock_redis_client.get.return_value = None
+_mock_redis_client.set.return_value = True
+_mock_redis_client.ping.return_value = True
 
+_fake_redis = types.ModuleType("redis")
+class _DummyRedis:
+    def __init__(self, *a, **kw):
+        self._client = _mock_redis_client
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+# expose constructors your code may call
+_fake_redis.Redis = _DummyRedis
+_fake_redis.StrictRedis = _DummyRedis
+
+# install the fake module so any subsequent `import redis` gets the mock
+sys.modules['redis'] = _fake_redis
+
+import pytest
+from unittest.mock import patch, MagicMock
 
 @pytest.fixture()
 def client(monkeypatch):
-    class DummyJob:
-        def __init__(self, job_id):
-            self.id = job_id
+    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+        mock_redis_instance = MagicMock()
+        mock_redis_cls.return_value = mock_redis_instance
 
-    # Counter to generate unique job IDs
-    job_counter = {"count": 0}
-    
-    def fake_enqueue(func, *args, **kwargs):
-        job_counter["count"] += 1
-        return DummyJob(f"job{job_counter['count']}")
+        # Optional: mock Redis methods your app uses
+        mock_redis_instance.ping.return_value = True
+        mock_redis_instance.get.return_value = b"some_value"
+        mock_redis_instance.set.return_value = True
 
-    # Mock task_queue to avoid Redis connection
-    monkeypatch.setattr(js, "task_queue", types.SimpleNamespace(enqueue=fake_enqueue))
-    
-    # Mock get_job_status and health_status
-    monkeypatch.setattr(js, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
-    monkeypatch.setattr(js, "redis_conn", types.SimpleNamespace(ping=lambda: True))
+        class DummyJob:
+            def __init__(self, job_id):
+                self.id = job_id
 
-    app = create_app()
-    app.testing = True
-    return app.test_client()
+        monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        from cloudshield.Server.server import create_app
+        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.services as services
 
+        monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
+        monkeypatch.setattr(services, "health_status", lambda: ({"status": "ok", "redis": True}, 200))
+
+        monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+        monkeypatch.setattr(api_mod, "health_status", services.health_status)
+
+        app = create_app()
+        app.testing = True
+        return app.test_client()
 
 def test_provision_missing_org(client):
     resp = client.post("/task/provision", json={})
