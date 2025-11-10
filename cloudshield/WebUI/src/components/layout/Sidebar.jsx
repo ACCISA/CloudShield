@@ -332,7 +332,7 @@ export default function Sidebar({ mode = 'full', collapsed, onToggleCollapse }) 
             label="Workstations"
             to="/workstations"
             active={isActive('/workstations')}
-            count={6}
+            count={4}
             countColor={workstationPill}
             expanded={open.workstations}
             onToggleExpand={() => setOpen((s) => ({ ...s, workstations: !s.workstations }))}
@@ -344,7 +344,7 @@ export default function Sidebar({ mode = 'full', collapsed, onToggleCollapse }) 
             label="Users"
             to="/users"
             active={isActive('/users')}
-            count={6}
+            count={9}
             countColor={usersPill}
             expanded={open.users}
             onToggleExpand={() => setOpen((s) => ({ ...s, users: !s.users }))}
@@ -356,7 +356,7 @@ export default function Sidebar({ mode = 'full', collapsed, onToggleCollapse }) 
             label="Groups"
             to="/groups"
             active={isActive('/groups')}
-            count={6}
+            
             countColor={groupsPill}
             expanded={open.groups}
             onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
