@@ -17,6 +17,7 @@ from cloudshield.Server.utils import (
     db,
     set_progress,
     get_job_id_fallback,
+    run_stream
 )
 from cloudshield.Server.adapters import map_metadata_to_ec2_instances
 from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
@@ -46,9 +47,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     logger = get_logger("job", job_id=job_id)
     
     logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
-    if job is not None:
-        job.meta["progress"] = "starting destroy"
-        job.save_meta()
+    set_progress("starting")
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
@@ -59,14 +58,10 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
-
+    initial_count = 0
     # Run terraform apply for workstations only
     try:
-        if job is not None:
-            job.meta["progress"] = "get existing workstation count"
-            job.save_meta()
-        logger.info("[TASK] Getting existing workstation count for org %s", org_id)
-        initial_count=0
+        set_progress("terraform get init workstation count")
         try:
             count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
             output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
@@ -74,9 +69,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         except subprocess.CalledProcessError as e:
             logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
         logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
-        if job is not None:
-            job.meta["progress"] = "terraform apply"
-            job.save_meta()
+        set_progress("terraform apply workstations")
         logger.info("[TASK] Running terraform apply for org %s", org_id)
         cmd = [
             "terraform", "apply", "-auto-approve", "-input=false",
@@ -84,14 +77,17 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             "-var", f"org_id={org_id}",
             "-var", f"region={region}",
         ]
-        subprocess.run(cmd, cwd=str(target_dir), env=env, check=True)
+        logs_tail = run_stream(cmd, cwd=str(work_dir), env=env, logger=logger)
 
-        if job is not None:
-            job.meta["progress"] = "completed"
-            job.save_meta()
+        set_progress("completed")
             
         logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
-        return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "new_workstation_count": count + initial_count}
+        return {
+            "message": "Provisioning workstations complete", 
+            "work_dir": str(target_dir), 
+            "new_workstation_count": count + initial_count,
+            "logs_tail": logs_tail
+            }
     except Exception as e:
         logger.exception("Provisioning workstations failed: org=%s err=%s", org_id, e)
         set_progress(f"failed: {e}")
