@@ -1,4 +1,3 @@
-"""Flask route decorators for JWT authentication and role-based authorization."""
 import functools
 from flask import request, jsonify, g
 from .jwt_utils import verify_token
@@ -12,7 +11,32 @@ except Exception:
 
 
 def require_auth(fn):
-    """Decorator to require JWT authentication on route."""
+    """
+    Decorator to require JWT authentication on route.
+
+    ---
+    Behaviour:
+        - Extracts the JWT from the 'Authorization' header.
+        - Validates the token using 'verify_token()'.
+        - On success, attaches decoded user claims to 'flask.g.user':
+          '''python
+          g.user = {
+              "id": "<user_id>",
+              "role": "<role>",
+              "org_id": "<org_id>"
+          }
+          '''
+        - On failure, returns '401 Unauthorized' JSON error.
+
+    Responses:
+        - 401: Missing or invalid Bearer token.
+
+    Audit Logging:
+        - Calls 'log_denied()' with context if a token is missing or invalid.
+
+    Returns:
+        Callable: Wrapped Flask view function.
+    """
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         auth = request.headers.get("Authorization", "")
@@ -31,7 +55,27 @@ def require_auth(fn):
 
 
 def require_role(*roles):
-    """Decorator to enforce user has one of specified roles."""
+    """
+    Decorator to enforce user has one of specified roles.
+
+    ---
+    Args:
+        *roles (str): One or more role names permitted to access the route.
+
+    Behaviour:
+        - Compares 'g.user["role"]' to the allowed roles list.
+        - Returns '403 Forbidden' if the user's role is not permitted.
+        - Should be used after '@require_auth' to ensure 'g.user' is populated.
+
+    Responses:
+        - 403: Insufficient permissions for current role.
+
+    Audit Logging:
+        - Logs denied attempts with 'reason="insufficient_role"' and role details.
+
+    Returns:
+        Callable: Wrapped Flask view function restricted to the given roles.
+    """
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
@@ -44,7 +88,31 @@ def require_role(*roles):
 
 
 def enforce_same_org(from_param: str | None = None):
-    """Decorator to ensure target organization matches user's org. Admins bypass this check."""
+    """
+    Decorator to ensure target organization matches user's org. Admins bypass this check.
+
+    ---
+    Args:
+        from_param (str | None): 
+            - If provided, reads the 'org_id' from the URL parameter.
+            - If omitted, falls back to the JSON body field "org_id".
+
+    Behaviour:
+        - For admin users:
+            > Skips the check (admins can access all orgs).
+        - For non-admin users:
+            > Compares target org with 'g.user["org_id"]'.
+            > Returns '403 Forbidden (org)' if they differ.
+
+    Responses:
+        - 403: Cross-organization access attempt by a non-admin.
+
+    Audit Logging:
+        - Calls 'log_denied()' with 'reason="cross_org_access"' when the user attempts to act on a different organization.
+
+    Returns:
+        Callable: Wrapped Flask view enforcing organization ownership constraint.
+    """
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
