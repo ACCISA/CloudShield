@@ -10,7 +10,27 @@ JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))
 
 
 def issue_token(sub: str, role: str, org_id: str):
-    """Generate JWT access token with user claims."""
+    """
+    Generate JWT access token with user claims.
+
+    Args:
+        sub (str): The subject identifier --> the user's unique ID.
+        role (str): The user's role ("admin" or "employee").
+        org_id (str): The organization ID the user belongs to.
+
+    Returns:
+        str: Encoded JWT string signed with HS256.
+
+    Behaviour:
+        - Includes standard claims:
+            > 'sub': subject (user ID)
+            > 'iss': issuer (application ID)
+            > 'aud': audience (expected app consumer)
+            > 'iat': issued-at timestamp (slightly backdated to avoid iat skew errors)
+            > 'exp': expiration time (current time + JWT_EXPIRES_MINUTES)
+        - The token is signed using the secret stored in 'JWT_SECRET'.
+        - Adds a 10-second offset to 'iat' to prevent invalid token errors.
+    """
     now = int(time.time())
     payload = {
         "sub": sub,
@@ -25,7 +45,24 @@ def issue_token(sub: str, role: str, org_id: str):
 
 
 def verify_token(token: str):
-    """Decode and validate JWT token. Raises exception on invalid token."""
+    """
+    Decode and validate JWT token. Raises exception on invalid token.
+
+    Args:
+        token (str): Encoded JWT string (as sent in Authorization header).
+
+    Returns:
+        dict: Decoded token payload containing validated claims.
+
+    Behaviour:
+        - Validates:
+            > Signature (using 'JWT_SECRET').
+            > Audience ('aud') against 'JWT_AUDIENCE'.
+            > Issuer ('iss') against `JWT_ISSUER`.
+            > Expiration ('exp') and issued-at ('iat') timestamps.
+        - Allows up to 30 seconds of leeway for clock skew.
+        - Does not strictly enforce 'verify_iat' (to avoid rejecting new tokens).
+    """
     return jwt.decode(
         token,
         JWT_SECRET,
