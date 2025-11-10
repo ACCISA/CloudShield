@@ -97,8 +97,8 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
 
     # Create required directory structure
     base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    generated_dir = base_dir / "terraform" / "generated" / "test_org"
+    generated_dir.mkdir(parents=True, exist_ok=True)
 
     # Patch __file__ to point to our temp dir
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
@@ -141,8 +141,8 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
     import cloudshield.Server.tasks.network_provisioning as np_module
 
     base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    generated_dir = base_dir / "terraform" / "generated" / "test_org"
+    generated_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
 
     mock_job = unittest.mock.MagicMock()
