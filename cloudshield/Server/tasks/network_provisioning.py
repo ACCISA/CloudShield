@@ -198,6 +198,8 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
         return {
             "message": "Provisioning complete",
+            "org_id": org_id,
+            "region": region,
             "work_dir": str(generated_dir),
             "metadata": metadata
         }
