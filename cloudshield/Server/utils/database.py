@@ -21,7 +21,19 @@ MONGO_URL_FALLBACK = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 
 
 def _mk_client(url: str) -> MongoClient:
-    """Create MongoDB client with short connection timeout."""
+    """
+    Create MongoDB client with short connection timeout.
+
+    Args:
+        url (str): Full MongoDB connection URI string.
+
+    Returns:
+        MongoClient: Configured client with a 5-second server selection timeout.
+
+    Notes:
+        - Used internally to build both admin and employee clients.
+        - Keeps startup responsive by failing quickly on unreachable servers.
+    """
     return MongoClient(url, serverSelectionTimeoutMS=5000)
 
 try:
@@ -39,9 +51,12 @@ try:
     db_admin = admin_client[DB_NAME]
     db_emp   = emp_client[DB_NAME]
     
+    # Admin path: Raw "users" collection (read-write).
+    # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
     users_public = db_emp["users_public"]
 
+    # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
 
     print(f"[database.py] Connected to MongoDB DB='{DB_NAME}' (admin+employee clients ready)")
@@ -62,7 +77,22 @@ __all__ = [
 
 
 def get_inventory_from_org_id(org_id: str):
-    """Retrieve IT asset inventory for organization from MongoDB."""
+    """
+    Retrieve IT asset inventory for organization from MongoDB.
+
+    Args:
+        org_id (str): Unique organization identifier used to scope inventory records.
+
+    Returns:
+        Inventory: A Pydantic 'Inventory' model instance containing the org's assets.
+
+    Raises:
+        KeyError: If the document structure in MongoDB is missing expected fields.
+        PyMongoError: If MongoDB connection or query execution fails.
+
+    Notes:
+        - This function reads from the 'itam' collection in the default DB.
+    """
     itam_db = db.itam
 
     doc = itam_db.find_one({"org_id":org_id})
