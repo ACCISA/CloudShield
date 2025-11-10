@@ -42,7 +42,6 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     Provisions only the workstations via Terraform.
     Uses shared 'run_stream' + 'set_progress' for less boilerplate and reuse.
     """
-    job = get_current_job()
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
     
