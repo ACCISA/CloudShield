@@ -6,3 +6,4 @@ from .user_service import create_user as create_user
 from .user_service import update_user as update_user
 from .user_service import deactivate_user as deactivate_user
 from .user_service import delete_user as delete_user
+from .user_service import persist_domain_user as persist_domain_user

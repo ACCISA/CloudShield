@@ -13,30 +13,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install awscli supervisor
 RUN env
 
-# If any are missing, build will fail
-#RUN test -n "$AWS_ACCESS_KEY_ID" || (echo "AWS_ACCESS_KEY_ID not set" && exit 1)
-#RUN test -n "$AWS_SECRET_ACCESS_KEY" || (echo "AWS_SECRET_ACCESS_KEY not set" && exit 1)
-#RUN test -n "$AWS_DEFAULT_REGION" || (echo "AWS_DEFAULT_REGION not set" && exit 1)
-
 RUN mkdir /var/lib/cloudshield
 
-# Create logs directory for job logging
 RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
 
-# Copy only necessary cloudshield modules
 COPY cloudshield/__init__.py /app/cloudshield/
 COPY cloudshield/Server /app/cloudshield/Server/
 COPY cloudshield/Cloud/provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
 
-# Set PYTHONPATH so cloudshield package can be imported
 ENV PYTHONPATH=/app
 
 COPY docker/supervisord.conf /app/
-
-# drop root not needed for dev
-#RUN useradd --create-home --shell /usr/sbin/nologin appuser \
-#  && chown -R appuser:appuser /app
-#USER appuser
 
 CMD ["supervisord", "-c", "supervisord.conf"]

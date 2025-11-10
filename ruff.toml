@@ -9,5 +9,8 @@ select = ["E", "F"]  # keep it simple for now
 [lint.per-file-ignores]
 "cloudshield/Agent/proto/*.py" = ["E501", "F401", "F541"]
 "cloudshield/Server/tests/*.py" = ["E402"]
+"cloudshield/Agent/tests/*.py" = ["E402"]
+"cloudshield/ThreatDetection/tests/*.py" = ["E402"]
+"cloudshield/Cloud/provisioner/tests/*.py" = ["E402"]
 "cloudshield/Server/services/user_service.py" = ["F401"]  # users_public needed for test mocking
 "cloudshield/Server/app.py" = ["E402"]  # Path manipulation needed for moved app.py imports

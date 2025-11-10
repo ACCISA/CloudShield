@@ -2,27 +2,42 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 import warnings
+from importlib import metadata as importlib_metadata
 
 from proto import agent_pb2 as proto_dot_agent__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
-GRPC_VERSION = grpc.__version__
+GRPC_VERSION = getattr(grpc, "__version__", None)
+if GRPC_VERSION is None:
+        try:
+                GRPC_VERSION = importlib_metadata.version("grpcio")
+        except importlib_metadata.PackageNotFoundError:
+                GRPC_VERSION = "0.0.0"
+
 _version_not_supported = False
 
 try:
-    from grpc._utilities import first_version_is_lower
-    _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
+        from grpc._utilities import first_version_is_lower
 except ImportError:
-    _version_not_supported = True
+        first_version_is_lower = None
+
+if first_version_is_lower is not None:
+        try:
+                _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
+        except TypeError:
+                # Fallback if grpc switches comparison semantics (gRPC 1.75+ dropped __version__).
+                _version_not_supported = False
+else:
+        _version_not_supported = False
 
 if _version_not_supported:
-    raise RuntimeError(
-        f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in proto/agent_pb2_grpc.py depends on'
-        + f' grpcio>={GRPC_GENERATED_VERSION}.'
-        + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
-        + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
-    )
+        raise RuntimeError(
+                f'The grpc package installed is at version {GRPC_VERSION},'
+                + f' but the generated code in proto/agent_pb2_grpc.py depends on'
+                + f' grpcio>={GRPC_GENERATED_VERSION}.'
+                + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
+                + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
+        )
 
 
 class AgentServiceStub(object):
