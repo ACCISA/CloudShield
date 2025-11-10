@@ -386,7 +386,7 @@ def test_main_invokes_helpers(monkeypatch, tmp_path):
     monkeypatch.setattr(
         terraform_main,
         "run_terraform_two_phase_apply",
-        lambda org, region, terraform_dir: calls.append(("run", org, region, terraform_dir)),
+        lambda org, region, terraform_dir, count: calls.append(("run", org, region, terraform_dir, count)),
     )
     monkeypatch.setattr(terraform_main, "get_ec2_ips", lambda region, org: calls.append(("ips", region, org)) or ["meta"])
 
