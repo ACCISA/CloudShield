@@ -1,120 +1,95 @@
-/**
- * RefreshButton.jsx
- *
- * Purpose:
- *   Reusable refresh button component that can be used across different pages
- *   for refreshing activities, workstations, users, groups, files, etc.
- *
- * Features:
- *   - Shows loading spinner when refreshing
- *   - Disabled state during loading
- *   - Customizable size and styling
- *   - Responsive design (full width on mobile optional)
- *   - Consistent theming across the app
- *   - Optional tooltip text
- */
-import React from "react";
-import {
-  IconButton,
-  CircularProgress,
-  Tooltip,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
-import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import { useState } from "react";
+import RefreshIcon from "../../../assets/RefreshIcon";
 
-/**
- * RefreshButton Component
- *
- * @param {Function} onClick - Callback when button is clicked: () => void or async () => void
- * @param {boolean} loading - Whether data is currently being refreshed
- * @param {boolean} disabled - Additional disabled state (default: false)
- * @param {string} size - Button size: "small" | "medium" | "large" (default: "small")
- * @param {boolean} fullWidthMobile - Make full width on mobile (default: true)
- * @param {string} tooltip - Tooltip text (default: "Refresh")
- * @param {object} sx - Additional MUI sx styles to override defaults
- * @returns {JSX.Element} Styled refresh button
- */
-export default function RefreshButton({
-  onClick,
-  loading = false,
-  disabled = false,
-  size = "small",
-  fullWidthMobile = true,
-  tooltip = "Refresh",
-  sx = {},
-}) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+const styles = {
+  button: {
+    width: "48px",
+    height: "48px",
+    padding: "0",
+    backgroundColor: "transparent",
+    color: "#fff",
+    border: "none",
+    borderRadius: "80px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background-color 0.2s ease",
+  },
+  buttonHovered: {
+    backgroundColor: "#141414",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+  buttonLoading: {
+    cursor: "not-allowed",
+  },
+  spinner: {
+    width: "16px",
+    height: "16px",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTop: "2px solid #fff",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+};
 
-  // Determine button dimensions based on size
-  const getSize = () => {
-    if (isMobile && fullWidthMobile) {
-      return { width: "100%", height: 44 };
-    }
+export default function RefreshButton({ onClick, disabled = false }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-    switch (size) {
-      case "large":
-        return { width: 48, height: 48 };
-      case "medium":
-        return { width: 44, height: 44 };
-      case "small":
-      default:
-        return { width: 44, height: 44 };
+  const handleClick = async () => {
+    if (disabled || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      if (onClick) {
+        await onClick();
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Determine spinner size based on button size
-  const getSpinnerSize = () => {
-    switch (size) {
-      case "large":
-        return 24;
-      case "medium":
-        return 20;
-      case "small":
-      default:
-        return 20;
+  const getButtonStyle = () => {
+    let style = { ...styles.button };
+    if (isHovered && !disabled && !isLoading) {
+      style = { ...style, ...styles.buttonHovered };
     }
+    if (disabled) {
+      style = { ...style, ...styles.buttonDisabled };
+    }
+    if (isLoading) {
+      style = { ...style, ...styles.buttonLoading };
+    }
+    return style;
   };
 
-  const buttonContent = (
-    <IconButton
-      onClick={onClick}
-      disabled={disabled || loading}
-      size={size}
-      sx={{
-        ...getSize(),
-        color: "#fff",
-
-        borderRadius: "24px",
-
-        "&:hover": {
-          backgroundColor: "#141414",
-          borderColor: "rgba(255,255,255,0.2)",
-        },
-        "&:disabled": {
-          color: "rgba(255,255,255,0.3)",
-          backgroundColor: "#0f0f0f",
-        },
-        ...sx, // Allow custom styles to override defaults
-      }}
-    >
-      {loading ? (
-        <CircularProgress size={getSpinnerSize()} sx={{ color: "#fff" }} />
-      ) : (
-        <RefreshOutlinedIcon sx={{ fontSize: "1.25rem" }} />
-      )}
-    </IconButton>
+  return (
+    <>
+      <button
+        style={getButtonStyle()}
+        onClick={handleClick}
+        disabled={disabled || isLoading}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {isLoading ? (
+          <div style={styles.spinner} />
+        ) : (
+          <RefreshIcon width={20} height={20} color="#fff" />
+        )}
+      </button>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+    </>
   );
-
-  // Wrap with tooltip if provided and not loading
-  if (tooltip && !loading) {
-    return (
-      <Tooltip title={tooltip} arrow>
-        {buttonContent}
-      </Tooltip>
-    );
-  }
-
-  return buttonContent;
 }

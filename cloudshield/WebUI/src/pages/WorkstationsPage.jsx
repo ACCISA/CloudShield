@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   Box,
   IconButton,
@@ -10,59 +10,64 @@ import {
   Typography,
   Checkbox,
   FormControlLabel,
-} from '@mui/material';
-import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
-import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
-import FilterListOutlinedIcon from '@mui/icons-material/FilterListOutlined';
-import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+} from "@mui/material";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 
-import WorkstationList from '../components/workstations/WorkstationList.jsx';
-import WorkstationCreateDialog from '../components/workstations/WorkstationCreateDialog.jsx';
-import WorkstationEditDialog from '../components/workstations/WorkstationEditDialog.jsx';
-
+import WorkstationList from "../components/workstations/WorkstationList.jsx";
+import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
+import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
+import SearchField from "../components/common/SearchField/SearchField.jsx";
+import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
+import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
+import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
+import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 /* ----------------------------------- seed ---------------------------------- */
 
 const seed = [
   {
-    id: 'ws-1',
-    name: 'Development',
-    code: 'WS-001',
+    id: "ws-1",
+    name: "Development",
+    code: "WS-001",
     usersCount: 3,
-    users: ['Jim Halpert', 'Pam Beasly', 'Dwight Schrute'],
-    currentUser: 'Jim Halpert',
-    lastUsed: '03/11/2025',
-    status: 'connected',
+    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
+    currentUser: "Jim Halpert",
+    lastUsed: "03/11/2025",
+    status: "connected",
   },
   {
-    id: 'ws-2',
-    name: 'Marketing',
-    code: 'WS-002',
+    id: "ws-2",
+    name: "Marketing",
+    code: "WS-002",
     usersCount: 2,
-    users: ['Pam Beasly', 'Michael Scott'],
-    currentUser: 'Pam Beasly',
-    lastUsed: '—',
-    status: 'busy',
+    users: ["Pam Beasly", "Michael Scott"],
+    currentUser: "Pam Beasly",
+    lastUsed: "—",
+    status: "busy",
   },
   {
-    id: 'ws-3',
-    name: 'Development',
-    code: 'WS-001',
+    id: "ws-3",
+    name: "Development",
+    code: "WS-001",
     usersCount: 3,
-    users: ['Jim Halpert', 'Dwight Schrute', 'Michael Scott'],
-    currentUser: 'Jim Halpert',
-    lastUsed: '03/11/2025',
-    status: 'connected',
+    users: ["Jim Halpert", "Dwight Schrute", "Michael Scott"],
+    currentUser: "Jim Halpert",
+    lastUsed: "03/11/2025",
+    status: "connected",
   },
   {
-    id: 'ws-4',
-    name: 'Development',
-    code: 'WS-001',
+    id: "ws-4",
+    name: "Development",
+    code: "WS-001",
     usersCount: 3,
-    users: ['Jim Halpert', 'Pam Beasly', 'Dwight Schrute'],
-    currentUser: 'Jim Halpert',
-    lastUsed: '03/11/2025',
-    status: 'connected',
+    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
+    currentUser: "Jim Halpert",
+    lastUsed: "03/11/2025",
+    status: "connected",
   },
 ];
 
@@ -70,18 +75,19 @@ const seed = [
 
 export default function WorkstationsPage() {
   const [rows, setRows] = useState(seed);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  // Display state (looks like mock: both buttons to the right of the search)
-  const [anchorDisplay, setAnchorDisplay] = useState(null);
+  // Layout state
+  const [layout, setLayout] = useState("list"); // 'cards', 'list', or 'icons'
   const [showUsersCol, setShowUsersCol] = useState(true);
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
 
   // Filter state
-  const [anchorFilter, setAnchorFilter] = useState(null);
-  const [statusFilters, setStatusFilters] = useState(new Set()); // empty = all
-  const [requireActiveUsers, setRequireActiveUsers] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({
+    status: new Set(),
+    hasUsers: new Set(),
+  });
 
   // dialogs
   const [openCreate, setOpenCreate] = useState(false);
@@ -94,30 +100,41 @@ export default function WorkstationsPage() {
 
     // text search
     if (q) {
-      data = data.filter(r =>
-        [r.name, r.code, r.currentUser].some(v => (v || '').toLowerCase().includes(q))
+      data = data.filter((r) =>
+        [r.name, r.code, r.currentUser].some((v) =>
+          (v || "").toLowerCase().includes(q)
+        )
       );
     }
 
     // status filter
+    const statusFilters = activeFilters.status || new Set();
     if (statusFilters.size > 0) {
-      data = data.filter(r => statusFilters.has(r.status));
+      data = data.filter((r) => statusFilters.has(r.status));
     }
 
     // active users filter
-    if (requireActiveUsers) {
-      data = data.filter(r => (r.usersCount ?? 0) > 0);
+    const hasUsersFilters = activeFilters.hasUsers || new Set();
+    if (hasUsersFilters.has("activeUsers")) {
+      data = data.filter((r) => (r.usersCount ?? 0) > 0);
     }
 
     return data;
-  }, [rows, search, statusFilters, requireActiveUsers]);
+  }, [rows, search, activeFilters]);
 
-  const toggleStatusFilter = (value) => {
-    setStatusFilters(prev => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
+  const handleFilterChange = (groupId, value, isActive) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
+      const groupFilters = new Set(prev[groupId] || new Set());
+
+      if (isActive) {
+        groupFilters.add(value);
+      } else {
+        groupFilters.delete(value);
+      }
+
+      newFilters[groupId] = groupFilters;
+      return newFilters;
     });
   };
 
@@ -125,258 +142,126 @@ export default function WorkstationsPage() {
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
-      code: payload.code || 'WS-NEW',
+      code: payload.code || "WS-NEW",
       usersCount: payload.users?.length || 0,
       users: payload.users || [],
-      currentUser: payload.users?.[0] || '—',
-      lastUsed: '—',
-      status: 'disconnected',
+      currentUser: payload.users?.[0] || "—",
+      lastUsed: "—",
+      status: "disconnected",
     };
-    setRows(prev => [newRow, ...prev]);
+    setRows((prev) => [newRow, ...prev]);
   };
 
   const handleEditSave = (id, changes) => {
-    setRows(prev => prev.map(r => (r.id === id ? { ...r, ...changes } : r)));
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...changes } : r))
+    );
   };
 
-  const handleDelete = (id) => setRows(prev => prev.filter(r => r.id !== id));
+  const handleDelete = (id) =>
+    setRows((prev) => prev.filter((r) => r.id !== id));
 
   const handleToggleStatus = (id) => {
-    setRows(prev =>
-      prev.map(r => {
+    setRows((prev) =>
+      prev.map((r) => {
         if (r.id !== id) return r;
-        if (r.status === 'connected') return { ...r, status: 'disconnected' };
-        if (r.status === 'disconnected') return { ...r, status: 'connected' };
+        if (r.status === "connected") return { ...r, status: "disconnected" };
+        if (r.status === "disconnected") return { ...r, status: "connected" };
         return r; // busy unchanged
       })
     );
   };
 
+  const handleLayoutChange = (newLayout) => {
+    console.log(`Layout changed to: ${newLayout}`);
+    setLayout(newLayout);
+  };
+
   // shared button styles (to match your mock)
   const pillBtn = {
-    color: '#fff',
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: '12px',
-    textTransform: 'none',
+    color: "#fff",
+    borderColor: "rgba(255,255,255,0.2)",
+    borderRadius: "12px",
+    textTransform: "none",
     px: 1.5,
     height: 40,
-    '& .MuiButton-startIcon': { mr: 1 },
-    '&:hover': {
-      borderColor: 'rgba(255,255,255,0.35)',
-      background: 'rgba(255,255,255,0.07)',
+    "& .MuiButton-startIcon": { mr: 1 },
+    "&:hover": {
+      borderColor: "rgba(255,255,255,0.35)",
+      background: "rgba(255,255,255,0.07)",
     },
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       {/* Toolbar */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <OutlinedInput
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search workstations"
-          startAdornment={<SearchOutlinedIcon sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', mr: '8px' }} />}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Left side: Search and buttons */}
+        <Box
           sx={{
-            flex: '1 1 420px',
-            minWidth: '260px',
-            maxWidth: '680px',
-            backgroundColor: '#161616',
-            borderRadius: '12px',
-            color: '#fff',
-            fontSize: '0.95rem',
-            border: '1px solid rgba(255,255,255,0.18)',
-            py: '6px',
-            px: '12px',
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& input': { padding: '10px 0' },
-            '&.Mui-focused': { outline: '2px solid rgba(255,255,255,0.35)', outlineOffset: 0 },
+            display: "flex",
+            gap: "10px",
+            flex: "1 1 auto",
+            flexWrap: "wrap",
           }}
-        />
-
-        <Box sx={{ display: 'flex', gap: '10px' }}>
-          <IconButton
-            size="small"
-            sx={{
-              color: '#fff',
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '10px',
-              width: 40,
-              height: 40,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)' },
+        >
+          <SearchField
+            value={search}
+            onChange={(value) => setSearch(value)}
+            placeholder="Search workstations"
+            width="420px"
+            showIcon={true}
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              maxWidth: "680px",
             }}
-            onClick={() => console.log('refresh')}
-          >
-            <RefreshOutlinedIcon />
-          </IconButton>
+          />
 
           {/* Display */}
-          <Button
-            variant="outlined"
-            startIcon={<TuneOutlinedIcon />}
-            onClick={(e) => setAnchorDisplay(e.currentTarget)}
-            sx={pillBtn}
-          >
-            Display
-          </Button>
-          <Popover
-            open={Boolean(anchorDisplay)}
-            anchorEl={anchorDisplay}
-            onClose={() => setAnchorDisplay(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            PaperProps={{
-              sx: {
-                backgroundColor: '#111',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: '12px',
-                width: 280,
-              },
-            }}
-          >
-            <Box sx={{ p: 1.5 }}>
-              <Typography sx={{ fontSize: '0.8rem', opacity: 0.7, px: 1, pt: 0.5, pb: 0.5 }}>
-                Layout
-              </Typography>
-              <MenuItem sx={{ borderRadius: '8px', opacity: 0.75 }}>Cards</MenuItem>
-              <MenuItem sx={{ borderRadius: '8px' }} selected>
-                List
-              </MenuItem>
-
-              <Divider sx={{ my: 1.2, borderColor: 'rgba(255,255,255,0.12)' }} />
-
-              <Typography sx={{ fontSize: '0.8rem', opacity: 0.7, px: 1, pt: 0.5, pb: 0.5 }}>
-                Columns
-              </Typography>
-              <Box sx={{ px: 1 }}>
-                <FormControlLabel
-                  control={<Checkbox checked={showUsersCol} onChange={(e) => setShowUsersCol(e.target.checked)} sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } } } />}
-                  label="Users"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={showCurrentCol} onChange={(e) => setShowCurrentCol(e.target.checked)} sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } } } />}
-                  label="Current"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={showLastUsedCol} onChange={(e) => setShowLastUsedCol(e.target.checked)} sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } } } />}
-                  label="Last used"
-                />
-              </Box>
-            </Box>
-          </Popover>
+          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
 
           {/* Filter */}
-          <Button
-            variant="outlined"
-            startIcon={<FilterListOutlinedIcon />}
-            onClick={(e) => setAnchorFilter(e.currentTarget)}
-            sx={pillBtn}
-          >
-            Filter
-          </Button>
-          <Popover
-            open={Boolean(anchorFilter)}
-            anchorEl={anchorFilter}
-            onClose={() => setAnchorFilter(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            PaperProps={{
-              sx: {
-                backgroundColor: '#111',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: '12px',
-                width: 280,
-              },
-            }}
-          >
-            <Box sx={{ p: 1.5 }}>
-              <Typography sx={{ fontSize: '0.8rem', opacity: 0.7, px: 1, pt: 0.5, pb: 0.5 }}>
-                Status
-              </Typography>
-              <Box sx={{ px: 1 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={statusFilters.has('connected')}
-                      onChange={() => toggleStatusFilter('connected')}
-                      sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-                    />
-                  }
-                  label="Connected"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={statusFilters.has('disconnected')}
-                      onChange={() => toggleStatusFilter('disconnected')}
-                      sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-                    />
-                  }
-                  label="Disconnected"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={statusFilters.has('busy')}
-                      onChange={() => toggleStatusFilter('busy')}
-                      sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-                    />
-                  }
-                  label="Busy"
-                />
-              </Box>
+          <FilterButton
+            filterGroups={WORKSTATION_FILTERS}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </Box>
 
-              <Divider sx={{ my: 1.2, borderColor: 'rgba(255,255,255,0.12)' }} />
+        {/* Right side: Refresh and Create buttons */}
+        <Box sx={{ display: "flex", gap: "10px" }}>
+          <RefreshButton onClick={() => console.log("refresh")} />
 
-              <FormControlLabel
-                sx={{ px: 1 }}
-                control={
-                  <Checkbox
-                    checked={requireActiveUsers}
-                    onChange={(e) => setRequireActiveUsers(e.target.checked)}
-                    sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-                  />
-                }
-                label="Has active users"
-              />
-            </Box>
-          </Popover>
-
-          {/* Create */}
-          <Button
+          <CreateButton
+            icon={<CreateWorkstationIcon />}
+            buttonText="Create"
             onClick={() => setOpenCreate(true)}
-            startIcon={<AddOutlinedIcon />}
-            sx={{
-              color: '#fff',
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '12px',
-              textTransform: 'none',
-              px: 1.5,
-              height: 40,
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)' },
-            }}
-          >
-            Create
-          </Button>
+          />
         </Box>
       </Box>
 
       {/* List panel */}
       <Box
         sx={{
-          borderRadius: '18px',
-          border: '1px solid rgba(255,255,255,0.16)',
-          backgroundColor: '#0F0F0F',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          borderRadius: "18px",
+          border: "1px solid rgba(255,255,255,0.16)",
+          backgroundColor: "#0F0F0F",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
           p: 2,
         }}
       >
         <WorkstationList
           rows={filtered}
           onEdit={(row) => setEditRow(row)}
+          onDelete={handleDelete}
           onToggleStatus={handleToggleStatus}
           showUsers={showUsersCol}
           showCurrent={showCurrentCol}
