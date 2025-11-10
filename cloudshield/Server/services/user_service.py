@@ -7,7 +7,20 @@ from security import hash_password
 
 
 def _must_admin(current_user: dict | None) -> None:
-    """Ensure current user has admin role."""
+    """
+    Ensure current user has admin role.
+
+    Args:
+        current_user (dict): The decoded JWT user object (typically from 'g.user').
+
+    Raises:
+        PermissionError: If the user is not authenticated or does not have the "admin" role.
+
+    Purpose:
+        - This internal helper is called at the start of every user-modification service
+          to enforce server-side authorization, even if a client bypasses API role guards.
+        - Acts as a safeguard against privilege escalation.
+    """
     if not current_user or current_user.get("role") != "admin":
         raise PermissionError("admin_only")
 
@@ -73,7 +86,35 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
 
 
 def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None) -> bool:
-    """Update user fields with audit logging."""
+    """
+    Update user fields with audit logging.
+
+    Args:
+        user_id (str): The target user's MongoDB ObjectId string.
+        update_data (UserUpdate): Validated Pydantic model containing fields to update.
+        current_user (dict): The admin performing the update.
+        reason (str | None): Optional reason for the change, logged for auditing.
+
+    Raises:
+        PermissionError: If the requester is not an admin.
+        ValueError:
+            - If the user does not exist.
+            - If no fields were provided to update.
+
+    Returns:
+        bool: True on successful update.
+
+    Process:
+        1. Enforces admin-only access.
+        2. Fetches the "before" snapshot for auditing (excluding password).
+        3. Applies validated field updates, hashing passwords if applicable.
+        4. Updates the 'updated_at' timestamp.
+        5. Writes audit log comparing "before" and "after" states.
+
+    Security:
+        - Password updates are re-hashed.
+        - Prevents empty updates (requires at least one changed field).
+    """
     _must_admin(current_user)
 
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
@@ -103,7 +144,31 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
 
 
 def deactivate_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
-    """Set user status to inactive with audit logging."""
+    """
+    Set user status to inactive with audit logging.
+
+    Args:
+        user_id (str): The target user's MongoDB ObjectId string.
+        current_user (dict): The admin performing the deactivation.
+        reason (str | None): Optional reason, stored in the audit log.
+
+    Raises:
+        PermissionError: If the requester is not an admin.
+        ValueError: If the specified user cannot be found.
+
+    Returns:
+        bool: True if the operation succeeded.
+
+    Process:
+        1. Verifies admin privileges.
+        2. Loads the current user document for audit comparison.
+        3. Sets the 'status' field to "inactive" and updates 'updated_at'.
+        4. Logs a "deactivate" audit entry with before/after status states.
+
+    Notes:
+        - Deactivated users should be prevented from authenticating.
+        - This operation is reversible (can be reactivated via update).
+    """
     _must_admin(current_user)
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
     if not before:
@@ -125,7 +190,33 @@ def deactivate_user(user_id: str, current_user: dict, reason: str | None = None)
 
 
 def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
-    """Permanently delete user from database with audit logging."""
+    """
+    Permanently delete user from database with audit logging.
+
+    Args:
+        user_id (str): The target user's MongoDB ObjectId string.
+        current_user (dict): The admin performing the deletion.
+        reason (str | None): Optional justification for deletion (used in audit log).
+
+    Raises:
+        PermissionError: If the requester is not an admin.
+        ValueError: If the user does not exist or deletion fails.
+
+    Returns:
+        bool: True on successful deletion.
+
+    Process:
+        1. Confirms admin permissions.
+        2. Fetches and stores the "before" snapshot for audit.
+        3. Deletes the record using 'delete_one'.
+        4. Validates the deletion acknowledgment.
+        5. Logs a "delete" audit event, recording actor, target, and 'reason'.
+
+    Safety:
+        - Always performs a pre-delete lookup to preserve audit data.
+        - Catches and ignores audit log failures so they don't block deletion.
+        - If the ObjectId is malformed, raises a ValueError early.
+    """
     _must_admin(current_user)
 
     try:

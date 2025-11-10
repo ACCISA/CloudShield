@@ -15,7 +15,21 @@ ERROR_ORG_ID_REQUIRED = "org_id is required"
 
 @api_bp.route("/task/dc/add_user", methods=["POST"])
 def task_dc_add_user():
-    """Queue domain controller user creation task."""
+    """
+    Queue domain controller user creation task.
+
+    Endpoint:
+        POST /api/task/dc/add_user
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - username (str, required): Username to be created in DC.
+        - password (str, required): Initial password for the DC account.
+
+    Behaviour:
+        - Validates required fields.
+        - Dispatches an async job named "dc_add_user" to the service layer
+    """
     data = request.get_json() or {}
 
     org_id = data.get("org_id")
@@ -33,7 +47,22 @@ def task_dc_add_user():
 
 @api_bp.route("/task/provision", methods=["POST"])
 def task_provision():
-    """Queue network infrastructure provisioning task."""
+    """
+    Queue network infrastructure provisioning task.
+
+    Endpoint:
+        POST /api/task/provision
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - region (str, optional): Cloud region; defaults to "ca-central-1".
+        - ubuntu_ami (str, optional): Override for Ubuntu AMI ID.
+        - workstation_ami (str, optional): Override for workstation AMI ID.
+
+    Behaviour:
+        - Validates 'org_id'.
+        - Dispatches an async job "provision_network" with the supplied parameters.
+    """
     data = request.get_json() or {}
 
     logger.info("[API] Received /task/provision POST request")
@@ -58,7 +87,21 @@ def task_provision():
 
 @api_bp.route("/task/provisionworkstations", methods=["POST"])
 def task_provision_workstations():
-    """Queue workstation provisioning task."""
+    """
+    Queue workstation provisioning task.
+
+    Endpoint:
+        POST /api/task/provisionworkstations
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - region (str, optional): Cloud region; defaults to "us-west-2".
+        - count (int, optional): Number of workstations to provision; defaults to 1.
+
+    Behaviour:
+        - Validates 'org_id'.
+        - Dispatches an async job "provision_workstations" with count and region.
+    """
     data = request.get_json() or {}
     logger.info("Received /task/provisionworkstations POST request")
     org_id = data.get("org_id")
@@ -81,7 +124,20 @@ def task_provision_workstations():
 
 @api_bp.route("/task/destroy", methods=["POST"])
 def task_destroy():
-    """Queue infrastructure destruction task."""
+    """
+    Queue infrastructure destruction task.
+
+    Endpoint:
+        POST /api/task/destroy
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - force (bool, optional): Force-destroy flag; defaults to false.
+
+    Behaviour:
+        - Validates 'org_id'.
+        - Dispatches an async job "destroy" with the 'force' option.
+    """
     data = request.get_json() or {}
     logger.info("Received /task/destroy POST request")
     org_id = data.get("org_id")
@@ -97,14 +153,34 @@ def task_destroy():
 
 @api_bp.route("/status/<job_id>", methods=["GET"])
 def job_status(job_id: str):
-    """Retrieve job execution status and progress."""
+    """
+    Retrieve job execution status and progress.
+
+    Endpoint:
+        GET /api/status/<job_id>
+
+    Path Parameters:
+        - job_id (str): The service job identifier returned by a prior 202 Accepted response.
+
+    Behaviour:
+        - Queries the service layer for status and returns its payload.
+    """
     status_payload, code = get_job_status(job_id)
     return jsonify(status_payload), code
 
 
 @api_bp.route("/health", methods=["GET"])
 def health():
-    """Health check endpoint for service monitoring."""
+    """
+    Health check endpoint for service monitoring.
+
+    Endpoint:
+        GET /api/health
+
+    Behaviour:
+        - Calls 'health_status()' to gather liveness/readiness info from dependencies.
+        - Returns a simple JSON payload and HTTP status code.
+    """
     payload, code = health_status()
     return jsonify(payload), code
 

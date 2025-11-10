@@ -7,9 +7,38 @@ from cloudshield.Server.utils.database import users_admin, users_public
 
 users_read_bp = Blueprint("users_read", __name__)
 
+"""
+Users Read Routes
+
+This module exposes authenticated read-only endpoints for retrieving user data.
+Admins can view all users, while employees are limited to viewing users within their own organization.
+
+Endpoints:
+    GET /api/users           --> List users with pagination and search
+    GET /api/users/<user_id> --> Retrieve one specific user by ID
+
+Access control:
+    - All endpoints require a valid JWT ('require_auth').
+    - Role-based visibility:
+        > Admins    --> All users, all orgs (excluding password fields).
+        > Employees --> Only users within their 'org_id', via the public projection view ('users_public').
+"""
 
 def _int_param(name: str, default: int = 1) -> int:
-    """Parse integer query parameter with fallback."""
+    """
+    Parse integer query parameter with fallback.
+
+    Args:
+        name (str): The query parameter name to retrieve.
+        default (int, optional): Default value if parsing fails. Defaults to 1.
+
+    Returns:
+        int: The integer value of the query parameter, or the default if missing or invalid.
+
+    Notes:
+        - Gracefully handles missing, non-numeric, or malformed values.
+        - Prevents exceptions that could break pagination or limit logic.
+    """
     try:
         return int(request.args.get(name, default))
     except (ValueError, TypeError):
@@ -19,7 +48,49 @@ def _int_param(name: str, default: int = 1) -> int:
 @users_read_bp.route("/users", methods=["GET"])
 @require_auth
 def list_users():
-    """List users with pagination and search. Admins see all, employees see own org only."""
+    """
+    List users with pagination and search. Admins see all, employees see own org only.
+
+    ---
+    Endpoint: 'GET /api/users'
+
+    Query Parameters:
+        - 'limit' (int, optional): Maximum number of users to return. Default 20, max 100.
+        - 'offset' (int, optional): Number of users to skip for pagination. Default 0.
+        - 'search' (str, optional): Case-insensitive partial match on 'email' or 'full_name'.
+
+    Access Control:
+        - Admins    --> See all users across all organizations (via 'users_admin').
+        - Employees --> See only users in their own organization (via 'users_public').
+
+    Response (200):
+    '''json
+    {
+        "total": 123,
+        "limit": 20,
+        "offset": 0,
+        "items": [
+            {
+                "_id": "68e397a3fe20d872b03156cc",
+                "email": "user@example.com",
+                "full_name": "Example User",
+                "role": "employee",
+                "org_id": "org_001"
+            }
+        ]
+    }
+    '''
+
+    Errors:
+        - 401: Missing or invalid JWT (handled by 'require_auth').
+
+    Security / Behaviour:
+        - Never returns password hashes ('projection = {"password": 0}').
+        - For employees, data is pulled from 'users_public'
+
+    Returns:
+        flask.Response: JSON object with pagination metadata and user list.
+    """
     limit  = max(1, min(_int_param("limit", 20), 100))
     offset = max(0, _int_param("offset", 0))
     q = (request.args.get("search") or "").strip()
@@ -50,7 +121,29 @@ def list_users():
 @users_read_bp.route("/users/<user_id>", methods=["GET"])
 @require_auth
 def get_user(user_id: str):
-    """Retrieve single user by ID. Employees can only access users in their org."""
+    """
+    Retrieve single user by ID. Employees can only access users in their org.
+
+    ---
+    Endpoint: 'GET /api/users/<user_id>'
+
+    Path Parameter:
+        - 'user_id' (str): MongoDB ObjectId of the user to retrieve.
+
+    Access Control:
+        - Admins    --> May view any user across all organizations.
+        - Employees --> Restricted to users within their own 'org_id'.
+        - Both roles exclude password field.
+
+    Errors:
+        - 404: If the user ID is invalid or the user is not found in the permitted scope.
+        - 401: If JWT is missing or invalid (handled by 'require_auth').
+
+    Security Notes:
+        - Converts '_id' to a string for JSON responses.
+        - Prevents employees from querying users outside their organization by enforcing
+          'flt = {"_id": id, "org_id": g.user["org_id"]}'.
+    """
     try:
         oid = ObjectId(user_id)
     except (ValueError, TypeError, InvalidId):
