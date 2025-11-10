@@ -6,6 +6,7 @@ import uuid
 from dotenv import load_dotenv
 
 from flask import Flask, request, jsonify, g
+from flask_cors import CORS
 from werkzeug.exceptions import BadRequest, HTTPException
 
 from pydantic import ValidationError
@@ -15,10 +16,12 @@ try:
     from cloudshield.Server.utils import get_logger
     from cloudshield.Server.routes import api_bp
     from cloudshield.Server.routes.users import users_bp
+    from cloudshield.Server.routes.users_read import users_read_bp
 except ImportError:
     from utils import get_logger
     from routes import api_bp
     from routes.users import users_bp
+    from routes.users_read import users_read_bp
 
 # optional audit blueprint; may fail if DB/view not set up
 try:
@@ -39,6 +42,11 @@ logger = get_logger("api")
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    
+    # Enable CORS for all routes to allow frontend access
+    # In production, restrict origins to your actual frontend domain
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:3000"]}})
+    
     app.register_blueprint(api_bp)
     logger.debug("Registered api blueprint: %s", api_bp.name)
     return app
@@ -163,6 +171,7 @@ def _handle_generic(e: Exception):
 
 # Blueprints
 app.register_blueprint(users_bp, url_prefix="/api")
+app.register_blueprint(users_read_bp)  # no prefix -> route is /users
 if audit_bp:
     app.register_blueprint(audit_bp, url_prefix="/api")
 
