@@ -331,7 +331,7 @@ class TestUserService:
         mocks['users_admin'].insert_one.return_value = mock_result
         
         # Execute
-        result = persist_domain_user("org_123", "domain_user", "SecurePass123!")
+        result = persist_domain_user("org_123", "domain_user", "SecurePass123!", "temp@email")
         
         # Assert
         assert result == "507f1f77bcf86cd799439011"

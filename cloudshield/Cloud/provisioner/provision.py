@@ -13,12 +13,17 @@ BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 logger = logging.getLogger()
 
+def get_target_dir(org_id: str, generated_dir: str | None = None) -> str:
+    """
+    Returns the target directory for the given org_id.
+    """
+    target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
+    return os.path.abspath(target_dir)
+
 
 def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str | None:
     """Copy Terraform templates to org-specific folder and inject organization ID."""
-    target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
-    target_dir = os.path.abspath(target_dir)
-
+    target_dir = get_target_dir(org_id, generated_dir)
     if os.path.exists(target_dir):
         logger.info(f"[!] Directory for {org_id} already exists. Assuming this is a duplicate provision request")
         return None
@@ -197,7 +202,7 @@ def wait_for_ami(ami_id: str, region: str) -> None:
         raise RuntimeError(f"AMI {ami_id} did not become available in time") from exc
 
 
-def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) -> None:
+def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str, count: int) -> None:
     """
     Phase 1: targeted apply to create S3 bucket, upload agent, create IAM role, create builder instance and AMI.
     Phase 2: full apply for the rest of the infra, passing the created Windows AMI id as workstation_ami.
@@ -222,6 +227,7 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str) 
         "terraform", "apply","-auto-approve",
         "-var", f"org_id={org_id}",
         "-var", f"region={region}",
+        "-var", f"workstation_count={count}",
     ]
     
     apply_result = subprocess.run(phase2_plan_cmd, cwd=terraform_dir, capture_output=True, text=True)
@@ -302,7 +308,7 @@ def get_ec2_ips(region: str, org_id: str):
 
 
 # MAIN
-def provision_network_terraform(org_id, region, templates_dir, generated_dir, server_logger):
+def provision_network_terraform(org_id, region, templates_dir, generated_dir, count, server_logger):
     global logger
     logger = server_logger
     templates_dir = os.path.abspath(templates_dir)
@@ -313,7 +319,7 @@ def provision_network_terraform(org_id, region, templates_dir, generated_dir, se
     if target_dir is None:
         return None
 
-    run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir)
+    run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir,count=count)
     
     # Get EC2 metadata
     metadata = get_ec2_ips(region, org_id)

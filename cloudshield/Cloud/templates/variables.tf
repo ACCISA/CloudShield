@@ -14,13 +14,7 @@ variable "workstation_ami" {
 variable "workstation_count" {
   description = "The number of workstations to create"
   type        = number
-  default     = 1
-}
-
-variable "workstation_enable"{
-  description = "Enable workstation creation"
-  type        = bool
-  default     = false
+  default     = 0
 }
 
 variable "org_id" {

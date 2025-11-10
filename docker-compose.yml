@@ -111,7 +111,7 @@ services:
     ports:
       - "5173:5173"                    # Vite dev server
     volumes:
-      - ./WebUI:/app                   # live reload your source
+      - ./cloudshield/WebUI:/app                   # live reload your source
       - ui_node_modules:/app/node_modules
 
 networks:

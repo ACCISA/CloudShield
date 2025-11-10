@@ -24,10 +24,11 @@ def _must_admin(current_user: dict | None) -> None:
     if not current_user or current_user.get("role") != "admin":
         raise PermissionError("admin_only")
 
-def persist_domain_user(org_id: str, username: str, password: str) -> str:
+def persist_domain_user(org_id: str, username: str, password: str, email: str) -> str:
     """Persist a domain user to the database and return the user ID."""
     user_doc = {
         "org_id": org_id,
+        "email": email,
         "username": username,
         "password": hash_password(password),
         "role": "employee",
