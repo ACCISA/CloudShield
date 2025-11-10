@@ -266,7 +266,7 @@ def test_provision_network_returns_none(monkeypatch):
 
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: None
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: None
     )
 
     result = provision_network("test_org")
@@ -296,7 +296,7 @@ def test_provision_network_without_job(monkeypatch):
     # Empty metadata
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: []
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: []
     )
     # insert_inventory still called; stub it
     monkeypatch.setattr(
