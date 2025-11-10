@@ -95,6 +95,10 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
 
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+        str(tmp_path)
+    )
     # Create required directory structure
     base_dir = tmp_path / "cloudshield" / "Server"
     generated_dir = base_dir / "terraform" / "generated" / "test_org"
@@ -139,7 +143,10 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
 def test_provision_workstations_failure(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
-
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+        str(tmp_path)
+    )
     base_dir = tmp_path / "cloudshield" / "Server"
     generated_dir = base_dir / "terraform" / "generated" / "test_org"
     generated_dir.mkdir(parents=True, exist_ok=True)
