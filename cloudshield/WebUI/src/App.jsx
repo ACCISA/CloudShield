@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import ProvisioningPage from './pages/ProvisioningPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 
 export default function App() {
   // TEMP auth simulation
@@ -81,6 +82,16 @@ export default function App() {
             </Protected>
           }
         />
+
+        <Route
+          path="/users"
+          element={
+            <Protected>
+              <UsersPage />
+            </Protected>
+          }
+        />
+
 
         {/* default route */}
         <Route
