@@ -395,6 +395,7 @@ def test_main_invokes_helpers(monkeypatch, tmp_path):
         "us-west-2",
         str(tmp_path / "templates"),
         str(tmp_path / "generated"),
+        0,
         server_logger=logging.getLogger()
     )
 
@@ -410,6 +411,7 @@ def test_main_returns_none_when_copy_returns_none(monkeypatch, tmp_path):
         "us-west-2",
         str(tmp_path / "templates"),
         str(tmp_path / "generated"),
+        0,
         server_logger=logging.getLogger()
     )
 
@@ -432,7 +434,7 @@ def test_run_terraform_two_phase_apply_runs_init_and_apply(monkeypatch, tmp_path
     
     monkeypatch.setattr(subprocess, "run", fake_run)
     
-    terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+    terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
     
     # Should have init and apply calls
     assert any("init" in str(call) for call in calls)
@@ -457,7 +459,7 @@ def test_run_terraform_two_phase_apply_raises_on_init_failure(monkeypatch, tmp_p
     monkeypatch.setattr(subprocess, "run", fake_run)
     
     with pytest.raises(subprocess.CalledProcessError):
-        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
 
 
 def test_run_terraform_two_phase_apply_raises_on_apply_failure(monkeypatch, tmp_path):
@@ -478,7 +480,7 @@ def test_run_terraform_two_phase_apply_raises_on_apply_failure(monkeypatch, tmp_
     monkeypatch.setattr(subprocess, "run", fake_run)
     
     with pytest.raises(subprocess.CalledProcessError):
-        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path))
+        terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
 
 
 def test_cleanup_iam_artifacts_handles_key_pair_not_found_exception(monkeypatch):
