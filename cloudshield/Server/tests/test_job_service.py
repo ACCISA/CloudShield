@@ -28,6 +28,20 @@ def test_enqueue_provision(monkeypatch):
     assert job.id == "prov1"
     assert recorded["args"][0] == "orgx"
 
+def test_enqueue_provision_workstations(monkeypatch):
+    recorded = {}
+
+    def fake_enqueue(func, *args, **kwargs):
+        recorded["args"] = args
+        recorded["kwargs"] = kwargs
+        return DummyJob(job_id="work1")
+
+    monkeypatch.setattr(job_service, "task_queue", types.SimpleNamespace(enqueue=fake_enqueue))
+
+    job = job_service.enqueue_provision_workstations("orgz", region="us-east-2", count=2)
+    assert job.id == "work1"
+    assert recorded["args"][0] == "orgz"
+    assert recorded["kwargs"]["count"] == 2
 
 def test_enqueue_destroy(monkeypatch):
     def fake_enqueue(func, *args, **kwargs):
