@@ -98,7 +98,7 @@ grpc_attrs = {
 
 
 _grpc_module = _stub_module("grpc", grpc_attrs)
-_grpc_module._FAKE_SERVER_REGISTRY = _SERVERS
+setattr(_grpc_module, "_FAKE_SERVER_REGISTRY", _SERVERS)
 
 
 class _Sched:
@@ -167,10 +167,17 @@ def _destroy_stub(*args, **kwargs):
     return {"status": "success", "message": "Destroyed (test stub)"}
 
 
+def _get_target_dir_stub(org_id: str, generated_dir: str | None = None) -> str:
+    import os
+    base = generated_dir or os.path.join("cloudshield", "Cloud", "provisioner", "generated", org_id)
+    return os.path.abspath(base)
+
+
 _stub_module(
     "provisioner",
     {
         "provision_network_terraform": _provision_network_terraform_stub,
-        "destroy": _destroy_stub,
+            "destroy": _destroy_stub,
+            "get_target_dir": _get_target_dir_stub,
     },
 )

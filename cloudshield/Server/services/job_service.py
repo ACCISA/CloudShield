@@ -6,9 +6,9 @@ from __future__ import annotations
 import os
 from typing import Tuple, Dict, Any
 import rq
-from ..redis_client import task_queue, redis_conn
-from ..tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
-from ..utils import get_logger
+from redis_client import task_queue, redis_conn
+from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
+from utils import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -44,30 +44,48 @@ def health_status() -> Tuple[Dict[str, Any], int]:
         return {"status": "degraded", "redis": False, "error": str(e)}, 503
     return {"status": "ok", "redis": bool(ping)}, 200
 
-def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None) -> Job:
-    job = task_queue.enqueue(
-        provision_network,
+def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0) -> Job:
+    logger.info(
+        "[SERVICE] Enqueueing provision_network job (org_id=%s, region=%s, workstation_count=%s)",
         org_id,
         region,
-        ubuntu_ami,
-        workstation_ami,
-        job_timeout=JOB_TIMEOUT,
+        workstation_count,
     )
-    # Avoid logging user-controlled identifiers
-    logger.info("Enqueued provision job")
-    return job
+
+    try:
+        job = task_queue.enqueue(
+            provision_network,
+            org_id,
+            region,
+            ubuntu_ami,
+            workstation_ami,
+            workstation_count,
+            job_timeout=JOB_TIMEOUT,
+        )
+        # Avoid logging user-controlled identifiers
+        logger.info("[SERVICE] Enqueued provision_network job")
+        return job
+    except Exception as e:
+        logger.exception(f"[SERVICE] Error enqueueing provision_network job for org_id={org_id}: {e}")
+        raise
 
 def enqueue_provision_workstations(org_id: str, region: str = "us-west-2", count: int = 1) -> Job:
-    job = task_queue.enqueue(
-        provision_workstations,
-        org_id,
-        region,
-        count,
-        job_timeout=JOB_TIMEOUT,
-    )
-    # Avoid logging user-controlled identifiers
-    logger.info("Enqueued provision workstations job")
-    return job
+    logger.info("[SERVICE] Enqueueing provision_workstations job (org_id=%s, region=%s, count=%s)", org_id, region, count)
+    
+    try:
+        job = task_queue.enqueue(
+            provision_workstations,
+            org_id,
+            region,
+            count,
+            job_timeout=JOB_TIMEOUT,
+        )
+        # Avoid logging user-controlled identifiers
+        logger.info("[SERVICE] Enqueued provision workstations job")
+        return job
+    except Exception as e:
+        logger.exception(f"[SERVICE] Error enqueueing provision_workstations job for org_id={org_id}: {e}")
+        raise
 
 def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     job = task_queue.enqueue(
@@ -91,8 +109,10 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
     return job
 
 def enqueue_dc_change_password(org_id: str, username: str, password:str):
+    # future job service to change password of a user
     pass
 def enqueue_dc_remove_user(org_id: str, username: str, password: str):
+    # future job service to remove a user from a domain
     pass
 
 SERVICES = {
@@ -104,7 +124,7 @@ SERVICES = {
 
 def service_dispatcher(service_name: str, *args, **kwargs):
     if service_name not in SERVICES:
-        raise Exception(f"Unknown service called: {service_name}")
+        raise ValueError(f"Unknown service called: {service_name}")
 
     logger.info(f"Service dispatched to {service_name}")
 

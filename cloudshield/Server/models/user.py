@@ -11,6 +11,7 @@ ORG_RX = re.compile(r"^[a-z0-9_-]{3,32}$")  # tweak to your org_id rules
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    username: Optional[str] = None
     role: Literal["admin", "employee"]
     full_name: str
     org_id: str
@@ -58,6 +59,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
+    username: Optional[str] = None
     role: Optional[Literal["admin", "employee"]] = None
     status: Optional[Literal["active", "inactive"]] = None
     full_name: Optional[str] = None
