@@ -194,7 +194,7 @@ def dc_add_user(org_id: str, username: str, password: str):
     #if no stderr, the command succeeded, the data can be persisted
     if not result.stderr:
         logger.info("User added to samba ad-dc")
-        domain_user_id = persist_domain_user(org_id, username, password)
+        domain_user_id = persist_domain_user(org_id, username, password, "temp@email.com")
         logger.info(f"Domain user persisted with id: {domain_user_id}")
 
 
