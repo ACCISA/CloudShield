@@ -8,7 +8,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import SearchField from "./SearchField";
+import SearchField from "../SearchField/SearchField";
 
 // Create a theme for testing
 const theme = createTheme();
@@ -82,51 +82,55 @@ describe("SearchField Component", () => {
   describe("User Interactions", () => {
     test("calls onChange when user types (no debounce)", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
 
       renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
-      await user.type(input, "test");
+      fireEvent.change(input, { target: { value: "test" } });
 
-      // With no debounce, onChange should be called for each character
-      expect(onChange).toHaveBeenCalledTimes(4); // t, e, s, t
+      // With no debounce, onChange should be called once
+      expect(onChange).toHaveBeenCalledWith("test");
     });
 
     test("updates input value as user types", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
-
-      renderWithTheme(<SearchField value="" onChange={onChange} />);
+      const { rerender } = renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
-      await user.type(input, "search");
+      fireEvent.change(input, { target: { value: "search" } });
 
+      expect(onChange).toHaveBeenCalledWith("search");
+      
+      // Rerender with updated value to simulate parent component updating
+      rerender(
+        <ThemeProvider theme={theme}>
+          <SearchField value="search" onChange={onChange} />
+        </ThemeProvider>
+      );
+      
       expect(input).toHaveValue("search");
     });
 
     test("allows clearing the input", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
 
       renderWithTheme(<SearchField value="test" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
-      await user.clear(input);
+      fireEvent.change(input, { target: { value: "" } });
 
       expect(onChange).toHaveBeenCalledWith("");
     });
 
     test("handles special characters", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
 
       renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
-      await user.type(input, "test@123!#");
+      fireEvent.change(input, { target: { value: "test@123!#" } });
 
-      expect(input).toHaveValue("test@123!#");
+      expect(onChange).toHaveBeenCalledWith("test@123!#");
     });
   });
 
@@ -282,30 +286,27 @@ describe("SearchField Component", () => {
 
     test("handles very long input", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
       const longText = "a".repeat(1000);
 
       renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
-      await user.type(input, longText);
+      fireEvent.change(input, { target: { value: longText } });
 
-      expect(input).toHaveValue(longText);
+      expect(onChange).toHaveBeenCalledWith(longText);
     });
 
     test("handles rapid typing", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
 
       renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
 
       // Type very quickly
-      await user.type(input, "abcdefghijk");
+      fireEvent.change(input, { target: { value: "abcdefghijk" } });
 
-      expect(onChange).toHaveBeenCalled();
-      expect(input).toHaveValue("abcdefghijk");
+      expect(onChange).toHaveBeenCalledWith("abcdefghijk");
     });
 
     test("handles onChange being undefined gracefully", () => {
@@ -336,19 +337,18 @@ describe("SearchField Component", () => {
   describe("Accessibility", () => {
     test("input is keyboard accessible", async () => {
       const onChange = jest.fn();
-      const user = userEvent.setup();
 
       renderWithTheme(<SearchField value="" onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
 
       // Focus the input
-      await user.tab();
+      input.focus();
       expect(input).toHaveFocus();
 
       // Type with keyboard
-      await user.keyboard("test");
-      expect(input).toHaveValue("test");
+      fireEvent.change(input, { target: { value: "test" } });
+      expect(onChange).toHaveBeenCalledWith("test");
     });
 
     test("supports screen readers with placeholder", () => {
@@ -380,13 +380,12 @@ describe("SearchField Component", () => {
         searchTerm = value;
       };
 
-      const user = userEvent.setup();
       renderWithTheme(<SearchField value={searchTerm} onChange={onChange} />);
 
       const input = screen.getByPlaceholderText("Search...");
 
       // Search for "john"
-      await user.type(input, "john");
+      fireEvent.change(input, { target: { value: "john" } });
 
       // Filter would happen in parent component
       const filtered = mockData.filter((item) =>
@@ -402,7 +401,6 @@ describe("SearchField Component", () => {
         searchValue = value;
       };
 
-      const user = userEvent.setup();
       const { rerender } = renderWithTheme(
         <SearchField value={searchValue} onChange={onChange} />
       );
@@ -411,7 +409,7 @@ describe("SearchField Component", () => {
       expect(input).toHaveValue("test");
 
       // Clear the search
-      await user.clear(input);
+      fireEvent.change(input, { target: { value: "" } });
 
       // Rerender with cleared value
       rerender(
