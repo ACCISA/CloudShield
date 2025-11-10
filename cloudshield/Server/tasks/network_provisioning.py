@@ -7,63 +7,41 @@ via Docker volume mounts in docker-compose.yml).
 """
 from rq import get_current_job
 import os
-import subprocess
 from pathlib import Path
 
 from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
-from utils import get_logger, db
-from models import Inventory, EC2Instance
+from cloudshield.Server.utils import (
+    get_logger,
+    db,
+    set_progress,
+    get_job_id_fallback,
+    run_stream,
+)
+from cloudshield.Server.adapters import map_metadata_to_ec2_instances
+from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+
+
+"""
+Add the Cloud/terraform directory to the path to import main and destroy_infra
+base_dir = Path(__file__).resolve().parents[1]
+terraform_dir = base_dir / "Cloud" / "terraform"
+sys.path.insert(0, str(terraform_dir))
+We wont be running the above code because we can just move the scripts to the same location using docker.
+This setup only works in the docker container
+run: sudo docker-compose up api
+"""
 
 _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
-
-def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
-    """
-    Execute shell command and yield output lines.
-    
-    Raises subprocess.CalledProcessError on non-zero exit.
-    """
-    if logger is None:
-        logger = _module_logger
-    
-    logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
-    
-    all_output = []
-    
-    proc = subprocess.Popen(
-        cmd,
-        cwd=cwd,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    assert proc.stdout is not None
-    for line in proc.stdout:
-        stripped = line.rstrip()
-        all_output.append(stripped)
-        logger.debug("[cmd output] %s", stripped)
-        yield stripped
-    
-    proc.wait()
-    if proc.returncode != 0:
-        logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
-        logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
-        raise subprocess.CalledProcessError(proc.returncode, cmd)
-    
-    logger.debug("Command succeeded: %s", " ".join(cmd))
-
-
+# Network Provisioning Tasks
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
-    Provision workstation instances for an org using Terraform.
-    
-    Requires existing network infrastructure to be provisioned first.
+    Provisions only the workstations via Terraform.
+    Uses shared 'run_stream' + 'set_progress' for less boilerplate and reuse.
     """
-    job = get_current_job()
-    job_id = job.id if job else "unknown"
+    job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
     
     logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
@@ -75,12 +53,13 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     target_dir = get_target_dir(org_id, str(generated_dir))
     work_dir = Path(target_dir)
     if not work_dir.exists():
-        logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, work_dir)
+        logger.warning("Work dir missing for org '%s': %s", org_id, work_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
+    
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
 
-    logs_tail: list[str] = []
+    # Run terraform apply for workstations only
     try:
         if job is not None:
             job.meta["progress"] = "get existing workstation count"
@@ -118,39 +97,34 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
         return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "logs_tail": logs_tail, "new_workstation_count": count + initial_count}
     except Exception as e:
-        logger.exception("Provisioning workstations failed for org %s: %s", org_id, e)
-        if job is not None:
-            job.meta["progress"] = f"failed: {e}"
-            job.meta["logs_tail"] = logs_tail
-            job.save_meta()
+        logger.exception("Provisioning workstations failed: org=%s err=%s", org_id, e)
+        set_progress(f"failed: {e}")
         raise
 
-
+# Full Network Provisioning Task
 def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
     """
-    Provision AWS network infrastructure with VPC, domain controller, and workstations.
-    
-    Stores asset inventory in MongoDB and updates RQ job metadata with progress.
+    Provisions the full network using Terraform templates.
+    Isolates progress, mapping, and DB writes via helpers for reuse.
     """
-    job = get_current_job()
-    job_id = job.id if job else "unknown"
+    job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-    
-    logger.info("Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s", org_id, region, ubuntu_ami, workstation_ami)
-    if job is not None:
-        job.meta["progress"] = "starting"
-        job.save_meta()
+
+    logger.info(
+        "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s",
+        org_id, region, ubuntu_ami, workstation_ami,
+    )
+    set_progress("starting")
 
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     templates_dir = base_dir / "templates"
     generated_dir = base_dir / "terraform" / "generated" / org_id
 
+    # Begin provisioning
     try:
-        if job is not None:
-            job.meta["progress"] = "provisioning infrastructure"
-            job.save_meta()
-        
+        set_progress("provisioning infrastructure")
         logger.info("Calling provision_network_terraform for org %s", org_id)
+
         metadata = provision_network_terraform(
                 org_id=org_id,
                 region=region,
@@ -159,122 +133,74 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 count=workstation_count,
                 server_logger=logger
         )
-        
+
+
         if metadata is None:
+            # Early return with explicit failure details, still sets progress.
             details = "Provisioning failed since the generated directory already exists"
-            logger.error("[TASK] %s (org_id=%s)", details, org_id)
-            job.meta["progress"] = "failed"
-            job.meta["details"] = details
-            job.save_meta()
-            return {
-                    "message": "Provisioning failed",
-                    "details": details
-            }
+            set_progress("failed")
+            job = get_current_job()
+            if job:
+                job.meta["details"] = details
+                job.save_meta()
+            return {"message": "Provisioning failed", "details": details}
+        
+        # Keeps orchestration clean, makes mapping/DB writes available to other tasks.
+        set_progress("completed")
 
-        if job is not None:
-            job.meta["progress"] = "completed"
-            job.save_meta()
-            
-            assets = []
-            logger.info(metadata)
-            for asset in metadata:
-                assets.append(EC2Instance(
-                    public_ip       = asset["public_ip"] or "",
-                    private_ip      = asset["private_ip"],
-                    vpc_id          = asset["vpc_id"],
-                    name            = asset["name"],
-                    priv_key_path   = asset["ssh_key"],
-                    ami_id          = asset["ami_id"],
-                    cpu             = asset["cpu"],
-                    created_at      = asset["created_at"],
-                    instance_id     = asset["instance_id"],
-                    os              = asset["os"],
-                    ports           = asset["ports"],
-                    ram_gb          = asset["ram_gb"],
-                    status          = asset["status"],
-                    storage_size_gb = asset["storage_size_gb"],
-                    subnet_id       = asset["subnet_id"],
-                    updated_at      = asset["updated_at"]
-                ))
 
-            itam_db = db.itam
+        logger.info("Metadata from provisioner: %s", metadata)
+        assets = map_metadata_to_ec2_instances(metadata)
 
-            res = itam_db.insert_one(Inventory(
-                org_id = org_id,
-                assets = assets
-            ).dict(by_alias=True))
 
-            logger.info(f"[TASK] Stored assets (invetory_id={res.inserted_id})")
+        # Centralized persistence via repository helper (insert_inventory)
+        res = insert_inventory(db=db, org_id=org_id, assets=assets)
+        logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
 
         logger.info("Provisioning complete for org %s", org_id)
+        return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
-        
-
-        return {
-            "message": "Provisioning complete",
-            "work_dir": str(generated_dir),
-            "metadata": metadata
-        }
     except Exception as e:
-        logger.exception("[TASK] Provisioning failed for org %s: %s", org_id, e)
-        if job is not None:
-            job.meta["progress"] = f"failed: {e}"
-            job.save_meta()
+        logger.exception("Provisioning failed for org %s: %s", org_id, e)
+        set_progress(f"failed: {e}")
         raise
-
 
 def destroy_environment(org_id: str, force: bool = False):
     """
-    Destroy AWS infrastructure and remove assets from ITAM inventory.
-    
-    Deletes Terraform state directory and updates RQ job progress.
+    Destroys an environment and removes its Inventory entry.
+    Uses set_progress + repo delete helper; logs consistent outcomes.
     """
-    job = get_current_job()
-    job_id = job.id if job else "unknown"
+    job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-    
+
     logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
-    if job is not None:
-        job.meta["progress"] = "starting destroy"
-        job.save_meta()
+    set_progress("starting destroy")
 
     generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "terraform" / "generated" / org_id
 
     try:
         if not generated_dir.exists():
-            logger.warning("Destroy requested for org %s but work dir not found (%s)", org_id, generated_dir)
-            if job is not None:
-                job.meta["progress"] = "no run directory found"
-                job.save_meta()
+            logger.warning("Destroy requested but work dir not found: %s", generated_dir)
+            set_progress("no run directory found")
             return {"message": "No run directory found; nothing to destroy", "removed_dir": False}
 
-        if job is not None:
-            job.meta["progress"] = "destroying infrastructure"
-            job.save_meta()
-
-        
-        logger.info("Calling destroy_infra for org %s", org_id)
+        set_progress("destroying infrastructure")
         region = "ca-central-1"
         destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir, server_logger=logger)
 
-        if job is not None:
-            job.meta["progress"] = "completed destroy"
-            job.save_meta()
+        set_progress("completed destroy")
 
-            itam_db = db.itam
+        res = delete_inventory_by_org(db=db, org_id=org_id)
+        if res:
+            logger.info("Deleted assets from database (org_id=%s)", org_id)
+        else:
+            logger.error("AWS destroyed but no assets found in Inventory (org_id=%s)", org_id)
 
-            res = itam_db.find_one_and_delete({"org_id": org_id})
-
-            if res:
-                logger.info(f"Delete assets from database (org_id={org_id})")
-            else:
-                logger.error(f"AWS resources were destroyed but no assets were found in ITAM inventory (org_id={org_id})")
 
         logger.info("Destroy complete for org %s", org_id)
         return {"message": "Destroy complete", "removed_dir": True}
+
     except Exception as e:
         logger.exception("Destroy failed for org %s: %s", org_id, e)
-        if job is not None:
-            job.meta["progress"] = f"failed destroy: {e}"
-            job.save_meta()
-        raise
+        set_progress(f"failed destroy: {e}")
+    raise
