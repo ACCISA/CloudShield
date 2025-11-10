@@ -221,7 +221,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
     # Mock provisioner
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: metadata
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: metadata
     )
 
     # Mock insert_inventory to return a fake result
