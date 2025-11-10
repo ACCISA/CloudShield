@@ -8,6 +8,7 @@ via Docker volume mounts in docker-compose.yml).
 from rq import get_current_job
 import os
 from pathlib import Path
+import subprocess
 
 from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
@@ -16,7 +17,6 @@ from cloudshield.Server.utils import (
     db,
     set_progress,
     get_job_id_fallback,
-    run_stream,
 )
 from cloudshield.Server.adapters import map_metadata_to_ec2_instances
 from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
@@ -41,6 +41,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     Provisions only the workstations via Terraform.
     Uses shared 'run_stream' + 'set_progress' for less boilerplate and reuse.
     """
+    job = get_current_job()
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
     
@@ -83,19 +84,14 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             "-var", f"org_id={org_id}",
             "-var", f"region={region}",
         ]
-        for line in _run(cmd, cwd=str(work_dir), env=env, logger=logger):
-            logs_tail.append(line)
-            logs_tail = logs_tail[-50:]
-            if job is not None and line.strip():
-                job.meta["progress"] = line[-200:]
-                job.save_meta()
+        subprocess.run(cmd, cwd=str(target_dir), env=env, check=True)
 
         if job is not None:
             job.meta["progress"] = "completed"
             job.save_meta()
             
         logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
-        return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "logs_tail": logs_tail, "new_workstation_count": count + initial_count}
+        return {"message": "Provisioning workstations complete", "work_dir": str(target_dir), "new_workstation_count": count + initial_count}
     except Exception as e:
         logger.exception("Provisioning workstations failed: org=%s err=%s", org_id, e)
         set_progress(f"failed: {e}")

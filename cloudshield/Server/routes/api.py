@@ -44,7 +44,14 @@ def task_provision():
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    job = service_dispatcher(service_name="provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"),workstation_count=workstation_count)
+    job = service_dispatcher(
+        service_name="provision_network", 
+        org_id=org_id, 
+        region=data.get("region", "ca-central-1"), 
+        ubuntu_ami=data.get("ubuntu_ami"), 
+        workstation_ami=data.get("workstation_ami"),
+        workstation_count=workstation_count
+        )
 
     return jsonify({"job_id": job.id}), 202
 
