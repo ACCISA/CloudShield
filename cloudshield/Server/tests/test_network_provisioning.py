@@ -2,6 +2,7 @@ import pytest
 import unittest.mock
 import subprocess
 from types import SimpleNamespace
+from pathlib import Path
 
 # ======== run_stream tests ========
 def test_run_stream_returns_tail_and_logs(monkeypatch, caplog):
@@ -96,9 +97,16 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     import cloudshield.Server.tasks.network_provisioning as np_module
 
     # Create required directory structure
-    base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(
+    "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+    str(tmp_path)
+    )
+
+    # Use get_target_dir to determine the directory structure
+    base_dir = Path(tmp_path)
+    generated_dir = base_dir / "terraform" / "generated" / "test_org"
+    target_dir = os.path.abspath(generated_dir)
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
 
     # Patch __file__ to point to our temp dir
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
@@ -140,9 +148,17 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
 
-    base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    # Create required directory structure
+    monkeypatch.setattr(
+    "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+    str(tmp_path)
+    )
+
+    # Use get_target_dir to determine the directory structure
+    base_dir = Path(tmp_path)
+    generated_dir = base_dir / "terraform" / "generated" / "test_org"
+    target_dir = os.path.abspath(generated_dir)
+    Path(target_dir).mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
 
     mock_job = unittest.mock.MagicMock()
