@@ -8,14 +8,16 @@ via Docker volume mounts in docker-compose.yml).
 from rq import get_current_job
 import os
 from pathlib import Path
-from provisioner import provision_network_terraform  # noqa: E402
+import subprocess
+
+from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
 from cloudshield.Server.utils import (
     get_logger,
     db,
     set_progress,
     get_job_id_fallback,
-    run_stream,
+    run_stream
 )
 from cloudshield.Server.adapters import map_metadata_to_ec2_instances
 from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
@@ -42,44 +44,56 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     """
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-
-    logger.info("Provision %d workstations: org_id=%s region=%s", count, org_id, region)
+    
+    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     set_progress("starting")
-
-
-    base_dir = Path(__file__).resolve().parents[1]
-    runs_dir = base_dir / "Cloud" / "runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    work_dir = runs_dir / org_id
-
-    # Verify work_dir exists
+    base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+    generated_dir = base_dir / "terraform" / "generated" / org_id
+    target_dir = get_target_dir(org_id, str(generated_dir))
+    work_dir = Path(target_dir)
     if not work_dir.exists():
         logger.warning("Work dir missing for org '%s': %s", org_id, work_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
-
+    initial_count = 0
     # Run terraform apply for workstations only
     try:
-        set_progress("terraform apply (workstations)")
+        set_progress("terraform get init workstation count")
+        try:
+            count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
+            output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
+            initial_count = int(output.strip())
+        except subprocess.CalledProcessError as e:
+            logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
+        logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
+        set_progress("terraform apply workstations")
+        logger.info("[TASK] Running terraform apply for org %s", org_id)
         cmd = [
-        "terraform", "apply", "-auto-approve", "-input=false",
-        "-target=aws_instance.workstation",
-        f"-var=workstation_count={count}",
-        "-var=workstation_enable=true",
+            "terraform", "apply", "-auto-approve", "-input=false",
+            "-var", f"workstation_count={count+initial_count}",
+            "-var", f"org_id={org_id}",
+            "-var", f"region={region}",
         ]
         logs_tail = run_stream(cmd, cwd=str(work_dir), env=env, logger=logger)
+
         set_progress("completed")
-        logger.info("Provisioned workstations for org %s", org_id)
-        return {"message": "Provisioning workstations complete", "work_dir": str(work_dir), "logs_tail": logs_tail}
+            
+        logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
+        return {
+            "message": "Provisioning workstations complete", 
+            "work_dir": str(target_dir), 
+            "new_workstation_count": count + initial_count,
+            "logs_tail": logs_tail
+            }
     except Exception as e:
         logger.exception("Provisioning workstations failed: org=%s err=%s", org_id, e)
         set_progress(f"failed: {e}")
         raise
 
 # Full Network Provisioning Task
-def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None):
+def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
     """
     Provisions the full network using Terraform templates.
     Isolates progress, mapping, and DB writes via helpers for reuse.
@@ -103,11 +117,12 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Calling provision_network_terraform for org %s", org_id)
 
         metadata = provision_network_terraform(
-            org_id=org_id,
-            region=region,
-            templates_dir=templates_dir,
-            generated_dir=generated_dir,
-            server_logger=logger,
+                org_id=org_id,
+                region=region,
+                templates_dir=templates_dir,
+                generated_dir=generated_dir,
+                count=workstation_count,
+                server_logger=logger
         )
 
 

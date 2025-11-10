@@ -95,10 +95,14 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
 
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+        str(tmp_path)
+    )
     # Create required directory structure
     base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    generated_dir = tmp_path / "terraform" / "generated" / "test_org"
+    generated_dir.mkdir(parents=True, exist_ok=True)
 
     # Patch __file__ to point to our temp dir
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
@@ -139,10 +143,13 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
 def test_provision_workstations_failure(monkeypatch, tmp_path):
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
-
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
+        str(tmp_path)
+    )
     base_dir = tmp_path / "cloudshield" / "Server"
-    runs_dir = base_dir / "Cloud" / "runs" / "test_org"
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    generated_dir = tmp_path / "terraform" / "generated" / "test_org"
+    generated_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(np_module, "__file__", str(base_dir / "tasks" / "network_provisioning.py"))
 
     mock_job = unittest.mock.MagicMock()
@@ -221,7 +228,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
     # Mock provisioner
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: metadata
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: metadata
     )
 
     # Mock insert_inventory to return a fake result
@@ -266,7 +273,7 @@ def test_provision_network_returns_none(monkeypatch):
 
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: None
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: None
     )
 
     result = provision_network("test_org")
@@ -296,7 +303,7 @@ def test_provision_network_without_job(monkeypatch):
     # Empty metadata
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, server_logger: []
+        lambda org_id, region, templates_dir, generated_dir, count, server_logger: []
     )
     # insert_inventory still called; stub it
     monkeypatch.setattr(

@@ -36,14 +36,22 @@ def task_provision():
     """Queue network infrastructure provisioning task."""
     data = request.get_json() or {}
 
-    logger.info("Received /task/provision POST request")
+    logger.info("[API] Received /task/provision POST request")
     org_id = data.get("org_id")
+    workstation_count = data.get("workstation_count", 0)
 
     if not org_id:
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    job = service_dispatcher(service_name="provision_network", org_id=org_id, region=data.get("region", "ca-central-1"), ubuntu_ami=data.get("ubuntu_ami"), workstation_ami=data.get("workstation_ami"))
+    job = service_dispatcher(
+        service_name="provision_network", 
+        org_id=org_id, 
+        region=data.get("region", "ca-central-1"), 
+        ubuntu_ami=data.get("ubuntu_ami"), 
+        workstation_ami=data.get("workstation_ami"),
+        workstation_count=workstation_count
+        )
 
     return jsonify({"job_id": job.id}), 202
 
@@ -59,6 +67,12 @@ def task_provision_workstations():
         logger.warning("Provision workstations request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400\
 
+    logger.debug(
+        "[API] Parsed parameters: org_id=%s, region=%s, count=%s",
+        org_id,
+        data.get("region", "us-west-2"),
+        data.get("count", 1),
+    )
     count = data.get("count", 1)
     job = service_dispatcher(service_name="provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
 
