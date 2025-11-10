@@ -10,7 +10,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from provisioner import provision_network_terraform  # noqa: E402
+from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
 from provisioner import destroy as destroy_infra  # noqa: E402
 from utils import get_logger, db
 from models import Inventory, EC2Instance
@@ -70,10 +70,10 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     if job is not None:
         job.meta["progress"] = "starting destroy"
         job.save_meta()
-    base_dir = Path(__file__).resolve().parents[1]
-    runs_dir = base_dir / "Cloud" / "runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    work_dir = runs_dir / org_id
+    base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+    generated_dir = base_dir / "terraform" / "generated" / org_id
+    target_dir = get_target_dir(org_id, str(generated_dir))
+    work_dir = Path(target_dir)
     if not work_dir.exists():
         logger.warning("Work dir does not exist for org '%s', cannot provision workstations: %s", org_id, work_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
@@ -93,7 +93,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             initial_count = int(output.strip())
         except subprocess.CalledProcessError as e:
             logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
-        logger.debug("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
+        logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
         if job is not None:
             job.meta["progress"] = "terraform apply"
             job.save_meta()

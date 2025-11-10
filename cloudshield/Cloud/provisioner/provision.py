@@ -23,9 +23,7 @@ def get_target_dir(org_id: str, generated_dir: str | None = None) -> str:
 
 def copy_and_replace_templates(org_id: str, templates_dir: str = DEFAULT_TEMPLATES_DIR, generated_dir: str | None = None) -> str | None:
     """Copy Terraform templates to org-specific folder and inject organization ID."""
-    target_dir = generated_dir or os.path.join(BASE_DIR, f"generated/{org_id}")
-    target_dir = os.path.abspath(target_dir)
-
+    target_dir = get_target_dir(org_id, generated_dir)
     if os.path.exists(target_dir):
         logger.info(f"[!] Directory for {org_id} already exists. Assuming this is a duplicate provision request")
         return None
