@@ -1,12 +1,16 @@
 """
 Unit tests for database.py text index and connection handling.
 """
-import pytest
+import os
 
 
 def test_database_text_index_code_exists():
     """Test that text index creation code exists in database.py."""
-    with open("utils/database.py", "r") as f:
+    # Find the database.py file relative to this test file
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    db_file = os.path.join(test_dir, "..", "utils", "database.py")
+    
+    with open(db_file, "r") as f:
         content = f.read()
         # Verify index creation code is present
         assert 'create_index' in content
@@ -18,7 +22,10 @@ def test_database_text_index_code_exists():
 
 def test_database_unique_index_code_exists():
     """Test that unique index on email exists in database.py."""
-    with open("utils/database.py", "r") as f:
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    db_file = os.path.join(test_dir, "..", "utils", "database.py")
+    
+    with open(db_file, "r") as f:
         content = f.read()
         assert 'create_index("email", unique=True)' in content or "create_index('email', unique=True)" in content
 
@@ -46,7 +53,10 @@ def test_get_inventory_from_org_id_exists():
 
 def test_database_error_handling():
     """Test that database module handles index creation failures gracefully."""
-    with open("utils/database.py", "r") as f:
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    db_file = os.path.join(test_dir, "..", "utils", "database.py")
+    
+    with open(db_file, "r") as f:
         content = f.read()
         # Verify error handling exists for index creation
         assert 'try:' in content

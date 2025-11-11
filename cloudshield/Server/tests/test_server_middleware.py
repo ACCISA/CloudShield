@@ -1,10 +1,9 @@
 """
 Unit tests for server.py middleware and error handlers.
 """
-import pytest
-from flask import Flask, g
-from unittest.mock import patch, MagicMock
-from time import time
+from flask import g
+from unittest.mock import patch
+
 
 def test_request_id_generation():
     """Test that request_id is generated when not provided."""
@@ -46,7 +45,7 @@ def test_slow_request_logging():
     from cloudshield.Server.server import app
     
     with app.test_client() as client:
-        with patch('cloudshield.Server.server.logger') as mock_logger:
+        with patch('cloudshield.Server.server.logger'):
             # Make a request and check if logging infrastructure exists
             response = client.get('/healthz')
             assert response.status_code == 200
@@ -119,16 +118,17 @@ def test_duplicate_key_error_handler():
 
 
 def test_operation_failure_unauthorized():
-    """Test OperationFailure handling for unauthorized DB access."""
+    """Test OperationFailure handling for authorization errors."""
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_mongo_operation_failure
     from pymongo.errors import OperationFailure
     
     with app.test_request_context('/'):
         g.request_id = 'test-123'
-        error = OperationFailure("not authorized on cloudshield")
+        # Test various common authorization error messages from MongoDB
+        error = OperationFailure("not authorized on db: cloudshield to execute command")
         response, status = _handle_mongo_operation_failure(error)
-        assert status == 403
+        assert status == 403, f"Expected 403 but got {status} for error: {str(error)}"
         data = response.get_json()
         assert data['code'] == 'DB_UNAUTHORIZED'
 
@@ -151,7 +151,6 @@ def test_operation_failure_other():
 def test_http_exception_handler():
     """Test HTTPException handling."""
     from cloudshield.Server.server import app
-    from werkzeug.exceptions import NotFound
     
     with app.test_client() as client:
         response = client.get('/nonexistent-route')
