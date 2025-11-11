@@ -8,7 +8,6 @@ via Docker volume mounts in docker-compose.yml).
 from rq import get_current_job
 import os
 from pathlib import Path
-from collections import deque
 import subprocess
 
 from provisioner import provision_network_terraform, get_target_dir  # noqa: E402

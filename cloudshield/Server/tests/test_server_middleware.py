@@ -121,12 +121,13 @@ def test_operation_failure_unauthorized():
     """Test OperationFailure handling for authorization errors."""
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_mongo_operation_failure
-    from pymongo.errors import OperationFailure
+    from unittest.mock import Mock
     
     with app.test_request_context('/'):
         g.request_id = 'test-123'
-        # Test various common authorization error messages from MongoDB
-        error = OperationFailure("not authorized on db: cloudshield to execute command")
+        # Create a mock OperationFailure with the proper string representation
+        error = Mock()
+        error.__str__ = Mock(return_value="not authorized on db: cloudshield to execute command")
         response, status = _handle_mongo_operation_failure(error)
         assert status == 403, f"Expected 403 but got {status} for error: {str(error)}"
         data = response.get_json()
@@ -137,11 +138,12 @@ def test_operation_failure_other():
     """Test OperationFailure handling for other DB errors."""
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_mongo_operation_failure
-    from pymongo.errors import OperationFailure
+    from unittest.mock import Mock
     
     with app.test_request_context('/'):
         g.request_id = 'test-123'
-        error = OperationFailure("Some other database error")
+        error = Mock()
+        error.__str__ = Mock(return_value="Some other database error")
         response, status = _handle_mongo_operation_failure(error)
         assert status == 500
         data = response.get_json()

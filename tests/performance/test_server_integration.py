@@ -2,9 +2,7 @@
 Integration tests for performance optimizations in server.py and database.py.
 These tests improve code coverage by actually importing and testing the modules.
 """
-import sys
-from unittest.mock import Mock, patch, MagicMock
-from time import time
+from unittest.mock import Mock, patch
 
 
 def test_response_time_middleware_import():
@@ -18,14 +16,6 @@ def test_response_time_middleware_import():
         'cloudshield.Server.routes.audit': Mock(),
         'cloudshield.Server.utils.database': Mock(),
     }):
-        # Import after mocking dependencies
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "server",
-            "cloudshield/Server/server.py"
-        )
-        server_module = importlib.util.module_from_spec(spec)
-        
         # Verify the module has our performance tracking code
         with open("cloudshield/Server/server.py", "r") as f:
             content = f.read()
