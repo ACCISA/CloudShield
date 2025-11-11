@@ -1,7 +1,7 @@
-# CloudShield – SOEN 490 Capstone Project
+# CloudShield – SOEN 490 Capstone Projectek@
 
 ## Continuous Integration (CI)
-_To be added…_
+This project uses **GitHub Actions** for automated CI on all pull requests and pushes to `main`. The pipeline builds both the **React frontend** and **Python backend** using **Docker Compose** to ensure consistent local environments, runs **Jest** and **Pytest** test suites, and performs **SonarCloud** analysis for code quality and coverage. While deployment to AWS is planned for future stages, the current CI ensures stable builds, reproducible tests, and continuous feedback on every code change.
 
 ---
 
