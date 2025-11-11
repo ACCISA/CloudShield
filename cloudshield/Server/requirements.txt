@@ -12,3 +12,4 @@ pymongo
 PyJWT
 bcrypt
 paramiko
+flask_cors
