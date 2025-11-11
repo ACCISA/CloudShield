@@ -437,3 +437,97 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
         destroy_environment("test_org")
 
     assert "failed destroy" in mock_job.meta["progress"]
+
+
+# ======== _run function tests ========
+def test_network_provisioning_run_success(monkeypatch, caplog):
+    """Test _run function yields output and succeeds."""
+    import logging
+    from cloudshield.Server.tasks.network_provisioning import _run
+
+    logger = logging.getLogger("test_run")
+    caplog.set_level(logging.DEBUG, logger="test_run")
+
+    # Mock Popen
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["output1\n", "output2\n", "output3\n"])
+    mock_proc.returncode = 0
+
+    def fake_popen(*args, **kwargs):
+        return mock_proc
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    result = list(_run(["echo", "test"], cwd="/tmp", logger=logger))
+    assert result == ["output1", "output2", "output3"]
+    assert "Executing command:" in caplog.text
+    assert "Command succeeded:" in caplog.text
+
+
+def test_network_provisioning_run_failure(monkeypatch, caplog):
+    """Test _run function raises CalledProcessError on failure."""
+    import logging
+    from cloudshield.Server.tasks.network_provisioning import _run
+
+    logger = logging.getLogger("test_run_fail")
+    caplog.set_level(logging.ERROR, logger="test_run_fail")
+
+    # Mock Popen
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["error line 1\n", "error line 2\n"])
+    mock_proc.returncode = 1
+
+    def fake_popen(*args, **kwargs):
+        return mock_proc
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    with pytest.raises(subprocess.CalledProcessError) as exc_info:
+        list(_run(["false"], cwd="/tmp", logger=logger))
+    
+    assert exc_info.value.returncode == 1
+    assert "Command failed" in caplog.text
+    assert "Last 30 lines of output:" in caplog.text
+
+
+def test_network_provisioning_run_with_env(monkeypatch):
+    """Test _run function passes environment variables."""
+    import logging
+    from cloudshield.Server.tasks.network_provisioning import _run
+
+    logger = logging.getLogger("test_run_env")
+
+    popen_kwargs = {}
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["ok\n"])
+    mock_proc.returncode = 0
+
+    def fake_popen(*args, **kwargs):
+        popen_kwargs.update(kwargs)
+        return mock_proc
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    env = {"TEST_VAR": "value123"}
+    list(_run(["echo", "test"], cwd="/tmp", env=env, logger=logger))
+    
+    assert popen_kwargs["env"] == env
+    assert popen_kwargs["cwd"] == "/tmp"
+
+
+def test_network_provisioning_run_default_logger(monkeypatch):
+    """Test _run function uses module logger when none provided."""
+    from cloudshield.Server.tasks.network_provisioning import _run
+
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["line\n"])
+    mock_proc.returncode = 0
+
+    def fake_popen(*args, **kwargs):
+        return mock_proc
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    # Should not raise even without logger
+    result = list(_run(["echo", "test"], cwd="/tmp"))
+    assert result == ["line"]

@@ -63,3 +63,29 @@ def test_database_error_handling():
         assert 'except Exception' in content
         assert 'Text index creation skipped' in content or 'text index' in content.lower()
 
+
+def test_database_mk_client_function():
+    """Test that _mk_client function exists and has correct timeout."""
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    db_file = os.path.join(test_dir, "..", "utils", "database.py")
+    
+    with open(db_file, "r") as f:
+        content = f.read()
+        # Verify _mk_client function exists with proper timeout
+        assert 'def _mk_client(' in content
+        assert 'serverSelectionTimeoutMS=5000' in content
+        assert 'MongoClient(url' in content
+
+
+def test_database_import_fallback_exists():
+    """Test that database.py has import fallback logic."""
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    db_file = os.path.join(test_dir, "..", "utils", "database.py")
+    
+    with open(db_file, "r") as f:
+        content = f.read()
+        # Verify import fallback patterns exist
+        assert 'try:' in content
+        assert 'from cloudshield.Server.models import Inventory' in content
+        assert 'except ImportError:' in content
+

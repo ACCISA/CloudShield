@@ -185,3 +185,31 @@ def test_healthz_endpoint():
         data = response.get_json()
         assert data['status'] == 'ok'
         assert 'request_id' in data
+
+
+def test_server_import_fallback_exists():
+    """Test that server.py has import fallback logic for routes."""
+    import os
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    server_file = os.path.join(test_dir, "..", "server.py")
+    
+    with open(server_file, "r") as f:
+        content = f.read()
+        # Verify import fallback patterns exist
+        assert 'try:' in content
+        assert 'from cloudshield.Server.utils import get_logger' in content
+        assert 'except ImportError:' in content
+        assert 'from utils import get_logger' in content
+
+
+def test_server_audit_blueprint_handling():
+    """Test that server.py handles missing audit blueprint gracefully."""
+    import os
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    server_file = os.path.join(test_dir, "..", "server.py")
+    
+    with open(server_file, "r") as f:
+        content = f.read()
+        # Verify audit blueprint error handling exists
+        assert 'audit_bp' in content
+        assert 'except Exception:' in content or 'except ImportError:' in content
