@@ -36,7 +36,41 @@ run: sudo docker-compose up api
 _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
-# Network Provisioning Tasks
+
+def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
+    """Run a shell command yielding output lines and raising on nonzero exit."""
+    if logger is None:
+        logger = _module_logger
+    
+    logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
+    
+    all_output = []  # Capture everything
+    
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        stripped = line.rstrip()
+        all_output.append(stripped)  # Save it
+        logger.debug("[cmd output] %s", stripped)
+        yield stripped
+    
+    proc.wait()
+    if proc.returncode != 0:
+        logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
+        # Log the last 30 lines before failure
+        logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+    
+    logger.debug("Command succeeded: %s", " ".join(cmd))
+
+
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
     Provisions only the workstations via Terraform.
