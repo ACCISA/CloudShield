@@ -1,22 +1,34 @@
 # cloudshield/Agent/tasks/network.py
-from .task import BaseTask
-from proto import agent_pb2
-from logger import task_logger
+
+"""
+Network listing task.
+
+This module defines :class:`NetworkListingTask`, a periodic agent task that
+captures a snapshot of the workstation's network sockets and ships it to the
+CloudShield backend. Each run collects:
+
+- Local/remote IPs and ports
+- TCP state (e.g., LISTEN, ESTABLISHED)
+- PID/process
+
+If the server can’t be reached, the snapshot is saved locally and
+retried later.
+"""
+try:  # Prefer package-relative imports
+    from .task import BaseTask
+    from ..proto import agent_pb2
+    from ..logger import task_logger
+except ImportError:  # pragma: no cover - fallback when executed as top-level package
+    from tasks.task import BaseTask  # type: ignore
+    from proto import agent_pb2  # type: ignore
+    from logger import task_logger  # type: ignore
 
 import psutil
 import time
 
-"""
-Network listing task
-
-Takes a quick snapshot of the workstation’s network activity and ships it to
-CloudShield. Each run captures which ports are listening and which remote
-addresses the machine is talking to, along with the PID/process name behind
-each socket. If the server can’t be reached, the snapshot is saved locally and
-retried later.
-"""
 
 class NetworkListingTask(BaseTask):
+    """Collect and send a snapshot of active inet sockets."""
     def __init__(self, agent_state):
         super().__init__(agent_state)
 
@@ -32,6 +44,7 @@ class NetworkListingTask(BaseTask):
         return int(getattr(addr, "port", addr[1] if isinstance(addr, (tuple, list)) else 0))
 
     def get_connections(self):
+        """Return current inet sockets as NetConn records; tolerates permission errors."""
         conns = []
         try:
             items = psutil.net_connections(kind="inet")
@@ -73,6 +86,7 @@ class NetworkListingTask(BaseTask):
         return conns
 
     def run(self):
+        """Build a NetConnList batch and send it."""
         batch = agent_pb2.NetConnList(
             agent_id=self.agent_state["agent_id"],
             timestamp=int(time.time()),

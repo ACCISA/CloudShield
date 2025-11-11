@@ -1,14 +1,38 @@
 import os
+import sys
 from pathlib import Path
 
-from core import Agent
-from tasks import (
-	CallBootstrapTask,
-	DomainDnsCheckTask,
-	EnsureDomainMembershipTask,
-	GetProcessListTask,
-	NetworkListingTask,
-)
+
+def _calculate_base_dir() -> Path:
+	"""Resolve directory that holds bundled resources when frozen."""
+	if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+		return Path(sys._MEIPASS)
+	return Path(__file__).resolve().parent
+
+
+BASE_DIR = _calculate_base_dir()
+if str(BASE_DIR) not in sys.path:
+	# Ensure sibling packages (core, tasks, etc.) are importable when frozen.
+	sys.path.insert(0, str(BASE_DIR))
+
+try:
+	from .core import Agent
+	from .tasks import (
+		CallBootstrapTask,
+		DomainDnsCheckTask,
+		EnsureDomainMembershipTask,
+		GetProcessListTask,
+		NetworkListingTask,
+	)
+except ImportError:  # Support running outside package context
+	from core import Agent
+	from tasks import (
+		CallBootstrapTask,
+		DomainDnsCheckTask,
+		EnsureDomainMembershipTask,
+		GetProcessListTask,
+		NetworkListingTask,
+	)
 
 def resolve_cache_path() -> str:
 	"""Create a cache directory in a non-publicly writable location."""
@@ -25,7 +49,7 @@ def resolve_config_path() -> str:
 	configured = os.getenv("CLOUDSHIELD_AGENT_CONFIG")
 	if configured:
 		return configured
-	return str(Path(__file__).resolve().parent / "config" / "agent_config.json")
+	return str(BASE_DIR / "config" / "agent_config.json")
 
 if __name__ == "__main__":
 

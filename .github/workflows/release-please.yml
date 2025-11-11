@@ -1,7 +1,9 @@
 name: Release Please
+
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -9,10 +11,10 @@ permissions:
 
 jobs:
   release-please:
-    if: ${{ false }}
+    if: ${{ false }} # temporarily disabled
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c
+      - uses: googleapis/release-please-action@v4
         with:
           release-type: simple
-          package-name: cloudshield
+          token: ${{ secrets.GITHUB_TOKEN }}

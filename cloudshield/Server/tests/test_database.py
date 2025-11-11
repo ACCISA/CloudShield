@@ -203,8 +203,9 @@ def test_get_inventory_from_org_id_not_found(monkeypatch):
     monkeypatch.setattr(database, "db", mock_db)
     
     # Should raise an error when doc is None
-    with pytest.raises((TypeError, AttributeError, KeyError)):
-        database.get_inventory_from_org_id("nonexistent_org")
+    data = database.get_inventory_from_org_id("nonexistent_org")
+    
+    assert data is None
 
 
 def test_get_inventory_from_org_id_with_empty_assets(monkeypatch):

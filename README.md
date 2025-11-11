@@ -122,10 +122,16 @@ or
 docker compose build <service>
 ```
 
-3. Run containeers
+3. Run containers
 ```bash
 docker compose run
 docker compose run <service>
+```
+
+4. Enter containers for debug
+```
+docker ps # get the container id
+docker exec -it <container_id> bash
 ```
 
 Cloudshield will hold all necessary files and states in /var/lib/cloudshield/

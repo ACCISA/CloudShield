@@ -1,3 +1,4 @@
+"""MongoDB connection management with admin and employee role separation."""
 import os
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
@@ -11,49 +12,51 @@ except ImportError:
     except ImportError:
         from models import Inventory  # type: ignore[no-redef]
 
-# Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 DB_NAME          = os.getenv("MONGO_DB", "cloudshield")
-MONGO_URL_ADMIN  = os.getenv("MONGO_URL_ADMIN") # admin user (read-write)
-MONGO_URL_EMP    = os.getenv("MONGO_URL_EMP")   # employee user (read-only)
-#  fallback for local dev if specific URLs aren't set
+MONGO_URL_ADMIN  = os.getenv("MONGO_URL_ADMIN")
+MONGO_URL_EMP    = os.getenv("MONGO_URL_EMP")
 MONGO_URL_FALLBACK = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
 
-# Helper to create a MongoClient with a short timeout
+
 def _mk_client(url: str) -> MongoClient:
+    """
+    Create MongoDB client with short connection timeout.
+
+    Args:
+        url (str): Full MongoDB connection URI string.
+
+    Returns:
+        MongoClient: Configured client with a 5-second server selection timeout.
+
+    Notes:
+        - Used internally to build both admin and employee clients.
+        - Keeps startup responsive by failing quickly on unreachable servers.
+    """
     return MongoClient(url, serverSelectionTimeoutMS=5000)
 
 try:
-    # Prefer explicit admin/emp URLs; fall back gracefully for local/dev.
     admin_client = _mk_client(MONGO_URL_ADMIN or MONGO_URL_FALLBACK)
     emp_client   = _mk_client(MONGO_URL_EMP   or MONGO_URL_FALLBACK)
 
-    
-
-    # Initialize MongoDB client
     client = MongoClient(MONGO_URI)
     db = client[DB_NAME]
     
     client.admin.command("ping")
 
-    # ping both so startup fails fast if misconfigured
     admin_client.admin.command("ping")
     emp_client.admin.command("ping")
 
     db_admin = admin_client[DB_NAME]
     db_emp   = emp_client[DB_NAME]
     
-
-    # Collections/views:
-    # - Admin path uses the raw 'users' collection (can write).
-    # - Employee path uses the 'users_public' VIEW (read-only; hides sensitive fields).
-    #   If the view isn't created yet, we still bind it; reads will 404 at DB level until you create it.
+    # Admin path: Raw "users" collection (read-write).
+    # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
-    users_public = db_emp["users_public"]  # <-- View created in the Mongo bootstrap
+    users_public = db_emp["users_public"]
 
-    # Create key indexes (idempotent) on the admin side (write-capable connection)
-    # If you use tenant-scoped uniqueness, replace with compound index.
+    # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
     
     # Performance optimization: Add text index for efficient user search
@@ -84,9 +87,30 @@ __all__ = [
     "client"
 ]
 
+
 def get_inventory_from_org_id(org_id: str):
+    """
+    Retrieve IT asset inventory for organization from MongoDB.
+
+    Args:
+        org_id (str): Unique organization identifier used to scope inventory records.
+
+    Returns:
+        Inventory: A Pydantic 'Inventory' model instance containing the org's assets.
+
+    Raises:
+        KeyError: If the document structure in MongoDB is missing expected fields.
+        PyMongoError: If MongoDB connection or query execution fails.
+
+    Notes:
+        - This function reads from the 'itam' collection in the default DB.
+    """
     itam_db = db.itam
 
     doc = itam_db.find_one({"org_id":org_id})
 
-    return Inventory(org_id=doc["org_id"], assets=doc["assets"])
+    if doc is None:
+        return None
+    print(doc)
+
+    return Inventory(org_id=str(doc["org_id"]), assets=doc["assets"])

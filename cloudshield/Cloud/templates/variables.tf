@@ -7,20 +7,14 @@ variable "ubuntu_ami" {
 variable "workstation_ami" {
   description = "AMI ID to use for workstations"
   type        = string
-  default     = "ami-00f488e2453f5788f"
+  default     = "ami-02d7a94f2442d691e"
 
 }
 
 variable "workstation_count" {
   description = "The number of workstations to create"
   type        = number
-  default     = 1
-}
-
-variable "workstation_enable"{
-  description = "Enable workstation creation"
-  type        = bool
-  default     = false
+  default     = 0
 }
 
 variable "org_id" {

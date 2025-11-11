@@ -1,3 +1,6 @@
+"""
+Audit logging system with MongoDB persistence and admin API.
+"""
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, has_request_context
 from . import db_admin
@@ -13,7 +16,6 @@ except ImportError:
 audit_bp = Blueprint("audit", __name__)
 _audit = db_admin["audit_logs"]
 
-# Ensure indexes
 try:
     _audit.create_index([("ts", -1)])
     _audit.create_index([("action", 1), ("resource", 1)])
@@ -22,19 +24,44 @@ try:
 except Exception:
     pass
 
+
 def log_audit(
     *,
     action: str,
     resource: str,
-    actor: dict | None = None,   # {"id","role","org_id"}
-    target: dict | None = None,  # {"id","email",...}
+    actor: dict | None = None,
+    target: dict | None = None,
     reason: str | None = None,
     before: dict | None = None,
     after: dict | None = None,
     severity: str = "info",
     meta: dict | None = None
 ) -> str:
-    """Write a single audit record; returns inserted _id as str."""
+    """
+    Write audit record to MongoDB and return inserted document ID.
+
+    Args:
+        action (str): Short action label, e.g., "create", "update", "delete".
+        resource (str): Resource type affected, e.g., "users", "jobs".
+        actor (dict | None): Metadata about the initiator of the action.
+         Example: {"id": "user123", "role": "admin"}.
+        target (dict | None): Information about the affected resource or record.
+        reason (str | None): Optional explanation for the action.
+        before (dict | None): Snapshot of fields before the change.
+        after (dict | None): Snapshot of fields after the change.
+        severity (str): Log level (default "info"). Can be "warning" or "critical".
+        meta (dict | None): Optional structured metadata, such as job_id or request_id.
+
+    Returns:
+        str: Inserted audit document '_id' as a string, or an empty string on failure.
+
+    Behaviour:
+        - If the Flask request context is available, automatically records:
+            > IP address
+            > User-Agent header
+        - Catches and suppresses any database insertion errors.
+        - Indexes are pre-created for common query patterns (by timestamp, actor, target).
+    """
     ip = ua = None
     if has_request_context():
         ip = request.headers.get("X-Forwarded-For") or request.remote_addr
@@ -43,10 +70,10 @@ def log_audit(
     doc = {
         "ts": datetime.now(timezone.utc),
         "severity": severity,
-        "action": action,           # e.g., "create", "update", "deactivate", "delete"
-        "resource": resource,       # e.g., "users"
-        "actor": actor,             # who initiated
-        "target": target,           # what was acted on
+        "action": action,
+        "resource": resource,
+        "actor": actor,
+        "target": target,
         "reason": reason,
         "before": before or {},
         "after": after or {},
@@ -58,14 +85,36 @@ def log_audit(
         res = _audit.insert_one(doc)
         return str(res.inserted_id)
     except Exception:
-        # swallow audit failures; you can print/log e if you want during dev
         return ""
 
-# List audit records (admin only)
+
 @audit_bp.route("/audit", methods=["GET"])
 @require_auth
 @require_role("admin")
 def list_audit():
+    """
+    Retrieve audit logs with optional filtering (admin only).
+
+    ---
+    Endpoint: 'GET /api/audit'
+
+    Query Parameters (optional):
+        - 'action' (str): Filter by action type (e.g., "create", "update").
+        - 'actor' (str): Filter by actor ID ('actor.id' field).
+        - 'target' (str): Filter by target ID ('target.id' field).
+        - 'since' (ISO datetime): Start timestamp.
+        - 'until' (ISO datetime): End timestamp.
+
+    Access Control:
+        - Requires a valid admin JWT ('@require_auth' + '@require_role("admin")').
+    
+    Returns:
+        JSON response with list of audit log entries.
+
+    Notes:
+        - This endpoint is intended for administrative monitoring and auditing.
+        - Logs are stored in the 'audit_logs' collection inside the admin database.
+    """
     q = {}
     action = request.args.get("action")
     actor  = request.args.get("actor")
