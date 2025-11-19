@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import EmployeesPage from '../EmployeesPage.jsx';
-import { AuthProvider } from '../../context/AuthContext.jsx';
+import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
 import { listUsers, deleteUser } from '../../services/usersApi.js';
 
 jest.mock('../../services/usersApi.js', () => ({
@@ -11,7 +11,12 @@ jest.mock('../../services/usersApi.js', () => ({
   deleteUser: jest.fn(),
 }));
 
-const renderWithProviders = () => {
+const AuthSpy = ({ onAuth }) => {
+  onAuth(useAuth());
+  return null;
+};
+
+const renderWithProviders = ({ initialState = {}, captureAuth = false } = {}) => {
   const initialUser = {
     id: 'admin-001',
     email: 'admin@company.com',
@@ -19,11 +24,29 @@ const renderWithProviders = () => {
     role: 'admin',
   };
 
-  return render(
-    <AuthProvider initialState={{ currentUser: initialUser, accessToken: 'test-token', disableBootstrap: true }}>
-      <EmployeesPage />
+  const captured = { current: null };
+
+  const Wrapper = ({ children }) => (
+    <AuthProvider
+      initialState={{
+        currentUser: initialUser,
+        accessToken: 'test-token',
+        disableBootstrap: true,
+        ...initialState,
+      }}
+    >
+      {captureAuth ? <AuthSpy onAuth={(auth) => { captured.current = auth; }} /> : null}
+      {children}
     </AuthProvider>
   );
+
+  const utils = render(
+    <Wrapper>
+      <EmployeesPage />
+    </Wrapper>
+  );
+
+  return { ...utils, getAuth: () => captured.current };
 };
 
 describe('EmployeesPage', () => {
@@ -131,5 +154,111 @@ describe('EmployeesPage', () => {
 
     expect(deleteUser).not.toHaveBeenCalled();
     expect(screen.getByText(/cannot delete your own account/i)).toBeInTheDocument();
+  });
+
+  it('shows empty state when no users are returned', async () => {
+    listUsers.mockResolvedValueOnce([]);
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByText('No users found.')).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces load failures via banner', async () => {
+    listUsers.mockRejectedValueOnce(new Error('Backend unavailable'));
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Backend unavailable');
+    });
+  });
+
+  it('ignores abort errors when fetching users', async () => {
+    const abortError = new Error('aborted');
+    abortError.name = 'AbortError';
+    listUsers.mockRejectedValueOnce(abortError);
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(listUsers).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('No users found.')).toBeInTheDocument();
+  });
+
+  it('shows warning banner when user is not authenticated', async () => {
+    listUsers.mockResolvedValueOnce(seedUsers);
+
+    renderWithProviders({ initialState: { accessToken: null } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sign in to view employees.')).toBeInTheDocument();
+    });
+
+    const refreshButton = screen.getByRole('button', { name: /refresh/i });
+    await userEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Authentication required to refresh users.')).toBeInTheDocument();
+    });
+    expect(listUsers).not.toHaveBeenCalled();
+  });
+
+  it('shows auth error banner when provided by context', async () => {
+    renderWithProviders({ initialState: { accessToken: null, authError: 'Auth boom' } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Auth boom');
+    });
+  });
+
+  it('sets loading while auth state refreshes', () => {
+    const authModule = require('../../context/AuthContext.jsx');
+    const useAuthSpy = jest.spyOn(authModule, 'useAuth');
+    useAuthSpy.mockReturnValue({
+      currentUser: { id: 'admin-001' },
+      accessToken: 'test-token',
+      authError: null,
+      authLoading: true,
+      refreshAuth: jest.fn(),
+    });
+
+    render(<EmployeesPage />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+
+    useAuthSpy.mockRestore();
+  });
+
+  it('prevents deletion when authentication token disappears mid-flow', async () => {
+    const { getAuth } = renderWithProviders({ captureAuth: true });
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+      expect(getAuth()).not.toBeNull();
+    });
+
+    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
+    await user.click(deleteJaneButton);
+
+    await act(async () => {
+      getAuth().refreshAuth();
+    });
+
+    const confirmButton = screen.getByRole('button', { name: /confirm/i });
+    await user.click(confirmButton);
+
+    expect(deleteUser).not.toHaveBeenCalled();
+    expect(screen.getByText(/missing authentication token/i)).toBeInTheDocument();
   });
 });
