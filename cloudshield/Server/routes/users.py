@@ -55,8 +55,6 @@ def _extract_reason() -> str | None:
     reason = body.get("reason") or request.args.get("reason")
     return (reason or "").strip() or None
 
-    return (reason or "").strip() or None
-
 
 @users_bp.route("/users", methods=["GET"])
 @require_auth

@@ -245,9 +245,7 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
             after=None
         )
     except Exception:
-        pass
-
-    except Exception:
+        # Audit logging must never block deletion; swallow and continue.
         pass
 
     return True

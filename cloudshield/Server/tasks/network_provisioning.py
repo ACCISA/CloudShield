@@ -21,7 +21,7 @@ try:
     )
     from cloudshield.Server.adapters import map_metadata_to_ec2_instances
     from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
-except ImportError:
+except ImportError:  # pragma: no cover - executed only in alternative packaging layouts
     try:
         from ..utils import (
             get_logger,
@@ -32,7 +32,7 @@ except ImportError:
         )
         from ..adapters import map_metadata_to_ec2_instances
         from ..repos import insert_inventory, delete_inventory_by_org
-    except ImportError:
+    except ImportError:  # pragma: no cover - final fallback used in Docker image only
         from utils import get_logger  # type: ignore
         from utils import db  # type: ignore
         from utils import set_progress  # type: ignore
@@ -44,7 +44,7 @@ except ImportError:
 try:
     import cloudshield.Cloud.provisioner.provision as _provision_mod
     import cloudshield.Cloud.provisioner.destroy_infra as _destroy_mod
-except ImportError:
+except ImportError:  # pragma: no cover - provisioner only available in Terraform image
     # Fallback for Docker image where modules sit alongside this file
     try:
         import provision as _provision_mod  # type: ignore[import]
