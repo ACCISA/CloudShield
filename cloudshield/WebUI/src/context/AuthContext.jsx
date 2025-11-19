@@ -12,7 +12,12 @@ const DEFAULT_USER = {
 
 export function AuthProvider({ children, initialState = {} }) {
   const disableBootstrap = initialState.disableBootstrap ?? false;
-  const env = typeof import.meta !== 'undefined' ? import.meta.env : process.env;
+  const env = (() => {
+    if (typeof globalThis !== 'undefined' && globalThis.__APP_ENV__) {
+      return globalThis.__APP_ENV__;
+    }
+    return typeof process !== 'undefined' ? process.env : {};
+  })();
   const bootstrapEmail = initialState.bootstrapEmail ?? env?.VITE_AUTH_EMAIL ?? env?.VITE_API_EMAIL ?? '';
   const bootstrapPassword = initialState.bootstrapPassword ?? env?.VITE_AUTH_PASSWORD ?? env?.VITE_API_PASSWORD ?? '';
   const envAccessToken = env?.VITE_API_ACCESS_TOKEN ?? env?.VITE_AUTH_TOKEN ?? null;

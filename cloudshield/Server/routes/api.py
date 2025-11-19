@@ -2,8 +2,13 @@
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
-from services import service_dispatcher, get_job_status, health_status
-from utils.logging_setup import get_logger
+
+try:
+    from cloudshield.Server.services import service_dispatcher, get_job_status, health_status
+    from cloudshield.Server.utils.logging_setup import get_logger
+except ImportError:  # pragma: no cover - fallback for local execution contexts
+    from services import service_dispatcher, get_job_status, health_status
+    from utils.logging_setup import get_logger
 
 logger = get_logger("api")
 

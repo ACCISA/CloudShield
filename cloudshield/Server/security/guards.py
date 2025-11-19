@@ -49,6 +49,10 @@ def require_auth(fn):
     """
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
+        existing_user = getattr(g, "user", None)
+        if existing_user:
+            return fn(*args, **kwargs)
+
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             log_denied(reason="missing_bearer", path=request.path, method=request.method)

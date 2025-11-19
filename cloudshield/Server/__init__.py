@@ -1,5 +1,11 @@
 """Server component of CloudShield.
 
-Exposes create_app for external WSGI servers.
+Expose :func:`create_app` lazily so importing this package does not eagerly
+initialise heavy dependencies (Mongo, Redis) during unit tests.
 """
-from .server import create_app  # noqa: F401
+
+
+def create_app(*args, **kwargs):  # pragma: no cover - thin wrapper
+	from .server import create_app as _create_app
+
+	return _create_app(*args, **kwargs)

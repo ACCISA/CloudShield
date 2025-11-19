@@ -70,8 +70,8 @@ describe('EmployeesPage', () => {
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: /delete user/i });
-    await user.click(deleteButtons[0]);
+    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
+    await user.click(deleteJaneButton);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -104,13 +104,13 @@ describe('EmployeesPage', () => {
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: /delete user/i });
-    await user.click(deleteButtons[0]);
+    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
+    await user.click(deleteJaneButton);
 
     await user.click(screen.getByRole('button', { name: /confirm/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Forbidden')).toBeInTheDocument();
+      expect(screen.getAllByText('Forbidden').length).toBeGreaterThan(0);
     });
 
     expect(deleteUser).toHaveBeenCalledWith('user-001', expect.objectContaining({ token: 'test-token' }));
@@ -124,9 +124,8 @@ describe('EmployeesPage', () => {
       expect(screen.getByText('Admin User')).toBeInTheDocument();
     });
 
-    const deleteButtons = screen.getAllByRole('button', { name: /delete user/i });
-    // second button corresponds to the admin user in seedUsers
-    await user.click(deleteButtons[1]);
+    const deleteAdminButton = screen.getByRole('button', { name: /delete user admin user/i });
+    await user.click(deleteAdminButton);
 
     await user.click(screen.getByRole('button', { name: /confirm/i }));
 

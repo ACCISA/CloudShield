@@ -10,8 +10,20 @@ import os
 from pathlib import Path
 import subprocess
 
-from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
-from provisioner import destroy as destroy_infra  # noqa: E402
+try:
+    import cloudshield.Cloud.provisioner.provision as _provision_mod
+    import cloudshield.Cloud.provisioner.destroy_infra as _destroy_mod
+except ImportError:
+    # Fallback for Docker image where modules sit alongside this file
+    try:
+        import provision as _provision_mod  # type: ignore[import]
+        import destroy_infra as _destroy_mod  # type: ignore[import]
+    except ImportError as error:  # pragma: no cover - guard for misconfigured packaging
+        raise ImportError("Provisioner modules are not available") from error
+
+provision_network_terraform = _provision_mod.provision_network_terraform
+get_target_dir = _provision_mod.get_target_dir
+destroy_infra = _destroy_mod.destroy
 from cloudshield.Server.utils import (
     get_logger,
     db,
