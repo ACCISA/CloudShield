@@ -75,8 +75,7 @@ Creates a domain user on the organization’s Active Directory or equivalent dom
 
 To build and run the API service with Docker Compose:
 ```
-docker compose build api
-docker compose run api
+docker compose up --build api
 ```
 This will:
 - Build the Docker image for the API service
