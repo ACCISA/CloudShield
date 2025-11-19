@@ -247,4 +247,41 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     except Exception:
         pass
 
+    except Exception:
+        pass
+
     return True
+
+
+def list_users(current_user: dict) -> list[dict]:
+    """
+    List all users in the organization.
+
+    Args:
+        current_user (dict): The user performing the request.
+
+    Returns:
+        list[dict]: List of user documents (excluding passwords).
+    """
+    # For now, allow any authenticated user to list users, or restrict to admin?
+    # The frontend EmployeesPage seems to be for management, so likely admin-only or similar.
+    # The other functions enforce _must_admin. Let's enforce it here too for consistency with the "admin-only mutations" comment in users.py,
+    # although listing might be allowed for others. The frontend routes say "Employees" manage organization users.
+    # Let's stick to admin for now as per the pattern, or at least authenticated.
+    # The plan didn't specify, but "EmployeesPage" implies management.
+    # Let's check users.py imports again. It uses require_role("admin") for mutations.
+    # I'll enforce admin for now to be safe, or just return all if they are admin.
+    
+    # Actually, let's look at the other functions. They all call _must_admin.
+    # I will add _must_admin(current_user) to be safe.
+    _must_admin(current_user)
+
+    users = list(users_admin.find({}, {"password": 0}))
+    for user in users:
+        user["_id"] = str(user["_id"])
+        if "created_at" in user:
+            user["created_at"] = user["created_at"].isoformat()
+        if "updated_at" in user:
+            user["updated_at"] = user["updated_at"].isoformat()
+            
+    return users

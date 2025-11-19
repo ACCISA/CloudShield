@@ -17,10 +17,12 @@ try:
     from cloudshield.Server.utils import get_logger
     from cloudshield.Server.routes import api_bp
     from cloudshield.Server.routes.users import users_bp
+    from cloudshield.Server.routes.users_read import users_read_bp
 except ImportError:
     from utils import get_logger
     from routes import api_bp
     from routes.users import users_bp
+    from routes.users_read import users_read_bp
 
 # optional audit blueprint; may fail if DB/view not set up
 try:
@@ -195,6 +197,7 @@ def _handle_generic(e: Exception):
 
 
 app.register_blueprint(users_bp, url_prefix="/api")
+app.register_blueprint(users_read_bp, url_prefix="/api")
 if audit_bp:
     app.register_blueprint(audit_bp, url_prefix="/api")
 
