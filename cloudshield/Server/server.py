@@ -42,14 +42,16 @@ try:
     from cloudshield.Server.routes.users import users_bp
     from cloudshield.Server.routes.users_read import users_read_bp
 except ImportError:
-    from .utils import get_logger
-    from .routes import api_bp
-    from .routes.users import users_bp
-    from .routes.users_read import users_read_bp
-    from utils import get_logger  # type: ignore
-    from routes import api_bp  # type: ignore
-    from routes.users import users_bp  # type: ignore
-    from routes.users_read import users_read_bp  # type: ignore
+    try:
+        from .utils import get_logger
+        from .routes import api_bp
+        from .routes.users import users_bp
+        from .routes.users_read import users_read_bp
+    except ImportError:
+        from utils import get_logger  # type: ignore
+        from routes import api_bp  # type: ignore
+        from routes.users import users_bp  # type: ignore
+        from routes.users_read import users_read_bp  # type: ignore
 
 # optional audit blueprint; may fail if DB/view not set up
 try:
