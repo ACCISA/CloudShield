@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth } from '../AuthContext';
 
 describe('AuthContext', () => {
   const originalFetch = global.fetch;
@@ -50,7 +50,7 @@ describe('AuthContext', () => {
 
     globalThis.__APP_ENV__ = {
       VITE_AUTH_EMAIL: 'env@example.com',
-      VITE_AUTH_PASSWORD: 'secret',
+      VITE_AUTH_PASSWORD: 'dummy-password',
     };
 
     const { result } = renderWithProvider();
@@ -74,7 +74,7 @@ describe('AuthContext', () => {
 
     const initialState = {
       bootstrapEmail: 'x@example.com',
-      bootstrapPassword: 'bad',
+      bootstrapPassword: 'invalid-test-password',
     };
 
     const { result } = renderWithProvider(initialState);
@@ -110,7 +110,7 @@ describe('AuthContext', () => {
     const initialState = {
       accessToken: 'cached-token',
       bootstrapEmail: 'user@example.com',
-      bootstrapPassword: 'pass123',
+      bootstrapPassword: 'refresh-test-password',
     };
 
     const { result } = renderWithProvider(initialState);

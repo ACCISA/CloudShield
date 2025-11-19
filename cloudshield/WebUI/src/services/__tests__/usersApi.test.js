@@ -1,4 +1,4 @@
-import { deleteUser, listUsers } from './usersApi';
+import { deleteUser, listUsers } from '../usersApi';
 
 describe('usersApi', () => {
   const originalFetch = global.fetch;
