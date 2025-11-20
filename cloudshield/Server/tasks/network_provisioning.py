@@ -5,22 +5,56 @@ This module handles AWS infrastructure provisioning and destruction using Terraf
 Expects the provisioner module to be available in the same directory (configured
 via Docker volume mounts in docker-compose.yml).
 """
-from rq import get_current_job
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
-from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
-from provisioner import destroy as destroy_infra  # noqa: E402
-from cloudshield.Server.utils import (
-    get_logger,
-    db,
-    set_progress,
-    get_job_id_fallback,
-    run_stream
-)
-from cloudshield.Server.adapters import map_metadata_to_ec2_instances
-from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+from rq import get_current_job
+
+try:
+    from cloudshield.Server.utils import (
+        get_logger,
+        db,
+        set_progress,
+        get_job_id_fallback,
+        run_stream,
+    )
+    from cloudshield.Server.adapters import map_metadata_to_ec2_instances
+    from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+except ImportError:  # pragma: no cover - executed only in alternative packaging layouts
+    try:
+        from ..utils import (
+            get_logger,
+            db,
+            set_progress,
+            get_job_id_fallback,
+            run_stream,
+        )
+        from ..adapters import map_metadata_to_ec2_instances
+        from ..repos import insert_inventory, delete_inventory_by_org
+    except ImportError:  # pragma: no cover - final fallback used in Docker image only
+        from utils import get_logger  # type: ignore
+        from utils import db  # type: ignore
+        from utils import set_progress  # type: ignore
+        from utils import get_job_id_fallback  # type: ignore
+        from utils import run_stream  # type: ignore
+        from adapters import map_metadata_to_ec2_instances  # type: ignore
+        from repos import insert_inventory, delete_inventory_by_org  # type: ignore
+
+try:
+    import cloudshield.Cloud.provisioner.provision as _provision_mod
+    import cloudshield.Cloud.provisioner.destroy_infra as _destroy_mod
+except ImportError:  # pragma: no cover - provisioner only available in Terraform image
+    # Fallback for Docker image where modules sit alongside this file
+    try:
+        import provision as _provision_mod  # type: ignore[import]
+        import destroy_infra as _destroy_mod  # type: ignore[import]
+    except ImportError as error:  # pragma: no cover - guard for misconfigured packaging
+        raise ImportError("Provisioner modules are not available") from error
+
+provision_network_terraform = _provision_mod.provision_network_terraform
+get_target_dir = _provision_mod.get_target_dir
+destroy_infra = _destroy_mod.destroy
 
 
 """

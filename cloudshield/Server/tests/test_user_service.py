@@ -1,5 +1,7 @@
 import unittest.mock
 import sys
+from datetime import datetime, timezone
+
 import pytest
 from bson import ObjectId
 
@@ -351,3 +353,54 @@ class TestUserService:
         
         # Verify password was hashed
         mocks['hash_password'].assert_called_once_with("SecurePass123!")  
+
+    def test_update_user_without_password(self, setup_mocks, admin_user):
+        """Ensure update_user skips hashing when password field absent."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import update_user
+
+        user_id = "507f1f77bcf86cd799439011"
+        update_data = unittest.mock.MagicMock()
+        update_data.dict.return_value = {"full_name": "No Password"}
+
+        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com", "full_name": "Old"}
+        updated_user = existing_user | {"full_name": "No Password"}
+
+        mocks['users_admin'].find_one.side_effect = [existing_user, updated_user]
+        mocks['hash_password'].reset_mock()
+
+        result = update_user(user_id, update_data, admin_user)
+
+        assert result is True
+        mocks['hash_password'].assert_not_called()
+        mocks['users_admin'].update_one.assert_called_once()
+
+    def test_list_users_requires_admin(self, setup_mocks, employee_user):
+        """list_users should enforce admin guard."""
+        setup_mocks
+        from cloudshield.Server.services.user_service import list_users
+
+        with pytest.raises(PermissionError, match="admin_only"):
+            list_users(employee_user)
+
+    def test_list_users_formats_dates(self, setup_mocks, admin_user):
+        """list_users returns stringified ids and iso timestamps."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import list_users
+
+        created = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        updated = datetime(2025, 1, 2, tzinfo=timezone.utc)
+        doc = {
+            "_id": ObjectId("507f1f77bcf86cd799439011"),
+            "email": "john@example.com",
+            "created_at": created,
+            "updated_at": updated,
+        }
+
+        mocks['users_admin'].find.return_value = [doc]
+
+        users = list_users(admin_user)
+
+        assert users[0]["_id"] == "507f1f77bcf86cd799439011"
+        assert users[0]["created_at"] == created.isoformat()
+        assert users[0]["updated_at"] == updated.isoformat()

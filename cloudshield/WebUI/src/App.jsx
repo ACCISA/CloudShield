@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import ProvisioningPage from './pages/ProvisioningPage.jsx';
+import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 
 export default function App() {
@@ -78,6 +79,15 @@ export default function App() {
           element={
             <Protected>
               <WorkstationsPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/users"
+          element={
+            <Protected>
+              <EmployeesPage />
             </Protected>
           }
         />
