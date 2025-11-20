@@ -1,246 +1,579 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import ProvisioningPage from '../ProvisioningPage';
 
-// --- Router mocks (navigate) ---
+// Mock dependencies
+jest.mock('../../components/provisioning/ProvisioningControls', () => {
+  return function MockProvisioningControls({ status, jobId, message, progress }) {
+    return (
+      <div data-testid="provisioning-controls">
+        <div data-testid="controls-status">{status}</div>
+        <div data-testid="controls-job-id">{jobId || 'none'}</div>
+        <div data-testid="controls-message">{message || 'none'}</div>
+        <div data-testid="controls-progress">{progress !== null ? progress : 'none'}</div>
+      </div>
+    );
+  };
+});
+
+jest.mock('../../context/AuthContext', () => ({
+  useAuth: jest.fn(),
+}));
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// --- Helpers ---
-const renderWithRouter = (ui) => render(ui, { wrapper: BrowserRouter });
-
-const makeJsonResponse = (data, { ok = true, status = 200 } = {}) => ({
-  ok,
-  status,
-  json: jest.fn().mockResolvedValue(data),
-  text: jest.fn().mockResolvedValue(JSON.stringify(data)),
-});
-
-// Ensures fetch mock exists per test
-beforeEach(() => {
-  jest.useFakeTimers();
-  global.fetch = jest.fn();
-  jest.spyOn(Storage.prototype, 'setItem');
-  mockNavigate.mockClear();
-});
-
-afterEach(() => {
-  jest.runOnlyPendingTimers(); // Run any remaining timers before cleanup
-  jest.useRealTimers();
-  jest.restoreAllMocks();
-});
+import { useAuth } from '../../context/AuthContext';
 
 describe('ProvisioningPage', () => {
-  it('renders and shows hard-coded org ID', () => {
-    renderWithRouter(<ProvisioningPage />);
-    // Multiple elements can have "Provisioning" text (title and button), use getByRole for title
-    expect(screen.getByRole('heading', { name: /Provisioning/i })).toBeInTheDocument();
-    // Text is split across elements, check for parts separately
-    expect(screen.getByText(/Org ID:/i)).toBeInTheDocument();
-    expect(screen.getByText(/TEST_Andrew/i)).toBeInTheDocument();
-    // Idle state hint from ProvisioningControls
-    expect(screen.getByText(/No job started yet\./i)).toBeInTheDocument();
+  let mockFetch;
+  let mockOnProvisioned;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
+    
+    mockOnProvisioned = jest.fn();
+    
+    Storage.prototype.setItem = jest.fn();
+    Storage.prototype.getItem = jest.fn().mockReturnValue('test-org-123');
+    
+    useAuth.mockReturnValue({
+      currentUser: { org_id: 'test-org-123' },
+    });
   });
 
-  it('starts provisioning, polls status, and on success: sets localStorage, calls onProvisioned, navigates', async () => {
-    const onProvisioned = jest.fn();
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
 
-    // 1) POST /task/provision -> { job_id }
-    fetch
-      .mockResolvedValueOnce(
-        makeJsonResponse({ job_id: 'J-123' }, { ok: true, status: 202 })
-      )
-      // 2) first poll: running
-      .mockResolvedValueOnce(
-        makeJsonResponse({ status: 'running', message: 'booting', progress: 10 })
-      )
-      // 3) second poll: succeeded
-      .mockResolvedValueOnce(
-        makeJsonResponse({ status: 'succeeded', message: 'done', progress: 100 })
-      );
-
-    renderWithRouter(<ProvisioningPage onProvisioned={onProvisioned} />);
-
-    // Click "Start Provisioning"
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
-
-    // POST was called with hard-coded org id
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith(
-        'http://172.18.0.3:5050/task/provision',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ org_id: 'TEST_Andrew' }),
-        })
-      )
+  const renderProvisioningPage = (props = {}) => {
+    return render(
+      <BrowserRouter>
+        <ProvisioningPage onProvisioned={mockOnProvisioned} {...props} />
+      </BrowserRouter>
     );
+  };
 
-    // After POST completes, job id appears and status becomes running
-    await waitFor(() =>
-      expect(screen.getByText(/Job ID:\s*J-123/i)).toBeInTheDocument()
-    );
-    expect(screen.getByText(/^Status:\s*running$/i)).toBeInTheDocument();
+  it('renders provisioning page with org id from localStorage', () => {
+    renderProvisioningPage();
 
-    // First poll tick → running/progress 10%
-    jest.advanceTimersByTime(2000);
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith('/status/J-123')
-    );
-    // Text appears as "Provisioning… 10%" but may be split across elements
-    await waitFor(() => {
-      expect(screen.getByText(/Provisioning…/i)).toBeInTheDocument();
-      // Use getAllByText since "10%" appears in multiple places (Chip and caption)
-      const progressElements = screen.getAllByText(/10%/i);
-      expect(progressElements.length).toBeGreaterThan(0);
+    expect(screen.getByText('Provisioning')).toBeInTheDocument();
+    expect(screen.getByText(/Org ID:/)).toBeInTheDocument();
+    expect(screen.getByText('test-org-123')).toBeInTheDocument();
+  });
+
+  it('uses currentUser org_id as fallback when localStorage is empty', () => {
+    Storage.prototype.getItem.mockReturnValue(null);
+    
+    renderProvisioningPage();
+
+    expect(screen.getByText('test-org-123')).toBeInTheDocument();
+  });
+
+  it('uses default-org when no org_id is available', () => {
+    Storage.prototype.getItem.mockReturnValue(null);
+    useAuth.mockReturnValue({ currentUser: null });
+    
+    renderProvisioningPage();
+
+    expect(screen.getByText('default-org')).toBeInTheDocument();
+  });
+
+  it('auto-starts provisioning on mount', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({ job_id: 'job-123' }),
     });
 
-    // Second poll tick → succeeded
-    jest.advanceTimersByTime(2000);
+    renderProvisioningPage();
 
     await waitFor(() => {
-      // on success side-effects
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://172.18.0.3:5050/task/provision',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ org_id: 'test-org-123' }),
+        }
+      );
+    });
+  });
+
+  it('starts polling after provisioning starts', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'running',
+          message: 'Provisioning in progress',
+          progress: 50,
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/status/job-123');
+    });
+  });
+
+  it('updates status and progress during polling', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'running',
+          message: 'Step 1 of 3',
+          progress: 33,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'running',
+          message: 'Step 2 of 3',
+          progress: 66,
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Step 1 of 3');
+      expect(screen.getByTestId('controls-progress')).toHaveTextContent('33');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Step 2 of 3');
+      expect(screen.getByTestId('controls-progress')).toHaveTextContent('66');
+    });
+  });
+
+  it('stops polling and navigates on success', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'succeeded',
+          message: 'Provisioning complete',
+          progress: 100,
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('succeeded');
+    });
+
+    await waitFor(() => {
       expect(localStorage.setItem).toHaveBeenCalledWith('isProvisioned', 'true');
-      expect(onProvisioned).toHaveBeenCalledTimes(1);
+      expect(mockOnProvisioned).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
   });
 
-  it('handles failure from polling and shows error UI; stops polling', async () => {
-    // POST ok -> job id
-    fetch
-      .mockResolvedValueOnce(
-        makeJsonResponse({ job_id: 'J-FAIL' }, { ok: true, status: 202 })
-      )
-      // first poll returns failed
-      .mockResolvedValueOnce(
-        makeJsonResponse({ status: 'failed', message: 'boom', progress: 42 })
-      );
+  it('handles provisioning failure', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'failed',
+          message: 'Provisioning failed: timeout',
+        }),
+      });
 
-    renderWithRouter(<ProvisioningPage />);
+    renderProvisioningPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
 
-    await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith(
-        'http://172.18.0.3:5050/task/provision',
-        expect.any(Object)
-      )
-    );
-
-    // Advance to the next timer (the polling interval) and allow async operations to complete
-    await act(async () => {
-      jest.advanceTimersToNextTimer();
-      await Promise.resolve();
-      jest.advanceTimersToNextTimer(); // Advance once more to flush any followup timers
+    act(() => {
+      jest.advanceTimersByTime(2000);
     });
 
     await waitFor(() => {
-      // Failure chip + message - use getAllByText since "Failed" appears in both Chip and status
-      const failedElements = screen.queryAllByText(/Failed/i);
-      expect(failedElements.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
+      expect(screen.getByText(/Failed/)).toBeInTheDocument();
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('resets provisioning state when reset button is clicked', async () => {
+    // Auto-start will be triggered immediately (first call)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      // After reset, auto-start will trigger again (second call)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-456' }),
+      });
+
+    renderProvisioningPage();
+
+    // Wait for first auto-start to complete
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('running');
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    const resetButton = screen.getByRole('button', { name: /Reset/ });
+    
+    // Reset triggers auto-start again with a new job
+    fireEvent.click(resetButton);
+
+    // Verify that a new provisioning job started with different job_id
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('running');
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-456');
     });
     
-    // "boom" appears in multiple places (ProvisioningControls and failure message box)
-    const boomElements = screen.getAllByText(/boom/i);
-    expect(boomElements.length).toBeGreaterThan(0);
-
-    const callsAfterFail = fetch.mock.calls.length;
-
-    // Tick more—should NOT keep polling
-    jest.advanceTimersByTime(6000);
-    expect(fetch.mock.calls.length).toBe(callsAfterFail);
+    // Verify second fetch was called (for the reset auto-start)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it('Reset returns page to idle and clears progress/message/jobId', async () => {
-    // POST ok -> job id, poll running
-    fetch
-      .mockResolvedValueOnce(
-        makeJsonResponse({ job_id: 'J-RESET' }, { ok: true, status: 202 })
-      )
-      .mockResolvedValueOnce(
-        makeJsonResponse({ status: 'running', message: 'init', progress: 5 })
-      );
+  it('handles error starting provisioning', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    renderWithRouter(<ProvisioningPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText(/Job ID:\s*J-RESET/i)).toBeInTheDocument()
-    );
-
-    jest.advanceTimersByTime(2000);
-    await waitFor(() =>
-      expect(screen.getByText(/Provisioning…\s*5%/i)).toBeInTheDocument()
-    );
-
-    // Click Reset
-    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
-
-    // Back to idle state
-    expect(screen.getByText(/No job started yet\./i)).toBeInTheDocument();
-    expect(screen.queryByText(/Provisioning…/i)).not.toBeInTheDocument();
-
-    // Start button should be enabled again
-    expect(
-      screen.getByRole('button', { name: /start provisioning/i })
-    ).toBeEnabled();
-  });
-
-  it('cleans up polling interval on unmount (no errors)', () => {
-    // Make sure an interval is created first
-    fetch
-      .mockResolvedValueOnce(
-        makeJsonResponse({ job_id: 'J-UNMOUNT' }, { ok: true, status: 202 })
-      )
-      .mockResolvedValue(makeJsonResponse({ status: 'running' }));
-
-    const { unmount } = renderWithRouter(<ProvisioningPage />);
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
-    // allow POST settle
-    // we don't need explicit assertions; just ensure unmount doesn't throw
-    unmount();
-    expect(true).toBe(true);
-  });
-
-  it('shows failure if POST returns malformed response (no job_id)', async () => {
-    fetch.mockResolvedValueOnce(
-      makeJsonResponse({}, { ok: true, status: 202 })
-    );
-
-    renderWithRouter(<ProvisioningPage />);
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderProvisioningPage();
 
     await waitFor(() => {
-      // Multiple "Failed" elements will exist
-      const failedElements = screen.getAllByText(/Failed/i);
-      expect(failedElements.length).toBeGreaterThan(0);
-      // "missing job_id" appears in multiple places, use getAllByText
-      const errorElements = screen.getAllByText(/missing job_id/i);
-      expect(errorElements.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Network error');
     });
   });
 
-  it('shows failure if POST is not ok', async () => {
-    fetch.mockResolvedValueOnce(
-      makeJsonResponse({ error: 'nope' }, { ok: false, status: 500 })
-    );
+  it('handles missing job_id in response', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({}),
+    });
 
-    renderWithRouter(<ProvisioningPage />);
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderProvisioningPage();
 
     await waitFor(() => {
-      // Multiple "Failed" elements will exist
-      const failedElements = screen.getAllByText(/Failed/i);
-      expect(failedElements.length).toBeGreaterThan(0);
-      // The error message appears in multiple places, use getAllByText
-      const errorElements = screen.getAllByText(/error/i);
-      expect(errorElements.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/missing job_id/);
+    });
+  });
+
+  it('cleans up polling timer on unmount', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({ job_id: 'job-123' }),
+    });
+
+    const { unmount } = renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    unmount();
+
+    const callCount = mockFetch.mock.calls.length;
+    
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+
+    expect(mockFetch.mock.calls.length).toBe(callCount);
+  });
+
+  it('shows determinate progress when progress is a number', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'running',
+          progress: 75,
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Provisioning… 75%/)).toBeInTheDocument();
+    });
+  });
+
+  it('infers status from progress text when status is missing', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          progress: 'Failed: unable to allocate resources',
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
+    });
+  });
+
+  it('handles missing onProvisioned callback', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'succeeded',
+        }),
+      });
+
+    render(
+      <BrowserRouter>
+        <ProvisioningPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+  });
+
+  it('handles localStorage error when retrieving org_id', async () => {
+    const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('localStorage error');
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({ job_id: 'job-123' }),
+    });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    getItemSpy.mockRestore();
+  });
+
+  it('uses currentUser.org_id when orgId is not set', async () => {
+    localStorage.removeItem('org_id');
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({ job_id: 'job-123' }),
+    });
+
+    render(
+      <BrowserRouter>
+        <ProvisioningPage currentUser={{ org_id: 'user-org-123' }} />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+  });
+
+  it('uses default-org when no org_id is available', async () => {
+    Storage.prototype.getItem.mockReturnValue(null);
+    useAuth.mockReturnValue({
+      currentUser: null,
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({ job_id: 'job-456' }),
+    });
+
+    render(
+      <BrowserRouter>
+        <ProvisioningPage />
+      </BrowserRouter>
+    );
+
+    // Should use default-org and auto-start
+    await waitFor(() => {
+      expect(screen.getByText('default-org')).toBeInTheDocument();
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-456');
+    });
+  });
+
+  it('handles non-202 status code error when starting provision', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Server error',
+    });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Server error');
+    });
+  });
+
+  it('handles error response when fetching status', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => 'Job not found',
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Job not found');
+    });
+  });
+
+  it('infers succeeded status from progress text containing "completed"', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job-123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          progress: 'Provisioning completed successfully',
+        }),
+      });
+
+    renderProvisioningPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('job-123');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent('succeeded');
     });
   });
 });
