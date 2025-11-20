@@ -7,6 +7,7 @@ import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import ProvisioningPage from './pages/ProvisioningPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
+import SignUpPage from './pages/SignUpPage.jsx';
 
 export default function App() {
   // TEMP auth simulation
@@ -48,6 +49,11 @@ export default function App() {
         <Route
           path="/login"
           element={<AuthPage onLoginSuccess={() => setIsAuthed(true)} />}
+        />
+        {/* Public route: sign up */}
+        <Route
+          path="/signup"
+          element={<SignUpPage />}
         />
 
         {/* Provisioning route: visible when not provisioned; shows sidebar shell (no tabs) */}
