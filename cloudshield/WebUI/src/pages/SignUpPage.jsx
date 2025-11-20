@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Box, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
 import PlanCard from "../components/signup/PlanCard.jsx";
@@ -7,7 +8,7 @@ import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
-// to e updated later with real plans
+// to be updated later with real plans
 const PLAN_OPTIONS = [
   {
     id: "basic",
@@ -55,6 +56,8 @@ const PLAN_OPTIONS = [
 ];
 
 export default function SignupPage({ onSignupSuccess }) {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
@@ -62,6 +65,7 @@ export default function SignupPage({ onSignupSuccess }) {
   const [plan, setPlan] = useState("pro");
 
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const validate = () => {
     const next = {};
@@ -87,12 +91,102 @@ export default function SignupPage({ onSignupSuccess }) {
     return Object.keys(next).length === 0;
   };
 
-  // andrew signup here
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!validate()) return;
 
-    console.log("Creating org:", { email, password, company, orgId, plan });
-    if (onSignupSuccess) onSignupSuccess();
+    setSubmitting(true);
+    // keep field errors, but clear global form error
+    setErrors((prev) => ({ ...prev, form: undefined }));
+
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          company_name: company,
+          org_id: orgId,
+          plan,
+        }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (res.status === 400) {
+        const serverErrors = {};
+        if (data.errors && typeof data.errors === "object") {
+          for (const [field, msg] of Object.entries(data.errors)) {
+            serverErrors[field] = msg;
+          }
+        } else if (data.message) {
+          serverErrors.form = data.message;
+        } else {
+          serverErrors.form = "Validation error. Please check your inputs.";
+        }
+        setErrors((prev) => ({ ...prev, ...serverErrors }));
+        return;
+      }
+
+      if (res.status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          form:
+            data.message ||
+            "An account with this email or organization ID already exists.",
+        }));
+        return;
+      }
+
+      if (!res.ok) {
+        setErrors((prev) => ({
+          ...prev,
+          form:
+            data.message ||
+            "Unexpected error during signup. Please try again.",
+        }));
+        return;
+      }
+
+      const token = data.token || data.access_token || null;
+      const user =
+        data.user || {
+          email,
+          company_name: company,
+          org_id: orgId,
+          plan,
+        };
+
+      // Store JWT locally
+      if (token) {
+        try {
+          localStorage.setItem("jwt", token);
+        } catch {
+          // ignore
+        }
+      }
+
+      if (onSignupSuccess) {
+        onSignupSuccess({ token, user });
+      }
+
+      // After successful signup, go directly to provisioning
+      navigate("/provisioning", { replace: true });
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        form:
+          err?.message ||
+          "Network error during signup. Please check your connection and try again.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -135,6 +229,19 @@ export default function SignupPage({ onSignupSuccess }) {
               Create Your Organization
             </Typography>
 
+            {errors.form && (
+              <Typography
+                sx={{
+                  color: "#f87171",
+                  mb: 1.5,
+                  fontSize: "0.9rem",
+                  textAlign: "center",
+                }}
+              >
+                {errors.form}
+              </Typography>
+            )}
+
             <AuthTextField
               label="Email"
               placeholder="jane@example.com"
@@ -142,7 +249,9 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setEmail(e.target.value)}
             />
             {errors.email && (
-              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+              <Typography
+                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
+              >
                 {errors.email}
               </Typography>
             )}
@@ -153,7 +262,9 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
             />
             {errors.password && (
-              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+              <Typography
+                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
+              >
                 {errors.password}
               </Typography>
             )}
@@ -165,7 +276,9 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setCompany(e.target.value)}
             />
             {errors.company && (
-              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+              <Typography
+                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
+              >
                 {errors.company}
               </Typography>
             )}
@@ -175,17 +288,21 @@ export default function SignupPage({ onSignupSuccess }) {
               placeholder="acme"
               value={orgId}
               onChange={(e) =>
-                setOrgId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))
+                setOrgId(
+                  e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")
+                )
               }
             />
             {errors.orgId && (
-              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+              <Typography
+                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
+              >
                 {errors.orgId}
               </Typography>
             )}
 
-            <PrimaryButton onClick={handleSignup}>
-              Create Organization
+            <PrimaryButton onClick={handleSignup} disabled={submitting}>
+              {submitting ? "Creating..." : "Create Organization"}
             </PrimaryButton>
           </SignupCard>
         </Box>

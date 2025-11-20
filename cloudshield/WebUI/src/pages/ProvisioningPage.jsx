@@ -5,16 +5,30 @@
  *   POST  /task/provision           -> { job_id }  (HTTP 202)
  *   GET   /status/<job_id>          -> { ... }     (progress / message)
  *
- * Org ID is hard-coded as TEST_Andrew.
+ * Org ID is read primarily from localStorage (set after signup),
+ * falling back to authenticated user context.
+ * Provisioning auto-starts on page load.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Button, Chip, LinearProgress, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ProvisioningControls from '../components/provisioning/ProvisioningControls.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function ProvisioningPage({ onProvisioned }) {
-  const [orgId] = useState('TEST_Andrew'); // Hard-coded org ID
+  const { currentUser } = useAuth();
+
+  const [orgId, setOrgId] = useState(() => {
+    try {
+      const stored = localStorage.getItem('org_id');
+      if (stored) return stored;
+    } catch {
+      // ignore
+    }
+    return currentUser?.org_id || 'default-org';
+  });
+
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | starting | running | succeeded | failed
   const [message, setMessage] = useState('');
@@ -22,21 +36,47 @@ export default function ProvisioningPage({ onProvisioned }) {
   const pollTimerRef = useRef(null);
   const navigate = useNavigate();
 
+  // If currentUser changes or localStorage org_id changes while mounted,
+  // make sure orgId stays in sync.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('org_id');
+      if (stored && stored !== orgId) {
+        setOrgId(stored);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    if (!orgId && currentUser?.org_id) {
+      setOrgId(currentUser.org_id);
+    }
+  }, [currentUser, orgId]);
+
+  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
   }, []);
 
+  // When job succeeds, mark provisioned and go to dashboard
   useEffect(() => {
     if (status === 'succeeded') {
-      localStorage.setItem('isProvisioned', 'true');
+      try {
+        localStorage.setItem('isProvisioned', 'true');
+      } catch {}
       onProvisioned?.();
       navigate('/dashboard', { replace: true });
     }
   }, [status, onProvisioned, navigate]);
 
   async function apiStartProvision() {
+    if (!orgId) {
+      throw new Error('Missing organization ID for provisioning.');
+    }
+
     const res = await fetch('http://172.18.0.3:5050/task/provision', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,23 +122,6 @@ export default function ProvisioningPage({ onProvisioned }) {
     return { status: inferredStatus, message: inferredMessage, progress: inferredProgress };
   }
 
-  const handleStart = async () => {
-    try {
-      setStatus('starting');
-      setMessage('');
-      setProgress(null);
-      setJobId(null);
-
-      const jid = await apiStartProvision();
-      setJobId(jid);
-      setStatus('running');
-      startPolling(jid);
-    } catch (e) {
-      setStatus('failed');
-      setMessage(e?.message || 'Failed to start provisioning.');
-    }
-  };
-
   const startPolling = (jid) => {
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     pollTimerRef.current = setInterval(async () => {
@@ -120,6 +143,32 @@ export default function ProvisioningPage({ onProvisioned }) {
     }, 2000);
   };
 
+  const handleStart = async () => {
+    try {
+      setStatus('starting');
+      setMessage('');
+      setProgress(null);
+      setJobId(null);
+
+      const jid = await apiStartProvision();
+      setJobId(jid);
+      setStatus('running');
+      startPolling(jid);
+    } catch (e) {
+      setStatus('failed');
+      setMessage(e?.message || 'Failed to start provisioning.');
+    }
+  };
+
+  // Auto-start provisioning as soon as we land on this page
+  useEffect(() => {
+    if (!orgId) return;
+    if (status === 'idle') {
+      handleStart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, status]);
+
   const reset = () => {
     setStatus('idle');
     setMessage('');
@@ -135,22 +184,18 @@ export default function ProvisioningPage({ onProvisioned }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 820, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 700 }}>Provisioning</Typography>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
-        Org ID: <strong>{orgId}</strong>
+        Org ID: <strong>{orgId || 'Unknown'}</strong>
       </Typography>
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
 
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          onClick={handleStart}
-          disabled={status === 'starting' || status === 'running'}
-          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}
-        >
-          {status === 'starting' ? 'Starting…' : 'Start Provisioning'}
-        </Button>
+      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
+        We’re automatically provisioning your environment. This may take a few moments.
+      </Typography>
 
-        {status !== 'idle' && (
+      {/* No manual "Start" button; only a Reset for retries */}
+      {status !== 'idle' && (
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Button
             variant="outlined"
             onClick={reset}
@@ -158,12 +203,23 @@ export default function ProvisioningPage({ onProvisioned }) {
           >
             Reset
           </Button>
-        )}
-      </Box>
+
+          {status === 'failed' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip label="Failed" color="error" size="small" />
+              {message && (
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                  {message}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
 
       <ProvisioningControls status={status} jobId={jobId} message={message} progress={progress} />
 
-      {status === 'running' && (
+      {(status === 'running' || status === 'starting') && (
         <Box sx={{ mt: 1 }}>
           <LinearProgress
             variant={typeof progress === 'number' ? 'determinate' : 'indeterminate'}
@@ -176,17 +232,6 @@ export default function ProvisioningPage({ onProvisioned }) {
               ? progress
               : 'Provisioning…'}
           </Typography>
-        </Box>
-      )}
-
-      {status === 'failed' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-          <Chip label="Failed" color="error" size="small" />
-          {message && (
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-              {message}
-            </Typography>
-          )}
         </Box>
       )}
     </Box>
