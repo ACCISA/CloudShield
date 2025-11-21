@@ -30,6 +30,7 @@ except ImportError:  # pragma: no cover - executed only in alternative packaging
             set_progress,
             get_job_id_fallback,
             run_stream,
+            get_workstation_count,
         )
         from ..adapters import map_metadata_to_ec2_instances
         from ..repos import insert_inventory, delete_inventory_by_org
@@ -39,6 +40,7 @@ except ImportError:  # pragma: no cover - executed only in alternative packaging
         from utils import set_progress  # type: ignore
         from utils import get_job_id_fallback  # type: ignore
         from utils import run_stream  # type: ignore
+        from utils import get_workstation_count  # type: ignore
         from adapters import map_metadata_to_ec2_instances  # type: ignore
         from repos import insert_inventory, delete_inventory_by_org  # type: ignore
 
