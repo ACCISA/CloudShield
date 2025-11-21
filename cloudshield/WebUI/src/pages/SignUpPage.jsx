@@ -65,8 +65,9 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const validate = () => {
     const next = {};
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
 
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    if (!emailRegex.test(email)) {
       next.email = "Invalid email format.";
     }
 
