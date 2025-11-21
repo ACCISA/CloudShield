@@ -1,6 +1,16 @@
 import functools
+import os
 from flask import request, jsonify, g
 from .jwt_utils import verify_token
+
+DEV_BYPASS_TOKEN = os.getenv("CLOUDSHIELD_DEV_TOKEN")
+DEV_BYPASS_USER = {
+    "id": os.getenv("CLOUDSHIELD_DEV_USER_ID", "dev-admin"),
+    "role": os.getenv("CLOUDSHIELD_DEV_ROLE", "admin"),
+    "org_id": os.getenv("CLOUDSHIELD_DEV_ORG", "dev-org"),
+}
+# Store separately for logging without mutating the shared dict
+DEV_BYPASS_EMAIL = os.getenv("CLOUDSHIELD_DEV_EMAIL", "dev-admin@cloudshield.local")
 
 try:
     from utils.audit import log_denied
@@ -39,11 +49,22 @@ def require_auth(fn):
     """
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
+        existing_user = getattr(g, "user", None)
+        if existing_user:
+            return fn(*args, **kwargs)
+
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             log_denied(reason="missing_bearer", path=request.path, method=request.method)
             return jsonify({"error":"Unauthorized"}), 401
         token = auth.split(" ", 1)[1]
+
+        if DEV_BYPASS_TOKEN and token == DEV_BYPASS_TOKEN:
+            # Populate g.user for downstream role/org checks during local development
+            g.user = dict(DEV_BYPASS_USER)
+            g.user.setdefault("email", DEV_BYPASS_EMAIL)
+            return fn(*args, **kwargs)
+
         try:
             payload = verify_token(token)
         except Exception as e:
