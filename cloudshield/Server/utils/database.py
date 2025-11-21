@@ -55,6 +55,15 @@ try:
     # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
     users_public = db_emp["users_public"]
+    orgs = db_admin["orgs"]
+    audit = db_admin["audit"]    
+
+    try:
+        orgs.create_index("org_id", unique=True)
+        orgs.create_index("company_name", unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: orgs index creation skipped: {e}")
+
 
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
@@ -84,7 +93,9 @@ __all__ = [
     "users_admin",
     "users_public",
     "db",
-    "client"
+    "client",
+    "orgs",
+    "audit"
 ]
 
 

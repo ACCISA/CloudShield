@@ -12,6 +12,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
+from cloudshield.Server.routes.auth import auth_bp
 
 
 def _coerce_exception_class(candidate, name: str):
@@ -75,6 +76,7 @@ def create_app() -> Flask:
     """Create and configure Flask application with blueprints."""
     app = Flask(__name__)
     app.register_blueprint(api_bp)
+    app.register_blueprint(auth_bp, url_prefix="/api")
     logger.debug("Registered api blueprint: %s", api_bp.name)
     return app
 

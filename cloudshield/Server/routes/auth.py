@@ -2,8 +2,9 @@
 from flask import Blueprint, request, jsonify
 from cloudshield.Server.security.passwords import verify_password, hash_password, is_bcrypt_string
 from cloudshield.Server.security.jwt_utils import issue_token, verify_token
-from cloudshield.Server.utils.database import users_admin
-
+from cloudshield.Server.utils.database import db_admin, users_admin
+from datetime import datetime, timezone
+from pymongo.errors import DuplicateKeyError
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -40,9 +41,11 @@ def login():
         - 401: Invalid credentials or inactive user.
         - 500: Internal server error (unexpected failure).
     """
-    body = request.get_json(force=True) or {}
+    body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
+    if not email or not password:
+        return jsonify({"error": "email and password are required"}), 400
 
     user = users_admin.find_one(
         {"email": email, "status": "active"},
@@ -63,6 +66,94 @@ def login():
         "token_type": "Bearer",
         "expires_in": 60 * 60
     }), 200
+
+
+@auth_bp.route("/auth/signup", methods=["POST"])
+def signup():
+    body = request.get_json(silent=True) or {}
+
+    # Inputs (with fallbacks to support UI naming)
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+    full_name = (body.get("full_name") or "").strip()
+    company_name = (body.get("company_name") or body.get("company") or "").strip()
+    org_id = (body.get("org_id") or "").strip()
+    package_type = (body.get("package_type") or body.get("plan") or "free").strip().lower()
+
+    # Required fields check
+    missing = [k for k, v in {
+        "email": email,
+        "password": password,
+        "company_name": company_name,
+        "org_id": org_id,
+    }.items() if not v]
+    if missing:
+        return jsonify({"error": "Missing fields", "details": missing}), 400
+
+    orgs = db_admin["orgs"]
+    audit = db_admin["audit"]
+
+    # Uniqueness: org_id OR company_name must not exist already
+    if orgs.find_one({"$or": [{"org_id": org_id}, {"company_name": company_name}]}):
+        return jsonify({"error": "Organization already exists"}), 409
+
+    now = datetime.now(timezone.utc)
+
+    # 1) Create organization
+    org_doc = {
+        "org_id": org_id,
+        "company_name": company_name,
+        "package_type": package_type,
+        "created_at": now,
+        "status": "active",
+    }
+    orgs.insert_one(org_doc)
+
+    # 2) Create admin user for that org
+    user_doc = {
+        "email": email,
+        "password": hash_password(password),
+        "full_name": full_name,
+        "role": "admin",
+        "status": "active",
+        "org_id": org_id,
+        "created_at": now,
+    }
+    try:
+        ins = users_admin.insert_one(user_doc)
+        uid = str(ins.inserted_id)
+    except DuplicateKeyError:
+        # rollback org if email already exists
+        orgs.delete_one({"org_id": org_id})
+        return jsonify({"error": "Email already exists"}), 409
+
+    # 3) Best-effort audit trail (non-blocking)
+    try:
+        audit.insert_one({
+            "ts": now,
+            "action": "org_created",
+            "org_id": org_id,
+            "company_name": company_name,
+            "by": email,
+            "ip": request.remote_addr,
+        })
+    except Exception:
+        pass
+
+    # 4) Issue JWT for the new admin
+    token = issue_token(sub=uid, role="admin", org_id=org_id)
+
+    return jsonify({
+        "access_token": token,
+        "token_type": "Bearer",
+        "expires_in": 60 * 60,
+        "org": {
+            "org_id": org_id,
+            "company_name": company_name,
+            "package_type": package_type,
+        },
+    }), 201
+
 
 
 @auth_bp.route("/auth/me", methods=["GET"])
