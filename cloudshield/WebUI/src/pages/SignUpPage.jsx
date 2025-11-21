@@ -71,7 +71,7 @@ export default function SignupPage({ onSignupSuccess }) {
     }
 
     if (password.length < 6) {
-      next.password = "Password must be at least 6 characters.";
+      next.passwordError = "Password must be at least 6 characters.";
     }
 
     if (!company.trim()) {
@@ -152,9 +152,9 @@ export default function SignupPage({ onSignupSuccess }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {errors.password && (
+            {errors.passwordError && (
               <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
-                {errors.password}
+                {errors.passwordError}
               </Typography>
             )}
 
