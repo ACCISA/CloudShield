@@ -70,7 +70,8 @@ export default function SignupPage({ onSignupSuccess }) {
     if (!emailRegex.test(email)) {
       next.email = "Invalid email format.";
     }
-
+    
+    // CodeQL [js/hardcoded-credential] false positive: UI validation message
     if (password.length < 6) {
       next.passwordError = "Password must be at least 6 characters.";
     }
