@@ -62,7 +62,7 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
         raise ValueError(f"User with email {user_data.email} already exists")
     existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
     existing_workstation_count = get_workstation_count(user_data.org_id)
-    if existing_db_count + 1 >= existing_workstation_count:
+    if existing_db_count + 1 > existing_workstation_count:
         raise ValueError("User limit reached for this organization")
 
     user_doc = {
