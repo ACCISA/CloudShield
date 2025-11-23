@@ -19,7 +19,7 @@ RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
 
 COPY cloudshield/__init__.py /app/cloudshield/
 COPY cloudshield/Server /app/cloudshield/Server/
-COPY cloudshield/Cloud/provisioner /app/provisioner
+COPY cloudshield/Cloud /app/cloudshield/Cloud/
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
 
 ENV PYTHONPATH=/app

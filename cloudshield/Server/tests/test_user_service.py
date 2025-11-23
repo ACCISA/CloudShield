@@ -30,7 +30,9 @@ class TestUserService:
         mock_log_audit = unittest.mock.MagicMock()
         mock_hash_password = unittest.mock.MagicMock()
         mock_hash_password.side_effect = lambda pwd: f"hashed::{pwd}"
-        
+        mock_get_workstation_count = unittest.mock.MagicMock()
+        mock_get_workstation_count.return_value = 5
+
         # Import the service module to get access to its globals
         # Need to import after mocking dependencies
         import cloudshield.Server.services.user_service as user_service_module
@@ -39,11 +41,13 @@ class TestUserService:
         monkeypatch.setattr(user_service_module, "users_admin", mock_users_admin)
         monkeypatch.setattr(user_service_module, "log_audit", mock_log_audit)
         monkeypatch.setattr(user_service_module, "hash_password", mock_hash_password)
+        monkeypatch.setattr(user_service_module, "get_workstation_count", mock_get_workstation_count)
 
         return {
             'users_admin': mock_users_admin,
             'log_audit': mock_log_audit,
-            'hash_password': mock_hash_password
+            'hash_password': mock_hash_password,
+            "get_workstation_count": mock_get_workstation_count
         }
 
     @pytest.fixture
@@ -78,7 +82,7 @@ class TestUserService:
     ## CREATE USER TESTS
 
     def test_create_user_comprehensive(self, setup_mocks, admin_user, employee_user, user_data):
-        """Test create_user with permission checks, duplicate email, and successful creation"""
+        """Test create_user with permission checks, duplicate email, workstation count and successful creation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import create_user
         
@@ -90,9 +94,14 @@ class TestUserService:
         mocks['users_admin'].find_one.return_value = {"_id": ObjectId(), "email": "john@example.com"}
         with pytest.raises(ValueError, match="User with email john@example.com already exists"):
             create_user(user_data, admin_user)
-        
-        # Test successful creation
+        # Test workstation count exceeded
         mocks['users_admin'].find_one.return_value = None
+        mocks['users_admin'].count_documents.return_value = 4
+        mocks['get_workstation_count'].return_value = 0
+        with pytest.raises(ValueError, match="User limit reached for this organization"):
+            create_user(user_data, admin_user)
+        # Test successful creation
+        mocks['get_workstation_count'].return_value = 5
         mock_result = unittest.mock.MagicMock()
         mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
         mocks['users_admin'].insert_one.return_value = mock_result
