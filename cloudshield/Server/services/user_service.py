@@ -240,6 +240,24 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     if not before:
         raise ValueError(f"User {user_id} not found")
 
+    # Prevent self-delete (common foot-gun)
+    if str(oid) == str(current_user.get("id")):
+        raise PermissionError("cannot_delete_self")
+
+    # Prevent deleting the last admin in the org (availability / compliance guard)
+    if before.get("role") == "admin":
+        try:
+            remaining_admins = users_admin.count_documents({
+                "org_id": before.get("org_id"),
+                "role": "admin",
+                "_id": {"$ne": oid}
+            })
+        except PyMongoError as e:
+            raise ValueError("Database error while checking admin quorum") from e
+
+        if remaining_admins == 0:
+            raise ValueError("Cannot delete the last admin in this organization")
+
     # Perform deletion and validate the result
     try:
         res = users_admin.delete_one({"_id": oid})
