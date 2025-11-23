@@ -5,6 +5,8 @@ from utils import users_admin, users_public, log_audit
 from models import UserCreate, UserUpdate
 from security import hash_password
 from utils.terraform import get_workstation_count
+from pymongo.errors import PyMongoError
+from bson.errors import InvalidId
 
 def _must_admin(current_user: dict | None) -> None:
     """
@@ -223,16 +225,27 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     """
     _must_admin(current_user)
 
+    # Validate ObjectId format
     try:
-        _id = ObjectId(user_id)
-    except Exception:
-        raise ValueError(f"User {user_id} not found")  # invalid id format
+        oid = ObjectId(user_id)
+    except (InvalidId, Exception):
+        raise ValueError(f"User {user_id} not found")
 
-    before = users_admin.find_one({"_id": _id}, {"password": 0})
+    # Fetch BEFORE snapshot safely
+    try:
+        before = users_admin.find_one({"_id": oid}, {"password": 0})
+    except PyMongoError as e:
+        raise ValueError("Database error while fetching user") from e
+    
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    res = users_admin.delete_one({"_id": _id})
+    # Perform deletion and validate the result
+    try:
+        res = users_admin.delete_one({"_id": oid})
+    except PyMongoError as e:
+        raise ValueError("Database error while deleting user") from e
+    
     if not res.acknowledged or res.deleted_count != 1:
         # nothing was deleted; treat as not found/race condition
         raise ValueError(f"User {user_id} not found")
