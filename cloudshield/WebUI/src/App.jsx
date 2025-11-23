@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useMemo, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import AuthPage from './pages/AuthPage.jsx';
-import SignUpPage from './pages/SignUpPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
-import WorkstationsPage from './pages/WorkstationsPage.jsx';
-import UsersPage from './pages/UsersPage.jsx';
-import ProvisioningPage from './pages/ProvisioningPage.jsx';
-import AppLayout from './components/layout/AppLayout.jsx';
+import AuthPage from "./pages/AuthPage.jsx";
+import SignUpPage from "./pages/SignUpPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import WorkstationsPage from "./pages/WorkstationsPage.jsx";
+import UsersPage from "./pages/UsersPage.jsx";
+import ProvisioningPage from "./pages/ProvisioningPage.jsx";
+import AppLayout from "./components/layout/AppLayout.jsx";
 
 export default function App() {
   // TEMP auth simulation
@@ -26,7 +26,7 @@ export default function App() {
   const handleProvisioned = () => {
     setIsProvisioned(true);
     try {
-      localStorage.setItem('isProvisioned', 'true');
+      localStorage.setItem("isProvisioned", "true");
     } catch {}
   };
 
@@ -51,10 +51,7 @@ export default function App() {
           element={<AuthPage onLoginSuccess={() => setIsAuthed(true)} />}
         />
         {/* Public route: sign up */}
-        <Route
-          path="/signup"
-          element={<SignUpPage />}
-        />
+        <Route path="/signup" element={<SignUpPage />} />
 
         {/* Provisioning route: visible when not provisioned; shows sidebar shell (no tabs) */}
         <Route

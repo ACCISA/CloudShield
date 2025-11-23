@@ -1,29 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Box,
-  OutlinedInput,
-  IconButton,
-  Button,
-  Popover,
-  Typography,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
-import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import { Box, Snackbar, Alert } from "@mui/material";
 
 import UsersTable from "../components/users/UsersTable.jsx";
 import UserEditModal from "../components/users/UserEditModal.jsx";
 import UserCreateModal from "../components/users/UserCreateModal.jsx";
 
-export default function UsersPage() {
-  const [anchorDisplay, setAnchorDisplay] = useState(null);
-  const [anchorFilter, setAnchorFilter] = useState(null);
+// Import dynamic components
+import SearchField from "../components/common/SearchField/SearchField.jsx";
+import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
+import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
+import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
+import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 
+export default function UsersPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -32,8 +22,12 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
 
   const [search, setSearch] = useState("");
-  const [filterOnline, setFilterOnline] = useState(false);
-  const [filterOffline, setFilterOffline] = useState(false);
+  const [layout, setLayout] = useState("list");
+
+  // Filter state using Sets for FilterButton
+  const [activeFilters, setActiveFilters] = useState({
+    status: new Set(),
+  });
 
   const [showTitle, setShowTitle] = useState(true);
   const [showWorkstations, setShowWorkstations] = useState(true);
@@ -88,10 +82,10 @@ export default function UsersPage() {
       );
     }
 
-    if (filterOnline && !filterOffline) {
-      out = out.filter((u) => u.status === "online");
-    } else if (filterOffline && !filterOnline) {
-      out = out.filter((u) => u.status === "offline");
+    // Apply status filters
+    const statusFilters = activeFilters.status;
+    if (statusFilters.size > 0) {
+      out = out.filter((u) => statusFilters.has(u.status));
     }
 
     out.sort((a, b) => {
@@ -105,7 +99,7 @@ export default function UsersPage() {
     });
 
     return out;
-  }, [users, search, filterOnline, filterOffline, sortField, sortDir]);
+  }, [users, search, activeFilters, sortField, sortDir]);
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -116,17 +110,33 @@ export default function UsersPage() {
     }
   };
 
-  const pillStyle = {
-    color: "#fff",
-    borderColor: "rgba(255,255,255,0.18)",
-    borderRadius: "12px",
-    textTransform: "none",
-    px: 1.2,
-    height: 36,
-    "&:hover": {
-      borderColor: "rgba(255,255,255,0.32)",
-      background: "rgba(255,255,255,0.07)",
+  // Filter configuration for FilterButton
+  const filterGroups = [
+    {
+      id: "status",
+      label: "Status",
+      type: "checkbox",
+      options: [
+        { value: "online", label: "Online" },
+        { value: "offline", label: "Offline" },
+      ],
     },
+  ];
+
+  const handleFilterChange = (groupId, value, isActive) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
+      const currentSet = new Set(newFilters[groupId] || []);
+
+      if (isActive) {
+        currentSet.add(value);
+      } else {
+        currentSet.delete(value);
+      }
+
+      newFilters[groupId] = currentSet;
+      return newFilters;
+    });
   };
 
   const handleMockCreate = (payload) => {
@@ -165,87 +175,68 @@ export default function UsersPage() {
     openToast("User deleted");
   };
 
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column",
+    },
+    toolbar: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: "12px",
+      flexWrap: "wrap",
+    },
+    leftActions: {
+      display: "flex",
+      gap: "10px",
+      flex: "1 1 auto",
+      flexWrap: "wrap",
+    },
+    rightActions: {
+      display: "flex",
+      gap: "10px",
+    },
+  };
+
   return (
-    <Box sx={{ width: "100%", color: "#fff", mt: 5 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          mb: 3,
-          flexWrap: "wrap",
-          gap: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 1.5 }}>
-          <OutlinedInput
+    <div style={styles.container}>
+      {/* Toolbar */}
+      <div style={styles.toolbar}>
+        {/* Left side: Search and buttons */}
+        <div style={styles.leftActions}>
+          <SearchField
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
             placeholder="Search users"
-            startAdornment={
-              <SearchOutlinedIcon
-                sx={{ color: "rgba(255,255,255,0.7)", fontSize: "1rem", mr: 1 }}
-              />
-            }
-            sx={{
-              width: 220,
-              backgroundColor: "#161616",
-              borderRadius: "12px",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.18)",
-              "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+            width="420px"
+            showIcon={true}
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              maxWidth: "680px",
             }}
           />
 
-          <Button
-            variant="outlined"
-            sx={pillStyle}
-            startIcon={<TuneOutlinedIcon />}
-            onClick={(e) => setAnchorDisplay(e.currentTarget)}
-          >
-            Display
-          </Button>
+          <DisplayButton layout={layout} onLayoutChange={setLayout} />
 
-          <Button
-            variant="outlined"
-            sx={pillStyle}
-            startIcon={<FilterListOutlinedIcon />}
-            onClick={(e) => setAnchorFilter(e.currentTarget)}
-          >
-            Filter
-          </Button>
-        </Box>
+          <FilterButton
+            filterGroups={filterGroups}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
 
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <IconButton
-            onClick={mockFetchUsers}
-            sx={{
-              color: "#fff",
-              backgroundColor: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.16)",
-              width: 38,
-              height: 38,
-              borderRadius: "10px",
-            }}
-          >
-            <RefreshOutlinedIcon />
-          </IconButton>
+        {/* Right side: Refresh and Create buttons */}
+        <div style={styles.rightActions}>
+          <RefreshButton onClick={mockFetchUsers} />
 
-          <Button
-            startIcon={<AddOutlinedIcon />}
+          <CreateButton
+            icon={<CreateUserIcon width={16} height={16} color="#fff" />}
+            buttonText="Create"
             onClick={() => setCreateModalOpen(true)}
-            sx={{
-              color: "#fff",
-              backgroundColor: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "12px",
-              px: 2,
-              height: 38,
-            }}
-          >
-            Create
-          </Button>
-        </Box>
-      </Box>
+          />
+        </div>
+      </div>
 
       <UsersTable
         users={filtered}
@@ -260,6 +251,7 @@ export default function UsersPage() {
           setEditTarget(u);
           setEditModalOpen(true);
         }}
+        onDelete={(u) => handleMockDelete(u.id)}
       />
 
       <UserEditModal
@@ -294,6 +286,6 @@ export default function UsersPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

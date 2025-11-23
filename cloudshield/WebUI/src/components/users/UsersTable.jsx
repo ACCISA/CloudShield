@@ -1,5 +1,26 @@
-import { Box, Typography } from "@mui/material";
+import React from "react";
 import UserRow from "./UserRow.jsx";
+
+const styles = {
+  tableHeaders: {
+    display: "grid",
+    alignItems: "center",
+    gap: "12px",
+    padding: "24px 24px 4px 24px",
+  },
+  headerLabel: {
+    fontSize: "0.85rem",
+    opacity: 0.7,
+    color: "#fff",
+  },
+  listPanel: {
+    borderRadius: "18px",
+    border: "1px solid rgba(255,255,255,0.16)",
+    backgroundColor: "#0F0F0F",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+    padding: "16px",
+  },
+};
 
 export default function UsersTable({
   users,
@@ -11,65 +32,62 @@ export default function UsersTable({
   sortField,
   sortDir,
   onEdit,
+  onDelete,
 }) {
-  const SortHeader = ({ label, field }) => (
-    <Typography
-      sx={{
-        cursor: "pointer",
-        opacity: 0.8,
-        "&:hover": { opacity: 1 },
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        userSelect: "none",
-      }}
-      onClick={() => onSort(field)}
-    >
-      {label}
-      {sortField === field && (sortDir === "asc" ? "▲" : "▼")}
-    </Typography>
-  );
+  // Build grid template dynamically based on which columns are visible.
+  const cols = [
+    "28px", // checkbox
+    "1.2fr", // name/email with icon
+    showTitle ? "0.9fr" : null,
+    showWorkstations ? "0.6fr" : null,
+    showGroups ? "0.8fr" : null,
+    showFiles ? "0.8fr" : null,
+    "24px", // status
+    "0.25fr", // edit
+  ].filter(Boolean);
 
   return (
     <>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "40px 1.6fr 1fr 1fr 1fr 1fr 60px",
-          px: 1,
-          mb: 1,
-          opacity: 0.75,
+      {/* Table Headers */}
+      <div
+        style={{
+          ...styles.tableHeaders,
+          gridTemplateColumns: cols.join(" "),
+          paddingLeft: "calc(16px + 8px + 8px)",
+          paddingRight: "calc(16px + 8px + 8px)",
         }}
       >
-        <Box />
-        <SortHeader label="Name/Email" field="name" />
-        {showTitle && <SortHeader label="Title" field="title" />}
-        {showWorkstations && <SortHeader label="Workstations" field="workstations" />}
-        {showGroups && <SortHeader label="Groups" field="groups" />}
-        {showFiles && <SortHeader label="Files" field="files" />}
-        <Box />
-      </Box>
+        <div />
+        <span style={styles.headerLabel}>Name/Email</span>
+        {showTitle && <span style={styles.headerLabel}>Title</span>}
+        {showWorkstations && (
+          <span style={styles.headerLabel}>Workstations</span>
+        )}
+        {showGroups && <span style={styles.headerLabel}>Groups</span>}
+        {showFiles && <span style={styles.headerLabel}>Files</span>}
+        <div />
+        <div />
+      </div>
 
-      <Box
-        sx={{
-          borderRadius: "20px",
-          border: "1px solid rgba(255,255,255,0.16)",
-          backgroundColor: "#0F0F0F",
-          p: 1,
-        }}
-      >
-        {users.map((u) => (
-          <UserRow
-            key={u.id}
-            data={u}
-            showTitle={showTitle}
-            showWorkstations={showWorkstations}
-            showGroups={showGroups}
-            showFiles={showFiles}
-            onEdit={() => onEdit(u)}
-          />
-        ))}
-      </Box>
+      {/* List panel */}
+      <div style={styles.listPanel}>
+        <div style={{ padding: "0 8px" }}>
+          {users.map((u, idx) => (
+            <UserRow
+              key={u.id}
+              data={u}
+              showTitle={showTitle}
+              showWorkstations={showWorkstations}
+              showGroups={showGroups}
+              showFiles={showFiles}
+              onEdit={() => onEdit(u)}
+              onDelete={() => onDelete(u)}
+              isLast={idx === users.length - 1}
+              cols={cols}
+            />
+          ))}
+        </div>
+      </div>
     </>
   );
 }

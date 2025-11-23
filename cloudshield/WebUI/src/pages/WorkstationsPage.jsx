@@ -31,24 +31,6 @@ const styles = {
     display: "flex",
     gap: "10px",
   },
-  tableHeaders: {
-    display: "grid",
-    alignItems: "center",
-    gap: "14px",
-    padding: "24px 24px 4px",
-  },
-  headerLabel: {
-    fontSize: "0.85rem",
-    opacity: 0.7,
-    color: "#fff",
-  },
-  listPanel: {
-    borderRadius: "18px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    backgroundColor: "#0F0F0F",
-    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-    padding: "16px",
-  },
 };
 /* ----------------------------------- seed ---------------------------------- */
 
@@ -216,17 +198,6 @@ export default function WorkstationsPage() {
     },
   };
 
-  const cols = [
-    "28px",
-    "1.2fr",
-    showUsersCol ? "0.9fr" : null,
-    showCurrentCol ? "0.6fr" : null,
-    showLastUsedCol ? "0.8fr" : null,
-    "0.7fr",
-    "0.25fr",
-    "0.25fr",
-  ].filter(Boolean);
-
   return (
     <div style={styles.container}>
       {/* Toolbar */}
@@ -269,32 +240,16 @@ export default function WorkstationsPage() {
         </div>
       </div>
 
-      {/* Table Headers */}
-      <div
-        style={{ ...styles.tableHeaders, gridTemplateColumns: cols.join(" ") }}
-      >
-        <div />
-        <span style={styles.headerLabel}>Name/Number</span>
-        {showUsersCol && <span style={styles.headerLabel}>Users</span>}
-        {showCurrentCol && <span style={styles.headerLabel}>Current</span>}
-        {showLastUsedCol && <span style={styles.headerLabel}>Last Used</span>}
-        <div />
-        <div />
-        <div />
-      </div>
-
-      {/* List panel */}
-      <div style={styles.listPanel}>
-        <WorkstationList
-          rows={filtered}
-          onEdit={(row) => setEditRow(row)}
-          onDelete={handleDelete}
-          onToggleStatus={handleToggleStatus}
-          showUsers={showUsersCol}
-          showCurrent={showCurrentCol}
-          showLastUsed={showLastUsedCol}
-        />
-      </div>
+      {/* Workstation List with Headers */}
+      <WorkstationList
+        rows={filtered}
+        onEdit={(row) => setEditRow(row)}
+        onDelete={handleDelete}
+        onToggleStatus={handleToggleStatus}
+        showUsers={showUsersCol}
+        showCurrent={showCurrentCol}
+        showLastUsed={showLastUsedCol}
+      />
 
       {/* Create dialog */}
       <WorkstationCreateDialog
