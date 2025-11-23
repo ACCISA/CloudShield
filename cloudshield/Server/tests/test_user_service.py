@@ -96,6 +96,7 @@ class TestUserService:
             create_user(user_data, admin_user)
         # Test workstation count exceeded
         mocks['users_admin'].find_one.return_value = None
+        mocks['users_admin'].count_documents.return_value = 5
         mocks['get_workstation_count'].return_value = 0
         with pytest.raises(ValueError, match="User limit reached for this organization"):
             create_user(user_data, admin_user)
