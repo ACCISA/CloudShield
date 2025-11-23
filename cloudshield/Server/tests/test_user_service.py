@@ -95,12 +95,12 @@ class TestUserService:
         with pytest.raises(ValueError, match="User with email john@example.com already exists"):
             create_user(user_data, admin_user)
         # Test workstation count exceeded
+        mocks['users_admin'].find_one.return_value = None
         mocks['get_workstation_count'].return_value = 0
         with pytest.raises(ValueError, match="User limit reached for this organization"):
             create_user(user_data, admin_user)
         # Test successful creation
         mocks['get_workstation_count'].return_value = 5
-        mocks['users_admin'].find_one.return_value = None
         mock_result = unittest.mock.MagicMock()
         mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
         mocks['users_admin'].insert_one.return_value = mock_result
