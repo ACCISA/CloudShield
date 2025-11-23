@@ -1,6 +1,11 @@
 """
 Utility functions for Terraform operations.
 """
+from pathlib import Path
+import subprocess
+from cloudshield.Server.utils import (
+    get_logger,
+)
 try:
     import cloudshield.Cloud.provisioner.provision as _provision_mod
 except ImportError:  # pragma: no cover - provisioner only available in Terraform image
@@ -10,11 +15,6 @@ except ImportError:  # pragma: no cover - provisioner only available in Terrafor
     except ImportError as error:  # pragma: no cover - guard for misconfigured packaging
         raise ImportError("Provisioner modules are not available") from error
 get_target_dir = _provision_mod.get_target_dir
-from pathlib import Path
-import subprocess
-from cloudshield.Server.utils import (
-    get_logger,
-)
 logger = get_logger("utils")
 def get_workstation_count(org_id: str, env: dict | None = None) -> int:
     """
