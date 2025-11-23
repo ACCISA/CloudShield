@@ -18,6 +18,7 @@ try:
         set_progress,
         get_job_id_fallback,
         run_stream,
+        get_workstation_count
     )
     from cloudshield.Server.adapters import map_metadata_to_ec2_instances
     from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
@@ -29,6 +30,7 @@ except ImportError:  # pragma: no cover - executed only in alternative packaging
             set_progress,
             get_job_id_fallback,
             run_stream,
+            get_workstation_count,
         )
         from ..adapters import map_metadata_to_ec2_instances
         from ..repos import insert_inventory, delete_inventory_by_org
@@ -38,6 +40,7 @@ except ImportError:  # pragma: no cover - executed only in alternative packaging
         from utils import set_progress  # type: ignore
         from utils import get_job_id_fallback  # type: ignore
         from utils import run_stream  # type: ignore
+        from utils import get_workstation_count  # type: ignore
         from adapters import map_metadata_to_ec2_instances  # type: ignore
         from repos import insert_inventory, delete_inventory_by_org  # type: ignore
 
@@ -125,16 +128,10 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
-    initial_count = 0
     # Run terraform apply for workstations only
     try:
         set_progress("terraform get init workstation count")
-        try:
-            count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
-            output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
-            initial_count = int(output.strip())
-        except subprocess.CalledProcessError as e:
-            logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
+        initial_count = get_workstation_count(org_id, env=env)
         logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
         set_progress("terraform apply workstations")
         logger.info("[TASK] Running terraform apply for org %s", org_id)
