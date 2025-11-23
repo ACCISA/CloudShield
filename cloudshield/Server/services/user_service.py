@@ -199,29 +199,25 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     """
     Permanently delete user from database with audit logging.
 
-    Args:
-        user_id (str): The target user's MongoDB ObjectId string.
-        current_user (dict): The admin performing the deletion.
-        reason (str | None): Optional justification for deletion (used in audit log).
+    Steps:
+        1. Ensure the caller is an admin.
+        2. Validate ObjectId and load BEFORE snapshot (secret-safe).
+        3. Block:
+            - Self-deletion
+            - Deletion of the last admin in an organization
+        4. Perform deletion and validate acknowledgment.
+        5. Write a best-effort audit log including:
+            - actor (admin performing deletion)
+            - target (deleted user)
+            - full before snapshot (email, name, role, org, timestamps)
+            - reason (optional)
 
     Raises:
-        PermissionError: If the requester is not an admin.
-        ValueError: If the user does not exist or deletion fails.
+        PermissionError: Not admin or forbidden deletion (self-delete).
+        ValueError: Invalid id, missing user, DB failures, or last-admin protection.
 
     Returns:
-        bool: True on successful deletion.
-
-    Process:
-        1. Confirms admin permissions.
-        2. Fetches and stores the "before" snapshot for audit.
-        3. Deletes the record using 'delete_one'.
-        4. Validates the deletion acknowledgment.
-        5. Logs a "delete" audit event, recording actor, target, and 'reason'.
-
-    Safety:
-        - Always performs a pre-delete lookup to preserve audit data.
-        - Catches and ignores audit log failures so they don't block deletion.
-        - If the ObjectId is malformed, raises a ValueError early.
+        bool: True when deletion is successful.
     """
     _must_admin(current_user)
 
