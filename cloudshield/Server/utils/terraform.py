@@ -16,12 +16,13 @@ except ImportError:  # pragma: no cover - provisioner only available in Terrafor
         raise ImportError("Provisioner modules are not available") from error
 get_target_dir = _provision_mod.get_target_dir
 logger = get_logger("utils")
+base_dir = Path("/var/lib/cloudshield")
+
 def get_workstation_count(org_id: str, env: dict | None = None) -> int:
     """
     Retrieve the number of current workstations for the given organization.
     """
     initial_count = 0
-    base_dir = Path("/var/lib/cloudshield")
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
     try:
