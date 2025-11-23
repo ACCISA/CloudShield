@@ -12,26 +12,75 @@
  *   - children: dialog content
  *   - actions: dialog action buttons
  */
-import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  IconButton,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import React from "react";
 
-const darkDialogPaper = {
-  sx: {
-    backgroundColor: '#0F0F0F',
-    color: '#fff',
-    borderRadius: '18px',
-    border: '1px solid rgba(255,255,255,0.16)',
-    width: 520,
-    maxWidth: '95vw',
+const styles = {
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1300,
+  },
+  dialog: {
+    backgroundColor: "#0F0F0F",
+    color: "#fff",
+    borderRadius: "18px",
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    width: "520px",
+    maxWidth: "95vw",
+    maxHeight: "90vh",
+    display: "flex",
+    flexDirection: "column",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "16px 16px 16px 24px",
+  },
+  breadcrumb: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  breadcrumbItem: {
+    fontSize: "1rem",
+  },
+  breadcrumbItemActive: {
+    fontWeight: 600,
+  },
+  breadcrumbItemInactive: {
+    opacity: 0.8,
+  },
+  closeButton: {
+    background: "none",
+    border: "none",
+    color: "#fff",
+    cursor: "pointer",
+    padding: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "4px",
+    fontSize: "1.5rem",
+  },
+  content: {
+    padding: "24px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+    overflowY: "auto",
+    flex: 1,
+  },
+  actions: {
+    padding: "16px",
+    display: "flex",
+    gap: "12px",
   },
 };
 
@@ -46,30 +95,56 @@ const darkDialogPaper = {
  * @param {React.ReactNode} props.actions - Dialog action buttons
  * @returns {JSX.Element} Styled dialog component
  */
-export default function WorkstationDialog({ open, onClose, title, breadcrumb = ['Workstations'], children, actions }) {
+export default function WorkstationDialog({
+  open,
+  onClose,
+  title,
+  breadcrumb = ["Workstations"],
+  children,
+  actions,
+}) {
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={darkDialogPaper}>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        <Box display="flex" alignItems="center" gap={1}>
-          {breadcrumb.map((item, idx) => (
-            <React.Fragment key={idx}>
-              {idx > 0 && <Typography>›</Typography>}
-              <Typography sx={idx === breadcrumb.length - 1 ? { fontWeight: 600 } : { opacity: 0.8 }}>
-                {item}
-              </Typography>
-            </React.Fragment>
-          ))}
-        </Box>
-        <IconButton onClick={onClose} size="small" sx={{ color: '#fff' }} aria-label="close">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.dialog} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.header}>
+          <div style={styles.breadcrumb}>
+            {breadcrumb.map((item, idx) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span>›</span>}
+                <span
+                  style={{
+                    ...styles.breadcrumbItem,
+                    ...(idx === breadcrumb.length - 1
+                      ? styles.breadcrumbItemActive
+                      : styles.breadcrumbItemInactive),
+                  }}
+                >
+                  {item}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+          <button
+            onClick={onClose}
+            style={styles.closeButton}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
+            aria-label="close"
+          >
+            ×
+          </button>
+        </div>
 
-      <DialogContent dividers sx={{ borderColor: 'rgba(255,255,255,0.12)' }}>
-        {children}
-      </DialogContent>
+        <div style={styles.content}>{children}</div>
 
-      {actions && <DialogActions sx={{ p: 2, gap: 1.5 }}>{actions}</DialogActions>}
-    </Dialog>
+        {actions && <div style={styles.actions}>{actions}</div>}
+      </div>
+    </div>
   );
 }

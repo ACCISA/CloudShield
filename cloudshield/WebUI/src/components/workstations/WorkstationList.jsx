@@ -16,19 +16,102 @@
  */
 
 import React from "react";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  Checkbox,
-  Tooltip,
-  Avatar,
-} from "@mui/material";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
+import ActiveIcon from "../../assets/ActiveIcon.jsx";
+import StatusButton from "../common/StatusButton/StatusButton.jsx";
+
+/* ---------------------------- styles ---------------------------- */
+
+const styles = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  row: {
+    display: "grid",
+    alignItems: "center",
+    gap: "12px",
+    color: "#fff",
+    padding: "12px 8px",
+    borderRadius: "12px",
+  },
+  checkbox: {
+    width: "18px",
+    height: "18px",
+    cursor: "pointer",
+    accentColor: "#fff",
+  },
+  nameSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  leadingCircle: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "50%",
+    backgroundColor: "#2A2A2A",
+  },
+  nameContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  name: {
+    fontWeight: 600,
+    lineHeight: 1.15,
+  },
+  code: {
+    fontSize: "0.85rem",
+    opacity: 0.85,
+    marginTop: "2px",
+  },
+  usersPill: {
+    display: "flex",
+    alignItems: "center",
+  },
+  avatarsContainer: {
+    display: "flex",
+    alignItems: "center",
+  },
+  avatar: {
+    width: "24px",
+    height: "24px",
+    fontSize: "0.7rem",
+    border: "2px solid #0F0F0F",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 600,
+  },
+  extraCount: {
+    marginLeft: "8px",
+    fontSize: "0.9rem",
+    opacity: 0.85,
+  },
+  currentContainer: {
+    display: "flex",
+    alignItems: "center",
+  },
+  lastUsed: {
+    opacity: 0.9,
+  },
+  statusLight: {
+    display: "flex",
+    alignItems: "center",
+  },
+  editContainer: {
+    display: "flex",
+    justifyContent: "flex-start",
+  },
+  divider: {
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+    margin: "0 8px",
+  },
+};
 
 /* ---------------------------- helpers & visuals ---------------------------- */
 
@@ -50,18 +133,16 @@ const initials = (name = "—") =>
 
 function tinyAvatar(name, i) {
   return (
-    <Avatar
+    <div
       key={`${name}-${i}`}
-      sx={{
-        width: 24,
-        height: 24,
-        fontSize: "0.7rem",
-        bgcolor: colorPool[i % colorPool.length],
-        border: "2px solid #0F0F0F",
+      style={{
+        ...styles.avatar,
+        backgroundColor: colorPool[i % colorPool.length],
+        marginLeft: i === 0 ? 0 : "-8px",
       }}
     >
       {initials(name)}
-    </Avatar>
+    </div>
   );
 }
 
@@ -75,50 +156,12 @@ function UsersPill({ row }) {
   const extra = Math.max((row.usersCount ?? list.length) - show.length, 0);
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        {show.map((n, idx) => (
-          <Box key={n + idx} sx={{ ml: idx === 0 ? 0 : "-8px" }}>
-            {tinyAvatar(n, idx)}
-          </Box>
-        ))}
-      </Box>
-      {extra > 0 && (
-        <Typography sx={{ ml: 1, fontSize: "0.9rem", opacity: 0.85 }}>
-          + {extra}
-        </Typography>
-      )}
-    </Box>
-  );
-}
-
-function StatusChip({ status }) {
-  if (status === "busy") {
-    return (
-      <Chip
-        label="Disconnect"
-        size="small"
-        sx={{
-          color: "#fff",
-          backgroundColor: "#7c1d1d",
-          borderRadius: "22px",
-          px: 1.25,
-        }}
-      />
-    );
-  }
-  // connected or disconnected both show green "Connect" in the mock
-  return (
-    <Chip
-      label="Connect"
-      size="small"
-      sx={{
-        color: "#fff",
-        backgroundColor: "#116e34",
-        borderRadius: "22px",
-        px: 1.25,
-      }}
-    />
+    <div style={styles.usersPill}>
+      <div style={styles.avatarsContainer}>
+        {show.map((n, idx) => tinyAvatar(n, idx))}
+      </div>
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
+    </div>
   );
 }
 
@@ -146,97 +189,82 @@ export default function WorkstationList({
   ].filter(Boolean);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div style={styles.container}>
       {rows.map((r, idx) => (
-        <Box key={r.id}>
+        <div key={r.id}>
           {/* Row */}
-          <Box
-            sx={{
-              display: "grid",
+          <div
+            style={{
+              ...styles.row,
               gridTemplateColumns: cols.join(" "),
-              alignItems: "center",
-              gap: "12px",
-              color: "#fff",
-              py: 1.5,
-              px: 1,
-              borderRadius: "12px",
-              "&:hover": { backgroundColor: "rgba(255,255,255,0.02)" },
             }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
           >
             {/* select */}
-            <Checkbox
-              sx={{
-                color: "rgba(255,255,255,0.5)",
-                "&.Mui-checked": { color: "#fff" },
-              }}
-            />
+            <input type="checkbox" style={styles.checkbox} />
 
             {/* name + code + leading circle */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-              <Box
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "999px",
-                  bgcolor: "#2A2A2A",
-                }}
-              />
-              <Box sx={{ display: "flex", flexDirection: "column" }}>
-                <Typography sx={{ fontWeight: 600, lineHeight: 1.15 }}>
-                  {r.name}
-                </Typography>
-                <Typography
-                  sx={{ fontSize: "0.85rem", opacity: 0.85, mt: "2px" }}
-                >
-                  ↳ {r.code}
-                </Typography>
-              </Box>
-            </Box>
+            <div style={styles.nameSection}>
+              <div style={styles.leadingCircle} />
+              <div style={styles.nameContainer}>
+                <span style={styles.name}>{r.name}</span>
+                <span style={styles.code}>↳ {r.code}</span>
+              </div>
+            </div>
 
             {/* users */}
             {showUsers && <UsersPill row={r} />}
 
-            {/* current -> dot only */}
+            {/* current -> ActiveIcon based on user status */}
             {showCurrent && (
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: "999px",
-                    bgcolor: "#8A8A8A",
-                  }}
+              <div style={styles.currentContainer}>
+                <ActiveIcon
+                  width={12}
+                  height={12}
+                  outerColor={
+                    r.currentUser && r.currentUser !== "—"
+                      ? "#1F381F"
+                      : "#381F1F"
+                  }
+                  innerColor={
+                    r.currentUser && r.currentUser !== "—"
+                      ? "#04C40A"
+                      : "#ff5252"
+                  }
                 />
-              </Box>
+              </div>
             )}
 
             {/* last used */}
             {showLastUsed && (
-              <Typography sx={{ opacity: 0.9 }}>{r.lastUsed || "—"}</Typography>
+              <span style={styles.lastUsed}>{r.lastUsed || "—"}</span>
             )}
 
-            {/* status chip (click toggles) */}
-            <Box
-              onClick={() => onToggleStatus?.(r.id)}
-              sx={{ cursor: "pointer" }}
-            >
-              <StatusChip status={r.status} />
-            </Box>
-
-            {/* status light */}
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  bgcolor: r.status === "busy" ? "#ff5252" : "#1eff6d",
-                  borderRadius: "999px",
-                }}
+            {/* status button */}
+            <div>
+              <StatusButton
+                status={r.status}
+                onClick={() => onToggleStatus?.(r.id)}
               />
-            </Box>
+            </div>
+
+            {/* status light - ActiveIcon */}
+            <div style={styles.statusLight}>
+              <ActiveIcon
+                width={12}
+                height={12}
+                outerColor={r.status === "connected" ? "#1F381F" : "#381F1F"}
+                innerColor={r.status === "connected" ? "#04C40A" : "#ff5252"}
+              />
+            </div>
 
             {/* edit */}
-            <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={styles.editContainer}>
               <EditButton
                 menuItems={[
                   {
@@ -253,15 +281,13 @@ export default function WorkstationList({
                   },
                 ]}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* divider */}
-          {idx !== rows.length - 1 && (
-            <Box sx={{ borderTop: "1px solid rgba(255,255,255,0.1)", mx: 1 }} />
-          )}
-        </Box>
+          {idx !== rows.length - 1 && <div style={styles.divider} />}
+        </div>
       ))}
-    </Box>
+    </div>
   );
 }
