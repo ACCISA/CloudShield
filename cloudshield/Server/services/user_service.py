@@ -270,17 +270,34 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
 
     # Best-effort audit; never let it throw
     try:
+        # Build a richer "before" while staying secret-safe
+        before_safe = {
+            k: before.get(k) for k in [
+                "email", "full_name", "role", "status", "org_id",
+                "created_at", "updated_at"
+            ] if k in before
+        }
+        # Normalize datetimes for readability
+        for k in ("created_at", "updated_at"):
+            if isinstance(before_safe.get(k), (datetime,)):
+                before_safe[k] = before_safe[k].isoformat()
+
         log_audit(
             action="delete",
-            actor={"id": current_user.get("id"), "role": current_user.get("role"), "org_id": current_user.get("org_id")},
             resource="users",
-            target={"id": str(before["_id"]), "email": before.get("email")},
+            actor={
+                "id": current_user.get("id"),
+                "role": current_user.get("role"),
+                "org_id": current_user.get("org_id"),
+            },
+            target={"id": str(oid), "email": before.get("email")},
             reason=reason,
-            before={"role": before.get("role"), "status": before.get("status"), "org_id": before.get("org_id")},
-            after=None
+            before=before_safe,
+            after=None,
+            severity="info",
         )
     except Exception:
-        # Audit logging must never block deletion; swallow and continue.
+        # Audit must never prevent a successful deletion
         pass
 
     return True
