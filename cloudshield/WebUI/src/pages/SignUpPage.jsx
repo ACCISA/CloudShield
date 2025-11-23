@@ -55,14 +55,45 @@ const PLAN_OPTIONS = [
   },
 ];
 
-// Validation constants to satisfy security rules (e.g. ReDoS, hardcoded password)
-const EMAIL_MAX_LENGTH = 254; // RFC-recommended max length for email addresses
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// ------------------------------
+// Validation / security constants
+// ------------------------------
+const EMAIL_MAX_LENGTH = 254; // typical upper bound
+
+const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_REQUIREMENTS_MESSAGE =
+  `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+
 const ORG_ID_REGEX = /^[a-z0-9]{3,32}$/;
 
-const MIN_PASSWORD_LENGTH = 6;
-// Wording avoids being mistaken for an actual password secret
-const PASSWORD_REQUIREMENTS_MESSAGE = `Your passphrase must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
+// Simple structural email validation without regex
+function isEmailValid(raw) {
+  if (!raw) return false;
+
+  const email = String(raw).trim();
+
+  if (email.length === 0 || email.length > EMAIL_MAX_LENGTH) {
+    return false;
+  }
+
+  const atIndex = email.indexOf("@");
+  const lastAtIndex = email.lastIndexOf("@");
+
+  // must contain exactly one "@", not at start or end
+  if (atIndex <= 0 || atIndex !== lastAtIndex || atIndex === email.length - 1) {
+    return false;
+  }
+
+  const domain = email.slice(atIndex + 1);
+  const lastDotIndex = domain.lastIndexOf(".");
+
+  // domain must contain a dot not at start or end
+  if (lastDotIndex <= 0 || lastDotIndex === domain.length - 1) {
+    return false;
+  }
+
+  return true;
+}
 
 export default function SignupPage({ onSignupSuccess }) {
   const navigate = useNavigate();
@@ -79,18 +110,11 @@ export default function SignupPage({ onSignupSuccess }) {
   const validate = () => {
     const next = {};
 
-    const trimmedEmail = email.trim();
-
-    // Limit length before applying regex to avoid any chance of ReDoS
-    if (
-      !trimmedEmail ||
-      trimmedEmail.length > EMAIL_MAX_LENGTH ||
-      !EMAIL_REGEX.test(trimmedEmail)
-    ) {
+    if (!isEmailValid(email)) {
       next.email = "Invalid email format.";
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
+    if (password.length < PASSWORD_MIN_LENGTH) {
       next.password = PASSWORD_REQUIREMENTS_MESSAGE;
     }
 
