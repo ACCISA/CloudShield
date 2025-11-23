@@ -3,22 +3,21 @@
  *
  * Calls your Flask API:
  *   POST  /task/provision           -> { job_id }  (HTTP 202)
- *   GET   /status/<job_id>          -> { ... }     (progress / message)
- *
- * Org ID is hard-coded as TEST_Andrew.
+ *   GET   /status/<job_id>          -> { ... }     (progress / message / result)
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, Chip, LinearProgress, Divider } from '@mui/material';
+import { Box, Typography, Button, Chip, LinearProgress, Divider, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ProvisioningControls from '../components/provisioning/ProvisioningControls.jsx';
 
 export default function ProvisioningPage({ onProvisioned }) {
-  const [orgId] = useState('TEST_Andrew'); // Hard-coded org ID
+  const [orgId, setOrgId] = useState('');
   const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle | starting | running | succeeded | failed
+  const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(null);
+  const [result, setResult] = useState(null);
   const pollTimerRef = useRef(null);
   const navigate = useNavigate();
 
@@ -28,16 +27,8 @@ export default function ProvisioningPage({ onProvisioned }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (status === 'succeeded') {
-      localStorage.setItem('isProvisioned', 'true');
-      onProvisioned?.();
-      navigate('/dashboard', { replace: true });
-    }
-  }, [status, onProvisioned, navigate]);
-
   async function apiStartProvision() {
-    const res = await fetch('http://172.18.0.3:5050/task/provision', {
+    const res = await fetch('http://localhost:5050/task/provision', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ org_id: orgId }),
@@ -52,7 +43,7 @@ export default function ProvisioningPage({ onProvisioned }) {
   }
 
   async function apiGetStatus(jid) {
-    const res = await fetch(`/status/${encodeURIComponent(jid)}`);
+    const res = await fetch(`http://localhost:5050/status/${encodeURIComponent(jid)}`);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(text || `Failed to fetch status (${res.status})`);
@@ -60,6 +51,9 @@ export default function ProvisioningPage({ onProvisioned }) {
     const json = await res.json().catch(() => ({}));
 
     let inferredStatus = json.status;
+    if (inferredStatus === 'finished') inferredStatus = 'succeeded';
+    if (inferredStatus === 'started' || inferredStatus === 'queued' || inferredStatus === 'deferred') inferredStatus = 'running';
+
     let inferredMessage = json.message;
     let inferredProgress = json.progress;
 
@@ -79,7 +73,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       inferredMessage = inferredProgress;
     }
 
-    return { status: inferredStatus, message: inferredMessage, progress: inferredProgress };
+    return { status: inferredStatus, message: inferredMessage, progress: inferredProgress, result: json.result };
   }
 
   const handleStart = async () => {
@@ -88,6 +82,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       setMessage('');
       setProgress(null);
       setJobId(null);
+      setResult(null);
 
       const jid = await apiStartProvision();
       setJobId(jid);
@@ -106,6 +101,7 @@ export default function ProvisioningPage({ onProvisioned }) {
         const s = await apiGetStatus(jid);
         if (typeof s.progress === 'number' || typeof s.progress === 'string') setProgress(s.progress);
         if (s.message) setMessage(s.message);
+        if (s.result) setResult(s.result);
 
         if (s.status === 'succeeded' || s.status === 'failed') {
           setStatus(s.status);
@@ -117,7 +113,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       } catch (err) {
         setMessage(err?.message || 'Polling error…');
       }
-    }, 2000);
+    }, 5000);
   };
 
   const reset = () => {
@@ -125,6 +121,7 @@ export default function ProvisioningPage({ onProvisioned }) {
     setMessage('');
     setProgress(null);
     setJobId(null);
+    setResult(null);
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -135,8 +132,17 @@ export default function ProvisioningPage({ onProvisioned }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 820, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 700 }}>Provisioning</Typography>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
-        Org ID: <strong>{orgId}</strong>
+        Enter your organization ID below to start provisioning.
       </Typography>
+
+      <TextField
+        label="Organization ID"
+        variant="outlined"
+        size="small"
+        value={orgId}
+        onChange={(e) => setOrgId(e.target.value)}
+        sx={{ maxWidth: 300 }}
+      />
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
 
@@ -144,7 +150,7 @@ export default function ProvisioningPage({ onProvisioned }) {
         <Button
           variant="contained"
           onClick={handleStart}
-          disabled={status === 'starting' || status === 'running'}
+          disabled={!orgId || status === 'starting' || status === 'running'}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}
         >
           {status === 'starting' ? 'Starting…' : 'Start Provisioning'}
@@ -186,6 +192,33 @@ export default function ProvisioningPage({ onProvisioned }) {
             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
               {message}
             </Typography>
+          )}
+        </Box>
+      )}
+
+      {status === 'succeeded' && result && (
+        <Box sx={{ mt: 2, p: 2, border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px' }}>
+          <Typography variant="h6" sx={{ color: '#4caf50' }}>Provisioning Complete</Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', mb: 1 }}>
+            {result.message || 'Your infrastructure has been provisioned successfully.'}
+          </Typography>
+          {result.org_id && <Typography variant="body2">Org ID: {result.org_id}</Typography>}
+          {result.region && <Typography variant="body2">Region: {result.region}</Typography>}
+          {result.work_dir && <Typography variant="body2" sx={{ mb: 1 }}>Work Dir: {result.work_dir}</Typography>}
+
+          {Array.isArray(result.metadata) && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Workstations:</Typography>
+              {result.metadata.map((ws, i) => (
+                <Box key={i} sx={{ mb: 1, p: 1.5, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px' }}>
+                  <Typography variant="body2"><strong>{ws.name}</strong> ({ws.os})</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>Instance ID: {ws.instance_id}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>Public IP: {ws.public_ip || 'N/A'}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>Private IP: {ws.private_ip}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>Status: {ws.status}</Typography>
+                </Box>
+              ))}
+            </Box>
           )}
         </Box>
       )}

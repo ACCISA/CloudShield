@@ -185,6 +185,15 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Provisioning complete for org %s", org_id)
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
+        
+
+        return {
+            "message": "Provisioning complete",
+            "org_id": org_id,
+            "region": region,
+            "work_dir": str(generated_dir),
+            "metadata": metadata
+        }
     except Exception as e:
         logger.exception("Provisioning failed for org %s: %s", org_id, e)
         set_progress(f"failed: {e}")

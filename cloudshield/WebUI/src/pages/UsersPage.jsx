@@ -84,9 +84,7 @@ export default function UsersPage() {
 
     if (q) {
       out = out.filter((u) =>
-        [u.name, u.email, u.title].some((v) =>
-          v.toLowerCase().includes(q)
-        )
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q))
       );
     }
 
@@ -101,9 +99,7 @@ export default function UsersPage() {
       const vb = b[sortField] ?? "";
 
       if (typeof va === "string") {
-        return sortDir === "asc"
-          ? va.localeCompare(vb)
-          : vb.localeCompare(va);
+        return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
       }
       return sortDir === "asc" ? va - vb : vb - va;
     });

@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import AuthPage from './pages/AuthPage.jsx';
+import SignUpPage from './pages/SignUpPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import WorkstationsPage from './pages/WorkstationsPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 import ProvisioningPage from './pages/ProvisioningPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
-import SignUpPage from './pages/SignUpPage.jsx';
-import UsersPage from './pages/UsersPage.jsx';
 
 export default function App() {
   // TEMP auth simulation

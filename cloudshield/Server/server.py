@@ -1,4 +1,3 @@
-"""Flask application factory and unified error handling for CloudShield API."""
 from __future__ import annotations
 
 import os
@@ -39,27 +38,30 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 server_logger = logging.getLogger("cloudshield.server")
 logger = get_logger("api")
 
-
 def create_app() -> Flask:
-    """Create and configure Flask application with blueprints."""
     app = Flask(__name__)
     app.register_blueprint(api_bp)
     logger.debug("Registered api blueprint: %s", api_bp.name)
     return app
 
 
+
+from flask_cors import CORS
+
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 app = create_app()
 
 
+# Helpers
 def _request_id() -> str:
-    """Get or generate request ID for tracing."""
+    # Use incoming X-Request-ID or generate a new one
     rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     g.request_id = rid
     return rid
 
 
 def _error_json(error: str, code: str, details=None, status: int = 400):
-    """Build standardized JSON error response with request ID."""
+    """Standardized error payloads for clients."""
     payload = {
         "error": error,
         "code": code,
@@ -68,48 +70,21 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
     }
     return jsonify(payload), status
 
-
+# Global JSON guard for write methods
 @app.before_request
 def _ensure_json_on_writes():
-    """Enforce JSON content-type for write operations."""
-    # Track request start time for performance monitoring
-    g.start_time = time()
-    
-    _request_id()
+    _request_id()  # ensure request_id is always set
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        # Allow empty body for certain routes (like DELETE /users/<id>)
         if request.data and not request.is_json:
+            # Content-Type missing or not JSON
             raise BadRequest("Expected application/json body")
 
 
-@app.after_request
-def _add_performance_headers(response):
-    """Add response time tracking and log slow requests.
-    
-    Performance optimization: Adds X-Response-Time header to all responses
-    and automatically logs requests that take longer than 500ms for monitoring.
-    """
-    if hasattr(g, 'start_time'):
-        elapsed_ms = (time() - g.start_time) * 1000
-        
-        # Add header for client-side monitoring and debugging
-        response.headers['X-Response-Time'] = f"{elapsed_ms:.2f}ms"
-        
-        # Log slow requests for investigation
-        if elapsed_ms > 500:
-            logger.warning(
-                "Slow request: %s %s - %.2fms (request_id=%s)",
-                request.method,
-                request.path,
-                elapsed_ms,
-                getattr(g, 'request_id', 'unknown')
-            )
-    
-    return response
-
-
+# Error handlers (Validation & Error Handling)
 @app.errorhandler(ValidationError)
 def _handle_pydantic(e: ValidationError):
-    """Handle Pydantic validation errors with field-level details."""
+    # Field-level details come from Pydantic
     return _error_json(
         error="Validation failed",
         code="VALIDATION_ERROR",
@@ -120,7 +95,7 @@ def _handle_pydantic(e: ValidationError):
 
 @app.errorhandler(DuplicateKeyError)
 def _handle_duplicate(e: DuplicateKeyError):
-    """Handle MongoDB duplicate key violations (typically email uniqueness)."""
+    # Typically triggered by unique index on email
     return _error_json(
         error="Email already exists",
         code="DUPLICATE_EMAIL",
@@ -131,7 +106,7 @@ def _handle_duplicate(e: DuplicateKeyError):
 
 @app.errorhandler(ValueError)
 def _handle_value_error(e: ValueError):
-    """Handle service-layer rejections from business logic validation."""
+    # Service-layer rejections (e.g., "User not found", "No fields to update")
     return _error_json(
         error="Invalid request",
         code="INVALID_REQUEST",
@@ -142,7 +117,7 @@ def _handle_value_error(e: ValueError):
 
 @app.errorhandler(BadRequest)
 def _handle_bad_json(e: BadRequest):
-    """Handle malformed or missing JSON in request body."""
+    # Malformed JSON / missing body on write methods
     return _error_json(
         error="Bad Request",
         code="BAD_JSON",
@@ -153,7 +128,7 @@ def _handle_bad_json(e: BadRequest):
 
 @app.errorhandler(OperationFailure)
 def _handle_mongo_operation_failure(e: OperationFailure):
-    """Handle MongoDB operation failures, mapping auth errors to 403."""
+    # Surface DB-level authorization errors as 403; otherwise 500
     msg = str(e)
     if "not authorized" in msg.lower():
         return _error_json(
@@ -172,7 +147,7 @@ def _handle_mongo_operation_failure(e: OperationFailure):
 
 @app.errorhandler(HTTPException)
 def _handle_http_exception(e: HTTPException):
-    """Normalize all Werkzeug HTTP exceptions to consistent JSON format."""
+    # Make all Werkzeug HTTP errors consistent
     return _error_json(
         error=e.name or "HTTP Error",
         code=f"HTTP_{e.code}",
@@ -183,7 +158,7 @@ def _handle_http_exception(e: HTTPException):
 
 @app.errorhandler(Exception)
 def _handle_generic(e: Exception):
-    """Catch-all handler for unexpected errors with debug mode control."""
+    # Last-resort handler; don't leak internals in production
     server_logger.exception("Unhandled error: %s", e)
     details = str(e) if app.debug else "An unexpected error occurred"
     return _error_json(
@@ -193,16 +168,19 @@ def _handle_generic(e: Exception):
         status=500,
     )
 
-
+# Blueprints
 app.register_blueprint(users_bp, url_prefix="/api")
 if audit_bp:
     app.register_blueprint(audit_bp, url_prefix="/api")
 
 
+# Health / info endpoint
 @app.route("/healthz", methods=["GET"])
 def healthz():
-    """Health check endpoint for monitoring."""
     return jsonify({"status": "ok", "request_id": g.request_id}), 200
+
+
+# Task endpoints removed - functionality moved to api_bp routes
 
 # Entrypoint
 if __name__ == "__main__":

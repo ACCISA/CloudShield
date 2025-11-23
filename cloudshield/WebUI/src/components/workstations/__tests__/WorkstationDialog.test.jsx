@@ -1,137 +1,136 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import WorkstationDialog from '../WorkstationDialog';
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import WorkstationDialog from "../WorkstationDialog";
 
-describe('WorkstationDialog', () => {
+describe("WorkstationDialog", () => {
   const mockOnClose = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders when open is true', () => {
+  it("renders when open is true", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Test Dialog']}
+        breadcrumb={["Workstations", "Test Dialog"]}
       >
         <div>Dialog Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Dialog Content')).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Dialog Content")).toBeInTheDocument();
   });
 
-  it('does not render when open is false', () => {
+  it("does not render when open is false", () => {
     render(
       <WorkstationDialog
         open={false}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Test Dialog']}
+        breadcrumb={["Workstations", "Test Dialog"]}
       >
         <div>Dialog Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.queryByText('Dialog Content')).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dialog Content")).not.toBeInTheDocument();
   });
 
-  it('renders breadcrumb navigation', () => {
+  it("renders breadcrumb navigation", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Edit', 'Details']}
+        breadcrumb={["Workstations", "Edit", "Details"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.getByText('Workstations')).toBeInTheDocument();
-    expect(screen.getByText('Edit')).toBeInTheDocument();
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(screen.getByText("Workstations")).toBeInTheDocument();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.getByText("Details")).toBeInTheDocument();
   });
 
-  it('renders breadcrumb separators', () => {
+  it("renders breadcrumb separators", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Test']}
+        breadcrumb={["Workstations", "Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
     // Should have separator (›) between breadcrumb items
-    expect(screen.getByText('›')).toBeInTheDocument();
+    expect(screen.getByText("›")).toBeInTheDocument();
   });
 
-  it('uses default breadcrumb when not provided', () => {
+  it("uses default breadcrumb when not provided", () => {
+    render(
+      <WorkstationDialog open={true} onClose={mockOnClose}>
+        <div>Content</div>
+      </WorkstationDialog>
+    );
+
+    expect(screen.getByText("Workstations")).toBeInTheDocument();
+  });
+
+  it("renders close button", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.getByText('Workstations')).toBeInTheDocument();
-  });
-
-  it('renders close button', () => {
-    render(
-      <WorkstationDialog
-        open={true}
-        onClose={mockOnClose}
-        breadcrumb={['Test']}
-      >
-        <div>Content</div>
-      </WorkstationDialog>
-    );
-
-    const closeButton = screen.getByRole('button', { name: /close/i });
+    const closeButton = screen.getByRole("button", { name: /close/i });
     expect(closeButton).toBeInTheDocument();
   });
 
-  it('calls onClose when close button is clicked', () => {
+  it("calls onClose when close button is clicked", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    const closeButton = screen.getByRole('button', { name: /close/i });
+    const closeButton = screen.getByRole("button", { name: /close/i });
     fireEvent.click(closeButton);
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('renders children content', () => {
+  it("renders children content", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Custom Content</div>
         <button>Custom Button</button>
       </WorkstationDialog>
     );
 
-    expect(screen.getByText('Custom Content')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Custom Button' })).toBeInTheDocument();
+    expect(screen.getByText("Custom Content")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Custom Button" })
+    ).toBeInTheDocument();
   });
 
-  it('renders action buttons when provided', () => {
+  it("renders action buttons when provided", () => {
     const actions = (
       <>
         <button>Cancel</button>
@@ -143,121 +142,121 @@ describe('WorkstationDialog', () => {
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
         actions={actions}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
-  it('does not render actions section when actions not provided', () => {
+  it("does not render actions section when actions not provided", () => {
     const { container } = render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    const dialogActions = container.querySelector('.MuiDialogActions-root');
+    const dialogActions = container.querySelector(".MuiDialogActions-root");
     expect(dialogActions).not.toBeInTheDocument();
   });
 
-  it('applies dark theme styling', () => {
+  it("applies dark theme styling", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
     // Dialog renders in a portal, so query from document
-    const dialog = document.querySelector('.MuiDialog-paper');
+    const dialog = document.querySelector(".MuiDialog-paper");
     expect(dialog).toBeInTheDocument();
     const computedStyle = window.getComputedStyle(dialog);
-    expect(computedStyle.backgroundColor).toBe('rgb(15, 15, 15)'); // #0F0F0F in RGB
+    expect(computedStyle.backgroundColor).toBe("rgb(15, 15, 15)"); // #0F0F0F in RGB
   });
 
-  it('renders DialogTitle with proper structure', () => {
+  it("renders DialogTitle with proper structure", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Edit']}
+        breadcrumb={["Workstations", "Edit"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
     // Dialog renders in a portal, so query from document
-    const dialogTitle = document.querySelector('.MuiDialogTitle-root');
+    const dialogTitle = document.querySelector(".MuiDialogTitle-root");
     expect(dialogTitle).toBeInTheDocument();
   });
 
-  it('renders DialogContent with dividers', () => {
+  it("renders DialogContent with dividers", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
     // Dialog renders in a portal, so query from document
-    const dialogContent = document.querySelector('.MuiDialogContent-root');
+    const dialogContent = document.querySelector(".MuiDialogContent-root");
     expect(dialogContent).toBeInTheDocument();
-    expect(dialogContent).toHaveClass('MuiDialogContent-dividers');
+    expect(dialogContent).toHaveClass("MuiDialogContent-dividers");
   });
 
-  it('highlights last breadcrumb item with bold font', () => {
+  it("highlights last breadcrumb item with bold font", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Workstations', 'Edit', 'Final']}
+        breadcrumb={["Workstations", "Edit", "Final"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    const finalBreadcrumb = screen.getByText('Final');
+    const finalBreadcrumb = screen.getByText("Final");
     expect(finalBreadcrumb).toBeInTheDocument();
     // The last breadcrumb should have fontWeight: 600 in its sx prop
   });
 
-  it('handles single breadcrumb item', () => {
+  it("handles single breadcrumb item", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Single']}
+        breadcrumb={["Single"]}
       >
         <div>Content</div>
       </WorkstationDialog>
     );
 
-    expect(screen.getByText('Single')).toBeInTheDocument();
+    expect(screen.getByText("Single")).toBeInTheDocument();
     // Should not have separator when only one item
-    expect(screen.queryByText('›')).not.toBeInTheDocument();
+    expect(screen.queryByText("›")).not.toBeInTheDocument();
   });
 
-  it('renders CloseIcon in close button', () => {
+  it("renders CloseIcon in close button", () => {
     render(
       <WorkstationDialog
         open={true}
         onClose={mockOnClose}
-        breadcrumb={['Test']}
+        breadcrumb={["Test"]}
       >
         <div>Content</div>
       </WorkstationDialog>
