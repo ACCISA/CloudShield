@@ -30,14 +30,20 @@ def _add_handlers(logger: logging.Logger, log_path: Path):
     console.setFormatter(formatter)
     logger.addHandler(console)
 
-    file_handler = RotatingFileHandler(
-        log_path,
-        maxBytes=MAX_BYTES,
-        backupCount=BACKUP_COUNT,
-        encoding="utf-8",
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    try:
+        file_handler = RotatingFileHandler(
+            log_path,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+        )
+    except PermissionError:
+        logger.warning(
+            "Could not open log file %s; falling back to console logging only",
+            log_path,
+        )
+    else:
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
 
 def get_logger(context: str = "api", job_id: str | None = None) -> logging.Logger:

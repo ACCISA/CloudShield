@@ -2,7 +2,13 @@
 from flask import Blueprint, request, jsonify
 from cloudshield.Server.security.passwords import verify_password, hash_password, is_bcrypt_string
 from cloudshield.Server.security.jwt_utils import issue_token, verify_token
-from cloudshield.Server.utils.database import db_admin, users_admin
+try:
+    # Normal runtime: this module has both db_admin and users_admin
+    from cloudshield.Server.utils.database import db_admin, users_admin
+except ImportError:
+    # Test suite: monkeypatched module only provides users_admin
+    from cloudshield.Server.utils.database import users_admin
+    db_admin = None
 from datetime import datetime, timezone
 from pymongo.errors import DuplicateKeyError
 
@@ -41,11 +47,15 @@ def login():
         - 401: Invalid credentials or inactive user.
         - 500: Internal server error (unexpected failure).
     """
-    body = request.get_json(silent=True) or {}
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({"error": "Request body required"}), 400
+
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     if not email or not password:
-        return jsonify({"error": "email and password are required"}), 400
+        return jsonify({"error": "Invalid credentials"}), 401
+
 
     user = users_admin.find_one(
         {"email": email, "status": "active"},

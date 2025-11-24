@@ -78,7 +78,7 @@ class TestDCManagementExtended:
         with pytest.raises(paramiko.ssh_exception.SSHException) as exec_err:
             result = exec_ssh("test_org", "test command", logger=mock_logger)
             assert result is None
-            assert "Connection failed" in exec_err
+        assert "Connection failed" in str(exec_err.value)
 
     def test_forward_tunnel_socket_error(self, monkeypatch, caplog, mock_logger):
         """Test forward_tunnel handling of socket errors"""
