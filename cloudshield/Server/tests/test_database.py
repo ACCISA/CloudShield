@@ -466,42 +466,6 @@ def test_database_index_creation_exceptions(monkeypatch, capsys):
     assert "[database.py] Note: orgs index creation skipped:" in out
     assert "[database.py] Note: Text index creation skipped:" in out
 
-def test_database_connection_failure_branch(monkeypatch, capsys):
-    """
-    Force MongoClient to raise PyMongoError so the connection-failure branch runs:
-      - [database.py] MongoDB connection failed: ...
-    """
-    import types
-    import importlib
-    import sys
-    import pytest
-
-    fake_errors = types.ModuleType("pymongo.errors")
-
-    class PyMongoError(Exception):
-        pass
-
-    fake_errors.PyMongoError = PyMongoError
-
-    def failing_mongo_client(*args, **kwargs):
-        raise PyMongoError("boom")
-
-    fake_pymongo = types.ModuleType("pymongo")
-    fake_pymongo.MongoClient = failing_mongo_client
-    fake_pymongo.errors = fake_errors
-
-    monkeypatch.setitem(sys.modules, "pymongo", fake_pymongo)
-    monkeypatch.setitem(sys.modules, "pymongo.errors", fake_errors)
-
-    # Drop existing database module so import runs top-level try/except again
-    sys.modules.pop("cloudshield.Server.utils.database", None)
-
-    with pytest.raises(PyMongoError):
-        import cloudshield.Server.utils.database as database_mod  # noqa: F401
-        importlib.reload(database_mod)
-
-    out = capsys.readouterr().out
-    assert "[database.py] MongoDB connection failed:" in out
 
 def test_database_connection_failure_branch(capsys, monkeypatch):
     """
