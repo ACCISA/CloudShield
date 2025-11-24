@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import destroy_infra
+import cloudshield.Cloud.provisioner.destroy_infra as destroy_infra
 
 
 @pytest.fixture(autouse=True)

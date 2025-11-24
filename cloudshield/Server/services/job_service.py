@@ -7,7 +7,15 @@ import os
 from typing import Tuple, Dict, Any
 import rq
 from redis_client import task_queue, redis_conn
-from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
+try:
+    from cloudshield.Server.tasks import (
+        provision_network,
+        destroy_environment,
+        provision_workstations,
+        dc_add_user,
+    )
+except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
+    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
 from utils import get_logger
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))

@@ -16,6 +16,11 @@ services:
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
       - CLOUDSHIELD_REDIS_HOST=redis
+      - CLOUDSHIELD_DEV_TOKEN=${CLOUDSHIELD_DEV_TOKEN}
+      - CLOUDSHIELD_DEV_USER_ID=${CLOUDSHIELD_DEV_USER_ID}
+      - CLOUDSHIELD_DEV_ROLE=${CLOUDSHIELD_DEV_ROLE}
+      - CLOUDSHIELD_DEV_ORG=${CLOUDSHIELD_DEV_ORG}
+      - CLOUDSHIELD_DEV_EMAIL=${CLOUDSHIELD_DEV_EMAIL}
     depends_on:
       - redis
     ports:
@@ -105,6 +110,7 @@ services:
     environment:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
+      - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.20
