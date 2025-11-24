@@ -276,3 +276,211 @@ class TestAuth:
             data = response.get_json()
             assert data["error"] == "Unauthorized"
             assert error_message in data["details"]
+
+
+    def _setup_signup_db_admin(self, monkeypatch):
+        """
+        Helper to attach a db_admin mock (with orgs + audit collections)
+        to the auth module for /auth/signup tests.
+        """
+        import cloudshield.Server.routes.auth as auth_module
+        mock_db_admin = unittest.mock.MagicMock()
+        mock_orgs = unittest.mock.MagicMock()
+        mock_audit = unittest.mock.MagicMock()
+
+        def getitem(name):
+            if name == "orgs":
+                return mock_orgs
+            if name == "audit":
+                return mock_audit
+            raise KeyError(name)
+
+        mock_db_admin.__getitem__.side_effect = getitem
+        # Patch the module-level db_admin used by signup()
+        monkeypatch.setattr(auth_module, "db_admin", mock_db_admin, raising=False)
+
+        return mock_orgs, mock_audit
+
+    def test_signup_success(
+        self,
+        app_with_auth,
+        mock_users_admin,
+        mock_password_functions,
+        mock_jwt_functions,
+        monkeypatch,
+    ):
+        """Happy path: org created, admin user created, audit logged, JWT issued."""
+        app, client = app_with_auth
+        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+
+        # No existing org
+        mock_orgs.find_one.return_value = None
+
+        # User insert returns an object with inserted_id
+        insert_result = unittest.mock.MagicMock()
+        insert_result.inserted_id = "uid123"
+        mock_users_admin.insert_one.return_value = insert_result
+
+        mock_password_functions["hash_password"].return_value = "hashed_pw"
+        mock_jwt_functions["issue_token"].return_value = "signup.jwt.token"
+
+        payload = {
+            "email": "new-admin@example.com",
+            "password": "Password123!",
+            "full_name": "New Admin",
+            "company_name": "NewCo",
+            "org_id": "org_new",
+            "package_type": "pro",
+        }
+
+        response = client.post("/auth/signup", json=payload)
+        assert response.status_code == 201
+
+        data = response.get_json()
+        assert data["access_token"] == "signup.jwt.token"
+        assert data["token_type"] == "Bearer"
+        assert data["expires_in"] == 60 * 60
+        assert data["org"]["org_id"] == "org_new"
+        assert data["org"]["company_name"] == "NewCo"
+        assert data["org"]["package_type"] == "pro"
+
+        # DB operations happened
+        mock_orgs.insert_one.assert_called_once()
+        mock_users_admin.insert_one.assert_called_once()
+        mock_audit.insert_one.assert_called_once()
+        mock_password_functions["hash_password"].assert_called_with("Password123!")
+        mock_jwt_functions["issue_token"].assert_called_once()
+
+    def test_signup_missing_fields(self, app_with_auth):
+        """Missing required fields -> 400 + details list."""
+        app, client = app_with_auth
+
+        response = client.post(
+            "/auth/signup",
+            json={
+                "email": "",
+                "password": "",
+                "company_name": "",
+                "org_id": "",
+            },
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Missing fields"
+
+        # all required keys should be mentioned
+        for field in ("email", "password", "company_name", "org_id"):
+            assert field in data["details"]
+
+    def test_signup_org_conflict(
+        self,
+        app_with_auth,
+        mock_users_admin,
+        monkeypatch,
+    ):
+        """Existing org_id OR company_name -> 409 Organization already exists."""
+        app, client = app_with_auth
+        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+
+        # Org already exists
+        mock_orgs.find_one.return_value = {"org_id": "org_001"}
+
+        response = client.post(
+            "/auth/signup",
+            json={
+                "email": "admin@example.com",
+                "password": "Password123!",
+                "full_name": "Admin",
+                "company_name": "ExistingCo",
+                "org_id": "org_001",
+                "package_type": "free",
+            },
+        )
+
+        assert response.status_code == 409
+        data = response.get_json()
+        assert data["error"] == "Organization already exists"
+
+        mock_users_admin.insert_one.assert_not_called()
+        mock_audit.insert_one.assert_not_called()
+
+    def test_signup_email_exists_rollback(
+        self,
+        app_with_auth,
+        mock_users_admin,
+        monkeypatch,
+    ):
+        """
+        If users_admin.insert_one raises DuplicateKeyError,
+        org is rolled back and 409 Email already exists is returned.
+        """
+        app, client = app_with_auth
+        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+
+        mock_orgs.find_one.return_value = None
+
+        import cloudshield.Server.routes.auth as auth_module
+
+        # Simulate email uniqueness violation
+        mock_users_admin.insert_one.side_effect = auth_module.DuplicateKeyError(
+            "duplicate email"
+        )
+
+        response = client.post(
+            "/auth/signup",
+            json={
+                "email": "taken@example.com",
+                "password": "Password123!",
+                "full_name": "Admin",
+                "company_name": "RollbackCo",
+                "org_id": "org_rollback",
+                "package_type": "free",
+            },
+        )
+
+        assert response.status_code == 409
+        data = response.get_json()
+        assert data["error"] == "Email already exists"
+        mock_orgs.delete_one.assert_called_once_with({"org_id": "org_rollback"})
+
+    def test_signup_audit_failure_non_blocking(
+        self,
+        app_with_auth,
+        mock_users_admin,
+        mock_jwt_functions,
+        monkeypatch,
+    ):
+        """
+        If audit.insert_one fails, signup still succeeds (best-effort audit).
+        """
+        app, client = app_with_auth
+        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+
+        mock_orgs.find_one.return_value = None
+
+        insert_result = unittest.mock.MagicMock()
+        insert_result.inserted_id = "uid999"
+        mock_users_admin.insert_one.return_value = insert_result
+
+        mock_jwt_functions["issue_token"].return_value = "audit.jwt"
+
+        # Make audit.insert_one blow up
+        mock_audit.insert_one.side_effect = Exception("audit down")
+
+        response = client.post(
+            "/auth/signup",
+            json={
+                "email": "audit@example.com",
+                "password": "Password123!",
+                "full_name": "Audit Admin",
+                "company_name": "AuditCo",
+                "org_id": "org_audit",
+                "package_type": "free",
+            },
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data["access_token"] == "audit.jwt"
+        assert data["org"]["org_id"] == "org_audit"

@@ -1,6 +1,7 @@
 import unittest.mock
 import os
 import sys
+import types
 import pytest
 
 mock_mongo_client = unittest.mock.MagicMock()
@@ -11,6 +12,12 @@ mock_pymongo.MongoClient = mock_mongo_client
 mock_pymongo.errors = unittest.mock.MagicMock()
 mock_pymongo.errors.PyMongoError = Exception
 
+if "jwt" not in sys.modules:
+    dummy_jwt = types.ModuleType("jwt")
+    dummy_jwt.encode = lambda *args, **kwargs: "dummy-token"
+    dummy_jwt.decode = lambda *args, **kwargs: {}
+    sys.modules["jwt"] = dummy_jwt
+    
 import importlib
 from unittest.mock import patch
 
@@ -280,13 +287,17 @@ def test_database_constants():
 @patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
 def test_database_env_var_override():
     """Test that environment variables can override defaults"""
-    # Reload the module to pick up new env vars
-    if 'cloudshield.Server.utils.database' in sys.modules:
-        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
-    
+    # Drop cached database module so it re-imports with the new env var
+    sys.modules.pop('cloudshield.Server.utils.database', None)
+
+    import cloudshield.Server.utils as utils
+    importlib.reload(utils)
+
     from cloudshield.Server.utils import database
-    
+
     assert database.DB_NAME == 'custom_db'
+
+
 
 
 def test_database_exports_all():
@@ -338,3 +349,180 @@ def test_database_ping_success():
     # Verify that the clients have admin attribute
     assert hasattr(database.admin_client, 'admin')
     assert hasattr(database.emp_client, 'admin')
+
+def test_inventory_import_fallback_to_root_models(monkeypatch):
+    """
+    Force the Inventory import to go through the fallback chain:
+    - from cloudshield.Server.models import Inventory  -> ImportError
+    - from ..models import Inventory                  -> ImportError
+    - from models import Inventory                    -> succeeds
+    """
+    import types
+    import importlib
+    import sys
+
+    # 1) Fake cloudshield.Server.models WITHOUT Inventory so first two imports fail
+    fake_server_models = types.ModuleType("cloudshield.Server.models")
+    monkeypatch.setitem(sys.modules, "cloudshield.Server.models", fake_server_models)
+
+    # Ensure cloudshield.Server package has a 'models' attribute
+    import cloudshield.Server as server_pkg
+    monkeypatch.setattr(server_pkg, "models", fake_server_models, raising=False)
+
+    # 2) Top-level models module WITH Inventory for final fallback
+    fake_root_models = types.ModuleType("models")
+
+    class DummyInventory:
+        pass
+
+    fake_root_models.Inventory = DummyInventory
+    monkeypatch.setitem(sys.modules, "models", fake_root_models)
+
+    # 3) Reload database so the import chain is executed with our stubs
+    sys.modules.pop("cloudshield.Server.utils.database", None)
+    import cloudshield.Server.utils.database as database_mod
+    importlib.reload(database_mod)
+
+    # Inventory should now come from top-level models.DummyInventory
+    assert database_mod.Inventory is DummyInventory
+
+def test_database_index_creation_exceptions(monkeypatch, capsys):
+    """
+    Exercise:
+      - [database.py] Note: orgs index creation skipped: ...
+      - [database.py] Note: Text index creation skipped: ...
+    by making the underlying create_index calls raise Exceptions.
+    """
+    import types
+    import importlib
+    import sys
+    import unittest.mock as um
+
+    # ---- Fake collections ----
+    class FakeOrgs:
+        def create_index(self, *args, **kwargs):
+            # Always fail to hit orgs exception branch
+            raise Exception("org index failure")
+
+    class FakeUsersAdmin:
+        def create_index(self, keys, **kwargs):
+            # Simple index (email) → OK
+            # Text index (list of tuples) → fail
+            if isinstance(keys, list):
+                raise Exception("text index failure")
+            return "ok"
+
+    class FakeAudit:
+        def insert_one(self, *args, **kwargs):
+            return None
+
+    class FakeDB:
+        def __init__(self):
+            self._orgs = FakeOrgs()
+            self._users = FakeUsersAdmin()
+            self._audit = FakeAudit()
+
+        def __getitem__(self, name):
+            if name == "orgs":
+                return self._orgs
+            if name == "users":
+                return self._users
+            if name == "audit":
+                return self._audit
+            # Any other collection (e.g., itam) can be a dummy mock
+            return um.MagicMock()
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.admin = um.MagicMock()
+            self.admin.command.return_value = None
+            self._db = FakeDB()
+
+        def __getitem__(self, db_name):
+            return self._db
+
+    # ---- Fake pymongo + errors ----
+    fake_pymongo = types.ModuleType("pymongo")
+    fake_pymongo.MongoClient = lambda *args, **kwargs: FakeClient()
+
+    fake_errors = types.ModuleType("pymongo.errors")
+
+    class PyMongoError(Exception):
+        pass
+
+    fake_errors.PyMongoError = PyMongoError
+    fake_pymongo.errors = fake_errors
+
+    # Install stubs
+    monkeypatch.setitem(sys.modules, "pymongo", fake_pymongo)
+    monkeypatch.setitem(sys.modules, "pymongo.errors", fake_errors)
+
+    # Reload database under our fake pymongo
+    sys.modules.pop("cloudshield.Server.utils.database", None)
+    import cloudshield.Server.utils.database as database_mod
+    importlib.reload(database_mod)
+
+    out = capsys.readouterr().out
+    assert "[database.py] Note: orgs index creation skipped:" in out
+    assert "[database.py] Note: Text index creation skipped:" in out
+
+def test_database_connection_failure_branch(monkeypatch, capsys):
+    """
+    Force MongoClient to raise PyMongoError so the connection-failure branch runs:
+      - [database.py] MongoDB connection failed: ...
+    """
+    import types
+    import importlib
+    import sys
+    import pytest
+
+    fake_errors = types.ModuleType("pymongo.errors")
+
+    class PyMongoError(Exception):
+        pass
+
+    fake_errors.PyMongoError = PyMongoError
+
+    def failing_mongo_client(*args, **kwargs):
+        raise PyMongoError("boom")
+
+    fake_pymongo = types.ModuleType("pymongo")
+    fake_pymongo.MongoClient = failing_mongo_client
+    fake_pymongo.errors = fake_errors
+
+    monkeypatch.setitem(sys.modules, "pymongo", fake_pymongo)
+    monkeypatch.setitem(sys.modules, "pymongo.errors", fake_errors)
+
+    # Drop existing database module so import runs top-level try/except again
+    sys.modules.pop("cloudshield.Server.utils.database", None)
+
+    with pytest.raises(PyMongoError):
+        import cloudshield.Server.utils.database as database_mod  # noqa: F401
+        importlib.reload(database_mod)
+
+    out = capsys.readouterr().out
+    assert "[database.py] MongoDB connection failed:" in out
+
+def test_database_connection_failure_branch(capsys, monkeypatch):
+    """
+    Exercise the top-level `except PyMongoError` in database.py by forcing
+    MongoClient to fail during module import.
+    """
+    # Ensure we import database fresh
+    sys.modules.pop('cloudshield.Server.utils.database', None)
+
+    from pymongo.errors import PyMongoError
+    import importlib
+
+    global mock_mongo_client
+    mock_mongo_client.side_effect = PyMongoError("test-connection-failure")
+
+    with pytest.raises(PyMongoError):
+        importlib.import_module("cloudshield.Server.utils.database")
+
+    out = capsys.readouterr().out
+    assert "MongoDB connection failed: test-connection-failure" in out
+
+    # Reset side_effect so other tests still see normal behaviour
+    mock_mongo_client.side_effect = None
+
