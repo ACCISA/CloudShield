@@ -13,14 +13,45 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
+
+def _coerce_exception_class(candidate, name: str):
+    """Ensure an imported exception reference is a proper Exception subclass.
+
+    Some unit tests monkeypatch `pymongo.errors` with lightweight doubles that
+    expose attributes as MagicMocks. Flask's error handler registration rejects
+    instances or mocks, so we fall back to simple Exception subclasses when
+    needed to keep imports robust during testing.
+    """
+
+    if isinstance(candidate, type) and issubclass(candidate, Exception):
+        return candidate
+
+    class _Fallback(Exception):
+        pass
+
+    _Fallback.__name__ = f"Stub{name}"
+    return _Fallback
+
+
+DuplicateKeyError = _coerce_exception_class(DuplicateKeyError, "DuplicateKeyError")
+OperationFailure = _coerce_exception_class(OperationFailure, "OperationFailure")
+
 try:
     from cloudshield.Server.utils import get_logger
     from cloudshield.Server.routes import api_bp
     from cloudshield.Server.routes.users import users_bp
+    from cloudshield.Server.routes.users_read import users_read_bp
 except ImportError:
-    from utils import get_logger
-    from routes import api_bp
-    from routes.users import users_bp
+    try:
+        from .utils import get_logger
+        from .routes import api_bp
+        from .routes.users import users_bp
+        from .routes.users_read import users_read_bp
+    except ImportError:
+        from utils import get_logger  # type: ignore
+        from routes import api_bp  # type: ignore
+        from routes.users import users_bp  # type: ignore
+        from routes.users_read import users_read_bp  # type: ignore
 
 # optional audit blueprint; may fail if DB/view not set up
 try:
@@ -119,7 +150,7 @@ def _handle_pydantic(e: ValidationError):
 
 
 @app.errorhandler(DuplicateKeyError)
-def _handle_duplicate(e: DuplicateKeyError):
+def _handle_duplicate(e: Exception):
     """Handle MongoDB duplicate key violations (typically email uniqueness)."""
     return _error_json(
         error="Email already exists",
@@ -152,7 +183,7 @@ def _handle_bad_json(e: BadRequest):
 
 
 @app.errorhandler(OperationFailure)
-def _handle_mongo_operation_failure(e: OperationFailure):
+def _handle_mongo_operation_failure(e: Exception):
     """Handle MongoDB operation failures, mapping auth errors to 403."""
     msg = str(e)
     if "not authorized" in msg.lower():
@@ -195,6 +226,7 @@ def _handle_generic(e: Exception):
 
 
 app.register_blueprint(users_bp, url_prefix="/api")
+app.register_blueprint(users_read_bp, url_prefix="/api")
 if audit_bp:
     app.register_blueprint(audit_bp, url_prefix="/api")
 

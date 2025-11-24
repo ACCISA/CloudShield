@@ -5,28 +5,49 @@ import AuthPage from './pages/AuthPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import ProvisioningPage from './pages/ProvisioningPage.jsx';
+import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
 
-export default function App() {
-  // TEMP auth simulation
-  const [isAuthed, setIsAuthed] = useState(true); // set true for quicker dev; flip to false to test auth
-
-  const [isProvisioned, setIsProvisioned] = useState(true);
-  // Provisioning gate
-  // const [isProvisioned, setIsProvisioned] = useState(() => {
-  //   try {
-  //     return localStorage.getItem('isProvisioned') === 'true';
-  //   } catch {
-  //     return false;
-  //   }
-  // });
+function AppWithAuth() {
+  // This is your app-level auth flag (UI login/signup flow),
+  // separate from the service bootstrap AuthContext.
+  const [isAuthed, setIsAuthed] = useState(false); // set true for dev if needed
+  const [isProvisioned, setIsProvisioned] = useState(() => {
+    try {
+      return localStorage.getItem('isProvisioned') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const handleProvisioned = () => {
     setIsProvisioned(true);
     try {
       localStorage.setItem('isProvisioned', 'true');
     } catch {}
+  };
+
+  // Called specifically after SIGNUP
+  const handleSignupSuccess = ({ token, user } = {}) => {
+    setIsAuthed(true);
+
+    if (token) {
+      try {
+        localStorage.setItem('jwt', token);
+      } catch {
+        // ignore storage error
+      }
+    }
+
+    if (user?.org_id) {
+      try {
+        localStorage.setItem('org_id', user.org_id);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const Protected = useMemo(() => {
@@ -47,12 +68,23 @@ export default function App() {
         {/* Public route: login */}
         <Route
           path="/login"
-          element={<AuthPage onLoginSuccess={() => setIsAuthed(true)} />}
+          element={
+            <AuthPage
+              onLoginSuccess={() => {
+                setIsAuthed(true);
+              }}
+            />
+          }
         />
+
         {/* Public route: sign up */}
         <Route
           path="/signup"
-          element={<SignUpPage />}
+          element={
+            <SignUpPage
+              onSignupSuccess={handleSignupSuccess}
+            />
+          }
         />
 
         {/* Provisioning route: visible when not provisioned; shows sidebar shell (no tabs) */}
@@ -88,6 +120,15 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/users"
+          element={
+            <Protected>
+              <EmployeesPage />
+            </Protected>
+          }
+        />
+
         {/* default route */}
         <Route
           path="*"
@@ -105,5 +146,14 @@ export default function App() {
         />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  // Wrap everything in your AuthProvider for service/claims context
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
   );
 }

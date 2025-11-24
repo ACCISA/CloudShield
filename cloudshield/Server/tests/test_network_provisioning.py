@@ -135,6 +135,14 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         fake_run_stream
     )
 
+    def fake_get_workstation_count(org_id, env=None):
+        return 0
+
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.get_workstation_count",
+        fake_get_workstation_count
+    )
+
     result = provision_workstations("test_org", count=2)
     assert "complete" in result["message"].lower()
     assert mock_job.meta["progress"] == "completed"
@@ -175,6 +183,14 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.run_stream",
         fake_run_stream
+    )
+
+    def fake_get_workstation_count(org_id, env=None):
+        return 0
+
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning.get_workstation_count",
+        fake_get_workstation_count
     )
 
     with pytest.raises(subprocess.CalledProcessError):

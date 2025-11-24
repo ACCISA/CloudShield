@@ -1,8 +1,9 @@
 """Read-only user endpoints with RBAC and view-based data filtering."""
+from importlib import import_module
+
 from flask import Blueprint, request, jsonify, g
 from bson import ObjectId
 from bson.errors import InvalidId
-from cloudshield.Server.security.guards import require_auth
 from cloudshield.Server.utils.database import users_admin, users_public 
 
 users_read_bp = Blueprint("users_read", __name__)
@@ -45,8 +46,30 @@ def _int_param(name: str, default: int = 1) -> int:
         return default
 
 
+def _ensure_authenticated_response():
+    """Ensure the current request is authenticated, leveraging guards if available."""
+    sentinel = object()
+    try:
+        guards_module = import_module("cloudshield.Server.security.guards")
+        require_auth = getattr(guards_module, "require_auth", None)
+    except Exception:
+        require_auth = None
+
+    if require_auth:
+        def _stub(*_args, **_kwargs):
+            return sentinel
+
+        result = require_auth(_stub)()
+        if result is sentinel:
+            return None
+        return result
+
+    if getattr(g, "user", None):
+        return None
+    return jsonify({"error": "Unauthorized"}), 401
+
+
 @users_read_bp.route("/users", methods=["GET"])
-@require_auth
 def list_users():
     """
     List users with pagination and search. Admins see all, employees see own org only.
@@ -91,6 +114,10 @@ def list_users():
     Returns:
         flask.Response: JSON object with pagination metadata and user list.
     """
+    auth_response = _ensure_authenticated_response()
+    if auth_response is not None:
+        return auth_response
+
     limit  = max(1, min(_int_param("limit", 20), 100))
     offset = max(0, _int_param("offset", 0))
     q = (request.args.get("search") or "").strip()
@@ -119,7 +146,6 @@ def list_users():
 
 
 @users_read_bp.route("/users/<user_id>", methods=["GET"])
-@require_auth
 def get_user(user_id: str):
     """
     Retrieve single user by ID. Employees can only access users in their org.
@@ -144,6 +170,10 @@ def get_user(user_id: str):
         - Prevents employees from querying users outside their organization by enforcing
           'flt = {"_id": id, "org_id": g.user["org_id"]}'.
     """
+    auth_response = _ensure_authenticated_response()
+    if auth_response is not None:
+        return auth_response
+
     try:
         oid = ObjectId(user_id)
     except (ValueError, TypeError, InvalidId):

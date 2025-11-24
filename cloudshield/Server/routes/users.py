@@ -3,13 +3,14 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from ..security.guards import require_auth, require_role
 from ..models.user import UserCreate, UserUpdate
-from ..services.user_service import create_user, update_user, deactivate_user, delete_user
+from ..services.user_service import create_user, update_user, deactivate_user, delete_user, list_users
 
 users_bp = Blueprint('users', __name__)
 """
 Users routes (admin-only mutations).
 
 This module exposes CRUD-like admin actions on users:
+- GET    /users                      --> List users (admin only)
 - POST   /users                      --> Create user (admin only)
 - PATCH  /users/<user_id>            --> Update user (admin only)
 - POST   /users/<user_id>/deactivate --> Deactivate user (admin only)
@@ -53,6 +54,30 @@ def _extract_reason() -> str | None:
     body = _json_or_empty()
     reason = body.get("reason") or request.args.get("reason")
     return (reason or "").strip() or None
+
+
+@users_bp.route("/users", methods=["GET"])
+@require_auth
+@require_role("admin")
+def list_users_endpoint():
+    """
+    List all users (admin only).
+
+    Endpoint:
+        GET /api/users
+
+    Responses:
+        200: { "items": [ ... ] }
+        403: { "error": "..." }
+        500: { "error": "Internal server error" }
+    """
+    try:
+        users = list_users(current_user=g.user)
+        return jsonify({"items": users}), 200
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+    except Exception:
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 
 @users_bp.route("/users", methods=["POST"])
