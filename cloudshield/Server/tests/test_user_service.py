@@ -238,15 +238,18 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        self_id = admin_user["id"]  # must be a valid ObjectId string
+        # Use a valid ObjectId string for the admin's id for this test
+        self_id = "507f1f77bcf86cd799439011"
+        admin_user["id"] = self_id  # mutate the fixture dict for this test
 
-        # Make DB return a user document matching the admin
         existing_user = {
             "_id": ObjectId(self_id),
             "email": "admin@example.com",
             "role": "employee",              # role doesn't matter for self-delete guard
             "org_id": admin_user["org_id"],
         }
+
+        # Make DB return the "self" user
         mocks["users_admin"].find_one.side_effect = None
         mocks["users_admin"].find_one.return_value = existing_user
 
