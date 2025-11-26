@@ -41,6 +41,9 @@ echo "krb5-config krb5-config/admin_server string kerberos.example.com" |  debco
 
 # --- Provision Samba Domain Controller ---
 #if enx0 samba will listen on local host only
+ip link set dev eth0 down
+ip link set dev eth0 name enX0
+ip link set dev enX0 up
 echo "Provisioning Samba DC..."
   samba-tool domain provision \
   --use-rfc2307 \
@@ -49,7 +52,7 @@ echo "Provisioning Samba DC..."
   --server-role=dc \
   --dns-backend=SAMBA_INTERNAL \
   --adminpass="${dc_admin_password}" \
-  --option="interfaces=lo enX0" \
+  --option="interfaces=lo enX0 eth0" \
   --option="bind interfaces only=yes"
 
 # --- Copy Kerberos config ---
@@ -244,6 +247,10 @@ EOFLDIF
         fi
     fi
 fi
+
+echo "Starting ssh daemon"
+mkdir /var/run/sshd
+/usr/sbin/sshd
 
 echo ""
 echo "=== Samba Domain Controller Setup Complete ==="

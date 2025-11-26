@@ -8,8 +8,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 RUN apt-get update && \
     apt-get install -qq -y --no-install-recommends \
-      samba-ad-dc samba-ad-provision systemd krb5-user bind9-dnsutils dnsutils && \
+      samba-ad-dc samba-ad-provision systemd krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim && \
     rm -rf /var/lib/apt/lists/*
+
+# Setup for ssh daemon
+RUN mkdir /var/run/sshd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
 
 # Make directories for Samba
 RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
@@ -19,13 +24,13 @@ COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose ports needed by AD DC
-EXPOSE 53 53/udp \
-       88 88/udp \
-       135 \
-       139 445 \
-       464 464/udp \
-       389 636 \
-       3268 3269
+#EXPOSE 53 53/udp \
+#       88 88/udp \
+#       135 \
+#       139 445 \
+#       464 464/udp \
+#       389 636 \
+#       3268 3269
 
 # Use volumes for persistence
 #VOLUME ["/var/lib/samba", "/etc/samba", "/var/log/samba"]

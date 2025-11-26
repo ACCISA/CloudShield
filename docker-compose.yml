@@ -22,15 +22,19 @@ services:
       - "5050:5050"
     volumes:
       - ./logs:/app/logs
+
   openvpn-test:
     build:
       context: .
-      dockerifle: docker/Dockerfile.openvpn_test
+      dockerfile: docker/Dockerfile.openvpn_test
     container_name: cs-openvpn-test
     environment:
       - openvpn_port=1194
       - openvpn_protocol=udp
       - openvpn_client_name=client1
+    networks:
+      vpc_net:
+        ipv4_address: 172.25.0.12
     
   samba-test:
     build:
@@ -45,9 +49,13 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     command: /lib/systemd/systemd
     environment:
-      - domain_name=CLOUDSHIELD
-      - dc_admin_password="4162728abb29acc12090e6432cdb6fd8%$@!"
-      - realm_name=CLOUDSHIELD.LOCAL
+      - domain_name=${DOMAIN_NAME}
+      - dc_admin_password=${DC_ADMIN_PASSWORD}
+      - realm_name=${REALM_NAME}
+    networks:
+      vpc_net:
+        ipv4_address: 172.25.0.10
+
   api-test:
     build:
       context: .
@@ -59,11 +67,11 @@ services:
       - CLOUDSHIELD_REDIS_HOST=redis
     depends_on:
       - redis
-      - samba-test
     ports:
       - "5050:5050"
     volumes:
       - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
 
 
   elasticsearch:
@@ -156,6 +164,12 @@ services:
       - ui_node_modules:/app/node_modules
 
 networks:
+  vpc_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/24
   cloudshield_net:
     driver: bridge
     ipam:
