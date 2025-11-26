@@ -3,12 +3,19 @@ import socket
 import threading
 import re
 import time
+import uuid
+import base64
 from rq import get_current_job
 from .forward import forward_tunnel
 
 from utils import get_logger, get_inventory_from_org_id
 from services.user_service import persist_domain_user
 from models import Inventory
+
+def short_uuid():
+    # Generate UUID4 and encode it in URL-safe Base64
+    return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
+
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
@@ -194,7 +201,7 @@ def dc_add_user(org_id: str, username: str, password: str):
     #if no stderr, the command succeeded, the data can be persisted
     if not result.stderr:
         logger.info("User added to samba ad-dc")
-        domain_user_id = persist_domain_user(org_id, username, password, "temp@email.com")
+        domain_user_id = persist_domain_user(org_id, username, password, str(short_uuid())+"@gmail.com")
         logger.info(f"Domain user persisted with id: {domain_user_id}")
 
 

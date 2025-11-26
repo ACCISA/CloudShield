@@ -47,8 +47,8 @@ def create_app() -> Flask:
 
 from flask_cors import CORS
 
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 app = create_app()
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
 
 # Helpers

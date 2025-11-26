@@ -22,6 +22,49 @@ services:
       - "5050:5050"
     volumes:
       - ./logs:/app/logs
+  openvpn-test:
+    build:
+      context: .
+      dockerifle: docker/Dockerfile.openvpn_test
+    container_name: cs-openvpn-test
+    environment:
+      - openvpn_port=1194
+      - openvpn_protocol=udp
+      - openvpn_client_name=client1
+    
+  samba-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.samba_test
+    container_name: cs-samba-test
+    privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: /lib/systemd/systemd
+    environment:
+      - domain_name=CLOUDSHIELD
+      - dc_admin_password="4162728abb29acc12090e6432cdb6fd8%$@!"
+      - realm_name=CLOUDSHIELD.LOCAL
+  api-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api_test
+    container_name: cs-api-test
+    environment:
+      - MONGO_URL=${MONGO_URL}
+      - MONGO_DB=${MONGO_DB}
+      - CLOUDSHIELD_REDIS_HOST=redis
+    depends_on:
+      - redis
+      - samba-test
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./logs:/app/logs
+
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
@@ -44,8 +87,6 @@ services:
     environment:
       ES_URL: "http://elasticsearch:9200"
       CLOUDSHIELD_RUNTIME: "1"
-    depends_on:
-      - elasticsearch
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.10
@@ -111,7 +152,7 @@ services:
     ports:
       - "5173:5173"                    # Vite dev server
     volumes:
-      - ./WebUI:/app                   # live reload your source
+      - ./cloudshield/WebUI:/app                   # live reload your source
       - ui_node_modules:/app/node_modules
 
 networks:

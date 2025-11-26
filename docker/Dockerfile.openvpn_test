@@ -1,0 +1,3 @@
+FROM ubuntu:latest
+
+#TODO call setup_openvpn script and complete container setup for vpn container

@@ -181,9 +181,9 @@ class GetProcessListTask(BaseTask):
                         threads = proc_info_data["threads"]
                 )
 
-                task_logger.debug(f"open_files: {proc_info_data['open_files']}")
-                task_logger.debug(f"memory_maps: {proc_info_data['memory_maps']}")
-                task_logger.debug(f"threads: {proc_info_data['threads']}")
+                #task_logger.debug(f"open_files: {proc_info_data['open_files']}")
+                #task_logger.debug(f"memory_maps: {proc_info_data['memory_maps']}")
+                #task_logger.debug(f"threads: {proc_info_data['threads']}")
 
                 process_info.append(proc_info)
             
