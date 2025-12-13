@@ -1,5 +1,7 @@
 FROM ubuntu:latest
 
+ARG ORG_ID
+
 # This dockerfile will mimic a cloud provisioned samba ad dc
 
 # Prevent interactive prompts during package installation
@@ -13,14 +15,19 @@ RUN apt-get update && \
 
 # Setup for ssh daemon
 RUN mkdir /var/run/sshd \
-    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
 
 # Make directories for Samba
 RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
 
 # Copy entrypoint script
 COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose ports needed by AD DC

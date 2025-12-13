@@ -1,3 +1,15 @@
-FROM ubuntu:latest
+FROM kylemanna/openvpn
 
-#TODO call setup_openvpn script and complete container setup for vpn container
+# This dockerfile will mimic a cloud provisioned samba ad dc
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY docker/openvpn /etc/openvpn
+
+# Copy entrypoint script
+COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/bin/bash"]

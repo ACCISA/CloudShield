@@ -4,6 +4,8 @@ services:
     command: ["redis-server", "--stop-writes-on-bgsave-error", "no"]
     ports:
       - "6379:6379"
+    networks:
+      vpc_net: 
   api:
     build:
       context: .
@@ -15,7 +17,7 @@ services:
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
-      - CLOUDSHIELD_REDIS_HOST=redis
+      - CLOUDSHIELD_REDIS_HOST=172.28.0.1
     depends_on:
       - redis
     ports:
@@ -27,18 +29,25 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.openvpn_test
-    container_name: cs-openvpn-test
-    environment:
-      - openvpn_port=1194
-      - openvpn_protocol=udp
-      - openvpn_client_name=client1
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     networks:
-      vpc_net:
-        ipv4_address: 172.25.0.12
+      - vpc_net
+    environment:
+      - openvpn_port=${OPENVPN_PORT}
+      - openvpn_protocol=${OPENVPN_PROTOCOL}
+      - openvpn_client_name=${OPENVPN_CLIENT_NAME}
+
+    volumes:
+      - ./docker/openvpn:/etc/openvpn
     
   samba-test:
     build:
       context: .
+      args:
+        - ORG_ID=${DOMAIN_NAME}
       dockerfile: docker/Dockerfile.samba_test
     container_name: cs-samba-test
     privileged: true
@@ -54,7 +63,7 @@ services:
       - realm_name=${REALM_NAME}
     networks:
       vpc_net:
-        ipv4_address: 172.25.0.10
+        ipv4_address: 172.23.0.10
 
   api-test:
     build:
@@ -64,11 +73,13 @@ services:
     environment:
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
-      - CLOUDSHIELD_REDIS_HOST=redis
+      - CLOUDSHIELD_REDIS_HOST=172.28.0.1
     depends_on:
       - redis
     ports:
       - "5050:5050"
+    networks: # for a dev env we will pretent that the API has access to the VPC somehow
+      - vpc_net
     volumes:
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
@@ -165,6 +176,7 @@ services:
 
 networks:
   vpc_net:
+    external: true
     driver: bridge
     ipam:
       driver: default

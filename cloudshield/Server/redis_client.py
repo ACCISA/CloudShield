@@ -3,7 +3,7 @@ import redis
 from rq import Queue
 
 # Allow configuring Redis connection & default job timeout via environment
-REDIS_HOST = os.getenv("CLOUDSHIELD_REDIS_HOST", "localhost")
+REDIS_HOST = os.getenv("CLOUDSHIELD_REDIS_HOST", "172.28.0.1")
 REDIS_PORT = int(os.getenv("CLOUDSHIELD_REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("CLOUDSHIELD_REDIS_DB", "0"))
 
