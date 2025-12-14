@@ -141,6 +141,7 @@ Cloudshield will hold all necessary files and states in /var/lib/cloudshield/
 To optimize resource utilization and developer feedback loops, all development and testing of domain-controller-interacting APIs is performed locally using containerized environments (Docker). For provisioning, we now utilize a custom script via the provision endpoint, effectively replacing the cloud-based Terraform provisioner. This mechanism facilitates the rapid deployment of necessary containers, decoupling the development process from cloud infrastructure provisioning latency, thereby ensuring a quicker, more cost-effective development workflow.
 
 ```
+docker network create --driver bridge --subnet 172.23.0.0/24 vpc_net
 docker compose build api-test
 docker compose run api-test
 ```
