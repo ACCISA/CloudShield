@@ -134,6 +134,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             if job:
                 job.meta["details"] = details
                 job.save_meta()
+            logger.error(details)
             return {"message": "Provisioning failed", "details": details}
         
         # Keeps orchestration clean, makes mapping/DB writes available to other tasks.

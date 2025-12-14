@@ -30,6 +30,12 @@ COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# we created a fake sudo script for comaptibilty between docker and cloud dev/testing
+RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
+    echo 'exec "$@"' >> /usr/local/bin/sudo
+
+RUN chmod +x /usr/local/bin/sudo
+
 # Expose ports needed by AD DC
 #EXPOSE 53 53/udp \
 #       88 88/udp \

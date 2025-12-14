@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 import subprocess
 from python_on_whales import DockerClient
 from pathlib import Path
@@ -48,6 +49,11 @@ def setup_ssh_keys(server_logger, private_key_path):
 
     os.chmod(public_key_path, 0o600)
     os.chmod(private_key_path, 0o600)
+
+    # to match expectations from prod we add .pem extension to our private key
+    os.rename(private_key_path, private_key_path+".pem")
+        
+    private_key_path=private_key_path+".pem"
     
     server_logger.info("SSH Key generation complete")
     return public_key_path, private_key_path
@@ -58,7 +64,7 @@ def setup_ssh_keys(server_logger, private_key_path):
 # MAIN
 def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
     
-    cloudshield_path = Path("/var/lib/cloudshield/generated/"+str(org_id))
+    cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/"+str(org_id))
 
     try:
         cloudshield_path.mkdir(parents=True, exist_ok=True)
@@ -131,6 +137,48 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     server_logger.info("Initlializing PKI infra and certs...")
 
     server_logger.info("PKI initialized successfully")
+
+    metadata = [{
+        "org_id": org_id,
+        "name": org_id+"_samba",
+        "instance_id": container_id,
+        "vpc_id": "vpc_net_docker",
+        "subnet_id": "subnet_id",
+        "ssh_key": org_id+"_key",
+        "ami_id": "samba_ami_id",
+        "os": "ubuntu:22.04",
+        "cpu": "2",
+        "ram_gb":"4",
+        "storage_size_gb":10,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "ports": ["80","169"],
+        "status": "running",
+        "private_ip": "172.23.0.10",
+        "public_ip": "172.23.0.10",
+    },{
+        "org_id": org_id,
+        "name": org_id+"_openvpn_server",
+        "instance_id": container_id,
+        "vpc_id": "vpc_net_docker",
+        "subnet_id": "subnet_id",
+        "ssh_key": org_id+"_key",
+        "ami_id": "samba_ami_id",
+        "os": "ubuntu:22.04",
+        "cpu": "2",
+        "ram_gb":"4",
+        "storage_size_gb":10,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "ports": ["80","169"],
+        "status": "running",
+        "private_ip": "172.23.0.10",
+        "public_ip": "172.23.0.10"
+    }]
+ 
+
+
+    return metadata
 
 
 def get_target_dir():

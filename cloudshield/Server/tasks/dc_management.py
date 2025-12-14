@@ -129,6 +129,7 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     if exec_ssh_config.failed is True:
         logger.error("Database does not contain the necessary data for task management") 
+        return None
 
     jump_host       = exec_ssh_config.vpn_ip
     dc_host         = exec_ssh_config.dc_priv_ip
@@ -137,12 +138,12 @@ def exec_ssh(org_id: str, command: str, logger=None):
     local_port      = get_available_local_port()
     target_port     = 22
 
-    logger.info(f"Fetched VPN IPv4: {jump_host}")
     
+    logger.info(f"Fetched VPN info (ipv4={jump_host}, key_filename={jump_key}")
     # Connect to the openvpn server
     jump_client = paramiko.SSHClient()
     jump_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    jump_client.connect(jump_host, username="ubuntu", key_filename=jump_key)
+    jump_client.connect(jump_host, username="root", key_filename=jump_key)
 
     transport = jump_client.get_transport()
 
@@ -153,7 +154,7 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     dc_client = paramiko.SSHClient()
     dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    dc_client.connect("127.0.0.1", port=local_port, username="ubuntu", key_filename=jump_key)
+    dc_client.connect("127.0.0.1", port=local_port, username="root", key_filename=jump_key)
 
     logger.info("Connected to dc through SSH tunnel")
 
@@ -195,6 +196,14 @@ def dc_add_user(org_id: str, username: str, password: str):
     command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"
 
     result = exec_ssh(org_id, command, logger=logger)
+    
+    if result is None:
+        details = "Failed to connect to internal infrastructure"
+        job.meta["progress"] = details
+        job.save_meta()
+        return {"message":details}
+
+
     logger.info(result.stdout)
     logger.info(result.stderr)
 
