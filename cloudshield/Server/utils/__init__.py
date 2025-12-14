@@ -8,7 +8,7 @@ from .audit import log_audit as log_audit
 from .audit import audit_bp as audit_bp
 from .progress import set_progress, get_job_id_fallback
 from .shell import run_stream
-
+from .terraform import get_workstation_count
 __all__ = [
     "get_logger",
     "users_admin",
@@ -21,4 +21,5 @@ __all__ = [
     "set_progress",
     "get_job_id_fallback",
     "run_stream",
+    "get_workstation_count",
 ]
