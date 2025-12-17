@@ -14,3 +14,4 @@ bcrypt
 paramiko
 flask_cors
 python-on-whales
+bson

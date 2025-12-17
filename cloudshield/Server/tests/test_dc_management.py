@@ -313,7 +313,14 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     dc_add_user("test_org", "testuser", "Password123!")
 
     # Assert persist_domain_user was called with correct args
-    mock_persist.assert_called_once_with("test_org", "testuser", "Password123!", "temp@email.com")    # Assert logger logged the persisted user_id
+    mock_persist.assert_called_once()
+    called_args = mock_persist.call_args
+
+    assert called_args[0][0] == "test_org"
+    assert called_args[0][1]== "testuser"
+    assert called_args[0][2] == "Password123!"
+    assert "@gmail.com" in called_args[0][3]
+
     assert any("user_mongo_id_123" in str(call) for call in mock_logger.info.call_args_list)
 
 
