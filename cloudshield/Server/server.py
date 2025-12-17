@@ -12,6 +12,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
+from flask_cors import CORS
 
 def _coerce_exception_class(candidate, name: str):
     """Ensure an imported exception reference is a proper Exception subclass.
@@ -77,7 +78,6 @@ def create_app() -> Flask:
 
 
 
-from flask_cors import CORS
 
 app = create_app()
 CORS(app, origins=["http://localhost:5173"], supports_credentials=True)

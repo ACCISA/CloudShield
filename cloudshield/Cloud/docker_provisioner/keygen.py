@@ -45,7 +45,7 @@ def generate_ssh_key_pair(private_key_path="id_rsa", passphrase=None):
         f.write(pem_private)
 
     public_key_path = private_key_path + ".pub"
-    comment = f"user@host"
+    comment = "user@host"
 
     ssh_public_key = public_key.public_bytes(
         serialization.Encoding.OpenSSH,
@@ -100,7 +100,7 @@ def generate_ed25519_ssh_key(private_key_path="id_ed25519", passphrase=None):
     with open(private_key_path, "wb") as f:
         f.write(pem_private)
 
-    comment = f"dev@cloudshield"
+    comment = "dev@cloudshield"
     
     raw_public_bytes = public_key.public_bytes(
         encoding=serialization.Encoding.Raw,

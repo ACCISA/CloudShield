@@ -20,7 +20,7 @@ docker.compose.build(
 # Copy a file to a container
 def copy_file_container(server_logger, container_id, path_in, path_out):
     try:
-        result = subprocess.run(
+        subprocess.run(
                 ["docker","cp",path_in,container_id+":"+path_out],
                 capture_output=True,
                 text=True,
@@ -69,7 +69,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     try:
         cloudshield_path.mkdir(parents=True, exist_ok=True)
         server_logger.info("Cloudshield data directory created (or already exists)")
-    except Exception as e:
+    except Exception:
         server_logger.error("Failed to create cloudshield work directory")
         return
 
@@ -121,7 +121,6 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     
     server_logger.info("Generating opevpn server configuration")
 
-    volume_mount = [(OVPN_VOLUME_NAME, "/etc/openvpn")]
 
     #docker.compose.run(
     #        service="openvpn-test",
