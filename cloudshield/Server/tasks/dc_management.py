@@ -213,4 +213,11 @@ def dc_add_user(org_id: str, username: str, password: str):
         domain_user_id = persist_domain_user(org_id, username, password, str(short_uuid())+"@gmail.com")
         logger.info(f"Domain user persisted with id: {domain_user_id}")
 
-    return {"message":"User was successfully added"}
+    if "added successfully" in result.stdout:
+        return {"status": "SUCCESS","message":"User was successfully added"}
+    if "already exists":
+        return {"status": "DUPLICATE","message":"User already exists"}
+    if "Failed to add user" in result.stderr:
+        return {"status": "FAILED","message":"Failed to add user"}
+
+    return {"message":"Unexpected response"}

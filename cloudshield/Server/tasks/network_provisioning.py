@@ -123,6 +123,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
 
 # Full Network Provisioning Task
 def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
+
     """
     Provisions the full network using Terraform templates.
     Isolates progress, mapping, and DB writes via helpers for reuse.
