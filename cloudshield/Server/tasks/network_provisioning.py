@@ -5,22 +5,59 @@ This module handles AWS infrastructure provisioning and destruction using Terraf
 Expects the provisioner module to be available in the same directory (configured
 via Docker volume mounts in docker-compose.yml).
 """
-from rq import get_current_job
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
-from provisioner import provision_network_terraform, get_target_dir  # noqa: E402
-from provisioner import destroy as destroy_infra  # noqa: E402
-from cloudshield.Server.utils import (
-    get_logger,
-    db,
-    set_progress,
-    get_job_id_fallback,
-    run_stream
-)
-from cloudshield.Server.adapters import map_metadata_to_ec2_instances
-from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+from rq import get_current_job
+
+try:
+    from cloudshield.Server.utils import (
+        get_logger,
+        db,
+        set_progress,
+        get_job_id_fallback,
+        run_stream,
+        get_workstation_count
+    )
+    from cloudshield.Server.adapters import map_metadata_to_ec2_instances
+    from cloudshield.Server.repos import insert_inventory, delete_inventory_by_org
+except ImportError:  # pragma: no cover - executed only in alternative packaging layouts
+    try:
+        from ..utils import (
+            get_logger,
+            db,
+            set_progress,
+            get_job_id_fallback,
+            run_stream,
+            get_workstation_count,
+        )
+        from ..adapters import map_metadata_to_ec2_instances
+        from ..repos import insert_inventory, delete_inventory_by_org
+    except ImportError:  # pragma: no cover - final fallback used in Docker image only
+        from utils import get_logger  # type: ignore
+        from utils import db  # type: ignore
+        from utils import set_progress  # type: ignore
+        from utils import get_job_id_fallback  # type: ignore
+        from utils import run_stream  # type: ignore
+        from utils import get_workstation_count  # type: ignore
+        from adapters import map_metadata_to_ec2_instances  # type: ignore
+        from repos import insert_inventory, delete_inventory_by_org  # type: ignore
+
+try:
+    import cloudshield.Cloud.provisioner.provision as _provision_mod
+    import cloudshield.Cloud.provisioner.destroy_infra as _destroy_mod
+except ImportError:  # pragma: no cover - provisioner only available in Terraform image
+    # Fallback for Docker image where modules sit alongside this file
+    try:
+        import provision as _provision_mod  # type: ignore[import]
+        import destroy_infra as _destroy_mod  # type: ignore[import]
+    except ImportError as error:  # pragma: no cover - guard for misconfigured packaging
+        raise ImportError("Provisioner modules are not available") from error
+
+provision_network_terraform = _provision_mod.provision_network_terraform
+get_target_dir = _provision_mod.get_target_dir
+destroy_infra = _destroy_mod.destroy
 
 
 """
@@ -36,7 +73,41 @@ run: sudo docker-compose up api
 _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
-# Network Provisioning Tasks
+
+def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
+    """Run a shell command yielding output lines and raising on nonzero exit."""
+    if logger is None:
+        logger = _module_logger
+    
+    logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
+    
+    all_output = []  # Capture everything
+    
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        stripped = line.rstrip()
+        all_output.append(stripped)  # Save it
+        logger.debug("[cmd output] %s", stripped)
+        yield stripped
+    
+    proc.wait()
+    if proc.returncode != 0:
+        logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
+        # Log the last 30 lines before failure
+        logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+    
+    logger.debug("Command succeeded: %s", " ".join(cmd))
+
+
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
     Provisions only the workstations via Terraform.
@@ -57,16 +128,10 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
-    initial_count = 0
     # Run terraform apply for workstations only
     try:
         set_progress("terraform get init workstation count")
-        try:
-            count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
-            output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
-            initial_count = int(output.strip())
-        except subprocess.CalledProcessError as e:
-            logger.info("[TASK] No existing workstations found for org %s: %s", org_id, e)
+        initial_count = get_workstation_count(org_id, env=env)
         logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
         set_progress("terraform apply workstations")
         logger.info("[TASK] Running terraform apply for org %s", org_id)

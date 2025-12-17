@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import logging
 
-import provision as terraform_main
+import cloudshield.Cloud.provisioner.provision as terraform_main
 
 def test_copy_and_replace_templates_replaces_org_id(tmp_path):
     templates = tmp_path / "templates"

@@ -435,3 +435,121 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
                    json={"email": "test2@test.com", "password": "ValidPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Test"})
     assert r.status_code == 403
     assert "admin_only" in r.get_json()["error"]
+
+
+def test_list_users_error_handling(app_and_client, monkeypatch):
+    """List users endpoint should surface permission and server errors."""
+    _, client = app_and_client
+    users_routes = importlib.import_module("cloudshield.Server.routes.users")
+
+    def _raise_permission(current_user):
+        raise PermissionError("admin_only")
+
+    monkeypatch.setattr(users_routes, "list_users", _raise_permission, raising=True)
+    resp = client.get("/users", headers={"Authorization": "Bearer admin:org_001:u1"})
+    assert resp.status_code == 403
+    assert resp.get_json()["error"] == "admin_only"
+
+    def _raise_generic(current_user):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(users_routes, "list_users", _raise_generic, raising=True)
+    resp2 = client.get("/users", headers={"Authorization": "Bearer admin:org_001:u1"})
+    assert resp2.status_code == 500
+    assert resp2.get_json()["error"] == "Internal server error"
+
+
+def test_create_user_validation_and_server_errors(app_and_client, monkeypatch):
+    """Ensure create endpoint handles validation and server failures."""
+    _, client = app_and_client
+    users_routes = importlib.import_module("cloudshield.Server.routes.users")
+
+    # Missing required fields should trigger validation error
+    resp = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"}, json={})
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "Validation failed"
+
+    def _raise_generic(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    body = {
+        "email": "ok@test.com",
+        "password": "StrongPassword1!",
+        "org_id": "org_001",
+        "role": "employee",
+        "full_name": "Ok User"
+    }
+    monkeypatch.setattr(users_routes, "create_user", _raise_generic, raising=True)
+    resp2 = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"}, json=body)
+    assert resp2.status_code == 500
+    assert resp2.get_json()["error"] == "Internal server error"
+
+
+def test_update_user_server_errors(app_and_client, monkeypatch):
+    """Update endpoint should surface unexpected errors as 500."""
+    _, client = app_and_client
+    users_routes = importlib.import_module("cloudshield.Server.routes.users")
+
+    def _raise_generic(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(users_routes, "update_user", _raise_generic, raising=True)
+    resp = client.patch("/users/42", headers={"Authorization": "Bearer admin:org_001:u1"}, json={"full_name": "New"})
+    assert resp.status_code == 500
+    assert resp.get_json()["error"] == "Internal server error"
+
+
+def test_deactivate_and_delete_server_errors(app_and_client, monkeypatch):
+    """Deactivate/delete endpoints should map unexpected errors to 500."""
+    _, client = app_and_client
+    users_routes = importlib.import_module("cloudshield.Server.routes.users")
+
+    def _raise_deactivate(*args, **kwargs):
+        raise RuntimeError("fail")
+
+    monkeypatch.setattr(users_routes, "deactivate_user", _raise_deactivate, raising=True)
+    resp = client.post("/users/42/deactivate", headers={"Authorization": "Bearer admin:org_001:u1"})
+    assert resp.status_code == 500
+    assert resp.get_json()["error"] == "Internal server error"
+
+    def _raise_delete(*args, **kwargs):
+        raise RuntimeError("fail")
+
+    monkeypatch.setattr(users_routes, "delete_user", _raise_delete, raising=True)
+    resp2 = client.delete("/users/42", headers={"Authorization": "Bearer admin:org_001:u1"})
+    assert resp2.status_code == 500
+    assert resp2.get_json()["error"] == "Internal server error"
+
+
+def test_extract_reason_precedence(app_and_client, monkeypatch):
+    """Verify _extract_reason prefers body over query and trims whitespace."""
+    _, client = app_and_client
+    users_routes = importlib.import_module("cloudshield.Server.routes.users")
+
+    captured = {}
+
+    def _capture_delete(user_id, current_user, reason=None):
+        captured["body_reason"] = reason
+        return True
+
+    monkeypatch.setattr(users_routes, "delete_user", _capture_delete, raising=True)
+    resp = client.delete(
+        "/users/123?reason=query",
+        headers={"Authorization": "Bearer admin:org_001:u1"},
+        json={"reason": "  body reason  "}
+    )
+    assert resp.status_code == 200
+    assert captured["body_reason"] == "body reason"
+
+    def _capture_delete_query(user_id, current_user, reason=None):
+        captured["query_reason"] = reason
+        return True
+
+    monkeypatch.setattr(users_routes, "delete_user", _capture_delete_query, raising=True)
+    resp2 = client.delete(
+        "/users/123?reason=query%20only",
+        headers={"Authorization": "Bearer admin:org_001:u1"},
+        json={}
+    )
+    assert resp2.status_code == 200
+    assert captured["query_reason"] == "query only"

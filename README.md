@@ -1,7 +1,7 @@
 # CloudShield – SOEN 490 Capstone Project
 
 ## Continuous Integration (CI)
-_To be added…_
+This project uses **GitHub Actions** for automated CI on all pull requests and pushes to `main`. The pipeline builds both the **React frontend** and **Python backend** using **Docker Compose** to ensure consistent local environments, runs **Jest** and **Pytest** test suites, and performs **SonarCloud** analysis for code quality and coverage. While deployment to AWS is planned for future stages, the current CI ensures stable builds, reproducible tests, and continuous feedback on every code change.
 
 ---
 
@@ -11,7 +11,7 @@ Planned milestones tied to architecture and deployment deliverables:
 
 | Deliverable   | Due Date           | Link to Demo Video |
 |---------------|-------------------|--------------------|
-| Release 1     | November 10th, 2025 | [...]              |
+| Release 1     | November 10th, 2025 | [Release 1 Presentation](https://drive.google.com/file/d/1rAsPDtUeL0hQ-TLDfsKU7SzleGgU_tOf/view?usp=sharing)     |
 | Release 2     | January 26th, 2026 | [...]              |
 | Final Release | April 13th, 2026   | [...]              |
 
@@ -141,6 +141,7 @@ Cloudshield will hold all necessary files and states in /var/lib/cloudshield/
 To optimize resource utilization and developer feedback loops, all development and testing of domain-controller-interacting APIs is performed locally using containerized environments (Docker). For provisioning, we now utilize a custom script via the provision endpoint, effectively replacing the cloud-based Terraform provisioner. This mechanism facilitates the rapid deployment of necessary containers, decoupling the development process from cloud infrastructure provisioning latency, thereby ensuring a quicker, more cost-effective development workflow.
 
 ```
+docker network create --driver bridge --subnet 172.23.0.0/24 vpc_net
 docker compose build api-test
 docker compose run api-test
 ```
