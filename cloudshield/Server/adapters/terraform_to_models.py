@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Iterable, List, Dict, Any
-from ..models import EC2Instance
+from models import EC2Instance
 
 def map_metadata_to_ec2_instances(metadata: Iterable[Dict[str, Any]]) -> List[EC2Instance]:
     """

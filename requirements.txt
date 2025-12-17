@@ -1,5 +1,4 @@
 pytest
-bson
 schedule
 pytest-cov
 psutil
