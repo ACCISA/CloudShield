@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package infra_service.v1;
+
+enum Status {
+        SUCCESS = 0;
+        FAILED = 1;
+        DUPLICATE = 2;
+}
+
+message AddDomainUserData {
+        string username = 1;
+        string password = 2;
+}
+
+message AddDomainUserDataAck {
+        Status status    = 1;
+        string result   = 2;
+}
+
+message RemoveDomainUserData {
+        string username = 1;
+}
+
+message RemoveDomainUserDataAck {
+        Status status    = 1;
+        string result   = 2;
+}
+
+service InfraService {
+        rpc AddDomainUser(AddDomainUserData) returns (AddDomainUserDataAck);
+        rpc RemoveDomainUser(RemoveDomainUserData) returns (RemoveDomainUserDataAck);
+}
