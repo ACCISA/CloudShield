@@ -2,6 +2,11 @@
 
 The **RPCNode** is the core C++ server running on our infrastructure nodes. It executes system-level tasks dispatched by the API. This guide explains the component's architecture and demonstrates how to implement a task, such as adding a user to a Domain Controller.
 
+## Usage
+
+For OPENVPN nodes: ./protobuf -vpn 
+For DOMAIN_CONTROLLER nodeS: ./protobuf -samba
+
 ## ServerNode Architecture
 
 We currently utilize two distinct node types:
