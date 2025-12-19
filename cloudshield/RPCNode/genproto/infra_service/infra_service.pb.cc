@@ -82,6 +82,58 @@ struct RemoveDomainUserDataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveDomainUserDataDefaultTypeInternal _RemoveDomainUserData_default_instance_;
 
+inline constexpr CreateSambaFileShareDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateSambaFileShareDataAck::CreateSambaFileShareDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateSambaFileShareDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateSambaFileShareDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateSambaFileShareDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateSambaFileShareDataAckDefaultTypeInternal() {}
+  union {
+    CreateSambaFileShareDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSambaFileShareDataAckDefaultTypeInternal _CreateSambaFileShareDataAck_default_instance_;
+
+inline constexpr CreateSambaFileShareData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        share_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateSambaFileShareData::CreateSambaFileShareData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateSambaFileShareData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateSambaFileShareDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateSambaFileShareDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateSambaFileShareDataDefaultTypeInternal() {}
+  union {
+    CreateSambaFileShareData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSambaFileShareDataDefaultTypeInternal _CreateSambaFileShareData_default_instance_;
+
 inline constexpr AddDomainUserDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -174,6 +226,16 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::RemoveDomainUserDataAck, _impl_.result_),
         1,
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareData, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareData, _impl_.share_name_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareDataAck, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareDataAck, _impl_.status_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -182,12 +244,16 @@ static const ::_pbi::MigrationSchema
         {7, sizeof(::infra_service::v1::AddDomainUserDataAck)},
         {14, sizeof(::infra_service::v1::RemoveDomainUserData)},
         {19, sizeof(::infra_service::v1::RemoveDomainUserDataAck)},
+        {26, sizeof(::infra_service::v1::CreateSambaFileShareData)},
+        {31, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
     &::infra_service::v1::_AddDomainUserDataAck_default_instance_._instance,
     &::infra_service::v1::_RemoveDomainUserData_default_instance_._instance,
     &::infra_service::v1::_RemoveDomainUserDataAck_default_instance_._instance,
+    &::infra_service::v1::_CreateSambaFileShareData_default_instance_._instance,
+    &::infra_service::v1::_CreateSambaFileShareDataAck_default_instance_._instance,
 };
 const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -198,26 +264,32 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "ervice.v1.Status\022\016\n\006result\030\002 \001(\t\"(\n\024Remo"
     "veDomainUserData\022\020\n\010username\030\001 \001(\t\"S\n\027Re"
     "moveDomainUserDataAck\022(\n\006status\030\001 \001(\0162\030."
-    "infra_service.v1.Status\022\016\n\006result\030\002 \001(\t*"
-    "0\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDU"
-    "PLICATE\020\0022\323\001\n\014InfraService\022\\\n\rAddDomainU"
-    "ser\022#.infra_service.v1.AddDomainUserData"
-    "\032&.infra_service.v1.AddDomainUserDataAck"
-    "\022e\n\020RemoveDomainUser\022&.infra_service.v1."
-    "RemoveDomainUserData\032).infra_service.v1."
-    "RemoveDomainUserDataAckb\006proto3"
+    "infra_service.v1.Status\022\016\n\006result\030\002 \001(\t\""
+    ".\n\030CreateSambaFileShareData\022\022\n\nshare_nam"
+    "e\030\001 \001(\t\"G\n\033CreateSambaFileShareDataAck\022("
+    "\n\006status\030\001 \001(\0162\030.infra_service.v1.Status"
+    "*0\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tD"
+    "UPLICATE\020\0022\306\002\n\014InfraService\022q\n\024CreateSam"
+    "baFileShare\022*.infra_service.v1.CreateSam"
+    "baFileShareData\032-.infra_service.v1.Creat"
+    "eSambaFileShareDataAck\022\\\n\rAddDomainUser\022"
+    "#.infra_service.v1.AddDomainUserData\032&.i"
+    "nfra_service.v1.AddDomainUserDataAck\022e\n\020"
+    "RemoveDomainUser\022&.infra_service.v1.Remo"
+    "veDomainUserData\032).infra_service.v1.Remo"
+    "veDomainUserDataAckb\006proto3"
 };
 static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    591,
+    827,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
     nullptr,
     0,
-    4,
+    6,
     schemas,
     file_default_instances,
     TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
@@ -1391,6 +1463,503 @@ void RemoveDomainUserDataAck::InternalSwap(RemoveDomainUserDataAck* PROTOBUF_RES
 }
 
 ::google::protobuf::Metadata RemoveDomainUserDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateSambaFileShareData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateSambaFileShareData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_._has_bits_);
+};
+
+CreateSambaFileShareData::CreateSambaFileShareData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSambaFileShareData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.CreateSambaFileShareData)
+}
+PROTOBUF_NDEBUG_INLINE CreateSambaFileShareData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::CreateSambaFileShareData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        share_name_(arena, from.share_name_) {}
+
+CreateSambaFileShareData::CreateSambaFileShareData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateSambaFileShareData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSambaFileShareData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateSambaFileShareData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.CreateSambaFileShareData)
+}
+PROTOBUF_NDEBUG_INLINE CreateSambaFileShareData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        share_name_(arena) {}
+
+inline void CreateSambaFileShareData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+CreateSambaFileShareData::~CreateSambaFileShareData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.CreateSambaFileShareData)
+  SharedDtor(*this);
+}
+inline void CreateSambaFileShareData::SharedDtor(MessageLite& self) {
+  CreateSambaFileShareData& this_ = static_cast<CreateSambaFileShareData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.share_name_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateSambaFileShareData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateSambaFileShareData(arena);
+}
+constexpr auto CreateSambaFileShareData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateSambaFileShareData),
+                                            alignof(CreateSambaFileShareData));
+}
+constexpr auto CreateSambaFileShareData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateSambaFileShareData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateSambaFileShareData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateSambaFileShareData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateSambaFileShareData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateSambaFileShareData>(), &CreateSambaFileShareData::ByteSizeLong,
+              &CreateSambaFileShareData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_._cached_size_),
+          false,
+      },
+      &CreateSambaFileShareData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateSambaFileShareData_class_data_ =
+        CreateSambaFileShareData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateSambaFileShareData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateSambaFileShareData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateSambaFileShareData_class_data_.tc_table);
+  return CreateSambaFileShareData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 60, 2>
+CreateSambaFileShareData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateSambaFileShareData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::CreateSambaFileShareData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string share_name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string share_name = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_name_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\51\12\0\0\0\0\0\0"
+    "infra_service.v1.CreateSambaFileShareData"
+    "share_name"
+  }},
+};
+PROTOBUF_NOINLINE void CreateSambaFileShareData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.CreateSambaFileShareData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    _impl_.share_name_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateSambaFileShareData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateSambaFileShareData& this_ = static_cast<const CreateSambaFileShareData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateSambaFileShareData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateSambaFileShareData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.CreateSambaFileShareData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string share_name = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_share_name().empty()) {
+      const ::std::string& _s = this_._internal_share_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateSambaFileShareData.share_name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.CreateSambaFileShareData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateSambaFileShareData::ByteSizeLong(const MessageLite& base) {
+  const CreateSambaFileShareData& this_ = static_cast<const CreateSambaFileShareData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateSambaFileShareData::ByteSizeLong() const {
+  const CreateSambaFileShareData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.CreateSambaFileShareData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string share_name = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_share_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_share_name());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateSambaFileShareData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<CreateSambaFileShareData*>(&to_msg);
+  auto& from = static_cast<const CreateSambaFileShareData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.CreateSambaFileShareData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (!from._internal_share_name().empty()) {
+      _this->_internal_set_share_name(from._internal_share_name());
+    } else {
+      if (_this->_impl_.share_name_.IsDefault()) {
+        _this->_internal_set_share_name("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void CreateSambaFileShareData::CopyFrom(const CreateSambaFileShareData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.CreateSambaFileShareData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateSambaFileShareData::InternalSwap(CreateSambaFileShareData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.share_name_, &other->_impl_.share_name_, arena);
+}
+
+::google::protobuf::Metadata CreateSambaFileShareData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateSambaFileShareDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateSambaFileShareDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateSambaFileShareDataAck, _impl_._has_bits_);
+};
+
+CreateSambaFileShareDataAck::CreateSambaFileShareDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSambaFileShareDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.CreateSambaFileShareDataAck)
+}
+CreateSambaFileShareDataAck::CreateSambaFileShareDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateSambaFileShareDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateSambaFileShareDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE CreateSambaFileShareDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void CreateSambaFileShareDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+CreateSambaFileShareDataAck::~CreateSambaFileShareDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.CreateSambaFileShareDataAck)
+  SharedDtor(*this);
+}
+inline void CreateSambaFileShareDataAck::SharedDtor(MessageLite& self) {
+  CreateSambaFileShareDataAck& this_ = static_cast<CreateSambaFileShareDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateSambaFileShareDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateSambaFileShareDataAck(arena);
+}
+constexpr auto CreateSambaFileShareDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CreateSambaFileShareDataAck),
+                                            alignof(CreateSambaFileShareDataAck));
+}
+constexpr auto CreateSambaFileShareDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateSambaFileShareDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateSambaFileShareDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateSambaFileShareDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateSambaFileShareDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateSambaFileShareDataAck>(), &CreateSambaFileShareDataAck::ByteSizeLong,
+              &CreateSambaFileShareDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateSambaFileShareDataAck, _impl_._cached_size_),
+          false,
+      },
+      &CreateSambaFileShareDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateSambaFileShareDataAck_class_data_ =
+        CreateSambaFileShareDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateSambaFileShareDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateSambaFileShareDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateSambaFileShareDataAck_class_data_.tc_table);
+  return CreateSambaFileShareDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+CreateSambaFileShareDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateSambaFileShareDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateSambaFileShareDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::CreateSambaFileShareDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateSambaFileShareDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(CreateSambaFileShareDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateSambaFileShareDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void CreateSambaFileShareDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.CreateSambaFileShareDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateSambaFileShareDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateSambaFileShareDataAck& this_ = static_cast<const CreateSambaFileShareDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateSambaFileShareDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateSambaFileShareDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.CreateSambaFileShareDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.CreateSambaFileShareDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateSambaFileShareDataAck::ByteSizeLong(const MessageLite& base) {
+  const CreateSambaFileShareDataAck& this_ = static_cast<const CreateSambaFileShareDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateSambaFileShareDataAck::ByteSizeLong() const {
+  const CreateSambaFileShareDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.CreateSambaFileShareDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateSambaFileShareDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<CreateSambaFileShareDataAck*>(&to_msg);
+  auto& from = static_cast<const CreateSambaFileShareDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.CreateSambaFileShareDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void CreateSambaFileShareDataAck::CopyFrom(const CreateSambaFileShareDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.CreateSambaFileShareDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateSambaFileShareDataAck::InternalSwap(CreateSambaFileShareDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata CreateSambaFileShareDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

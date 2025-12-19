@@ -24,7 +24,7 @@ public:
 	
   	Status AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response) override;
     	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
-
+    	Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response) override;
 private:
 	static constexpr const char* USER_EXISTS = "already exists";
 	static constexpr const char* USER_ADD_FAILED = "Failed to add user";

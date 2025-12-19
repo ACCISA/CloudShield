@@ -24,6 +24,7 @@ namespace infra_service {
 namespace v1 {
 
 static const char* InfraService_method_names[] = {
+  "/infra_service.v1.InfraService/CreateSambaFileShare",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
 };
@@ -35,9 +36,33 @@ std::unique_ptr< InfraService::Stub> InfraService::NewStub(const std::shared_ptr
 }
 
 InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
-  : channel_(channel), rpcmethod_AddDomainUser_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  : channel_(channel), rpcmethod_CreateSambaFileShare_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
+
+::grpc::Status InfraService::Stub::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::infra_service::v1::CreateSambaFileShareDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateSambaFileShare_, context, request, response);
+}
+
+void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::CreateSambaFileShareDataAck, ::infra_service::v1::CreateSambaFileShareData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateSambaFileShare_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncCreateSambaFileShareRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
 
 ::grpc::Status InfraService::Stub::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::infra_service::v1::AddDomainUserDataAck* response) {
   return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDomainUser_, context, request, response);
@@ -89,6 +114,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::CreateSambaFileShareData* req,
+             ::infra_service::v1::CreateSambaFileShareDataAck* resp) {
+               return service->CreateSambaFileShare(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[1],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
              ::grpc::ServerContext* ctx,
@@ -97,7 +132,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[1],
+      InfraService_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -109,6 +144,13 @@ InfraService::Service::Service() {
 }
 
 InfraService::Service::~Service() {
+}
+
+::grpc::Status InfraService::Service::CreateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
 ::grpc::Status InfraService::Service::AddDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response) {

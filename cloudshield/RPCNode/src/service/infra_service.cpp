@@ -54,3 +54,16 @@ Status InfraService::RemoveDomainUser(ServerContext* context, const is::RemoveDo
 	return Status(grpc::StatusCode::OK, "User removed from successfully");
 }
 
+
+Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::share_name = request->share_name().c_str();
+
+	auto samba = std::make_unique<SambaTask>();
+
+	std::string result = samba->CreateSambaFileShare(share_name);
+
+	return Status(grpc::StatusCode::OK, "New File share added successfully");
+}

@@ -37,6 +37,13 @@ class InfraService final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
+    virtual ::grpc::Status CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::infra_service::v1::CreateSambaFileShareDataAck* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>> AsyncCreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>>(AsyncCreateSambaFileShareRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>> PrepareAsyncCreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>>(PrepareAsyncCreateSambaFileShareRaw(context, request, cq));
+    }
     virtual ::grpc::Status AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::infra_service::v1::AddDomainUserDataAck* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>> AsyncAddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>>(AsyncAddDomainUserRaw(context, request, cq));
@@ -54,6 +61,8 @@ class InfraService final {
     class async_interface {
      public:
       virtual ~async_interface() {}
+      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
       virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
       virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
       virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
@@ -63,6 +72,8 @@ class InfraService final {
     virtual class async_interface* async() { return nullptr; }
     class async_interface* experimental_async() { return async(); }
    private:
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>* AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>* PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>* AsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>* PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainUserDataAck>* AsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
@@ -71,6 +82,13 @@ class InfraService final {
   class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
+    ::grpc::Status CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::infra_service::v1::CreateSambaFileShareDataAck* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>> AsyncCreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>>(AsyncCreateSambaFileShareRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>> PrepareAsyncCreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>>(PrepareAsyncCreateSambaFileShareRaw(context, request, cq));
+    }
     ::grpc::Status AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::infra_service::v1::AddDomainUserDataAck* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>> AsyncAddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>>(AsyncAddDomainUserRaw(context, request, cq));
@@ -88,6 +106,8 @@ class InfraService final {
     class async final :
       public StubInterface::async_interface {
      public:
+      void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
+      void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
       void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
       void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
       void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
@@ -103,10 +123,13 @@ class InfraService final {
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
     class async async_stub_{this};
+    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* AsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* AsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* PrepareAsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) override;
+    const ::grpc::internal::RpcMethod rpcmethod_CreateSambaFileShare_;
     const ::grpc::internal::RpcMethod rpcmethod_AddDomainUser_;
     const ::grpc::internal::RpcMethod rpcmethod_RemoveDomainUser_;
   };
@@ -116,8 +139,29 @@ class InfraService final {
    public:
     Service();
     virtual ~Service();
+    virtual ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response);
     virtual ::grpc::Status AddDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response);
     virtual ::grpc::Status RemoveDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response);
+  };
+  template <class BaseClass>
+  class WithAsyncMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodAsync(0);
+    }
+    ~WithAsyncMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestCreateSambaFileShare(::grpc::ServerContext* context, ::infra_service::v1::CreateSambaFileShareData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::CreateSambaFileShareDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    }
   };
   template <class BaseClass>
   class WithAsyncMethod_AddDomainUser : public BaseClass {
@@ -125,7 +169,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodAsync(0);
+      ::grpc::Service::MarkMethodAsync(1);
     }
     ~WithAsyncMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -136,7 +180,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestAddDomainUser(::grpc::ServerContext* context, ::infra_service::v1::AddDomainUserData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::AddDomainUserDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -145,7 +189,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodAsync(1);
+      ::grpc::Service::MarkMethodAsync(2);
     }
     ~WithAsyncMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -156,23 +200,50 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRemoveDomainUser(::grpc::ServerContext* context, ::infra_service::v1::RemoveDomainUserData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::RemoveDomainUserDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<Service > > AsyncService;
+  typedef WithAsyncMethod_CreateSambaFileShare<WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<Service > > > AsyncService;
+  template <class BaseClass>
+  class WithCallbackMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodCallback(0,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response) { return this->CreateSambaFileShare(context, request, response); }));}
+    void SetMessageAllocatorFor_CreateSambaFileShare(
+        ::grpc::MessageAllocator< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* CreateSambaFileShare(
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/)  { return nullptr; }
+  };
   template <class BaseClass>
   class WithCallbackMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodCallback(0,
+      ::grpc::Service::MarkMethodCallback(1,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response) { return this->AddDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_AddDomainUser(
         ::grpc::MessageAllocator< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -193,13 +264,13 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodCallback(1,
+      ::grpc::Service::MarkMethodCallback(2,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response) { return this->RemoveDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_RemoveDomainUser(
         ::grpc::MessageAllocator< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -214,15 +285,32 @@ class InfraService final {
     virtual ::grpc::ServerUnaryReactor* RemoveDomainUser(
       ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainUserData* /*request*/, ::infra_service::v1::RemoveDomainUserDataAck* /*response*/)  { return nullptr; }
   };
-  typedef WithCallbackMethod_AddDomainUser<WithCallbackMethod_RemoveDomainUser<Service > > CallbackService;
+  typedef WithCallbackMethod_CreateSambaFileShare<WithCallbackMethod_AddDomainUser<WithCallbackMethod_RemoveDomainUser<Service > > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
+  template <class BaseClass>
+  class WithGenericMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodGeneric(0);
+    }
+    ~WithGenericMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
   template <class BaseClass>
   class WithGenericMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodGeneric(0);
+      ::grpc::Service::MarkMethodGeneric(1);
     }
     ~WithGenericMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -239,7 +327,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodGeneric(1);
+      ::grpc::Service::MarkMethodGeneric(2);
     }
     ~WithGenericMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -251,12 +339,32 @@ class InfraService final {
     }
   };
   template <class BaseClass>
+  class WithRawMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodRaw(0);
+    }
+    ~WithRawMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestCreateSambaFileShare(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
   class WithRawMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodRaw(0);
+      ::grpc::Service::MarkMethodRaw(1);
     }
     ~WithRawMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -267,7 +375,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestAddDomainUser(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -276,7 +384,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodRaw(1);
+      ::grpc::Service::MarkMethodRaw(2);
     }
     ~WithRawMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -287,8 +395,30 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRemoveDomainUser(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
+  };
+  template <class BaseClass>
+  class WithRawCallbackMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodRawCallback(0,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateSambaFileShare(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* CreateSambaFileShare(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
   class WithRawCallbackMethod_AddDomainUser : public BaseClass {
@@ -296,7 +426,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodRawCallback(0,
+      ::grpc::Service::MarkMethodRawCallback(1,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainUser(context, request, response); }));
@@ -318,7 +448,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodRawCallback(1,
+      ::grpc::Service::MarkMethodRawCallback(2,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RemoveDomainUser(context, request, response); }));
@@ -335,12 +465,39 @@ class InfraService final {
       ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
+  class WithStreamedUnaryMethod_CreateSambaFileShare : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodStreamed(0,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>* streamer) {
+                       return this->StreamedCreateSambaFileShare(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_CreateSambaFileShare() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedCreateSambaFileShare(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::CreateSambaFileShareData,::infra_service::v1::CreateSambaFileShareDataAck>* server_unary_streamer) = 0;
+  };
+  template <class BaseClass>
   class WithStreamedUnaryMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodStreamed(0,
+      ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
             [this](::grpc::ServerContext* context,
@@ -367,7 +524,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodStreamed(1,
+      ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
             [this](::grpc::ServerContext* context,
@@ -388,9 +545,9 @@ class InfraService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedRemoveDomainUser(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::RemoveDomainUserData,::infra_service::v1::RemoveDomainUserDataAck>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<Service > > StreamedUnaryService;
+  typedef WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<Service > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<Service > > StreamedService;
+  typedef WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<Service > > > StreamedService;
 };
 
 }  // namespace v1
