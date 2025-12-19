@@ -18,6 +18,7 @@ class EC2Instance(BaseModel):
     storage_size_gb: int
     subnet_id: str
     updated_at: str
+    port: str
 
 class Inventory(BaseModel):
     org_id: str

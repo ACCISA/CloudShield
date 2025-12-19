@@ -4,6 +4,10 @@ from .network_provisioning import provision_workstations as provision_workstatio
 
 from .dc_management import dc_add_user as dc_add_user
 
+from .task import GetServerNodes as GetServerNodes
+from .task import ProxyRPCRequest as ProxyRPCRequest
+from .task import NodeType as NodeType
+
 # Alias for backward compatibility with tests
 destroy_infra = destroy_environment
 
@@ -20,3 +24,4 @@ if _provision_module is not None:
     provision_main = _provision_module.provision_network_terraform
 else:
     provision_main = None  # type: ignore[assignment]
+

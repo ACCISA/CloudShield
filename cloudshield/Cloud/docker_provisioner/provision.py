@@ -138,6 +138,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     server_logger.info("PKI initialized successfully")
 
     metadata = [{
+        "port": "50055",
         "org_id": org_id,
         "name": org_id+"_samba",
         "instance_id": container_id,
@@ -156,6 +157,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "private_ip": "172.23.0.10",
         "public_ip": "172.23.0.10",
     },{
+        "port":"50055",
         "org_id": org_id,
         "name": org_id+"_openvpn_server",
         "instance_id": container_id,

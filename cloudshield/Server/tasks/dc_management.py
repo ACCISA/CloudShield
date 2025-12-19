@@ -12,6 +12,13 @@ from utils import get_logger, get_inventory_from_org_id
 from services.user_service import persist_domain_user
 from models import Inventory
 
+import grpc
+from genproto.infra_service import infra_service_pb2 as infra_pb2
+from genproto.infra_service import infra_service_pb2_grpc as infra_pb2_grpc
+
+from .task import ProxyRPCRequest, GetServerNodes, NodeType
+
+
 def short_uuid():
     # Generate UUID4 and encode it in URL-safe Base64
     return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
@@ -174,6 +181,7 @@ def dc_add_user(org_id: str, username: str, password: str):
     Note: this job should only be executed if a network was provisioned for that org_id
     """
 
+    # TODO add checks that network was provisioned for org_id aka just check if mongodb has that org_id
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -192,32 +200,37 @@ def dc_add_user(org_id: str, username: str, password: str):
             job.meta["progress"] = "invalid password"
             job.save_meta()
         return {"message":f"the provider password is invalid (password={password})"}
-
-    command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"
-
-    result = exec_ssh(org_id, command, logger=logger)
     
-    if result is None:
-        details = "Failed to connect to internal infrastructure"
-        job.meta["progress"] = details
-        job.save_meta()
-        return {"message":details}
+    
+    # this tasks is meant for the domain controller so we get that node's ip
+    nodes = GetServerNodes(org_id)
 
+    request = infra_pb2.AddDomainUserData(username=username, password=password)
 
-    logger.info(result.stdout)
-    logger.info(result.stderr)
+    # this request needs to be proxyed through the vpn server because it is destined for the domain controller
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
 
-    #if no stderr, the command succeeded, the data can be persisted
-    if not result.stderr:
-        logger.info("User added to samba ad-dc")
-        domain_user_id = persist_domain_user(org_id, username, password, str(short_uuid())+"@gmail.com")
-        logger.info(f"Domain user persisted with id: {domain_user_id}")
+    proxy_status = proxy_response.status
 
-    if "added successfully" in result.stdout:
-        return {"status": "SUCCESS","message":"User was successfully added"}
-    if "already exists":
-        return {"status": "DUPLICATE","message":"User already exists"}
-    if "Failed to add user" in result.stderr:
-        return {"status": "FAILED","message":"Failed to add user"}
+    # we have to first serialize the bytes from the proxy_response.response field
+    response = infra_pb2.AddDomainUserDataAck()
+    response.ParseFromString(proxy_response.response)
 
-    return {"message":"Unexpected response"}
+    status = response.status
+    result = response.result
+
+    logger.info("status: " + str(status))
+    logger.info("result: " + str(result))
+
+    #result = exec_ssh(org_id, command, logger=logger)
+    
+    if status == infra_pb2.SUCCESS:
+        return {"status": "SUCCESS", "message":"Successfully added user"}
+
+    if status == infra_pb2.FAILED:
+        return {"status": "FAILED", "message":"Failed to add user"}
+    
+    if status == infra_pb2.DUPLICATE:
+        return {"status": "DUPLICATE", "message":"User already exists"}
+
+    return {"status":"UNKNOWN", "message":"Unexpected response"}
