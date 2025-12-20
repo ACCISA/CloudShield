@@ -3,12 +3,8 @@ from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
 
-try:
-    from cloudshield.Server.services import service_dispatcher, get_job_status, health_status
-    from cloudshield.Server.utils.logging_setup import get_logger
-except ImportError:  # pragma: no cover - fallback for local execution contexts
-    from services import service_dispatcher, get_job_status, health_status
-    from utils.logging_setup import get_logger
+from services import service_dispatcher, get_job_status, health_status
+from utils.logging_setup import get_logger
 
 logger = get_logger("api")
 
@@ -17,6 +13,18 @@ api_bp = Blueprint("api", __name__)
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 
+@api_bp.route("/task/dc/restart_samba", methods=["POST"])
+def task_dc_restart_samba_service():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error":"org_id is required"})
+
+    job = service_dispatcher(service_name="dc_restart_samba_service", org_id=org_id)
+
+    return jsonify({"job_id": job.id}), 202
 
 @api_bp.route("/task/dc/add_user", methods=["POST"])
 def task_dc_add_user():

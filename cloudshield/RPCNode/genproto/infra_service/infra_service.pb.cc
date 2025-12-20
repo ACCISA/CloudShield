@@ -27,6 +27,31 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace infra_service {
 namespace v1 {
 
+inline constexpr RestartSambaServiceDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RestartSambaServiceDataAck::RestartSambaServiceDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RestartSambaServiceDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RestartSambaServiceDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RestartSambaServiceDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RestartSambaServiceDataAckDefaultTypeInternal() {}
+  union {
+    RestartSambaServiceDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RestartSambaServiceDataAckDefaultTypeInternal _RestartSambaServiceDataAck_default_instance_;
+
 inline constexpr RemoveDomainUserDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -236,6 +261,11 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareDataAck, _impl_.status_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::RestartSambaServiceDataAck, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::RestartSambaServiceDataAck, _impl_.status_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -246,6 +276,7 @@ static const ::_pbi::MigrationSchema
         {19, sizeof(::infra_service::v1::RemoveDomainUserDataAck)},
         {26, sizeof(::infra_service::v1::CreateSambaFileShareData)},
         {31, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
+        {36, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
@@ -254,42 +285,52 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_RemoveDomainUserDataAck_default_instance_._instance,
     &::infra_service::v1::_CreateSambaFileShareData_default_instance_._instance,
     &::infra_service::v1::_CreateSambaFileShareDataAck_default_instance_._instance,
+    &::infra_service::v1::_RestartSambaServiceDataAck_default_instance_._instance,
 };
 const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n!infra_service/infra_service.proto\022\020inf"
-    "ra_service.v1\"7\n\021AddDomainUserData\022\020\n\010us"
-    "ername\030\001 \001(\t\022\020\n\010password\030\002 \001(\t\"P\n\024AddDom"
-    "ainUserDataAck\022(\n\006status\030\001 \001(\0162\030.infra_s"
-    "ervice.v1.Status\022\016\n\006result\030\002 \001(\t\"(\n\024Remo"
-    "veDomainUserData\022\020\n\010username\030\001 \001(\t\"S\n\027Re"
-    "moveDomainUserDataAck\022(\n\006status\030\001 \001(\0162\030."
-    "infra_service.v1.Status\022\016\n\006result\030\002 \001(\t\""
-    ".\n\030CreateSambaFileShareData\022\022\n\nshare_nam"
-    "e\030\001 \001(\t\"G\n\033CreateSambaFileShareDataAck\022("
-    "\n\006status\030\001 \001(\0162\030.infra_service.v1.Status"
-    "*0\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tD"
-    "UPLICATE\020\0022\306\002\n\014InfraService\022q\n\024CreateSam"
-    "baFileShare\022*.infra_service.v1.CreateSam"
-    "baFileShareData\032-.infra_service.v1.Creat"
-    "eSambaFileShareDataAck\022\\\n\rAddDomainUser\022"
-    "#.infra_service.v1.AddDomainUserData\032&.i"
-    "nfra_service.v1.AddDomainUserDataAck\022e\n\020"
-    "RemoveDomainUser\022&.infra_service.v1.Remo"
-    "veDomainUserData\032).infra_service.v1.Remo"
-    "veDomainUserDataAckb\006proto3"
+    "ra_service.v1\032\033google/protobuf/empty.pro"
+    "to\"7\n\021AddDomainUserData\022\020\n\010username\030\001 \001("
+    "\t\022\020\n\010password\030\002 \001(\t\"P\n\024AddDomainUserData"
+    "Ack\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.S"
+    "tatus\022\016\n\006result\030\002 \001(\t\"(\n\024RemoveDomainUse"
+    "rData\022\020\n\010username\030\001 \001(\t\"S\n\027RemoveDomainU"
+    "serDataAck\022(\n\006status\030\001 \001(\0162\030.infra_servi"
+    "ce.v1.Status\022\016\n\006result\030\002 \001(\t\".\n\030CreateSa"
+    "mbaFileShareData\022\022\n\nshare_name\030\001 \001(\t\"G\n\033"
+    "CreateSambaFileShareDataAck\022(\n\006status\030\001 "
+    "\001(\0162\030.infra_service.v1.Status\"F\n\032Restart"
+    "SambaServiceDataAck\022(\n\006status\030\001 \001(\0162\030.in"
+    "fra_service.v1.Status*0\n\006Status\022\013\n\007SUCCE"
+    "SS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020\0022\243\003\n\014Infr"
+    "aService\022[\n\023RestartSambaService\022\026.google"
+    ".protobuf.Empty\032,.infra_service.v1.Resta"
+    "rtSambaServiceDataAck\022q\n\024CreateSambaFile"
+    "Share\022*.infra_service.v1.CreateSambaFile"
+    "ShareData\032-.infra_service.v1.CreateSamba"
+    "FileShareDataAck\022\\\n\rAddDomainUser\022#.infr"
+    "a_service.v1.AddDomainUserData\032&.infra_s"
+    "ervice.v1.AddDomainUserDataAck\022e\n\020Remove"
+    "DomainUser\022&.infra_service.v1.RemoveDoma"
+    "inUserData\032).infra_service.v1.RemoveDoma"
+    "inUserDataAckb\006proto3"
+};
+static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
+    descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
+        &::descriptor_table_google_2fprotobuf_2fempty_2eproto,
 };
 static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    827,
+    1021,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
-    nullptr,
-    0,
-    6,
+    descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps,
+    1,
+    7,
     schemas,
     file_default_instances,
     TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
@@ -1960,6 +2001,241 @@ void CreateSambaFileShareDataAck::InternalSwap(CreateSambaFileShareDataAck* PROT
 }
 
 ::google::protobuf::Metadata CreateSambaFileShareDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RestartSambaServiceDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RestartSambaServiceDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RestartSambaServiceDataAck, _impl_._has_bits_);
+};
+
+RestartSambaServiceDataAck::RestartSambaServiceDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RestartSambaServiceDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.RestartSambaServiceDataAck)
+}
+RestartSambaServiceDataAck::RestartSambaServiceDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RestartSambaServiceDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RestartSambaServiceDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE RestartSambaServiceDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RestartSambaServiceDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+RestartSambaServiceDataAck::~RestartSambaServiceDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.RestartSambaServiceDataAck)
+  SharedDtor(*this);
+}
+inline void RestartSambaServiceDataAck::SharedDtor(MessageLite& self) {
+  RestartSambaServiceDataAck& this_ = static_cast<RestartSambaServiceDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RestartSambaServiceDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RestartSambaServiceDataAck(arena);
+}
+constexpr auto RestartSambaServiceDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RestartSambaServiceDataAck),
+                                            alignof(RestartSambaServiceDataAck));
+}
+constexpr auto RestartSambaServiceDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RestartSambaServiceDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RestartSambaServiceDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RestartSambaServiceDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RestartSambaServiceDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RestartSambaServiceDataAck>(), &RestartSambaServiceDataAck::ByteSizeLong,
+              &RestartSambaServiceDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RestartSambaServiceDataAck, _impl_._cached_size_),
+          false,
+      },
+      &RestartSambaServiceDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RestartSambaServiceDataAck_class_data_ =
+        RestartSambaServiceDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RestartSambaServiceDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RestartSambaServiceDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RestartSambaServiceDataAck_class_data_.tc_table);
+  return RestartSambaServiceDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+RestartSambaServiceDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RestartSambaServiceDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RestartSambaServiceDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::RestartSambaServiceDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RestartSambaServiceDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(RestartSambaServiceDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(RestartSambaServiceDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RestartSambaServiceDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.RestartSambaServiceDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RestartSambaServiceDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RestartSambaServiceDataAck& this_ = static_cast<const RestartSambaServiceDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RestartSambaServiceDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RestartSambaServiceDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.RestartSambaServiceDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.RestartSambaServiceDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RestartSambaServiceDataAck::ByteSizeLong(const MessageLite& base) {
+  const RestartSambaServiceDataAck& this_ = static_cast<const RestartSambaServiceDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RestartSambaServiceDataAck::ByteSizeLong() const {
+  const RestartSambaServiceDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.RestartSambaServiceDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RestartSambaServiceDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<RestartSambaServiceDataAck*>(&to_msg);
+  auto& from = static_cast<const RestartSambaServiceDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.RestartSambaServiceDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void RestartSambaServiceDataAck::CopyFrom(const RestartSambaServiceDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.RestartSambaServiceDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RestartSambaServiceDataAck::InternalSwap(RestartSambaServiceDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata RestartSambaServiceDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

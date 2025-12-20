@@ -1,7 +1,6 @@
 import os
 from redis_client import redis_conn
 from utils.logging_setup import cleanup_old_logs
-
 from rq import Worker, Queue
 from rq_scheduler import Scheduler
 from datetime import datetime

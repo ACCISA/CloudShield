@@ -26,7 +26,6 @@ int main(int argc, char** argv)
 		Config config = Config::New();
 		
 		if (argv[1] == samba_mode) {
-			//init_samba_node();
 			std::shared_ptr<InfraService> iService = std::make_shared<InfraService>();
 			std::unique_ptr<InfraNode> iNode = std::make_unique<InfraNode>(config.host+":"+config.port, iService, is::InfraService::service_full_name());
 

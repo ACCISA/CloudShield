@@ -5,6 +5,8 @@ if [ -z "${domain_name}" ]; then
     exit 1
 fi
 
+echo "aaaa" >> /hello
+
 # ============================================================
 # STEP 5: EC2 installs and configures the samba DC
 # ============================================================
@@ -44,6 +46,11 @@ echo "krb5-config krb5-config/admin_server string kerberos.example.com" |  debco
 ip link set dev eth0 down
 ip link set dev eth0 name enX0
 ip link set dev enX0 up
+
+systemctl stop smbd nmbd winbind || true
+systemctl disable smbd nmbd winbind || true
+systemctl unmask samba-ad-dc || true
+
 echo "Provisioning Samba DC..."
   samba-tool domain provision \
   --use-rfc2307 \
@@ -250,7 +257,9 @@ fi
 
 echo "Starting ssh daemon"
 mkdir /var/run/sshd
-/usr/sbin/sshd
+#systemctl status samba
+systemctl start ssh
+systemctl start samba
 
 echo ""
 echo "=== Samba Domain Controller Setup Complete ==="
@@ -258,4 +267,3 @@ echo "New users added in the future can be configured using:"
 echo "  /usr/local/bin/configure_user_profile <username>"
 echo "Or reconfigure all users with:"
 echo "  /usr/local/bin/configure_all_roaming_profiles"
-exec samba "-i"

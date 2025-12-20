@@ -33,6 +33,23 @@ def copy_file_container(server_logger, container_id, path_in, path_out):
         server_logger.error(f"Failed to copy file to container (file={path_in}, container_id={container_id})")
         return False
 
+def setup_samba_container(server_logger, container_id):
+    try:
+        result = subprocess.run(
+                ["docker", "exec", "-i", container_id, "/usr/local/bin/docker-entrypoint.sh"],
+                capture_output=True,
+
+                text=True,
+                check=True
+        )
+        server_logger.info(result.stdout)
+        server_logger.info("Successfully started samba setup script")
+        return True
+    except subprocess.CalledProcessError as e:
+        server_logger.error(e)
+        server_logger.error(e.stderr)
+        server_logger.error("Failed to setup samba")
+        return False
 
 # create ssh keys and make sure pub and priv key exists
 def setup_ssh_keys(server_logger, private_key_path):
@@ -98,11 +115,15 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "DOMAIN_NAME": "ANISS",
         "DC_ADMIN_PASSWORD": "4162728abb29acc12090e6432cdb6fd8%$@!",
         "REALM_NAME": "ANISS.LOCAL"
-        }
-    )
-
+        })
+    
     container_id = container.id
     server_logger.info(f"samab-test container id: {container_id}")
+
+    if not setup_samba_container(server_logger, container_id):
+        server_logger.error("Failed to run samba setup script")
+        return
+
 
     # copy ssh pub key to created container
     if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):

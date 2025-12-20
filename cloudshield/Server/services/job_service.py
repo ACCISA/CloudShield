@@ -7,16 +7,19 @@ import os
 from typing import Tuple, Dict, Any
 import rq
 from redis_client import task_queue, redis_conn
+from utils import get_logger
+
+# NOTE these 2 attempts to import is necessary for the worker to work
 try:
     from cloudshield.Server.tasks import (
         provision_network,
         destroy_environment,
         provision_workstations,
         dc_add_user,
+        dc_restart_samba_service
     )
 except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
-    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user
-from utils import get_logger
+    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -175,7 +178,15 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
             username,
             password
     )
-    logger.info("Enqueued dc add user job")
+    logger.info("Enqueued dc_add_user job")
+    return job
+
+def enqueue_dc_restart_samba_service(org_id: str):
+    job = task_queue.enqueue(
+            dc_restart_samba_service,
+            org_id
+    )
+    logger.info("Enqueued dc_restart_samba_service job")
     return job
 
 def enqueue_dc_change_password(org_id: str, username: str, password:str):
@@ -209,7 +220,8 @@ SERVICES = {
     "provision_network": enqueue_provision,
     "provision_workstations": enqueue_provision_workstations,
     "destroy": enqueue_destroy,
-    "dc_add_user": enqueue_dc_add_user
+    "dc_add_user": enqueue_dc_add_user,
+    "dc_restart_samba_service": enqueue_dc_restart_samba_service
 }
 
 def service_dispatcher(service_name: str, *args, **kwargs):
@@ -239,6 +251,3 @@ def service_dispatcher(service_name: str, *args, **kwargs):
 
     service = SERVICES[service_name]
     return service(*args, **kwargs)
-
-
-

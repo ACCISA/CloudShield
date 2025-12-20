@@ -10,10 +10,18 @@ std::string SambaTask::AddDomainUser(std::string username, std::string password)
 {
 	std::string full_cmd = BuildCommand(this->USER_ADD_CMD, username.c_str(), password.c_str());
 	return this->RunCommand(full_cmd);
-};
+}
 
-std::string SambaTask::CreateSambaFileSahre(std::string share_name)
+std::string SambaTask::RestartSambaService()
 {
+	std::system(this->RESTART_SAMBA_CMD);
+	return "";
+}
+
+std::string SambaTask::CreateSambaFileShare(std::string share_name)
+{
+
+
 	std::ofstream out_file;
 	out_file.open(SAMBA_SMB_CONF_PATH, std::ios_base::app);
 
@@ -28,7 +36,12 @@ std::string SambaTask::CreateSambaFileSahre(std::string share_name)
 		out_file << "	directory mask = 2770" << std::endl;
 
 		out_file.close();
+
+		this->RestartSambaService();
+
 	} else {
-		return null;
+		return "";
 	}
+
+	return "";
 }

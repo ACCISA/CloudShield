@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package infra_service.v1;
+import "google/protobuf/empty.proto";
 
 enum Status {
         SUCCESS = 0;
@@ -35,7 +36,12 @@ message CreateSambaFileShareDataAck {
         Status status = 1;
 }
 
+message RestartSambaServiceDataAck {
+        Status status = 1;
+}
+
 service InfraService {
+        rpc RestartSambaService(google.protobuf.Empty) returns (RestartSambaServiceDataAck);
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
         rpc AddDomainUser(AddDomainUserData) returns (AddDomainUserDataAck);
         rpc RemoveDomainUser(RemoveDomainUserData) returns (RemoveDomainUserDataAck);

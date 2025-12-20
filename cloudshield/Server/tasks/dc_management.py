@@ -6,6 +6,7 @@ import time
 import uuid
 import base64
 from rq import get_current_job
+from google.protobuf import empty_pb2
 from .forward import forward_tunnel
 
 from utils import get_logger, get_inventory_from_org_id
@@ -176,6 +177,40 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     return SSHExecResult(stdin, stdout_str, stderr_str)
 
+def dc_restart_samba_service(org_id: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_restart_samba_service"
+        job.save_meta()
+    
+    nodes = GetServerNodes(org_id)
+
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.RestartSambaService", request = empty_pb2.Empty())
+
+    if proxy_response is None:
+        logger.error("Failed to proxy rpc request")
+        return {"status":"Failed", "message":"Failed to proxy rpc request"}
+
+    proxy_status = proxy_response.status
+
+    response = infra_pb2.RestartSambaServiceDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    
+    logger.info("status: ", str(status))
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully restart samba-ad-dc service");
+        return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"};
+    if status == infra_pb2.FAILED:
+        logger.info("Failed to restart samba-ad-dc service");
+        return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"};
+
+
 def dc_add_user(org_id: str, username: str, password: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
@@ -209,6 +244,10 @@ def dc_add_user(org_id: str, username: str, password: str):
 
     # this request needs to be proxyed through the vpn server because it is destined for the domain controller
     proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
+        
+    if proxy_response is None:
+        logger.error("Failed to prxy rpc")
+        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
     proxy_status = proxy_response.status
 

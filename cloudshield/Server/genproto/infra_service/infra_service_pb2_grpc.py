@@ -3,6 +3,7 @@
 import grpc
 import warnings
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from genproto.infra_service import infra_service_pb2 as infra__service__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
@@ -34,6 +35,16 @@ class InfraServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.RestartSambaService = channel.unary_unary(
+                '/infra_service.v1.InfraService/RestartSambaService',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=infra__service__pb2.RestartSambaServiceDataAck.FromString,
+                _registered_method=True)
+        self.CreateSambaFileShare = channel.unary_unary(
+                '/infra_service.v1.InfraService/CreateSambaFileShare',
+                request_serializer=infra__service__pb2.CreateSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+                _registered_method=True)
         self.AddDomainUser = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddDomainUser',
                 request_serializer=infra__service__pb2.AddDomainUserData.SerializeToString,
@@ -48,6 +59,18 @@ class InfraServiceStub(object):
 
 class InfraServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def RestartSambaService(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateSambaFileShare(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def AddDomainUser(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -64,6 +87,16 @@ class InfraServiceServicer(object):
 
 def add_InfraServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'RestartSambaService': grpc.unary_unary_rpc_method_handler(
+                    servicer.RestartSambaService,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=infra__service__pb2.RestartSambaServiceDataAck.SerializeToString,
+            ),
+            'CreateSambaFileShare': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSambaFileShare,
+                    request_deserializer=infra__service__pb2.CreateSambaFileShareData.FromString,
+                    response_serializer=infra__service__pb2.CreateSambaFileShareDataAck.SerializeToString,
+            ),
             'AddDomainUser': grpc.unary_unary_rpc_method_handler(
                     servicer.AddDomainUser,
                     request_deserializer=infra__service__pb2.AddDomainUserData.FromString,
@@ -84,6 +117,60 @@ def add_InfraServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class InfraService(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def RestartSambaService(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/RestartSambaService',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            infra__service__pb2.RestartSambaServiceDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateSambaFileShare(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/CreateSambaFileShare',
+            infra__service__pb2.CreateSambaFileShareData.SerializeToString,
+            infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def AddDomainUser(request,

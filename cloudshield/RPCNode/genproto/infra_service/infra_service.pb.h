@@ -30,6 +30,7 @@
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
+#include "google/protobuf/empty.pb.h"
 // @@protoc_insertion_point(includes)
 
 // Must be included last.
@@ -81,6 +82,10 @@ class RemoveDomainUserDataAck;
 struct RemoveDomainUserDataAckDefaultTypeInternal;
 extern RemoveDomainUserDataAckDefaultTypeInternal _RemoveDomainUserDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RemoveDomainUserDataAck_class_data_;
+class RestartSambaServiceDataAck;
+struct RestartSambaServiceDataAckDefaultTypeInternal;
+extern RestartSambaServiceDataAckDefaultTypeInternal _RestartSambaServiceDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RestartSambaServiceDataAck_class_data_;
 }  // namespace v1
 }  // namespace infra_service
 namespace google {
@@ -134,6 +139,197 @@ inline bool Status_Parse(
 // ===================================================================
 
 
+// -------------------------------------------------------------------
+
+class RestartSambaServiceDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.RestartSambaServiceDataAck) */ {
+ public:
+  inline RestartSambaServiceDataAck() : RestartSambaServiceDataAck(nullptr) {}
+  ~RestartSambaServiceDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RestartSambaServiceDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RestartSambaServiceDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RestartSambaServiceDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline RestartSambaServiceDataAck(const RestartSambaServiceDataAck& from) : RestartSambaServiceDataAck(nullptr, from) {}
+  inline RestartSambaServiceDataAck(RestartSambaServiceDataAck&& from) noexcept
+      : RestartSambaServiceDataAck(nullptr, ::std::move(from)) {}
+  inline RestartSambaServiceDataAck& operator=(const RestartSambaServiceDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RestartSambaServiceDataAck& operator=(RestartSambaServiceDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RestartSambaServiceDataAck& default_instance() {
+    return *reinterpret_cast<const RestartSambaServiceDataAck*>(
+        &_RestartSambaServiceDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(RestartSambaServiceDataAck& a, RestartSambaServiceDataAck& b) { a.Swap(&b); }
+  inline void Swap(RestartSambaServiceDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RestartSambaServiceDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RestartSambaServiceDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RestartSambaServiceDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RestartSambaServiceDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RestartSambaServiceDataAck& from) { RestartSambaServiceDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RestartSambaServiceDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.RestartSambaServiceDataAck"; }
+
+ protected:
+  explicit RestartSambaServiceDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RestartSambaServiceDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RestartSambaServiceDataAck& from);
+  RestartSambaServiceDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RestartSambaServiceDataAck&& from) noexcept
+      : RestartSambaServiceDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStatusFieldNumber = 1,
+  };
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.RestartSambaServiceDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RestartSambaServiceDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RestartSambaServiceDataAck_class_data_;
 // -------------------------------------------------------------------
 
 class RemoveDomainUserDataAck final : public ::google::protobuf::Message
@@ -1841,6 +2037,34 @@ inline ::infra_service::v1::Status CreateSambaFileShareDataAck::_internal_status
   return static_cast<::infra_service::v1::Status>(_impl_.status_);
 }
 inline void CreateSambaFileShareDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// RestartSambaServiceDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void RestartSambaServiceDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline ::infra_service::v1::Status RestartSambaServiceDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.RestartSambaServiceDataAck.status)
+  return _internal_status();
+}
+inline void RestartSambaServiceDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.RestartSambaServiceDataAck.status)
+}
+inline ::infra_service::v1::Status RestartSambaServiceDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void RestartSambaServiceDataAck::_internal_set_status(::infra_service::v1::Status value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.status_ = value;
 }

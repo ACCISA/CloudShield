@@ -1,18 +1,23 @@
-FROM ubuntu:latest
+ARG BASEOS_DIGEST
+FROM docker.io/library/ubuntu:24.04${BASEOS_DIGEST:-}
 
-ARG ORG_ID
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    rsyslog systemd systemd-cron sudo \
+    samba-ad-dc samba-ad-provision \
+    krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
+    libldb-dev samba-libs ldb-tools libldb2\
+    iproute2 \
+    && rm -Rf /var/lib/apt/lists/* \
+    && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
+    && apt-get clean
+RUN sed -i 's/^\($ModLoad imklog\)/#\1/' /etc/rsyslog.conf
 
-# This dockerfile will mimic a cloud provisioned samba ad dc
-
-# Prevent interactive prompts during package installation
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install required packages
-RUN apt-get update && \
-    apt-get install -qq -y --no-install-recommends \
-      samba-ad-dc samba-ad-provision systemd krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim && \
-    rm -rf /var/lib/apt/lists/*
-
+# https://bugzilla.redhat.com/show_bug.cgi?id=1046469#c11
+# https://github.com/ansible-community/molecule/issues/1104
+RUN rm -f /lib/systemd/system/systemd*udev* \
+    && rm -f /lib/systemd/system/getty.target
 # Setup for ssh daemon
 RUN mkdir /var/run/sshd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
@@ -47,7 +52,13 @@ RUN chmod +x /usr/local/bin/sudo
 
 # Use volumes for persistence
 #VOLUME ["/var/lib/samba", "/etc/samba", "/var/log/samba"]
-RUN ls -la /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["samba-ad-dc"]
+#ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+#CMD ["samba-ad-dc"]
+
+STOPSIGNAL SIGRTMIN+3
+
+VOLUME ["/sys/fs/cgroup"]
+#ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/sbin/init", "&"]
+
 
