@@ -100,5 +100,9 @@ def ProxyRPCRequest(nodes, method_name, request):
     serialized_data = request.SerializeToString()
 
     proxy_request = vpn_pb2.RelayData(ipv4=domain_controller_node.ip, port=domain_controller_node.port, data=serialized_data, method_name=full_method_name)
+    try:
+        return stub.Relay(proxy_request)
+    except Exception as e:
+        logger.error("Proxy Fail: " + e)
+        return None
 
-    return stub.Relay(proxy_request)

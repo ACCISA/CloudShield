@@ -74,6 +74,10 @@ class CreateSambaFileShareDataAck;
 struct CreateSambaFileShareDataAckDefaultTypeInternal;
 extern CreateSambaFileShareDataAckDefaultTypeInternal _CreateSambaFileShareDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CreateSambaFileShareDataAck_class_data_;
+class GetUserListDataAck;
+struct GetUserListDataAckDefaultTypeInternal;
+extern GetUserListDataAckDefaultTypeInternal _GetUserListDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetUserListDataAck_class_data_;
 class RemoveDomainUserData;
 struct RemoveDomainUserDataDefaultTypeInternal;
 extern RemoveDomainUserDataDefaultTypeInternal _RemoveDomainUserData_default_instance_;
@@ -82,6 +86,14 @@ class RemoveDomainUserDataAck;
 struct RemoveDomainUserDataAckDefaultTypeInternal;
 extern RemoveDomainUserDataAckDefaultTypeInternal _RemoveDomainUserDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RemoveDomainUserDataAck_class_data_;
+class ResetUserPasswordData;
+struct ResetUserPasswordDataDefaultTypeInternal;
+extern ResetUserPasswordDataDefaultTypeInternal _ResetUserPasswordData_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResetUserPasswordData_class_data_;
+class ResetUserPasswordDataAck;
+struct ResetUserPasswordDataAckDefaultTypeInternal;
+extern ResetUserPasswordDataAckDefaultTypeInternal _ResetUserPasswordDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResetUserPasswordDataAck_class_data_;
 class RestartSambaServiceDataAck;
 struct RestartSambaServiceDataAckDefaultTypeInternal;
 extern RestartSambaServiceDataAckDefaultTypeInternal _RestartSambaServiceDataAck_default_instance_;
@@ -102,6 +114,9 @@ enum Status : int {
   SUCCESS = 0,
   FAILED = 1,
   DUPLICATE = 2,
+  USER_NOT_FOUND = 3,
+  PASSWORD_REQ_FAILED = 4,
+  UNKNOWN = 5,
   Status_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   Status_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -112,11 +127,11 @@ extern const uint32_t Status_internal_data_[];
 inline constexpr Status Status_MIN =
     static_cast<Status>(0);
 inline constexpr Status Status_MAX =
-    static_cast<Status>(2);
+    static_cast<Status>(5);
 inline bool Status_IsValid(int value) {
-  return 0 <= value && value <= 2;
+  return 0 <= value && value <= 5;
 }
-inline constexpr int Status_ARRAYSIZE = 2 + 1;
+inline constexpr int Status_ARRAYSIZE = 5 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor();
 template <typename T>
 const ::std::string& Status_Name(T value) {
@@ -127,7 +142,7 @@ const ::std::string& Status_Name(T value) {
 }
 template <>
 inline const ::std::string& Status_Name(Status value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 2>(
+  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 5>(
       static_cast<int>(value));
 }
 inline bool Status_Parse(
@@ -330,6 +345,410 @@ class RestartSambaServiceDataAck final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RestartSambaServiceDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class ResetUserPasswordDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.ResetUserPasswordDataAck) */ {
+ public:
+  inline ResetUserPasswordDataAck() : ResetUserPasswordDataAck(nullptr) {}
+  ~ResetUserPasswordDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResetUserPasswordDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResetUserPasswordDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResetUserPasswordDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResetUserPasswordDataAck(const ResetUserPasswordDataAck& from) : ResetUserPasswordDataAck(nullptr, from) {}
+  inline ResetUserPasswordDataAck(ResetUserPasswordDataAck&& from) noexcept
+      : ResetUserPasswordDataAck(nullptr, ::std::move(from)) {}
+  inline ResetUserPasswordDataAck& operator=(const ResetUserPasswordDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResetUserPasswordDataAck& operator=(ResetUserPasswordDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResetUserPasswordDataAck& default_instance() {
+    return *reinterpret_cast<const ResetUserPasswordDataAck*>(
+        &_ResetUserPasswordDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 8;
+  friend void swap(ResetUserPasswordDataAck& a, ResetUserPasswordDataAck& b) { a.Swap(&b); }
+  inline void Swap(ResetUserPasswordDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResetUserPasswordDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResetUserPasswordDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ResetUserPasswordDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResetUserPasswordDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResetUserPasswordDataAck& from) { ResetUserPasswordDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResetUserPasswordDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.ResetUserPasswordDataAck"; }
+
+ protected:
+  explicit ResetUserPasswordDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResetUserPasswordDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResetUserPasswordDataAck& from);
+  ResetUserPasswordDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResetUserPasswordDataAck&& from) noexcept
+      : ResetUserPasswordDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStatusFieldNumber = 1,
+  };
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.ResetUserPasswordDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResetUserPasswordDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResetUserPasswordDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class ResetUserPasswordData final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.ResetUserPasswordData) */ {
+ public:
+  inline ResetUserPasswordData() : ResetUserPasswordData(nullptr) {}
+  ~ResetUserPasswordData() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResetUserPasswordData* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResetUserPasswordData));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResetUserPasswordData(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResetUserPasswordData(const ResetUserPasswordData& from) : ResetUserPasswordData(nullptr, from) {}
+  inline ResetUserPasswordData(ResetUserPasswordData&& from) noexcept
+      : ResetUserPasswordData(nullptr, ::std::move(from)) {}
+  inline ResetUserPasswordData& operator=(const ResetUserPasswordData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResetUserPasswordData& operator=(ResetUserPasswordData&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResetUserPasswordData& default_instance() {
+    return *reinterpret_cast<const ResetUserPasswordData*>(
+        &_ResetUserPasswordData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(ResetUserPasswordData& a, ResetUserPasswordData& b) { a.Swap(&b); }
+  inline void Swap(ResetUserPasswordData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResetUserPasswordData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResetUserPasswordData* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ResetUserPasswordData>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResetUserPasswordData& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResetUserPasswordData& from) { ResetUserPasswordData::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResetUserPasswordData* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.ResetUserPasswordData"; }
+
+ protected:
+  explicit ResetUserPasswordData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResetUserPasswordData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResetUserPasswordData& from);
+  ResetUserPasswordData(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResetUserPasswordData&& from) noexcept
+      : ResetUserPasswordData(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kPasswordFieldNumber = 2,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string password = 2;
+  void clear_password() ;
+  const ::std::string& password() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_password(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_password();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_password();
+  void set_allocated_password(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_password() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_password(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_password();
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.ResetUserPasswordData)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 63,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResetUserPasswordData& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr password_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResetUserPasswordData_class_data_;
 // -------------------------------------------------------------------
 
 class RemoveDomainUserDataAck final : public ::google::protobuf::Message
@@ -734,6 +1153,221 @@ class RemoveDomainUserData final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull RemoveDomainUserData_class_data_;
+// -------------------------------------------------------------------
+
+class GetUserListDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.GetUserListDataAck) */ {
+ public:
+  inline GetUserListDataAck() : GetUserListDataAck(nullptr) {}
+  ~GetUserListDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetUserListDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetUserListDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetUserListDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetUserListDataAck(const GetUserListDataAck& from) : GetUserListDataAck(nullptr, from) {}
+  inline GetUserListDataAck(GetUserListDataAck&& from) noexcept
+      : GetUserListDataAck(nullptr, ::std::move(from)) {}
+  inline GetUserListDataAck& operator=(const GetUserListDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetUserListDataAck& operator=(GetUserListDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetUserListDataAck& default_instance() {
+    return *reinterpret_cast<const GetUserListDataAck*>(
+        &_GetUserListDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 9;
+  friend void swap(GetUserListDataAck& a, GetUserListDataAck& b) { a.Swap(&b); }
+  inline void Swap(GetUserListDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetUserListDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetUserListDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetUserListDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetUserListDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetUserListDataAck& from) { GetUserListDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetUserListDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.GetUserListDataAck"; }
+
+ protected:
+  explicit GetUserListDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetUserListDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetUserListDataAck& from);
+  GetUserListDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetUserListDataAck&& from) noexcept
+      : GetUserListDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsersFieldNumber = 2,
+    kStatusFieldNumber = 1,
+  };
+  // repeated string users = 2;
+  int users_size() const;
+  private:
+  int _internal_users_size() const;
+
+  public:
+  void clear_users() ;
+  const ::std::string& users(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_users(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_users(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_users();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_users(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& users() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_users();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_users() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_users();
+
+  public:
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.GetUserListDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 49,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetUserListDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> users_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetUserListDataAck_class_data_;
 // -------------------------------------------------------------------
 
 class CreateSambaFileShareDataAck final : public ::google::protobuf::Message
@@ -2067,6 +2701,260 @@ inline ::infra_service::v1::Status RestartSambaServiceDataAck::_internal_status(
 inline void RestartSambaServiceDataAck::_internal_set_status(::infra_service::v1::Status value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.status_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ResetUserPasswordData
+
+// string username = 1;
+inline void ResetUserPasswordData::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& ResetUserPasswordData::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.ResetUserPasswordData.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResetUserPasswordData::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.ResetUserPasswordData.username)
+}
+inline ::std::string* PROTOBUF_NONNULL ResetUserPasswordData::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.ResetUserPasswordData.username)
+  return _s;
+}
+inline const ::std::string& ResetUserPasswordData::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void ResetUserPasswordData::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResetUserPasswordData::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResetUserPasswordData::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.ResetUserPasswordData.username)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResetUserPasswordData::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.ResetUserPasswordData.username)
+}
+
+// string password = 2;
+inline void ResetUserPasswordData::clear_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.password_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline const ::std::string& ResetUserPasswordData::password() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.ResetUserPasswordData.password)
+  return _internal_password();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ResetUserPasswordData::set_password(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.password_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.ResetUserPasswordData.password)
+}
+inline ::std::string* PROTOBUF_NONNULL ResetUserPasswordData::mutable_password()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_password();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.ResetUserPasswordData.password)
+  return _s;
+}
+inline const ::std::string& ResetUserPasswordData::_internal_password() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.password_.Get();
+}
+inline void ResetUserPasswordData::_internal_set_password(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.password_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ResetUserPasswordData::_internal_mutable_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  return _impl_.password_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ResetUserPasswordData::release_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.ResetUserPasswordData.password)
+  if ((_impl_._has_bits_[0] & 0x00000002u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  auto* released = _impl_.password_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.password_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ResetUserPasswordData::set_allocated_password(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  _impl_.password_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.password_.IsDefault()) {
+    _impl_.password_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.ResetUserPasswordData.password)
+}
+
+// -------------------------------------------------------------------
+
+// ResetUserPasswordDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void ResetUserPasswordDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline ::infra_service::v1::Status ResetUserPasswordDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.ResetUserPasswordDataAck.status)
+  return _internal_status();
+}
+inline void ResetUserPasswordDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.ResetUserPasswordDataAck.status)
+}
+inline ::infra_service::v1::Status ResetUserPasswordDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void ResetUserPasswordDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GetUserListDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void GetUserListDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline ::infra_service::v1::Status GetUserListDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.GetUserListDataAck.status)
+  return _internal_status();
+}
+inline void GetUserListDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.GetUserListDataAck.status)
+}
+inline ::infra_service::v1::Status GetUserListDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void GetUserListDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// repeated string users = 2;
+inline int GetUserListDataAck::_internal_users_size() const {
+  return _internal_users().size();
+}
+inline int GetUserListDataAck::users_size() const {
+  return _internal_users_size();
+}
+inline void GetUserListDataAck::clear_users() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.users_.Clear();
+}
+inline ::std::string* PROTOBUF_NONNULL GetUserListDataAck::add_users()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s = _internal_mutable_users()->Add();
+  // @@protoc_insertion_point(field_add_mutable:infra_service.v1.GetUserListDataAck.users)
+  return _s;
+}
+inline const ::std::string& GetUserListDataAck::users(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.GetUserListDataAck.users)
+  return _internal_users().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL GetUserListDataAck::mutable_users(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.GetUserListDataAck.users)
+  return _internal_mutable_users()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void GetUserListDataAck::set_users(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_users()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:infra_service.v1.GetUserListDataAck.users)
+}
+template <typename Arg_, typename... Args_>
+inline void GetUserListDataAck::add_users(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(*_internal_mutable_users(),
+                               ::std::forward<Arg_>(value),
+                               args... );
+  // @@protoc_insertion_point(field_add:infra_service.v1.GetUserListDataAck.users)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& GetUserListDataAck::users()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:infra_service.v1.GetUserListDataAck.users)
+  return _internal_users();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetUserListDataAck::mutable_users() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:infra_service.v1.GetUserListDataAck.users)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_users();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+GetUserListDataAck::_internal_users() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.users_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetUserListDataAck::_internal_mutable_users() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.users_;
 }
 
 #ifdef __GNUC__

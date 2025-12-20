@@ -52,6 +52,61 @@ struct RestartSambaServiceDataAckDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RestartSambaServiceDataAckDefaultTypeInternal _RestartSambaServiceDataAck_default_instance_;
 
+inline constexpr ResetUserPasswordDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResetUserPasswordDataAck::ResetUserPasswordDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResetUserPasswordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ResetUserPasswordDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResetUserPasswordDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResetUserPasswordDataAckDefaultTypeInternal() {}
+  union {
+    ResetUserPasswordDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResetUserPasswordDataAckDefaultTypeInternal _ResetUserPasswordDataAck_default_instance_;
+
+inline constexpr ResetUserPasswordData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        password_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResetUserPasswordData::ResetUserPasswordData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResetUserPasswordData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ResetUserPasswordDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResetUserPasswordDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResetUserPasswordDataDefaultTypeInternal() {}
+  union {
+    ResetUserPasswordData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResetUserPasswordDataDefaultTypeInternal _ResetUserPasswordData_default_instance_;
+
 inline constexpr RemoveDomainUserDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -106,6 +161,32 @@ struct RemoveDomainUserDataDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RemoveDomainUserDataDefaultTypeInternal _RemoveDomainUserData_default_instance_;
+
+inline constexpr GetUserListDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        users_{},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetUserListDataAck::GetUserListDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetUserListDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetUserListDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetUserListDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetUserListDataAckDefaultTypeInternal() {}
+  union {
+    GetUserListDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetUserListDataAckDefaultTypeInternal _GetUserListDataAck_default_instance_;
 
 inline constexpr CreateSambaFileShareDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -266,6 +347,25 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::RestartSambaServiceDataAck, _impl_.status_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordData, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordData, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordData, _impl_.password_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordDataAck, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordDataAck, _impl_.status_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::GetUserListDataAck, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::GetUserListDataAck, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::GetUserListDataAck, _impl_.users_),
+        0,
+        ~0u,
 };
 
 static const ::_pbi::MigrationSchema
@@ -277,6 +377,9 @@ static const ::_pbi::MigrationSchema
         {26, sizeof(::infra_service::v1::CreateSambaFileShareData)},
         {31, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
         {36, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
+        {41, sizeof(::infra_service::v1::ResetUserPasswordData)},
+        {48, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
+        {53, sizeof(::infra_service::v1::GetUserListDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
@@ -286,6 +389,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_CreateSambaFileShareData_default_instance_._instance,
     &::infra_service::v1::_CreateSambaFileShareDataAck_default_instance_._instance,
     &::infra_service::v1::_RestartSambaServiceDataAck_default_instance_._instance,
+    &::infra_service::v1::_ResetUserPasswordData_default_instance_._instance,
+    &::infra_service::v1::_ResetUserPasswordDataAck_default_instance_._instance,
+    &::infra_service::v1::_GetUserListDataAck_default_instance_._instance,
 };
 const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -302,19 +408,30 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "CreateSambaFileShareDataAck\022(\n\006status\030\001 "
     "\001(\0162\030.infra_service.v1.Status\"F\n\032Restart"
     "SambaServiceDataAck\022(\n\006status\030\001 \001(\0162\030.in"
-    "fra_service.v1.Status*0\n\006Status\022\013\n\007SUCCE"
-    "SS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020\0022\243\003\n\014Infr"
-    "aService\022[\n\023RestartSambaService\022\026.google"
-    ".protobuf.Empty\032,.infra_service.v1.Resta"
-    "rtSambaServiceDataAck\022q\n\024CreateSambaFile"
-    "Share\022*.infra_service.v1.CreateSambaFile"
-    "ShareData\032-.infra_service.v1.CreateSamba"
-    "FileShareDataAck\022\\\n\rAddDomainUser\022#.infr"
-    "a_service.v1.AddDomainUserData\032&.infra_s"
-    "ervice.v1.AddDomainUserDataAck\022e\n\020Remove"
-    "DomainUser\022&.infra_service.v1.RemoveDoma"
-    "inUserData\032).infra_service.v1.RemoveDoma"
-    "inUserDataAckb\006proto3"
+    "fra_service.v1.Status\";\n\025ResetUserPasswo"
+    "rdData\022\020\n\010username\030\001 \001(\t\022\020\n\010password\030\002 \001"
+    "(\t\"D\n\030ResetUserPasswordDataAck\022(\n\006status"
+    "\030\001 \001(\0162\030.infra_service.v1.Status\"M\n\022GetU"
+    "serListDataAck\022(\n\006status\030\001 \001(\0162\030.infra_s"
+    "ervice.v1.Status\022\r\n\005users\030\002 \003(\t*j\n\006Statu"
+    "s\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020"
+    "\002\022\022\n\016USER_NOT_FOUND\020\003\022\027\n\023PASSWORD_REQ_FA"
+    "ILED\020\004\022\013\n\007UNKNOWN\020\0052\332\004\n\014InfraService\022K\n\013"
+    "GetUserList\022\026.google.protobuf.Empty\032$.in"
+    "fra_service.v1.GetUserListDataAck\022[\n\023Res"
+    "tartSambaService\022\026.google.protobuf.Empty"
+    "\032,.infra_service.v1.RestartSambaServiceD"
+    "ataAck\022q\n\024CreateSambaFileShare\022*.infra_s"
+    "ervice.v1.CreateSambaFileShareData\032-.inf"
+    "ra_service.v1.CreateSambaFileShareDataAc"
+    "k\022h\n\021ResetUserPassword\022\'.infra_service.v"
+    "1.ResetUserPasswordData\032*.infra_service."
+    "v1.ResetUserPasswordDataAck\022\\\n\rAddDomain"
+    "User\022#.infra_service.v1.AddDomainUserDat"
+    "a\032&.infra_service.v1.AddDomainUserDataAc"
+    "k\022e\n\020RemoveDomainUser\022&.infra_service.v1"
+    ".RemoveDomainUserData\032).infra_service.v1"
+    ".RemoveDomainUserDataAckb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
@@ -324,13 +441,13 @@ static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2epr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    1021,
+    1472,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps,
     1,
-    7,
+    10,
     schemas,
     file_default_instances,
     TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
@@ -344,7 +461,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor() {
   return file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t Status_internal_data_[] = {
-    196608u, 0u, };
+    393216u, 0u, };
 // ===================================================================
 
 class AddDomainUserData::_Internal {
@@ -2236,6 +2353,842 @@ void RestartSambaServiceDataAck::InternalSwap(RestartSambaServiceDataAck* PROTOB
 }
 
 ::google::protobuf::Metadata RestartSambaServiceDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResetUserPasswordData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ResetUserPasswordData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_._has_bits_);
+};
+
+ResetUserPasswordData::ResetUserPasswordData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResetUserPasswordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.ResetUserPasswordData)
+}
+PROTOBUF_NDEBUG_INLINE ResetUserPasswordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::ResetUserPasswordData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        password_(arena, from.password_) {}
+
+ResetUserPasswordData::ResetUserPasswordData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ResetUserPasswordData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResetUserPasswordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ResetUserPasswordData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.ResetUserPasswordData)
+}
+PROTOBUF_NDEBUG_INLINE ResetUserPasswordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        password_(arena) {}
+
+inline void ResetUserPasswordData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ResetUserPasswordData::~ResetUserPasswordData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.ResetUserPasswordData)
+  SharedDtor(*this);
+}
+inline void ResetUserPasswordData::SharedDtor(MessageLite& self) {
+  ResetUserPasswordData& this_ = static_cast<ResetUserPasswordData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.password_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ResetUserPasswordData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResetUserPasswordData(arena);
+}
+constexpr auto ResetUserPasswordData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ResetUserPasswordData),
+                                            alignof(ResetUserPasswordData));
+}
+constexpr auto ResetUserPasswordData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResetUserPasswordData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResetUserPasswordData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ResetUserPasswordData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResetUserPasswordData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ResetUserPasswordData>(), &ResetUserPasswordData::ByteSizeLong,
+              &ResetUserPasswordData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_._cached_size_),
+          false,
+      },
+      &ResetUserPasswordData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResetUserPasswordData_class_data_ =
+        ResetUserPasswordData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResetUserPasswordData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResetUserPasswordData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResetUserPasswordData_class_data_.tc_table);
+  return ResetUserPasswordData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 63, 2>
+ResetUserPasswordData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResetUserPasswordData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::ResetUserPasswordData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string password = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0, PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_.password_)}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_.username_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_.username_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string password = 2;
+    {PROTOBUF_FIELD_OFFSET(ResetUserPasswordData, _impl_.password_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\46\10\10\0\0\0\0\0"
+    "infra_service.v1.ResetUserPasswordData"
+    "username"
+    "password"
+  }},
+};
+PROTOBUF_NOINLINE void ResetUserPasswordData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.ResetUserPasswordData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.password_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResetUserPasswordData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResetUserPasswordData& this_ = static_cast<const ResetUserPasswordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResetUserPasswordData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResetUserPasswordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.ResetUserPasswordData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string username = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.ResetUserPasswordData.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string password = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_password().empty()) {
+      const ::std::string& _s = this_._internal_password();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.ResetUserPasswordData.password");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.ResetUserPasswordData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResetUserPasswordData::ByteSizeLong(const MessageLite& base) {
+  const ResetUserPasswordData& this_ = static_cast<const ResetUserPasswordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResetUserPasswordData::ByteSizeLong() const {
+  const ResetUserPasswordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.ResetUserPasswordData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    // string username = 1;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string password = 2;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_password().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_password());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResetUserPasswordData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ResetUserPasswordData*>(&to_msg);
+  auto& from = static_cast<const ResetUserPasswordData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.ResetUserPasswordData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_password().empty()) {
+        _this->_internal_set_password(from._internal_password());
+      } else {
+        if (_this->_impl_.password_.IsDefault()) {
+          _this->_internal_set_password("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ResetUserPasswordData::CopyFrom(const ResetUserPasswordData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.ResetUserPasswordData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ResetUserPasswordData::InternalSwap(ResetUserPasswordData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.password_, &other->_impl_.password_, arena);
+}
+
+::google::protobuf::Metadata ResetUserPasswordData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResetUserPasswordDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ResetUserPasswordDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResetUserPasswordDataAck, _impl_._has_bits_);
+};
+
+ResetUserPasswordDataAck::ResetUserPasswordDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResetUserPasswordDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.ResetUserPasswordDataAck)
+}
+ResetUserPasswordDataAck::ResetUserPasswordDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResetUserPasswordDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResetUserPasswordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE ResetUserPasswordDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void ResetUserPasswordDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+ResetUserPasswordDataAck::~ResetUserPasswordDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.ResetUserPasswordDataAck)
+  SharedDtor(*this);
+}
+inline void ResetUserPasswordDataAck::SharedDtor(MessageLite& self) {
+  ResetUserPasswordDataAck& this_ = static_cast<ResetUserPasswordDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ResetUserPasswordDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResetUserPasswordDataAck(arena);
+}
+constexpr auto ResetUserPasswordDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ResetUserPasswordDataAck),
+                                            alignof(ResetUserPasswordDataAck));
+}
+constexpr auto ResetUserPasswordDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResetUserPasswordDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResetUserPasswordDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ResetUserPasswordDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResetUserPasswordDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ResetUserPasswordDataAck>(), &ResetUserPasswordDataAck::ByteSizeLong,
+              &ResetUserPasswordDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResetUserPasswordDataAck, _impl_._cached_size_),
+          false,
+      },
+      &ResetUserPasswordDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResetUserPasswordDataAck_class_data_ =
+        ResetUserPasswordDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResetUserPasswordDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResetUserPasswordDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResetUserPasswordDataAck_class_data_.tc_table);
+  return ResetUserPasswordDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+ResetUserPasswordDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ResetUserPasswordDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResetUserPasswordDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::ResetUserPasswordDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResetUserPasswordDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(ResetUserPasswordDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(ResetUserPasswordDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ResetUserPasswordDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.ResetUserPasswordDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResetUserPasswordDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResetUserPasswordDataAck& this_ = static_cast<const ResetUserPasswordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResetUserPasswordDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResetUserPasswordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.ResetUserPasswordDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.ResetUserPasswordDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResetUserPasswordDataAck::ByteSizeLong(const MessageLite& base) {
+  const ResetUserPasswordDataAck& this_ = static_cast<const ResetUserPasswordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResetUserPasswordDataAck::ByteSizeLong() const {
+  const ResetUserPasswordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.ResetUserPasswordDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResetUserPasswordDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ResetUserPasswordDataAck*>(&to_msg);
+  auto& from = static_cast<const ResetUserPasswordDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.ResetUserPasswordDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ResetUserPasswordDataAck::CopyFrom(const ResetUserPasswordDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.ResetUserPasswordDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ResetUserPasswordDataAck::InternalSwap(ResetUserPasswordDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata ResetUserPasswordDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetUserListDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetUserListDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_._has_bits_);
+};
+
+GetUserListDataAck::GetUserListDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetUserListDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.GetUserListDataAck)
+}
+PROTOBUF_NDEBUG_INLINE GetUserListDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::GetUserListDataAck& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        users_{visibility, arena, from.users_} {}
+
+GetUserListDataAck::GetUserListDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetUserListDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetUserListDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetUserListDataAck* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.GetUserListDataAck)
+}
+PROTOBUF_NDEBUG_INLINE GetUserListDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        users_{visibility, arena} {}
+
+inline void GetUserListDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+GetUserListDataAck::~GetUserListDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.GetUserListDataAck)
+  SharedDtor(*this);
+}
+inline void GetUserListDataAck::SharedDtor(MessageLite& self) {
+  GetUserListDataAck& this_ = static_cast<GetUserListDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetUserListDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetUserListDataAck(arena);
+}
+constexpr auto GetUserListDataAck::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_.users_) +
+          decltype(GetUserListDataAck::_impl_.users_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetUserListDataAck), alignof(GetUserListDataAck), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetUserListDataAck::PlacementNew_,
+                                 sizeof(GetUserListDataAck),
+                                 alignof(GetUserListDataAck));
+  }
+}
+constexpr auto GetUserListDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetUserListDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetUserListDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetUserListDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetUserListDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetUserListDataAck>(), &GetUserListDataAck::ByteSizeLong,
+              &GetUserListDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_._cached_size_),
+          false,
+      },
+      &GetUserListDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetUserListDataAck_class_data_ =
+        GetUserListDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetUserListDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetUserListDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetUserListDataAck_class_data_.tc_table);
+  return GetUserListDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 49, 2>
+GetUserListDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetUserListDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::GetUserListDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated string users = 2;
+    {::_pbi::TcParser::FastUR1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_.users_)}},
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GetUserListDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // repeated string users = 2;
+    {PROTOBUF_FIELD_OFFSET(GetUserListDataAck, _impl_.users_), -1, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+  }},
+  // no aux_entries
+  {{
+    "\43\0\5\0\0\0\0\0"
+    "infra_service.v1.GetUserListDataAck"
+    "users"
+  }},
+};
+PROTOBUF_NOINLINE void GetUserListDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.GetUserListDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.users_.Clear();
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetUserListDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetUserListDataAck& this_ = static_cast<const GetUserListDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetUserListDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetUserListDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.GetUserListDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // repeated string users = 2;
+  for (int i = 0, n = this_._internal_users_size(); i < n; ++i) {
+    const auto& s = this_._internal_users().Get(i);
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.GetUserListDataAck.users");
+    target = stream->WriteString(2, s, target);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.GetUserListDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetUserListDataAck::ByteSizeLong(const MessageLite& base) {
+  const GetUserListDataAck& this_ = static_cast<const GetUserListDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetUserListDataAck::ByteSizeLong() const {
+  const GetUserListDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.GetUserListDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+   {
+    // repeated string users = 2;
+    {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_users().size());
+      for (int i = 0, n = this_._internal_users().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_users().Get(i));
+      }
+    }
+  }
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetUserListDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<GetUserListDataAck*>(&to_msg);
+  auto& from = static_cast<const GetUserListDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.GetUserListDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_internal_mutable_users()->MergeFrom(from._internal_users());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void GetUserListDataAck::CopyFrom(const GetUserListDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.GetUserListDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetUserListDataAck::InternalSwap(GetUserListDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.users_.InternalSwap(&other->_impl_.users_);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata GetUserListDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

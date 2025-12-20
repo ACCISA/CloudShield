@@ -24,11 +24,19 @@ public:
 
 	
   	Status AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response) override;
+  	Status ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response) override;
+  	Status GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response) override;
     	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
     	Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response) override;
 	Status RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response) override;
 private:
 	static constexpr const char* USER_EXISTS = "already exists";
 	static constexpr const char* USER_ADD_FAILED = "Failed to add user";
+	static constexpr const char* PASSWORD_SET_FAILED = "Failed to set password for user";
+	static constexpr const char* PASSWORD_SET_SUCCESS = "Changed password OK";
+	static constexpr const char* PASSWORD_CONSTRAINT_FAILED = "Constraint violation";
+
+	void populate_repeated(auto* response_field, const auto& source_vector);
+
 	std::mutex mutex_;
 };

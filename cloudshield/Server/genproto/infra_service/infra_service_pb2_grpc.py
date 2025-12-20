@@ -35,6 +35,11 @@ class InfraServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.GetUserList = channel.unary_unary(
+                '/infra_service.v1.InfraService/GetUserList',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=infra__service__pb2.GetUserListDataAck.FromString,
+                _registered_method=True)
         self.RestartSambaService = channel.unary_unary(
                 '/infra_service.v1.InfraService/RestartSambaService',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -44,6 +49,11 @@ class InfraServiceStub(object):
                 '/infra_service.v1.InfraService/CreateSambaFileShare',
                 request_serializer=infra__service__pb2.CreateSambaFileShareData.SerializeToString,
                 response_deserializer=infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+                _registered_method=True)
+        self.ResetUserPassword = channel.unary_unary(
+                '/infra_service.v1.InfraService/ResetUserPassword',
+                request_serializer=infra__service__pb2.ResetUserPasswordData.SerializeToString,
+                response_deserializer=infra__service__pb2.ResetUserPasswordDataAck.FromString,
                 _registered_method=True)
         self.AddDomainUser = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddDomainUser',
@@ -60,6 +70,12 @@ class InfraServiceStub(object):
 class InfraServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
+    def GetUserList(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def RestartSambaService(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -67,6 +83,12 @@ class InfraServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CreateSambaFileShare(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ResetUserPassword(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -87,6 +109,11 @@ class InfraServiceServicer(object):
 
 def add_InfraServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'GetUserList': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetUserList,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=infra__service__pb2.GetUserListDataAck.SerializeToString,
+            ),
             'RestartSambaService': grpc.unary_unary_rpc_method_handler(
                     servicer.RestartSambaService,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
@@ -96,6 +123,11 @@ def add_InfraServiceServicer_to_server(servicer, server):
                     servicer.CreateSambaFileShare,
                     request_deserializer=infra__service__pb2.CreateSambaFileShareData.FromString,
                     response_serializer=infra__service__pb2.CreateSambaFileShareDataAck.SerializeToString,
+            ),
+            'ResetUserPassword': grpc.unary_unary_rpc_method_handler(
+                    servicer.ResetUserPassword,
+                    request_deserializer=infra__service__pb2.ResetUserPasswordData.FromString,
+                    response_serializer=infra__service__pb2.ResetUserPasswordDataAck.SerializeToString,
             ),
             'AddDomainUser': grpc.unary_unary_rpc_method_handler(
                     servicer.AddDomainUser,
@@ -117,6 +149,33 @@ def add_InfraServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class InfraService(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def GetUserList(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/GetUserList',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            infra__service__pb2.GetUserListDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def RestartSambaService(request,
@@ -162,6 +221,33 @@ class InfraService(object):
             '/infra_service.v1.InfraService/CreateSambaFileShare',
             infra__service__pb2.CreateSambaFileShareData.SerializeToString,
             infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ResetUserPassword(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/ResetUserPassword',
+            infra__service__pb2.ResetUserPasswordData.SerializeToString,
+            infra__service__pb2.ResetUserPasswordDataAck.FromString,
             options,
             channel_credentials,
             insecure,

@@ -7,6 +7,9 @@ enum Status {
         SUCCESS = 0;
         FAILED = 1;
         DUPLICATE = 2;
+        USER_NOT_FOUND = 3;
+        PASSWORD_REQ_FAILED = 4;
+        UNKNOWN = 5;
 }
 
 message AddDomainUserData {
@@ -40,9 +43,25 @@ message RestartSambaServiceDataAck {
         Status status = 1;
 }
 
+message ResetUserPasswordData {
+        string username = 1;
+        string password = 2;
+}
+
+message ResetUserPasswordDataAck {
+        Status status = 1;
+}
+
+message GetUserListDataAck {
+        Status status = 1;
+        repeated string users = 2;
+}
+
 service InfraService {
+        rpc GetUserList(google.protobuf.Empty) returns (GetUserListDataAck);
         rpc RestartSambaService(google.protobuf.Empty) returns (RestartSambaServiceDataAck);
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
+        rpc ResetUserPassword(ResetUserPasswordData) returns (ResetUserPasswordDataAck);
         rpc AddDomainUser(AddDomainUserData) returns (AddDomainUserDataAck);
         rpc RemoveDomainUser(RemoveDomainUserData) returns (RemoveDomainUserDataAck);
 }

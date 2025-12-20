@@ -4,6 +4,8 @@ from .network_provisioning import provision_workstations as provision_workstatio
 
 from .dc_management import dc_add_user as dc_add_user
 from .dc_management import dc_restart_samba_service as dc_restart_samba_service
+from .dc_management import dc_user_list as dc_user_list
+from .dc_management import dc_set_password as dc_set_password
 
 from .task import GetServerNodes as GetServerNodes
 from .task import ProxyRPCRequest as ProxyRPCRequest

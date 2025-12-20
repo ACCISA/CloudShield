@@ -192,7 +192,7 @@ def dc_restart_samba_service(org_id: str):
 
     if proxy_response is None:
         logger.error("Failed to proxy rpc request")
-        return {"status":"Failed", "message":"Failed to proxy rpc request"}
+        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
     proxy_status = proxy_response.status
 
@@ -207,8 +207,92 @@ def dc_restart_samba_service(org_id: str):
         logger.info("Successfully restart samba-ad-dc service");
         return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"};
     if status == infra_pb2.FAILED:
-        logger.info("Failed to restart samba-ad-dc service");
+        logger.er("Failed to restart samba-ad-dc service");
         return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"};
+
+def dc_set_password(org_id: str, username: str, new_password: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_set_password"
+        job.save_meta()
+
+    nodes = GetServerNodes(org_id)
+
+    request = infra_pb2.ResetUserPasswordData(username=username, password=new_password)
+
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.ResetUserPassword", request=request)
+
+    if proxy_response is None:
+        logger.error("Failed to proxy rpc request")
+        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
+
+    proxy_status = proxy_response.status
+
+    response = infra_pb2.ResetUserPasswordDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    logger.info("status: " +  str(status))
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully set user password")
+        return {"status":"SUCCESS", "message":"Successfully set user password"}
+
+    if status == infra_pb2.PASSWORD_REQ_FAILED:
+        logger.error("New password violates constraints")
+        return {"status":"PASSWORD_REQ_FAILED", "message":"New password violates constraints"}
+
+    if status == infra_pb2.USER_NOT_FOUND:
+        logger.error(f"User not found (user={username}")
+        return {"status":"USER_NOT_FOUND", "message":"User not found"}
+    
+    if status == infra_pb2.UNKNOWN:
+        logger.error("Failed to set new password for unknown reasons")
+        return {"status":"UNKNOWN", "message":"Failed to set new password for unknown reasons"}
+
+    logger.error("Failed to set user password")
+    return {"status":"FAILED", "message":"Failed to set user password"}
+
+
+
+def dc_user_list(org_id: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_user_list"
+        job.save_meta()
+
+    nodes = GetServerNodes(org_id)
+
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.GetUserList", request = empty_pb2.Empty())
+
+    if proxy_response is None:
+        logger.error("Failed to proxy rpc request")
+        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
+
+    proxy_status = proxy_response.status
+
+    response = infra_pb2.GetUserListDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    users = response.users
+
+    logger.info("status: " +  str(status))
+    logger.info("users: " + str(users))
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully retrieved user list")
+        return {"status":"SUCCESS", "message":"Successfully retrieved user list", "result":{"users":list(users)}}
+
+    logger.error("Failed to retrieve user list")
+    return {"status":"FAILED", "message":"Failed to retrieve user list"}
 
 
 def dc_add_user(org_id: str, username: str, password: str):

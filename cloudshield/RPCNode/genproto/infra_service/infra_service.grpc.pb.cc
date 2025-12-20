@@ -24,8 +24,10 @@ namespace infra_service {
 namespace v1 {
 
 static const char* InfraService_method_names[] = {
+  "/infra_service.v1.InfraService/GetUserList",
   "/infra_service.v1.InfraService/RestartSambaService",
   "/infra_service.v1.InfraService/CreateSambaFileShare",
+  "/infra_service.v1.InfraService/ResetUserPassword",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
 };
@@ -37,11 +39,36 @@ std::unique_ptr< InfraService::Stub> InfraService::NewStub(const std::shared_ptr
 }
 
 InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
-  : channel_(channel), rpcmethod_RestartSambaService_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  : channel_(channel), rpcmethod_GetUserList_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RestartSambaService_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
+
+::grpc::Status InfraService::Stub::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::GetUserListDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetUserList_, context, request, response);
+}
+
+void InfraService::Stub::async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetUserListDataAck>* InfraService::Stub::PrepareAsyncGetUserListRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::GetUserListDataAck, ::google::protobuf::Empty, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetUserList_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetUserListDataAck>* InfraService::Stub::AsyncGetUserListRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetUserListRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
 
 ::grpc::Status InfraService::Stub::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::RestartSambaServiceDataAck* response) {
   return ::grpc::internal::BlockingUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_RestartSambaService_, context, request, response);
@@ -85,6 +112,29 @@ void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* cont
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncCreateSambaFileShareRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status InfraService::Stub::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::infra_service::v1::ResetUserPasswordDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_ResetUserPassword_, context, request, response);
+}
+
+void InfraService::Stub::async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* InfraService::Stub::PrepareAsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::ResetUserPasswordDataAck, ::infra_service::v1::ResetUserPasswordData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_ResetUserPassword_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* InfraService::Stub::AsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncResetUserPasswordRaw(context, request, cq);
   result->StartCall();
   return result;
 }
@@ -139,6 +189,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::google::protobuf::Empty* req,
+             ::infra_service::v1::GetUserListDataAck* resp) {
+               return service->GetUserList(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[1],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
              ::grpc::ServerContext* ctx,
@@ -147,7 +207,7 @@ InfraService::Service::Service() {
                return service->RestartSambaService(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[1],
+      InfraService_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -157,7 +217,17 @@ InfraService::Service::Service() {
                return service->CreateSambaFileShare(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[2],
+      InfraService_method_names[3],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::ResetUserPasswordData* req,
+             ::infra_service::v1::ResetUserPasswordDataAck* resp) {
+               return service->ResetUserPassword(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[4],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -167,7 +237,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[3],
+      InfraService_method_names[5],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -181,6 +251,13 @@ InfraService::Service::Service() {
 InfraService::Service::~Service() {
 }
 
+::grpc::Status InfraService::Service::GetUserList(::grpc::ServerContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
 ::grpc::Status InfraService::Service::RestartSambaService(::grpc::ServerContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response) {
   (void) context;
   (void) request;
@@ -189,6 +266,13 @@ InfraService::Service::~Service() {
 }
 
 ::grpc::Status InfraService::Service::CreateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status InfraService::Service::ResetUserPassword(::grpc::ServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response) {
   (void) context;
   (void) request;
   (void) response;

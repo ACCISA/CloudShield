@@ -25,15 +25,15 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13infra_service.proto\x12\x10infra_service.v1\x1a\x1bgoogle/protobuf/empty.proto\"7\n\x11\x41\x64\x64\x44omainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"P\n\x14\x41\x64\x64\x44omainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\"(\n\x14RemoveDomainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\"S\n\x17RemoveDomainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\".\n\x18\x43reateSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\"G\n\x1b\x43reateSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"F\n\x1aRestartSambaServiceDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status*0\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\n\n\x06\x46\x41ILED\x10\x01\x12\r\n\tDUPLICATE\x10\x02\x32\xa3\x03\n\x0cInfraService\x12[\n\x13RestartSambaService\x12\x16.google.protobuf.Empty\x1a,.infra_service.v1.RestartSambaServiceDataAck\x12q\n\x14\x43reateSambaFileShare\x12*.infra_service.v1.CreateSambaFileShareData\x1a-.infra_service.v1.CreateSambaFileShareDataAck\x12\\\n\rAddDomainUser\x12#.infra_service.v1.AddDomainUserData\x1a&.infra_service.v1.AddDomainUserDataAck\x12\x65\n\x10RemoveDomainUser\x12&.infra_service.v1.RemoveDomainUserData\x1a).infra_service.v1.RemoveDomainUserDataAckb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13infra_service.proto\x12\x10infra_service.v1\x1a\x1bgoogle/protobuf/empty.proto\"7\n\x11\x41\x64\x64\x44omainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"P\n\x14\x41\x64\x64\x44omainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\"(\n\x14RemoveDomainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\"S\n\x17RemoveDomainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\".\n\x18\x43reateSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\"G\n\x1b\x43reateSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"F\n\x1aRestartSambaServiceDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\";\n\x15ResetUserPasswordData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"D\n\x18ResetUserPasswordDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"M\n\x12GetUserListDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\r\n\x05users\x18\x02 \x03(\t*j\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\n\n\x06\x46\x41ILED\x10\x01\x12\r\n\tDUPLICATE\x10\x02\x12\x12\n\x0eUSER_NOT_FOUND\x10\x03\x12\x17\n\x13PASSWORD_REQ_FAILED\x10\x04\x12\x0b\n\x07UNKNOWN\x10\x05\x32\xda\x04\n\x0cInfraService\x12K\n\x0bGetUserList\x12\x16.google.protobuf.Empty\x1a$.infra_service.v1.GetUserListDataAck\x12[\n\x13RestartSambaService\x12\x16.google.protobuf.Empty\x1a,.infra_service.v1.RestartSambaServiceDataAck\x12q\n\x14\x43reateSambaFileShare\x12*.infra_service.v1.CreateSambaFileShareData\x1a-.infra_service.v1.CreateSambaFileShareDataAck\x12h\n\x11ResetUserPassword\x12\'.infra_service.v1.ResetUserPasswordData\x1a*.infra_service.v1.ResetUserPasswordDataAck\x12\\\n\rAddDomainUser\x12#.infra_service.v1.AddDomainUserData\x1a&.infra_service.v1.AddDomainUserDataAck\x12\x65\n\x10RemoveDomainUser\x12&.infra_service.v1.RemoveDomainUserData\x1a).infra_service.v1.RemoveDomainUserDataAckb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'infra_service_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_STATUS']._serialized_start=529
-  _globals['_STATUS']._serialized_end=577
+  _globals['_STATUS']._serialized_start=739
+  _globals['_STATUS']._serialized_end=845
   _globals['_ADDDOMAINUSERDATA']._serialized_start=70
   _globals['_ADDDOMAINUSERDATA']._serialized_end=125
   _globals['_ADDDOMAINUSERDATAACK']._serialized_start=127
@@ -48,6 +48,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATESAMBAFILESHAREDATAACK']._serialized_end=455
   _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_start=457
   _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_end=527
-  _globals['_INFRASERVICE']._serialized_start=580
-  _globals['_INFRASERVICE']._serialized_end=999
+  _globals['_RESETUSERPASSWORDDATA']._serialized_start=529
+  _globals['_RESETUSERPASSWORDDATA']._serialized_end=588
+  _globals['_RESETUSERPASSWORDDATAACK']._serialized_start=590
+  _globals['_RESETUSERPASSWORDDATAACK']._serialized_end=658
+  _globals['_GETUSERLISTDATAACK']._serialized_start=660
+  _globals['_GETUSERLISTDATAACK']._serialized_end=737
+  _globals['_INFRASERVICE']._serialized_start=848
+  _globals['_INFRASERVICE']._serialized_end=1450
 # @@protoc_insertion_point(module_scope)

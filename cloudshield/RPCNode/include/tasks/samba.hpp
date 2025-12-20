@@ -5,6 +5,9 @@
 #include <optional>
 #include <fstream>
 #include <cstdlib>
+#include <cstdio>
+#include <vector>
+#include <memory>
 
 #include "utils/exec.hpp"
 
@@ -17,11 +20,17 @@ public:
 
 class SambaTask : public ExecutableTask {
 private:
+	// IMPORTANT TODO these commands allow command injections, we need sanitize inputs at some point
 	static constexpr const char* SAMBA_SMB_CONF_PATH = "/etc/samba/smb.conf";
 	static constexpr const char* RESTART_SAMBA_CMD = "systemctl restart samba-ad-dc";
 	static constexpr const char* USER_ADD_CMD = "samba-tool user add %s %s --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'";
+	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword %s --newpassword=%s";
+	static constexpr const char* USER_LIST_CMD = "samba-tool user list";
 public:
 	std::string AddDomainUser(std::string username, std::string password);
 	std::string CreateSambaFileShare(std::string share_name);
 	std::string RestartSambaService();
+	std::string ResetUserPassword(std::string username, std::string new_password); // unimp
+	std::vector<std::string> GetUserList();
+	bool IsDomainUser(std::string username);
 };
