@@ -177,7 +177,7 @@ _stub_module(
     "provisioner",
     {
         "provision_network_terraform": _provision_network_terraform_stub,
-            "destroy": _destroy_stub,
+            "destroy_infra": _destroy_stub,
             "get_target_dir": _get_target_dir_stub,
     },
 )

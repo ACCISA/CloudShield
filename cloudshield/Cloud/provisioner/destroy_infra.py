@@ -78,7 +78,7 @@ def empty_s3_bucket(bucket_name, region):
         return False
 
 
-def destroy(org_id, org_dir, region="ca-central-1", force_empty_s3=False, server_logger=None):
+def destroy_infra(org_id, org_dir, region="ca-central-1", force_empty_s3=False, server_logger=None):
     global logger
     # Use the passed logger if provided (for job-specific logging)
     if server_logger:
