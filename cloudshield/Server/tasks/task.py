@@ -2,8 +2,6 @@ import grpc
 from enum import Enum
 from google.protobuf import descriptor_pool
 
-from genproto.infra_service import infra_service_pb2 as infra_pb2
-from genproto.infra_service import infra_service_pb2_grpc as infra_pb2_grpc
 
 from genproto.vpn_service import vpn_service_pb2 as vpn_pb2
 from genproto.vpn_service import vpn_service_pb2_grpc as vpn_pb2_grpc
@@ -14,8 +12,8 @@ from utils import get_logger, get_inventory_from_org_id
 logger = get_logger("tasks")
 
 class NodeType(Enum):
-    DOMAIN_CONTROLLER = 1;
-    OPENVPN = 2;
+    DOMAIN_CONTROLLER = 1
+    OPENVPN = 2
 
 class ServerNode:
     def __init__(self, org_id, ip, port, node_type):

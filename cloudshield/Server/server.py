@@ -14,6 +14,12 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 from flask_cors import CORS
 
+from utils import get_logger  # type: ignore
+from routes import api_bp  # type: ignore
+from routes.users import users_bp  # type: ignore
+from routes.users_read import users_read_bp  # type: ignore
+
+
 def _coerce_exception_class(candidate, name: str):
     """Ensure an imported exception reference is a proper Exception subclass.
 
@@ -35,11 +41,6 @@ def _coerce_exception_class(candidate, name: str):
 
 DuplicateKeyError = _coerce_exception_class(DuplicateKeyError, "DuplicateKeyError")
 OperationFailure = _coerce_exception_class(OperationFailure, "OperationFailure")
-
-from utils import get_logger  # type: ignore
-from routes import api_bp  # type: ignore
-from routes.users import users_bp  # type: ignore
-from routes.users_read import users_read_bp  # type: ignore
 
 # optional audit blueprint; may fail if DB/view not set up
 try:

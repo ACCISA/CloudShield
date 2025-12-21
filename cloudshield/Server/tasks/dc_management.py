@@ -10,14 +10,11 @@ from google.protobuf import empty_pb2
 from .forward import forward_tunnel
 
 from utils import get_logger, get_inventory_from_org_id
-from services.user_service import persist_domain_user
 from models import Inventory
 
-import grpc
 from genproto.infra_service import infra_service_pb2 as infra_pb2
-from genproto.infra_service import infra_service_pb2_grpc as infra_pb2_grpc
 
-from .task import ProxyRPCRequest, GetServerNodes, NodeType
+from .task import ProxyRPCRequest, GetServerNodes
 
 
 def short_uuid():
@@ -192,7 +189,6 @@ def dc_create_file_share(org_id: str, share_name: str):
 
     proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
-    proxy_status = proxy_response.status
 
     response = infra_pb2.CreateSambaFileShareDataAck()
     response.ParseFromString(proxy_response.response)
@@ -228,7 +224,6 @@ def dc_restart_samba_service(org_id: str):
         logger.error("Failed to proxy rpc request")
         return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
-    proxy_status = proxy_response.status
 
     response = infra_pb2.RestartSambaServiceDataAck()
     response.ParseFromString(proxy_response.response)
@@ -238,11 +233,11 @@ def dc_restart_samba_service(org_id: str):
     logger.info("status: " + str(status))
 
     if status == infra_pb2.SUCCESS:
-        logger.info("Successfully restart samba-ad-dc service");
-        return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"};
+        logger.info("Successfully restart samba-ad-dc service")
+        return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"}
     if status == infra_pb2.FAILED:
-        logger.er("Failed to restart samba-ad-dc service");
-        return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"};
+        logger.er("Failed to restart samba-ad-dc service")
+        return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"}
 
 def dc_set_password(org_id: str, username: str, new_password: str):
     job = get_current_job()
@@ -263,7 +258,6 @@ def dc_set_password(org_id: str, username: str, new_password: str):
         logger.error("Failed to proxy rpc request")
         return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
-    proxy_status = proxy_response.status
 
     response = infra_pb2.ResetUserPasswordDataAck()
     response.ParseFromString(proxy_response.response)
@@ -310,7 +304,6 @@ def dc_user_list(org_id: str):
         logger.error("Failed to proxy rpc request")
         return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
-    proxy_status = proxy_response.status
 
     response = infra_pb2.GetUserListDataAck()
     response.ParseFromString(proxy_response.response)
@@ -367,7 +360,6 @@ def dc_add_user(org_id: str, username: str, password: str):
         logger.error("Failed to prxy rpc")
         return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
-    proxy_status = proxy_response.status
 
     # we have to first serialize the bytes from the proxy_response.response field
     response = infra_pb2.AddDomainUserDataAck()
