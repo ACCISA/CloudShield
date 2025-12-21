@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 import re
 
 PASSWORD_RX = re.compile(
@@ -30,6 +30,7 @@ class UserCreate(BaseModel):
     role: Literal["admin", "employee"]
     full_name: str
     org_id: str
+    file_shares: List[str]
 
     # normalize + validate
     @field_validator("email")

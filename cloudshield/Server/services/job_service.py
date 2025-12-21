@@ -18,10 +18,11 @@ try:
         dc_add_user,
         dc_restart_samba_service,
         dc_user_list,
-        dc_set_password
+        dc_set_password,
+        dc_create_file_share
     )
 except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
-    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password
+    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password, dc_create_file_share
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -209,6 +210,15 @@ def enqueue_dc_set_password(org_id: str, username: str, new_password: str):
     logger.info("Enqueued dc_set_password job")
     return job
 
+def enqueue_create_file_share(org_id: str, share_name: str):
+    job = task_queue.enqueue(
+            dc_create_file_share,
+            org_id,
+            share_name
+    )
+    logger.info("Enqueued dc_create_file_share")
+    return job
+
 def enqueue_dc_change_password(org_id: str, username: str, password:str):
     """
     Placeholder: Enqueue an Active Directory "change password" task.
@@ -243,7 +253,8 @@ SERVICES = {
     "dc_add_user": enqueue_dc_add_user,
     "dc_restart_samba_service": enqueue_dc_restart_samba_service,
     "dc_user_list": enqueue_dc_user_list,
-    "dc_set_password": enqueue_dc_set_password
+    "dc_set_password": enqueue_dc_set_password,
+    "dc_create_file_share": enqueue_create_file_share
 }
 
 def service_dispatcher(service_name: str, *args, **kwargs):

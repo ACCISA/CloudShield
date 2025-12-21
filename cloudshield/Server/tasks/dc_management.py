@@ -177,6 +177,40 @@ def exec_ssh(org_id: str, command: str, logger=None):
 
     return SSHExecResult(stdin, stdout_str, stderr_str)
 
+def dc_create_file_share(org_id: str, share_name: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "stating dc_create_samba_file_share"
+        job.save_meta()
+
+    nodes = GetServerNodes(org_id)
+    
+    request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
+
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
+
+    proxy_status = proxy_response.status
+
+    response = infra_pb2.CreateSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    logger.info("status: " + str(status))
+    
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created new samba file share")
+        return {"status":"SUCCESS","message":"Successfully created new samba file share"}
+
+    if status == infra_pb2.FAILED:
+        logger.info("Failed to create new samba file share")
+        return {"status":"SUCCESS","message":"Failed to create new samba file share"}
+
+    return {"status":"SUCCESS","message":"Failed to create new samba file share"}
+
 def dc_restart_samba_service(org_id: str):
     job = get_current_job()
     job_id = job.id if job else "unknown"
@@ -201,7 +235,7 @@ def dc_restart_samba_service(org_id: str):
 
     status = response.status
     
-    logger.info("status: ", str(status))
+    logger.info("status: " + str(status))
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully restart samba-ad-dc service");

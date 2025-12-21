@@ -13,6 +13,22 @@ api_bp = Blueprint("api", __name__)
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 
+@api_bp.route("/task/dc/create_file_share", methods=["POST"])
+def task_create_file_share():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    share_name = data.get("share_name")
+
+    if org_id is None:
+        return jsonify({"error":"org_id is required"}), 422
+    if share_name is None:
+        return jsonify({"error":"share_name is required"}), 422
+
+    job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
+
+    return jsonify({"job_id":job.id}), 202
+
 @api_bp.route("/task/dc/set_password", methods=["POST"])
 def task_set_password():
     data = request.get_json() or {}
