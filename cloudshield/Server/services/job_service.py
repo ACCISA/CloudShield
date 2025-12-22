@@ -16,13 +16,15 @@ try:
         destroy_environment,
         provision_workstations,
         dc_add_user,
+        dc_remove_user,
         dc_restart_samba_service,
         dc_user_list,
         dc_set_password,
-        dc_create_file_share
+        dc_create_file_share,
+        dc_delete_file_share
     )
 except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
-    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password, dc_create_file_share
+    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password, dc_create_file_share, dc_delete_file_share, dc_remove_user
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -219,6 +221,16 @@ def enqueue_create_file_share(org_id: str, share_name: str):
     logger.info("Enqueued dc_create_file_share")
     return job
 
+def enqueue_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
+    job = task_queue.enqueue(
+            dc_delete_file_share,
+            org_id,
+            share_name,
+            wipe_data
+    )
+    logger.info("Enqueued dc_delete_file_share")
+    return job
+
 def enqueue_dc_change_password(org_id: str, username: str, password:str):
     """
     Placeholder: Enqueue an Active Directory "change password" task.
@@ -232,7 +244,8 @@ def enqueue_dc_change_password(org_id: str, username: str, password:str):
         None (currently unimplemented).
     """
     pass
-def enqueue_dc_remove_user(org_id: str, username: str, password: str):
+
+def enqueue_dc_remove_user(org_id: str, username: str):
     """
     Placeholder: Enqueue an Active Directory "remove user" task.
 
@@ -245,16 +258,26 @@ def enqueue_dc_remove_user(org_id: str, username: str, password: str):
         None (currently unimplemented).
     """
     pass
+    job = task_queue.enqueue(
+            dc_remove_user,
+            org_id,
+            username,
+    )
+    logger.info("Enqueued dc_remove_user")
+    return job
+
 
 SERVICES = {
     "provision_network": enqueue_provision,
     "provision_workstations": enqueue_provision_workstations,
     "destroy": enqueue_destroy,
     "dc_add_user": enqueue_dc_add_user,
+    "dc_remove_user": enqueue_dc_remove_user,
     "dc_restart_samba_service": enqueue_dc_restart_samba_service,
     "dc_user_list": enqueue_dc_user_list,
     "dc_set_password": enqueue_dc_set_password,
-    "dc_create_file_share": enqueue_create_file_share
+    "dc_create_file_share": enqueue_create_file_share,
+    "dc_delete_file_share": enqueue_delete_file_share,
 }
 
 def service_dispatcher(service_name: str, *args, **kwargs):

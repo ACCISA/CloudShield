@@ -101,6 +101,6 @@ def ProxyRPCRequest(nodes, method_name, request):
     try:
         return stub.Relay(proxy_request)
     except Exception as e:
-        logger.error("Proxy Fail: " + e)
+        logger.error("Proxy Fail: " + str(e))
         return None
 

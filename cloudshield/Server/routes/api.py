@@ -13,6 +13,23 @@ api_bp = Blueprint("api", __name__)
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 
+@api_bp.route("/task/dc/delete_file_share", methods=["POST"])
+def task_delete_file_share():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    share_name = data.get("share_name")
+    wipe_data = data.get("wipe_data") or False
+
+    if org_id is None:
+        return jsonify({"error":"org_id is required"}), 422
+    if share_name is None:
+        return jsonify({"error":"share_name is required"}), 422
+
+    job = service_dispatcher(service_name="dc_delete_file_share", org_id=org_id, share_name=share_name)
+
+    return jsonify({"job_id":job.id}), 202
+
 @api_bp.route("/task/dc/create_file_share", methods=["POST"])
 def task_create_file_share():
     data = request.get_json() or {}
@@ -73,6 +90,23 @@ def task_dc_restart_samba_service():
     job = service_dispatcher(service_name="dc_restart_samba_service", org_id=org_id)
 
     return jsonify({"job_id": job.id}), 202
+
+@api_bp.route("/task/dc/remove_user", methods=["POST"])
+def task_dc_remove_user():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    username = data.get("username")
+
+    if org_id is None:
+        return jsonify({"error":"org_id is required"}), 422
+    if username is None:
+        return jsonify({"error":"username is required"}), 422
+
+    job = service_dispatcher(service_name="dc_remove_user", org_id=org_id, username=username)
+
+    return jsonify({"job_id": job.id}), 202
+
 
 @api_bp.route("/task/dc/add_user", methods=["POST"])
 def task_dc_add_user():

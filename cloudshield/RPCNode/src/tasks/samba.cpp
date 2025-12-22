@@ -12,6 +12,16 @@ std::string SambaTask::AddDomainUser(std::string username, std::string password)
 	return this->RunCommand(full_cmd);
 }
 
+std::string SambaTask::RemoveDomainUser(std::string username)
+{
+	if (!this->IsDomainUser(username)) {
+		return "not_found";
+	}
+
+	std::string full_cmd = BuildCommand(this->USER_DELETE_CMD, username.c_str());
+	return this->RunCommand(full_cmd);
+}
+
 std::string SambaTask::RestartSambaService()
 {
 	std::system(this->RESTART_SAMBA_CMD);
@@ -98,4 +108,57 @@ std::string SambaTask::CreateSambaFileShare(std::string share_name)
 	}
 
 	return "";
+}
+
+bool SambaTask::DeleteSambaFileShare(std::string share_name)
+{
+    std::string configPath = this->SAMBA_SMB_CONF_PATH;
+    std::string tempPath = configPath+".tmp";
+
+    std::ifstream inFile(configPath);
+    std::ofstream outFile(tempPath);
+
+    if (!inFile.is_open() || !outFile.is_open()) {
+        std::cerr << "Error: Could not open configuration files." << std::endl;
+        return false;
+    }
+
+    std::string line;
+    std::string targetHeader = "[" + share_name + "]";
+    bool insideTargetBlock = false;
+    bool found = false;
+
+    while (std::getline(inFile, line)) {
+        size_t first = line.find_first_not_of(" \t");
+        std::string trimmedLine = (first == std::string::npos) ? "" : line.substr(first);
+
+        if (trimmedLine.find(targetHeader) == 0) {
+            insideTargetBlock = true;
+            found = true;
+            continue;
+        }
+
+        if (insideTargetBlock && trimmedLine.find("[") == 0) {
+            insideTargetBlock = false;
+        }
+
+        if (!insideTargetBlock) {
+            outFile << line << "\n";
+        }
+    }
+
+    inFile.close();
+    outFile.close();
+
+    if (found) {
+        if (std::rename(tempPath.c_str(), configPath.c_str()) == 0) {
+            std::cout << "Successfully removed share: " << share_name << std::endl;
+            return true;
+        }
+    } else {
+        std::remove(tempPath.c_str());
+        std::cerr << "Share not found." << std::endl;
+    }
+
+    return false;
 }

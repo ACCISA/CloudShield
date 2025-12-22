@@ -260,6 +260,7 @@ mkdir /var/run/sshd
 #systemctl status samba
 systemctl start ssh
 systemctl start samba
+systemctl start cs_rpc
 
 echo ""
 echo "=== Samba Domain Controller Setup Complete ==="

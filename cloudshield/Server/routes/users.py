@@ -1,9 +1,9 @@
 """User management API endpoints."""
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from security.guards import require_auth, require_role
-from models.user import UserCreate, UserUpdate
-from services.user_service import create_user, update_user, deactivate_user, delete_user, list_users
+from security import require_auth, require_role
+from models import UserCreate, UserUpdate
+from services import create_user, update_user, deactivate_user, delete_user, list_users
 
 users_bp = Blueprint('users', __name__)
 """

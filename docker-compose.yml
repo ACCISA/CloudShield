@@ -29,19 +29,30 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.openvpn_test
+    privileged: true
+    cgroup: host
+    tty: true
+    stdin_open: true
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
-    networks:
-      - vpc_net
     environment:
       - openvpn_port=${OPENVPN_PORT}
       - openvpn_protocol=${OPENVPN_PROTOCOL}
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
-
     volumes:
       - ./docker/openvpn:/etc/openvpn
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    networks:
+      vpc_net:
+        ipv4_address: 172.23.0.12
+
+
     
   samba-test:
     build:

@@ -29,9 +29,11 @@ public:
     	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
     	Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response) override;
 	Status RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response) override;
+	Status DeleteSambaFileShare(ServerContext* context, const is::DeleteSambaFileShareData* request, is::DeleteSambaFileShareDataAck* response) override;
 private:
 	static constexpr const char* USER_EXISTS = "already exists";
 	static constexpr const char* USER_ADD_FAILED = "Failed to add user";
+	static constexpr const char* DELETED_USER = "Deleted user";
 	static constexpr const char* PASSWORD_SET_FAILED = "Failed to set password for user";
 	static constexpr const char* PASSWORD_SET_SUCCESS = "Changed password OK";
 	static constexpr const char* PASSWORD_CONSTRAINT_FAILED = "Constraint violation";

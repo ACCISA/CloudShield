@@ -33,7 +33,7 @@ def copy_file_container(server_logger, container_id, path_in, path_out):
         server_logger.error(f"Failed to copy file to container (file={path_in}, container_id={container_id})")
         return False
 
-def setup_samba_container(server_logger, container_id):
+def setup_container(server_logger, container_id):
     try:
         result = subprocess.run(
                 ["docker", "exec", "-i", container_id, "/usr/local/bin/docker-entrypoint.sh"],
@@ -118,10 +118,26 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         })
     
     container_id = container.id
-    server_logger.info(f"samab-test container id: {container_id}")
+    server_logger.info(f"samba-test container id: {container_id}")
 
-    if not setup_samba_container(server_logger, container_id):
+    os.environ["OPENVPN_PORT"] = "1194"
+    os.environ["OPENVPN_PROTOCOL"] = "udp"
+    os.environ["OPENVPN_CLIENT_NAME"] = "client1"
+    
+    container_vpn = docker.compose.run(
+        service="openvpn-test",
+        detach=True,
+        tty=False
+    )
+
+    container_id_vpn = container_vpn.id
+    server_logger.info(f"openvpn-test container id: {container_id_vpn}")
+
+    if not setup_container(server_logger, container_id):
         server_logger.error("Failed to run samba setup script")
+        return
+    if not setup_container(server_logger, container_id_vpn):
+        server_logger.error("Failed to run openvpn setup script")
         return
 
 
@@ -129,19 +145,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):
         return
 
-
-    os.environ["OPENVPN_PORT"] = "1194"
-    os.environ["OPENVPN_PROTOCOL"] = "udp"
-    os.environ["OPENVPN_CLIENT_NAME"] = "client1"
-    
-    server_logger.info("Creating docker volume...")
-
-    if not docker.volume.exists(OVPN_VOLUME_NAME):
-        docker.volume.create(OVPN_VOLUME_NAME)
-        server_logger.info("Docker volume created")
-    
-    server_logger.info("Generating opevpn server configuration")
-
+    if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
+        return
 
     #docker.compose.run(
     #        service="openvpn-test",
@@ -152,11 +157,6 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     #        detach=True,
     #        tty=False
     #)
-
-    server_logger.info("OpenVPN configuration generated")
-    server_logger.info("Initlializing PKI infra and certs...")
-
-    server_logger.info("PKI initialized successfully")
 
     metadata = [{
         "port": "50055",
@@ -194,8 +194,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "ports": ["80","169"],
         "status": "running",
-        "private_ip": "172.23.0.10",
-        "public_ip": "172.23.0.10"
+        "private_ip": "172.23.0.12",
+        "public_ip": "172.23.0.12"
     }]
  
 

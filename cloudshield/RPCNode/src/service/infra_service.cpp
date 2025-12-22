@@ -94,7 +94,29 @@ Status InfraService::ResetUserPassword(ServerContext* context, const is::ResetUs
 Status InfraService::RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
-	return Status(grpc::StatusCode::OK, "User removed from successfully");
+
+	std::string username = request->username().c_str();
+
+	auto samba = std::make_unique<SambaTask>();
+
+	std::string result = samba->RemoveDomainUser(username);
+
+	if (result == "not_found") {
+		response->set_status(is::Status::USER_NOT_FOUND);
+		return Status(grpc::StatusCode::OK, "User not found");
+	}
+
+	if (result.find(this->DELETED_USER) != std::string::npos) {
+		response->set_status(is::Status::SUCCESS);
+		return Status(grpc::StatusCode::OK, "User removed from successfully");
+
+	}
+	
+	response->set_status(is::Status::UNKNOWN);
+
+	return Status(grpc::StatusCode::OK, "User remove failed");
+
+
 }
 
 Status InfraService::GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response)
@@ -145,4 +167,28 @@ Status InfraService::RestartSambaService(ServerContext* context, const google::p
 	response->set_status(is::Status::SUCCESS);
 		
 	return Status(grpc::StatusCode::OK, "Restared samba-ad-dc service");
+}
+
+Status InfraService::DeleteSambaFileShare(ServerContext* context, const is::DeleteSambaFileShareData* request, is::DeleteSambaFileShareDataAck* response)
+{
+	// TODO implement wipe_data and rm -rf share
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::string share_name = request->share_name().c_str();
+	bool wipe_data = request->wipe_data();
+
+	std::cout << "RPC Call DeleteSambaFileShare" << std::endl;
+
+	auto samba = std::make_unique<SambaTask>();
+
+	bool result = samba->DeleteSambaFileShare(share_name);
+
+	if (!result) {
+		response->set_status(is::Status::SHARE_NOT_FOUND);
+		return Status(grpc::StatusCode::OK, "Failed to delete samba share");
+	}
+
+	response->set_status(is::Status::SUCCESS);
+
+	return Status(grpc::StatusCode::OK, "Deleted samba file share");
 }

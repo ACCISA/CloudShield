@@ -41,6 +41,12 @@ RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
 
 RUN chmod +x /usr/local/bin/sudo
 
+# copy our rpc server binary and service
+# build binary before starting docker
+COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
+COPY docker/cs_samba_rpc.service /etc/systemd/system/cs_rpc.service
+
+
 # Expose ports needed by AD DC
 #EXPOSE 53 53/udp \
 #       88 88/udp \
@@ -59,6 +65,6 @@ STOPSIGNAL SIGRTMIN+3
 
 VOLUME ["/sys/fs/cgroup"]
 #ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/sbin/init", "&"]
+CMD ["/sbin/init"]
 
 

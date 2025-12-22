@@ -27,9 +27,11 @@ static const char* InfraService_method_names[] = {
   "/infra_service.v1.InfraService/GetUserList",
   "/infra_service.v1.InfraService/RestartSambaService",
   "/infra_service.v1.InfraService/CreateSambaFileShare",
+  "/infra_service.v1.InfraService/DeleteSambaFileShare",
   "/infra_service.v1.InfraService/ResetUserPassword",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
+  "/infra_service.v1.InfraService/GetFileShareSize",
 };
 
 std::unique_ptr< InfraService::Stub> InfraService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -42,9 +44,11 @@ InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& chann
   : channel_(channel), rpcmethod_GetUserList_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_RestartSambaService_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_CreateSambaFileShare_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_ResetUserPassword_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetFileShareSize_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status InfraService::Stub::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::GetUserListDataAck* response) {
@@ -112,6 +116,29 @@ void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* cont
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncCreateSambaFileShareRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status InfraService::Stub::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_DeleteSambaFileShare_, context, request, response);
+}
+
+void InfraService::Stub::async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::DeleteSambaFileShareDataAck, ::infra_service::v1::DeleteSambaFileShareData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_DeleteSambaFileShare_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::AsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncDeleteSambaFileShareRaw(context, request, cq);
   result->StartCall();
   return result;
 }
@@ -185,6 +212,29 @@ void InfraService::Stub::async::RemoveDomainUser(::grpc::ClientContext* context,
   return result;
 }
 
+::grpc::Status InfraService::Stub::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::infra_service::v1::GetFileShareSizeDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetFileShareSize_, context, request, response);
+}
+
+void InfraService::Stub::async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* InfraService::Stub::PrepareAsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::GetFileShareSizeDataAck, ::infra_service::v1::GetFileShareSizeData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetFileShareSize_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* InfraService::Stub::AsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetFileShareSizeRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[0],
@@ -219,6 +269,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[3],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::DeleteSambaFileShareData* req,
+             ::infra_service::v1::DeleteSambaFileShareDataAck* resp) {
+               return service->DeleteSambaFileShare(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[4],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
              ::grpc::ServerContext* ctx,
@@ -227,7 +287,7 @@ InfraService::Service::Service() {
                return service->ResetUserPassword(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[4],
+      InfraService_method_names[5],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -237,7 +297,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[5],
+      InfraService_method_names[6],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -245,6 +305,16 @@ InfraService::Service::Service() {
              const ::infra_service::v1::RemoveDomainUserData* req,
              ::infra_service::v1::RemoveDomainUserDataAck* resp) {
                return service->RemoveDomainUser(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[7],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::GetFileShareSizeData* req,
+             ::infra_service::v1::GetFileShareSizeDataAck* resp) {
+               return service->GetFileShareSize(ctx, req, resp);
              }, this)));
 }
 
@@ -272,6 +342,13 @@ InfraService::Service::~Service() {
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
+::grpc::Status InfraService::Service::DeleteSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
 ::grpc::Status InfraService::Service::ResetUserPassword(::grpc::ServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response) {
   (void) context;
   (void) request;
@@ -287,6 +364,13 @@ InfraService::Service::~Service() {
 }
 
 ::grpc::Status InfraService::Service::RemoveDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status InfraService::Service::GetFileShareSize(::grpc::ServerContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response) {
   (void) context;
   (void) request;
   (void) response;

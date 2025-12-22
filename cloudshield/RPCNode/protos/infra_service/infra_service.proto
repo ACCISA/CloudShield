@@ -10,6 +10,7 @@ enum Status {
         USER_NOT_FOUND = 3;
         PASSWORD_REQ_FAILED = 4;
         UNKNOWN = 5;
+        SHARE_NOT_FOUND = 6;
 }
 
 message AddDomainUserData {
@@ -62,14 +63,24 @@ message GetFileShareSizeData {
 }
 
 message GetFileShareSizeDataAck {
-        int total_size = 1;
-        int usage_size = 2;
+        int32 total_size = 1;
+        int32 usage_size = 2;
+}
+
+message DeleteSambaFileShareData {
+        string share_name = 1;
+        bool wipe_data = 2;
+}
+
+message DeleteSambaFileShareDataAck {
+        Status status = 1;
 }
 
 service InfraService {
         rpc GetUserList(google.protobuf.Empty) returns (GetUserListDataAck);
         rpc RestartSambaService(google.protobuf.Empty) returns (RestartSambaServiceDataAck);
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
+        rpc DeleteSambaFileShare(DeleteSambaFileShareData) returns (DeleteSambaFileShareDataAck);
         rpc ResetUserPassword(ResetUserPasswordData) returns (ResetUserPasswordDataAck);
         rpc AddDomainUser(AddDomainUserData) returns (AddDomainUserDataAck);
         rpc RemoveDomainUser(RemoveDomainUserData) returns (RemoveDomainUserDataAck);

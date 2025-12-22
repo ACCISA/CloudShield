@@ -74,6 +74,22 @@ class CreateSambaFileShareDataAck;
 struct CreateSambaFileShareDataAckDefaultTypeInternal;
 extern CreateSambaFileShareDataAckDefaultTypeInternal _CreateSambaFileShareDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CreateSambaFileShareDataAck_class_data_;
+class DeleteSambaFileShareData;
+struct DeleteSambaFileShareDataDefaultTypeInternal;
+extern DeleteSambaFileShareDataDefaultTypeInternal _DeleteSambaFileShareData_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DeleteSambaFileShareData_class_data_;
+class DeleteSambaFileShareDataAck;
+struct DeleteSambaFileShareDataAckDefaultTypeInternal;
+extern DeleteSambaFileShareDataAckDefaultTypeInternal _DeleteSambaFileShareDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull DeleteSambaFileShareDataAck_class_data_;
+class GetFileShareSizeData;
+struct GetFileShareSizeDataDefaultTypeInternal;
+extern GetFileShareSizeDataDefaultTypeInternal _GetFileShareSizeData_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetFileShareSizeData_class_data_;
+class GetFileShareSizeDataAck;
+struct GetFileShareSizeDataAckDefaultTypeInternal;
+extern GetFileShareSizeDataAckDefaultTypeInternal _GetFileShareSizeDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetFileShareSizeDataAck_class_data_;
 class GetUserListDataAck;
 struct GetUserListDataAckDefaultTypeInternal;
 extern GetUserListDataAckDefaultTypeInternal _GetUserListDataAck_default_instance_;
@@ -117,6 +133,7 @@ enum Status : int {
   USER_NOT_FOUND = 3,
   PASSWORD_REQ_FAILED = 4,
   UNKNOWN = 5,
+  SHARE_NOT_FOUND = 6,
   Status_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   Status_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -127,11 +144,11 @@ extern const uint32_t Status_internal_data_[];
 inline constexpr Status Status_MIN =
     static_cast<Status>(0);
 inline constexpr Status Status_MAX =
-    static_cast<Status>(5);
+    static_cast<Status>(6);
 inline bool Status_IsValid(int value) {
-  return 0 <= value && value <= 5;
+  return 0 <= value && value <= 6;
 }
-inline constexpr int Status_ARRAYSIZE = 5 + 1;
+inline constexpr int Status_ARRAYSIZE = 6 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor();
 template <typename T>
 const ::std::string& Status_Name(T value) {
@@ -142,7 +159,7 @@ const ::std::string& Status_Name(T value) {
 }
 template <>
 inline const ::std::string& Status_Name(Status value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 5>(
+  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 6>(
       static_cast<int>(value));
 }
 inline bool Status_Parse(
@@ -1368,6 +1385,804 @@ class GetUserListDataAck final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetUserListDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class GetFileShareSizeDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.GetFileShareSizeDataAck) */ {
+ public:
+  inline GetFileShareSizeDataAck() : GetFileShareSizeDataAck(nullptr) {}
+  ~GetFileShareSizeDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetFileShareSizeDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetFileShareSizeDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetFileShareSizeDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetFileShareSizeDataAck(const GetFileShareSizeDataAck& from) : GetFileShareSizeDataAck(nullptr, from) {}
+  inline GetFileShareSizeDataAck(GetFileShareSizeDataAck&& from) noexcept
+      : GetFileShareSizeDataAck(nullptr, ::std::move(from)) {}
+  inline GetFileShareSizeDataAck& operator=(const GetFileShareSizeDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetFileShareSizeDataAck& operator=(GetFileShareSizeDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetFileShareSizeDataAck& default_instance() {
+    return *reinterpret_cast<const GetFileShareSizeDataAck*>(
+        &_GetFileShareSizeDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(GetFileShareSizeDataAck& a, GetFileShareSizeDataAck& b) { a.Swap(&b); }
+  inline void Swap(GetFileShareSizeDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetFileShareSizeDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetFileShareSizeDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetFileShareSizeDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetFileShareSizeDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetFileShareSizeDataAck& from) { GetFileShareSizeDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetFileShareSizeDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.GetFileShareSizeDataAck"; }
+
+ protected:
+  explicit GetFileShareSizeDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetFileShareSizeDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetFileShareSizeDataAck& from);
+  GetFileShareSizeDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetFileShareSizeDataAck&& from) noexcept
+      : GetFileShareSizeDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTotalSizeFieldNumber = 1,
+    kUsageSizeFieldNumber = 2,
+  };
+  // int32 total_size = 1;
+  void clear_total_size() ;
+  ::int32_t total_size() const;
+  void set_total_size(::int32_t value);
+
+  private:
+  ::int32_t _internal_total_size() const;
+  void _internal_set_total_size(::int32_t value);
+
+  public:
+  // int32 usage_size = 2;
+  void clear_usage_size() ;
+  ::int32_t usage_size() const;
+  void set_usage_size(::int32_t value);
+
+  private:
+  ::int32_t _internal_usage_size() const;
+  void _internal_set_usage_size(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.GetFileShareSizeDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetFileShareSizeDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::int32_t total_size_;
+    ::int32_t usage_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetFileShareSizeDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class GetFileShareSizeData final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.GetFileShareSizeData) */ {
+ public:
+  inline GetFileShareSizeData() : GetFileShareSizeData(nullptr) {}
+  ~GetFileShareSizeData() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetFileShareSizeData* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetFileShareSizeData));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetFileShareSizeData(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetFileShareSizeData(const GetFileShareSizeData& from) : GetFileShareSizeData(nullptr, from) {}
+  inline GetFileShareSizeData(GetFileShareSizeData&& from) noexcept
+      : GetFileShareSizeData(nullptr, ::std::move(from)) {}
+  inline GetFileShareSizeData& operator=(const GetFileShareSizeData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetFileShareSizeData& operator=(GetFileShareSizeData&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetFileShareSizeData& default_instance() {
+    return *reinterpret_cast<const GetFileShareSizeData*>(
+        &_GetFileShareSizeData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(GetFileShareSizeData& a, GetFileShareSizeData& b) { a.Swap(&b); }
+  inline void Swap(GetFileShareSizeData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetFileShareSizeData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetFileShareSizeData* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetFileShareSizeData>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetFileShareSizeData& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetFileShareSizeData& from) { GetFileShareSizeData::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetFileShareSizeData* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.GetFileShareSizeData"; }
+
+ protected:
+  explicit GetFileShareSizeData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetFileShareSizeData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetFileShareSizeData& from);
+  GetFileShareSizeData(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetFileShareSizeData&& from) noexcept
+      : GetFileShareSizeData(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kShareNameFieldNumber = 1,
+  };
+  // string share_name = 1;
+  void clear_share_name() ;
+  const ::std::string& share_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_share_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_share_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_share_name();
+  void set_allocated_share_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_share_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_share_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_share_name();
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.GetFileShareSizeData)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 56,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetFileShareSizeData& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr share_name_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetFileShareSizeData_class_data_;
+// -------------------------------------------------------------------
+
+class DeleteSambaFileShareDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.DeleteSambaFileShareDataAck) */ {
+ public:
+  inline DeleteSambaFileShareDataAck() : DeleteSambaFileShareDataAck(nullptr) {}
+  ~DeleteSambaFileShareDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DeleteSambaFileShareDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeleteSambaFileShareDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DeleteSambaFileShareDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline DeleteSambaFileShareDataAck(const DeleteSambaFileShareDataAck& from) : DeleteSambaFileShareDataAck(nullptr, from) {}
+  inline DeleteSambaFileShareDataAck(DeleteSambaFileShareDataAck&& from) noexcept
+      : DeleteSambaFileShareDataAck(nullptr, ::std::move(from)) {}
+  inline DeleteSambaFileShareDataAck& operator=(const DeleteSambaFileShareDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DeleteSambaFileShareDataAck& operator=(DeleteSambaFileShareDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DeleteSambaFileShareDataAck& default_instance() {
+    return *reinterpret_cast<const DeleteSambaFileShareDataAck*>(
+        &_DeleteSambaFileShareDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(DeleteSambaFileShareDataAck& a, DeleteSambaFileShareDataAck& b) { a.Swap(&b); }
+  inline void Swap(DeleteSambaFileShareDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DeleteSambaFileShareDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DeleteSambaFileShareDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeleteSambaFileShareDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DeleteSambaFileShareDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DeleteSambaFileShareDataAck& from) { DeleteSambaFileShareDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DeleteSambaFileShareDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.DeleteSambaFileShareDataAck"; }
+
+ protected:
+  explicit DeleteSambaFileShareDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeleteSambaFileShareDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeleteSambaFileShareDataAck& from);
+  DeleteSambaFileShareDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeleteSambaFileShareDataAck&& from) noexcept
+      : DeleteSambaFileShareDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kStatusFieldNumber = 1,
+  };
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.DeleteSambaFileShareDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DeleteSambaFileShareDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DeleteSambaFileShareDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class DeleteSambaFileShareData final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.DeleteSambaFileShareData) */ {
+ public:
+  inline DeleteSambaFileShareData() : DeleteSambaFileShareData(nullptr) {}
+  ~DeleteSambaFileShareData() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DeleteSambaFileShareData* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DeleteSambaFileShareData));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DeleteSambaFileShareData(::google::protobuf::internal::ConstantInitialized);
+
+  inline DeleteSambaFileShareData(const DeleteSambaFileShareData& from) : DeleteSambaFileShareData(nullptr, from) {}
+  inline DeleteSambaFileShareData(DeleteSambaFileShareData&& from) noexcept
+      : DeleteSambaFileShareData(nullptr, ::std::move(from)) {}
+  inline DeleteSambaFileShareData& operator=(const DeleteSambaFileShareData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DeleteSambaFileShareData& operator=(DeleteSambaFileShareData&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DeleteSambaFileShareData& default_instance() {
+    return *reinterpret_cast<const DeleteSambaFileShareData*>(
+        &_DeleteSambaFileShareData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 12;
+  friend void swap(DeleteSambaFileShareData& a, DeleteSambaFileShareData& b) { a.Swap(&b); }
+  inline void Swap(DeleteSambaFileShareData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DeleteSambaFileShareData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DeleteSambaFileShareData* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DeleteSambaFileShareData>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DeleteSambaFileShareData& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DeleteSambaFileShareData& from) { DeleteSambaFileShareData::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DeleteSambaFileShareData* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.DeleteSambaFileShareData"; }
+
+ protected:
+  explicit DeleteSambaFileShareData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  DeleteSambaFileShareData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeleteSambaFileShareData& from);
+  DeleteSambaFileShareData(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, DeleteSambaFileShareData&& from) noexcept
+      : DeleteSambaFileShareData(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kShareNameFieldNumber = 1,
+    kWipeDataFieldNumber = 2,
+  };
+  // string share_name = 1;
+  void clear_share_name() ;
+  const ::std::string& share_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_share_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_share_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_share_name();
+  void set_allocated_share_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_share_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_share_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_share_name();
+
+  public:
+  // bool wipe_data = 2;
+  void clear_wipe_data() ;
+  bool wipe_data() const;
+  void set_wipe_data(bool value);
+
+  private:
+  bool _internal_wipe_data() const;
+  void _internal_set_wipe_data(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.DeleteSambaFileShareData)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 60,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const DeleteSambaFileShareData& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr share_name_;
+    bool wipe_data_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull DeleteSambaFileShareData_class_data_;
 // -------------------------------------------------------------------
 
 class CreateSambaFileShareDataAck final : public ::google::protobuf::Message
@@ -2955,6 +3770,248 @@ inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
 GetUserListDataAck::_internal_mutable_users() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.users_;
+}
+
+// -------------------------------------------------------------------
+
+// GetFileShareSizeData
+
+// string share_name = 1;
+inline void GetFileShareSizeData::clear_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.share_name_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& GetFileShareSizeData::share_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.GetFileShareSizeData.share_name)
+  return _internal_share_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void GetFileShareSizeData::set_share_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.share_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.GetFileShareSizeData.share_name)
+}
+inline ::std::string* PROTOBUF_NONNULL GetFileShareSizeData::mutable_share_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_share_name();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.GetFileShareSizeData.share_name)
+  return _s;
+}
+inline const ::std::string& GetFileShareSizeData::_internal_share_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.share_name_.Get();
+}
+inline void GetFileShareSizeData::_internal_set_share_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.share_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL GetFileShareSizeData::_internal_mutable_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.share_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE GetFileShareSizeData::release_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.GetFileShareSizeData.share_name)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.share_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.share_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void GetFileShareSizeData::set_allocated_share_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.share_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.share_name_.IsDefault()) {
+    _impl_.share_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.GetFileShareSizeData.share_name)
+}
+
+// -------------------------------------------------------------------
+
+// GetFileShareSizeDataAck
+
+// int32 total_size = 1;
+inline void GetFileShareSizeDataAck::clear_total_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline ::int32_t GetFileShareSizeDataAck::total_size() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.GetFileShareSizeDataAck.total_size)
+  return _internal_total_size();
+}
+inline void GetFileShareSizeDataAck::set_total_size(::int32_t value) {
+  _internal_set_total_size(value);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.GetFileShareSizeDataAck.total_size)
+}
+inline ::int32_t GetFileShareSizeDataAck::_internal_total_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.total_size_;
+}
+inline void GetFileShareSizeDataAck::_internal_set_total_size(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = value;
+}
+
+// int32 usage_size = 2;
+inline void GetFileShareSizeDataAck::clear_usage_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.usage_size_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline ::int32_t GetFileShareSizeDataAck::usage_size() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.GetFileShareSizeDataAck.usage_size)
+  return _internal_usage_size();
+}
+inline void GetFileShareSizeDataAck::set_usage_size(::int32_t value) {
+  _internal_set_usage_size(value);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.GetFileShareSizeDataAck.usage_size)
+}
+inline ::int32_t GetFileShareSizeDataAck::_internal_usage_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.usage_size_;
+}
+inline void GetFileShareSizeDataAck::_internal_set_usage_size(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.usage_size_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DeleteSambaFileShareData
+
+// string share_name = 1;
+inline void DeleteSambaFileShareData::clear_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.share_name_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& DeleteSambaFileShareData::share_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.DeleteSambaFileShareData.share_name)
+  return _internal_share_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void DeleteSambaFileShareData::set_share_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.share_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.DeleteSambaFileShareData.share_name)
+}
+inline ::std::string* PROTOBUF_NONNULL DeleteSambaFileShareData::mutable_share_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_share_name();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.DeleteSambaFileShareData.share_name)
+  return _s;
+}
+inline const ::std::string& DeleteSambaFileShareData::_internal_share_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.share_name_.Get();
+}
+inline void DeleteSambaFileShareData::_internal_set_share_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.share_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL DeleteSambaFileShareData::_internal_mutable_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.share_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE DeleteSambaFileShareData::release_share_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.DeleteSambaFileShareData.share_name)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.share_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.share_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void DeleteSambaFileShareData::set_allocated_share_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.share_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.share_name_.IsDefault()) {
+    _impl_.share_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.DeleteSambaFileShareData.share_name)
+}
+
+// bool wipe_data = 2;
+inline void DeleteSambaFileShareData::clear_wipe_data() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.wipe_data_ = false;
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline bool DeleteSambaFileShareData::wipe_data() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.DeleteSambaFileShareData.wipe_data)
+  return _internal_wipe_data();
+}
+inline void DeleteSambaFileShareData::set_wipe_data(bool value) {
+  _internal_set_wipe_data(value);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.DeleteSambaFileShareData.wipe_data)
+}
+inline bool DeleteSambaFileShareData::_internal_wipe_data() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.wipe_data_;
+}
+inline void DeleteSambaFileShareData::_internal_set_wipe_data(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.wipe_data_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DeleteSambaFileShareDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void DeleteSambaFileShareDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline ::infra_service::v1::Status DeleteSambaFileShareDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.DeleteSambaFileShareDataAck.status)
+  return _internal_status();
+}
+inline void DeleteSambaFileShareDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.DeleteSambaFileShareDataAck.status)
+}
+inline ::infra_service::v1::Status DeleteSambaFileShareDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void DeleteSambaFileShareDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
 }
 
 #ifdef __GNUC__

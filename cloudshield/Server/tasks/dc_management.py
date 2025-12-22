@@ -205,7 +205,43 @@ def dc_create_file_share(org_id: str, share_name: str):
         logger.info("Failed to create new samba file share")
         return {"status":"SUCCESS","message":"Failed to create new samba file share"}
 
-    return {"status":"SUCCESS","message":"Failed to create new samba file share"}
+    return {"status":"FAILED","message":"Failed to create new samba file share"}
+
+
+def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "stating dc_delete_file_share"
+        job.save_meta()
+
+    nodes = GetServerNodes(org_id)
+    
+    request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)
+
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)
+
+
+    response = infra_pb2.DeleteSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    logger.info("status: " + str(status))
+    
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully delete new samba file share")
+        return {"status":"SUCCESS","message":"Successfully created new samba file share"}
+    if status == infra_pb2.SHARE_NOT_FOUND:
+        logger.info("Failed to find samba file share")
+        return {"status":"SHARE_NOT_FOUND", "message":"Failed to find samba file share"}
+    if status == infra_pb2.FAILED:
+        logger.info("Failed to delete new samba file share")
+        return {"status":"SUCCESS","message":"Failed to delete new samba file share"}
+
+    return {"status":"FAILED","message":"Failed to create new samba file share"}
 
 def dc_restart_samba_service(org_id: str):
     job = get_current_job()
@@ -382,4 +418,58 @@ def dc_add_user(org_id: str, username: str, password: str):
     if status == infra_pb2.DUPLICATE:
         return {"status": "DUPLICATE", "message":"User already exists"}
 
+    return {"status":"UNKNOWN", "message":"Unexpected response"}
+
+
+
+def dc_remove_user(org_id: str, username: str):
+    """
+    Note: this job should only be executed if a network was provisioned for that org_id
+    """
+
+    # TODO add checks that network was provisioned for org_id aka just check if mongodb has that org_id
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_remove_user"
+        job.save_meta()
+
+    
+    # this tasks is meant for the domain controller so we get that node's ip
+    nodes = GetServerNodes(org_id)
+
+    request = infra_pb2.RemoveDomainUserData(username=username)
+
+    # this request needs to be proxyed through the vpn server because it is destined for the domain controller
+    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.RemoveDomainUser", request=request)
+        
+    if proxy_response is None:
+        logger.error("Failed to prxy rpc")
+        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
+
+
+    # we have to first serialize the bytes from the proxy_response.response field
+    response = infra_pb2.RemoveDomainUserDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    logger.info("status: " + str(status))
+
+    
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully removed user")
+        return {"status": "SUCCESS", "message":"Successfully removed user"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to remove user")
+        return {"status": "FAILED", "message":"Failed to remove user"}
+    
+    if status == infra_pb2.USER_NOT_FOUND:
+        logger.error("Failed to find user")
+        return {"status": "USER_NOT_FOUND", "message":"User not found"}
+    
+    logge.error("unknown error when removing user")
     return {"status":"UNKNOWN", "message":"Unexpected response"}

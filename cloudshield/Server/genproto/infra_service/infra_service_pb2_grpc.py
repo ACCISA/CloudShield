@@ -50,6 +50,11 @@ class InfraServiceStub(object):
                 request_serializer=infra__service__pb2.CreateSambaFileShareData.SerializeToString,
                 response_deserializer=infra__service__pb2.CreateSambaFileShareDataAck.FromString,
                 _registered_method=True)
+        self.DeleteSambaFileShare = channel.unary_unary(
+                '/infra_service.v1.InfraService/DeleteSambaFileShare',
+                request_serializer=infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+                _registered_method=True)
         self.ResetUserPassword = channel.unary_unary(
                 '/infra_service.v1.InfraService/ResetUserPassword',
                 request_serializer=infra__service__pb2.ResetUserPasswordData.SerializeToString,
@@ -64,6 +69,11 @@ class InfraServiceStub(object):
                 '/infra_service.v1.InfraService/RemoveDomainUser',
                 request_serializer=infra__service__pb2.RemoveDomainUserData.SerializeToString,
                 response_deserializer=infra__service__pb2.RemoveDomainUserDataAck.FromString,
+                _registered_method=True)
+        self.GetFileShareSize = channel.unary_unary(
+                '/infra_service.v1.InfraService/GetFileShareSize',
+                request_serializer=infra__service__pb2.GetFileShareSizeData.SerializeToString,
+                response_deserializer=infra__service__pb2.GetFileShareSizeDataAck.FromString,
                 _registered_method=True)
 
 
@@ -88,6 +98,12 @@ class InfraServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DeleteSambaFileShare(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ResetUserPassword(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -101,6 +117,12 @@ class InfraServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def RemoveDomainUser(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetFileShareSize(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -124,6 +146,11 @@ def add_InfraServiceServicer_to_server(servicer, server):
                     request_deserializer=infra__service__pb2.CreateSambaFileShareData.FromString,
                     response_serializer=infra__service__pb2.CreateSambaFileShareDataAck.SerializeToString,
             ),
+            'DeleteSambaFileShare': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteSambaFileShare,
+                    request_deserializer=infra__service__pb2.DeleteSambaFileShareData.FromString,
+                    response_serializer=infra__service__pb2.DeleteSambaFileShareDataAck.SerializeToString,
+            ),
             'ResetUserPassword': grpc.unary_unary_rpc_method_handler(
                     servicer.ResetUserPassword,
                     request_deserializer=infra__service__pb2.ResetUserPasswordData.FromString,
@@ -138,6 +165,11 @@ def add_InfraServiceServicer_to_server(servicer, server):
                     servicer.RemoveDomainUser,
                     request_deserializer=infra__service__pb2.RemoveDomainUserData.FromString,
                     response_serializer=infra__service__pb2.RemoveDomainUserDataAck.SerializeToString,
+            ),
+            'GetFileShareSize': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetFileShareSize,
+                    request_deserializer=infra__service__pb2.GetFileShareSizeData.FromString,
+                    response_serializer=infra__service__pb2.GetFileShareSizeDataAck.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -232,6 +264,33 @@ class InfraService(object):
             _registered_method=True)
 
     @staticmethod
+    def DeleteSambaFileShare(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/DeleteSambaFileShare',
+            infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
+            infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def ResetUserPassword(request,
             target,
             options=(),
@@ -302,6 +361,33 @@ class InfraService(object):
             '/infra_service.v1.InfraService/RemoveDomainUser',
             infra__service__pb2.RemoveDomainUserData.SerializeToString,
             infra__service__pb2.RemoveDomainUserDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetFileShareSize(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/GetFileShareSize',
+            infra__service__pb2.GetFileShareSizeData.SerializeToString,
+            infra__service__pb2.GetFileShareSizeDataAck.FromString,
             options,
             channel_credentials,
             insecure,
