@@ -1,4 +1,5 @@
 import unittest.mock
+import os
 
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None
@@ -23,6 +24,17 @@ import pytest
 
 def _repo_root():
     return pathlib.Path(__file__).parents[3]
+
+
+@pytest.fixture(autouse=True)
+def clear_dev_token(monkeypatch):
+    """Clear CLOUDSHIELD_DEV_TOKEN to ensure fake guards are used"""
+    monkeypatch.delenv("CLOUDSHIELD_DEV_TOKEN", raising=False)
+    # Also need to clear the cached value in the guards module if it was already imported
+    if "security.guards" in sys.modules:
+        monkeypatch.setattr("security.guards.DEV_BYPASS_TOKEN", None, raising=False)
+    if "cloudshield.Server.security.guards" in sys.modules:
+        monkeypatch.setattr("cloudshield.Server.security.guards.DEV_BYPASS_TOKEN", None, raising=False)
 
 
 # Minimal fake guards so decorators work without real JWT
@@ -219,13 +231,24 @@ def app_and_client(monkeypatch, fake_users_collection):
 
     modules_to_clear = [
         'cloudshield.Server.routes.users',
-        'cloudshield.Server.security.guards'
+        'cloudshield.Server.security.guards',
+        'cloudshield.Server.security',
+        'security',
     ]
     for mod in modules_to_clear:
         if mod in sys.modules:
             del sys.modules[mod]
 
-    sys.modules['cloudshield.Server.security.guards'] = sys.modules['security.guards']
+    # Install the fake guards module at multiple paths
+    sys.modules['security.guards'] = sys.modules.get('security.guards') or types.ModuleType('security.guards')
+    fake_guards = sys.modules['security.guards']
+    sys.modules['cloudshield.Server.security.guards'] = fake_guards
+
+    # Create a fake security package that exports from fake guards
+    security_pkg = types.ModuleType('security')
+    security_pkg.require_auth = fake_guards.require_auth
+    security_pkg.require_role = fake_guards.require_role
+    sys.modules['security'] = security_pkg
 
     app = Flask(__name__)
 

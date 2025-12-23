@@ -243,6 +243,7 @@ def test_dc_add_user_invalid_password(monkeypatch):
 
 def test_dc_add_user_without_job(monkeypatch):
     from cloudshield.Server.tasks.dc_management import dc_add_user
+    from genproto.infra_service import infra_service_pb2 as infra_pb2
 
     # No job context
     monkeypatch.setattr(
@@ -257,27 +258,32 @@ def test_dc_add_user_without_job(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    # Mock exec_ssh
-    mock_result = SimpleNamespace(stdout="User created", stderr="")
+    # Mock GetServerNodes
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
+        "cloudshield.Server.tasks.dc_management.GetServerNodes",
+        lambda org_id: unittest.mock.MagicMock()
     )
 
-    # Mock persist_domain_user
-    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    # Mock ProxyRPCRequest to return a SUCCESS response
+    mock_response = unittest.mock.MagicMock()
+    ack = infra_pb2.AddDomainUserDataAck()
+    ack.status = infra_pb2.SUCCESS
+    ack.result = "User created"
+    mock_response.response = ack.SerializeToString()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
-        mock_persist
+        "cloudshield.Server.tasks.dc_management.ProxyRPCRequest",
+        lambda nodes, method_name, request: mock_response
     )
 
-    # Should not raise an error
-    dc_add_user("test_org", "validuser", "Password123!")
+    # Should not raise an error and should return success
+    result = dc_add_user("test_org", "validuser", "Password123!")
+    assert result["status"] == "SUCCESS"
 
 
 def test_dc_add_user_persists_on_success(monkeypatch):
-    """Test that dc_add_user persists user data when command succeeds"""
+    """Test that dc_add_user returns SUCCESS when gRPC call succeeds"""
     from cloudshield.Server.tasks.dc_management import dc_add_user
+    from genproto.infra_service import infra_service_pb2 as infra_pb2
 
     # Mock job
     mock_job = unittest.mock.MagicMock()
@@ -295,38 +301,35 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    # Mock exec_ssh to return success (no stderr)
-    mock_result = SimpleNamespace(stdout="User created successfully", stderr="")
+    # Mock GetServerNodes
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
+        "cloudshield.Server.tasks.dc_management.GetServerNodes",
+        lambda org_id: unittest.mock.MagicMock()
     )
 
-    # Mock persist_domain_user
-    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    # Mock ProxyRPCRequest to return a SUCCESS response
+    mock_response = unittest.mock.MagicMock()
+    ack = infra_pb2.AddDomainUserDataAck()
+    ack.status = infra_pb2.SUCCESS
+    ack.result = "User created successfully"
+    mock_response.response = ack.SerializeToString()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
-        mock_persist
+        "cloudshield.Server.tasks.dc_management.ProxyRPCRequest",
+        lambda nodes, method_name, request: mock_response
     )
 
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    result = dc_add_user("test_org", "testuser", "Password123!")
 
-    # Assert persist_domain_user was called with correct args
-    mock_persist.assert_called_once()
-    called_args = mock_persist.call_args
-
-    assert called_args[0][0] == "test_org"
-    assert called_args[0][1]== "testuser"
-    assert called_args[0][2] == "Password123!"
-    assert "@gmail.com" in called_args[0][3]
-
-    assert any("user_mongo_id_123" in str(call) for call in mock_logger.info.call_args_list)
+    # Assert success
+    assert result["status"] == "SUCCESS"
+    assert "success" in result["message"].lower()
 
 
 def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
-    """Test that dc_add_user does NOT persist when Samba command fails"""
+    """Test that dc_add_user returns FAILED when gRPC call fails"""
     from cloudshield.Server.tasks.dc_management import dc_add_user
+    from genproto.infra_service import infra_service_pb2 as infra_pb2
 
     # Mock job
     mock_job = unittest.mock.MagicMock()
@@ -344,25 +347,26 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    # Mock exec_ssh to return error (stderr present)
-    mock_result = SimpleNamespace(
-        stdout="",
-        stderr="ERROR: command failed"
-    )
+    # Mock GetServerNodes
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
+        "cloudshield.Server.tasks.dc_management.GetServerNodes",
+        lambda org_id: unittest.mock.MagicMock()
     )
 
-    # Mock persist_domain_user
-    mock_persist = unittest.mock.MagicMock()
+    # Mock ProxyRPCRequest to return a FAILED response
+    mock_response = unittest.mock.MagicMock()
+    ack = infra_pb2.AddDomainUserDataAck()
+    ack.status = infra_pb2.FAILED
+    ack.result = "Command failed"
+    mock_response.response = ack.SerializeToString()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
-        mock_persist
+        "cloudshield.Server.tasks.dc_management.ProxyRPCRequest",
+        lambda nodes, method_name, request: mock_response
     )
 
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    result = dc_add_user("test_org", "testuser", "Password123!")
 
-    # Assert persist_domain_user was not called
-    mock_persist.assert_not_called()
+    # Assert failure
+    assert result["status"] == "FAILED"
+    assert "failed" in result["message"].lower()
