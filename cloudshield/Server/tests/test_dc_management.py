@@ -302,7 +302,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     )
     
     # Mock exec_ssh to return success (no stderr)
-    mock_result = SimpleNamespace(stdout="User created successfully", stderr="")
+    SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.AddDomainUserDataAck(status=infra_pb2.SUCCESS, result="User added successfully").SerializeToString()

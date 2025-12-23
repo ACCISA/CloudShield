@@ -24,7 +24,8 @@ try:
         dc_delete_file_share
     )
 except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
-    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password, dc_create_file_share, dc_delete_file_share, dc_remove_user
+    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_restart_samba_service, dc_user_list, dc_set_password
+    from tasks import dc_create_file_share, dc_delete_file_share, dc_remove_user
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]

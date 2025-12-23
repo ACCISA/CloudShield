@@ -19,7 +19,7 @@ def task_delete_file_share():
 
     org_id = data.get("org_id")
     share_name = data.get("share_name")
-    wipe_data = data.get("wipe_data") or False
+    data.get("wipe_data") or False
 
     if org_id is None:
         return jsonify({"error":"org_id is required"}), 422

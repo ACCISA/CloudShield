@@ -412,7 +412,7 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
-        domain_user_id = persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
         return {"status": "SUCCESS", "message":"Successfully added user"}
 
     if status == infra_pb2.FAILED:
@@ -476,5 +476,5 @@ def dc_remove_user(org_id: str, username: str):
         logger.error("Failed to find user")
         return {"status": "USER_NOT_FOUND", "message":"User not found"}
     
-    logge.error("unknown error when removing user")
+    logger.error("unknown error when removing user")
     return {"status":"UNKNOWN", "message":"Unexpected response"}
