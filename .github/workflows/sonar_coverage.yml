@@ -124,6 +124,8 @@ jobs:
         run: mkdir -p tests/python/coverage/server
 
       - name: Run pytest with coverage (Server)
+        env:
+          CLOUDSHIELD_DEV_TOKEN: "admin:org_001:u1"
         run: |
           export PYTHONPATH=cloudshield/Server:cloudshield/Cloud
           pytest cloudshield/Server/tests --cov=cloudshield/Server \
