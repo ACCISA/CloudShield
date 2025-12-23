@@ -117,7 +117,7 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
 
@@ -177,7 +177,7 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -227,7 +227,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
 
@@ -306,7 +306,7 @@ def test_provision_network_returns_none(monkeypatch):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -345,7 +345,7 @@ def test_provision_network_without_job(monkeypatch):
         lambda: None
     )
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: None
     )
     mock_logger = unittest.mock.MagicMock()
@@ -400,7 +400,7 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -450,7 +450,7 @@ def test_destroy_environment_no_directory(monkeypatch, tmp_path):
         lambda: mock_job
     )
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -484,7 +484,7 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
     )
     # Patch progress.get_current_job using string path (module imports from rq at load time)
     monkeypatch.setattr(
-        "cloudshield.Server.utils.progress.get_current_job",
+        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -609,3 +609,4 @@ def test_network_provisioning_run_default_logger(monkeypatch):
     # Should not raise even without logger
     result = list(_run(["echo", "test"], cwd="/tmp"))
     assert result == ["line"]
+
