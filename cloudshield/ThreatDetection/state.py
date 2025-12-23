@@ -6,7 +6,7 @@ class GRPCStateManager:
     """
     The GRPC state manager allows our central server to detect anomalies in requests sent by agents. Certain RPCs should only be made if the server is expecting it.
     """
-    
+
     def __init__(self, delay):
         self.expected = []
         self.delay = delay
@@ -16,7 +16,7 @@ class GRPCStateManager:
         Check if the state manager already has an entry for this RPC combination.
         """
         expected_requests = self.get_agent_requests(agent_id)
-        if len([request for request in expected_requests if request_method == request["request_method"] and response_method == request["response_method"]]) == 0: 
+        if len([request for request in expected_requests if request_method == request["request_method"] and response_method == request["response_method"]]) == 0:
             return False
         return True
 
@@ -25,7 +25,7 @@ class GRPCStateManager:
         Set an expected RPC response after a RPC request made by an agent.
         Example: A SendProcessList should follow with a SendProcessListInformation
         """
-        
+
         if self.is_duplicated(agent_id, request_method, response_method):
             state_logger.info(f"'{agent_id}' is already expecting a response (request_method='{request_method}', response_method='{response_method}'")
             return
@@ -38,14 +38,14 @@ class GRPCStateManager:
         })
 
         state_logger.info(f"Expected response added for '{agent_id}' (request_method='{request_method}', response_method='{response_method}')")
-    
+
     def get_agent_requests(self, agent_id):
         """
         Get the expected RPCs from an agent.
         """
         return [request for request in self.expected if request["agent_id"] == agent_id]
-        
-    def alert_missing_responses(self): 
+
+    def alert_missing_responses(self):
         """
         This function is ran to log agents that have not responded with expected RPCs.
         Example: An agent sent a SendProcessList and the server notified the agent to send a 
@@ -68,7 +68,7 @@ class GRPCStateManager:
         """
         agent_requests = self.get_agent_requests(agent_id)
 
-        if len(agent_requests) == 0: 
+        if len(agent_requests) == 0:
             return False
 
         for idx, request in enumerate(agent_requests):

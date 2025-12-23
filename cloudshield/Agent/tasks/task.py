@@ -39,7 +39,7 @@ class BaseTask(ABC):
         self.stub = None
 
     def set_channel(self, channel, stub):
-        if channel is None: 
+        if channel is None:
             return False
         self.channel = channel
         self.stub = stub
@@ -82,9 +82,9 @@ class BaseTask(ABC):
             raise AttributeError(f"gRPC call '{grpc_call_name}' does not exist")
 
         task_logger.info(f"Sending RPC '{grpc_call_name}'")
-        
+
         grpc_call = getattr(self.stub, grpc_call_name)
-        
+
         try:
             return grpc_call(request)
         except grpc.RpcError as e:

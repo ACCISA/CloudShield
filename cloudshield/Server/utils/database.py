@@ -42,7 +42,7 @@ try:
 
     client = MongoClient(MONGO_URI)
     db = client[DB_NAME]
-    
+
     client.admin.command("ping")
 
     admin_client.admin.command("ping")
@@ -50,7 +50,7 @@ try:
 
     db_admin = admin_client[DB_NAME]
     db_emp   = emp_client[DB_NAME]
-    
+
     # Admin path: Raw "users" collection (read-write).
     # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
@@ -58,7 +58,7 @@ try:
 
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
-    
+
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)
     try:
@@ -73,10 +73,10 @@ try:
 
     # Organizations collection for multi-tenant support
     organizations = db_admin["organizations"]
-    
+
     # Create unique index on org_id for organizations
     organizations.create_index("org_id", unique=True)
-    
+
     # Index on provisioning_status for querying pending/in_progress orgs
     organizations.create_index("provisioning_status")
 

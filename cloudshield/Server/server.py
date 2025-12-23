@@ -96,7 +96,7 @@ def _ensure_json_on_writes():
     """Enforce JSON content-type for write operations."""
     # Track request start time for performance monitoring
     g.start_time = time()
-    
+
     _request_id()
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         # Allow empty body for certain routes (like DELETE /users/<id>)
@@ -114,10 +114,10 @@ def _add_performance_headers(response):
     """
     if hasattr(g, 'start_time'):
         elapsed_ms = (time() - g.start_time) * 1000
-        
+
         # Add header for client-side monitoring and debugging
         response.headers['X-Response-Time'] = f"{elapsed_ms:.2f}ms"
-        
+
         # Log slow requests for investigation
         if elapsed_ms > 500:
             logger.warning(
@@ -127,7 +127,7 @@ def _add_performance_headers(response):
                 elapsed_ms,
                 getattr(g, 'request_id', 'unknown')
             )
-    
+
     return response
 
 

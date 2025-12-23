@@ -67,7 +67,7 @@ def login():
 
 @auth_bp.route("/auth/me", methods=["GET"])
 def me():
-    
+
     """
     Get current user information from JWT token.
 

@@ -122,18 +122,18 @@ def list_audit():
     since  = request.args.get("since")
     until  = request.args.get("until")
 
-    if action: 
+    if action:
         q["action"] = action
-    if actor:  
+    if actor:
         q["actor.id"] = actor
-    if target: 
+    if target:
         q["target.id"] = target
     if since or until:
         from datetime import datetime as _dt
         q["ts"] = {}
-        if since: 
+        if since:
             q["ts"]["$gte"] = _dt.fromisoformat(since.replace("Z","+00:00"))
-        if until: 
+        if until:
             q["ts"]["$lte"] = _dt.fromisoformat(until.replace("Z","+00:00"))
 
     cursor = _audit.find(q).sort("ts", -1).limit(200)

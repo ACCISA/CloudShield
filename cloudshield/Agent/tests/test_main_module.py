@@ -123,7 +123,7 @@ def _prepare_fakes(monkeypatch, tmp_path, program_data=None):
     fake_tasks.CallBootstrapTask = FakeCallBootstrapTask
     fake_tasks.DomainDnsCheckTask = FakeDomainDnsTask
     fake_tasks.EnsureDomainMembershipTask = FakeEnsureDomainTask
-    fake_tasks.NetworkListingTask = FakeNetworkListingTask  
+    fake_tasks.NetworkListingTask = FakeNetworkListingTask
 
     monkeypatch.delitem(sys.modules, "cloudshield.Agent.core", raising=False)
     monkeypatch.delitem(sys.modules, "cloudshield.Agent.tasks", raising=False)

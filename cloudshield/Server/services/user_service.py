@@ -43,15 +43,15 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
 def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
     """
     Create a new user account with audit logging.
-    
+
     Args:
         user_data: Validated user creation data (email, password, role, org_id)
         current_user: Admin user performing the creation
         reason: Optional justification for audit trail
-        
+
     Returns:
         str: MongoDB ObjectId of created user
-        
+
     Raises:
         PermissionError: If current_user is not admin
         ValueError: If email already exists in database
@@ -61,7 +61,7 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
 
     if users_admin.find_one({"email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
-    
+
     # Check user limit from organization config
     org = organizations.find_one({"org_id": user_data.org_id})
     if org:
@@ -81,7 +81,7 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
         "updated_at": datetime.now(timezone.utc),
     }
     res = users_admin.insert_one(user_doc)
-    
+
     log_audit(
         action="create",
         actor={"id": current_user["id"], "role": current_user["role"], "org_id": current_user["org_id"]},
@@ -278,7 +278,7 @@ def list_users(current_user: dict) -> list[dict]:
     # The plan didn't specify, but "EmployeesPage" implies management.
     # Let's check users.py imports again. It uses require_role("admin") for mutations.
     # I'll enforce admin for now to be safe, or just return all if they are admin.
-    
+
     # Actually, let's look at the other functions. They all call _must_admin.
     # I will add _must_admin(current_user) to be safe.
     _must_admin(current_user)
@@ -290,5 +290,5 @@ def list_users(current_user: dict) -> list[dict]:
             user["created_at"] = user["created_at"].isoformat()
         if "updated_at" in user:
             user["updated_at"] = user["updated_at"].isoformat()
-            
+
     return users

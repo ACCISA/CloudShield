@@ -19,7 +19,7 @@ def task_delete_file_share():
 
     org_id = data.get("org_id")
     share_name = data.get("share_name")
-    wipe_data = data.get("wipe_data") or False
+    _ = data.get("wipe_data") or False  # Reserved for future use
 
     if org_id is None:
         return jsonify({"error":"org_id is required"}), 422
@@ -130,7 +130,7 @@ def task_dc_add_user():
     org_id = data.get("org_id")
     username = data.get("username")
     password = data.get("password")
-    
+
     for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
@@ -169,10 +169,10 @@ def task_provision():
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
     job = service_dispatcher(
-        service_name="provision_network", 
-        org_id=org_id, 
-        region=data.get("region", "ca-central-1"), 
-        ubuntu_ami=data.get("ubuntu_ami"), 
+        service_name="provision_network",
+        org_id=org_id,
+        region=data.get("region", "ca-central-1"),
+        ubuntu_ami=data.get("ubuntu_ami"),
         workstation_ami=data.get("workstation_ami"),
         workstation_count=workstation_count
         )

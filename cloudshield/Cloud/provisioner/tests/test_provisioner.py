@@ -405,7 +405,7 @@ def test_main_invokes_helpers(monkeypatch, tmp_path):
 
 def test_main_returns_none_when_copy_returns_none(monkeypatch, tmp_path):
     monkeypatch.setattr(terraform_main, "copy_and_replace_templates", lambda *args, **kwargs: None)
-    
+
     result = terraform_main.provision_network_terraform(
         "ACME",
         "us-west-2",
@@ -421,21 +421,21 @@ def test_main_returns_none_when_copy_returns_none(monkeypatch, tmp_path):
 def test_run_terraform_two_phase_apply_runs_init_and_apply(monkeypatch, tmp_path):
     import subprocess
     calls = []
-    
+
     class FakeCompletedProcess:
         def __init__(self, returncode=0, stdout="", stderr=""):
             self.returncode = returncode
             self.stdout = stdout
             self.stderr = stderr
-    
+
     def fake_run(cmd, cwd=None, capture_output=False, text=False):
         calls.append(("run", cmd, cwd))
         return FakeCompletedProcess()
-    
+
     monkeypatch.setattr(subprocess, "run", fake_run)
-    
+
     terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
-    
+
     # Should have init and apply calls
     assert any("init" in str(call) for call in calls)
     assert any("apply" in str(call) for call in calls)
@@ -443,42 +443,42 @@ def test_run_terraform_two_phase_apply_runs_init_and_apply(monkeypatch, tmp_path
 
 def test_run_terraform_two_phase_apply_raises_on_init_failure(monkeypatch, tmp_path):
     import subprocess
-    
+
     class FakeCompletedProcess:
         def __init__(self, returncode=0, stdout="", stderr="", args=None):
             self.returncode = returncode
             self.stdout = stdout
             self.stderr = stderr
             self.args = args or []
-    
+
     def fake_run(cmd, cwd=None, capture_output=False, text=False):
         if "init" in cmd:
             return FakeCompletedProcess(returncode=1, stderr="init failed", args=cmd)
         return FakeCompletedProcess(args=cmd)
-    
+
     monkeypatch.setattr(subprocess, "run", fake_run)
-    
+
     with pytest.raises(subprocess.CalledProcessError):
         terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
 
 
 def test_run_terraform_two_phase_apply_raises_on_apply_failure(monkeypatch, tmp_path):
     import subprocess
-    
+
     class FakeCompletedProcess:
         def __init__(self, returncode=0, stdout="", stderr="", args=None):
             self.returncode = returncode
             self.stdout = stdout
             self.stderr = stderr
             self.args = args or []
-    
+
     def fake_run(cmd, cwd=None, capture_output=False, text=False):
         if "apply" in cmd:
             return FakeCompletedProcess(returncode=1, stderr="apply failed", args=cmd)
         return FakeCompletedProcess(args=cmd)
-    
+
     monkeypatch.setattr(subprocess, "run", fake_run)
-    
+
     with pytest.raises(subprocess.CalledProcessError):
         terraform_main.run_terraform_two_phase_apply("ACME", "ca-central-1", str(tmp_path),0)
 

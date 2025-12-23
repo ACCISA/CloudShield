@@ -126,6 +126,12 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         lambda name, job_id=None: mock_logger
     )
 
+    # Mock _get_org_config to return org with high workstation limit
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._get_org_config",
+        lambda org_id, logger=None: {"workstation_limit": 100}
+    )
+
     # Mock run_stream to simulate successful TF apply
     def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
         return ["Apply complete!"]
@@ -177,6 +183,12 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
         lambda name, job_id=None: mock_logger
     )
 
+    # Mock _get_org_config to return org with high workstation limit
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._get_org_config",
+        lambda org_id, logger=None: {"workstation_limit": 100}
+    )
+
     def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
         raise subprocess.CalledProcessError(1, cmd)
 
@@ -219,6 +231,16 @@ def test_provision_network_success(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
+    )
+
+    # Mock _get_org_config and _update_org_provisioning_status
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._get_org_config",
+        lambda org_id, logger=None: {"workstation_limit": 100, "package_type": "pro"}
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._update_org_provisioning_status",
+        lambda org_id, status, job_id=None, logger=None: None
     )
 
     # TF metadata that provisioner returns
@@ -287,6 +309,16 @@ def test_provision_network_returns_none(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
+    # Mock _get_org_config and _update_org_provisioning_status
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._get_org_config",
+        lambda org_id, logger=None: {"workstation_limit": 100, "package_type": "pro"}
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._update_org_provisioning_status",
+        lambda org_id, status, job_id=None, logger=None: None
+    )
+
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.provision_network_terraform",
         lambda org_id, region, templates_dir, generated_dir, count, server_logger: None
@@ -314,6 +346,16 @@ def test_provision_network_without_job(monkeypatch):
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
         lambda name, job_id=None: mock_logger
+    )
+
+    # Mock _get_org_config and _update_org_provisioning_status
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._get_org_config",
+        lambda org_id, logger=None: {"workstation_limit": 100, "package_type": "pro"}
+    )
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.network_provisioning._update_org_provisioning_status",
+        lambda org_id, status, job_id=None, logger=None: None
     )
 
     # Empty metadata
@@ -500,7 +542,7 @@ def test_network_provisioning_run_failure(monkeypatch, caplog):
 
     with pytest.raises(subprocess.CalledProcessError) as exc_info:
         list(_run(["false"], cwd="/tmp", logger=logger))
-    
+
     assert exc_info.value.returncode == 1
     assert "Command failed" in caplog.text
     assert "Last 30 lines of output:" in caplog.text
@@ -526,7 +568,7 @@ def test_network_provisioning_run_with_env(monkeypatch):
 
     env = {"TEST_VAR": "value123"}
     list(_run(["echo", "test"], cwd="/tmp", env=env, logger=logger))
-    
+
     assert popen_kwargs["env"] == env
     assert popen_kwargs["cwd"] == "/tmp"
 

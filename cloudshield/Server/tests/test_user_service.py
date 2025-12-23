@@ -24,9 +24,10 @@ class TestUserService:
     @pytest.fixture(autouse=True)
     def setup_mocks(self, monkeypatch):
         """Setup all mocks for user service testing"""
-        
-        # Create mock objects  
+
+        # Create mock objects
         mock_users_admin = unittest.mock.MagicMock()
+        mock_organizations = unittest.mock.MagicMock()
         mock_log_audit = unittest.mock.MagicMock()
         mock_hash_password = unittest.mock.MagicMock()
         mock_hash_password.side_effect = lambda pwd: f"hashed::{pwd}"
@@ -36,15 +37,20 @@ class TestUserService:
         # Import the service module to get access to its globals
         # Need to import after mocking dependencies
         import cloudshield.Server.services.user_service as user_service_module
-        
+
         # Patch the imported variables directly in the service module
         monkeypatch.setattr(user_service_module, "users_admin", mock_users_admin)
+        monkeypatch.setattr(user_service_module, "organizations", mock_organizations)
         monkeypatch.setattr(user_service_module, "log_audit", mock_log_audit)
         monkeypatch.setattr(user_service_module, "hash_password", mock_hash_password)
         monkeypatch.setattr(user_service_module, "get_workstation_count", mock_get_workstation_count)
 
+        # Default: org lookup returns org with high user limit
+        mock_organizations.find_one.return_value = {"org_id": "org_001", "user_limit": 100}
+
         return {
             'users_admin': mock_users_admin,
+            'organizations': mock_organizations,
             'log_audit': mock_log_audit,
             'hash_password': mock_hash_password,
             "get_workstation_count": mock_get_workstation_count
@@ -85,29 +91,30 @@ class TestUserService:
         """Test create_user with permission checks, duplicate email, workstation count and successful creation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import create_user
-        
+
         # Test non-admin permission denied
         with pytest.raises(PermissionError, match="admin_only"):
             create_user(user_data, employee_user)
-        
+
         # Test duplicate email
         mocks['users_admin'].find_one.return_value = {"_id": ObjectId(), "email": "john@example.com"}
         with pytest.raises(ValueError, match="User with email john@example.com already exists"):
             create_user(user_data, admin_user)
-        # Test workstation count exceeded
+        # Test user limit exceeded (org has user_limit=5, existing=5, adding 1 would exceed)
         mocks['users_admin'].find_one.return_value = None
-        mocks['users_admin'].count_documents.return_value = 4
-        mocks['get_workstation_count'].return_value = 0
-        with pytest.raises(ValueError, match="User limit reached for this organization"):
+        mocks['users_admin'].count_documents.return_value = 5  # Already at limit
+        mocks['organizations'].find_one.return_value = {"org_id": "org_001", "user_limit": 5}
+        with pytest.raises(ValueError, match="User limit .* reached for this organization"):
             create_user(user_data, admin_user)
-        # Test successful creation
-        mocks['get_workstation_count'].return_value = 5
+        # Test successful creation (reset org limit to high value)
+        mocks['organizations'].find_one.return_value = {"org_id": "org_001", "user_limit": 100}
+        mocks['users_admin'].count_documents.return_value = 4
         mock_result = unittest.mock.MagicMock()
         mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
         mocks['users_admin'].insert_one.return_value = mock_result
-        
+
         result = create_user(user_data, admin_user, "Test reason")
-        
+
         assert result == "507f1f77bcf86cd799439011"
         mocks['users_admin'].insert_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
@@ -119,20 +126,20 @@ class TestUserService:
         """Test update_user permission checks and validation errors"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        
+
         # Test non-admin permission denied
         update_data = unittest.mock.MagicMock()
         with pytest.raises(PermissionError, match="admin_only"):
             update_user(user_id, update_data, employee_user)
-        
+
         # Test user not found - clear any previous side_effect
         mocks['users_admin'].find_one.side_effect = None
         mocks['users_admin'].find_one.return_value = None
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
             update_user(user_id, update_data, admin_user)
-        
+
         # Test no fields to update - clear side_effect and set return_value
         existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
         mocks['users_admin'].find_one.side_effect = None
@@ -145,25 +152,25 @@ class TestUserService:
         """Test successful update_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
         update_data = unittest.mock.MagicMock()
         update_data.dict.return_value = {"password": "newpass", "full_name": "Jane Doe"}
-        
+
         existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
         updated_user = {"_id": ObjectId(user_id), "email": "john@example.com", "full_name": "Jane Doe"}
-        
+
         # Clear any previous return_value and set side_effect for multiple calls
         mocks['users_admin'].find_one.return_value = None
         mocks['users_admin'].find_one.side_effect = [existing_user, updated_user]
-        
+
         # Reset call counts for assertions
         mocks['users_admin'].update_one.reset_mock()
         mocks['log_audit'].reset_mock()
         mocks['hash_password'].reset_mock()
-        
+
         result = update_user(user_id, update_data, admin_user, "Test reason")
-        
+
         assert result is True
         mocks['users_admin'].update_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
@@ -175,13 +182,13 @@ class TestUserService:
         """Test deactivate_user permission checks and validation errors"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import deactivate_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        
+
         # Test non-admin permission denied
         with pytest.raises(PermissionError, match="admin_only"):
             deactivate_user(user_id, employee_user)
-        
+
         # Test user not found
         mocks['users_admin'].find_one.return_value = None
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
@@ -191,21 +198,21 @@ class TestUserService:
         """Test successful deactivate_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import deactivate_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
         before_user = {"_id": ObjectId(user_id), "email": "john@example.com", "status": "active"}
         after_user = {"_id": ObjectId(user_id), "email": "john@example.com", "status": "inactive"}
-        
+
         # Clear any previous return_value and set side_effect
         mocks['users_admin'].find_one.return_value = None
         mocks['users_admin'].find_one.side_effect = [before_user, after_user]
-        
+
         # Reset call counts for assertions
         mocks['users_admin'].update_one.reset_mock()
         mocks['log_audit'].reset_mock()
-        
+
         result = deactivate_user(user_id, admin_user, "Test reason")
-        
+
         assert result is True
         mocks['users_admin'].update_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
@@ -214,17 +221,17 @@ class TestUserService:
         """Test delete_user permission checks and validation errors"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        
+
         # Test non-admin permission denied
         with pytest.raises(PermissionError, match="admin_only"):
             delete_user(user_id, employee_user)
-        
+
         # Test invalid ObjectId
         with pytest.raises(ValueError, match="User invalid_id not found"):
             delete_user("invalid_id", admin_user)
-        
+
         # Test user not found
         mocks['users_admin'].find_one.return_value = None
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
@@ -234,26 +241,26 @@ class TestUserService:
         """Test successful delete_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
         existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        
+
         # Clear any previous side_effect and set return_value
         mocks['users_admin'].find_one.side_effect = None
         mocks['users_admin'].find_one.return_value = existing_user
-        
+
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = True
         mock_result.deleted_count = 1
         mocks['users_admin'].delete_one.return_value = mock_result
-        
+
         # Reset call counts and clear any side_effect on log_audit
         mocks['users_admin'].delete_one.reset_mock()
         mocks['log_audit'].reset_mock()
         mocks['log_audit'].side_effect = None
-        
+
         result = delete_user(user_id, admin_user, "Test reason")
-        
+
         assert result is True
         mocks['users_admin'].delete_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
@@ -262,27 +269,27 @@ class TestUserService:
         """Test delete_user when audit logging fails but deletion succeeds"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
         existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        
+
         # Clear any previous side_effect and set return_value
         mocks['users_admin'].find_one.side_effect = None
         mocks['users_admin'].find_one.return_value = existing_user
-        
+
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = True
         mock_result.deleted_count = 1
         mocks['users_admin'].delete_one.return_value = mock_result
-        
+
         # Reset call counts and make audit logging fail
         mocks['users_admin'].delete_one.reset_mock()
         mocks['log_audit'].reset_mock()
         mocks['log_audit'].side_effect = Exception("Audit failed")
-        
+
         # Should still succeed despite audit failure
         result = delete_user(user_id, admin_user, "Test reason")
-        
+
         assert result is True
         mocks['users_admin'].delete_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
@@ -291,17 +298,17 @@ class TestUserService:
         """Test delete_user when deletion is not acknowledged"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
         existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
         mocks['users_admin'].find_one.return_value = existing_user
-        
+
         # Test unacknowledged deletion
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = False
         mock_result.deleted_count = 0
         mocks['users_admin'].delete_one.return_value = mock_result
-        
+
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
             delete_user(user_id, admin_user)
 
@@ -309,25 +316,25 @@ class TestUserService:
         """Test _must_admin function with various user types and edge cases"""
         setup_mocks
         from cloudshield.Server.services.user_service import _must_admin
-        
+
         # Test admin user passes
         _must_admin(admin_user)  # Should not raise
-        
+
         # Test non-admin user fails
         with pytest.raises(PermissionError, match="admin_only"):
             _must_admin(employee_user)
-        
+
         # Test None user fails
         with pytest.raises(PermissionError, match="admin_only"):
             _must_admin(None)
-        
+
         # Test edge cases
         with pytest.raises(PermissionError, match="admin_only"):
             _must_admin({"id": "test", "role": None})
-        
+
         with pytest.raises(PermissionError, match="admin_only"):
             _must_admin({"id": "test", "role": ""})
-        
+
         with pytest.raises(PermissionError, match="admin_only"):
             _must_admin({"id": "test"})
 
@@ -335,22 +342,22 @@ class TestUserService:
         """Test persist_domain_user creates domain user correctly"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import persist_domain_user
-        
+
         # Mock insert result
         mock_result = unittest.mock.MagicMock()
         mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
         mocks['users_admin'].insert_one.return_value = mock_result
-        
+
         # Execute
         result = persist_domain_user("org_123", "domain_user", "SecurePass123!", "temp@email")
-        
+
         # Assert
         assert result == "507f1f77bcf86cd799439011"
-        
+
         # Check insert_one was called
         mocks['users_admin'].insert_one.assert_called_once()
         call_args = mocks['users_admin'].insert_one.call_args[0][0]
-        
+
         # Verify document structure
         assert call_args["org_id"] == "org_123"
         assert call_args["username"] == "domain_user"
@@ -359,9 +366,9 @@ class TestUserService:
         assert call_args["status"] == "active"
         assert "created_at" in call_args
         assert "updated_at" in call_args
-        
+
         # Verify password was hashed
-        mocks['hash_password'].assert_called_once_with("SecurePass123!")  
+        mocks['hash_password'].assert_called_once_with("SecurePass123!")
 
     def test_update_user_without_password(self, setup_mocks, admin_user):
         """Ensure update_user skips hashing when password field absent."""

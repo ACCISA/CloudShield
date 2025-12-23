@@ -139,7 +139,7 @@ class UserUpdate(BaseModel):
 
         - Converts to lowercase.
         - Trims whitespace.
-        """  
+        """
         return str(v).strip().lower() if v else None
 
     @field_validator("password")

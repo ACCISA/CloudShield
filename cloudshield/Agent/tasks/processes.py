@@ -1,6 +1,6 @@
 from .task import BaseTask
 
-from proto import agent_pb2 
+from proto import agent_pb2
 from logger import task_logger
 
 import psutil
@@ -36,7 +36,7 @@ class GetProcessListTask(BaseTask):
             task_logger.error(e)
             task_logger.error(f"error getting md5sum for {path}")
             return ""
-        
+
     def get_process_list(self):
         """
         Returns a list of process info dictionaries including pid, name, username,
@@ -160,7 +160,7 @@ class GetProcessListTask(BaseTask):
 
         response = self.send("SendProcessList", request)
 
-        if response is None: 
+        if response is None:
             return
 
         if response.action is True:
@@ -186,7 +186,7 @@ class GetProcessListTask(BaseTask):
                 #task_logger.debug(f"threads: {proc_info_data['threads']}")
 
                 process_info.append(proc_info)
-            
+
             request_res = agent_pb2.ProcessListAckRes(
                     agent_id=self.agent_state["agent_id"],
                     timestamp=int(time.time()),

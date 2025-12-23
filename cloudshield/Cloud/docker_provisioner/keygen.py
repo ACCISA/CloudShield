@@ -101,12 +101,12 @@ def generate_ed25519_ssh_key(private_key_path="id_ed25519", passphrase=None):
         f.write(pem_private)
 
     comment = "dev@cloudshield"
-    
+
     raw_public_bytes = public_key.public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw
     )
-    
+
     public_key_type = b"ssh-ed25519"
     ssh_public_key_string = (
         public_key_type + b" " + base64.b64encode(raw_public_bytes) + b" " + comment.encode()

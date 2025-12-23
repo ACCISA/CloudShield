@@ -212,16 +212,16 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str, 
     # ---------- PHASE 2: full apply for the rest of the infra, using the new AMI ----------
     logger.info("[~] Running terraform init...")
     init_result = subprocess.run(
-        ["terraform", "init"], 
-        cwd=terraform_dir, 
-        capture_output=True, 
+        ["terraform", "init"],
+        cwd=terraform_dir,
+        capture_output=True,
         text=True
     )
     if init_result.returncode != 0:
         logger.error(f"Terraform init failed:\n{init_result.stdout}\n{init_result.stderr}")
         raise subprocess.CalledProcessError(init_result.returncode, init_result.args, init_result.stdout, init_result.stderr)
     logger.info(f"Terraform init output:\n{init_result.stdout}")
-    
+
     logger.info("[~] Phase 2: provisioning remaining infrastructure with the new AMI...")
     phase2_plan_cmd = [
         "terraform", "apply","-auto-approve",
@@ -229,7 +229,7 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str, 
         "-var", f"region={region}",
         "-var", f"workstation_count={count}",
     ]
-    
+
     apply_result = subprocess.run(phase2_plan_cmd, cwd=terraform_dir, capture_output=True, text=True)
     if apply_result.returncode != 0:
         logger.error(f"Terraform apply failed:\n{apply_result.stdout}\n{apply_result.stderr}")
@@ -320,9 +320,9 @@ def provision_network_terraform(org_id, region, templates_dir, generated_dir, co
         return None
 
     run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir,count=count)
-    
+
     # Get EC2 metadata
     metadata = get_ec2_ips(region, org_id)
-    
+
     logger.info(f"[✓] Finished provisioning for {org_id}.")
     return metadata

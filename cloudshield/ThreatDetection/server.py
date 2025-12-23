@@ -53,7 +53,7 @@ class ClientIPInterceptor(grpc.ServerInterceptor):
                 if agent_id is None:
                     interceptor_logger.warning("rpc message received with no agent_id")
                     context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid RPC call")
-                
+
                 log_heartbeat(agent_id, method_name)
                 return handler.unary_unary(request, context)
 

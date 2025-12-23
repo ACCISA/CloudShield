@@ -64,10 +64,10 @@ def install_fake_guards_module():
 class _InsertRes:
     def __init__(self, inserted_id): self.inserted_id = inserted_id
 
-class _UpdateRes: 
+class _UpdateRes:
     def __init__(self, matched, modified): self.matched_count, self.modified_count = matched, modified
 
-class _DeleteRes: 
+class _DeleteRes:
     def __init__(self, deleted): self.deleted_count = deleted
 
 class FakeCollection:
@@ -96,15 +96,15 @@ class FakeCollection:
             doc["_id"] = self._next_id()
         self._docs[doc["_id"]] = doc
         return _InsertRes(doc["_id"])
-    
+
     def update_one(self, filt, upd):
         _id = filt.get("_id")
-        if _id not in self._docs: 
+        if _id not in self._docs:
             return _UpdateRes(0, 0)
-        if "$set" in upd: 
+        if "$set" in upd:
             self._docs[_id].update(upd["$set"])
         return _UpdateRes(1, 1)
-    
+
     def delete_one(self, filt):
         _id = filt.get("_id")
         if _id in self._docs:
@@ -216,7 +216,7 @@ def app_and_client(monkeypatch, fake_users_collection):
     install_fake_models_user_module()
     install_fake_passwords_module()
     install_fake_services_user_service_module()
-    
+
     modules_to_clear = [
         'cloudshield.Server.routes.users',
         'cloudshield.Server.security.guards'
@@ -224,7 +224,7 @@ def app_and_client(monkeypatch, fake_users_collection):
     for mod in modules_to_clear:
         if mod in sys.modules:
             del sys.modules[mod]
-    
+
     sys.modules['cloudshield.Server.security.guards'] = sys.modules['security.guards']
 
     app = Flask(__name__)
@@ -238,21 +238,21 @@ def app_and_client(monkeypatch, fake_users_collection):
 def test_authentication_and_authorization(app_and_client):
     """Test authentication and authorization for user operations"""
     app, client = app_and_client
-    
+
     # Test no auth header
     r = client.post("/users", json={"email": "test@test.com", "password": "P@ss"})
     assert r.status_code == 401
     assert r.get_json()["error"] == "Unauthorized"
-    
+
     # Test malformed bearer token
-    r = client.post("/users", headers={"Authorization": "Bearer malformed"}, 
+    r = client.post("/users", headers={"Authorization": "Bearer malformed"},
                    json={"email": "test@test.com", "password": "P@ss"})
     assert r.status_code == 401
-    
+
     # Test wrong auth scheme
     r = client.post("/users", headers={"Authorization": "Token abc"}, json={})
     assert r.status_code == 401
-    
+
     # Test employee cannot create users (role-based access)
     r = client.post("/users", headers={"Authorization": "Bearer employee:org_001:u1"},
                    json={"email": "emp@test.com", "password": "SecretPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Employee"})
@@ -263,16 +263,16 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     """Test user creation with password hashing and duplicate email handling"""
     app, client = app_and_client
     fake_users_collection._docs = {}
-    
+
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
-    
+
     def _fake_create_user(user_data, *args, **kwargs):
         def hash_password(p): return f"hashed::{p}"
         email = user_data.email.lower()
         existing = fake_users_collection.find_one({"email": email})
         if existing:
             raise ValueError(f"User with email {email} already exists")
-        
+
         import uuid
         user_id = str(uuid.uuid4())
         doc = {
@@ -284,18 +284,18 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
         return user_id
 
     monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
-    
+
     # Test successful user creation with password hashing
     import uuid
     email = f"jane.{uuid.uuid4().hex[:8]}@test.com"
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
-                   json={"email": email, "password": "SecretPassword123!", "org_id": "org_001", 
+                   json={"email": email, "password": "SecretPassword123!", "org_id": "org_001",
                         "role": "employee", "full_name": "Jane"})
     assert r.status_code == 201
     user_id = r.get_json()["user_id"]
     stored = fake_users_collection.find_one({"_id": user_id})
     assert stored["password"].startswith("hashed::")
-    
+
     # Test duplicate email returns 409
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": email, "password": "AnotherPassword123!", "org_id": "org_001",
@@ -332,12 +332,12 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
                     json={"full_name": "New Name"})
     assert r.status_code == 200
     assert fake_users_collection.find_one({"_id": uid})["full_name"] == "New Name"
-    
+
     # Test employee cannot update
     r = client.patch("/users/abc123", headers={"Authorization": "Bearer employee:org_001:u2"},
                     json={"full_name": "Blocked"})
     assert r.status_code == 403
-    
+
     # Test missing user returns 404
     r = client.patch("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"},
                     json={"full_name": "No One"})
@@ -383,7 +383,7 @@ def test_user_deactivate_and_delete_operations(app_and_client, fake_users_collec
     r1 = client.post(f"/users/{uid1}/deactivate", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r1.status_code == 200
     assert fake_users_collection.find_one({"_id": uid1})["status"] == "inactive"
-    
+
     r2 = client.delete(f"/users/{uid1}", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r2.status_code == 200
     assert fake_users_collection.find_one({"_id": uid1}) is None
@@ -392,11 +392,11 @@ def test_user_deactivate_and_delete_operations(app_and_client, fake_users_collec
     r3 = client.post(f"/users/{uid2}/deactivate", headers={"Authorization": "Bearer employee:org_001:u2"})
     assert r3.status_code == 403
     assert fake_users_collection.find_one({"_id": uid2})["status"] == "active"
-    
+
     r4 = client.delete(f"/users/{uid2}", headers={"Authorization": "Bearer employee:org_001:u2"})
     assert r4.status_code == 403
     assert fake_users_collection.find_one({"_id": uid2}) is not None
-    
+
     # Test missing user returns 404
     r5 = client.post("/users/missing/deactivate", headers={"Authorization": "Bearer admin:org_001:u1"})
     r6 = client.delete("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"})
@@ -406,29 +406,29 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
     """Test password hashing in updates and various error scenarios"""
     app, client = app_and_client
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
-    
+
     # Test password hashing in updates
     uid = fake_users_collection.insert_one({"_id": "42", "email": "test@test.com", "password": "hashed::old"}).inserted_id
     from security.passwords import hash_password
-    
+
     def _fake_update_user(user_id, update_data, *args, **kwargs):
         doc = fake_users_collection.find_one({"_id": user_id})
         if "password" in update_data.dict():
             doc["password"] = hash_password(update_data.dict()["password"])
         fake_users_collection._docs[user_id] = doc
         return True
-    
-    def _permission_error(*a, **k): 
+
+    def _permission_error(*a, **k):
         raise PermissionError("admin_only")
-    
+
     monkeypatch.setattr(users_routes, "update_user", _fake_update_user, raising=True)
-    
+
     # Test password is hashed on update
     r = client.patch(f"/users/{uid}", headers={"Authorization": "Bearer admin:org_001:u1"},
                     json={"password": "NewSecretPassword123!"})
     assert r.status_code == 200
     assert fake_users_collection.find_one({"_id": uid})["password"].startswith("hashed::")
-    
+
     # Test PermissionError maps to 403
     monkeypatch.setattr(users_routes, "create_user", _permission_error, raising=True)
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},

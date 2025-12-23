@@ -4,7 +4,7 @@ from importlib import import_module
 from flask import Blueprint, request, jsonify, g
 from bson import ObjectId
 from bson.errors import InvalidId
-from cloudshield.Server.utils.database import users_admin, users_public 
+from cloudshield.Server.utils.database import users_admin, users_public
 
 users_read_bp = Blueprint("users_read", __name__)
 

@@ -73,7 +73,7 @@ class Agent:
 
         if self.channel is None:
             self.conn_attempt_job = schedule.every(self.conn_attempt_interval).seconds.do(self.create_grpc_channel)
-    
+
     def set_task_channels(self, channel, stub):
         """
         Update all registered tasks with the active gRPC channel.
@@ -97,7 +97,7 @@ class Agent:
         self.create_grpc_channel()
         schedule.every(self.conn_attempt_interval).seconds.do(self.create_grpc_channel)
         core_logger.info("Rescheduled 'create_grpc_channel' from callback function")
-    
+
     def create_grpc_channel(self):
         """
         Attempt to create a gRPC channel and connect to the server.
@@ -148,7 +148,7 @@ class Agent:
                 task.run()
             except Exception as exc:
                 core_logger.error(f"Task '{name}' failed during immediate run: {exc}")
-    
+
     def check_workstation(self):
         """Placeholder for workstation checks. Maintained for compatibility."""
         return None
@@ -163,7 +163,7 @@ class Agent:
         except grpc.FutureTimeoutError:
             return False
 
-    
+
     def _get_cached_files(self):
         """Get sorted list of cached JSON files."""
         try:
@@ -203,19 +203,19 @@ class Agent:
         msg_name = PROTOBUFS.get(grpc_call_name) or grpc_call_name.replace("Send", "")
         msg_cls = getattr(agent_pb2, msg_name)
         request = ParseDict(data, msg_cls())
-        
+
         try:
             setattr(request, "is_pending", True)
         except Exception:
             pass
-        
+
         return grpc_call, request
 
     def _send_cached_message(self, filepath, grpc_call_name, data):
         """Send a single cached message. Returns True if successful."""
         grpc_call, request = self._build_grpc_request(grpc_call_name, data)
         core_logger.info(f"Sending pending RPC '{grpc_call_name}'")
-        
+
         try:
             grpc_call(request)
             os.remove(filepath)
@@ -251,7 +251,7 @@ class Agent:
 
         core_logger.info(f"{sent_count} cached message(s) sent; {len(entries) - sent_count} left on disk")
 
-    
+
     def start_core(self):
         """
         Main agent loop, run tasks at their respective intervals. Also runs tasks that should only be executed once

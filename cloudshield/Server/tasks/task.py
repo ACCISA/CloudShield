@@ -29,9 +29,9 @@ def get_full_grpc_path(short_method_name):
     pool = descriptor_pool.Default()
     try:
         method_desc = pool.FindMethodByName(short_method_name)
-        
+
         service_full_name = method_desc.containing_service.full_name
-        
+
         return f"/{service_full_name}/{method_desc.name}"
     except KeyError:
         return None
@@ -42,13 +42,13 @@ def get_grpc_channel(host):
 def GetServerNodes(org_id):
     openvpn_name = f"{org_id}_openvpn_server"
     dc_name = f"{org_id}_samba"
- 
+
     inventory = get_inventory_from_org_id(org_id)
 
     if inventory is None:
         logger.error("Inventory is empty for org_id: "+org_id)
         return None
-    
+
     server_nodes={}
 
     for asset in inventory.assets:
@@ -85,7 +85,7 @@ def ProxyRPCRequest(nodes, method_name, request):
     full_method_name = get_full_grpc_path(method_name) # grpc server Relay expects the full method name
 
     if full_method_name is None:
-        logger.error(f"Failed to find full method name for '{method_name}'")   
+        logger.error(f"Failed to find full method name for '{method_name}'")
         return None
 
     logger.info(f"Full method name found '{full_method_name}'")

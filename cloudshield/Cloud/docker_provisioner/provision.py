@@ -56,9 +56,9 @@ def setup_ssh_keys(server_logger, private_key_path):
 
     server_logger.info("Generating ssh keys for samba-test container...")
     public_key_path, private_key_path = generate_ssh_key_pair(private_key_path=private_key_path)
-    
+
     if not Path(public_key_path).exists():
-        server_logger.error(f"Failed to find public key path {public_key_path}") 
+        server_logger.error(f"Failed to find public key path {public_key_path}")
         return None, None
     if not Path(private_key_path).exists():
         server_logger.error(f"Failed to find private key path {private_key_path}")
@@ -69,18 +69,18 @@ def setup_ssh_keys(server_logger, private_key_path):
 
     # to match expectations from prod we add .pem extension to our private key
     os.rename(private_key_path, private_key_path+".pem")
-        
+
     private_key_path=private_key_path+".pem"
-    
+
     server_logger.info("SSH Key generation complete")
     return public_key_path, private_key_path
-    
+
 
 
 
 # MAIN
 def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
-    
+
     cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/"+str(org_id))
 
     try:
@@ -105,7 +105,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     os.environ["DOMAIN_NAME"] = "ANISS"
     os.environ["DC_ADMIN_PASSWORD"] = "4162728abb29acc12090e6432cdb6fd8%$@!"
     os.environ["REALM_NAME"] = "ANISS.LOCAL"
-    
+
     # We already built our containers so just start them
     container = docker.compose.run(
         service="samba-test",
@@ -116,14 +116,14 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "DC_ADMIN_PASSWORD": "4162728abb29acc12090e6432cdb6fd8%$@!",
         "REALM_NAME": "ANISS.LOCAL"
         })
-    
+
     container_id = container.id
     server_logger.info(f"samba-test container id: {container_id}")
 
     os.environ["OPENVPN_PORT"] = "1194"
     os.environ["OPENVPN_PROTOCOL"] = "udp"
     os.environ["OPENVPN_CLIENT_NAME"] = "client1"
-    
+
     container_vpn = docker.compose.run(
         service="openvpn-test",
         detach=True,
@@ -197,7 +197,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "private_ip": "172.23.0.12",
         "public_ip": "172.23.0.12"
     }]
- 
+
 
 
     return metadata

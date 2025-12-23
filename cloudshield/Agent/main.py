@@ -81,5 +81,5 @@ if __name__ == "__main__":
     # NEW: Network listing task (every 5s)
     agent.register_task(name="network_list", task=NetworkListingTask(agent.state), interval=5)
 
-    # Start core 
+    # Start core
     agent.start_core()

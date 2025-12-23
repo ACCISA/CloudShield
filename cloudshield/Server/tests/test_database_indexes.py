@@ -9,7 +9,7 @@ def test_database_text_index_code_exists():
     # Find the database.py file relative to this test file
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
-    
+
     with open(db_file, "r") as f:
         content = f.read()
         # Verify index creation code is present
@@ -24,7 +24,7 @@ def test_database_unique_index_code_exists():
     """Test that unique index on email exists in database.py."""
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
-    
+
     with open(db_file, "r") as f:
         content = f.read()
         assert 'create_index("email", unique=True)' in content or "create_index('email', unique=True)" in content
@@ -34,7 +34,7 @@ def test_database_connection_clients():
     """Test that database module exports the expected clients."""
     # Import the module
     import cloudshield.Server.utils.database as db_module
-    
+
     # Verify all expected exports exist
     assert hasattr(db_module, 'db_admin')
     assert hasattr(db_module, 'db_emp')
@@ -55,7 +55,7 @@ def test_database_error_handling():
     """Test that database module handles index creation failures gracefully."""
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
-    
+
     with open(db_file, "r") as f:
         content = f.read()
         # Verify error handling exists for index creation
@@ -68,7 +68,7 @@ def test_database_mk_client_function():
     """Test that _mk_client function exists and has correct timeout."""
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
-    
+
     with open(db_file, "r") as f:
         content = f.read()
         # Verify _mk_client function exists with proper timeout
@@ -81,7 +81,7 @@ def test_database_import_fallback_exists():
     """Test that database.py has import fallback logic."""
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
-    
+
     with open(db_file, "r") as f:
         content = f.read()
         # Verify import fallback patterns exist

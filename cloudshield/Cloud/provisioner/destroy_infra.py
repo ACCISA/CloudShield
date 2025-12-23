@@ -83,7 +83,7 @@ def destroy_infra(org_id, org_dir, region="ca-central-1", force_empty_s3=False, 
     # Use the passed logger if provided (for job-specific logging)
     if server_logger:
         logger = server_logger
-    
+
     if not os.path.exists(org_dir):
         logger.warning(f"No Terraform directory found for org {org_id} at {org_dir}")
         return

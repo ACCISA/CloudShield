@@ -16,29 +16,29 @@ class TestUsersRead:
     @pytest.fixture
     def setup_mocks(self, monkeypatch):
         """Setup mocks for database and security components"""
-        
+
         users_admin_mock = MagicMock()
         users_public_mock = MagicMock()
-        
+
         database_mock = MagicMock()
         database_mock.users_admin = users_admin_mock
         database_mock.users_public = users_public_mock
-        
+
         monkeypatch.setitem(sys.modules, "cloudshield.Server.utils.database", database_mock)
-        
+
         guards_mock = MagicMock()
-        
+
         def require_auth_decorator(f):
             def wrapper(*args, **kwargs):
                 return f(*args, **kwargs)
             return wrapper
-        
+
         guards_mock.require_auth = require_auth_decorator
         monkeypatch.setitem(sys.modules, "cloudshield.Server.security.guards", guards_mock)
-        
+
         monkeypatch.setattr("cloudshield.Server.routes.users_read.users_admin", users_admin_mock)
         monkeypatch.setattr("cloudshield.Server.routes.users_read.users_public", users_public_mock)
-        
+
         return {
             'users_admin': users_admin_mock,
             'users_public': users_public_mock,
@@ -57,7 +57,7 @@ class TestUsersRead:
         """Sample admin user data"""
         return {
             "id": "admin123",
-            "org_id": "org_001", 
+            "org_id": "org_001",
             "role": "admin"
         }
 
@@ -77,7 +77,7 @@ class TestUsersRead:
         sample_users = [
             {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "john@example.com", "full_name": "John Doe"}
         ]
-        
+
         mocks['users_admin'].count_documents.return_value = 1
         mock_cursor = MagicMock()
         mocks['users_admin'].find.return_value = mock_cursor
@@ -112,7 +112,7 @@ class TestUsersRead:
         sample_users = [
             {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "colleague@example.com", "full_name": "Colleague"}
         ]
-        
+
         mocks['users_public'].count_documents.return_value = 1
         mock_cursor = MagicMock()
         mocks['users_public'].find.return_value = mock_cursor
@@ -178,9 +178,9 @@ class TestUsersRead:
             data = response.get_json()
             assert data['email'] == 'user@example.com'
             assert data['_id'] == user_id
-            
+
             call_args = mocks['users_admin'].find_one.call_args
-            assert call_args[0][1] == {"password": 0} 
+            assert call_args[0][1] == {"password": 0}
 
     def test_get_user_employee_same_org_success(self, setup_mocks, app, employee_user):
         """Test get_user endpoint as employee accessing same org user"""
@@ -207,7 +207,7 @@ class TestUsersRead:
 
             call_args = mocks['users_public'].find_one.call_args
             assert call_args[0][0]['org_id'] == employee_user['org_id']
-            assert call_args[0][1] is None 
+            assert call_args[0][1] is None
 
     def test_get_user_error_conditions(self, setup_mocks, app, admin_user, employee_user):
         """Test get_user error conditions: invalid ObjectId and not found"""

@@ -8,7 +8,7 @@ from unittest.mock import patch
 def test_request_id_generation():
     """Test that request_id is generated when not provided."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         response = client.get('/healthz')
         assert response.status_code == 200
@@ -20,7 +20,7 @@ def test_request_id_generation():
 def test_request_id_from_header():
     """Test that request_id is taken from X-Request-ID header when provided."""
     from cloudshield.Server.server import app
-    
+
     test_request_id = "test-request-123"
     with app.test_client() as client:
         response = client.get('/healthz', headers={'X-Request-ID': test_request_id})
@@ -32,7 +32,7 @@ def test_request_id_from_header():
 def test_performance_header_added():
     """Test that X-Response-Time header is added to responses."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         response = client.get('/healthz')
         assert 'X-Response-Time' in response.headers
@@ -43,7 +43,7 @@ def test_performance_header_added():
 def test_slow_request_logging():
     """Test that slow requests are logged."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         with patch('cloudshield.Server.server.logger'):
             # Make a request and check if logging infrastructure exists
@@ -56,7 +56,7 @@ def test_slow_request_logging():
 def test_json_required_on_post():
     """Test that POST requests without JSON body are rejected."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         response = client.post(
             '/api/task/provision',
@@ -72,10 +72,10 @@ def test_validation_error_handler():
     """Test ValidationError handling."""
     from cloudshield.Server.server import app
     from pydantic import ValidationError, BaseModel
-    
+
     class TestModel(BaseModel):
         required_field: str
-    
+
     with app.test_request_context('/'):
         try:
             TestModel()  # Missing required field
@@ -91,7 +91,7 @@ def test_value_error_handler():
     """Test ValueError handling."""
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_value_error
-    
+
     with app.test_request_context('/'):
         g.request_id = 'test-123'
         error = ValueError("Invalid input")
@@ -107,7 +107,7 @@ def test_duplicate_key_error_handler():
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_duplicate
     from pymongo.errors import DuplicateKeyError
-    
+
     with app.test_request_context('/'):
         g.request_id = 'test-123'
         error = DuplicateKeyError("E11000 duplicate key error")
@@ -122,7 +122,7 @@ def test_operation_failure_unauthorized():
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_mongo_operation_failure
     from unittest.mock import Mock
-    
+
     with app.test_request_context('/'):
         g.request_id = 'test-123'
         # Create a mock OperationFailure with the proper string representation
@@ -139,7 +139,7 @@ def test_operation_failure_other():
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_mongo_operation_failure
     from unittest.mock import Mock
-    
+
     with app.test_request_context('/'):
         g.request_id = 'test-123'
         error = Mock()
@@ -153,7 +153,7 @@ def test_operation_failure_other():
 def test_http_exception_handler():
     """Test HTTPException handling."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         response = client.get('/nonexistent-route')
         assert response.status_code == 404
@@ -165,7 +165,7 @@ def test_generic_exception_handler():
     """Test generic Exception handling."""
     from cloudshield.Server.server import app
     from cloudshield.Server.server import _handle_generic
-    
+
     with app.test_request_context('/'):
         g.request_id = 'test-123'
         error = Exception("Unexpected error")
@@ -178,7 +178,7 @@ def test_generic_exception_handler():
 def test_healthz_endpoint():
     """Test the health check endpoint."""
     from cloudshield.Server.server import app
-    
+
     with app.test_client() as client:
         response = client.get('/healthz')
         assert response.status_code == 200
@@ -192,7 +192,7 @@ def test_server_import_fallback_exists():
     import os
     test_dir = os.path.dirname(os.path.abspath(__file__))
     server_file = os.path.join(test_dir, "..", "server.py")
-    
+
     with open(server_file, "r") as f:
         content = f.read()
         # Verify import fallback patterns exist
@@ -207,7 +207,7 @@ def test_server_audit_blueprint_handling():
     import os
     test_dir = os.path.dirname(os.path.abspath(__file__))
     server_file = os.path.join(test_dir, "..", "server.py")
-    
+
     with open(server_file, "r") as f:
         content = f.read()
         # Verify audit blueprint error handling exists

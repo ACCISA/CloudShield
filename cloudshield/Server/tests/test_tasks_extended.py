@@ -6,14 +6,14 @@ def test_provision_network_basic(monkeypatch, tmp_path):
     # Mock the provision_main function from main.py
     def fake_provision_main(org_id, region="ca-central-1", ubuntu_ami=None, workstation_ami=None):
         return {"name": "test-instance", "instance_id": "i-123", "message": "Provisioning complete", "metadata":{}}
-    
+
     # Patch the imported provision_main
     import sys
     from pathlib import Path
     terraform_dir = Path(__file__).resolve().parents[3] / "Cloud" / "terraform"
     if str(terraform_dir) not in sys.path:
         sys.path.insert(0, str(terraform_dir))
-    
+
     monkeypatch.setattr("tasks.provision_network", fake_provision_main)
 
     result = tasks.provision_network("acme", region="us-east-1")
@@ -40,9 +40,9 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
     def fake_destroy(org_id, region="ca-central-1", force_empty_s3=False):
         # Simulate successful destroy
         return {"message": "Destroy complete", "removed_dir": True}
-    
+
     monkeypatch.setattr("tasks.destroy_environment", fake_destroy)
-    
+
     # Create a fake generated directory
     base_dir = tmp_path
     work_dir = base_dir / "Cloud" / "terraform" / "generated" / "org1"

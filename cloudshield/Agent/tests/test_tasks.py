@@ -8,7 +8,7 @@ from tasks import BaseTask, GetProcessListTask
 class DummyTask(BaseTask):
             def __init__(self, agent_state):
                 self.agent_state = agent_state
-            
+
             def set_channel(self, channel, stub):
                 pass
 

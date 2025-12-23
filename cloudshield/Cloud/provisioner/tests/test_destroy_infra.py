@@ -1,4 +1,5 @@
 import importlib
+import importlib.util
 import os
 import subprocess
 import sys
@@ -6,7 +7,13 @@ from types import SimpleNamespace
 
 import pytest
 
-import cloudshield.Cloud.provisioner.destroy_infra as destroy_infra
+# Import the destroy_infra MODULE directly (not the function from __init__.py)
+# This is necessary because cloudshield/Cloud/provisioner/__init__.py exports
+# a function named 'destroy_infra' which shadows the module name
+_module_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "destroy_infra.py")
+_spec = importlib.util.spec_from_file_location("destroy_infra_module", _module_path)
+destroy_infra = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(destroy_infra)
 
 
 @pytest.fixture(autouse=True)
@@ -156,7 +163,7 @@ def test_empty_s3_bucket_client_error(monkeypatch):
 
 
 def test_destroy_missing_directory(caplog):
-    destroy_infra.destroy("UNKNOWN", "UNKNOWN")
+    destroy_infra.destroy_infra("UNKNOWN", "UNKNOWN")
 
     assert "No Terraform directory" in caplog.text
 
@@ -164,7 +171,7 @@ def test_destroy_missing_directory(caplog):
 def test_destroy_successful_cleanup(monkeypatch, tmp_path, caplog):
     import logging
     caplog.set_level(logging.INFO)
-    
+
     org = "SUCCESS"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -175,7 +182,7 @@ def test_destroy_successful_cleanup(monkeypatch, tmp_path, caplog):
     removed = []
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: removed.append(path))
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
     assert "Terraform resources destroyed successfully" in caplog.text
     assert removed == [org_dir]
@@ -189,7 +196,7 @@ def test_destroy_failure_no_force(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
     monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False,org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=False,org_dir=org_dir)
 
     assert "destroy still failed" in caplog.text
     assert os.path.exists(org_dir)
@@ -198,7 +205,7 @@ def test_destroy_failure_no_force(monkeypatch, tmp_path, caplog):
 def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, caplog):
     import logging
     caplog.set_level(logging.INFO)
-    
+
     org = "RETRY"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
@@ -216,7 +223,7 @@ def test_destroy_force_empty_retry_success(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: True)
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: None)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     assert "Retrying terraform destroy" in caplog.text
     assert destroy_calls["count"] == 2
@@ -231,7 +238,7 @@ def test_destroy_force_empty_bucket_missing(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: False)
     monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: None)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     assert "Could not find 'agent_s3_bucket'" in caplog.text
     assert os.path.exists(org_dir)
@@ -250,7 +257,7 @@ def test_destroy_directory_removal_failure(monkeypatch, tmp_path, caplog):
 
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", failing_rmtree)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=False, org_dir=org_dir)
 
     assert "Failed to remove local directory" in caplog.text
 
@@ -265,7 +272,7 @@ def test_destroy_force_empty_retry_failure(monkeypatch, tmp_path, caplog):
     monkeypatch.setattr(destroy_infra, "get_terraform_output", lambda *_args: "bucket")
     monkeypatch.setattr(destroy_infra, "empty_s3_bucket", lambda *_args: False)
 
-    destroy_infra.destroy(org, region="ca", force_empty_s3=True, org_dir=org_dir)
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=True, org_dir=org_dir)
 
     assert "destroy still failed" in caplog.text
     assert os.path.exists(org_dir)
@@ -279,8 +286,8 @@ def test_main_warns_when_force_empty_without_boto3(monkeypatch, caplog):
 
     monkeypatch.setattr(os.path, "exists", lambda _path: False)
 
-    destroy_infra.destroy("CLI", "CLI", force_empty_s3=True)
-    
+    destroy_infra.destroy_infra("CLI", "CLI", force_empty_s3=True)
+
     assert "No Terraform directory found for org CLI" in caplog.text
 
 
@@ -292,14 +299,14 @@ def test_destroy_init_failure(monkeypatch, tmp_path, caplog):
     org = "INITFAIL"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
-    
+
     def fake_init(_dir):
         raise Exception("Init failed")
-    
+
     monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", fake_init)
-    
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir)
-    
+
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=False, org_dir=org_dir)
+
     assert "Aborting due to terraform init failure" in caplog.text
     assert os.path.exists(org_dir)
 
@@ -308,17 +315,17 @@ def test_destroy_with_server_logger(monkeypatch, tmp_path, caplog):
     import logging
     custom_logger = logging.getLogger("custom")
     caplog.set_level(logging.INFO, logger="custom")
-    
+
     org = "LOGTEST"
     org_dir = os.path.join(destroy_infra.GENERATED_DIR, org)
     os.makedirs(org_dir)
-    
+
     monkeypatch.setattr(destroy_infra, "terraform_init_if_needed", lambda _dir: None)
     monkeypatch.setattr(destroy_infra, "terraform_destroy", lambda *_args: True)
     monkeypatch.setattr(destroy_infra.shutil, "rmtree", lambda path: None)
-    
-    destroy_infra.destroy(org, region="ca", force_empty_s3=False, org_dir=org_dir, server_logger=custom_logger)
-    
+
+    destroy_infra.destroy_infra(org, region="ca", force_empty_s3=False, org_dir=org_dir, server_logger=custom_logger)
+
     assert "Destroying infrastructure" in caplog.text
 
 
@@ -351,11 +358,11 @@ def test_get_terraform_output_strips_whitespace(monkeypatch):
 
 def test_terraform_destroy_with_different_region(monkeypatch):
     calls = []
-    
+
     def fake_run(cmd, cwd=None, capture_output=False):
         calls.append(cmd)
         return None
-    
+
     monkeypatch.setattr(destroy_infra, "run_cmd", fake_run)
 
     assert destroy_infra.terraform_destroy("/org", "ORG", "us-east-1") is True

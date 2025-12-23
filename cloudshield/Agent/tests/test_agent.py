@@ -14,7 +14,7 @@ if "proto" not in sys.modules:
 class DummyTask:
             def __init__(self):
                 self.run = lambda: "ok"
-            
+
             def set_channel(self, channel, stub):
                 pass
 

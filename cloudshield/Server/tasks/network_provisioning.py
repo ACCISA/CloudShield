@@ -92,11 +92,11 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
     """Run a shell command yielding output lines and raising on nonzero exit."""
     if logger is None:
         logger = _module_logger
-    
+
     logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
-    
+
     all_output = []  # Capture everything
-    
+
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,
@@ -111,39 +111,39 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
         all_output.append(stripped)  # Save it
         logger.debug("[cmd output] %s", stripped)
         yield stripped
-    
+
     proc.wait()
     if proc.returncode != 0:
         logger.error("Command failed (%s): return code %s", " ".join(cmd), proc.returncode)
         # Log the last 30 lines before failure
         logger.error("Last 30 lines of output:\n" + "\n".join(all_output[-30:]))
         raise subprocess.CalledProcessError(proc.returncode, cmd)
-    
+
     logger.debug("Command succeeded: %s", " ".join(cmd))
 
 
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
     Provisions additional workstations via Terraform.
-    
+
     Validates against the organization's workstation_limit before provisioning.
     Uses shared 'run_stream' + 'set_progress' for less boilerplate and reuse.
-    
+
     Args:
         org_id: Organization identifier.
         region: AWS region (default: ca-central-1).
         count: Number of additional workstations to provision.
-        
+
     Raises:
         ValueError: If adding workstations would exceed org's workstation_limit.
         FileNotFoundError: If Terraform work directory doesn't exist.
     """
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-    
+
     logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     set_progress("starting")
-    
+
     # Check workstation limit from organization config
     org_config = _get_org_config(org_id, logger)
     if org_config:
@@ -154,7 +154,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
             logger.error(error_msg)
             set_progress(f"failed: {error_msg}")
             raise ValueError(error_msg)
-    
+
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
@@ -162,7 +162,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     if not work_dir.exists():
         logger.warning("Work dir missing for org '%s': %s", org_id, work_dir)
         raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
-    
+
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
     # Run terraform apply for workstations only
@@ -181,11 +181,11 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         logs_tail = run_stream(cmd, cwd=str(work_dir), env=env, logger=logger)
 
         set_progress("completed")
-            
+
         logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
         return {
-            "message": "Provisioning workstations complete", 
-            "work_dir": str(target_dir), 
+            "message": "Provisioning workstations complete",
+            "work_dir": str(target_dir),
             "new_workstation_count": count + initial_count,
             "logs_tail": logs_tail
             }
@@ -199,12 +199,12 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
     """
     Provisions the full network using Terraform templates.
-    
+
     If workstation_count is not provided, it will be looked up from the organization's
     package configuration in the database.
-    
+
     Isolates progress, mapping, and DB writes via helpers for reuse.
-    
+
     Args:
         org_id: Organization identifier.
         region: AWS region for provisioning (default: ca-central-1).
@@ -217,11 +217,11 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
     # Look up org config to get workstation_count from package if not provided
     org_config = _get_org_config(org_id, logger)
-    
+
     if workstation_count is None:
         if org_config:
             workstation_count = org_config.get("workstation_limit", 0)
-            logger.info("Using workstation_count=%d from org package '%s'", 
+            logger.info("Using workstation_count=%d from org package '%s'",
                        workstation_count, org_config.get("package_type"))
         else:
             workstation_count = 0
@@ -231,7 +231,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d",
         org_id, region, ubuntu_ami, workstation_ami, workstation_count,
     )
-    
+
     # Update org status to in_progress
     _update_org_provisioning_status(org_id, "in_progress", job_id, logger)
     set_progress("starting")
@@ -266,7 +266,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 job.save_meta()
             logger.error(details)
             return {"message": "Provisioning failed", "details": details}
-        
+
         # Keeps orchestration clean, makes mapping/DB writes available to other tasks.
         set_progress("completed")
         _update_org_provisioning_status(org_id, "completed", job_id, logger)
@@ -283,7 +283,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Provisioning complete for org %s", org_id)
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
-        
+
 
         return {
             "message": "Provisioning complete",
@@ -301,10 +301,10 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 def destroy_environment(org_id: str, force: bool = False):
     """
     Destroys an environment and removes its Inventory entry.
-    
+
     Also resets the organization's provisioning_status to "pending" so it can
     be re-provisioned if needed.
-    
+
     Uses set_progress + repo delete helper; logs consistent outcomes.
     """
     job_id = get_job_id_fallback()

@@ -45,20 +45,20 @@ class MockSocket:
 class TestDCManagementExtended:
     def test_exec_ssh_connection_error(self, monkeypatch, caplog, mock_logger):
         """Test exec_ssh handling when SSH connection fails"""
-        
+
         class FailingSSHClient:
             def set_missing_host_key_policy(self, policy):
                 pass
-                
+
             def connect(self, *args, **kwargs):
                 raise paramiko.SSHException("Connection failed")
 
             def close(self):
                 pass
-        
+
         monkeypatch.setattr('paramiko.SSHClient', lambda: FailingSSHClient())
         monkeypatch.setattr('cloudshield.Server.tasks.dc_management.get_available_local_port', lambda: 12345)
-        
+
         # Mock ExecSSHConfig
         class MockExecSSHConfig:
             def __init__(self, org_id):
@@ -67,10 +67,10 @@ class TestDCManagementExtended:
                 self.dc_priv_ip = "10.0.0.5"
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig
@@ -81,11 +81,11 @@ class TestDCManagementExtended:
 
     def test_forward_tunnel_socket_error(self, monkeypatch, caplog, mock_logger):
         """Test forward_tunnel handling of socket errors"""
-        
+
         monkeypatch.setattr('socket.socket', lambda *args, **kwargs: MockSocket())
-        
+
         transport = unittest.mock.MagicMock()
-        
+
         res = forward_ssh_tunnel(12345, "localhost", 22, transport, 3389, logger=mock_logger)
 
         assert res is None
@@ -108,20 +108,20 @@ class TestDCManagementExtendedSSH:
 
     def test_exec_ssh_connection_error(self, monkeypatch, mock_logger):
         """Test exec_ssh handling when SSH connection fails"""
-        
+
         class FailingSSHClient:
             def set_missing_host_key_policy(self, policy):
                 pass
-                
+
             def connect(self, *args, **kwargs):
                 raise paramiko.SSHException("Connection failed")
 
             def close(self):
                 pass
-        
+
         monkeypatch.setattr('paramiko.SSHClient', lambda: FailingSSHClient())
         monkeypatch.setattr('cloudshield.Server.tasks.dc_management.get_available_local_port', lambda: 12345)
-        
+
         # Mock ExecSSHConfig
         class MockExecSSHConfig:
             def __init__(self, org_id):
@@ -130,10 +130,10 @@ class TestDCManagementExtendedSSH:
                 self.dc_priv_ip = "10.0.0.5"
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig
@@ -144,15 +144,15 @@ class TestDCManagementExtendedSSH:
 
     def test_exec_ssh_success(self, monkeypatch, mock_logger):
         """Test exec_ssh handling when SSH connection succeeds"""
-        
+
         class SuccessSSHClient:
-            
+
             def get_transport(self):
                 return {}
 
             def set_missing_host_key_policy(self, policy):
                 pass
-                
+
             def connect(self, *args, **kwargs):
                 pass
 
@@ -162,10 +162,10 @@ class TestDCManagementExtendedSSH:
 
             def close(self):
                 pass
-        
+
         monkeypatch.setattr('paramiko.SSHClient', lambda: SuccessSSHClient())
         monkeypatch.setattr('cloudshield.Server.tasks.dc_management.get_available_local_port', lambda: 12345)
-        
+
         # Mock ExecSSHConfig
         class MockExecSSHConfig:
             def __init__(self, org_id):
@@ -174,43 +174,43 @@ class TestDCManagementExtendedSSH:
                 self.dc_priv_ip = "10.0.0.5"
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig
         )
-        
+
         result = exec_ssh("test_org", "echo hello", logger=mock_logger)
         assert result is None
 
     def test_forward_tunnel_socket_error(self, monkeypatch, mock_logger):
         """Test forward_tunnel handling of socket errors"""
-        
+
         monkeypatch.setattr('socket.socket', lambda *args, **kwargs: MockSocket())
-        
+
         transport = unittest.mock.MagicMock()
-        
+
         forward_ssh_tunnel(12345, "localhost", 22, transport, 3389, logger=mock_logger)
-        
+
 
     def test_forward_tunnel_success(self, monkeypatch, mock_logger):
         """Test forward_tunnel handling when successful"""
-        
+
         class SuccessTransport:
             def open_channel(self, *args, **kwargs):
                 return SimpleNamespace()
 
             def close(self):
                 pass
-        
+
         monkeypatch.setattr('socket.socket', lambda *args, **kwargs: MockSocket())
-        
+
         transport = SuccessTransport()
         result = forward_ssh_tunnel(12345, "localhost", 22, transport, 3389, logger=mock_logger)
-        
+
         assert result is None  # Assuming forward_ssh_tunnel returns None on success
 
     @pytest.mark.parametrize("transport_error", [
@@ -220,34 +220,34 @@ class TestDCManagementExtendedSSH:
     ])
     def test_forward_tunnel_transport_errors(self, transport_error, monkeypatch, mock_logger):
         """Test forward_tunnel handling of various transport errors"""
-        
+
         monkeypatch.setattr('socket.socket', lambda *args, **kwargs: MockSocket())
-        
+
         transport = unittest.mock.MagicMock()
         forward_ssh_tunnel(12345, "localhost", 22, transport, 3389, logger=mock_logger)
-        
+
     def test_exec_ssh_with_command_timeout(self, monkeypatch, mock_logger):
         """Test exec_ssh with command execution timeout"""
-        
+
         class TimeoutSSHClient:
             def set_missing_host_key_policy(self, policy):
                 pass
-                
+
             def connect(self, *args, **kwargs):
                 pass
-                
+
             def exec_command(self, *args, **kwargs):
                 raise socket.timeout("Command timed out")
-                
+
             def close(self):
                 pass
 
             def get_transport(self):
                 return {}
-                
+
         monkeypatch.setattr('paramiko.SSHClient', lambda: TimeoutSSHClient())
         monkeypatch.setattr('cloudshield.Server.tasks.dc_management.get_available_local_port', lambda: 12345)
-        
+
         # Mock ExecSSHConfig
         class MockExecSSHConfig:
             def __init__(self, org_id):
@@ -256,10 +256,10 @@ class TestDCManagementExtendedSSH:
                 self.dc_priv_ip = "10.0.0.5"
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig
@@ -270,14 +270,14 @@ class TestDCManagementExtendedSSH:
 
     def test_exec_ssh_invalid_command(self, monkeypatch, mock_logger):
         """Test exec_ssh with an invalid command"""
-        
+
         class InvalidCommandSSHClient:
             def set_missing_host_key_policy(self, policy):
                 pass
 
             def get_transport(self):
                 return {}
-                
+
             def connect(self, *args, **kwargs):
                 pass
 
@@ -286,10 +286,10 @@ class TestDCManagementExtendedSSH:
 
             def close(self):
                 pass
-        
+
         monkeypatch.setattr('paramiko.SSHClient', lambda: InvalidCommandSSHClient())
         monkeypatch.setattr('cloudshield.Server.tasks.dc_management.get_available_local_port', lambda: 12345)
-        
+
         # Mock ExecSSHConfig
         class MockExecSSHConfig:
             def __init__(self, org_id):
@@ -299,28 +299,28 @@ class TestDCManagementExtendedSSH:
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
 
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig
         )
-        
+
         result = exec_ssh("test_org", "invalid_command", logger=mock_logger)
         assert result is None
 
     def test_exec_ssh_config_missing_assets(self):
         """Test ExecSSHConfig when required assets are missing"""
         from cloudshield.Server.models import Inventory
-        
+
         mock_inventory = unittest.mock.MagicMock(spec=Inventory)
         mock_inventory.org_id = "test_org"
         mock_inventory.assets = []  # No assets
-        
+
         ssh_config = ExecSSHConfig(mock_inventory).populate_config()
-        
+
         assert ssh_config is None
 
     def test_exec_ssh_with_empty_command(self, monkeypatch, mock_logger):
@@ -333,10 +333,10 @@ class TestDCManagementExtendedSSH:
                 self.dc_priv_ip = "10.0.0.5"
                 self.dc_key = "/tmp/dc.pem"
                 self.failed = True
-                
+
             def populate_config(self):
                 return self
-        
+
         monkeypatch.setattr(
             'cloudshield.Server.tasks.dc_management.ExecSSHConfig',
             MockExecSSHConfig

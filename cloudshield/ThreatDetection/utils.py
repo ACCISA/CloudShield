@@ -40,7 +40,7 @@ def es_log(index, doc):
 
 
 def ingest_processes(processes):
-    
+
     unknown_processes = []
 
     for proc in processes:
@@ -62,7 +62,7 @@ def get_agents():
 def is_valid_agent(agents, ip, agent_id):
 
     for agent in agents:
-        if ip == agent["ip"] and agent_id == agent["agent_id"]: 
+        if ip == agent["ip"] and agent_id == agent["agent_id"]:
             return True
     return False
 
