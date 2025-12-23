@@ -2,13 +2,10 @@
  * AuthPage.jsx
  *
  * Purpose:
- *   Authentication page (login) composed from auth UI components.
- *
- * Props:
- *   - onLoginSuccess: callback invoked when fake login completes
+ * Authentication page (login) integrated with Flask API.
  */
 import React, { useState } from 'react';
-import { Box } from '@mui/material';
+import { Box, Alert, CircularProgress } from '@mui/material';
 
 import AuthCard from '../components/auth/AuthCard.jsx';
 import AuthTextField from '../components/auth/AuthTextField.jsx';
@@ -18,20 +15,63 @@ import PrimaryButton from '../components/auth/PrimaryButton.jsx';
 /**
  * Authentication page with login form.
  * @param {Object} props
- * @param {Function} props.onLoginSuccess - Callback when login succeeds
- * @returns {JSX.Element} Login page
+ * @param {Function} props.onLoginSuccess - Callback when login succeeds (receives token data)
  */
 export default function AuthPage({ onLoginSuccess }) {
-  const [email, setEmail] = useState('johndoe@example.com');
-  const [password, setPassword] = useState('******');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  // UI States
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Handle login button click. Currently a stub; integrate with backend auth.
+   * Handle login button click.
+   * connect to POST /auth/login
    */
-  function handleLogin() {
-    console.log('login with', email, password);
-    if (onLoginSuccess) onLoginSuccess();
+  async function handleLogin() {
+    // 1. Basic Client-side validation
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // 2. Call the Flask API
+      const response = await fetch('http://127.0.0.1:5050/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle 401 or 500 errors from auth.py
+        throw new Error(data.error || 'Login failed. Please check your credentials.');
+      }
+
+      // 3. On Success: Pass data (access_token, etc) up to App.jsx
+      if (onLoginSuccess) {
+        onLoginSuccess(data);
+      }
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  // Allow pressing "Enter" to submit
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleLogin();
+  };
 
   return (
     <Box
@@ -45,21 +85,37 @@ export default function AuthPage({ onLoginSuccess }) {
       }}
     >
       <AuthCard>
+        {/* Error Feedback */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, width: '100%' }} variant="filled">
+            {error}
+          </Alert>
+        )}
+
         <AuthTextField
           label="Email"
           placeholder="johndoe@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
 
         <PasswordField
           label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
 
-        <PrimaryButton onClick={handleLogin}>
-          Login
+        <PrimaryButton 
+          onClick={handleLogin} 
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            "Login"
+          )}
         </PrimaryButton>
       </AuthCard>
     </Box>
