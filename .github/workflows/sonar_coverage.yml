@@ -167,7 +167,7 @@ jobs:
 
       - name: Run pytest with coverage (Cloud)
         run: |
-          export PYTHONPATH=cloudshield/Cloud/provisioner
+          export PYTHONPATH=cloudshield/Cloud/
           pytest cloudshield/Cloud/provisioner/tests \
             --cov=cloudshield/Cloud/provisioner \
             --cov-report=term \
