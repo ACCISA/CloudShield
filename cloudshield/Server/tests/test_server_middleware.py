@@ -188,18 +188,18 @@ def test_healthz_endpoint():
 
 
 def test_server_import_fallback_exists():
-    """Test that server.py has import fallback logic for routes."""
+    """Test that server.py has import logic for routes and utils."""
     import os
     test_dir = os.path.dirname(os.path.abspath(__file__))
     server_file = os.path.join(test_dir, "..", "server.py")
 
     with open(server_file, "r") as f:
         content = f.read()
-        # Verify import fallback patterns exist
-        assert 'try:' in content
-        assert 'from cloudshield.Server.utils import get_logger' in content
-        assert 'except ImportError:' in content
+        # Verify import patterns exist - server.py uses relative imports in Docker context
         assert 'from utils import get_logger' in content
+        # Verify audit blueprint has try/except fallback pattern
+        assert 'try:' in content
+        assert 'except ImportError:' in content or 'except Exception:' in content
 
 
 def test_server_audit_blueprint_handling():
