@@ -312,7 +312,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     email = f"jane.{uuid.uuid4().hex[:8]}@test.com"
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": email, "password": "SecretPassword123!", "org_id": "org_001",
-                        "role": "employee", "full_name": "Jane"})
+                        "role": "employee", "full_name": "Jane", "file_shares": []})
     assert r.status_code == 201
     user_id = r.get_json()["user_id"]
     stored = fake_users_collection.find_one({"_id": user_id})
@@ -321,7 +321,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     # Test duplicate email returns 409
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": email, "password": "AnotherPassword123!", "org_id": "org_001",
-                        "role": "employee", "full_name": "Duplicate"})
+                        "role": "employee", "full_name": "Duplicate", "file_shares": []})
     assert r.status_code == 409
     assert "already exists" in r.get_json()["error"]
 
@@ -454,7 +454,7 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
     # Test PermissionError maps to 403
     monkeypatch.setattr(users_routes, "create_user", _permission_error, raising=True)
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
-                   json={"email": "test2@test.com", "password": "ValidPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Test"})
+                   json={"email": "test2@test.com", "password": "ValidPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Test", "file_shares": []})
     assert r.status_code == 403
     assert "admin_only" in r.get_json()["error"]
 
@@ -499,7 +499,8 @@ def test_create_user_validation_and_server_errors(app_and_client, monkeypatch):
         "password": "StrongPassword1!",
         "org_id": "org_001",
         "role": "employee",
-        "full_name": "Ok User"
+        "full_name": "Ok User",
+        "file_shares": []
     }
     monkeypatch.setattr(users_routes, "create_user", _raise_generic, raising=True)
     resp2 = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"}, json=body)

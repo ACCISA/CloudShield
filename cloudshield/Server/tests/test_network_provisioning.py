@@ -92,10 +92,8 @@ def test_provision_workstations_work_dir_missing(monkeypatch):
 
 
 def test_provision_workstations_success(monkeypatch, tmp_path):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
-    import cloudshield.Server.utils.progress as progress_module
 
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
@@ -117,9 +115,11 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
 
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
@@ -157,10 +157,8 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
 
 
 def test_provision_workstations_failure(monkeypatch, tmp_path):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import provision_workstations
     import cloudshield.Server.tasks.network_provisioning as np_module
-    import cloudshield.Server.utils.progress as progress_module
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
         str(tmp_path)
@@ -177,9 +175,11 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -215,9 +215,7 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
 
 
 def test_provision_network_success(monkeypatch, tmp_path):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import provision_network
-    import cloudshield.Server.utils.progress as progress_module
 
     # Mock job/logger
     mock_job = unittest.mock.MagicMock()
@@ -227,9 +225,11 @@ def test_provision_network_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
 
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
@@ -295,9 +295,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
 
 
 def test_provision_network_returns_none(monkeypatch):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import provision_network
-    import cloudshield.Server.utils.progress as progress_module
 
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
@@ -306,9 +304,11 @@ def test_provision_network_returns_none(monkeypatch):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -384,9 +384,7 @@ def test_provision_network_without_job(monkeypatch):
 
 
 def test_destroy_environment_success(monkeypatch, tmp_path):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import destroy_environment
-    import cloudshield.Server.utils.progress as progress_module
 
     # Create generated directory under CLOUDSHIELD_JOBS_DIR/terraform/generated/{org}
     jobs_dir = tmp_path
@@ -400,9 +398,11 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
@@ -469,9 +469,7 @@ def test_destroy_environment_no_directory(monkeypatch, tmp_path):
 
 
 def test_destroy_environment_failure(monkeypatch, tmp_path):
-    import rq
     from cloudshield.Server.tasks.network_provisioning import destroy_environment
-    import cloudshield.Server.utils.progress as progress_module
 
     jobs_dir = tmp_path
     generated_dir = jobs_dir / "terraform" / "generated" / "test_org"
@@ -484,9 +482,11 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
         "cloudshield.Server.tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
-    # Patch rq.get_current_job at module level (used by set_progress)
-    monkeypatch.setattr(rq, "get_current_job", lambda: mock_job)
-    monkeypatch.setattr(progress_module, "get_current_job", lambda: mock_job)
+    # Patch progress.get_current_job using string path (module imports from rq at load time)
+    monkeypatch.setattr(
+        "cloudshield.Server.utils.progress.get_current_job",
+        lambda: mock_job
+    )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "cloudshield.Server.tasks.network_provisioning.get_logger",
