@@ -9,6 +9,7 @@ from rq import get_current_job
 from google.protobuf import empty_pb2
 from .forward import forward_tunnel
 
+from services.user_service import persist_domain_user
 from utils import get_logger, get_inventory_from_org_id
 from models import Inventory
 
@@ -393,7 +394,7 @@ def dc_add_user(org_id: str, username: str, password: str):
     proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
         
     if proxy_response is None:
-        logger.error("Failed to prxy rpc")
+        logger.error("Failed to proxy rpc")
         return {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
 
@@ -410,14 +411,18 @@ def dc_add_user(org_id: str, username: str, password: str):
     #result = exec_ssh(org_id, command, logger=logger)
     
     if status == infra_pb2.SUCCESS:
+        logger.info("Successfully added user")
+        domain_user_id = persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
         return {"status": "SUCCESS", "message":"Successfully added user"}
 
     if status == infra_pb2.FAILED:
+        logger.error("Failed to add user")
         return {"status": "FAILED", "message":"Failed to add user"}
     
     if status == infra_pb2.DUPLICATE:
+        logger.error("Duplicate user found")
         return {"status": "DUPLICATE", "message":"User already exists"}
-
+    logger.error("Failed to add user for unexpected reason")
     return {"status":"UNKNOWN", "message":"Unexpected response"}
 
 

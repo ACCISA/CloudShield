@@ -123,8 +123,8 @@ def create_user_endpoint():
     except ValueError as e:
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
-    except Exception:
-        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
+    except Exception as e:
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details":str(e)}), 500
 
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])

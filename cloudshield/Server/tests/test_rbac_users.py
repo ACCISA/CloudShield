@@ -242,7 +242,7 @@ def test_authentication_and_authorization(app_and_client):
     # Test no auth header
     r = client.post("/users", json={"email": "test@test.com", "password": "P@ss"})
     assert r.status_code == 401
-    assert r.get_json()["error"] == "Forbidden"
+    assert r.get_json()["error"] == "Unauthorized"
 
     # Test malformed bearer token
     r = client.post("/users", headers={"Authorization": "Bearer malformed"}, 
@@ -257,7 +257,7 @@ def test_authentication_and_authorization(app_and_client):
     r = client.post("/users", headers={"Authorization": "Bearer employee:org_001:u1"},
                    json={"email": "emp@test.com", "password": "SecretPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Employee"})
     assert r.status_code == 401
-    assert r.get_json()["error"] == "Forbidden"
+    assert r.get_json()["error"] == "Unauthorized"
 
 def test_user_creation_and_business_logic(app_and_client, fake_users_collection, monkeypatch):
     """Test user creation with password hashing and duplicate email handling"""
@@ -291,7 +291,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": email, "password": "SecretPassword123!", "org_id": "org_001", 
                         "role": "employee", "full_name": "Jane"})
-    assert r.status_code == 400
+    assert r.status_code == 201
     user_id = r.get_json()["user_id"]
     stored = fake_users_collection.find_one({"_id": user_id})
     assert stored["password"].startswith("hashed::")
@@ -433,7 +433,7 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
     monkeypatch.setattr(users_routes, "create_user", _permission_error, raising=True)
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": "test2@test.com", "password": "ValidPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Test"})
-    assert r.status_code == 400
+    assert r.status_code == 403
 
 
 def test_list_users_error_handling(app_and_client, monkeypatch):
@@ -480,7 +480,8 @@ def test_create_user_validation_and_server_errors(app_and_client, monkeypatch):
     }
     monkeypatch.setattr(users_routes, "create_user", _raise_generic, raising=True)
     resp2 = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"}, json=body)
-    assert resp2.status_code == 400
+
+    assert resp2.status_code == 500
     assert resp2.get_json()["error"] == "Internal server error"
 
 

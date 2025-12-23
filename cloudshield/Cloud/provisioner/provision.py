@@ -290,6 +290,7 @@ def get_ec2_ips(region: str, org_id: str):
                 "status": inst["State"]["Name"],
                 "private_ip": inst.get("PrivateIpAddress"),
                 "public_ip": inst.get("PublicIpAddress"),
+                "port": "50055" # grpc node manager port
             }
 
             instances.append(metadata)

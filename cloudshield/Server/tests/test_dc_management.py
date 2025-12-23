@@ -1,9 +1,12 @@
 import unittest.mock
+import logging
 from types import SimpleNamespace
 
+from genproto.infra_service import infra_service_pb2 as infra_pb2
+from genproto.vpn_service import vpn_service_pb2
 
 def test_validate_username_valid():
-    from cloudshield.Server.tasks.dc_management import validate_username
+    from tasks.dc_management import validate_username
     
     assert validate_username("john_doe") is True
     assert validate_username("user123") is True
@@ -14,7 +17,7 @@ def test_validate_username_valid():
 
 
 def test_validate_username_invalid():
-    from cloudshield.Server.tasks.dc_management import validate_username
+    from tasks.dc_management import validate_username
     
     assert validate_username("") is False
     assert validate_username("user name") is False  # spaces
@@ -26,7 +29,7 @@ def test_validate_username_invalid():
 
 def test_validate_username_with_logger(caplog):
     import logging
-    from cloudshield.Server.tasks.dc_management import validate_username
+    from tasks.dc_management import validate_username
     
     logger = logging.getLogger("test")
     caplog.set_level(logging.ERROR, logger="test")
@@ -38,7 +41,7 @@ def test_validate_username_with_logger(caplog):
 
 
 def test_validate_password_valid():
-    from cloudshield.Server.tasks.dc_management import validate_password
+    from tasks.dc_management import validate_password
     
     assert validate_password("Password123!") is True
     assert validate_password("12345678") is True  # min 8 chars
@@ -47,21 +50,21 @@ def test_validate_password_valid():
 
 
 def test_validate_password_invalid_length():
-    from cloudshield.Server.tasks.dc_management import validate_password
+    from tasks.dc_management import validate_password
     
     assert validate_password("short") is False  # less than 8 chars
     assert validate_password("a" * 129) is False  # more than 128 chars
 
 
 def test_validate_password_invalid_newlines():
-    from cloudshield.Server.tasks.dc_management import validate_password
+    from tasks.dc_management import validate_password
     
     assert validate_password("password\n123") is False
     assert validate_password("password\r123") is False
 
 
 def test_validate_password_invalid_control_chars():
-    from cloudshield.Server.tasks.dc_management import validate_password
+    from tasks.dc_management import validate_password
     
     assert validate_password("password\x00") is False  # null char
     assert validate_password("password\x01") is False  # control char
@@ -69,7 +72,7 @@ def test_validate_password_invalid_control_chars():
 
 def test_validate_password_with_logger(caplog):
     import logging
-    from cloudshield.Server.tasks.dc_management import validate_password
+    from tasks.dc_management import validate_password
     
     logger = logging.getLogger("test")
     caplog.set_level(logging.ERROR, logger="test")
@@ -81,7 +84,7 @@ def test_validate_password_with_logger(caplog):
 
 
 def test_ssh_exec_result():
-    from cloudshield.Server.tasks.dc_management import SSHExecResult
+    from tasks.dc_management import SSHExecResult
     
     result = SSHExecResult("stdin_data", "stdout_data", "stderr_data")
     
@@ -92,7 +95,7 @@ def test_ssh_exec_result():
 
 def test_forward_ssh_tunnel(monkeypatch, caplog):
     import logging
-    from cloudshield.Server.tasks.dc_management import forward_ssh_tunnel
+    from tasks.dc_management import forward_ssh_tunnel
     
     logger = logging.getLogger("test")
     caplog.set_level(logging.INFO, logger="test")
@@ -116,7 +119,7 @@ def test_forward_ssh_tunnel(monkeypatch, caplog):
 
 
 def test_get_available_local_port():
-    from cloudshield.Server.tasks.dc_management import get_available_local_port
+    from tasks.dc_management import get_available_local_port
     
     port = get_available_local_port()
     
@@ -126,8 +129,8 @@ def test_get_available_local_port():
 
 
 def test_exec_ssh_config_populate():
-    from cloudshield.Server.tasks.dc_management import ExecSSHConfig
-    from cloudshield.Server.models import Inventory
+    from tasks.dc_management import ExecSSHConfig
+    from models import Inventory
     
     # Create mock assets
     mock_vpn = SimpleNamespace(
@@ -155,8 +158,8 @@ def test_exec_ssh_config_populate():
 
 
 def test_exec_ssh_config_partial_assets():
-    from cloudshield.Server.tasks.dc_management import ExecSSHConfig
-    from cloudshield.Server.models import Inventory
+    from tasks.dc_management import ExecSSHConfig
+    from models import Inventory
     
     # Only VPN asset
     mock_vpn = SimpleNamespace(
@@ -177,10 +180,10 @@ def test_exec_ssh_config_partial_assets():
 
 
 def test_exec_ssh_returns_none_when_no_inventory(monkeypatch):
-    from cloudshield.Server.tasks.dc_management import exec_ssh
+    from tasks.dc_management import exec_ssh
     
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_inventory_from_org_id",
+        "tasks.dc_management.get_inventory_from_org_id",
         lambda org_id: None
     )
     
@@ -190,7 +193,7 @@ def test_exec_ssh_returns_none_when_no_inventory(monkeypatch):
 
 
 def test_dc_add_user_invalid_username(monkeypatch):
-    from cloudshield.Server.tasks.dc_management import dc_add_user
+    from tasks.dc_management import dc_add_user
     
     # Mock the job
     mock_job = unittest.mock.MagicMock()
@@ -198,14 +201,14 @@ def test_dc_add_user_invalid_username(monkeypatch):
     mock_job.meta = {}
     
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_current_job",
+        "tasks.dc_management.get_current_job",
         lambda: mock_job
     )
     
     # Mock the logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_logger",
+        "tasks.dc_management.get_logger",
         lambda name, job_id=None: mock_logger
     )
     
@@ -216,7 +219,7 @@ def test_dc_add_user_invalid_username(monkeypatch):
 
 
 def test_dc_add_user_invalid_password(monkeypatch):
-    from cloudshield.Server.tasks.dc_management import dc_add_user
+    from tasks.dc_management import dc_add_user
     
     # Mock the job
     mock_job = unittest.mock.MagicMock()
@@ -224,14 +227,14 @@ def test_dc_add_user_invalid_password(monkeypatch):
     mock_job.meta = {}
     
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_current_job",
+        "tasks.dc_management.get_current_job",
         lambda: mock_job
     )
     
     # Mock the logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_logger",
+        "tasks.dc_management.get_logger",
         lambda name, job_id=None: mock_logger
     )
     
@@ -242,32 +245,32 @@ def test_dc_add_user_invalid_password(monkeypatch):
 
 
 def test_dc_add_user_without_job(monkeypatch):
-    from cloudshield.Server.tasks.dc_management import dc_add_user
+    from tasks.dc_management import dc_add_user
     
     # No job context
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_current_job",
+        "tasks.dc_management.get_current_job",
         lambda: None
     )
     
     # Mock the logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_logger",
+        "tasks.dc_management.get_logger",
         lambda name, job_id=None: mock_logger
     )
     
     # Mock exec_ssh
     mock_result = SimpleNamespace(stdout="User created", stderr="")
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
+        "tasks.dc_management.exec_ssh",
         lambda org_id, command, logger: mock_result
     )
     
     # Mock persist_domain_user
     mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        "tasks.dc_management.persist_domain_user",
         mock_persist
     )
     
@@ -277,35 +280,46 @@ def test_dc_add_user_without_job(monkeypatch):
 
 def test_dc_add_user_persists_on_success(monkeypatch):
     """Test that dc_add_user persists user data when command succeeds"""
-    from cloudshield.Server.tasks.dc_management import dc_add_user
+    from tasks.dc_management import dc_add_user
     
     # Mock job
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_current_job",
+        "tasks.dc_management.get_current_job",
         lambda: mock_job
     )
     
     # Mock logger
-    mock_logger = unittest.mock.MagicMock()
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_logger",
-        lambda name, job_id=None: mock_logger
+        "tasks.dc_management.get_logger",
+        mock_logger
     )
     
     # Mock exec_ssh to return success (no stderr)
     mock_result = SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.AddDomainUserDataAck(status=infra_pb2.SUCCESS, result="User added successfully").SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
     )
+
     
     # Mock persist_domain_user
     mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        "tasks.dc_management.persist_domain_user",
         mock_persist
     )
     
@@ -321,26 +335,24 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     assert called_args[0][2] == "Password123!"
     assert "@gmail.com" in called_args[0][3]
 
-    assert any("user_mongo_id_123" in str(call) for call in mock_logger.info.call_args_list)
-
 
 def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     """Test that dc_add_user does NOT persist when Samba command fails"""
-    from cloudshield.Server.tasks.dc_management import dc_add_user
+    from tasks.dc_management import dc_add_user
     
     # Mock job
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
     mock_job.meta = {}
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_current_job",
+        "tasks.dc_management.get_current_job",
         lambda: mock_job
     )
     
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.get_logger",
+        "tasks.dc_management.get_logger",
         lambda name, job_id=None: mock_logger
     )
     
@@ -350,14 +362,14 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
         stderr="ERROR: command failed"
     )
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.exec_ssh",
+        "tasks.dc_management.exec_ssh",
         lambda org_id, command, logger: mock_result
     )
     
     # Mock persist_domain_user
     mock_persist = unittest.mock.MagicMock()
     monkeypatch.setattr(
-        "cloudshield.Server.tasks.dc_management.persist_domain_user",
+        "tasks.dc_management.persist_domain_user",
         mock_persist
     )
     

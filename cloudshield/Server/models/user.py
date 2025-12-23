@@ -30,7 +30,7 @@ class UserCreate(BaseModel):
     role: Literal["admin", "employee"]
     full_name: str
     org_id: str
-    file_shares: List[str]
+    file_shares: Optional[List[str]] = []
 
     # normalize + validate
     @field_validator("email")

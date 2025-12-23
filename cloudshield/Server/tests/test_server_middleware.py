@@ -197,7 +197,7 @@ def test_server_import_fallback_exists():
         content = f.read()
         # Verify import fallback patterns exist
         assert 'try:' in content
-        assert 'from cloudshield.Server.utils import get_logger' in content
+        assert 'from utils import get_logger' in content
         assert 'except ImportError:' in content
         assert 'from utils import get_logger' in content
 
