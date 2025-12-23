@@ -1,7 +1,7 @@
 """User management service layer with audit logging."""
 from bson import ObjectId
 from datetime import datetime, timezone
-from utils import users_admin, users_public, log_audit
+from utils import users_admin, users_public, log_audit, organizations
 from models import UserCreate, UserUpdate
 from security import hash_password
 from utils.terraform import get_workstation_count
@@ -55,15 +55,20 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
     Raises:
         PermissionError: If current_user is not admin
         ValueError: If email already exists in database
+        ValueError: If organization user limit has been reached
     """
     _must_admin(current_user)
 
     if users_admin.find_one({"email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
-    existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
-    existing_workstation_count = get_workstation_count(user_data.org_id)
-    if existing_db_count + 1 > existing_workstation_count:
-        raise ValueError("User limit reached for this organization")
+    
+    # Check user limit from organization config
+    org = organizations.find_one({"org_id": user_data.org_id})
+    if org:
+        user_limit = org.get("user_limit", float("inf"))
+        existing_user_count = users_admin.count_documents({"org_id": user_data.org_id})
+        if existing_user_count + 1 > user_limit:
+            raise ValueError(f"User limit ({user_limit}) reached for this organization")
 
     user_doc = {
         "email": user_data.email,

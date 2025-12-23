@@ -71,6 +71,15 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
+    # Organizations collection for multi-tenant support
+    organizations = db_admin["organizations"]
+    
+    # Create unique index on org_id for organizations
+    organizations.create_index("org_id", unique=True)
+    
+    # Index on provisioning_status for querying pending/in_progress orgs
+    organizations.create_index("provisioning_status")
+
     print(f"[database.py] Connected to MongoDB DB='{DB_NAME}' (admin+employee clients ready)")
 except PyMongoError as e:
     print(f"[database.py] MongoDB connection failed: {e}")
@@ -83,6 +92,7 @@ __all__ = [
     "emp_client",
     "users_admin",
     "users_public",
+    "organizations",
     "db",
     "client"
 ]

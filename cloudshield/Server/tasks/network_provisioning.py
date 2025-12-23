@@ -7,6 +7,7 @@ via Docker volume mounts in docker-compose.yml).
 """
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 from rq import get_current_job
@@ -22,6 +23,55 @@ from utils import (
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
 from provisioner import provision_network_terraform, get_target_dir, destroy_infra
+
+# Organization collection for status updates
+_organizations = db["organizations"]
+
+
+def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None = None, logger=None):
+    """
+    Update organization's provisioning status in the database.
+
+    Args:
+        org_id: Organization identifier.
+        status: New provisioning status ("pending", "in_progress", "completed", "failed").
+        job_id: Optional job ID to associate with provisioning.
+        logger: Optional logger instance.
+    """
+    update_doc = {
+        "provisioning_status": status,
+        "updated_at": datetime.utcnow(),
+    }
+    if job_id is not None:
+        update_doc["provisioning_job_id"] = job_id
+
+    result = _organizations.update_one(
+        {"org_id": org_id},
+        {"$set": update_doc}
+    )
+    if logger:
+        if result.modified_count > 0:
+            logger.info("Updated org '%s' provisioning_status to '%s'", org_id, status)
+        else:
+            logger.warning("No org found with org_id='%s' to update status", org_id)
+
+
+def _get_org_config(org_id: str, logger=None) -> dict | None:
+    """
+    Retrieve organization configuration from the database.
+
+    Args:
+        org_id: Organization identifier.
+        logger: Optional logger instance.
+
+    Returns:
+        Organization document dict or None if not found.
+    """
+    org = _organizations.find_one({"org_id": org_id})
+    if org and logger:
+        logger.info("Found org config for '%s': package=%s, workstation_limit=%d",
+                    org_id, org.get("package_type"), org.get("workstation_limit", 0))
+    return org
 
 
 """
@@ -74,14 +124,37 @@ def _run(cmd: list[str], cwd: str, env: dict | None = None, logger=None):
 
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
     """
-    Provisions only the workstations via Terraform.
+    Provisions additional workstations via Terraform.
+    
+    Validates against the organization's workstation_limit before provisioning.
     Uses shared 'run_stream' + 'set_progress' for less boilerplate and reuse.
+    
+    Args:
+        org_id: Organization identifier.
+        region: AWS region (default: ca-central-1).
+        count: Number of additional workstations to provision.
+        
+    Raises:
+        ValueError: If adding workstations would exceed org's workstation_limit.
+        FileNotFoundError: If Terraform work directory doesn't exist.
     """
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
     
     logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     set_progress("starting")
+    
+    # Check workstation limit from organization config
+    org_config = _get_org_config(org_id, logger)
+    if org_config:
+        workstation_limit = org_config.get("workstation_limit", float("inf"))
+        current_count = get_workstation_count(org_id)
+        if current_count + count > workstation_limit:
+            error_msg = f"Cannot provision {count} workstations: would exceed limit ({current_count} + {count} > {workstation_limit})"
+            logger.error(error_msg)
+            set_progress(f"failed: {error_msg}")
+            raise ValueError(error_msg)
+    
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
@@ -122,19 +195,45 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         raise
 
 # Full Network Provisioning Task
-def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int = 0):
+def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int | None = None):
 
     """
     Provisions the full network using Terraform templates.
+    
+    If workstation_count is not provided, it will be looked up from the organization's
+    package configuration in the database.
+    
     Isolates progress, mapping, and DB writes via helpers for reuse.
+    
+    Args:
+        org_id: Organization identifier.
+        region: AWS region for provisioning (default: ca-central-1).
+        ubuntu_ami: Optional override for Ubuntu AMI ID.
+        workstation_ami: Optional override for workstation AMI ID.
+        workstation_count: Number of workstations to provision. If None, uses org's package limit.
     """
     job_id = get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
 
+    # Look up org config to get workstation_count from package if not provided
+    org_config = _get_org_config(org_id, logger)
+    
+    if workstation_count is None:
+        if org_config:
+            workstation_count = org_config.get("workstation_limit", 0)
+            logger.info("Using workstation_count=%d from org package '%s'", 
+                       workstation_count, org_config.get("package_type"))
+        else:
+            workstation_count = 0
+            logger.warning("No org config found for '%s', using workstation_count=0", org_id)
+
     logger.info(
-        "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s",
-        org_id, region, ubuntu_ami, workstation_ami,
+        "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s workstation_count=%d",
+        org_id, region, ubuntu_ami, workstation_ami, workstation_count,
     )
+    
+    # Update org status to in_progress
+    _update_org_provisioning_status(org_id, "in_progress", job_id, logger)
     set_progress("starting")
 
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
@@ -160,6 +259,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
             # Early return with explicit failure details, still sets progress.
             details = "Provisioning failed since the generated directory already exists"
             set_progress("failed")
+            _update_org_provisioning_status(org_id, "failed", job_id, logger)
             job = get_current_job()
             if job:
                 job.meta["details"] = details
@@ -169,6 +269,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         
         # Keeps orchestration clean, makes mapping/DB writes available to other tasks.
         set_progress("completed")
+        _update_org_provisioning_status(org_id, "completed", job_id, logger)
 
 
         logger.info("Metadata from provisioner: %s", metadata)
@@ -194,11 +295,16 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     except Exception as e:
         logger.exception("Provisioning failed for org %s: %s", org_id, e)
         set_progress(f"failed: {e}")
+        _update_org_provisioning_status(org_id, "failed", job_id, logger)
         raise
 
 def destroy_environment(org_id: str, force: bool = False):
     """
     Destroys an environment and removes its Inventory entry.
+    
+    Also resets the organization's provisioning_status to "pending" so it can
+    be re-provisioned if needed.
+    
     Uses set_progress + repo delete helper; logs consistent outcomes.
     """
     job_id = get_job_id_fallback()
@@ -227,6 +333,8 @@ def destroy_environment(org_id: str, force: bool = False):
         else:
             logger.error("AWS destroyed but no assets found in Inventory (org_id=%s)", org_id)
 
+        # Reset org provisioning status to pending so it can be re-provisioned
+        _update_org_provisioning_status(org_id, "pending", job_id, logger)
 
         logger.info("Destroy complete for org %s", org_id)
         return {"message": "Destroy complete", "removed_dir": True}
@@ -234,4 +342,5 @@ def destroy_environment(org_id: str, force: bool = False):
     except Exception as e:
         logger.exception("Destroy failed for org %s: %s", org_id, e)
         set_progress(f"failed destroy: {e}")
+        _update_org_provisioning_status(org_id, "failed", job_id, logger)
     raise
