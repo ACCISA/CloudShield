@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, g
 from werkzeug.exceptions import BadRequest, HTTPException
 
+# --- 1. ADD FLASK CORS IMPORT ---
+from flask_cors import CORS
+
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
@@ -29,24 +32,23 @@ def _coerce_exception_class(candidate, name: str):
 DuplicateKeyError = _coerce_exception_class(DuplicateKeyError, "DuplicateKeyError")
 OperationFailure = _coerce_exception_class(OperationFailure, "OperationFailure")
 
-# --- 2. UPDATE IMPORTS TO INCLUDE auth_bp ---
 try:
     from cloudshield.Server.utils import get_logger
     from cloudshield.Server.routes import api_bp
-    from cloudshield.Server.routes.auth import auth_bp  # <--- ADDED
+    from cloudshield.Server.routes.auth import auth_bp
     from cloudshield.Server.routes.users import users_bp
     from cloudshield.Server.routes.users_read import users_read_bp
 except ImportError:
     try:
         from .utils import get_logger
         from .routes import api_bp
-        from .routes.auth import auth_bp  # <--- ADDED
+        from .routes.auth import auth_bp
         from .routes.users import users_bp
         from .routes.users_read import users_read_bp
     except ImportError:
         from utils import get_logger  # type: ignore
         from routes import api_bp  # type: ignore
-        from routes.auth import auth_bp  # <--- ADDED
+        from routes.auth import auth_bp  # type: ignore
         from routes.users import users_bp  # type: ignore
         from routes.users_read import users_read_bp  # type: ignore
 
@@ -71,8 +73,27 @@ logger = get_logger("api")
 def create_app() -> Flask:
     """Create and configure Flask application with blueprints."""
     app = Flask(__name__)
-    app.register_blueprint(api_bp)
+    
+    # --- 2. INITIALIZE CORS ---
+    # This enables Cross-Origin Resource Sharing for all routes
+    CORS(app)
+    
+    # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
+    # Register Tasks API -> /api/task/...
+    app.register_blueprint(api_bp, url_prefix="/api")
     logger.debug("Registered api blueprint: %s", api_bp.name)
+
+    # Register Auth (Login/Me) -> /api/auth/...
+    app.register_blueprint(auth_bp, url_prefix="/api") 
+    logger.debug("Registered auth blueprint: %s", auth_bp.name)
+
+    # Register Users -> /api/users
+    app.register_blueprint(users_bp, url_prefix="/api")
+    app.register_blueprint(users_read_bp, url_prefix="/api")
+
+    if audit_bp:
+        app.register_blueprint(audit_bp, url_prefix="/api")
+
     return app
 
 
@@ -106,9 +127,6 @@ def _ensure_json_on_writes():
         if request.data and not request.is_json:
             # Allow empty body if needed, but if data exists, it must be JSON
             pass 
-            # Note: Strict check removed for now to prevent issues with empty POSTs
-            # if request.data and not request.is_json:
-            #    raise BadRequest("Expected application/json body")
 
 
 @app.after_request
@@ -128,7 +146,7 @@ def _add_performance_headers(response):
     return response
 
 
-# --- Error Handlers (No changes needed) ---
+# --- Error Handlers ---
 @app.errorhandler(ValidationError)
 def _handle_pydantic(e: ValidationError):
     return _error_json("Validation failed", "VALIDATION_ERROR", e.errors(), 400)
@@ -161,19 +179,6 @@ def _handle_generic(e: Exception):
     server_logger.exception("Unhandled error: %s", e)
     details = str(e) if app.debug else "An unexpected error occurred"
     return _error_json("Internal Server Error", "INTERNAL_ERROR", details, 500)
-
-
-# --- 5. REGISTER BLUEPRINTS ---
-
-# Register Auth (Login/Me) -> /api/auth/login
-app.register_blueprint(auth_bp, url_prefix="/api") 
-
-# Register Users -> /api/users
-app.register_blueprint(users_bp, url_prefix="/api")
-app.register_blueprint(users_read_bp, url_prefix="/api")
-
-if audit_bp:
-    app.register_blueprint(audit_bp, url_prefix="/api")
 
 
 @app.route("/healthz", methods=["GET"])
