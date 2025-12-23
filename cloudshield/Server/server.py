@@ -9,26 +9,21 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, g
 from werkzeug.exceptions import BadRequest, HTTPException
 
+# --- 1. ADD FLASK CORS IMPORT ---
+from flask_cors import CORS
+
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
-from flask_cors import CORS
-
 from utils import get_logger  # type: ignore
 from routes import api_bp  # type: ignore
+from routes.auth import auth_bp  # type: ignore
 from routes.users import users_bp  # type: ignore
 from routes.users_read import users_read_bp  # type: ignore
 
 
 def _coerce_exception_class(candidate, name: str):
-    """Ensure an imported exception reference is a proper Exception subclass.
-
-    Some unit tests monkeypatch `pymongo.errors` with lightweight doubles that
-    expose attributes as MagicMocks. Flask's error handler registration rejects
-    instances or mocks, so we fall back to simple Exception subclasses when
-    needed to keep imports robust during testing.
-    """
-
+    """Ensure an imported exception reference is a proper Exception subclass."""
     if isinstance(candidate, type) and issubclass(candidate, Exception):
         return candidate
 
@@ -61,8 +56,27 @@ logger = get_logger("api")
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.register_blueprint(api_bp)
+    
+    # --- 2. INITIALIZE CORS ---
+    # This enables Cross-Origin Resource Sharing for all routes
+    CORS(app)
+    
+    # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
+    # Register Tasks API -> /api/task/...
+    app.register_blueprint(api_bp, url_prefix="/api")
     logger.debug("Registered api blueprint: %s", api_bp.name)
+
+    # Register Auth (Login/Me) -> /api/auth/...
+    app.register_blueprint(auth_bp, url_prefix="/api") 
+    logger.debug("Registered auth blueprint: %s", auth_bp.name)
+
+    # Register Users -> /api/users
+    app.register_blueprint(users_bp, url_prefix="/api")
+    app.register_blueprint(users_read_bp, url_prefix="/api")
+
+    if audit_bp:
+        app.register_blueprint(audit_bp, url_prefix="/api")
+
     return app
 
 
@@ -94,9 +108,7 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
 @app.before_request
 def _ensure_json_on_writes():
     """Enforce JSON content-type for write operations."""
-    # Track request start time for performance monitoring
     g.start_time = time()
-
     _request_id()
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         # Allow empty body for certain routes (like DELETE /users/<id>)
@@ -107,11 +119,7 @@ def _ensure_json_on_writes():
 
 @app.after_request
 def _add_performance_headers(response):
-    """Add response time tracking and log slow requests.
-    
-    Performance optimization: Adds X-Response-Time header to all responses
-    and automatically logs requests that take longer than 500ms for monitoring.
-    """
+    """Add response time tracking and log slow requests."""
     if hasattr(g, 'start_time'):
         elapsed_ms = (time() - g.start_time) * 1000
 
@@ -127,10 +135,10 @@ def _add_performance_headers(response):
                 elapsed_ms,
                 getattr(g, 'request_id', 'unknown')
             )
-
     return response
 
 
+# --- Error Handlers ---
 @app.errorhandler(ValidationError)
 def _handle_pydantic(e: ValidationError):
     # Field-level details come from Pydantic
@@ -141,17 +149,9 @@ def _handle_pydantic(e: ValidationError):
         status=400,
     )
 
-
 @app.errorhandler(DuplicateKeyError)
 def _handle_duplicate(e: Exception):
-    """Handle MongoDB duplicate key violations (typically email uniqueness)."""
-    return _error_json(
-        error="Email already exists",
-        code="DUPLICATE_EMAIL",
-        details={"field": "email"},
-        status=409,
-    )
-
+    return _error_json("Email already exists", "DUPLICATE_EMAIL", {"field": "email"}, 409)
 
 @app.errorhandler(ValueError)
 def _handle_value_error(e: ValueError):
@@ -174,25 +174,12 @@ def _handle_bad_json(e: BadRequest):
         status=400,
     )
 
-
 @app.errorhandler(OperationFailure)
-def _handle_mongo_operation_failure(e: Exception):
-    """Handle MongoDB operation failures, mapping auth errors to 403."""
+def _handle_mongo_failure(e: Exception):
     msg = str(e)
     if "not authorized" in msg.lower():
-        return _error_json(
-            error="Forbidden (database)",
-            code="DB_UNAUTHORIZED",
-            details=msg,
-            status=403,
-        )
-    return _error_json(
-        error="Database error",
-        code="DB_OPERATION_FAILURE",
-        details=msg,
-        status=500,
-    )
-
+        return _error_json("Forbidden (database)", "DB_UNAUTHORIZED", msg, 403)
+    return _error_json("Database error", "DB_OPERATION_FAILURE", msg, 500)
 
 @app.errorhandler(HTTPException)
 def _handle_http_exception(e: HTTPException):
@@ -216,13 +203,6 @@ def _handle_generic(e: Exception):
         details=details,
         status=500,
     )
-
-# Blueprints
-app.register_blueprint(users_bp, url_prefix="/api")
-app.register_blueprint(users_read_bp, url_prefix="/api")
-if audit_bp:
-    app.register_blueprint(audit_bp, url_prefix="/api")
-
 
 # Health / info endpoint
 @app.route("/healthz", methods=["GET"])

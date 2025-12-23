@@ -12,7 +12,7 @@ pymongo
 PyJWT
 bcrypt
 paramiko
-flask_cors
+flask-cors
 python-on-whales
 grpcio
 protobuf

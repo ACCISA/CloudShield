@@ -3,3 +3,4 @@ protobuf
 psutil
 schedule
 elasticsearch
+flask-cors
