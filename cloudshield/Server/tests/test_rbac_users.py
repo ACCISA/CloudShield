@@ -1,5 +1,4 @@
 import unittest.mock
-import os
 
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None
@@ -32,9 +31,9 @@ def clear_dev_token(monkeypatch):
     monkeypatch.delenv("CLOUDSHIELD_DEV_TOKEN", raising=False)
     # Also need to clear the cached value in the guards module if it was already imported
     if "security.guards" in sys.modules:
-        monkeypatch.setattr("security.guards.DEV_BYPASS_TOKEN", None, raising=False)
+        sys.modules["security.guards"].DEV_BYPASS_TOKEN = None
     if "cloudshield.Server.security.guards" in sys.modules:
-        monkeypatch.setattr("cloudshield.Server.security.guards.DEV_BYPASS_TOKEN", None, raising=False)
+        sys.modules["cloudshield.Server.security.guards"].DEV_BYPASS_TOKEN = None
 
 
 # Minimal fake guards so decorators work without real JWT
