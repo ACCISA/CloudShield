@@ -5,7 +5,7 @@ FROM docker.io/library/ubuntu:24.04${BASEOS_DIGEST:-}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     software-properties-common \
-    rsyslog systemd systemd-cron sudo \
+    rsyslog systemd systemd-cron sudo wget curl\
     samba-ad-dc samba-ad-provision \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2\
@@ -43,6 +43,12 @@ COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
 # Copy entrypoint script
 COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# we created a fake sudo script for comaptibilty between docker and cloud dev/testing
+RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
+    echo 'exec "$@"' >> /usr/local/bin/sudo
+
+RUN chmod +x /usr/local/bin/sudo
 
 STOPSIGNAL SIGRTMIN+3
 
