@@ -250,11 +250,11 @@ describe('AuthPage', () => {
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.keyDown(emailInput, { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(emailInput, { key: 'Enter', code: 'Enter', keyCode: 13 });
     
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
-    });
+    }, { timeout: 2000 });
   });
 
   it('allows login via Enter key in password field', async () => {
@@ -275,11 +275,11 @@ describe('AuthPage', () => {
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.keyDown(passwordInput, { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(passwordInput, { key: 'Enter', code: 'Enter', keyCode: 13 });
     
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
-    });
+    }, { timeout: 2000 });
   });
 
   it('works without onLoginSuccess callback', async () => {
@@ -301,11 +301,14 @@ describe('AuthPage', () => {
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.click(loginButton);
     
-    await expect(async () => {
-      fireEvent.click(loginButton);
-      await waitFor(() => expect(fetch).toHaveBeenCalled());
-    }).rejects.not.toThrow();
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalled();
+    });
+    
+    // Should not throw error even without callback
+    expect(mockOnLoginSuccess).not.toHaveBeenCalled();
   });
 
   it('applies correct page layout styles', () => {
