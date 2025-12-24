@@ -1,4 +1,4 @@
-import { deleteUser, listUsers } from '../usersApi';
+import { createUser, deleteUser, listUsers } from '../usersApi';
 
 describe('usersApi', () => {
   const originalFetch = global.fetch;
@@ -12,7 +12,7 @@ describe('usersApi', () => {
     jest.resetAllMocks();
   });
 
-  it('fetches user list with auth headers and returns items array', async () => {
+  it('fetches user list with query params, auth headers, and returns items array', async () => {
     const controller = new AbortController();
     const responsePayload = { items: [{ id: '1' }, { id: '2' }] };
     global.fetch.mockResolvedValueOnce({
@@ -21,10 +21,10 @@ describe('usersApi', () => {
       text: () => Promise.resolve(JSON.stringify(responsePayload)),
     });
 
-    const result = await listUsers({ signal: controller.signal, token: 'tok123' });
+    const result = await listUsers({ signal: controller.signal, token: 'tok123', search: 'a', limit: 10, offset: 5 });
 
     expect(result).toEqual(responsePayload.items);
-    expect(global.fetch).toHaveBeenCalledWith('/api/users', {
+    expect(global.fetch).toHaveBeenCalledWith('/api/users?search=a&limit=10&offset=5', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -107,5 +107,28 @@ describe('usersApi', () => {
       body: undefined,
     });
     expect(result).toEqual({ message: 'deleted' });
+  });
+
+  it('creates a user via POST', async () => {
+    const payload = { email: 'a@example.com', full_name: 'A User', password: 'Secret12!', role: 'employee' };
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      text: () => Promise.resolve(JSON.stringify({ user_id: 'user-123' })),
+    });
+
+    const result = await createUser(payload, { token: 'tok123' });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer tok123',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(result).toEqual({ user_id: 'user-123' });
   });
 });

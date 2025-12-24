@@ -9,6 +9,8 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
+  MenuItem,
   Paper,
   Stack,
   Table,
@@ -16,13 +18,16 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
-import { listUsers, deleteUser } from '../services/usersApi.js';
+import { listUsers, deleteUser, createUser } from '../services/usersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 function UserTable({ users, onDelete }) {
@@ -93,6 +98,20 @@ export default function EmployeesPage() {
   const [dialogUser, setDialogUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [query, setQuery] = useState('');
+  const [form, setForm] = useState({
+    email: '',
+    full_name: '',
+    password: '',
+    role: 'employee',
+  });
+
+  const DEFAULT_LIMIT = 20;
+  const DEFAULT_OFFSET = 0;
 
   const sortedUsers = useMemo(() => {
     return [...users].sort((a, b) => {
@@ -108,7 +127,13 @@ export default function EmployeesPage() {
     }
     try {
       setLoading(true);
-      const data = await listUsers({ signal, token: accessToken });
+      const data = await listUsers({
+        signal,
+        token: accessToken,
+        search: query,
+        limit: DEFAULT_LIMIT,
+        offset: DEFAULT_OFFSET,
+      });
       setUsers(data);
       setBanner(null);
     } catch (error) {
@@ -117,7 +142,7 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, query]);
 
   useEffect(() => {
     if (authLoading) {
@@ -147,6 +172,22 @@ export default function EmployeesPage() {
       return;
     }
     fetchUsers();
+  };
+
+  const handleSearch = () => {
+    setQuery(searchTerm.trim());
+  };
+
+  const handleOpenCreate = () => {
+    setCreateError('');
+    setForm({ email: '', full_name: '', password: '', role: 'employee' });
+    setCreateOpen(true);
+  };
+
+  const handleCloseCreate = () => {
+    if (isCreating) return;
+    setCreateOpen(false);
+    setCreateError('');
   };
 
   const handleOpenDeleteDialog = (user) => {
@@ -192,9 +233,55 @@ export default function EmployeesPage() {
     }
   };
 
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+    if (!accessToken) {
+      setCreateError('Missing authentication token. Please sign in again.');
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError('');
+
+    try {
+      const payload = {
+        email: form.email.trim().toLowerCase(),
+        full_name: form.full_name.trim(),
+        password: form.password,
+        role: form.role,
+        org_id: currentUser?.org_id || localStorage.getItem('org_id'),
+      };
+
+      const result = await createUser(payload, { token: accessToken });
+
+      const newUser = {
+        _id: result?.user_id || payload.email,
+        email: payload.email,
+        full_name: payload.full_name,
+        role: payload.role,
+        status: 'active',
+      };
+
+      setUsers((prev) => [newUser, ...prev]);
+      setBanner({ severity: 'success', message: `${payload.full_name || payload.email} was created successfully.` });
+      setCreateOpen(false);
+      setForm({ email: '', full_name: '', password: '', role: 'employee' });
+    } catch (error) {
+      if (error?.status === 409) {
+        setCreateError(error.payload?.error || 'An account with this email already exists.');
+      } else if (error?.status === 403) {
+        setCreateError(error.payload?.error || 'User limit reached for your plan.');
+      } else {
+        setCreateError(error.message || 'Failed to create user.');
+      }
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Employees
@@ -203,19 +290,74 @@ export default function EmployeesPage() {
             Manage organization users and remove access for departed employees.
           </Typography>
         </Box>
-        <Button
+        <Stack direction="row" spacing={1.5}>
+          <Button
+            onClick={handleOpenCreate}
+            startIcon={<AddOutlinedIcon />}
+            sx={{
+              color: '#fff',
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '10px',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)' },
+            }}
+          >
+            Add Employee
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshOutlinedIcon />}
+            onClick={handleRefresh}
+            sx={{
+              color: '#fff',
+              borderColor: 'rgba(255,255,255,0.2)',
+              borderRadius: '10px',
+              textTransform: 'none',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(255,255,255,0.08)' },
+            }}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Stack direction="row" spacing={1.5} sx={{ maxWidth: 560 }}>
+        <TextField
+          fullWidth
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search employees"
           variant="outlined"
-          startIcon={<RefreshOutlinedIcon />}
-          onClick={handleRefresh}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchOutlinedIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} />
+              </InputAdornment>
+            ),
+          }}
           sx={{
-            color: '#fff',
-            borderColor: 'rgba(255,255,255,0.2)',
-            borderRadius: '10px',
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: '#161616',
+              color: '#fff',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.18)',
+              '& fieldset': { border: 'none' },
+            },
+          }}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSearch}
+          sx={{
             textTransform: 'none',
-            '&:hover': { borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(255,255,255,0.08)' },
+            backgroundColor: '#2471EA',
+            borderRadius: '10px',
+            '&:hover': { backgroundColor: '#1E5FC7' },
           }}
         >
-          Refresh
+          Search
         </Button>
       </Stack>
 
@@ -281,6 +423,64 @@ export default function EmployeesPage() {
             disabled={isDeleting}
           >
             {isDeleting ? 'Deleting…' : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={createOpen} onClose={handleCloseCreate} aria-labelledby="create-user-dialog">
+        <DialogTitle id="create-user-dialog">Add Employee</DialogTitle>
+        <DialogContent sx={{ minWidth: 440 }}>
+          <Stack component="form" id="create-user-form" spacing={2} onSubmit={handleCreateUser}>
+            <TextField
+              label="Full Name"
+              value={form.full_name}
+              onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
+              required
+              autoFocus
+              fullWidth
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Initial Password"
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+              required
+              fullWidth
+            />
+            <TextField
+              select
+              label="Role"
+              value={form.role}
+              onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+              fullWidth
+            >
+              <MenuItem value="employee">Employee</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+            </TextField>
+            {createError && (
+              <Alert severity="error">{createError}</Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCreate} disabled={isCreating}>
+            Cancel
+          </Button>
+          <Button
+            disabled={isCreating}
+            variant="contained"
+            type="submit"
+            form="create-user-form"
+          >
+            {isCreating ? 'Creating…' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>

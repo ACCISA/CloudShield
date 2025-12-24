@@ -117,7 +117,19 @@ def create_user_endpoint():
         user_id = create_user(user_data, current_user=g.user, reason=reason)
         return jsonify({"user_id": user_id}), 201
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        # pydantic v2 may include non-serializable objects (e.g., ValueError) inside ctx
+        safe_errors = []
+        for err in e.errors():
+            ctx = err.get("ctx")
+            safe_ctx = None
+            if ctx:
+                safe_ctx = {k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()}
+            item = {k: v for k, v in err.items() if k != "ctx"}
+            if safe_ctx is not None:
+                item["ctx"] = safe_ctx
+            safe_errors.append(item)
+
+        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:

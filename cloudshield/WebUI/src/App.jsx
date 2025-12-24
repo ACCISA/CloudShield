@@ -11,14 +11,16 @@ import SignUpPage from './pages/SignUpPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
   // Initialize auth state based on presence of JWT in storage
   const [isAuthed, setIsAuthed] = useState(() => {
-    return !!localStorage.getItem('jwt');
+    return devBypass || !!localStorage.getItem('jwt');
   });
 
   const [isProvisioned, setIsProvisioned] = useState(() => {
     try {
-      return localStorage.getItem('isProvisioned') === 'true';
+      return devBypass || localStorage.getItem('isProvisioned') === 'true';
     } catch {
       return false;
     }
@@ -47,15 +49,15 @@ function AppWithAuth() {
 
   const Protected = useMemo(() => {
     return function ProtectedWrapper({ children }) {
-      if (!isAuthed) return <Navigate to="/login" replace />;
-      if (!isProvisioned) return <Navigate to="/provisioning" replace />;
+      if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
+      if (!devBypass && !isProvisioned) return <Navigate to="/provisioning" replace />;
       return (
         <AppLayout showSidebar sidebarMode="full">
           {children}
         </AppLayout>
       );
     };
-  }, [isAuthed, isProvisioned]);
+  }, [devBypass, isAuthed, isProvisioned]);
 
   return (
     <BrowserRouter>

@@ -4,11 +4,12 @@ import userEvent from '@testing-library/user-event';
 
 import EmployeesPage from '../EmployeesPage.jsx';
 import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
-import { listUsers, deleteUser } from '../../services/usersApi.js';
+import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
 
 jest.mock('../../services/usersApi.js', () => ({
   listUsers: jest.fn(),
   deleteUser: jest.fn(),
+  createUser: jest.fn(),
 }));
 
 const AuthSpy = ({ onAuth }) => {
@@ -70,6 +71,7 @@ describe('EmployeesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     listUsers.mockResolvedValue([...seedUsers]);
+    createUser.mockResolvedValue({ user_id: 'user-999' });
   });
 
   it('loads and renders users from the API', async () => {
@@ -79,7 +81,7 @@ describe('EmployeesPage', () => {
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
 
-    expect(listUsers).toHaveBeenCalledWith(expect.objectContaining({ token: 'test-token' }));
+    expect(listUsers).toHaveBeenCalledWith(expect.objectContaining({ token: 'test-token', search: '', limit: 20, offset: 0 }));
     expect(screen.getByText('admin@company.com')).toBeInTheDocument();
   });
 
@@ -260,5 +262,85 @@ describe('EmployeesPage', () => {
 
     expect(deleteUser).not.toHaveBeenCalled();
     expect(screen.getByText(/missing authentication token/i)).toBeInTheDocument();
+  });
+
+  it('creates a user and updates the table immediately', async () => {
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+
+    await user.type(screen.getByLabelText(/full name/i), 'New User');
+    await user.type(screen.getByLabelText(/email/i), 'new@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(createUser).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'new@example.com',
+        full_name: 'New User',
+        password: 'Password123!',
+        role: 'employee',
+      }), expect.objectContaining({ token: 'test-token' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('New User')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/was created successfully/i)).toBeInTheDocument();
+  });
+
+  it('shows duplicate email error on 409', async () => {
+    const err = new Error('Conflict');
+    err.status = 409;
+    err.payload = { error: 'Email already exists' };
+    createUser.mockRejectedValueOnce(err);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+    await user.type(screen.getByLabelText(/full name/i), 'Dup User');
+    await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/email already exists/i)).toBeInTheDocument();
+    });
+    expect(createUser).toHaveBeenCalled();
+  });
+
+  it('shows limit exceeded error on 403', async () => {
+    const err = new Error('Forbidden');
+    err.status = 403;
+    err.payload = { error: 'User limit reached' };
+    createUser.mockRejectedValueOnce(err);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+    await user.type(screen.getByLabelText(/full name/i), 'Limit User');
+    await user.type(screen.getByLabelText(/email/i), 'limit@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/user limit reached/i)).toBeInTheDocument();
+    });
+    expect(createUser).toHaveBeenCalled();
   });
 });

@@ -22,8 +22,13 @@ async function parseResponse(response) {
   return payload;
 }
 
-export async function listUsers({ signal, token } = {}) {
-  const response = await fetch(`${API_PREFIX}/users`, {
+export async function listUsers({ signal, token, search = '', limit = 20, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  params.set('search', search);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+
+  const response = await fetch(`${API_PREFIX}/users?${params.toString()}`, {
     method: 'GET',
     headers: buildHeaders(token),
     signal,
@@ -38,6 +43,16 @@ export async function deleteUser(userId, { reason, token } = {}) {
     method: 'DELETE',
     headers: buildHeaders(token),
     body: reason ? JSON.stringify({ reason }) : undefined,
+  });
+
+  return parseResponse(response);
+}
+
+export async function createUser(user, { token } = {}) {
+  const response = await fetch(`${API_PREFIX}/users`, {
+    method: 'POST',
+    headers: buildHeaders(token),
+    body: JSON.stringify(user),
   });
 
   return parseResponse(response);
