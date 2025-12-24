@@ -1,16 +1,11 @@
-import paramiko
-import socket
-import threading
 import re
-import time
 import uuid
 import base64
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
 from services.user_service import persist_domain_user
-from utils import get_logger, get_inventory_from_org_id
-from models import Inventory
+from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
 

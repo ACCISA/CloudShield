@@ -7,7 +7,7 @@ import sys
 import types
 import unittest.mock
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Mock redis before any imports
 _mock_redis_client = unittest.mock.MagicMock()

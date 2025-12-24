@@ -6,10 +6,8 @@ Tests all functions, classes, and edge cases including error paths.
 import pytest
 import sys
 import os
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 from enum import Enum
-import grpc
-from google.protobuf import descriptor_pool
 
 # Add the parent directory to the path so we can import tasks
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + "/..")
@@ -297,7 +295,7 @@ class TestGetServerNodes:
     def test_get_server_nodes_inventory_none(self, mock_get_inventory, mock_logger):
         """Test GetServerNodes when inventory is None."""
         mock_get_inventory.return_value = None
-        mock_logger_instance = MagicMock()
+        MagicMock()
 
         result = GetServerNodes("org-nonexistent")
 
