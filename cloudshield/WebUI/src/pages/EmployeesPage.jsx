@@ -178,6 +178,13 @@ export default function EmployeesPage() {
     setQuery(searchTerm.trim());
   };
 
+  const handleSearchKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSearch();
+    }
+  };
+
   const handleOpenCreate = () => {
     setCreateError('');
     setForm({ email: '', full_name: '', password: '', role: 'employee' });
@@ -337,6 +344,7 @@ export default function EmployeesPage() {
           size="small"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           placeholder="Search employees"
           variant="outlined"
           InputProps={{
