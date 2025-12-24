@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import AuthPage from './pages/AuthPage.jsx';
@@ -11,9 +11,11 @@ import SignUpPage from './pages/SignUpPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
-  // This is your app-level auth flag (UI login/signup flow),
-  // separate from the service bootstrap AuthContext.
-  const [isAuthed, setIsAuthed] = useState(false); // set true for dev if needed
+  // Initialize auth state based on presence of JWT in storage
+  const [isAuthed, setIsAuthed] = useState(() => {
+    return !!localStorage.getItem('jwt');
+  });
+
   const [isProvisioned, setIsProvisioned] = useState(() => {
     try {
       return localStorage.getItem('isProvisioned') === 'true';
@@ -24,29 +26,22 @@ function AppWithAuth() {
 
   const handleProvisioned = () => {
     setIsProvisioned(true);
-    try {
-      localStorage.setItem('isProvisioned', 'true');
-    } catch {}
+    localStorage.setItem('isProvisioned', 'true');
   };
 
-  // Called specifically after SIGNUP
-  const handleSignupSuccess = ({ token, user } = {}) => {
-    setIsAuthed(true);
-
-    if (token) {
-      try {
-        localStorage.setItem('jwt', token);
-      } catch {
-        // ignore storage error
-      }
+  /**
+   * Unified Handler for Login OR Signup Success
+   * Expects: { access_token: "...", ... } from API response
+   */
+  const handleAuthSuccess = (data) => {
+    if (data?.access_token) {
+      localStorage.setItem('jwt', data.access_token);
+      setIsAuthed(true);
     }
-
-    if (user?.org_id) {
-      try {
-        localStorage.setItem('org_id', user.org_id);
-      } catch {
-        // ignore
-      }
+    
+    // If the backend returns org_id or user info, store it safely
+    if (data?.user?.org_id) {
+        localStorage.setItem('org_id', data.user.org_id);
     }
   };
 
@@ -69,11 +64,11 @@ function AppWithAuth() {
         <Route
           path="/login"
           element={
-            <AuthPage
-              onLoginSuccess={() => {
-                setIsAuthed(true);
-              }}
-            />
+            isAuthed ? <Navigate to="/dashboard" replace /> : (
+              <AuthPage
+                onLoginSuccess={handleAuthSuccess}
+              />
+            )
           }
         />
 
@@ -81,13 +76,15 @@ function AppWithAuth() {
         <Route
           path="/signup"
           element={
-            <SignUpPage
-              onSignupSuccess={handleSignupSuccess}
-            />
+            isAuthed ? <Navigate to="/dashboard" replace /> : (
+              <SignUpPage
+                onSignupSuccess={handleAuthSuccess} 
+              />
+            )
           }
         />
 
-        {/* Provisioning route: visible when not provisioned; shows sidebar shell (no tabs) */}
+        {/* Provisioning route */}
         <Route
           path="/provisioning"
           element={
@@ -101,7 +98,7 @@ function AppWithAuth() {
           }
         />
 
-        {/* App routes (require both auth + provisioned) */}
+        {/* App routes */}
         <Route
           path="/dashboard"
           element={
@@ -129,7 +126,7 @@ function AppWithAuth() {
           }
         />
 
-        {/* default route */}
+        {/* Catch-all */}
         <Route
           path="*"
           element={
@@ -150,7 +147,6 @@ function AppWithAuth() {
 }
 
 export default function App() {
-  // Wrap everything in your AuthProvider for service/claims context
   return (
     <AuthProvider>
       <AppWithAuth />
