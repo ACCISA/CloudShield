@@ -7,7 +7,6 @@ import uuid
 import base64
 from rq import get_current_job
 from google.protobuf import empty_pb2
-from .forward import forward_tunnel
 
 from services.user_service import persist_domain_user
 from utils import get_logger, get_inventory_from_org_id
@@ -30,27 +29,6 @@ PRIVATE_KEYS_PATH = "/var/lib/cloudshield/terraform/generated"
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
-
-class SSHExecResult:
-    def __init__(self, stdin, stdout, stderr):
-        self.stdin = stdin
-        self.stdout = stdout
-        self.stderr = stderr
-
-def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_port, logger=None):
-    """
-    Create an SSH tunnel to forward comms via SSH transport.
-    """
-    if logger is None:
-        logger = _module_logger
-    
-    logger.info(f"SSH tunnel created {local_port}:{remote_host}:{remote_port}")
-    t = threading.Thread(
-            target=forward_tunnel,
-            args=(local_port, remote_host, target_port, transport),
-            daemon=True
-    )
-    t.start()
 
 def validate_username(username: str, logger=None):
     """
@@ -81,99 +59,6 @@ def validate_password(password:str, logger=None):
         logger.error("Password contains control characters; not allowed")
         return False
     return True
-
-class ExecSSHConfig:
-    
-    def __init__(self, inventory: Inventory):
-        self.inventory = inventory
-        self.org_id = inventory.org_id
-        self.openvpn_server_name = f"{inventory.org_id}_openvpn_server"
-        self.dc_name = f"{inventory.org_id}_samba"
-        self.vpn_ip = None
-        self.vpn_key = None
-        self.dc_priv_ip = None
-        self.dc_key = None
-        self.failed = False
-
-        self.populate_config()
-
-    def populate_config(self):
-        for asset in self.inventory.assets:
-            if asset.name == self.openvpn_server_name:
-                self.vpn_ip      = asset.public_ip
-                self.vpn_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
-                continue
-            if asset.name == self.dc_name:
-                self.dc_priv_ip = asset.private_ip
-                self.dc_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
-
-        if None in [self.vpn_ip, self.vpn_key, self.dc_priv_ip, self.dc_key]:
-            logger = _module_logger
-            logger.error("missing data from inventory assets")
-            logger.error(self.inventory)
-            self.failed = True
-
-def get_available_local_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('',0))
-    return s.getsockname()[1]
-
-def exec_ssh(org_id: str, command: str, logger=None):
-    if logger is None:
-        logger = _module_logger
-
-    if len(command) == 0:
-        return None
-
-    inventory = get_inventory_from_org_id(org_id)
-
-    if not inventory:
-        logger.error(f"No ITAM inventory found for org_id={org_id}")
-        return None
-
-    exec_ssh_config = ExecSSHConfig(inventory)
-
-    if exec_ssh_config.failed is True:
-        logger.error("Database does not contain the necessary data for task management") 
-        return None
-
-    jump_host       = exec_ssh_config.vpn_ip
-    dc_host         = exec_ssh_config.dc_priv_ip
-    dc_host_port    = 22
-    jump_key        = exec_ssh_config.vpn_key
-    local_port      = get_available_local_port()
-    target_port     = 22
-
-    
-    logger.info(f"Fetched VPN info (ipv4={jump_host}, key_filename={jump_key}")
-    # Connect to the openvpn server
-    jump_client = paramiko.SSHClient()
-    jump_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    jump_client.connect(jump_host, username="root", key_filename=jump_key)
-
-    transport = jump_client.get_transport()
-
-    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port)
-    
-    # Avoid a race condition so let the creation of the ssh tunnel complete
-    time.sleep(3)
-
-    dc_client = paramiko.SSHClient()
-    dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    dc_client.connect("127.0.0.1", port=local_port, username="root", key_filename=jump_key)
-
-    logger.info("Connected to dc through SSH tunnel")
-
-
-    stdin, stdout, stderr = dc_client.exec_command(command)
-    
-    if stdout is None and stderr is None:
-        logger.error("Failed to read output from command execution")
-        return None
-    stdout_str = stdout.read().decode().strip() if stdout is not None else None
-    stderr_str = stderr.read().decode().strip() if stderr is not None else None
-
-    return SSHExecResult(stdin, stdout_str, stderr_str)
 
 def dc_create_file_share(org_id: str, share_name: str):
     job = get_current_job()
@@ -408,8 +293,6 @@ def dc_add_user(org_id: str, username: str, password: str):
     logger.info("status: " + str(status))
     logger.info("result: " + str(result))
 
-    #result = exec_ssh(org_id, command, logger=logger)
-    
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
         persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")

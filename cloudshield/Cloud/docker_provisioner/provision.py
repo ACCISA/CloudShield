@@ -80,6 +80,11 @@ def setup_ssh_keys(server_logger, private_key_path):
 
 # MAIN
 def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
+
+    server_logger.info("count "+str(count))
+    server_logger.info("region "+str(region))
+    server_logger.info("gen_dir "+str(generated_dir))
+    server_logger.info("tmp_dir "+str(templates_dir))
     
     cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/"+str(org_id))
 
@@ -204,6 +209,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
 
 
 def get_target_dir():
+    # this function doesnt need implementation for docker provisioning
     pass
 
 def destroy_network_docker():

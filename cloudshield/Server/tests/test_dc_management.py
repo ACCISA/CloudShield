@@ -83,115 +83,6 @@ def test_validate_password_with_logger(caplog):
     assert "Password length must be between" in caplog.text
 
 
-def test_ssh_exec_result():
-    from tasks.dc_management import SSHExecResult
-    
-    result = SSHExecResult("stdin_data", "stdout_data", "stderr_data")
-    
-    assert result.stdin == "stdin_data"
-    assert result.stdout == "stdout_data"
-    assert result.stderr == "stderr_data"
-
-
-def test_forward_ssh_tunnel(monkeypatch, caplog):
-    import logging
-    from tasks.dc_management import forward_ssh_tunnel
-    
-    logger = logging.getLogger("test")
-    caplog.set_level(logging.INFO, logger="test")
-    
-    mock_transport = unittest.mock.MagicMock()
-    mock_thread = unittest.mock.MagicMock()
-    
-    def fake_thread(target, args, daemon):
-        mock_thread.target = target
-        mock_thread.args = args
-        mock_thread.daemon = daemon
-        return mock_thread
-    
-    import threading
-    monkeypatch.setattr(threading, "Thread", fake_thread)
-    
-    forward_ssh_tunnel(8080, "remote.host", 22, mock_transport, 3389, logger=logger)
-    
-    assert "SSH tunnel created" in caplog.text
-    assert mock_thread.start.called
-
-
-def test_get_available_local_port():
-    from tasks.dc_management import get_available_local_port
-    
-    port = get_available_local_port()
-    
-    assert isinstance(port, int)
-    assert port > 0
-    assert port < 65536
-
-
-def test_exec_ssh_config_populate():
-    from tasks.dc_management import ExecSSHConfig
-    from models import Inventory
-    
-    # Create mock assets
-    mock_vpn = SimpleNamespace(
-        name="test_org_openvpn_server",
-        public_ip="1.2.3.4",
-        priv_key_path="vpn_key"
-    )
-    
-    mock_dc = SimpleNamespace(
-        name="test_org_samba",
-        private_ip="10.0.0.5",
-        priv_key_path="dc_key"
-    )
-    
-    mock_inventory = unittest.mock.MagicMock(spec=Inventory)
-    mock_inventory.org_id = "test_org"
-    mock_inventory.assets = [mock_vpn, mock_dc]
-    
-    config = ExecSSHConfig(mock_inventory)
-    
-    assert config.vpn_ip == "1.2.3.4"
-    assert "vpn_key.pem" in config.vpn_key
-    assert config.dc_priv_ip == "10.0.0.5"
-    assert "dc_key.pem" in config.dc_key
-
-
-def test_exec_ssh_config_partial_assets():
-    from tasks.dc_management import ExecSSHConfig
-    from models import Inventory
-    
-    # Only VPN asset
-    mock_vpn = SimpleNamespace(
-        name="test_org_openvpn_server",
-        public_ip="1.2.3.4",
-        priv_key_path="vpn_key"
-    )
-    
-    mock_inventory = unittest.mock.MagicMock(spec=Inventory)
-    mock_inventory.org_id = "test_org"
-    mock_inventory.assets = [mock_vpn]
-    
-    config = ExecSSHConfig(mock_inventory)
-    
-    assert config.vpn_ip == "1.2.3.4"
-    assert config.dc_priv_ip is None
-    assert config.dc_key is None
-
-
-def test_exec_ssh_returns_none_when_no_inventory(monkeypatch):
-    from tasks.dc_management import exec_ssh
-    
-    monkeypatch.setattr(
-        "tasks.dc_management.get_inventory_from_org_id",
-        lambda org_id: None
-    )
-    
-    result = exec_ssh("nonexistent_org", "echo test")
-    
-    assert result is None
-
-
 def test_dc_add_user_invalid_username(monkeypatch):
     from tasks.dc_management import dc_add_user
     
@@ -260,13 +151,6 @@ def test_dc_add_user_without_job(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
     
-    # Mock exec_ssh
-    mock_result = SimpleNamespace(stdout="User created", stderr="")
-    monkeypatch.setattr(
-        "tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
-    )
-    
     # Mock persist_domain_user
     mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
     monkeypatch.setattr(
@@ -301,7 +185,6 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         mock_logger
     )
     
-    # Mock exec_ssh to return success (no stderr)
     SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
@@ -354,16 +237,6 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     monkeypatch.setattr(
         "tasks.dc_management.get_logger",
         lambda name, job_id=None: mock_logger
-    )
-    
-    # Mock exec_ssh to return error (stderr present)
-    mock_result = SimpleNamespace(
-        stdout="",
-        stderr="ERROR: command failed"
-    )
-    monkeypatch.setattr(
-        "tasks.dc_management.exec_ssh",
-        lambda org_id, command, logger: mock_result
     )
     
     # Mock persist_domain_user

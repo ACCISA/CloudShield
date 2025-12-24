@@ -69,6 +69,9 @@ def GetServerNodes(org_id):
 def GetServerNode(org_id, node_type):
 
     nodes = GetServerNodes(org_id)
+    
+    if nodes is None:
+        return None
 
     for node in nodes.items():
         if node.node_type == node_type:
