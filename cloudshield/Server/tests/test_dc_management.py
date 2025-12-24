@@ -251,3 +251,1002 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     
     # Assert persist_domain_user was not called
     mock_persist.assert_not_called()
+
+
+def test_dc_create_file_share_success_no_job(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_create_file_share
+    
+    # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_create_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_create_file_share_unknown(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_create_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_create_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "UNKNOWN"
+
+
+
+def test_dc_create_file_share_success(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_create_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_create_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_create_file_share_failed(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_create_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_create_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "FAILED"
+
+def test_dc_delete_file_share_success(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_delete_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_delete_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "SUCCESS"
+
+
+
+def test_dc_delete_file_share_failed(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_delete_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_delete_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "FAILED"
+
+
+def test_dc_delete_file_share_unknown_no_job(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_delete_file_share
+    
+    # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_delete_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_delete_file_share_unknown(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_delete_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_delete_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_delete_file_share_unknown(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_delete_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_delete_file_share("test_org", "data")
+    print(result)
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_restart_samba_service_unknown(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_restart_samba_service
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.RestartSambaServiceDataAck(status=100).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_restart_samba_service("test_org")
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "UNKNOWN"
+
+def test_dc_restart_samba_service_failed(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_restart_samba_service, dc_delete_file_share
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_restart_samba_service("test_org")
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "FAILED"
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.DeleteSambaFileShareDataAck(status=infra_pb2.SHARE_NOT_FOUND).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    result = dc_delete_file_share("test_org", "share")
+
+    assert result["status"] == "SHARE_NOT_FOUND"
+
+
+def test_dc_restart_samba_service_success(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_restart_samba_service
+    
+    # Mock job
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_restart_samba_service("test_org")
+
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "SUCCESS"
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        return None
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_restart_samba_service("test_org")
+
+    assert result["status"] == "FAILED"
+    assert result["message"] == "Failed to proxy rpc request"
+
+
+def test_dc_restart_samba_service_success_no_job(monkeypatch):
+    """Test that dc_add_user persists user data when command succeeds"""
+    from tasks.dc_management import dc_restart_samba_service
+    
+    # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    
+    # Mock persist_domain_user
+    # TODO mock persist_file_share
+    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
+    monkeypatch.setattr(
+        "tasks.dc_management.persist_domain_user",
+        mock_persist
+    )
+    
+    # Execute
+    result = dc_restart_samba_service("test_org")
+
+    # Assert persist_domain_user was called with correct args
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_set_password(monkeypatch):
+    # test all possible rpc ack outcomes
+    from tasks.dc_management import dc_set_password
+
+     # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] == "SUCCESS"
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+ 
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.USER_NOT_FOUND).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] ==  "USER_NOT_FOUND"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.PASSWORD_REQ_FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] ==  "PASSWORD_REQ_FAILED"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        return None
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] ==  "FAILED"
+    assert result["message"] == "Failed to proxy rpc request"
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.UNKNOWN).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] ==  "UNKNOWN"
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+
+    result = dc_set_password("test_org", "user", "password")
+
+    assert result["status"] ==  "FAILED"
+
+    
+
+def test_dc_user_list(monkeypatch):
+    # test all possible rpc ack outcomes
+    from tasks.dc_management import dc_user_list
+
+     # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_user_list("test_org")
+
+    assert result["status"] == "SUCCESS"
+
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "test_job"
+    mock_job.meta = {}
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: mock_job
+    )
+ 
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_user_list("test_org")
+
+    assert result["status"] == "FAILED"
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        return None
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_user_list("test_org")
+
+    assert result["status"] == "FAILED"
+
+def test_dc_remove_user(monkeypatch):
+    # test all possible rpc ack outcomes
+    from tasks.dc_management import dc_remove_user
+
+     # Mock job
+    monkeypatch.setattr(
+        "tasks.dc_management.get_current_job",
+        lambda: None
+    )
+    
+    # Mock logger
+
+    def mock_logger(name, job_id):
+        logger = logging.getLogger()
+        return logger
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        mock_logger
+    )
+    
+    SimpleNamespace(stdout="User created successfully", stderr="")
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_remove_user("test_org", "user")
+
+    assert result["status"] == "SUCCESS"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.FAILED).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_remove_user("test_org", "user")
+
+    assert result["status"] == "FAILED"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.UNKNOWN).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_remove_user("test_org", "user")
+
+    assert result["status"] == "UNKNOWN"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        body = infra_pb2.GetUserListDataAck(status=infra_pb2.USER_NOT_FOUND).SerializeToString()
+
+        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
+        return response
+
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_remove_user("test_org", "user")
+
+    assert result["status"] == "USER_NOT_FOUND"
+
+
+    def mock_proxy_rpc_request(nodes, method_name, request):
+        return None
+    monkeypatch.setattr(
+        "tasks.dc_management.ProxyRPCRequest",
+        mock_proxy_rpc_request
+    )
+    
+    result = dc_remove_user("test_org", "user")
+
+    assert result["status"] == "FAILED"
+    assert result["message"] == "Failed to proxy rpc request"

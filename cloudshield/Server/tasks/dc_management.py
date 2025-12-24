@@ -84,9 +84,10 @@ def dc_create_file_share(org_id: str, share_name: str):
 
     if status == infra_pb2.FAILED:
         logger.info("Failed to create new samba file share")
-        return {"status":"SUCCESS","message":"Failed to create new samba file share"}
+        return {"status":"FAILED","message":"Failed to create new samba file share"}
 
-    return {"status":"FAILED","message":"Failed to create new samba file share"}
+    logger.error("Failed to create file share, uknown reason")
+    return {"status":"UNKNOWN","message":"Failed to create new samba file share, reason unknown"}
 
 
 def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
@@ -120,9 +121,9 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
         return {"status":"SHARE_NOT_FOUND", "message":"Failed to find samba file share"}
     if status == infra_pb2.FAILED:
         logger.info("Failed to delete new samba file share")
-        return {"status":"SUCCESS","message":"Failed to delete new samba file share"}
+        return {"status":"FAILED","message":"Failed to delete new samba file share"}
 
-    return {"status":"FAILED","message":"Failed to create new samba file share"}
+    return {"status":"UNKNOWN","message":"Failed to delete new samba file share, unknown reason"}
 
 def dc_restart_samba_service(org_id: str):
     job = get_current_job()
@@ -153,8 +154,11 @@ def dc_restart_samba_service(org_id: str):
         logger.info("Successfully restart samba-ad-dc service")
         return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"}
     if status == infra_pb2.FAILED:
-        logger.er("Failed to restart samba-ad-dc service")
+        logger.error("Failed to restart samba-ad-dc service")
         return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"}
+
+    logger.error("Failed to restart samba-ad-dc service, for unknown reason")
+    return {"status":"UNKNOWN","message":"Failed to restart samba-ad-dc service, for unknown reason"}
 
 def dc_set_password(org_id: str, username: str, new_password: str):
     job = get_current_job()
@@ -194,13 +198,13 @@ def dc_set_password(org_id: str, username: str, new_password: str):
     if status == infra_pb2.USER_NOT_FOUND:
         logger.error(f"User not found (user={username}")
         return {"status":"USER_NOT_FOUND", "message":"User not found"}
-    
-    if status == infra_pb2.UNKNOWN:
-        logger.error("Failed to set new password for unknown reasons")
-        return {"status":"UNKNOWN", "message":"Failed to set new password for unknown reasons"}
 
-    logger.error("Failed to set user password")
-    return {"status":"FAILED", "message":"Failed to set user password"}
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to set password")
+        return {"status":"FAILED", "message":"Failed to set password"}
+    
+    logger.error("Failed to set user password, unknwon reason")
+    return {"status":"UNKNOWN", "message":"Failed to set user password, unknown"}
 
 
 
