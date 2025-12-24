@@ -275,7 +275,7 @@ export default function EmployeesPage() {
         email: payload.email,
         full_name: payload.full_name,
         role: payload.role,
-        status: 'active',
+        status: result?.status ?? result?.user?.status ?? 'active',
       };
 
       setUsers((prev) => [newUser, ...prev]);
