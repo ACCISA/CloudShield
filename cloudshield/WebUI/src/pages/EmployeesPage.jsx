@@ -240,14 +240,23 @@ export default function EmployeesPage() {
       return;
     }
 
+    const email = form.email.trim().toLowerCase();
+    const fullName = form.full_name.trim();
+    const password = form.password.trim();
+
+    if (!email || !fullName || !password) {
+      setCreateError('Full name, email, and password are required.');
+      return;
+    }
+
     setIsCreating(true);
     setCreateError('');
 
     try {
       const payload = {
-        email: form.email.trim().toLowerCase(),
-        full_name: form.full_name.trim(),
-        password: form.password,
+        email,
+        full_name: fullName,
+        password,
         role: form.role,
         org_id: currentUser?.org_id || localStorage.getItem('org_id'),
       };

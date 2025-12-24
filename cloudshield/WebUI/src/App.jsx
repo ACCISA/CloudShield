@@ -13,6 +13,13 @@ import { AuthProvider } from './context/AuthContext.jsx';
 function AppWithAuth() {
   const devBypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
 
+  useEffect(() => {
+    if (devBypass) {
+      // Warn when auth/provisioning is bypassed in dev mode
+      console.warn('[App] Auth bypass is active (VITE_BYPASS_AUTH=true).');
+    }
+  }, [devBypass]);
+
   // Initialize auth state based on presence of JWT in storage
   const [isAuthed, setIsAuthed] = useState(() => {
     return devBypass || !!localStorage.getItem('jwt');

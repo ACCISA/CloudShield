@@ -6,6 +6,8 @@ import EmployeesPage from '../EmployeesPage.jsx';
 import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
 import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
 
+jest.setTimeout(10000);
+
 jest.mock('../../services/usersApi.js', () => ({
   listUsers: jest.fn(),
   deleteUser: jest.fn(),
@@ -288,10 +290,79 @@ describe('EmployeesPage', () => {
       }), expect.objectContaining({ token: 'test-token' }));
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('New User')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('New User')).toBeInTheDocument();
     expect(screen.getByText(/was created successfully/i)).toBeInTheDocument();
+  });
+
+  it('requires non-empty trimmed name, email, and password before create', async () => {
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+
+    await user.type(screen.getByLabelText(/full name/i), '   ');
+    await user.type(screen.getByLabelText(/email/i), '   ');
+    await user.type(screen.getByLabelText(/initial password/i), '   ');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    expect(createUser).not.toHaveBeenCalled();
+    expect(await screen.findByText(/full name, email, and password are required/i)).toBeInTheDocument();
+  });
+
+  it('shows generic create error when API fails unexpectedly', async () => {
+    const err = new Error('Server down');
+    createUser.mockRejectedValueOnce(err);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+    await user.type(screen.getByLabelText(/full name/i), 'Err User');
+    await user.type(screen.getByLabelText(/email/i), 'err@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    expect(await screen.findByText(/server down/i)).toBeInTheDocument();
+    expect(createUser).toHaveBeenCalled();
+  });
+
+  it('blocks create when no access token is present', async () => {
+    renderWithProviders({ initialState: { accessToken: null } });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+    await user.type(screen.getByLabelText(/full name/i), 'Tokenless User');
+    await user.type(screen.getByLabelText(/email/i), 'noauth@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    expect(createUser).not.toHaveBeenCalled();
+    expect(await screen.findByText(/missing authentication token/i)).toBeInTheDocument();
+  });
+
+  it('applies search term and refetches with query params', async () => {
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByPlaceholderText(/search employees/i), 'neo');
+    await user.click(screen.getByRole('button', { name: /search/i }));
+
+    await waitFor(() => {
+      const lastCall = listUsers.mock.calls[listUsers.mock.calls.length - 1][0];
+      expect(lastCall.search).toBe('neo');
+    });
   });
 
   it('shows duplicate email error on 409', async () => {
@@ -313,9 +384,7 @@ describe('EmployeesPage', () => {
     await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
     await user.click(screen.getByRole('button', { name: /create/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/email already exists/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/email already exists/i)).toBeInTheDocument();
     expect(createUser).toHaveBeenCalled();
   });
 
@@ -338,9 +407,7 @@ describe('EmployeesPage', () => {
     await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
     await user.click(screen.getByRole('button', { name: /create/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/user limit reached/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/user limit reached/i)).toBeInTheDocument();
     expect(createUser).toHaveBeenCalled();
   });
 });

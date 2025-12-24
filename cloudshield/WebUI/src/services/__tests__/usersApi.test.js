@@ -131,4 +131,37 @@ describe('usersApi', () => {
 
     expect(result).toEqual({ user_id: 'user-123' });
   });
+
+  it('throws when create user returns error payload', async () => {
+    const payload = { email: 'a@example.com', full_name: 'A User', password: 'Secret12!', role: 'employee' };
+    const errorPayload = { error: 'User limit reached' };
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      text: () => Promise.resolve(JSON.stringify(errorPayload)),
+    });
+
+    await expect(createUser(payload, { token: 'tok123' })).rejects.toMatchObject({
+      message: 'User limit reached',
+      status: 403,
+      payload: errorPayload,
+    });
+  });
+
+  it('throws default message when create user fails without body', async () => {
+    const payload = { email: 'a@example.com', full_name: 'A User', password: 'Secret12!', role: 'employee' };
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(createUser(payload)).rejects.toMatchObject({
+      message: 'Request failed with 500',
+      status: 500,
+      payload: null,
+    });
+  });
 });
