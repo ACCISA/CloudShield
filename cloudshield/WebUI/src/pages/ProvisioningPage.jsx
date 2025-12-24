@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, Chip, LinearProgress, Divider, TextField } from '@mui/material';
+import { Box, Typography, Button, Chip, LinearProgress, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ProvisioningControls from '../components/provisioning/ProvisioningControls.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -30,10 +30,9 @@ export default function ProvisioningPage({ onProvisioned }) {
   });
 
   const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState('idle'); // idle | starting | running | succeeded | failed
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(null);
-  const [result, setResult] = useState(null);
   const pollTimerRef = useRef(null);
   const navigate = useNavigate();
 
@@ -93,7 +92,7 @@ export default function ProvisioningPage({ onProvisioned }) {
   }
 
   async function apiGetStatus(jid) {
-    const res = await fetch(`http://localhost:5050/status/${encodeURIComponent(jid)}`);
+    const res = await fetch(`/status/${encodeURIComponent(jid)}`);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(text || `Failed to fetch status (${res.status})`);
@@ -101,9 +100,6 @@ export default function ProvisioningPage({ onProvisioned }) {
     const json = await res.json().catch(() => ({}));
 
     let inferredStatus = json.status;
-    if (inferredStatus === 'finished') inferredStatus = 'succeeded';
-    if (inferredStatus === 'started' || inferredStatus === 'queued' || inferredStatus === 'deferred') inferredStatus = 'running';
-
     let inferredMessage = json.message;
     let inferredProgress = json.progress;
 
@@ -123,7 +119,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       inferredMessage = inferredProgress;
     }
 
-    return { status: inferredStatus, message: inferredMessage, progress: inferredProgress, result: json.result };
+    return { status: inferredStatus, message: inferredMessage, progress: inferredProgress };
   }
 
   const startPolling = (jid) => {
@@ -133,7 +129,6 @@ export default function ProvisioningPage({ onProvisioned }) {
         const s = await apiGetStatus(jid);
         if (typeof s.progress === 'number' || typeof s.progress === 'string') setProgress(s.progress);
         if (s.message) setMessage(s.message);
-        if (s.result) setResult(s.result);
 
         if (s.status === 'succeeded' || s.status === 'failed') {
           setStatus(s.status);
@@ -145,7 +140,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       } catch (err) {
         setMessage(err?.message || 'Polling error…');
       }
-    }, 5000);
+    }, 2000);
   };
 
   const handleStart = async () => {
@@ -179,7 +174,6 @@ export default function ProvisioningPage({ onProvisioned }) {
     setMessage('');
     setProgress(null);
     setJobId(null);
-    setResult(null);
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -192,15 +186,6 @@ export default function ProvisioningPage({ onProvisioned }) {
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
         Org ID: <strong>{orgId || 'Unknown'}</strong>
       </Typography>
-
-      <TextField
-        label="Organization ID"
-        variant="outlined"
-        size="small"
-        value={orgId}
-        onChange={(e) => setOrgId(e.target.value)}
-        sx={{ maxWidth: 300 }}
-      />
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
 
