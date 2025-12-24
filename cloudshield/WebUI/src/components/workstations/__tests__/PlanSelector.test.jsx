@@ -181,7 +181,7 @@ describe('PlanSelector', () => {
   });
 
   it('highlights selected plan visually', () => {
-    const { container } = render(
+    render(
       <PlanSelector
         selectedPlan="PRO"
         onPlanSelect={mockOnPlanSelect}

@@ -15,11 +15,22 @@ from flask_cors import CORS
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
-from utils import get_logger  # type: ignore
-from routes import api_bp  # type: ignore
-from routes.auth import auth_bp  # type: ignore
-from routes.users import users_bp  # type: ignore
-from routes.users_read import users_read_bp  # type: ignore
+# Prefer package imports but keep fallback for test expectations
+try:
+    from cloudshield.Server.utils import get_logger  # type: ignore[import]
+except ImportError:  # pragma: no cover - legacy path
+    from utils import get_logger  # type: ignore
+
+try:
+    from cloudshield.Server.routes.api import api_bp  # type: ignore[import]
+    from cloudshield.Server.routes.auth import auth_bp  # type: ignore[import]
+    from cloudshield.Server.routes.users import users_bp  # type: ignore[import]
+    from cloudshield.Server.routes.users_read import users_read_bp  # type: ignore[import]
+except ImportError:  # pragma: no cover - legacy path
+    from routes.api import api_bp  # type: ignore
+    from routes.auth import auth_bp  # type: ignore
+    from routes.users import users_bp  # type: ignore
+    from routes.users_read import users_read_bp  # type: ignore
 
 
 def _coerce_exception_class(candidate, name: str):

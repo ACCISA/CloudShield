@@ -7,7 +7,6 @@
  * Props:
  *   - open: boolean to control dialog visibility
  *   - onClose: callback when dialog should close
- *   - title: dialog title text
  *   - breadcrumb: breadcrumb path items
  *   - children: dialog content
  *   - actions: dialog action buttons
@@ -46,7 +45,7 @@ const darkDialogPaper = {
  * @param {React.ReactNode} props.actions - Dialog action buttons
  * @returns {JSX.Element} Styled dialog component
  */
-export default function WorkstationDialog({ open, onClose, title, breadcrumb = ['Workstations'], children, actions }) {
+export default function WorkstationDialog({ open, onClose, breadcrumb = ['Workstations'], children, actions }) {
   return (
     <Dialog open={open} onClose={onClose} PaperProps={darkDialogPaper}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>

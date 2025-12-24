@@ -6,26 +6,16 @@
  *   GET   /status/<job_id>          -> { ... }     (progress / message / result)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, Button, Chip, LinearProgress, Divider, TextField } from '@mui/material';
 import ProvisioningControls from '../components/provisioning/ProvisioningControls.jsx';
+import { useJobPolling } from '../hooks/useJobPolling.js';
 
 export default function AddUserPage() {
   const [orgId, setOrgId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('');
-  const [progress, setProgress] = useState(null);
-  const [result, setResult] = useState(null);
-  const pollTimerRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, []);
+  const { status, message, progress, result, jobId, start, reset } = useJobPolling();
 
   async function apiStartAddUser() {
     const res = await fetch('http://localhost:5050/task/dc/add_user', {
@@ -77,55 +67,7 @@ export default function AddUserPage() {
   }
 
   const handleStart = async () => {
-    try {
-      setStatus('starting');
-      setMessage('');
-      setProgress(null);
-      setJobId(null);
-      setResult(null);
-
-      const jid = await apiStartAddUser();
-      setJobId(jid);
-      setStatus('running');
-      startPolling(jid);
-    } catch (e) {
-      setStatus('failed');
-      setMessage(e?.message || 'Failed to start add_user.');
-    }
-  };
-
-  const startPolling = (jid) => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(async () => {
-      try {
-        const s = await apiGetStatus(jid);
-        if (typeof s.progress === 'number' || typeof s.progress === 'string') setProgress(s.progress);
-        if (s.message) setMessage(s.message);
-        if (s.result) setResult(s.result);
-
-        if (s.status === 'succeeded' || s.status === 'failed') {
-          setStatus(s.status);
-          clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        } else {
-          setStatus('running');
-        }
-      } catch (err) {
-        setMessage(err?.message || 'Polling error…');
-      }
-    }, 5000);
-  };
-
-  const reset = () => {
-    setStatus('idle');
-    setMessage('');
-    setProgress(null);
-    setJobId(null);
-    setResult(null);
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
+    await start({ startFn: apiStartAddUser, statusFn: apiGetStatus });
   };
 
   return (

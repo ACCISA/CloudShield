@@ -26,6 +26,7 @@ export default function PasswordField({
   label = 'Password',
   value,
   onChange,
+  onKeyDown,
 }) {
   // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
@@ -82,6 +83,7 @@ export default function PasswordField({
         type={show ? 'text' : 'password'}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         sx={{
           width: '100%',
           backgroundColor: '#161616',

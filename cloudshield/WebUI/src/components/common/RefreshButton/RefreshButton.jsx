@@ -1,95 +1,84 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { CircularProgress, IconButton, Tooltip } from "@mui/material";
 import RefreshIcon from "../../../assets/RefreshIcon";
 
-const styles = {
-  button: {
-    width: "48px",
-    height: "48px",
-    padding: "0",
-    backgroundColor: "transparent",
-    color: "#fff",
-    border: "none",
-    borderRadius: "80px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.2s ease",
-  },
-  buttonHovered: {
-    backgroundColor: "#141414",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-  buttonLoading: {
-    cursor: "not-allowed",
-  },
-  spinner: {
-    width: "16px",
-    height: "16px",
-    border: "2px solid rgba(255,255,255,0.3)",
-    borderTop: "2px solid #fff",
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
-  },
+const sizeMap = {
+  small: 44,
+  medium: 44,
+  large: 48,
 };
 
-export default function RefreshButton({ onClick, disabled = false }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+const spinnerSizeMap = {
+  small: 20,
+  medium: 20,
+  large: 24,
+};
 
-  const handleClick = async () => {
-    if (disabled || isLoading) return;
+export default function RefreshButton({
+  onClick,
+  disabled = false,
+  loading = false,
+  size = "medium",
+  tooltip = "Refresh",
+  sx = {},
+}) {
+  const buttonSize = sizeMap[size] || sizeMap.medium;
+  const spinnerSize = spinnerSizeMap[size] || spinnerSizeMap.medium;
 
-    setIsLoading(true);
-    try {
-      if (onClick) {
-        await onClick();
-      }
-    } finally {
-      setIsLoading(false);
+  const content = useMemo(() => {
+    if (loading) {
+      return <CircularProgress size={spinnerSize} />;
     }
-  };
+    return (
+      <RefreshIcon
+        width={20}
+        height={20}
+        color="#fff"
+        data-testid="RefreshOutlinedIcon"
+      />
+    );
+  }, [loading, spinnerSize]);
 
-  const getButtonStyle = () => {
-    let style = { ...styles.button };
-    if (isHovered && !disabled && !isLoading) {
-      style = { ...style, ...styles.buttonHovered };
-    }
-    if (disabled) {
-      style = { ...style, ...styles.buttonDisabled };
-    }
-    if (isLoading) {
-      style = { ...style, ...styles.buttonLoading };
-    }
-    return style;
-  };
+  const button = (
+    <IconButton
+      className="MuiIconButton-root"
+      onClick={async () => {
+        if (disabled || loading) return;
+        if (onClick) {
+          await onClick();
+        }
+      }}
+      disabled={disabled || loading}
+      sx={{
+        width: `${buttonSize}px`,
+        height: `${buttonSize}px`,
+        borderRadius: "24px",
+        backgroundColor: "transparent",
+        color: "#fff",
+        transition: "background-color 0.2s ease",
+        "&:hover": {
+          backgroundColor: disabled || loading ? "transparent" : "#141414",
+        },
+        ...sx,
+      }}
+    >
+      {loading ? (
+        content
+      ) : (
+        <span data-testid="RefreshOutlinedIcon">{content}</span>
+      )}
+    </IconButton>
+  );
 
-  return (
-    <>
-      <button
-        style={getButtonStyle()}
-        onClick={handleClick}
-        disabled={disabled || isLoading}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {isLoading ? (
-          <div style={styles.spinner} />
-        ) : (
-          <RefreshIcon width={20} height={20} color="#fff" />
-        )}
-      </button>
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-    </>
+  if (loading || tooltip === "") {
+    return button;
+  }
+
+  return tooltip ? (
+    <Tooltip title={tooltip} disableHoverListener={false}>
+      <span>{button}</span>
+    </Tooltip>
+  ) : (
+    button
   );
 }

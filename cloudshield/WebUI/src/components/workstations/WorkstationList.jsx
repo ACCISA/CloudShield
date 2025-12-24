@@ -146,7 +146,10 @@ export default function WorkstationList({
   ].filter(Boolean);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+    <Box
+      sx={{ display: "flex", flexDirection: "column", gap: "14px" }}
+      data-testid="workstation-list"
+    >
       {rows.map((r, idx) => (
         <Box key={r.id}>
           {/* Row */}
@@ -238,6 +241,7 @@ export default function WorkstationList({
             {/* edit */}
             <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
               <EditButton
+                ariaLabel="edit workstation"
                 menuItems={[
                   {
                     icon: <EditIcon width={15} height={16} color="#1a1a1a" />,

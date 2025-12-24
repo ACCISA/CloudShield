@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import EditIcon from "../../../assets/EditIcon";
 
-export default function EditButton({ menuItems = [], disabled = false }) {
+export default function EditButton({ menuItems = [], disabled = false, ariaLabel = "edit" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   const buttonRef = useRef(null);
 
   const calculatePosition = () => {
@@ -35,6 +36,10 @@ export default function EditButton({ menuItems = [], disabled = false }) {
   }, [isOpen]);
 
   const handleButtonClick = () => {
+    if (disabled) return;
+    if (menuItems[0]?.onClick) {
+      menuItems[0].onClick();
+    }
     setIsOpen(!isOpen);
   };
 
@@ -49,23 +54,31 @@ export default function EditButton({ menuItems = [], disabled = false }) {
     setIsOpen(false);
   };
 
+  const triggerAriaLabel = ariaLabel || (menuItems[0]?.label ?? "edit");
+
+  const triggerStyle = useMemo(
+    () => ({
+      padding: "0",
+      backgroundColor: "transparent",
+      color: "#fff",
+      border: "none",
+      cursor: disabled ? "not-allowed" : "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      opacity: disabled ? 0.5 : 1,
+    }),
+    [disabled]
+  );
+
   return (
     <>
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
         disabled={disabled}
-        style={{
-          padding: "0",
-          backgroundColor: "transparent",
-          color: "#fff",
-          border: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: disabled ? 0.5 : 1,
-        }}
+        style={triggerStyle}
+        aria-label={triggerAriaLabel}
       >
         <EditIcon width={15} height={16} color="#BCBCBC" />
       </button>
@@ -113,13 +126,10 @@ export default function EditButton({ menuItems = [], disabled = false }) {
                     cursor: "pointer",
                     borderRadius: "10px",
                     transition: "background-color 0.2s ease",
+                    backgroundColor: hoveredIndex === index ? "#f5f5f5" : "transparent",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f5f5f5";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                 >
                   <div
                     style={{

@@ -42,7 +42,6 @@ function NavItem({
   collapsed,
   icon,
   label,
-  to,
   active,
   count,
   countColor,

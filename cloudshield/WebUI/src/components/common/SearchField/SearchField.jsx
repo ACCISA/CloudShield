@@ -14,10 +14,12 @@
  *   - Fully styled to match application theme
  */
 import React, { useState, useEffect, useCallback } from "react";
+import { OutlinedInput, InputAdornment } from "@mui/material";
 
 // Search icon SVG component
 const SearchIcon = () => (
   <svg
+    data-testid="SearchOutlinedIcon"
     width="18"
     height="18"
     viewBox="0 0 24 24"
@@ -26,7 +28,7 @@ const SearchIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    style={{ color: "rgba(255,255,255,0.5)", marginRight: "8px" }}
+    style={{ color: "rgba(255,255,255,0.5)" }}
   >
     <circle cx="11" cy="11" r="8" />
     <path d="m21 21-4.35-4.35" />
@@ -47,19 +49,17 @@ const SearchIcon = () => (
  * @returns {JSX.Element} Styled search input field
  */
 export default function SearchField({
-  value,
+  value = "",
   onChange,
   placeholder = "Search...",
   width = "360px",
   fullWidthMobile = true,
   debounceMs = 0,
   showIcon = true,
-  style = {},
+  sx = {},
+  onKeyDown,
 }) {
   const [localValue, setLocalValue] = useState(value);
-  const [isFocused, setIsFocused] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
   // Sync local value with prop value
   useEffect(() => {
     setLocalValue(value);
@@ -67,7 +67,7 @@ export default function SearchField({
 
   // Debounced onChange handler
   useEffect(() => {
-    if (debounceMs === 0) return;
+    if (debounceMs === 0 || !onChange) return;
 
     const timer = setTimeout(() => {
       if (localValue !== value) {
@@ -85,7 +85,7 @@ export default function SearchField({
       setLocalValue(newValue);
 
       // If no debounce, call onChange immediately
-      if (debounceMs === 0) {
+      if (debounceMs === 0 && onChange) {
         onChange(newValue);
       }
     },
@@ -93,7 +93,7 @@ export default function SearchField({
   );
 
   // Check if mobile (simplified without MUI)
-  const isMobile = window.innerWidth < 600;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 600;
 
   // Calculate responsive width
   const getWidth = () => {
@@ -103,53 +103,54 @@ export default function SearchField({
     return width;
   };
 
-  // Dynamic styles based on state
-  const containerStyle = {
-    display: "flex",
-    alignItems: "center",
+  const baseStyles = {
     width: getWidth(),
-    backgroundColor: isFocused ? "#242424" : isHovered ? "#242424" : "#1a1a1a",
-    borderRadius: "8px",
-    border: isFocused
-      ? "1px solid rgba(255,255,255,0.2)"
-      : isHovered
-      ? "1px solid rgba(255,255,255,0.2)"
-      : "1px solid rgba(255,255,255,0.1)",
-    padding: "12px 24px",
     height: "48px",
-    boxSizing: "border-box",
-    transition: "all 0.2s ease",
+    backgroundColor: "#1a1a1a",
+    borderRadius: "8px",
+    borderColor: "rgba(255,255,255,0.1)",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-    ...style,
-  };
-
-  const inputStyle = {
-    flex: 1,
-    backgroundColor: "transparent",
-    border: "none",
-    outline: "none",
+    transition: "all 0.2s ease",
     color: "#fff",
     fontSize: "16px",
-    fontWeight: "500",
-    fontFamily: "inherit",
+    fontWeight: 500,
+    px: 3,
+    py: 0,
+    display: "flex",
+    alignItems: "center",
+    "&:hover": {
+      backgroundColor: "#242424",
+      borderColor: "rgba(255,255,255,0.2)",
+    },
+    "&.Mui-focused": {
+      backgroundColor: "#242424",
+      borderColor: "rgba(255,255,255,0.2)",
+    },
   };
 
+  const spinnerProps = {}; // placeholder if we ever need inlined spinner props
+
   return (
-    <div
-      style={containerStyle}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {showIcon && <SearchIcon />}
-      <input
-        type="text"
-        value={debounceMs === 0 ? value : localValue}
-        onChange={handleChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder={placeholder}
-        style={inputStyle}
-      />
-    </div>
+    <OutlinedInput
+      className="MuiOutlinedInput-root"
+      value={debounceMs === 0 ? value ?? "" : localValue ?? ""}
+      onChange={handleChange}
+      placeholder={placeholder}
+      startAdornment={
+        showIcon ? (
+          <InputAdornment position="start" sx={{ mr: 1 }}>
+            <SearchIcon />
+          </InputAdornment>
+        ) : null
+      }
+      onKeyDown={onKeyDown}
+      inputProps={{ "aria-label": placeholder }}
+      sx={{
+        ...baseStyles,
+        "& fieldset": { border: "none" },
+        ...sx,
+      }}
+      {...spinnerProps}
+    />
   );
 }

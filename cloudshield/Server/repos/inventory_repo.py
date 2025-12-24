@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from models import Inventory, EC2Instance
+from cloudshield.Server.models import Inventory, EC2Instance
 
 def insert_inventory(*, db, org_id: str, assets: List[EC2Instance]):
     """

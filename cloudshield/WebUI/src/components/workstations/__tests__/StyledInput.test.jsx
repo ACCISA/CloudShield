@@ -87,7 +87,7 @@ describe('StyledInput', () => {
   });
 
   it('renders label above input field', () => {
-    const { container } = render(
+    render(
       <StyledInput
         label="Username"
         value="test"

@@ -79,9 +79,9 @@ export default function WorkstationsPage() {
 
   // Layout state
   const [layout, setLayout] = useState("list"); // 'cards', 'list', or 'icons'
-  const [showUsersCol, setShowUsersCol] = useState(true);
-  const [showCurrentCol, setShowCurrentCol] = useState(true);
-  const [showLastUsedCol, setShowLastUsedCol] = useState(true);
+  const showUsersCol = true;
+  const showCurrentCol = true;
+  const showLastUsedCol = true;
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState({
@@ -178,20 +178,6 @@ export default function WorkstationsPage() {
   };
 
   // shared button styles (to match your mock)
-  const pillBtn = {
-    color: "#fff",
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: "12px",
-    textTransform: "none",
-    px: 1.5,
-    height: 40,
-    "& .MuiButton-startIcon": { mr: 1 },
-    "&:hover": {
-      borderColor: "rgba(255,255,255,0.35)",
-      background: "rgba(255,255,255,0.07)",
-    },
-  };
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       {/* Toolbar */}

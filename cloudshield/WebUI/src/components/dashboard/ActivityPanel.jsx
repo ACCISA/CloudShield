@@ -23,6 +23,39 @@ import SearchField from "../common/SearchField/SearchField";
 import RefreshButton from "../common/RefreshButton/RefreshButton";
 import { searchWithRelevance } from "../../utils/searchUtils";
 
+const MOCK_ACTIVITIES = [
+  {
+    id: 1,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 2,
+    user: "Noah Burns",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 3,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 4,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 5,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+];
+
 /**
  * Displays a searchable list of recent user activities.
  * @param {Function} fetchActivities - Optional async function to fetch activities from backend
@@ -40,52 +73,18 @@ export default function ActivityPanel({ fetchActivities, initialData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Mock activity data (fallback when no backend is connected)
-  const mockData = [
-    {
-      id: 1,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 2,
-      user: "Noah Burns",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 3,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 4,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 5,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-  ];
-
   // Load activities on mount
   useEffect(() => {
     if (!initialData) {
       loadActivities();
     }
-  }, []);
+  }, [initialData, loadActivities]);
 
   // Load activities from backend or use mock data
   const loadActivities = useCallback(async () => {
     if (!fetchActivities) {
       // Use mock data if no backend function provided
-      setActivities(mockData);
+      setActivities(MOCK_ACTIVITIES);
       return;
     }
 
@@ -98,7 +97,7 @@ export default function ActivityPanel({ fetchActivities, initialData }) {
       console.error("Failed to fetch activities:", err);
       setError("Failed to load activities. Please try again.");
       // Fallback to mock data on error
-      setActivities(mockData);
+      setActivities(MOCK_ACTIVITIES);
     } finally {
       setLoading(false);
     }

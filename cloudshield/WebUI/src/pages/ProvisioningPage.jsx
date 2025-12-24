@@ -10,11 +10,12 @@
  * Provisioning auto-starts on page load.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography, Button, Chip, LinearProgress, Divider, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ProvisioningControls from '../components/provisioning/ProvisioningControls.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useJobPolling } from '../hooks/useJobPolling.js';
 
 export default function ProvisioningPage({ onProvisioned }) {
   const { currentUser } = useAuth();
@@ -29,12 +30,7 @@ export default function ProvisioningPage({ onProvisioned }) {
     return currentUser?.org_id || 'default-org';
   });
 
-  const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('');
-  const [progress, setProgress] = useState(null);
-  const [result, setResult] = useState(null);
-  const pollTimerRef = useRef(null);
+  const { status, message, progress, jobId, start, reset } = useJobPolling();
   const navigate = useNavigate();
 
   // If currentUser changes or localStorage org_id changes while mounted,
@@ -55,19 +51,14 @@ export default function ProvisioningPage({ onProvisioned }) {
     }
   }, [currentUser, orgId]);
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, []);
-
   // When job succeeds, mark provisioned and go to dashboard
   useEffect(() => {
     if (status === 'succeeded') {
       try {
         localStorage.setItem('isProvisioned', 'true');
-      } catch {}
+      } catch {
+        // ignore persistence errors
+      }
       onProvisioned?.();
       navigate('/dashboard', { replace: true });
     }
@@ -126,43 +117,8 @@ export default function ProvisioningPage({ onProvisioned }) {
     return { status: inferredStatus, message: inferredMessage, progress: inferredProgress, result: json.result };
   }
 
-  const startPolling = (jid) => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(async () => {
-      try {
-        const s = await apiGetStatus(jid);
-        if (typeof s.progress === 'number' || typeof s.progress === 'string') setProgress(s.progress);
-        if (s.message) setMessage(s.message);
-        if (s.result) setResult(s.result);
-
-        if (s.status === 'succeeded' || s.status === 'failed') {
-          setStatus(s.status);
-          clearInterval(pollTimerRef.current);
-          pollTimerRef.current = null;
-        } else {
-          setStatus('running');
-        }
-      } catch (err) {
-        setMessage(err?.message || 'Polling error…');
-      }
-    }, 5000);
-  };
-
   const handleStart = async () => {
-    try {
-      setStatus('starting');
-      setMessage('');
-      setProgress(null);
-      setJobId(null);
-
-      const jid = await apiStartProvision();
-      setJobId(jid);
-      setStatus('running');
-      startPolling(jid);
-    } catch (e) {
-      setStatus('failed');
-      setMessage(e?.message || 'Failed to start provisioning.');
-    }
+    await start({ startFn: apiStartProvision, statusFn: apiGetStatus });
   };
 
   // Auto-start provisioning as soon as we land on this page
@@ -173,18 +129,6 @@ export default function ProvisioningPage({ onProvisioned }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, status]);
-
-  const reset = () => {
-    setStatus('idle');
-    setMessage('');
-    setProgress(null);
-    setJobId(null);
-    setResult(null);
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 820, mx: 'auto' }}>

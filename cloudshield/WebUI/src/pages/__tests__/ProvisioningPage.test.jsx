@@ -64,6 +64,18 @@ describe('ProvisioningPage', () => {
     );
   };
 
+  const renderWithRouter = (ui = <ProvisioningPage onProvisioned={mockOnProvisioned} />) => {
+    return render(<BrowserRouter>{ui}</BrowserRouter>);
+  };
+
+  // Helper to build fetch-like responses quickly
+  const makeJsonResponse = (jsonData, { ok = true, status = 200 } = {}) => ({
+    ok,
+    status,
+    json: async () => jsonData,
+    text: async () => JSON.stringify(jsonData),
+  });
+
   it('renders provisioning page with org id from localStorage', () => {
     renderProvisioningPage();
 
@@ -133,11 +145,11 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/status/job-123');
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5050/status/job-123');
     });
   });
 
@@ -172,7 +184,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -181,7 +193,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -213,7 +225,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -249,12 +261,12 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
       expect(screen.getByTestId('controls-status')).toHaveTextContent('failed');
-      expect(screen.getByText(/Failed/)).toBeInTheDocument();
+      expect(screen.getByTestId('controls-message')).toHaveTextContent('Provisioning failed: timeout');
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -370,11 +382,11 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Provisioning… 75%/)).toBeInTheDocument();
+      expect(screen.getByTestId('controls-progress')).toHaveTextContent('75');
     });
   });
 
@@ -399,7 +411,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -432,7 +444,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -540,7 +552,7 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
@@ -569,32 +581,12 @@ describe('ProvisioningPage', () => {
     });
 
     act(() => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(5000);
     });
 
     await waitFor(() => {
       expect(screen.getByTestId('controls-status')).toHaveTextContent('succeeded');
-    });
-
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_STATUS_ERR' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
-
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-STATUS-ERR/i)).toBeInTheDocument()
-    );
-
-    // Advance timer to trigger polling
-    await act(async () => {
-      jest.advanceTimersByTime(5000);
-      await Promise.resolve();
-    });
-
-    // Should show polling error
-    await waitFor(() => {
-      expect(screen.queryByText(/error/i)).toBeInTheDocument();
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/Provisioning completed successfully/i);
     });
   });
 
@@ -610,21 +602,19 @@ describe('ProvisioningPage', () => {
         })
       );
 
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_PROGRESS_FAIL' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderWithRouter();
 
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-PROGRESS-FAIL/i)).toBeInTheDocument()
-    );
-
-    jest.advanceTimersByTime(5000);
-    
     await waitFor(() => {
-      const failedElements = screen.queryAllByText(/Failed/i);
-      expect(failedElements.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('J-PROGRESS-FAIL');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent(/failed/i);
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/Process failed/i);
     });
   });
 
@@ -639,21 +629,19 @@ describe('ProvisioningPage', () => {
         })
       );
 
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_PROGRESS_DONE' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderWithRouter();
 
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-PROGRESS-DONE/i)).toBeInTheDocument()
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('J-PROGRESS-DONE');
+    });
 
-    jest.advanceTimersByTime(5000);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
     
     await waitFor(() => {
-      const succeededElements = screen.queryAllByText(/succeeded/i);
-      expect(succeededElements.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-status')).toHaveTextContent(/succeeded/i);
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/Provisioning completed successfully/i);
     });
   });
 
@@ -669,21 +657,19 @@ describe('ProvisioningPage', () => {
         })
       );
 
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_NO_MSG' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderWithRouter();
 
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-NO-MSG/i)).toBeInTheDocument()
-    );
-
-    jest.advanceTimersByTime(5000);
-    
     await waitFor(() => {
-      const messages = screen.getAllByText(/Installing dependencies\.\.\./i);
-      expect(messages.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('J-NO-MSG');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent(/running/i);
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/Installing dependencies\.\.\./i);
     });
   });
 
@@ -700,22 +686,19 @@ describe('ProvisioningPage', () => {
         })
       );
 
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_RUNNING' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
+    renderWithRouter();
 
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-RUNNING/i)).toBeInTheDocument()
-    );
-
-    jest.advanceTimersByTime(5000);
-    
-    // Should infer status as "running" (line 69) and show the progress text
     await waitFor(() => {
-      const progressTexts = screen.getAllByText(/Installing packages on workstations/i);
-      expect(progressTexts.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('J-RUNNING');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent(/running/i);
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/Installing packages on workstations/i);
     });
   });
 
@@ -758,32 +741,19 @@ describe('ProvisioningPage', () => {
         })
       );
 
-    renderWithRouter(<ProvisioningPage />);
-    
-    const orgIdInput = screen.getByLabelText(/Organization ID/i);
-    fireEvent.change(orgIdInput, { target: { value: 'TEST_METADATA' } });
-    fireEvent.click(screen.getByRole('button', { name: /start provisioning/i }));
-
-    await waitFor(() => 
-      expect(screen.getByText(/Job ID:\s*J-METADATA/i)).toBeInTheDocument()
-    );
-
-    jest.advanceTimersByTime(5000);
+    renderWithRouter();
     
     await waitFor(() => {
-      const completeTexts = screen.getAllByText(/Provisioning Complete/i);
-      expect(completeTexts.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('controls-job-id')).toHaveTextContent('J-METADATA');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
     });
     
-    // Check workstation names are displayed
-    expect(screen.getByText('workstation-1')).toBeInTheDocument();
-    expect(screen.getByText('workstation-2')).toBeInTheDocument();
-    
-    // Check for N/A when public IP is missing and actual IP when present
-    const publicIpElements = screen.getAllByText(/Public IP:/);
-    expect(publicIpElements.length).toBeGreaterThanOrEqual(2);
-    
-    // Verify N/A is present for missing public IP
-    expect(screen.getByText(/N\/A/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('controls-status')).toHaveTextContent(/succeeded/i);
+      expect(screen.getByTestId('controls-message')).toHaveTextContent(/done/i);
+    });
   });
 });

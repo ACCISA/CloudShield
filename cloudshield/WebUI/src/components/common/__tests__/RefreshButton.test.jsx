@@ -311,9 +311,7 @@ describe("RefreshButton Component", () => {
       const onClick = jest.fn(handleRefresh);
       const user = userEvent.setup();
 
-      const { rerender } = renderWithTheme(
-        <RefreshButton onClick={onClick} loading={loading} />
-      );
+      renderWithTheme(<RefreshButton onClick={onClick} loading={loading} />);
 
       const button = screen.getByRole("button");
       await user.click(button);

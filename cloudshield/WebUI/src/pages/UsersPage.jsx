@@ -25,7 +25,6 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [anchorDisplay, setAnchorDisplay] = useState(null);
-  const [anchorFilter, setAnchorFilter] = useState(null);
 
   // fetch users
   useEffect(() => {
@@ -214,7 +213,7 @@ export default function UsersPage() {
           <Button
             variant="outlined"
             startIcon={<FilterListOutlinedIcon />}
-            onClick={(e) => setAnchorFilter(e.currentTarget)}
+            onClick={() => {}}
             sx={pillBtn}
           >
             Filter

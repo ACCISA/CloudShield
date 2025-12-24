@@ -168,9 +168,6 @@ describe('WorkstationsPage', () => {
   it('creates new workstation and adds to list', () => {
     render(<WorkstationsPage />);
     
-    const initialWorkstations = screen.getAllByText('Development');
-    const initialCount = initialWorkstations.length;
-    
     // Open and create
     const createButton = screen.getByRole('button', { name: /create/i });
     fireEvent.click(createButton);
