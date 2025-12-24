@@ -194,7 +194,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -282,7 +282,7 @@ def test_dc_create_file_share_success_no_job(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -335,7 +335,7 @@ def test_dc_create_file_share_unknown(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -389,7 +389,7 @@ def test_dc_create_file_share_success(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -442,7 +442,7 @@ def test_dc_create_file_share_failed(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -494,7 +494,7 @@ def test_dc_delete_file_share_success(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -548,7 +548,7 @@ def test_dc_delete_file_share_failed(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -598,7 +598,7 @@ def test_dc_delete_file_share_unknown_no_job(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -651,7 +651,7 @@ def test_dc_delete_file_share_unknown(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -704,7 +704,7 @@ def test_dc_restart_samba_service_unknown(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -755,7 +755,7 @@ def test_dc_restart_samba_service_failed(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -781,7 +781,7 @@ def test_dc_restart_samba_service_failed(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     result = dc_delete_file_share("test_org", "share")
@@ -821,7 +821,7 @@ def test_dc_restart_samba_service_success(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -845,7 +845,7 @@ def test_dc_restart_samba_service_success(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -884,7 +884,7 @@ def test_dc_restart_samba_service_success_no_job(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -933,7 +933,7 @@ def test_dc_set_password(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -957,7 +957,7 @@ def test_dc_set_password(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -973,7 +973,7 @@ def test_dc_set_password(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -986,7 +986,7 @@ def test_dc_set_password(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -1002,7 +1002,7 @@ def test_dc_set_password(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -1017,7 +1017,7 @@ def test_dc_set_password(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 
@@ -1056,7 +1056,7 @@ def test_dc_user_list(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1080,7 +1080,7 @@ def test_dc_user_list(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1092,7 +1092,7 @@ def test_dc_user_list(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1129,7 +1129,7 @@ def test_dc_remove_user(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1145,7 +1145,7 @@ def test_dc_remove_user(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1161,7 +1161,7 @@ def test_dc_remove_user(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1177,7 +1177,7 @@ def test_dc_remove_user(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     
@@ -1189,7 +1189,7 @@ def test_dc_remove_user(monkeypatch):
     def mock_proxy_rpc_request(nodes, method_name, request):
         return None
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
     

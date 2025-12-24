@@ -22,7 +22,7 @@ def task_delete_file_share():
     data.get("wipe_data") or False
 
     if org_id is None:
-        return jsonify({"error":"org_id is required"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
         return jsonify({"error":"share_name is required"}), 422
 
@@ -38,7 +38,7 @@ def task_create_file_share():
     share_name = data.get("share_name")
 
     if org_id is None:
-        return jsonify({"error":"org_id is required"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
         return jsonify({"error":"share_name is required"}), 422
 
@@ -55,7 +55,7 @@ def task_set_password():
     new_password = data.get("new_password")
 
     if org_id is None:
-        return jsonify({"error":"org_id is required"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if username is None:
         return jsonify({"error":"username is required"}), 422
     if new_password is None:
@@ -72,7 +72,7 @@ def task_dc_user_list():
     org_id = data.get("org_id")
 
     if org_id is None:
-        return jsonify({"error":"org_id is requried"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
 
     job = service_dispatcher(service_name="dc_user_list", org_id=org_id)
 
@@ -85,7 +85,7 @@ def task_dc_restart_samba_service():
     org_id = data.get("org_id")
 
     if org_id is None:
-        return jsonify({"error":"org_id is required"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
 
     job = service_dispatcher(service_name="dc_restart_samba_service", org_id=org_id)
 
@@ -99,7 +99,7 @@ def task_dc_remove_user():
     username = data.get("username")
 
     if org_id is None:
-        return jsonify({"error":"org_id is required"}), 422
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if username is None:
         return jsonify({"error":"username is required"}), 422
 

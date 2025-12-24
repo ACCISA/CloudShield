@@ -451,8 +451,7 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
         fake_destroy
     )
 
-    with pytest.raises(Exception):
-        destroy_environment("test_org")
+    destroy_environment("test_org")
 
     assert "failed destroy" in mock_job.meta["progress"]
 

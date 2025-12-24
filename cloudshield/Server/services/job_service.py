@@ -258,7 +258,6 @@ def enqueue_dc_remove_user(org_id: str, username: str):
     Returns:
         None (currently unimplemented).
     """
-    pass
     job = task_queue.enqueue(
             dc_remove_user,
             org_id,

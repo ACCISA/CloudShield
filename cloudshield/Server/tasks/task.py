@@ -39,7 +39,7 @@ def get_full_grpc_path(short_method_name):
 def get_grpc_channel(host):
     return grpc.insecure_channel(host)
 
-def GetServerNodes(org_id):
+def get_server_nodes(org_id):
     openvpn_name = f"{org_id}_openvpn_server"
     dc_name = f"{org_id}_samba"
  
@@ -66,9 +66,9 @@ def GetServerNodes(org_id):
 
     return server_nodes
 
-def GetServerNode(org_id, node_type):
+def get_server_node(org_id, node_type):
 
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
     
     if nodes is None:
         return None
@@ -77,7 +77,7 @@ def GetServerNode(org_id, node_type):
         if node.node_type == node_type:
             return node
 
-def ProxyRPCRequest(nodes, method_name, request):
+def proxy_rpc_request(nodes, method_name, request):
 
     if len(nodes.items()) < 2:
         return None

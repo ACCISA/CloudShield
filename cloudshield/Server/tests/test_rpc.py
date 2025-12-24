@@ -38,7 +38,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         return response
 
     monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
+        "tasks.dc_management.proxy_rpc_request",
         mock_proxy_rpc_request
     )
 

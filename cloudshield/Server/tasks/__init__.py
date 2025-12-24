@@ -10,8 +10,8 @@ from .dc_management import dc_set_password as dc_set_password
 from .dc_management import dc_create_file_share as dc_create_file_share
 from .dc_management import dc_delete_file_share as dc_delete_file_share
 
-from .task import GetServerNodes as GetServerNodes
-from .task import ProxyRPCRequest as ProxyRPCRequest
+from .task import get_server_nodes as get_server_nodes
+from .task import proxy_rpc_request as proxy_rpc_request
 from .task import NodeType as NodeType
 
 # Alias for backward compatibility with tests

@@ -86,13 +86,13 @@ File: cloudshield/Server/tasks/dc_management.py
 def dc_add_user(org_id: str, username: str, password: str):
 
   # Get all the ServerNode(s) that are owned by our org_id (DOMAIN_CONTROLLER and OPENVPN)
-  nodes = GetServerNodes(org_id) # You should normally check if this is None
+  nodes = get_server_nodes(org_id) # You should normally check if this is None
 
   # We prepare the protobuf request that is destined to our DOMAIN_CONTROLLER node
   request = infra_pb2.AddDomainUserData(username=username, password=password)
   
   # We proxy our request through the OPENVPN and specify what RPC method we want the DOMAIN_CONTROLLER node to execute
-  proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
+  proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
   
   proxy_status = proxy_response.status
   

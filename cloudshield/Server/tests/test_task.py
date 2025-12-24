@@ -17,9 +17,9 @@ from tasks.task import (
     ServerNode,
     get_full_grpc_path,
     get_grpc_channel,
-    GetServerNodes,
-    GetServerNode,
-    ProxyRPCRequest,
+    get_server_nodes,
+    get_server_node,
+    proxy_rpc_request,
 )
 from models.itam import Inventory, EC2Instance
 
@@ -192,11 +192,11 @@ class TestGetGrpcChannel:
 
 
 class TestGetServerNodes:
-    """Tests for the GetServerNodes function."""
+    """Tests for the get_server_nodes function."""
 
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_with_both_nodes(self, mock_get_inventory):
-        """Test GetServerNodes returns both OPENVPN and DOMAIN_CONTROLLER nodes."""
+        """Test get_server_nodes returns both OPENVPN and DOMAIN_CONTROLLER nodes."""
         openvpn_asset = EC2Instance(
             public_ip="203.0.113.1",
             private_ip="10.0.0.1",
@@ -240,7 +240,7 @@ class TestGetServerNodes:
         inventory = Inventory(org_id="org-123", assets=[openvpn_asset, dc_asset])
         mock_get_inventory.return_value = inventory
 
-        result = GetServerNodes("org-123")
+        result = get_server_nodes("org-123")
 
         assert result is not None
         assert "OPENVPN" in result
@@ -250,7 +250,7 @@ class TestGetServerNodes:
 
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_only_openvpn(self, mock_get_inventory):
-        """Test GetServerNodes with only OPENVPN node."""
+        """Test get_server_nodes with only OPENVPN node."""
         openvpn_asset = EC2Instance(
             public_ip="203.0.113.1",
             private_ip="10.0.0.1",
@@ -274,7 +274,7 @@ class TestGetServerNodes:
         inventory = Inventory(org_id="org-123", assets=[openvpn_asset])
         mock_get_inventory.return_value = inventory
 
-        result = GetServerNodes("org-123")
+        result = get_server_nodes("org-123")
 
         assert result is not None
         assert "OPENVPN" in result
@@ -282,29 +282,29 @@ class TestGetServerNodes:
 
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_empty_inventory(self, mock_get_inventory):
-        """Test GetServerNodes with empty inventory."""
+        """Test get_server_nodes with empty inventory."""
         inventory = Inventory(org_id="org-123", assets=[])
         mock_get_inventory.return_value = inventory
 
-        result = GetServerNodes("org-123")
+        result = get_server_nodes("org-123")
 
         assert result == {}
 
     @patch("tasks.task.get_logger")
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_inventory_none(self, mock_get_inventory, mock_logger):
-        """Test GetServerNodes when inventory is None."""
+        """Test get_server_nodes when inventory is None."""
         mock_get_inventory.return_value = None
         MagicMock()
 
-        result = GetServerNodes("org-nonexistent")
+        result = get_server_nodes("org-nonexistent")
 
         assert result is None
         mock_get_inventory.assert_called_once_with("org-nonexistent")
 
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_multiple_assets_unrelated(self, mock_get_inventory):
-        """Test GetServerNodes filters correct assets by name."""
+        """Test get_server_nodes filters correct assets by name."""
         unrelated_asset = EC2Instance(
             public_ip="203.0.113.3",
             private_ip="10.0.0.3",
@@ -350,7 +350,7 @@ class TestGetServerNodes:
         )
         mock_get_inventory.return_value = inventory
 
-        result = GetServerNodes("org-123")
+        result = get_server_nodes("org-123")
 
         assert result is not None
         assert "OPENVPN" in result
@@ -358,7 +358,7 @@ class TestGetServerNodes:
 
     @patch("tasks.task.get_inventory_from_org_id")
     def test_get_server_nodes_server_node_properties(self, mock_get_inventory):
-        """Test GetServerNodes creates ServerNode with correct properties."""
+        """Test get_server_nodes creates ServerNode with correct properties."""
         openvpn_asset = EC2Instance(
             public_ip="203.0.113.1",
             private_ip="10.0.0.1",
@@ -382,7 +382,7 @@ class TestGetServerNodes:
         inventory = Inventory(org_id="org-test", assets=[openvpn_asset])
         mock_get_inventory.return_value = inventory
 
-        result = GetServerNodes("org-test")
+        result = get_server_nodes("org-test")
 
         assert result["OPENVPN"].org_id == "org-test"
         assert result["OPENVPN"].node_type == NodeType.OPENVPN
@@ -390,11 +390,11 @@ class TestGetServerNodes:
 
 
 class TestGetServerNode:
-    """Tests for the GetServerNode function."""
+    """Tests for the get_server_node function."""
 
-    @patch("tasks.task.GetServerNodes")
+    @patch("tasks.task.get_server_nodes")
     def test_get_server_node_raises_attribute_error(self, mock_get_server_nodes):
-        """Test GetServerNode raises AttributeError due to bug in implementation.
+        """Test get_server_node raises AttributeError due to bug in implementation.
         
         NOTE: The function has a bug where it iterates over .items() which returns tuples,
         but then tries to access .node_type on the tuple instead of the ServerNode object.
@@ -418,22 +418,22 @@ class TestGetServerNode:
         # The current implementation has a bug - it calls .items() which returns tuples
         # but tries to access .node_type on the tuple
         with pytest.raises(AttributeError):
-            GetServerNode("org-123", NodeType.OPENVPN)
+            get_server_node("org-123", NodeType.OPENVPN)
 
-    @patch("tasks.task.GetServerNodes")
+    @patch("tasks.task.get_server_nodes")
     def test_get_server_node_with_empty_nodes(self, mock_get_server_nodes):
-        """Test GetServerNode with empty nodes dictionary returns None implicitly."""
+        """Test get_server_node with empty nodes dictionary returns None implicitly."""
         nodes = {}
         mock_get_server_nodes.return_value = nodes
 
-        result = GetServerNode("org-123", NodeType.DOMAIN_CONTROLLER)
+        result = get_server_node("org-123", NodeType.DOMAIN_CONTROLLER)
 
         # Empty dict means no iteration, so function returns None implicitly
         assert result is None
 
 
 class TestProxyRPCRequest:
-    """Tests for the ProxyRPCRequest function."""
+    """Tests for the proxy_rpc_request function."""
 
     @patch("tasks.task.get_grpc_channel")
     @patch("tasks.task.get_full_grpc_path")
@@ -444,7 +444,7 @@ class TestProxyRPCRequest:
         mock_get_full_path,
         mock_get_channel,
     ):
-        """Test ProxyRPCRequest successfully proxies a request."""
+        """Test proxy_rpc_request successfully proxies a request."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -473,7 +473,7 @@ class TestProxyRPCRequest:
         mock_response = MagicMock()
         mock_stub.Relay.return_value = mock_response
 
-        result = ProxyRPCRequest(nodes, "Method", mock_request)
+        result = proxy_rpc_request(nodes, "Method", mock_request)
 
         assert result == mock_response
         mock_get_channel.assert_called_once_with("203.0.113.1:1194")
@@ -488,7 +488,7 @@ class TestProxyRPCRequest:
         mock_get_full_path,
         mock_get_channel,
     ):
-        """Test ProxyRPCRequest handles gRPC stub errors."""
+        """Test proxy_rpc_request handles gRPC stub errors."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -516,13 +516,13 @@ class TestProxyRPCRequest:
         mock_stub_class.return_value = mock_stub
         mock_stub.Relay.side_effect = Exception("Connection failed")
 
-        result = ProxyRPCRequest(nodes, "Method", mock_request)
+        result = proxy_rpc_request(nodes, "Method", mock_request)
 
         assert result is None
 
     @patch("tasks.task.get_full_grpc_path")
     def test_proxy_rpc_request_invalid_method(self, mock_get_full_path):
-        """Test ProxyRPCRequest with invalid method name."""
+        """Test proxy_rpc_request with invalid method name."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -542,12 +542,12 @@ class TestProxyRPCRequest:
 
         mock_get_full_path.return_value = None
 
-        result = ProxyRPCRequest(nodes, "InvalidMethod", mock_request)
+        result = proxy_rpc_request(nodes, "InvalidMethod", mock_request)
 
         assert result is None
 
     def test_proxy_rpc_request_missing_openvpn_node(self):
-        """Test ProxyRPCRequest when OPENVPN node is missing."""
+        """Test proxy_rpc_request when OPENVPN node is missing."""
         dc_node = ServerNode(
             org_id="org-123",
             ip="10.0.0.2",
@@ -559,12 +559,12 @@ class TestProxyRPCRequest:
 
         mock_request = MagicMock()
 
-        result = ProxyRPCRequest(nodes, "Method", mock_request)
+        result = proxy_rpc_request(nodes, "Method", mock_request)
 
         assert result is None
 
     def test_proxy_rpc_request_missing_domain_controller_node(self):
-        """Test ProxyRPCRequest when DOMAIN_CONTROLLER node is missing."""
+        """Test proxy_rpc_request when DOMAIN_CONTROLLER node is missing."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -576,16 +576,16 @@ class TestProxyRPCRequest:
 
         mock_request = MagicMock()
 
-        result = ProxyRPCRequest(nodes, "Method", mock_request)
+        result = proxy_rpc_request(nodes, "Method", mock_request)
 
         assert result is None
 
     def test_proxy_rpc_request_empty_nodes(self):
-        """Test ProxyRPCRequest with empty nodes dictionary."""
+        """Test proxy_rpc_request with empty nodes dictionary."""
         nodes = {}
         mock_request = MagicMock()
 
-        result = ProxyRPCRequest(nodes, "Method", mock_request)
+        result = proxy_rpc_request(nodes, "Method", mock_request)
 
         assert result is None
 
@@ -598,7 +598,7 @@ class TestProxyRPCRequest:
         mock_get_full_path,
         mock_get_channel,
     ):
-        """Test ProxyRPCRequest properly serializes the request."""
+        """Test proxy_rpc_request properly serializes the request."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -627,7 +627,7 @@ class TestProxyRPCRequest:
         mock_stub_class.return_value = mock_stub
         mock_stub.Relay.return_value = MagicMock()
 
-        ProxyRPCRequest(nodes, "Method", mock_request)
+        proxy_rpc_request(nodes, "Method", mock_request)
 
         # Verify SerializeToString was called
         mock_request.SerializeToString.assert_called_once()
@@ -646,7 +646,7 @@ class TestProxyRPCRequest:
         mock_get_full_path,
         mock_get_channel,
     ):
-        """Test ProxyRPCRequest creates RelayData with correct format."""
+        """Test proxy_rpc_request creates RelayData with correct format."""
         openvpn_node = ServerNode(
             org_id="org-123",
             ip="203.0.113.1",
@@ -675,7 +675,7 @@ class TestProxyRPCRequest:
         mock_stub_class.return_value = mock_stub
         mock_stub.Relay.return_value = MagicMock()
 
-        ProxyRPCRequest(nodes, "TestMethod", mock_request)
+        proxy_rpc_request(nodes, "TestMethod", mock_request)
 
         # Verify RelayData was created with correct IP and port
         call_args = mock_stub.Relay.call_args
@@ -734,7 +734,7 @@ class TestIntegration:
         inventory = Inventory(org_id="org-123", assets=[openvpn_asset, dc_asset])
         mock_get_inventory.return_value = inventory
 
-        nodes = GetServerNodes("org-123")
+        nodes = get_server_nodes("org-123")
 
         assert nodes is not None
         assert nodes["OPENVPN"].get_host() == "203.0.113.1:1194"

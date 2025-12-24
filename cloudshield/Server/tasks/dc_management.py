@@ -9,7 +9,7 @@ from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
 
-from .task import ProxyRPCRequest, GetServerNodes
+from .task import proxy_rpc_request, get_server_nodes
 
 
 def short_uuid():
@@ -21,6 +21,9 @@ USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
 MAX_PW_LEN = 128
 PRIVATE_KEYS_PATH = "/var/lib/cloudshield/terraform/generated"
+
+
+PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"}
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
@@ -64,19 +67,17 @@ def dc_create_file_share(org_id: str, share_name: str):
         job.meta["progress"] = "stating dc_create_samba_file_share"
         job.save_meta()
 
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
     
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
 
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
 
     response = infra_pb2.CreateSambaFileShareDataAck()
     response.ParseFromString(proxy_response.response)
 
     status = response.status
-
-    logger.info("status: " + str(status))
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
@@ -99,23 +100,24 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
         job.meta["progress"] = "stating dc_delete_file_share"
         job.save_meta()
 
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
     
     request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)
 
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)
 
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+    
 
     response = infra_pb2.DeleteSambaFileShareDataAck()
     response.ParseFromString(proxy_response.response)
 
     status = response.status
-
-    logger.info("status: " + str(status))
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully delete new samba file share")
-        return {"status":"SUCCESS","message":"Successfully created new samba file share"}
+        return {"status":"SUCCESS","message":"Successfully deleted new samba file share"}
     if status == infra_pb2.SHARE_NOT_FOUND:
         logger.info("Failed to find samba file share")
         return {"status":"SHARE_NOT_FOUND", "message":"Failed to find samba file share"}
@@ -134,13 +136,12 @@ def dc_restart_samba_service(org_id: str):
         job.meta["progress"] = "starting dc_restart_samba_service"
         job.save_meta()
     
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
 
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.RestartSambaService", request = empty_pb2.Empty())
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.RestartSambaService", request = empty_pb2.Empty())
 
     if proxy_response is None:
-        logger.error("Failed to proxy rpc request")
-        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
+        return PROXY_FAIL_MESSAGE
 
 
     response = infra_pb2.RestartSambaServiceDataAck()
@@ -148,7 +149,6 @@ def dc_restart_samba_service(org_id: str):
 
     status = response.status
     
-    logger.info("status: " + str(status))
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully restart samba-ad-dc service")
@@ -169,15 +169,14 @@ def dc_set_password(org_id: str, username: str, new_password: str):
         job.meta["progress"] = "starting dc_set_password"
         job.save_meta()
 
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
 
     request = infra_pb2.ResetUserPasswordData(username=username, password=new_password)
 
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.ResetUserPassword", request=request)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.ResetUserPassword", request=request)
 
     if proxy_response is None:
-        logger.error("Failed to proxy rpc request")
-        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
+        return PROXY_FAIL_MESSAGE
 
 
     response = infra_pb2.ResetUserPasswordDataAck()
@@ -185,7 +184,6 @@ def dc_set_password(org_id: str, username: str, new_password: str):
 
     status = response.status
 
-    logger.info("status: " +  str(status))
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully set user password")
@@ -217,14 +215,12 @@ def dc_user_list(org_id: str):
         job.meta["progress"] = "starting dc_user_list"
         job.save_meta()
 
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
 
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.GetUserList", request = empty_pb2.Empty())
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.GetUserList", request = empty_pb2.Empty())
 
     if proxy_response is None:
-        logger.error("Failed to proxy rpc request")
-        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
-
+        return PROXY_FAIL_MESSAGE
 
     response = infra_pb2.GetUserListDataAck()
     response.ParseFromString(proxy_response.response)
@@ -232,7 +228,6 @@ def dc_user_list(org_id: str):
     status = response.status
     users = response.users
 
-    logger.info("status: " +  str(status))
     logger.info("users: " + str(users))
 
     if status == infra_pb2.SUCCESS:
@@ -248,7 +243,6 @@ def dc_add_user(org_id: str, username: str, password: str):
     Note: this job should only be executed if a network was provisioned for that org_id
     """
 
-    # TODO add checks that network was provisioned for org_id aka just check if mongodb has that org_id
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -270,17 +264,15 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     
     # this tasks is meant for the domain controller so we get that node's ip
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
 
     request = infra_pb2.AddDomainUserData(username=username, password=password)
 
     # this request needs to be proxyed through the vpn server because it is destined for the domain controller
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
         
     if proxy_response is None:
-        logger.error("Failed to proxy rpc")
-        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
-
+        return PROXY_FAIL_MESSAGE
 
     # we have to first serialize the bytes from the proxy_response.response field
     response = infra_pb2.AddDomainUserDataAck()
@@ -289,7 +281,6 @@ def dc_add_user(org_id: str, username: str, password: str):
     status = response.status
     result = response.result
 
-    logger.info("status: " + str(status))
     logger.info("result: " + str(result))
 
     if status == infra_pb2.SUCCESS:
@@ -314,7 +305,6 @@ def dc_remove_user(org_id: str, username: str):
     Note: this job should only be executed if a network was provisioned for that org_id
     """
 
-    # TODO add checks that network was provisioned for org_id aka just check if mongodb has that org_id
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -325,25 +315,21 @@ def dc_remove_user(org_id: str, username: str):
 
     
     # this tasks is meant for the domain controller so we get that node's ip
-    nodes = GetServerNodes(org_id)
+    nodes = get_server_nodes(org_id)
 
     request = infra_pb2.RemoveDomainUserData(username=username)
 
     # this request needs to be proxyed through the vpn server because it is destined for the domain controller
-    proxy_response = ProxyRPCRequest(nodes, method_name="infra_service.v1.InfraService.RemoveDomainUser", request=request)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.RemoveDomainUser", request=request)
         
     if proxy_response is None:
-        logger.error("Failed to prxy rpc")
-        return {"status":"FAILED", "message":"Failed to proxy rpc request"}
-
+        return PROXY_FAIL_MESSAGE
 
     # we have to first serialize the bytes from the proxy_response.response field
     response = infra_pb2.RemoveDomainUserDataAck()
     response.ParseFromString(proxy_response.response)
 
     status = response.status
-
-    logger.info("status: " + str(status))
 
     
     if status == infra_pb2.SUCCESS:

@@ -234,4 +234,3 @@ def destroy_environment(org_id: str, force: bool = False):
     except Exception as e:
         logger.exception("Destroy failed for org %s: %s", org_id, e)
         set_progress(f"failed destroy: {e}")
-    raise
