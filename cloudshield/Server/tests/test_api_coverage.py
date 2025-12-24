@@ -68,7 +68,7 @@ class TestDCDeleteFileShare:
     
     def test_delete_success(self, client):
         """Line 28-29: successful response with job_id"""
-        resp = client.post("/task/dc/delete_file_share", json={
+        resp = client.post("/api/task/dc/delete_file_share", json={
             "org_id": "acme",
             "share_name": "share1"
         })
@@ -77,7 +77,7 @@ class TestDCDeleteFileShare:
     
     def test_delete_missing_org_id(self, client):
         """Line 21-23: org_id validation"""
-        resp = client.post("/task/dc/delete_file_share", json={
+        resp = client.post("/api/task/dc/delete_file_share", json={
             "share_name": "share1"
         })
         assert resp.status_code == 422
@@ -85,7 +85,7 @@ class TestDCDeleteFileShare:
     
     def test_delete_missing_share_name(self, client):
         """Line 24-26: share_name validation"""
-        resp = client.post("/task/dc/delete_file_share", json={
+        resp = client.post("/api/task/dc/delete_file_share", json={
             "org_id": "acme"
         })
         assert resp.status_code == 422
@@ -97,7 +97,7 @@ class TestDCCreateFileShare:
     
     def test_create_success(self, client):
         """Line 45-47: successful response"""
-        resp = client.post("/task/dc/create_file_share", json={
+        resp = client.post("/api/task/dc/create_file_share", json={
             "org_id": "acme",
             "share_name": "newshare"
         })
@@ -105,7 +105,7 @@ class TestDCCreateFileShare:
     
     def test_create_missing_org_id(self, client):
         """Line 38-40: org_id validation"""
-        resp = client.post("/task/dc/create_file_share", json={
+        resp = client.post("/api/task/dc/create_file_share", json={
             "share_name": "newshare"
         })
         assert resp.status_code == 422
@@ -113,7 +113,7 @@ class TestDCCreateFileShare:
     
     def test_create_missing_share_name(self, client):
         """Line 41-43: share_name validation"""
-        resp = client.post("/task/dc/create_file_share", json={
+        resp = client.post("/api/task/dc/create_file_share", json={
             "org_id": "acme"
         })
         assert resp.status_code == 422
@@ -125,7 +125,7 @@ class TestDCSetPassword:
     
     def test_set_password_success(self, client):
         """Line 62-66: successful password set"""
-        resp = client.post("/task/dc/set_password", json={
+        resp = client.post("/api/task/dc/set_password", json={
             "org_id": "acme",
             "username": "jdoe",
             "new_password": "newpass"
@@ -134,7 +134,7 @@ class TestDCSetPassword:
     
     def test_set_password_missing_org_id(self, client):
         """Line 54-56: org_id validation"""
-        resp = client.post("/task/dc/set_password", json={
+        resp = client.post("/api/task/dc/set_password", json={
             "username": "jdoe",
             "new_password": "newpass"
         })
@@ -142,7 +142,7 @@ class TestDCSetPassword:
     
     def test_set_password_missing_username(self, client):
         """Line 57-59: username validation"""
-        resp = client.post("/task/dc/set_password", json={
+        resp = client.post("/api/task/dc/set_password", json={
             "org_id": "acme",
             "new_password": "newpass"
         })
@@ -150,7 +150,7 @@ class TestDCSetPassword:
     
     def test_set_password_missing_password(self, client):
         """Line 60-61: new_password validation"""
-        resp = client.post("/task/dc/set_password", json={
+        resp = client.post("/api/task/dc/set_password", json={
             "org_id": "acme",
             "username": "jdoe"
         })
@@ -162,14 +162,14 @@ class TestDCUserList:
     
     def test_user_list_success(self, client):
         """Line 77-79: successful response"""
-        resp = client.post("/task/dc/user_list", json={
+        resp = client.post("/api/task/dc/user_list", json={
             "org_id": "acme"
         })
         assert resp.status_code == 202
     
     def test_user_list_missing_org_id(self, client):
         """Line 72-74: org_id validation"""
-        resp = client.post("/task/dc/user_list", json={})
+        resp = client.post("/api/task/dc/user_list", json={})
         assert resp.status_code == 422
 
 
@@ -178,14 +178,14 @@ class TestDCRestartSamba:
     
     def test_restart_samba_success(self, client):
         """Line 90-92: successful response"""
-        resp = client.post("/task/dc/restart_samba", json={
+        resp = client.post("/api/task/dc/restart_samba", json={
             "org_id": "acme"
         })
         assert resp.status_code == 202
     
     def test_restart_samba_missing_org_id(self, client):
         """Line 85-87: org_id validation"""
-        resp = client.post("/task/dc/restart_samba", json={})
+        resp = client.post("/api/task/dc/restart_samba", json={})
         assert resp.status_code == 422
 
 
@@ -194,7 +194,7 @@ class TestDCRemoveUser:
     
     def test_remove_user_success(self, client):
         """Line 106-108: successful response"""
-        resp = client.post("/task/dc/remove_user", json={
+        resp = client.post("/api/task/dc/remove_user", json={
             "org_id": "acme",
             "username": "jdoe"
         })
@@ -202,14 +202,14 @@ class TestDCRemoveUser:
     
     def test_remove_user_missing_org_id(self, client):
         """Line 99-101: org_id validation"""
-        resp = client.post("/task/dc/remove_user", json={
+        resp = client.post("/api/task/dc/remove_user", json={
             "username": "jdoe"
         })
         assert resp.status_code == 422
     
     def test_remove_user_missing_username(self, client):
         """Line 102-104: username validation"""
-        resp = client.post("/task/dc/remove_user", json={
+        resp = client.post("/api/task/dc/remove_user", json={
             "org_id": "acme"
         })
         assert resp.status_code == 422
@@ -220,7 +220,7 @@ class TestDCAddUser:
     
     def test_add_user_success(self, client):
         """Line 136-142: successful user addition"""
-        resp = client.post("/task/dc/add_user", json={
+        resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
             "username": "newuser",
             "password": "newpass"
@@ -229,7 +229,7 @@ class TestDCAddUser:
     
     def test_add_user_missing_org_id(self, client):
         """Line 126-128: missing org_id triggers logger.warning"""
-        resp = client.post("/task/dc/add_user", json={
+        resp = client.post("/api/task/dc/add_user", json={
             "username": "newuser",
             "password": "newpass"
         })
@@ -238,7 +238,7 @@ class TestDCAddUser:
     
     def test_add_user_missing_username(self, client):
         """Line 126-128: missing username"""
-        resp = client.post("/task/dc/add_user", json={
+        resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
             "password": "newpass"
         })
@@ -246,7 +246,7 @@ class TestDCAddUser:
     
     def test_add_user_missing_password(self, client):
         """Line 126-128: missing password"""
-        resp = client.post("/task/dc/add_user", json={
+        resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
             "username": "newuser"
         })
@@ -260,7 +260,7 @@ class TestProvisionEndpoint:
     
     def test_provision_with_all_params(self, client):
         """Line 164: logging + lines 166-185"""
-        resp = client.post("/task/provision", json={
+        resp = client.post("/api/task/provision", json={
             "org_id": "acme",
             "region": "us-east-1",
             "ubuntu_ami": "ami-123",
@@ -271,17 +271,17 @@ class TestProvisionEndpoint:
     
     def test_provision_missing_org_id(self, client):
         """Line 170-174: validation and warning log"""
-        resp = client.post("/task/provision", json={})
+        resp = client.post("/api/task/provision", json={})
         assert resp.status_code == 400
     
     def test_provision_empty_org_id(self, client):
         """Line 170: empty string is falsy"""
-        resp = client.post("/task/provision", json={"org_id": ""})
+        resp = client.post("/api/task/provision", json={"org_id": ""})
         assert resp.status_code == 400
     
     def test_provision_defaults(self, client):
         """Line 176: default region, line 182: default workstation_count"""
-        resp = client.post("/task/provision", json={"org_id": "acme"})
+        resp = client.post("/api/task/provision", json={"org_id": "acme"})
         assert resp.status_code == 202
 
 
@@ -290,7 +290,7 @@ class TestProvisionWorkstationsEndpoint:
     
     def test_provision_workstations_success(self, client):
         """Line 204: logging + lines 207-223"""
-        resp = client.post("/task/provisionworkstations", json={
+        resp = client.post("/api/task/provisionworkstations", json={
             "org_id": "acme",
             "region": "us-west-2",
             "count": 5
@@ -299,17 +299,17 @@ class TestProvisionWorkstationsEndpoint:
     
     def test_provision_workstations_missing_org_id(self, client):
         """Line 209-213: validation and warning"""
-        resp = client.post("/task/provisionworkstations", json={})
+        resp = client.post("/api/task/provisionworkstations", json={})
         assert resp.status_code == 400
     
     def test_provision_workstations_empty_org_id(self, client):
         """Line 209: empty string validation"""
-        resp = client.post("/task/provisionworkstations", json={"org_id": ""})
+        resp = client.post("/api/task/provisionworkstations", json={"org_id": ""})
         assert resp.status_code == 400
     
     def test_provision_workstations_defaults(self, client):
         """Line 222: default count=1, line 211: default region"""
-        resp = client.post("/task/provisionworkstations", json={"org_id": "acme"})
+        resp = client.post("/api/task/provisionworkstations", json={"org_id": "acme"})
         assert resp.status_code == 202
 
 
@@ -318,7 +318,7 @@ class TestDestroyEndpoint:
     
     def test_destroy_success(self, client):
         """Line 241: logging + lines 244-254"""
-        resp = client.post("/task/destroy", json={
+        resp = client.post("/api/task/destroy", json={
             "org_id": "acme",
             "force": True
         })
@@ -326,17 +326,17 @@ class TestDestroyEndpoint:
     
     def test_destroy_missing_org_id(self, client):
         """Line 246-250: validation and warning"""
-        resp = client.post("/task/destroy", json={})
+        resp = client.post("/api/task/destroy", json={})
         assert resp.status_code == 400
     
     def test_destroy_empty_org_id(self, client):
         """Line 246: empty string validation"""
-        resp = client.post("/task/destroy", json={"org_id": ""})
+        resp = client.post("/api/task/destroy", json={"org_id": ""})
         assert resp.status_code == 400
     
     def test_destroy_force_default(self, client):
         """Line 252: default force=False"""
-        resp = client.post("/task/destroy", json={"org_id": "acme"})
+        resp = client.post("/api/task/destroy", json={"org_id": "acme"})
         assert resp.status_code == 202
 
 
@@ -356,6 +356,6 @@ class TestHealthEndpoint:
     
     def test_health_retrieve(self, client):
         """Line 272-280: health_status call"""
-        resp = client.get("/health")
+        resp = client.get("/api/health")
         assert resp.status_code == 200
         assert "status" in resp.json
