@@ -1,3 +1,5 @@
+# docker_provisioning is not part of code we release in prod. This is just to avoid spendng money on aws therefore we dont need to meet coverage requirements for this code. 
+# This file just generates ssh keys which normally terraform would do
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
