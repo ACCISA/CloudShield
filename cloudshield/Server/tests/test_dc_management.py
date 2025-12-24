@@ -672,59 +672,6 @@ def test_dc_delete_file_share_unknown(monkeypatch):
     assert result["status"] == "UNKNOWN"
 
 
-def test_dc_delete_file_share_unknown(monkeypatch):
-    """Test that dc_add_user persists user data when command succeeds"""
-    from tasks.dc_management import dc_delete_file_share
-    
-    # Mock job
-    mock_job = unittest.mock.MagicMock()
-    mock_job.id = "test_job"
-    mock_job.meta = {}
-    monkeypatch.setattr(
-        "tasks.dc_management.get_current_job",
-        lambda: mock_job
-    )
-    
-    # Mock logger
-
-    def mock_logger(name, job_id):
-        logger = logging.getLogger()
-        return logger
-    monkeypatch.setattr(
-        "tasks.dc_management.get_logger",
-        mock_logger
-    )
-    
-    SimpleNamespace(stdout="User created successfully", stderr="")
-
-    def mock_proxy_rpc_request(nodes, method_name, request):
-        body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
-
-        response = vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body)
-        return response
-
-    monkeypatch.setattr(
-        "tasks.dc_management.ProxyRPCRequest",
-        mock_proxy_rpc_request
-    )
-
-    
-    # Mock persist_domain_user
-    # TODO mock persist_file_share
-    mock_persist = unittest.mock.MagicMock(return_value="user_mongo_id_123")
-    monkeypatch.setattr(
-        "tasks.dc_management.persist_domain_user",
-        mock_persist
-    )
-    
-    # Execute
-    result = dc_delete_file_share("test_org", "data")
-    print(result)
-
-    # Assert persist_domain_user was called with correct args
-    assert result["status"] == "UNKNOWN"
-
-
 def test_dc_restart_samba_service_unknown(monkeypatch):
     """Test that dc_add_user persists user data when command succeeds"""
     from tasks.dc_management import dc_restart_samba_service
