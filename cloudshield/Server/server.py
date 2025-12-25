@@ -1,4 +1,3 @@
-"""Flask application factory and unified error handling for CloudShield API."""
 from __future__ import annotations
 
 import os
@@ -17,6 +16,10 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
+from utils import get_logger  # type: ignore
+from routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+
+
 def _coerce_exception_class(candidate, name: str):
     """Ensure an imported exception reference is a proper Exception subclass."""
     if isinstance(candidate, type) and issubclass(candidate, Exception):
@@ -32,27 +35,7 @@ def _coerce_exception_class(candidate, name: str):
 DuplicateKeyError = _coerce_exception_class(DuplicateKeyError, "DuplicateKeyError")
 OperationFailure = _coerce_exception_class(OperationFailure, "OperationFailure")
 
-try:
-    from cloudshield.Server.utils import get_logger
-    from cloudshield.Server.routes import api_bp
-    from cloudshield.Server.routes.auth import auth_bp
-    from cloudshield.Server.routes.users import users_bp
-    from cloudshield.Server.routes.users_read import users_read_bp
-except ImportError:
-    try:
-        from .utils import get_logger
-        from .routes import api_bp
-        from .routes.auth import auth_bp
-        from .routes.users import users_bp
-        from .routes.users_read import users_read_bp
-    except ImportError:
-        from utils import get_logger  # type: ignore
-        from routes import api_bp  # type: ignore
-        from routes.auth import auth_bp  # type: ignore
-        from routes.users import users_bp  # type: ignore
-        from routes.users_read import users_read_bp  # type: ignore
-
-# optional audit blueprint
+# optional audit blueprint; may fail if DB/view not set up
 try:
     try:
         from cloudshield.Server.routes.audit import audit_bp # type: ignore[import]
@@ -69,9 +52,7 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 server_logger = logging.getLogger("cloudshield.server")
 logger = get_logger("api")
 
-
 def create_app() -> Flask:
-    """Create and configure Flask application with blueprints."""
     app = Flask(__name__)
     
     # --- 2. INITIALIZE CORS ---
@@ -97,18 +78,22 @@ def create_app() -> Flask:
     return app
 
 
+
+
 app = create_app()
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
 
+# Helpers
 def _request_id() -> str:
-    """Get or generate request ID for tracing."""
+    # Use incoming X-Request-ID or generate a new one
     rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     g.request_id = rid
     return rid
 
 
 def _error_json(error: str, code: str, details=None, status: int = 400):
-    """Build standardized JSON error response with request ID."""
+    """Standardized error payloads for clients."""
     payload = {
         "error": error,
         "code": code,
@@ -117,13 +102,14 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
     }
     return jsonify(payload), status
 
-
+# Global JSON guard for write methods
 @app.before_request
 def _ensure_json_on_writes():
     """Enforce JSON content-type for write operations."""
     g.start_time = time()
     _request_id()
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        # Allow empty body for certain routes (like DELETE /users/<id>)
         if request.data and not request.is_json:
             # Allow empty body if needed, but if data exists, it must be JSON
             pass 
@@ -181,10 +167,13 @@ def _handle_generic(e: Exception):
     return _error_json("Internal Server Error", "INTERNAL_ERROR", details, 500)
 
 
+# Health / info endpoint
 @app.route("/healthz", methods=["GET"])
 def healthz():
-    """Health check endpoint for monitoring."""
     return jsonify({"status": "ok", "request_id": g.request_id}), 200
+
+
+# Task endpoints removed - functionality moved to api_bp routes
 
 # Entrypoint
 if __name__ == "__main__":

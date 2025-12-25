@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Iterable, List, Dict, Any
-from ..models import EC2Instance
+from models import EC2Instance
 
 def map_metadata_to_ec2_instances(metadata: Iterable[Dict[str, Any]]) -> List[EC2Instance]:
     """
@@ -11,6 +11,7 @@ def map_metadata_to_ec2_instances(metadata: Iterable[Dict[str, Any]]) -> List[EC
     for asset in metadata:
         assets.append(
             EC2Instance(
+                port = asset.get("port"),
                 public_ip = asset.get("public_ip") or "",
                 private_ip = asset["private_ip"],
                 vpc_id = asset["vpc_id"],

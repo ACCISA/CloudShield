@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package vpn_service.v1;
+
+enum Status {
+        SUCCESS = 0;
+        FAILED = 1;
+        CONNECTION_TIMEOUT = 2;
+        SSH_FAILED = 3;
+}
+
+message CreateVPNClientData {
+        string client_name = 1;
+}
+
+message CreateVPNClientDataAck {
+        Status status = 1;
+        string filename = 2;
+        bytes content = 3;
+}
+
+message OpenSSHTunnelData {
+        string ipv4 = 1;
+        string port = 2; 
+        string key = 3;
+}
+
+message OpenSSHTunnelDataAck {
+        Status status = 1;
+        string port = 2;
+}
+
+message RelayData {
+        string ipv4 = 1;
+        string port = 2;
+        string method_name = 3;
+        bytes data = 4;
+}
+
+message RelayDataAck {
+        Status status = 1;
+        bytes response = 2;
+}
+
+service VPNService {
+        rpc CreateVPNClient(CreateVPNClientData) returns (CreateVPNClientDataAck);
+        rpc OpenSSHTunnel(OpenSSHTunnelData) returns (OpenSSHTunnelDataAck);
+
+        rpc Relay(RelayData) returns (RelayDataAck);
+}

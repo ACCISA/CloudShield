@@ -1,9 +1,9 @@
 """User management API endpoints."""
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from ..security.guards import require_auth, require_role
-from ..models.user import UserCreate, UserUpdate
-from ..services.user_service import create_user, update_user, deactivate_user, delete_user, list_users
+from security import require_auth, require_role
+from models import UserCreate, UserUpdate
+from services import create_user, update_user, deactivate_user, delete_user, list_users
 
 users_bp = Blueprint('users', __name__)
 """
@@ -123,8 +123,8 @@ def create_user_endpoint():
     except ValueError as e:
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
-    except Exception:
-        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
+    except Exception as e:
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details":str(e)}), 500
 
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])

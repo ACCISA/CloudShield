@@ -19,7 +19,8 @@ class TestUserCreate:
             "password": "StrongPass123!",
             "role": "employee",
             "full_name": "John Doe",
-            "org_id": "acme-corp"
+            "org_id": "acme-corp",
+            "file_shares":["aa"]
         }
         
         user = UserCreate(**user_data)
@@ -35,7 +36,8 @@ class TestUserCreate:
             "password": "StrongPass123!",
             "role": "admin",
             "full_name": "John Doe",
-            "org_id": "acme-corp"
+            "org_id": "acme-corp",
+            "file_shares":["aa"]
         }
         
         user = UserCreate(**user_data_normalized)
@@ -48,7 +50,8 @@ class TestUserCreate:
             "email": "john@example.com",
             "role": "employee",
             "full_name": "John Doe",
-            "org_id": "acme-corp"
+            "org_id": "acme-corp",
+            "file_shares":["aa"]
         }
         
         # Test various invalid passwords
@@ -81,7 +84,8 @@ class TestUserCreate:
             "email": "john@example.com",
             "password": "StrongPass123!",
             "role": "employee",
-            "full_name": "John Doe"
+            "full_name": "John Doe",
+            "file_shares":["aa"]
         }
         
         invalid_org_ids = [

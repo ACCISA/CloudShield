@@ -124,6 +124,8 @@ jobs:
         run: mkdir -p tests/python/coverage/server
 
       - name: Run pytest with coverage (Server)
+        env:
+          CLOUDSHIELD_DEV_TOKEN: ${{secrets.CLOUDSHIELD_DEV_TOKEN}}
         run: |
           export PYTHONPATH=cloudshield/Server:cloudshield/Cloud
           pytest cloudshield/Server/tests --cov=cloudshield/Server \
@@ -165,8 +167,8 @@ jobs:
 
       - name: Run pytest with coverage (Cloud)
         run: |
-          export PYTHONPATH=cloudshield/Cloud/provisioner
-          pytest cloudshield/Cloud/provisioner/tests \
+          export PYTHONPATH=cloudshield/Cloud/
+          pytest cloudshield/Cloud/tests \
             --cov=cloudshield/Cloud/provisioner \
             --cov-report=term \
             --cov-report=xml:tests/python/coverage/cloud/coverage.xml
@@ -321,8 +323,11 @@ jobs:
             -Dsonar.sources=cloudshield \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/babel.config.cjs,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/forward.py \
-            -Dsonar.exclusions=**/tests/**,**/__tests__/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/forward.py \
+            -Dsonar.c.file.suffixes=- \
+            -Dsonar.cpp.file.suffixes=- \
+            -Dsonar.objc.file.suffixes=- \
+            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/babel.config.cjs,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh \
+            -Dsonar.exclusions=**/tests/**,**/__tests__/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml,tests/python/coverage/cloud/coverage.xml,tests/python/coverage/threat_detection/coverage.xml,*.html \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info,tests/js/coverage/webui/lcov.info || (echo "SonarCloud analysis failed" && exit 1)
 
