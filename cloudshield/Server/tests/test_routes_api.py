@@ -55,12 +55,14 @@ def client(monkeypatch):
         return app.test_client()
 
 def test_provision_missing_org(client):
-    resp = client.post("/task/provision", json={})
+    # Added /api prefix
+    resp = client.post("/api/task/provision", json={})
     assert resp.status_code == 400
 
 
 def test_provision_success(client):
-    resp = client.post("/task/provision", json={"org_id": "acme"})
+    # Added /api prefix
+    resp = client.post("/api/task/provision", json={"org_id": "acme"})
     assert resp.status_code == 202
     job_id = resp.get_json()["job_id"]
     assert job_id is not None
@@ -69,34 +71,37 @@ def test_provision_success(client):
 
 
 def test_destroy_success(client):
-    resp = client.post("/task/destroy", json={"org_id": "acme"})
+    # Added /api prefix
+    resp = client.post("/api/task/destroy", json={"org_id": "acme"})
     assert resp.status_code == 202
 
 
 def test_status_ok(client):
-    # The status endpoint requires a real job_id from Redis
-    # This test should be skipped or use a mocked job
-    resp = client.get("/status/unknown-job-id")
+    # Added /api prefix
+    resp = client.get("/api/status/unknown-job-id")
     # With real service, unknown jobs return 404 or error status
     assert resp.status_code in [200, 404]
 
 
 def test_health_ok(client):
-    resp = client.get("/health")
+    # Added /api prefix
+    resp = client.get("/api/health")
     assert resp.status_code == 200
     assert resp.get_json()["status"] == "ok"
 
 
 def test_provision_missing_org_in_destroy(client):
     """Test destroy endpoint with missing org_id"""
-    resp = client.post("/task/destroy", json={})
+    # Added /api prefix
+    resp = client.post("/api/task/destroy", json={})
     assert resp.status_code == 400
     assert "org_id is required" in resp.get_json()["error"]
 
 
 def test_provision_with_optional_params(client):
     """Test provision with optional region and AMI parameters"""
-    resp = client.post("/task/provision", json={
+    # Added /api prefix
+    resp = client.post("/api/task/provision", json={
         "org_id": "acme",
         "region": "us-east-1",
         "ubuntu_ami": "ami-123456",
@@ -110,7 +115,8 @@ def test_provision_with_optional_params(client):
 
 def test_destroy_with_force_flag(client):
     """Test destroy with force parameter"""
-    resp = client.post("/task/destroy", json={"org_id": "acme", "force": True})
+    # Added /api prefix
+    resp = client.post("/api/task/destroy", json={"org_id": "acme", "force": True})
     assert resp.status_code == 202
     job_id = resp.get_json()["job_id"]
     assert job_id is not None
@@ -119,7 +125,8 @@ def test_destroy_with_force_flag(client):
 
 def test_provision_workstations_success(client):
     """Test provision workstations endpoint"""
-    resp = client.post("/task/provisionworkstations", json={
+    # Added /api prefix
+    resp = client.post("/api/task/provisionworkstations", json={
         "org_id": "acme",
         "count": 3,
         "region": "us-west-2"
@@ -132,14 +139,16 @@ def test_provision_workstations_success(client):
 
 def test_provision_workstations_missing_org(client):
     """Test provision workstations with missing org_id"""
-    resp = client.post("/task/provisionworkstations", json={})
+    # Added /api prefix
+    resp = client.post("/api/task/provisionworkstations", json={})
     assert resp.status_code == 400
     assert "org_id is required" in resp.get_json()["error"]
 
 
 def test_provision_workstations_default_count(client):
     """Test provision workstations with default count"""
-    resp = client.post("/task/provisionworkstations", json={"org_id": "acme"})
+    # Added /api prefix
+    resp = client.post("/api/task/provisionworkstations", json={"org_id": "acme"})
     assert resp.status_code == 202
     job_id = resp.get_json()["job_id"]
     assert job_id is not None
@@ -148,7 +157,8 @@ def test_provision_workstations_default_count(client):
 
 def test_dc_add_user_success(client):
     """Test DC add user endpoint"""
-    resp = client.post("/task/dc/add_user", json={
+    # Added /api prefix
+    resp = client.post("/api/task/dc/add_user", json={
         "org_id": "acme",
         "username": "testuser",
         "password": "SecurePass123!"
@@ -161,7 +171,8 @@ def test_dc_add_user_success(client):
 
 def test_dc_add_user_missing_org_id(client):
     """Test DC add user with missing org_id"""
-    resp = client.post("/task/dc/add_user", json={
+    # Added /api prefix
+    resp = client.post("/api/task/dc/add_user", json={
         "username": "testuser",
         "password": "SecurePass123!"
     })
@@ -172,7 +183,8 @@ def test_dc_add_user_missing_org_id(client):
 
 def test_dc_add_user_missing_username(client):
     """Test DC add user with missing username"""
-    resp = client.post("/task/dc/add_user", json={
+    # Added /api prefix
+    resp = client.post("/api/task/dc/add_user", json={
         "org_id": "acme",
         "password": "SecurePass123!"
     })
@@ -183,7 +195,8 @@ def test_dc_add_user_missing_username(client):
 
 def test_dc_add_user_missing_password(client):
     """Test DC add user with missing password"""
-    resp = client.post("/task/dc/add_user", json={
+    # Added /api prefix
+    resp = client.post("/api/task/dc/add_user", json={
         "org_id": "acme",
         "username": "testuser"
     })

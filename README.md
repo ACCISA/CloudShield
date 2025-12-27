@@ -136,6 +136,17 @@ docker exec -it <container_id> bash
 
 Cloudshield will hold all necessary files and states in /var/lib/cloudshield/
 
+### Local API Developement
+
+To optimize resource utilization and developer feedback loops, all development and testing of domain-controller-interacting APIs is performed locally using containerized environments (Docker). For provisioning, we now utilize a custom script via the provision endpoint, effectively replacing the cloud-based Terraform provisioner. This mechanism facilitates the rapid deployment of necessary containers, decoupling the development process from cloud infrastructure provisioning latency, thereby ensuring a quicker, more cost-effective development workflow.
+
+```
+docker network create --driver bridge --subnet 172.23.0.0/24 vpc_net
+docker compose build api-test
+docker compose run api-test
+```
+You can test the API by connecting to the apit-test container's IP address. Full details regarding the provisioned containers and their configuration are available in the docker-compose.yml file.
+
 ---
 
 ### First End-to-End Smoke Test

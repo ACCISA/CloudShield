@@ -3,12 +3,8 @@ from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
 
-try:
-    from cloudshield.Server.services import service_dispatcher, get_job_status, health_status
-    from cloudshield.Server.utils.logging_setup import get_logger
-except ImportError:  # pragma: no cover - fallback for local execution contexts
-    from services import service_dispatcher, get_job_status, health_status
-    from utils.logging_setup import get_logger
+from services import service_dispatcher, get_job_status, health_status
+from utils.logging_setup import get_logger
 
 logger = get_logger("api")
 
@@ -16,6 +12,100 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+
+@api_bp.route("/task/dc/delete_file_share", methods=["POST"])
+def task_delete_file_share():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    share_name = data.get("share_name")
+    data.get("wipe_data") or False
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+    if share_name is None:
+        return jsonify({"error":"share_name is required"}), 422
+
+    job = service_dispatcher(service_name="dc_delete_file_share", org_id=org_id, share_name=share_name)
+
+    return jsonify({"job_id":job.id}), 202
+
+@api_bp.route("/task/dc/create_file_share", methods=["POST"])
+def task_create_file_share():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    share_name = data.get("share_name")
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+    if share_name is None:
+        return jsonify({"error":"share_name is required"}), 422
+
+    job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
+
+    return jsonify({"job_id":job.id}), 202
+
+@api_bp.route("/task/dc/set_password", methods=["POST"])
+def task_set_password():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    username = data.get("username")
+    new_password = data.get("new_password")
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+    if username is None:
+        return jsonify({"error":"username is required"}), 422
+    if new_password is None:
+        return jsonify({"error":"new_password is required"}), 422
+
+    job = service_dispatcher(service_name="dc_set_password", org_id=org_id, username=username, new_password=new_password)
+
+    return jsonify({"job_id": job.id}), 202
+
+@api_bp.route("/task/dc/user_list", methods=["POST"])
+def task_dc_user_list():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+
+    job = service_dispatcher(service_name="dc_user_list", org_id=org_id)
+
+    return jsonify({"job_id": job.id}), 202
+
+@api_bp.route("/task/dc/restart_samba", methods=["POST"])
+def task_dc_restart_samba_service():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+
+    job = service_dispatcher(service_name="dc_restart_samba_service", org_id=org_id)
+
+    return jsonify({"job_id": job.id}), 202
+
+@api_bp.route("/task/dc/remove_user", methods=["POST"])
+def task_dc_remove_user():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    username = data.get("username")
+
+    if org_id is None:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
+    if username is None:
+        return jsonify({"error":"username is required"}), 422
+
+    job = service_dispatcher(service_name="dc_remove_user", org_id=org_id, username=username)
+
+    return jsonify({"job_id": job.id}), 202
 
 
 @api_bp.route("/task/dc/add_user", methods=["POST"])

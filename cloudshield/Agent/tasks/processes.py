@@ -130,10 +130,7 @@ class GetProcessListTask(BaseTask):
 
             # Create grpc messages for psutil threads() data
             threads = proc.threads()
-            for thread in threads:
-                threads_grpc = agent_pb2.Thread(
-                    thread_count = len(threads)
-                )
+            threads_grpc = agent_pb2.Thread(thread_count = len(threads))
             return {
                 "name": proc.name(),
                 "path": proc.exe(),
@@ -180,10 +177,6 @@ class GetProcessListTask(BaseTask):
                         memory_maps = proc_info_data["memory_maps"],
                         threads = proc_info_data["threads"]
                 )
-
-                task_logger.debug(f"open_files: {proc_info_data['open_files']}")
-                task_logger.debug(f"memory_maps: {proc_info_data['memory_maps']}")
-                task_logger.debug(f"threads: {proc_info_data['threads']}")
 
                 process_info.append(proc_info)
             
