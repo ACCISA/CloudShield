@@ -159,7 +159,7 @@ export default function SignupPage({ onSignupSuccess }) {
     setErrors((prev) => ({ ...prev, form: undefined }));
   
     try {
-      const res = await fetch(...);
+      const res = await fetch("");
       let data = {};
   
       try { data = await res.json(); } catch {}
