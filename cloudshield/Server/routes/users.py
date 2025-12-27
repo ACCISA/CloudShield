@@ -1,4 +1,7 @@
 """User management API endpoints."""
+import json
+from collections.abc import Mapping
+
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
@@ -21,6 +24,24 @@ Security:
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
+
+
+def _make_json_safe(value):
+    """Recursively coerce validation payloads to JSON-serializable primitives."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    if isinstance(value, Mapping):
+        return {str(k): _make_json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_make_json_safe(v) for v in value]
+
+    try:
+        json.dumps(value)
+        return value
+    except TypeError:
+        return str(value)
 
 
 def _json_or_empty() -> dict:
@@ -117,7 +138,8 @@ def create_user_endpoint():
         user_id = create_user(user_data, current_user=g.user, reason=reason)
         return jsonify({"user_id": user_id}), 201
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        safe_errors = [_make_json_safe(err) for err in e.errors()]
+        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
@@ -163,7 +185,8 @@ def update_user_endpoint(user_id):
         update_user(user_id, update_data, current_user=g.user, reason=reason)
         return jsonify({"message": "User updated"}), 200
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        safe_errors = [_make_json_safe(err) for err in e.errors()]
+        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
