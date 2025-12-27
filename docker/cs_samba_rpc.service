@@ -1,0 +1,15 @@
+[Unit]
+Description=CloudShield RPC server for remote node management
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/cs-rpcsrv -samba
+
+Restart=always
+RestartSec=5
+
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

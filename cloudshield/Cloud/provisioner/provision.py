@@ -240,6 +240,11 @@ def run_terraform_two_phase_apply(org_id: str, region: str, terraform_dir: str, 
 
     logger.info("[✓] Terraform apply complete for all resources.")
 
+def extract_name(tags):
+    for tag in tags or []:
+        if tag["Key"] == "Name":
+            return tag["Value"]
+    return None
 
 def get_ec2_ips(region: str, org_id: str):
     """Fetch detailed EC2 instance metadata for a given org."""
@@ -247,12 +252,7 @@ def get_ec2_ips(region: str, org_id: str):
     ec2 = boto3.client("ec2", region_name=region)
     reservations = ec2.describe_instances()["Reservations"]
 
-    def extract_name(tags):
-        for tag in tags or []:
-            if tag["Key"] == "Name":
-                return tag["Value"]
-        return None
-
+    
     instances = []
     for res in reservations:
         for inst in res["Instances"]:
@@ -290,6 +290,7 @@ def get_ec2_ips(region: str, org_id: str):
                 "status": inst["State"]["Name"],
                 "private_ip": inst.get("PrivateIpAddress"),
                 "public_ip": inst.get("PublicIpAddress"),
+                "port": "50055" # grpc node manager port
             }
 
             instances.append(metadata)

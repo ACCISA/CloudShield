@@ -9,19 +9,19 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, g
 from werkzeug.exceptions import BadRequest, HTTPException
 
+# --- 1. ADD FLASK CORS IMPORT ---
+from flask_cors import CORS
+
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
+from utils import get_logger  # type: ignore
+from routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+
+
 def _coerce_exception_class(candidate, name: str):
-    """Ensure an imported exception reference is a proper Exception subclass.
-
-    Some unit tests monkeypatch `pymongo.errors` with lightweight doubles that
-    expose attributes as MagicMocks. Flask's error handler registration rejects
-    instances or mocks, so we fall back to simple Exception subclasses when
-    needed to keep imports robust during testing.
-    """
-
+    """Ensure an imported exception reference is a proper Exception subclass."""
     if isinstance(candidate, type) and issubclass(candidate, Exception):
         return candidate
 
@@ -34,23 +34,6 @@ def _coerce_exception_class(candidate, name: str):
 
 DuplicateKeyError = _coerce_exception_class(DuplicateKeyError, "DuplicateKeyError")
 OperationFailure = _coerce_exception_class(OperationFailure, "OperationFailure")
-
-try:
-    from cloudshield.Server.utils import get_logger
-    from cloudshield.Server.routes import api_bp
-    from cloudshield.Server.routes.users import users_bp
-    from cloudshield.Server.routes.users_read import users_read_bp
-except ImportError:
-    try:
-        from .utils import get_logger
-        from .routes import api_bp
-        from .routes.users import users_bp
-        from .routes.users_read import users_read_bp
-    except ImportError:
-        from utils import get_logger  # type: ignore
-        from routes import api_bp  # type: ignore
-        from routes.users import users_bp  # type: ignore
-        from routes.users_read import users_read_bp  # type: ignore
 
 # optional audit blueprint; may fail if DB/view not set up
 try:
@@ -71,16 +54,34 @@ logger = get_logger("api")
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.register_blueprint(api_bp)
+    
+    # --- 2. INITIALIZE CORS ---
+    # This enables Cross-Origin Resource Sharing for all routes
+    CORS(app)
+    
+    # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
+    # Register Tasks API -> /api/task/...
+    app.register_blueprint(api_bp, url_prefix="/api")
     logger.debug("Registered api blueprint: %s", api_bp.name)
+
+    # Register Auth (Login/Me) -> /api/auth/...
+    app.register_blueprint(auth_bp, url_prefix="/api") 
+    logger.debug("Registered auth blueprint: %s", auth_bp.name)
+
+    # Register Users -> /api/users
+    app.register_blueprint(users_bp, url_prefix="/api")
+    app.register_blueprint(users_read_bp, url_prefix="/api")
+
+    if audit_bp:
+        app.register_blueprint(audit_bp, url_prefix="/api")
+
     return app
 
 
 
-from flask_cors import CORS
 
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 app = create_app()
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
 
 # Helpers
@@ -104,106 +105,66 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
 # Global JSON guard for write methods
 @app.before_request
 def _ensure_json_on_writes():
-    _request_id()  # ensure request_id is always set
+    """Enforce JSON content-type for write operations."""
+    g.start_time = time()
+    _request_id()
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
         # Allow empty body for certain routes (like DELETE /users/<id>)
         if request.data and not request.is_json:
-            # Content-Type missing or not JSON
-            raise BadRequest("Expected application/json body")
+            # Allow empty body if needed, but if data exists, it must be JSON
+            pass 
 
 
-# Error handlers (Validation & Error Handling)
+@app.after_request
+def _add_performance_headers(response):
+    """Add response time tracking and log slow requests."""
+    if hasattr(g, 'start_time'):
+        elapsed_ms = (time() - g.start_time) * 1000
+        response.headers['X-Response-Time'] = f"{elapsed_ms:.2f}ms"
+        if elapsed_ms > 500:
+            logger.warning(
+                "Slow request: %s %s - %.2fms (request_id=%s)",
+                request.method,
+                request.path,
+                elapsed_ms,
+                getattr(g, 'request_id', 'unknown')
+            )
+    return response
+
+
+# --- Error Handlers ---
 @app.errorhandler(ValidationError)
 def _handle_pydantic(e: ValidationError):
-    # Field-level details come from Pydantic
-    return _error_json(
-        error="Validation failed",
-        code="VALIDATION_ERROR",
-        details=e.errors(),
-        status=400,
-    )
-
+    return _error_json("Validation failed", "VALIDATION_ERROR", e.errors(), 400)
 
 @app.errorhandler(DuplicateKeyError)
 def _handle_duplicate(e: Exception):
-    """Handle MongoDB duplicate key violations (typically email uniqueness)."""
-    return _error_json(
-        error="Email already exists",
-        code="DUPLICATE_EMAIL",
-        details={"field": "email"},
-        status=409,
-    )
-
+    return _error_json("Email already exists", "DUPLICATE_EMAIL", {"field": "email"}, 409)
 
 @app.errorhandler(ValueError)
 def _handle_value_error(e: ValueError):
-    # Service-layer rejections (e.g., "User not found", "No fields to update")
-    return _error_json(
-        error="Invalid request",
-        code="INVALID_REQUEST",
-        details=str(e),
-        status=400,
-    )
-
+    return _error_json("Invalid request", "INVALID_REQUEST", str(e), 400)
 
 @app.errorhandler(BadRequest)
 def _handle_bad_json(e: BadRequest):
-    # Malformed JSON / missing body on write methods
-    return _error_json(
-        error="Bad Request",
-        code="BAD_JSON",
-        details=str(e.description) if getattr(e, "description", None) else "Malformed or missing JSON body",
-        status=400,
-    )
-
+    return _error_json("Bad Request", "BAD_JSON", str(e.description), 400)
 
 @app.errorhandler(OperationFailure)
-def _handle_mongo_operation_failure(e: Exception):
-    """Handle MongoDB operation failures, mapping auth errors to 403."""
+def _handle_mongo_failure(e: Exception):
     msg = str(e)
     if "not authorized" in msg.lower():
-        return _error_json(
-            error="Forbidden (database)",
-            code="DB_UNAUTHORIZED",
-            details=msg,
-            status=403,
-        )
-    return _error_json(
-        error="Database error",
-        code="DB_OPERATION_FAILURE",
-        details=msg,
-        status=500,
-    )
-
+        return _error_json("Forbidden (database)", "DB_UNAUTHORIZED", msg, 403)
+    return _error_json("Database error", "DB_OPERATION_FAILURE", msg, 500)
 
 @app.errorhandler(HTTPException)
 def _handle_http_exception(e: HTTPException):
-    # Make all Werkzeug HTTP errors consistent
-    return _error_json(
-        error=e.name or "HTTP Error",
-        code=f"HTTP_{e.code}",
-        details=e.description,
-        status=e.code,
-    )
-
+    return _error_json(e.name or "HTTP Error", f"HTTP_{e.code}", e.description, e.code)
 
 @app.errorhandler(Exception)
 def _handle_generic(e: Exception):
-    # Last-resort handler; don't leak internals in production
     server_logger.exception("Unhandled error: %s", e)
     details = str(e) if app.debug else "An unexpected error occurred"
-    return _error_json(
-        error="Internal Server Error",
-        code="INTERNAL_ERROR",
-        details=details,
-        status=500,
-    )
-
-# Blueprints
-app.register_blueprint(users_bp, url_prefix="/api")
-app.register_blueprint(users_read_bp, url_prefix="/api")
-if audit_bp:
-    app.register_blueprint(audit_bp, url_prefix="/api")
+    return _error_json("Internal Server Error", "INTERNAL_ERROR", details, 500)
 
 
 # Health / info endpoint
