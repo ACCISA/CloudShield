@@ -1,0 +1,57 @@
+ARG BASEOS_DIGEST
+FROM docker.io/library/ubuntu:24.04${BASEOS_DIGEST:-}
+# This dockerfile will mimic a cloud provisioned samba ad dc
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    rsyslog systemd systemd-cron sudo wget curl\
+    samba-ad-dc samba-ad-provision \
+    krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
+    libldb-dev samba-libs ldb-tools libldb2\
+    iproute2 \
+    && rm -Rf /var/lib/apt/lists/* \
+    && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
+    && apt-get clean
+RUN sed -i 's/^\($ModLoad imklog\)/#\1/' /etc/rsyslog.conf
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=1046469#c11
+# https://github.com/ansible-community/molecule/issues/1104
+RUN rm -f /lib/systemd/system/systemd*udev* \
+    && rm -f /lib/systemd/system/getty.target
+
+# Setup for ssh daemon
+RUN mkdir /var/run/sshd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
+
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY docker/openvpn /etc/openvpn
+
+# copy our rpc server binary and service
+# NOTE build binary before running container
+COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/cs-rpcsrv
+COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
+
+# Copy entrypoint script
+COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# we created a fake sudo script for comaptibilty between docker and cloud dev/testing
+RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
+    echo 'exec "$@"' >> /usr/local/bin/sudo
+
+RUN chmod +x /usr/local/bin/sudo
+
+STOPSIGNAL SIGRTMIN+3
+
+VOLUME ["/sys/fs/cgroup"]
+#ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/sbin/init"]
