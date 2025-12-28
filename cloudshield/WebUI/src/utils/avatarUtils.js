@@ -57,5 +57,6 @@ export function getInitials(name) {
  * @returns {string} Random hex color
  */
 export function getRandomAvatarColor() {
+  // Using Math.random() is safe here - it's only for UI color selection, not security
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 }

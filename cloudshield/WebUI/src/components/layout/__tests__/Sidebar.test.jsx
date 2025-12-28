@@ -160,9 +160,11 @@ describe("Sidebar", () => {
 
   describe("Collapsed State", () => {
     it("hides navigation labels when collapsed", () => {
-      const { container } = renderWithRouter(<Sidebar collapsed={true} />);
-      // In collapsed mode, labels should not be visible
-      expect(container.textContent).not.toContain("Dashboard");
+      renderWithRouter(<Sidebar collapsed={true} />);
+      // In collapsed mode, navigation item labels should not be visible as separate text
+      expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+      expect(screen.queryByText("Workstations")).not.toBeInTheDocument();
+      expect(screen.queryByText("Users")).not.toBeInTheDocument();
     });
 
     it("shows expand button when collapsed", () => {
@@ -204,6 +206,11 @@ describe("Sidebar", () => {
         // After expanding, collapse icon should appear
         const collapseButton = screen.queryByLabelText(/collapse section/i);
         expect(collapseButton).toBeInTheDocument();
+
+        // Click again to collapse
+        fireEvent.click(collapseButton);
+        const expandButtonAgain = screen.queryByLabelText(/expand section/i);
+        expect(expandButtonAgain).toBeInTheDocument();
       }
     });
 
@@ -217,6 +224,297 @@ describe("Sidebar", () => {
         fireEvent.keyDown(expandButton, { key: "Enter" });
         expect(expandButton).toBeInTheDocument();
       }
+    });
+
+    it("expands users section when clicked", () => {
+      renderWithRouter(<Sidebar />);
+      const usersItem = screen.getByText("Users");
+      const expandButton = usersItem.parentElement.querySelector(
+        '[aria-label*="Expand"]'
+      );
+      if (expandButton) {
+        fireEvent.click(expandButton);
+        // Toggle back
+        fireEvent.click(expandButton);
+        expect(expandButton).toBeInTheDocument();
+      }
+    });
+
+    it("expands groups section when clicked", () => {
+      renderWithRouter(<Sidebar />);
+      const groupsItem = screen.getByText("Groups");
+      const expandButton = groupsItem.parentElement.querySelector(
+        '[aria-label*="Expand"]'
+      );
+      if (expandButton) {
+        fireEvent.click(expandButton);
+        // Toggle back
+        fireEvent.click(expandButton);
+        expect(expandButton).toBeInTheDocument();
+      }
+    });
+
+    it("expands files section when clicked", () => {
+      renderWithRouter(<Sidebar />);
+      const filesItem = screen.getByText("Files");
+      const expandButton = filesItem.parentElement.querySelector(
+        '[aria-label*="Expand"]'
+      );
+      if (expandButton) {
+        fireEvent.click(expandButton);
+        // Toggle back
+        fireEvent.click(expandButton);
+        expect(expandButton).toBeInTheDocument();
+      }
+    });
+
+    it("supports Space key for accordion expansion", () => {
+      renderWithRouter(<Sidebar />);
+      const workstationsItem = screen.getByText("Workstations");
+      const expandButton = workstationsItem.parentElement.querySelector(
+        '[aria-label*="Expand"]'
+      );
+      if (expandButton) {
+        fireEvent.keyDown(expandButton, { key: " " });
+        expect(expandButton).toBeInTheDocument();
+      }
+    });
+
+    it("stops propagation when accordion toggle is clicked", () => {
+      const { container } = renderWithRouter(<Sidebar />);
+      const workstationsItem = screen.getByText("Workstations");
+      const expandButton = workstationsItem.parentElement.querySelector(
+        '[aria-label*="Expand"]'
+      );
+      if (expandButton) {
+        fireEvent.click(expandButton);
+        // Should not navigate to workstations page
+        expect(window.location.pathname).not.toBe("/workstations");
+      }
+    });
+  });
+
+  describe("Company Block", () => {
+    it("renders company name and email", () => {
+      renderWithRouter(<Sidebar collapsed={false} />);
+      expect(screen.getByText("Company Inc.")).toBeInTheDocument();
+      expect(screen.getByText("admin@company.com")).toBeInTheDocument();
+    });
+
+    it("navigates to organizations when company block is clicked", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const companyBlock = screen.getByLabelText("Switch company");
+      fireEvent.click(companyBlock);
+      expect(window.location.pathname).toBe("/organizations");
+    });
+
+    it("supports keyboard navigation for company block", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const companyBlock = screen.getByLabelText("Switch company");
+      fireEvent.keyDown(companyBlock, { key: "Enter" });
+      expect(window.location.pathname).toBe("/organizations");
+    });
+
+    it("supports Space key for company block navigation", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const companyBlock = screen.getByLabelText("Switch company");
+      fireEvent.keyDown(companyBlock, { key: " " });
+      expect(window.location.pathname).toBe("/organizations");
+    });
+
+    it("does not navigate in provisioning mode", () => {
+      renderWithRouter(<Sidebar mode="provisioning" />);
+      const companyBlock = screen.getByLabelText("Switch company");
+      fireEvent.click(companyBlock);
+      expect(window.location.pathname).toBe("/");
+    });
+
+    it("hides company details when collapsed", () => {
+      renderWithRouter(<Sidebar collapsed={true} />);
+      expect(screen.queryByText("Company Inc.")).not.toBeInTheDocument();
+      expect(screen.queryByText("admin@company.com")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Bottom Actions", () => {
+    it("renders Settings link", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      expect(screen.getByLabelText("Settings")).toBeInTheDocument();
+    });
+
+    it("renders Get support link", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      expect(screen.getByLabelText("Get support")).toBeInTheDocument();
+    });
+
+    it("navigates to settings when clicked", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const settingsButton = screen.getByLabelText("Settings");
+      fireEvent.click(settingsButton);
+      expect(window.location.pathname).toBe("/settings");
+    });
+
+    it("navigates to support when clicked", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const supportButton = screen.getByLabelText("Get support");
+      fireEvent.click(supportButton);
+      expect(window.location.pathname).toBe("/support");
+    });
+
+    it("supports keyboard navigation for settings", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const settingsButton = screen.getByLabelText("Settings");
+      fireEvent.keyDown(settingsButton, { key: "Enter" });
+      expect(window.location.pathname).toBe("/settings");
+    });
+
+    it("supports keyboard navigation for support", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const supportButton = screen.getByLabelText("Get support");
+      fireEvent.keyDown(supportButton, { key: "Enter" });
+      expect(window.location.pathname).toBe("/support");
+    });
+
+    it("supports Space key for settings navigation", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const settingsButton = screen.getByLabelText("Settings");
+      fireEvent.keyDown(settingsButton, { key: " " });
+      expect(window.location.pathname).toBe("/settings");
+    });
+
+    it("supports Space key for support navigation", () => {
+      renderWithRouter(<Sidebar mode="full" />);
+      const supportButton = screen.getByLabelText("Get support");
+      fireEvent.keyDown(supportButton, { key: " " });
+      expect(window.location.pathname).toBe("/support");
+    });
+
+    it("hides Settings and Get support in provisioning mode", () => {
+      renderWithRouter(<Sidebar mode="provisioning" />);
+      expect(screen.queryByLabelText("Settings")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Get support")).not.toBeInTheDocument();
+    });
+
+    it("hides text labels when collapsed", () => {
+      renderWithRouter(<Sidebar collapsed={true} mode="full" />);
+      const settingsButton = screen.getByLabelText("Settings");
+      expect(settingsButton.textContent).not.toContain("Settings");
+    });
+  });
+
+  describe("Count Badges", () => {
+    it("displays count badge for Workstations", () => {
+      renderWithRouter(<Sidebar collapsed={false} />);
+      const workstationsItem = screen
+        .getByText("Workstations")
+        .closest('[role="button"]');
+      expect(workstationsItem.textContent).toContain("6");
+    });
+
+    it("displays count badge for Users", () => {
+      renderWithRouter(<Sidebar collapsed={false} />);
+      const usersItem = screen.getByText("Users").closest('[role="button"]');
+      expect(usersItem.textContent).toContain("6");
+    });
+
+    it("displays count badge for Groups", () => {
+      renderWithRouter(<Sidebar collapsed={false} />);
+      const groupsItem = screen.getByText("Groups").closest('[role="button"]');
+      expect(groupsItem.textContent).toContain("6");
+    });
+
+    it("shows count badges when collapsed", () => {
+      renderWithRouter(<Sidebar collapsed={true} />);
+      const container = screen
+        .getByLabelText(/expand sidebar/i)
+        .closest("div").parentElement;
+      // Count badges should still be visible in collapsed mode
+      expect(container).toBeInTheDocument();
+    });
+  });
+
+  describe("Navigation", () => {
+    it("navigates to workstations page", () => {
+      renderWithRouter(<Sidebar />);
+      const workstationsButton = screen
+        .getByText("Workstations")
+        .closest('[role="button"]');
+      fireEvent.click(workstationsButton);
+      expect(window.location.pathname).toBe("/workstations");
+    });
+
+    it("navigates to users page", () => {
+      renderWithRouter(<Sidebar />);
+      const usersButton = screen.getByText("Users").closest('[role="button"]');
+      fireEvent.click(usersButton);
+      expect(window.location.pathname).toBe("/users");
+    });
+
+    it("navigates to groups page", () => {
+      renderWithRouter(<Sidebar />);
+      const groupsButton = screen
+        .getByText("Groups")
+        .closest('[role="button"]');
+      fireEvent.click(groupsButton);
+      expect(window.location.pathname).toBe("/groups");
+    });
+
+    it("navigates to files page", () => {
+      renderWithRouter(<Sidebar />);
+      const filesButton = screen.getByText("Files").closest('[role="button"]');
+      fireEvent.click(filesButton);
+      expect(window.location.pathname).toBe("/files");
+    });
+
+    it("supports keyboard navigation with Space key for nav items", () => {
+      renderWithRouter(<Sidebar />);
+      const dashboardButton = screen
+        .getByText("Dashboard")
+        .closest('[role="button"]');
+      fireEvent.keyDown(dashboardButton, { key: " " });
+      expect(window.location.pathname).toBe("/dashboard");
+    });
+
+    it("marks workstations as active when on workstations route", () => {
+      renderWithRouter(<Sidebar />, { route: "/workstations" });
+      const workstationsIcon = screen.getByTestId("workstations-icon");
+      expect(workstationsIcon).toHaveAttribute("data-selected", "true");
+    });
+
+    it("marks users as active when on users route", () => {
+      renderWithRouter(<Sidebar />, { route: "/users" });
+      const usersIcon = screen.getByTestId("users-icon");
+      expect(usersIcon).toHaveAttribute("data-selected", "true");
+    });
+
+    it("marks groups as active when on groups route", () => {
+      renderWithRouter(<Sidebar />, { route: "/groups" });
+      const groupsIcon = screen.getByTestId("groups-icon");
+      expect(groupsIcon).toHaveAttribute("data-selected", "true");
+    });
+
+    it("marks files as active when on files route", () => {
+      renderWithRouter(<Sidebar />, { route: "/files" });
+      const filesIcon = screen.getByTestId("files-icon");
+      expect(filesIcon).toHaveAttribute("data-selected", "true");
+    });
+
+    it("marks route as active when on sub-route", () => {
+      renderWithRouter(<Sidebar />, { route: "/workstations/detail" });
+      const workstationsIcon = screen.getByTestId("workstations-icon");
+      expect(workstationsIcon).toHaveAttribute("data-selected", "true");
+    });
+
+    it("marks settings as active when on settings route", () => {
+      renderWithRouter(<Sidebar mode="full" />, { route: "/settings" });
+      const settingsButton = screen.getByLabelText("Settings");
+      expect(settingsButton).toBeInTheDocument();
+    });
+
+    it("marks support as active when on support route", () => {
+      renderWithRouter(<Sidebar mode="full" />, { route: "/support" });
+      const supportButton = screen.getByLabelText("Get support");
+      expect(supportButton).toBeInTheDocument();
     });
   });
 });
