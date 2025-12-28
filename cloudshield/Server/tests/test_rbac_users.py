@@ -1,5 +1,10 @@
 import unittest.mock
 
+# Mock RQ and provisioner before any other imports to avoid Redis import errors
+mock_rq = unittest.mock.MagicMock()
+mock_rq.get_current_job.return_value = None
+mock_provisioner = unittest.mock.MagicMock()
+
 mock_mongo_client = unittest.mock.MagicMock()
 mock_mongo_client.return_value.admin.command.return_value = None
 
@@ -13,6 +18,10 @@ mock_pymongo.MongoClient = mock_mongo_client
 mock_pymongo.errors = mock_errors
 
 import sys
+
+# Register mocks in sys.modules before any imports that might need them
+sys.modules['rq'] = mock_rq
+sys.modules['provisioner'] = mock_provisioner
 
 import importlib
 import types
@@ -113,26 +122,32 @@ class FakeCollection:
         return _DeleteRes(0)
 
 
-def install_fake_models_user_module():
+def install_real_pydantic_models():
+    """Import real Pydantic models to get validation behavior in tests"""
+    import sys
+    from pathlib import Path
+    
+    # Add the parent directory to path so we can import models
+    server_dir = Path(__file__).parent.parent
+    if str(server_dir) not in sys.path:
+        sys.path.insert(0, str(server_dir))
+    
+    # Import the real UserCreate and UserUpdate Pydantic models
+    from models.user import UserCreate, UserUpdate
+    
+    # Create a models package module
     models_pkg = sys.modules.get("models") or types.ModuleType("models")
     sys.modules["models"] = models_pkg
 
+    # Create models.user submodule
     user_mod = types.ModuleType("models.user")
-
-    class _Base:
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-        def dict(self, **kwargs):
-            # Simulate pydantic .dict(exclude_unset=True)
-            return {k: v for k, v in self.__dict__.items()}
-
-    class UserCreate(_Base): ...
-    class UserUpdate(_Base): ...
-
     user_mod.UserCreate = UserCreate
     user_mod.UserUpdate = UserUpdate
     sys.modules["models.user"] = user_mod
+    
+    # Add to models package for direct imports (routes/users.py does: from models import UserCreate, UserUpdate)
+    models_pkg.UserCreate = UserCreate
+    models_pkg.UserUpdate = UserUpdate
 
 
 def install_fake_passwords_module():
@@ -180,6 +195,17 @@ def install_fake_services_user_service_module():
     svc_mod.deactivate_user = deactivate_user
     svc_mod.delete_user = delete_user
     sys.modules["services.user_service"] = svc_mod
+    
+    # routes/users.py imports directly from 'services' package: from services import create_user, ...
+    # So attach functions to the package object for package-level imports to work
+    services_pkg.service_dispatcher = lambda *args, **kwargs: {"status": "ok"}
+    services_pkg.get_job_status = lambda *args, **kwargs: {"status": "pending"}
+    services_pkg.health_status = lambda *args, **kwargs: {"status": "healthy"}
+    services_pkg.create_user = create_user
+    services_pkg.update_user = update_user
+    services_pkg.deactivate_user = deactivate_user
+    services_pkg.delete_user = delete_user
+    services_pkg.list_users = lambda *args, **kwargs: []
 
 
 @pytest.fixture(autouse=True)
@@ -213,7 +239,7 @@ def fake_users_collection(monkeypatch):
 @pytest.fixture
 def app_and_client(monkeypatch, fake_users_collection):
     install_fake_guards_module()
-    install_fake_models_user_module()
+    install_real_pydantic_models()
     install_fake_passwords_module()
     install_fake_services_user_service_module()
     
@@ -256,8 +282,8 @@ def test_authentication_and_authorization(app_and_client):
     # Test employee cannot create users (role-based access)
     r = client.post("/users", headers={"Authorization": "Bearer employee:org_001:u1"},
                    json={"email": "emp@test.com", "password": "SecretPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Employee"})
-    assert r.status_code == 401
-    assert r.get_json()["error"] == "Unauthorized"
+    assert r.status_code == 403  # 403: Authenticated but insufficient privileges
+    assert r.get_json()["error"] == "Forbidden"
 
 def test_user_creation_and_business_logic(app_and_client, fake_users_collection, monkeypatch):
     """Test user creation with password hashing and duplicate email handling"""
@@ -311,7 +337,7 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     def _fake_update_user(user_id, update_data, *args, **kwargs):
         if user_id == "missing":
             raise ValueError(f"User {user_id} not found")
-        new_fields = {k: v for k, v in update_data.dict().items()}
+        new_fields = {k: v for k, v in update_data.model_dump().items()}
         doc = fake_users_collection.find_one({"_id": user_id})
         if not doc:
             raise ValueError(f"User {user_id} not found")
@@ -336,7 +362,7 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     # Test employee cannot update
     r = client.patch("/users/abc123", headers={"Authorization": "Bearer employee:org_001:u2"},
                     json={"full_name": "Blocked"})
-    assert r.status_code == 401
+    assert r.status_code == 403  # 403: Authenticated but insufficient privileges
     
     # Test missing user returns 404
     r = client.patch("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"},
@@ -386,21 +412,26 @@ def test_user_deactivate_and_delete_operations(app_and_client, fake_users_collec
     
     r2 = client.delete(f"/users/{uid1}", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r2.status_code == 200
+    assert r2.get_json() == {"message": "User deleted"}  # Verify response format
     assert fake_users_collection.find_one({"_id": uid1}) is None
 
     # Test employee cannot deactivate or delete
     r3 = client.post(f"/users/{uid2}/deactivate", headers={"Authorization": "Bearer employee:org_001:u2"})
-    assert r3.status_code == 401
+    assert r3.status_code == 403  # Should be 403 (authenticated but wrong role)
+    assert "error" in r3.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2})["status"] == "active"
     
     r4 = client.delete(f"/users/{uid2}", headers={"Authorization": "Bearer employee:org_001:u2"})
-    assert r4.status_code == 401
+    assert r4.status_code == 403  # Should be 403 (authenticated but wrong role)
+    assert "error" in r4.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2}) is not None
     
     # Test missing user returns 404
     r5 = client.post("/users/missing/deactivate", headers={"Authorization": "Bearer admin:org_001:u1"})
     r6 = client.delete("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r5.status_code == 404 and r6.status_code == 404
+    assert "error" in r5.get_json()  # Verify error response format for deactivate
+    assert "error" in r6.get_json()  # Verify error response format for delete
 
 def test_password_handling_and_error_scenarios(app_and_client, fake_users_collection, monkeypatch):
     """Test password hashing in updates and various error scenarios"""
@@ -413,8 +444,8 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
     
     def _fake_update_user(user_id, update_data, *args, **kwargs):
         doc = fake_users_collection.find_one({"_id": user_id})
-        if "password" in update_data.dict():
-            doc["password"] = hash_password(update_data.dict()["password"])
+        if "password" in update_data.model_dump():
+            doc["password"] = hash_password(update_data.model_dump()["password"])
         fake_users_collection._docs[user_id] = doc
         return True
     
@@ -551,3 +582,86 @@ def test_extract_reason_precedence(app_and_client, monkeypatch):
     )
     assert resp2.status_code == 200
     assert captured["query_reason"] == "query only"
+
+
+class TestDeleteUserEndpoint:
+    """Test class for delete_user_endpoint covering all requirements"""
+    
+    @pytest.fixture
+    def mock_delete_service(self, monkeypatch):
+        """Setup mock delete_user service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_delete_user(user_id, *args, **kwargs):
+            """Mock delete_user service with controlled behavior"""
+            if user_id == "not_found":
+                raise ValueError(f"User {user_id} not found")
+            if user_id == "server_error":
+                raise RuntimeError("Database connection failed")
+            # Success case
+            return True
+        
+        monkeypatch.setattr(users_routes, "delete_user", _fake_delete_user, raising=True)
+        return _fake_delete_user
+    
+    def test_delete_user_success_response_format(self, app_and_client, mock_delete_service):
+        """Test successful deletion returns 200 with correct response format"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/valid_user_123",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 200
+        assert resp.get_json() == {"message": "User deleted"}
+    
+    def test_delete_user_not_found_response(self, app_and_client, mock_delete_service):
+        """Test user not found returns 404 with error message"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/not_found",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 404
+        json_data = resp.get_json()
+        assert "error" in json_data
+        assert "not found" in json_data["error"].lower()
+    
+    def test_delete_user_forbidden_non_admin(self, app_and_client, mock_delete_service):
+        """Test non-admin user cannot delete (403 - authenticated but insufficient privileges)"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/valid_user_123",
+            headers={"Authorization": "Bearer employee:org_001:u2"}
+        )
+        
+        assert resp.status_code == 403  # 403: Authenticated but wrong role
+        json_data = resp.get_json()
+        assert "error" in json_data
+        assert "forbidden" in json_data["error"].lower()
+    
+    def test_delete_user_internal_server_error(self, app_and_client, mock_delete_service):
+        """Test internal server error returns 500 with standard error message"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/server_error",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 500
+        json_data = resp.get_json()
+        assert "error" in json_data
+        assert json_data["error"] == "Internal server error"
+    
+    def test_delete_user_no_authentication(self, app_and_client, mock_delete_service):
+        """Test unauthenticated request is blocked (401 - no valid credentials)"""
+        app, client = app_and_client
+        
+        resp = client.delete("/users/valid_user_123")
+        
+        assert resp.status_code == 401  # 401: Not authenticated at all
