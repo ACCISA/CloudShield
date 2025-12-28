@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
 import PlanCard from "../components/signup/PlanCard.jsx";
@@ -131,103 +132,61 @@ export default function SignupPage({ onSignupSuccess }) {
     return Object.keys(next).length === 0;
   };
 
+  function extractServerErrors(res, data) {
+    if (res.status === 400) {
+      if (data.errors && typeof data.errors === 'object') {
+        return data.errors;
+      }
+      return { form: data.message || "Validation error. Please check your inputs." };
+    }
+  
+    if (res.status === 409) {
+      return { form: data.message || "An account with this email or organization ID already exists." };
+    }
+  
+    if (!res.ok) {
+      return { form: data.message || "Unexpected error during signup. Please try again." };
+    }
+  
+    return null;
+  }
+
+
   const handleSignup = async () => {
     if (!validate()) return;
-
+  
     setSubmitting(true);
-    // keep field errors, but clear global form error
     setErrors((prev) => ({ ...prev, form: undefined }));
-
+  
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          company_name: company,
-          org_id: orgId,
-          plan,
-        }),
-      });
-
+      const res = await fetch("");
       let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (res.status === 400) {
-        const serverErrors = {};
-        if (data.errors && typeof data.errors === "object") {
-          for (const [field, msg] of Object.entries(data.errors)) {
-            serverErrors[field] = msg;
-          }
-        } else if (data.message) {
-          serverErrors.form = data.message;
-        } else {
-          serverErrors.form = "Validation error. Please check your inputs.";
-        }
+  
+      try { data = await res.json(); } catch {}
+  
+      const serverErrors = extractServerErrors(res, data);
+      if (serverErrors) {
         setErrors((prev) => ({ ...prev, ...serverErrors }));
         return;
       }
-
-      if (res.status === 409) {
-        setErrors((prev) => ({
-          ...prev,
-          form:
-            data.message ||
-            "An account with this email or organization ID already exists.",
-        }));
-        return;
-      }
-
-      if (!res.ok) {
-        setErrors((prev) => ({
-          ...prev,
-          form:
-            data.message ||
-            "Unexpected error during signup. Please try again.",
-        }));
-        return;
-      }
-
+  
       const token = data.token || data.access_token || null;
-      const user =
-        data.user || {
-          email,
-          company_name: company,
-          org_id: orgId,
-          plan,
-        };
-
-      // Store JWT locally
+      const user = data.user || { email, company_name: company, org_id: orgId, plan };
+  
       if (token) {
-        try {
-          localStorage.setItem("jwt", token);
-        } catch {
-          // ignore
-        }
+        try { localStorage.setItem("jwt", token); } catch {}
       }
-
-      if (onSignupSuccess) {
-        onSignupSuccess({ token, user });
-      }
-
-      // After successful signup, go directly to provisioning
+  
+      onSignupSuccess?.({ token, user });
       navigate("/provisioning", { replace: true });
+  
     } catch (err) {
-      setErrors((prev) => ({
-        ...prev,
-        form:
-          err?.message ||
-          "Network error during signup. Please check your connection and try again.",
-      }));
+      setErrors((prev) => ({ ...prev, form: err?.message || "Network error during signup." }));
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <Box
@@ -329,7 +288,7 @@ export default function SignupPage({ onSignupSuccess }) {
               value={orgId}
               onChange={(e) =>
                 setOrgId(
-                  e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")
+                  e.target.value.toLowerCase().replaceAll(/[^a-z0-9]/g, "")
                 )
               }
             />
@@ -382,3 +341,7 @@ export default function SignupPage({ onSignupSuccess }) {
     </Box>
   );
 }
+
+SignupPage.propTypes = {
+  onSignupSuccess: PropTypes.func,
+};
