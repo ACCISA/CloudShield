@@ -21,6 +21,7 @@ def _setup_mocks():
     original_rq = sys.modules.get('rq')
     original_provisioner = sys.modules.get('provisioner')
     original_pymongo = sys.modules.get('pymongo')
+    original_pymongo_errors = sys.modules.get('pymongo.errors')
     original_security_guards = sys.modules.get('security.guards')
     
     # Install mocks
@@ -50,13 +51,13 @@ def _setup_mocks():
         ('rq', original_rq),
         ('provisioner', original_provisioner),
         ('pymongo', original_pymongo),
+        ('pymongo.errors', original_pymongo_errors),
         ('security.guards', original_security_guards)
     ]:
         if original is None:
             sys.modules.pop(name, None)
         else:
             sys.modules[name] = original
-    sys.modules.pop('pymongo.errors', None)
 
 
 
