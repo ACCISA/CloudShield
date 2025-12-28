@@ -470,3 +470,39 @@ class TestUserService:
             "org_id": "org_123",
             "username": "nonexistent"
         })
+
+    def test_remove_domain_user_from_db_audit_exception(self, setup_mocks):
+        """Test that audit logging exceptions don't block user deletion"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import remove_domain_user_from_db
+        
+        # Setup
+        deleted_user = {
+            "_id": ObjectId(),
+            "username": "testuser",
+            "email": "test@example.com",
+            "role": "employee",
+            "status": "active",
+            "org_id": "org_123"
+        }
+        
+        # Mock find_one_and_delete to return a user (successful deletion)
+        mocks['users_admin'].find_one_and_delete.return_value = deleted_user
+        
+        # Mock log_audit to raise an exception
+        mocks['log_audit'].side_effect = Exception("Audit system unavailable")
+        
+        # Execute - should still succeed despite audit failure
+        result = remove_domain_user_from_db(
+            org_id="org_123",
+            username="testuser",
+            job_id="job_456"
+        )
+        
+        # Assert
+        assert result is True  # Deletion succeeds even if audit fails
+        mocks['users_admin'].find_one_and_delete.assert_called_once_with({
+            "org_id": "org_123",
+            "username": "testuser"
+        })
+        mocks['log_audit'].assert_called_once()  # Audit was attempted
