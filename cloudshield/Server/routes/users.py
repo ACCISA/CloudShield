@@ -22,10 +22,6 @@ This module exposes CRUD-like admin actions on users:
 Security:
 - All routes require a valid JWT ('require_auth') and the "admin" role ('require_role("admin")').
 
-Validation:
-- Only POST /users and PATCH /users/<user_id> use Pydantic models (UserCreate/UserUpdate) for
-  request validation, so only these endpoints can raise ValidationError.
-- Other endpoints don't parse complex request bodies and thus don't need ValidationError handling.
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
