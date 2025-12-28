@@ -6,16 +6,22 @@ import pytest
 from bson import ObjectId
 
 
-# Mock pymongo first
+# Mock pymongo, rq, and provisioner first
 mock_pymongo = unittest.mock.MagicMock()
 mock_pymongo_errors = unittest.mock.MagicMock()
+mock_rq = unittest.mock.MagicMock()
+mock_rq.get_current_job = unittest.mock.MagicMock(return_value=None)
+mock_provisioner = unittest.mock.MagicMock()
+mock_provisioner.get_target_dir = unittest.mock.MagicMock(return_value="/mock/path")
 
 
 @pytest.fixture(autouse=True)
 def setup_pymongo_mocks(monkeypatch):
-    """Set up pymongo mocks with proper cleanup"""
+    """Set up pymongo, rq, and provisioner mocks with proper cleanup"""
     monkeypatch.setitem(sys.modules, 'pymongo', mock_pymongo)
     monkeypatch.setitem(sys.modules, 'pymongo.errors', mock_pymongo_errors)
+    monkeypatch.setitem(sys.modules, 'rq', mock_rq)
+    monkeypatch.setitem(sys.modules, 'provisioner', mock_provisioner)
 
 
 class TestUserService:
@@ -413,3 +419,54 @@ class TestUserService:
         assert users[0]["_id"] == "507f1f77bcf86cd799439011"
         assert users[0]["created_at"] == created.isoformat()
         assert users[0]["updated_at"] == updated.isoformat()
+
+    def test_remove_domain_user_from_db_success(self, setup_mocks):
+        """Test successful removal of domain user from database"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import remove_domain_user_from_db
+        
+        # Mock find_one_and_delete to return deleted user
+        deleted_user = {
+            "_id": ObjectId("507f1f77bcf86cd799439011"),
+            "username": "testuser",
+            "org_id": "org_123",
+            "email": "test@example.com",
+            "role": "employee",
+            "status": "active"
+        }
+        mocks['users_admin'].find_one_and_delete.return_value = deleted_user
+        
+        # Execute
+        result = remove_domain_user_from_db(
+            org_id="org_123",
+            username="testuser",
+            job_id="job-456"
+        )
+        
+        # Assert
+        assert result is True
+        mocks['users_admin'].find_one_and_delete.assert_called_once_with({
+            "org_id": "org_123",
+            "username": "testuser"
+        })
+
+    def test_remove_domain_user_from_db_not_found(self, setup_mocks):
+        """Test when domain user doesn't exist in database"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import remove_domain_user_from_db
+        
+        # Mock find_one_and_delete to return None (user not found)
+        mocks['users_admin'].find_one_and_delete.return_value = None
+        
+        # Execute
+        result = remove_domain_user_from_db(
+            org_id="org_123",
+            username="nonexistent"
+        )
+        
+        # Assert
+        assert result is False
+        mocks['users_admin'].find_one_and_delete.assert_called_once_with({
+            "org_id": "org_123",
+            "username": "nonexistent"
+        })
