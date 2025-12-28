@@ -18,6 +18,11 @@ This module exposes CRUD-like admin actions on users:
 
 Security:
 - All routes require a valid JWT ('require_auth') and the "admin" role ('require_role("admin")').
+
+Validation:
+- Only POST /users and PATCH /users/<user_id> use Pydantic models (UserCreate/UserUpdate) for
+  request validation, so only these endpoints can raise ValidationError.
+- Other endpoints don't parse complex request bodies and thus don't need ValidationError handling.
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
@@ -117,7 +122,17 @@ def create_user_endpoint():
         user_id = create_user(user_data, current_user=g.user, reason=reason)
         return jsonify({"user_id": user_id}), 201
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        # Pydantic's e.errors() contains non-JSON-serializable ValueError objects.
+        # Extract only serializable fields to avoid TypeError when calling jsonify().
+        details = [
+            {
+                "field": ".".join(str(loc) for loc in err["loc"]),
+                "message": err["msg"],
+                "type": err["type"]
+            }
+            for err in e.errors()
+        ]
+        return jsonify({"error": "Validation failed", "details": details}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
@@ -163,7 +178,17 @@ def update_user_endpoint(user_id):
         update_user(user_id, update_data, current_user=g.user, reason=reason)
         return jsonify({"message": "User updated"}), 200
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        # Pydantic's e.errors() contains non-JSON-serializable ValueError objects.
+        # Extract only serializable fields to avoid TypeError when calling jsonify().
+        details = [
+            {
+                "field": ".".join(str(loc) for loc in err["loc"]),
+                "message": err["msg"],
+                "type": err["type"]
+            }
+            for err in e.errors()
+        ]
+        return jsonify({"error": "Validation failed", "details": details}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
