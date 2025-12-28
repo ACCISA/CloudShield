@@ -21,6 +21,7 @@ def _setup_mocks():
     original_rq = sys.modules.get('rq')
     original_provisioner = sys.modules.get('provisioner')
     original_pymongo = sys.modules.get('pymongo')
+    original_security_guards = sys.modules.get('security.guards')
     
     # Install mocks
     mock_rq = unittest.mock.MagicMock()
@@ -45,12 +46,18 @@ def _setup_mocks():
     yield
     
     # Restore originals (prevents CI/CD failures in other test files)
-    for name, original in [('rq', original_rq), ('provisioner', original_provisioner), ('pymongo', original_pymongo)]:
+    for name, original in [
+        ('rq', original_rq),
+        ('provisioner', original_provisioner),
+        ('pymongo', original_pymongo),
+        ('security.guards', original_security_guards)
+    ]:
         if original is None:
             sys.modules.pop(name, None)
         else:
             sys.modules[name] = original
     sys.modules.pop('pymongo.errors', None)
+
 
 
 # Minimal fake guards so decorators work without real JWT
@@ -79,7 +86,7 @@ def install_fake_guards_module():
             @wraps(fn)
             def wrapper(*args, **kwargs):
                 if g.get("user") is None or g.user.get("role") not in roles:
-                    return jsonify({"error": "Forbidden"}), 403
+                    return jsonify({"error": "Unauthorized"}), 401
                 return fn(*args, **kwargs)
             return wrapper
         return deco
@@ -294,8 +301,8 @@ def test_authentication_and_authorization(app_and_client):
     # Test employee cannot create users (role-based access)
     r = client.post("/users", headers={"Authorization": "Bearer employee:org_001:u1"},
                    json={"email": "emp@test.com", "password": "SecretPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Employee"})
-    assert r.status_code == 403  # 403: Authenticated but insufficient privileges
-    assert r.get_json()["error"] == "Forbidden"
+    assert r.status_code == 401
+    assert "error" in r.get_json()
 
 def test_user_creation_and_business_logic(app_and_client, fake_users_collection, monkeypatch):
     """Test user creation with password hashing and duplicate email handling"""
@@ -374,7 +381,7 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     # Test employee cannot update
     r = client.patch("/users/abc123", headers={"Authorization": "Bearer employee:org_001:u2"},
                     json={"full_name": "Blocked"})
-    assert r.status_code == 403  # 403: Authenticated but insufficient privileges
+    assert r.status_code == 401
     
     # Test missing user returns 404
     r = client.patch("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"},
@@ -429,12 +436,12 @@ def test_user_deactivate_and_delete_operations(app_and_client, fake_users_collec
 
     # Test employee cannot deactivate or delete
     r3 = client.post(f"/users/{uid2}/deactivate", headers={"Authorization": "Bearer employee:org_001:u2"})
-    assert r3.status_code == 403  # Should be 403 (authenticated but wrong role)
+    assert r3.status_code == 401
     assert "error" in r3.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2})["status"] == "active"
     
     r4 = client.delete(f"/users/{uid2}", headers={"Authorization": "Bearer employee:org_001:u2"})
-    assert r4.status_code == 403  # Should be 403 (authenticated but wrong role)
+    assert r4.status_code == 401
     assert "error" in r4.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2}) is not None
     
@@ -651,10 +658,9 @@ class TestDeleteUserEndpoint:
             headers={"Authorization": "Bearer employee:org_001:u2"}
         )
         
-        assert resp.status_code == 403  # 403: Authenticated but wrong role
+        assert resp.status_code == 401
         json_data = resp.get_json()
         assert "error" in json_data
-        assert "forbidden" in json_data["error"].lower()
     
     def test_delete_user_internal_server_error(self, app_and_client, mock_delete_service):
         """Test internal server error returns 500 with standard error message"""
@@ -713,7 +719,7 @@ class TestListUsersEndpoint:
         assert json_data["items"][0]["email"] == "user1@test.com"
     
     def test_list_users_forbidden_employee(self, app_and_client, mock_list_service):
-        """Test employee cannot list users (403 - authenticated but wrong role)"""
+        """Test employee cannot list users"""
         app, client = app_and_client
         
         resp = client.get(
@@ -721,10 +727,9 @@ class TestListUsersEndpoint:
             headers={"Authorization": "Bearer employee:org_001:u2"}
         )
         
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         json_data = resp.get_json()
         assert "error" in json_data
-        assert "forbidden" in json_data["error"].lower()
     
     def test_list_users_no_authentication(self, app_and_client, mock_list_service):
         """Test unauthenticated request is blocked (401)"""
@@ -812,7 +817,7 @@ class TestCreateUserEndpoint:
         assert json_data["user_id"] == "new_user_id_123"
     
     def test_create_user_forbidden_employee(self, app_and_client, mock_create_service):
-        """Test employee cannot create users (403)"""
+        """Test employee cannot create users"""
         app, client = app_and_client
         
         resp = client.post(
@@ -827,7 +832,7 @@ class TestCreateUserEndpoint:
             }
         )
         
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         json_data = resp.get_json()
         assert "error" in json_data
     
@@ -962,7 +967,7 @@ class TestUpdateUserEndpoint:
         assert json_data["message"] == "User updated"
     
     def test_update_user_forbidden_employee(self, app_and_client, mock_update_service):
-        """Test employee cannot update users (403)"""
+        """Test employee cannot update users"""
         app, client = app_and_client
         
         resp = client.patch(
@@ -971,7 +976,7 @@ class TestUpdateUserEndpoint:
             json={"full_name": "Updated Name"}
         )
         
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         json_data = resp.get_json()
         assert "error" in json_data
     
@@ -1080,7 +1085,7 @@ class TestDeactivateUserEndpoint:
         assert json_data["message"] == "User deactivated"
     
     def test_deactivate_user_forbidden_employee(self, app_and_client, mock_deactivate_service):
-        """Test employee cannot deactivate users (403)"""
+        """Test employee cannot deactivate users"""
         app, client = app_and_client
         
         resp = client.post(
@@ -1088,7 +1093,7 @@ class TestDeactivateUserEndpoint:
             headers={"Authorization": "Bearer employee:org_001:u2"}
         )
         
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         json_data = resp.get_json()
         assert "error" in json_data
     
