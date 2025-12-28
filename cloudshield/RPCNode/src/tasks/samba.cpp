@@ -162,3 +162,37 @@ bool SambaTask::DeleteSambaFileShare(std::string share_name)
 
     return false;
 }
+
+bool SambaTask::AddDNSRecord(AddDNSRecordData& dns_record, std::string& result)
+{
+	std::string full_cmd = BuildCommand(this->ADD_DNS_CMD,
+			dns_record.zone.c_str(),
+			dns_record.name.c_str(),
+			dns_record.target.c_str(),
+			dns_record.password.c_str());
+	
+	result =  this->RunCommand(full_cmd);
+
+	if (result.find("command not found") != std::string::npos) {
+		return false;
+	}
+
+	return true;
+}
+
+bool SambaTask::DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result)
+{
+	std::string full_cmd = BuildCommand(this->DELETE_DNS_CMD,
+			dns_record.zone.c_str(),
+			dns_record.name.c_str(),
+			dns_record.target.c_str(),
+			dns_record.password.c_str());
+
+	result = this->RunCommand(full_cmd);
+
+	if (result.find("command not found") != std::string::npos) {
+		return false;
+	}
+
+	return true;
+}

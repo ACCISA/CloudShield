@@ -7,7 +7,7 @@ RUN apt-get update \
     rsyslog systemd systemd-cron sudo \
     samba-ad-dc samba-ad-provision \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
-    libldb-dev samba-libs ldb-tools libldb2\
+    libldb-dev samba-libs ldb-tools libldb2 iputils-ping \
     iproute2 \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \

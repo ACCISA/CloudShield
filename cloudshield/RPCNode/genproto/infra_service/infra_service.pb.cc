@@ -294,6 +294,67 @@ struct DeleteSambaFileShareDataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteSambaFileShareDataDefaultTypeInternal _DeleteSambaFileShareData_default_instance_;
 
+inline constexpr DeleteDNSRecordDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DeleteDNSRecordDataAck::DeleteDNSRecordDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DeleteDNSRecordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DeleteDNSRecordDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DeleteDNSRecordDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DeleteDNSRecordDataAckDefaultTypeInternal() {}
+  union {
+    DeleteDNSRecordDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteDNSRecordDataAckDefaultTypeInternal _DeleteDNSRecordDataAck_default_instance_;
+
+inline constexpr DeleteDNSRecordData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        zone_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        password_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DeleteDNSRecordData::DeleteDNSRecordData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(DeleteDNSRecordData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DeleteDNSRecordDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DeleteDNSRecordDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DeleteDNSRecordDataDefaultTypeInternal() {}
+  union {
+    DeleteDNSRecordData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeleteDNSRecordDataDefaultTypeInternal _DeleteDNSRecordData_default_instance_;
+
 inline constexpr CreateSambaFileShareDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -403,6 +464,67 @@ struct AddDomainUserDataDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDomainUserDataDefaultTypeInternal _AddDomainUserData_default_instance_;
+
+inline constexpr AddDNSRecordDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AddDNSRecordDataAck::AddDNSRecordDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AddDNSRecordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AddDNSRecordDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AddDNSRecordDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AddDNSRecordDataAckDefaultTypeInternal() {}
+  union {
+    AddDNSRecordDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDNSRecordDataAckDefaultTypeInternal _AddDNSRecordDataAck_default_instance_;
+
+inline constexpr AddDNSRecordData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        zone_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        target_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        password_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AddDNSRecordData::AddDNSRecordData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AddDNSRecordData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AddDNSRecordDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AddDNSRecordDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AddDNSRecordDataDefaultTypeInternal() {}
+  union {
+    AddDNSRecordData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDNSRecordDataDefaultTypeInternal _AddDNSRecordData_default_instance_;
 }  // namespace v1
 }  // namespace infra_service
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
@@ -496,6 +618,38 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteSambaFileShareDataAck, _impl_.status_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordData, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordData, _impl_.zone_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordData, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordData, _impl_.target_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordData, _impl_.password_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordDataAck, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDNSRecordDataAck, _impl_.status_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordData, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordData, _impl_.zone_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordData, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordData, _impl_.target_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordData, _impl_.password_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordDataAck, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::DeleteDNSRecordDataAck, _impl_.status_),
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -514,6 +668,10 @@ static const ::_pbi::MigrationSchema
         {65, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
         {72, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
         {79, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
+        {84, sizeof(::infra_service::v1::AddDNSRecordData)},
+        {95, sizeof(::infra_service::v1::AddDNSRecordDataAck)},
+        {100, sizeof(::infra_service::v1::DeleteDNSRecordData)},
+        {111, sizeof(::infra_service::v1::DeleteDNSRecordDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
@@ -530,6 +688,10 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_GetFileShareSizeDataAck_default_instance_._instance,
     &::infra_service::v1::_DeleteSambaFileShareData_default_instance_._instance,
     &::infra_service::v1::_DeleteSambaFileShareDataAck_default_instance_._instance,
+    &::infra_service::v1::_AddDNSRecordData_default_instance_._instance,
+    &::infra_service::v1::_AddDNSRecordDataAck_default_instance_._instance,
+    &::infra_service::v1::_DeleteDNSRecordData_default_instance_._instance,
+    &::infra_service::v1::_DeleteDNSRecordDataAck_default_instance_._instance,
 };
 const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -558,31 +720,45 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "eShareData\022\022\n\nshare_name\030\001 \001(\t\022\021\n\twipe_d"
     "ata\030\002 \001(\010\"G\n\033DeleteSambaFileShareDataAck"
     "\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.Stat"
-    "us*\177\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n"
-    "\tDUPLICATE\020\002\022\022\n\016USER_NOT_FOUND\020\003\022\027\n\023PASS"
-    "WORD_REQ_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022\023\n\017SHARE_"
-    "NOT_FOUND\020\0062\264\006\n\014InfraService\022K\n\013GetUserL"
-    "ist\022\026.google.protobuf.Empty\032$.infra_serv"
-    "ice.v1.GetUserListDataAck\022[\n\023RestartSamb"
-    "aService\022\026.google.protobuf.Empty\032,.infra"
-    "_service.v1.RestartSambaServiceDataAck\022q"
-    "\n\024CreateSambaFileShare\022*.infra_service.v"
-    "1.CreateSambaFileShareData\032-.infra_servi"
-    "ce.v1.CreateSambaFileShareDataAck\022q\n\024Del"
-    "eteSambaFileShare\022*.infra_service.v1.Del"
-    "eteSambaFileShareData\032-.infra_service.v1"
-    ".DeleteSambaFileShareDataAck\022h\n\021ResetUse"
-    "rPassword\022\'.infra_service.v1.ResetUserPa"
-    "sswordData\032*.infra_service.v1.ResetUserP"
-    "asswordDataAck\022\\\n\rAddDomainUser\022#.infra_"
-    "service.v1.AddDomainUserData\032&.infra_ser"
-    "vice.v1.AddDomainUserDataAck\022e\n\020RemoveDo"
-    "mainUser\022&.infra_service.v1.RemoveDomain"
-    "UserData\032).infra_service.v1.RemoveDomain"
-    "UserDataAck\022e\n\020GetFileShareSize\022&.infra_"
-    "service.v1.GetFileShareSizeData\032).infra_"
-    "service.v1.GetFileShareSizeDataAckb\006prot"
-    "o3"
+    "us\"P\n\020AddDNSRecordData\022\014\n\004zone\030\001 \001(\t\022\014\n\004"
+    "name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010password\030\004"
+    " \001(\t\"\?\n\023AddDNSRecordDataAck\022(\n\006status\030\001 "
+    "\001(\0162\030.infra_service.v1.Status\"S\n\023DeleteD"
+    "NSRecordData\022\014\n\004zone\030\001 \001(\t\022\014\n\004name\030\002 \001(\t"
+    "\022\016\n\006target\030\003 \001(\t\022\020\n\010password\030\004 \001(\t\"B\n\026De"
+    "leteDNSRecordDataAck\022(\n\006status\030\001 \001(\0162\030.i"
+    "nfra_service.v1.Status*\326\001\n\006Status\022\013\n\007SUC"
+    "CESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USE"
+    "R_NOT_FOUND\020\003\022\027\n\023PASSWORD_REQ_FAILED\020\004\022\013"
+    "\n\007UNKNOWN\020\005\022\023\n\017SHARE_NOT_FOUND\020\006\022\024\n\020DNS_"
+    "RECORD_EXIST\020\007\022\030\n\024DNS_RECORD_NOT_EXIST\020\010"
+    "\022\026\n\022DNS_ZONE_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n2"
+    "\363\007\n\014InfraService\022Y\n\014AddDNSRecord\022\".infra"
+    "_service.v1.AddDNSRecordData\032%.infra_ser"
+    "vice.v1.AddDNSRecordDataAck\022b\n\017DeleteDNS"
+    "Record\022%.infra_service.v1.DeleteDNSRecor"
+    "dData\032(.infra_service.v1.DeleteDNSRecord"
+    "DataAck\022K\n\013GetUserList\022\026.google.protobuf"
+    ".Empty\032$.infra_service.v1.GetUserListDat"
+    "aAck\022[\n\023RestartSambaService\022\026.google.pro"
+    "tobuf.Empty\032,.infra_service.v1.RestartSa"
+    "mbaServiceDataAck\022q\n\024CreateSambaFileShar"
+    "e\022*.infra_service.v1.CreateSambaFileShar"
+    "eData\032-.infra_service.v1.CreateSambaFile"
+    "ShareDataAck\022q\n\024DeleteSambaFileShare\022*.i"
+    "nfra_service.v1.DeleteSambaFileShareData"
+    "\032-.infra_service.v1.DeleteSambaFileShare"
+    "DataAck\022h\n\021ResetUserPassword\022\'.infra_ser"
+    "vice.v1.ResetUserPasswordData\032*.infra_se"
+    "rvice.v1.ResetUserPasswordDataAck\022\\\n\rAdd"
+    "DomainUser\022#.infra_service.v1.AddDomainU"
+    "serData\032&.infra_service.v1.AddDomainUser"
+    "DataAck\022e\n\020RemoveDomainUser\022&.infra_serv"
+    "ice.v1.RemoveDomainUserData\032).infra_serv"
+    "ice.v1.RemoveDomainUserDataAck\022e\n\020GetFil"
+    "eShareSize\022&.infra_service.v1.GetFileSha"
+    "reSizeData\032).infra_service.v1.GetFileSha"
+    "reSizeDataAckb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
@@ -592,13 +768,13 @@ static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2epr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    1962,
+    2541,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps,
     1,
-    14,
+    18,
     schemas,
     file_default_instances,
     TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
@@ -612,7 +788,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor() {
   return file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t Status_internal_data_[] = {
-    458752u, 0u, };
+    720896u, 0u, };
 // ===================================================================
 
 class AddDomainUserData::_Internal {
@@ -4412,6 +4588,1250 @@ void DeleteSambaFileShareDataAck::InternalSwap(DeleteSambaFileShareDataAck* PROT
 }
 
 ::google::protobuf::Metadata DeleteSambaFileShareDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AddDNSRecordData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AddDNSRecordData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_._has_bits_);
+};
+
+AddDNSRecordData::AddDNSRecordData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDNSRecordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddDNSRecordData)
+}
+PROTOBUF_NDEBUG_INLINE AddDNSRecordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::AddDNSRecordData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        zone_(arena, from.zone_),
+        name_(arena, from.name_),
+        target_(arena, from.target_),
+        password_(arena, from.password_) {}
+
+AddDNSRecordData::AddDNSRecordData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AddDNSRecordData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDNSRecordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AddDNSRecordData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.AddDNSRecordData)
+}
+PROTOBUF_NDEBUG_INLINE AddDNSRecordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        zone_(arena),
+        name_(arena),
+        target_(arena),
+        password_(arena) {}
+
+inline void AddDNSRecordData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+AddDNSRecordData::~AddDNSRecordData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddDNSRecordData)
+  SharedDtor(*this);
+}
+inline void AddDNSRecordData::SharedDtor(MessageLite& self) {
+  AddDNSRecordData& this_ = static_cast<AddDNSRecordData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.zone_.Destroy();
+  this_._impl_.name_.Destroy();
+  this_._impl_.target_.Destroy();
+  this_._impl_.password_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AddDNSRecordData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AddDNSRecordData(arena);
+}
+constexpr auto AddDNSRecordData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AddDNSRecordData),
+                                            alignof(AddDNSRecordData));
+}
+constexpr auto AddDNSRecordData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AddDNSRecordData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AddDNSRecordData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AddDNSRecordData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AddDNSRecordData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AddDNSRecordData>(), &AddDNSRecordData::ByteSizeLong,
+              &AddDNSRecordData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_._cached_size_),
+          false,
+      },
+      &AddDNSRecordData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AddDNSRecordData_class_data_ =
+        AddDNSRecordData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AddDNSRecordData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AddDNSRecordData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AddDNSRecordData_class_data_.tc_table);
+  return AddDNSRecordData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 64, 2>
+AddDNSRecordData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AddDNSRecordData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::AddDNSRecordData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string password = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0, PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.password_)}},
+    // string zone = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.zone_)}},
+    // string name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0, PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.name_)}},
+    // string target = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0, PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.target_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string zone = 1;
+    {PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.zone_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string name = 2;
+    {PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.name_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target = 3;
+    {PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.target_), _Internal::kHasBitsOffset + 2, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string password = 4;
+    {PROTOBUF_FIELD_OFFSET(AddDNSRecordData, _impl_.password_), _Internal::kHasBitsOffset + 3, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\41\4\4\6\10\0\0\0"
+    "infra_service.v1.AddDNSRecordData"
+    "zone"
+    "name"
+    "target"
+    "password"
+  }},
+};
+PROTOBUF_NOINLINE void AddDNSRecordData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddDNSRecordData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.zone_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      _impl_.target_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      _impl_.password_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AddDNSRecordData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AddDNSRecordData& this_ = static_cast<const AddDNSRecordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AddDNSRecordData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AddDNSRecordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddDNSRecordData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string zone = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_zone().empty()) {
+      const ::std::string& _s = this_._internal_zone();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDNSRecordData.zone");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string name = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDNSRecordData.name");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string target = 3;
+  if ((this_._impl_._has_bits_[0] & 0x00000004u) != 0) {
+    if (!this_._internal_target().empty()) {
+      const ::std::string& _s = this_._internal_target();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDNSRecordData.target");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string password = 4;
+  if ((this_._impl_._has_bits_[0] & 0x00000008u) != 0) {
+    if (!this_._internal_password().empty()) {
+      const ::std::string& _s = this_._internal_password();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDNSRecordData.password");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddDNSRecordData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AddDNSRecordData::ByteSizeLong(const MessageLite& base) {
+  const AddDNSRecordData& this_ = static_cast<const AddDNSRecordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AddDNSRecordData::ByteSizeLong() const {
+  const AddDNSRecordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddDNSRecordData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    // string zone = 1;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_zone().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_zone());
+      }
+    }
+    // string name = 2;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // string target = 3;
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!this_._internal_target().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target());
+      }
+    }
+    // string password = 4;
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!this_._internal_password().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_password());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AddDNSRecordData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<AddDNSRecordData*>(&to_msg);
+  auto& from = static_cast<const AddDNSRecordData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddDNSRecordData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_zone().empty()) {
+        _this->_internal_set_zone(from._internal_zone());
+      } else {
+        if (_this->_impl_.zone_.IsDefault()) {
+          _this->_internal_set_zone("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!from._internal_target().empty()) {
+        _this->_internal_set_target(from._internal_target());
+      } else {
+        if (_this->_impl_.target_.IsDefault()) {
+          _this->_internal_set_target("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!from._internal_password().empty()) {
+        _this->_internal_set_password(from._internal_password());
+      } else {
+        if (_this->_impl_.password_.IsDefault()) {
+          _this->_internal_set_password("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void AddDNSRecordData::CopyFrom(const AddDNSRecordData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddDNSRecordData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AddDNSRecordData::InternalSwap(AddDNSRecordData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.zone_, &other->_impl_.zone_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_, &other->_impl_.target_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.password_, &other->_impl_.password_, arena);
+}
+
+::google::protobuf::Metadata AddDNSRecordData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AddDNSRecordDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AddDNSRecordDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AddDNSRecordDataAck, _impl_._has_bits_);
+};
+
+AddDNSRecordDataAck::AddDNSRecordDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDNSRecordDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddDNSRecordDataAck)
+}
+AddDNSRecordDataAck::AddDNSRecordDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AddDNSRecordDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDNSRecordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE AddDNSRecordDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void AddDNSRecordDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+AddDNSRecordDataAck::~AddDNSRecordDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddDNSRecordDataAck)
+  SharedDtor(*this);
+}
+inline void AddDNSRecordDataAck::SharedDtor(MessageLite& self) {
+  AddDNSRecordDataAck& this_ = static_cast<AddDNSRecordDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AddDNSRecordDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AddDNSRecordDataAck(arena);
+}
+constexpr auto AddDNSRecordDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(AddDNSRecordDataAck),
+                                            alignof(AddDNSRecordDataAck));
+}
+constexpr auto AddDNSRecordDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AddDNSRecordDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AddDNSRecordDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AddDNSRecordDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AddDNSRecordDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AddDNSRecordDataAck>(), &AddDNSRecordDataAck::ByteSizeLong,
+              &AddDNSRecordDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AddDNSRecordDataAck, _impl_._cached_size_),
+          false,
+      },
+      &AddDNSRecordDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AddDNSRecordDataAck_class_data_ =
+        AddDNSRecordDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AddDNSRecordDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AddDNSRecordDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AddDNSRecordDataAck_class_data_.tc_table);
+  return AddDNSRecordDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+AddDNSRecordDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AddDNSRecordDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AddDNSRecordDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::AddDNSRecordDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddDNSRecordDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(AddDNSRecordDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(AddDNSRecordDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void AddDNSRecordDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddDNSRecordDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AddDNSRecordDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AddDNSRecordDataAck& this_ = static_cast<const AddDNSRecordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AddDNSRecordDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AddDNSRecordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddDNSRecordDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddDNSRecordDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AddDNSRecordDataAck::ByteSizeLong(const MessageLite& base) {
+  const AddDNSRecordDataAck& this_ = static_cast<const AddDNSRecordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AddDNSRecordDataAck::ByteSizeLong() const {
+  const AddDNSRecordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddDNSRecordDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AddDNSRecordDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<AddDNSRecordDataAck*>(&to_msg);
+  auto& from = static_cast<const AddDNSRecordDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddDNSRecordDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void AddDNSRecordDataAck::CopyFrom(const AddDNSRecordDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddDNSRecordDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AddDNSRecordDataAck::InternalSwap(AddDNSRecordDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata AddDNSRecordDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DeleteDNSRecordData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DeleteDNSRecordData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_._has_bits_);
+};
+
+DeleteDNSRecordData::DeleteDNSRecordData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeleteDNSRecordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.DeleteDNSRecordData)
+}
+PROTOBUF_NDEBUG_INLINE DeleteDNSRecordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::DeleteDNSRecordData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        zone_(arena, from.zone_),
+        name_(arena, from.name_),
+        target_(arena, from.target_),
+        password_(arena, from.password_) {}
+
+DeleteDNSRecordData::DeleteDNSRecordData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const DeleteDNSRecordData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeleteDNSRecordData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DeleteDNSRecordData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.DeleteDNSRecordData)
+}
+PROTOBUF_NDEBUG_INLINE DeleteDNSRecordData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        zone_(arena),
+        name_(arena),
+        target_(arena),
+        password_(arena) {}
+
+inline void DeleteDNSRecordData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+DeleteDNSRecordData::~DeleteDNSRecordData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.DeleteDNSRecordData)
+  SharedDtor(*this);
+}
+inline void DeleteDNSRecordData::SharedDtor(MessageLite& self) {
+  DeleteDNSRecordData& this_ = static_cast<DeleteDNSRecordData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.zone_.Destroy();
+  this_._impl_.name_.Destroy();
+  this_._impl_.target_.Destroy();
+  this_._impl_.password_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DeleteDNSRecordData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DeleteDNSRecordData(arena);
+}
+constexpr auto DeleteDNSRecordData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DeleteDNSRecordData),
+                                            alignof(DeleteDNSRecordData));
+}
+constexpr auto DeleteDNSRecordData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DeleteDNSRecordData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DeleteDNSRecordData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DeleteDNSRecordData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DeleteDNSRecordData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DeleteDNSRecordData>(), &DeleteDNSRecordData::ByteSizeLong,
+              &DeleteDNSRecordData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_._cached_size_),
+          false,
+      },
+      &DeleteDNSRecordData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DeleteDNSRecordData_class_data_ =
+        DeleteDNSRecordData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DeleteDNSRecordData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DeleteDNSRecordData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DeleteDNSRecordData_class_data_.tc_table);
+  return DeleteDNSRecordData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 67, 2>
+DeleteDNSRecordData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DeleteDNSRecordData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::DeleteDNSRecordData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string password = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0, PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.password_)}},
+    // string zone = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.zone_)}},
+    // string name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0, PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.name_)}},
+    // string target = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0, PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.target_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string zone = 1;
+    {PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.zone_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string name = 2;
+    {PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.name_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string target = 3;
+    {PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.target_), _Internal::kHasBitsOffset + 2, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string password = 4;
+    {PROTOBUF_FIELD_OFFSET(DeleteDNSRecordData, _impl_.password_), _Internal::kHasBitsOffset + 3, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\44\4\4\6\10\0\0\0"
+    "infra_service.v1.DeleteDNSRecordData"
+    "zone"
+    "name"
+    "target"
+    "password"
+  }},
+};
+PROTOBUF_NOINLINE void DeleteDNSRecordData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.DeleteDNSRecordData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.zone_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.name_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      _impl_.target_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      _impl_.password_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DeleteDNSRecordData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DeleteDNSRecordData& this_ = static_cast<const DeleteDNSRecordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DeleteDNSRecordData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DeleteDNSRecordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.DeleteDNSRecordData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string zone = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_zone().empty()) {
+      const ::std::string& _s = this_._internal_zone();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.DeleteDNSRecordData.zone");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string name = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_name().empty()) {
+      const ::std::string& _s = this_._internal_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.DeleteDNSRecordData.name");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string target = 3;
+  if ((this_._impl_._has_bits_[0] & 0x00000004u) != 0) {
+    if (!this_._internal_target().empty()) {
+      const ::std::string& _s = this_._internal_target();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.DeleteDNSRecordData.target");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string password = 4;
+  if ((this_._impl_._has_bits_[0] & 0x00000008u) != 0) {
+    if (!this_._internal_password().empty()) {
+      const ::std::string& _s = this_._internal_password();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.DeleteDNSRecordData.password");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.DeleteDNSRecordData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DeleteDNSRecordData::ByteSizeLong(const MessageLite& base) {
+  const DeleteDNSRecordData& this_ = static_cast<const DeleteDNSRecordData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DeleteDNSRecordData::ByteSizeLong() const {
+  const DeleteDNSRecordData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.DeleteDNSRecordData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    // string zone = 1;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_zone().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_zone());
+      }
+    }
+    // string name = 2;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_name());
+      }
+    }
+    // string target = 3;
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!this_._internal_target().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_target());
+      }
+    }
+    // string password = 4;
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!this_._internal_password().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_password());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DeleteDNSRecordData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DeleteDNSRecordData*>(&to_msg);
+  auto& from = static_cast<const DeleteDNSRecordData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.DeleteDNSRecordData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_zone().empty()) {
+        _this->_internal_set_zone(from._internal_zone());
+      } else {
+        if (_this->_impl_.zone_.IsDefault()) {
+          _this->_internal_set_zone("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+      } else {
+        if (_this->_impl_.name_.IsDefault()) {
+          _this->_internal_set_name("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!from._internal_target().empty()) {
+        _this->_internal_set_target(from._internal_target());
+      } else {
+        if (_this->_impl_.target_.IsDefault()) {
+          _this->_internal_set_target("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!from._internal_password().empty()) {
+        _this->_internal_set_password(from._internal_password());
+      } else {
+        if (_this->_impl_.password_.IsDefault()) {
+          _this->_internal_set_password("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DeleteDNSRecordData::CopyFrom(const DeleteDNSRecordData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.DeleteDNSRecordData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DeleteDNSRecordData::InternalSwap(DeleteDNSRecordData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.zone_, &other->_impl_.zone_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_, &other->_impl_.target_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.password_, &other->_impl_.password_, arena);
+}
+
+::google::protobuf::Metadata DeleteDNSRecordData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DeleteDNSRecordDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<DeleteDNSRecordDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(DeleteDNSRecordDataAck, _impl_._has_bits_);
+};
+
+DeleteDNSRecordDataAck::DeleteDNSRecordDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeleteDNSRecordDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.DeleteDNSRecordDataAck)
+}
+DeleteDNSRecordDataAck::DeleteDNSRecordDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const DeleteDNSRecordDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, DeleteDNSRecordDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE DeleteDNSRecordDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void DeleteDNSRecordDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+DeleteDNSRecordDataAck::~DeleteDNSRecordDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.DeleteDNSRecordDataAck)
+  SharedDtor(*this);
+}
+inline void DeleteDNSRecordDataAck::SharedDtor(MessageLite& self) {
+  DeleteDNSRecordDataAck& this_ = static_cast<DeleteDNSRecordDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL DeleteDNSRecordDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) DeleteDNSRecordDataAck(arena);
+}
+constexpr auto DeleteDNSRecordDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(DeleteDNSRecordDataAck),
+                                            alignof(DeleteDNSRecordDataAck));
+}
+constexpr auto DeleteDNSRecordDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_DeleteDNSRecordDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &DeleteDNSRecordDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<DeleteDNSRecordDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &DeleteDNSRecordDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<DeleteDNSRecordDataAck>(), &DeleteDNSRecordDataAck::ByteSizeLong,
+              &DeleteDNSRecordDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(DeleteDNSRecordDataAck, _impl_._cached_size_),
+          false,
+      },
+      &DeleteDNSRecordDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull DeleteDNSRecordDataAck_class_data_ =
+        DeleteDNSRecordDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+DeleteDNSRecordDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&DeleteDNSRecordDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(DeleteDNSRecordDataAck_class_data_.tc_table);
+  return DeleteDNSRecordDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+DeleteDNSRecordDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(DeleteDNSRecordDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    DeleteDNSRecordDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::DeleteDNSRecordDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DeleteDNSRecordDataAck, _impl_.status_), 0>(),
+     {8, 0, 0, PROTOBUF_FIELD_OFFSET(DeleteDNSRecordDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(DeleteDNSRecordDataAck, _impl_.status_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void DeleteDNSRecordDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.DeleteDNSRecordDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL DeleteDNSRecordDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const DeleteDNSRecordDataAck& this_ = static_cast<const DeleteDNSRecordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL DeleteDNSRecordDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const DeleteDNSRecordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.DeleteDNSRecordDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.DeleteDNSRecordDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t DeleteDNSRecordDataAck::ByteSizeLong(const MessageLite& base) {
+  const DeleteDNSRecordDataAck& this_ = static_cast<const DeleteDNSRecordDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t DeleteDNSRecordDataAck::ByteSizeLong() const {
+  const DeleteDNSRecordDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.DeleteDNSRecordDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .infra_service.v1.Status status = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void DeleteDNSRecordDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DeleteDNSRecordDataAck*>(&to_msg);
+  auto& from = static_cast<const DeleteDNSRecordDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.DeleteDNSRecordDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (from._internal_status() != 0) {
+      _this->_impl_.status_ = from._impl_.status_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DeleteDNSRecordDataAck::CopyFrom(const DeleteDNSRecordDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.DeleteDNSRecordDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DeleteDNSRecordDataAck::InternalSwap(DeleteDNSRecordDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata DeleteDNSRecordDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

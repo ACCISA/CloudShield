@@ -7,6 +7,34 @@ services:
     networks:
       vpc_net: 
         ipv4_address: 172.23.0.5
+
+  workstation:
+    build:
+      context: docker/workstation
+      dockerfile: Dockerfile.workstation_test
+    container_name: windows-workstation
+    environment:
+      USERNAME: "bill"
+      PASSWORD: "gates"
+      VERSION: "11"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006
+      - 3389:3389/tcp
+      - 3389:3389/udp
+    volumes:
+      - ./docker/workstation/storage:/storage
+      - ./docker/workstation/shared:/shared
+    restart: always
+    stop_grace_period: 2m
+    networks:
+      vpc_net:
+        ipv4_address: 172.23.0.14
+
   api:
     build:
       context: .
@@ -59,6 +87,9 @@ services:
       args:
         - ORG_ID=${DOMAIN_NAME}
       dockerfile: docker/Dockerfile.samba_test
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     container_name: cs-samba-test
     privileged: true
     cgroup: host

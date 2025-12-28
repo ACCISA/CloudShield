@@ -11,6 +11,10 @@ enum Status {
         PASSWORD_REQ_FAILED = 4;
         UNKNOWN = 5;
         SHARE_NOT_FOUND = 6;
+        DNS_RECORD_EXIST = 7;
+        DNS_RECORD_NOT_EXIST = 8;
+        DNS_ZONE_NOT_FOUND = 9;
+        AUTH_FAIL = 10;
 }
 
 message AddDomainUserData {
@@ -76,7 +80,31 @@ message DeleteSambaFileShareDataAck {
         Status status = 1;
 }
 
+message AddDNSRecordData {
+        string zone = 1;
+        string name = 2;
+        string target = 3;
+        string password = 4;
+}
+
+message AddDNSRecordDataAck {
+        Status status = 1;
+}
+
+message DeleteDNSRecordData {
+        string zone = 1;
+        string name = 2;
+        string target = 3;
+        string password = 4;
+}
+
+message DeleteDNSRecordDataAck {
+        Status status = 1;
+}
+
 service InfraService {
+        rpc AddDNSRecord(AddDNSRecordData) returns (AddDNSRecordDataAck);
+        rpc DeleteDNSRecord(DeleteDNSRecordData) returns (DeleteDNSRecordDataAck);
         rpc GetUserList(google.protobuf.Empty) returns (GetUserListDataAck);
         rpc RestartSambaService(google.protobuf.Empty) returns (RestartSambaServiceDataAck);
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
