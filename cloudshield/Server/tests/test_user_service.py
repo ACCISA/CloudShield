@@ -311,6 +311,60 @@ class TestUserService:
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
             delete_user(user_id, admin_user)
 
+    def test_delete_user_audit_log_content(self, setup_mocks, admin_user):
+        """Test delete_user audit log contains correct information"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+        
+        user_id = "507f1f77bcf86cd799439011"
+        existing_user = {
+            "_id": ObjectId(user_id), 
+            "email": "deleted@example.com",
+            "full_name": "To Be Deleted",
+            "role": "employee",
+            "status": "active",
+            "org_id": "org_001"
+        }
+        
+        # Setup successful deletion
+        mocks['users_admin'].find_one.return_value = existing_user
+        mock_result = unittest.mock.MagicMock()
+        mock_result.acknowledged = True
+        mock_result.deleted_count = 1
+        mocks['users_admin'].delete_one.return_value = mock_result
+        
+        # Reset mocks
+        mocks['log_audit'].reset_mock()
+        mocks['log_audit'].side_effect = None
+        
+        # Execute deletion with reason
+        delete_user(user_id, admin_user, "Policy violation")
+        
+        # Verify audit log was called
+        mocks['log_audit'].assert_called_once()
+        
+        # Extract the audit log call arguments
+        audit_call = mocks['log_audit'].call_args
+        
+        # Verify audit log structure
+        assert audit_call[1]["action"] == "delete"
+        assert audit_call[1]["resource"] == "users"
+        assert audit_call[1]["reason"] == "Policy violation"
+        
+        # Verify actor information
+        assert audit_call[1]["actor"]["id"] == admin_user["id"]
+        assert audit_call[1]["actor"]["role"] == admin_user["role"]
+        assert audit_call[1]["actor"]["org_id"] == admin_user["org_id"]
+        
+        # Verify target information
+        assert audit_call[1]["target"]["id"] == user_id
+        assert audit_call[1]["target"]["email"] == "deleted@example.com"
+        
+        # Verify before snapshot
+        assert audit_call[1]["before"]["role"] == "employee"
+        assert audit_call[1]["before"]["status"] == "active"
+        assert audit_call[1]["before"]["org_id"] == "org_001"
+
     def test_must_admin_comprehensive(self, setup_mocks, admin_user, employee_user):
         """Test _must_admin function with various user types and edge cases"""
         setup_mocks
