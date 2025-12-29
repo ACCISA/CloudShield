@@ -246,6 +246,14 @@ export default function FilterButton({
           {/* Backdrop */}
           <div
             onClick={handleClose}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleClose();
+              }
+            }}
+            role="button"
+            tabIndex={-1}
+            aria-label="Close filters"
             style={{
               position: "fixed",
               top: 0,

@@ -1,115 +1,14 @@
-/**
- * WorkstationEditDialog.jsx
- *
- * Purpose:
- *   Modal dialog for editing an existing workstation's properties (name, users, plan, etc.).
- *
- * Props:
- *   - open: boolean controlling visibility
- *   - onClose: close handler
- *   - row: the workstation row being edited
- *   - onSave: save callback
- *   - onDelete: delete callback
- */
-import React, { useState } from "react";
+import React from "react";
 import WorkstationDialog from "./WorkstationDialog";
 import StyledInput from "./StyledInput";
 import PlanSelector from "./PlanSelector";
 import UserAssignment from "./UserAssignment";
-
-const styles = {
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-  },
-  button: {
-    textTransform: "none",
-    borderRadius: "12px",
-    padding: "8px 16px",
-    cursor: "pointer",
-    fontSize: "1rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  deleteButton: {
-    color: "#fff",
-    backgroundColor: "#7c1d1d",
-    border: "none",
-  },
-  cancelButton: {
-    color: "#fff",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.2)",
-  },
-  editButton: {
-    color: "#000",
-    backgroundColor: "#fff",
-    padding: "8px 20px",
-    border: "none",
-  },
-  actionsRight: {
-    display: "flex",
-    gap: "10px",
-    marginLeft: "auto",
-  },
-  softwareSection: {
-    marginTop: "16px",
-  },
-  softwareHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  sectionTitle: {
-    fontWeight: 600,
-    color: "#fff",
-  },
-  checkboxContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  checkbox: {
-    width: "18px",
-    height: "18px",
-    cursor: "pointer",
-    accentColor: "#fff",
-  },
-  softwareButtons: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  softwareButton: {
-    textTransform: "none",
-    color: "#fff",
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "transparent",
-    padding: "6px 12px",
-    cursor: "pointer",
-    fontSize: "0.875rem",
-  },
-  wallpaperSection: {
-    marginTop: "16px",
-  },
-  wallpaperBox: {
-    marginTop: "8px",
-    width: "120px",
-    height: "90px",
-    borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "rgba(255,255,255,0.05)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "rgba(255,255,255,0.6)",
-    fontSize: "2rem",
-    cursor: "pointer",
-  },
-};
+import { useWorkstationForm } from "./useWorkstationForm";
+import {
+  buttonStyles,
+  formStyles,
+  ActionButton,
+} from "./workstationDialogStyles";
 
 /**
  * Modal dialog for editing an existing workstation.
@@ -128,72 +27,46 @@ export default function WorkstationEditDialog({
   onSave,
   onDelete,
 }) {
-  const [name, setName] = useState(row?.name || "");
-  const [group, setGroup] = useState("None");
-  const [users, setUsers] = useState([row?.currentUser].filter(Boolean));
-  const [allSoftware, setAllSoftware] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("BASIC");
-
-  /**
-   * Toggle a user in the selected users list.
-   * @param {string} u - User name to toggle
-   */
-  const toggleUser = (u) =>
-    setUsers((prev) =>
-      prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]
-    );
+  const form = useWorkstationForm(row);
 
   /**
    * Submit updated workstation data to parent.
    */
   const handleSave = () => {
     onSave?.({
-      name,
+      name: form.name,
       code: row.code,
-      currentUser: users[0] || "—",
-      usersCount: users.length,
-      plan: selectedPlan,
+      currentUser: form.users[0] || "—",
+      usersCount: form.users.length,
+      plan: form.selectedPlan,
     });
   };
 
   const actions = (
     <>
-      <button
+      <ActionButton
         onClick={onDelete}
-        style={{ ...styles.button, ...styles.deleteButton }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "#8a2323")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "#7c1d1d")
-        }
+        style={buttonStyles.deleteButton}
+        hoverStyle={{ backgroundColor: "#8a2323" }}
       >
         <span>🗑</span> Delete
-      </button>
+      </ActionButton>
 
-      <div style={styles.actionsRight}>
-        <button
+      <div style={formStyles.actionsRight}>
+        <ActionButton
           onClick={onClose}
-          style={{ ...styles.button, ...styles.cancelButton }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.14)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)")
-          }
+          style={buttonStyles.cancelButton}
+          hoverStyle={{ backgroundColor: "rgba(255,255,255,0.14)" }}
         >
           Cancel
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           onClick={handleSave}
-          style={{ ...styles.button, ...styles.editButton }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#f2f2f2")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
+          style={buttonStyles.editButton}
+          hoverStyle={{ backgroundColor: "#f2f2f2" }}
         >
           <span>✏️</span> Edit
-        </button>
+        </ActionButton>
       </div>
     </>
   );
@@ -206,47 +79,47 @@ export default function WorkstationEditDialog({
       breadcrumb={["Workstations", "Edit Workstation"]}
       actions={actions}
     >
-      <div style={styles.formGrid}>
+      <div style={formStyles.formGrid}>
         <StyledInput
           label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={form.name}
+          onChange={(e) => form.setName(e.target.value)}
         />
         <StyledInput
           label="Group"
-          value={group}
-          onChange={(e) => setGroup(e.target.value)}
+          value={form.group}
+          onChange={(e) => form.setGroup(e.target.value)}
           placeholder="None"
         />
       </div>
 
       <PlanSelector
-        selectedPlan={selectedPlan}
-        onPlanSelect={setSelectedPlan}
+        selectedPlan={form.selectedPlan}
+        onPlanSelect={form.setSelectedPlan}
         showCurrent={true}
       />
 
       <UserAssignment
-        users={users}
-        onToggleUser={toggleUser}
+        users={form.users}
+        onToggleUser={form.toggleUser}
         showAllUsersCheckbox={false}
       />
 
       {/* Software */}
-      <div style={styles.softwareSection}>
-        <div style={styles.softwareHeader}>
-          <div style={styles.sectionTitle}>Pre-Installed software</div>
-          <label style={styles.checkboxContainer}>
+      <div style={formStyles.softwareSection}>
+        <div style={formStyles.softwareHeader}>
+          <div style={formStyles.sectionTitle}>Pre-Installed software</div>
+          <label style={formStyles.checkboxContainer}>
             <input
               type="checkbox"
-              checked={allSoftware}
-              onChange={(e) => setAllSoftware(e.target.checked)}
-              style={styles.checkbox}
+              checked={form.allSoftware}
+              onChange={(e) => form.setAllSoftware(e.target.checked)}
+              style={formStyles.checkbox}
             />
             <span>All software</span>
           </label>
         </div>
-        <div style={styles.softwareButtons}>
+        <div style={formStyles.softwareButtons}>
           {[
             "Microsoft Word",
             "Microsoft Excel",
@@ -256,7 +129,7 @@ export default function WorkstationEditDialog({
           ].map((s) => (
             <button
               key={s}
-              style={styles.softwareButton}
+              style={formStyles.softwareButton}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)";
                 e.currentTarget.style.background = "rgba(255,255,255,0.08)";
@@ -273,9 +146,9 @@ export default function WorkstationEditDialog({
       </div>
 
       {/* Wallpaper picker placeholder */}
-      <div style={styles.wallpaperSection}>
-        <div style={styles.sectionTitle}>Desktop wallpaper</div>
-        <div style={styles.wallpaperBox}>+</div>
+      <div style={formStyles.wallpaperSection}>
+        <div style={formStyles.sectionTitle}>Desktop wallpaper</div>
+        <div style={formStyles.wallpaperBox}>+</div>
       </div>
     </WorkstationDialog>
   );

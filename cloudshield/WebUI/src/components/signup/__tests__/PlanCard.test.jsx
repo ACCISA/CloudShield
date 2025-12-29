@@ -135,4 +135,53 @@ describe('PlanCard', () => {
     fireEvent.click(card);
     expect(mockOnSelect).toHaveBeenCalled();
   });
+
+  it('calls onSelect when Enter key is pressed', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    fireEvent.keyDown(button, { key: 'Enter' });
+    
+    expect(mockOnSelect).toHaveBeenCalledWith('pro');
+  });
+
+  it('calls onSelect when Space key is pressed', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    fireEvent.keyDown(button, { key: ' ' });
+    
+    expect(mockOnSelect).toHaveBeenCalledWith('pro');
+  });
+
+  it('does not call onSelect for other keys', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    fireEvent.keyDown(button, { key: 'a' });
+    fireEvent.keyDown(button, { key: 'Escape' });
+    
+    expect(mockOnSelect).not.toHaveBeenCalled();
+  });
+
+  it('has role="button" for accessibility', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    expect(button).toBeInTheDocument();
+  });
+
+  it('has tabIndex for keyboard navigation', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('tabIndex', '0');
+  });
+
+  it('has aria-label describing the plan', () => {
+    render(<PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />);
+    
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-label', 'Select Professional plan for $59 per month');
+  });
 });

@@ -75,6 +75,14 @@ export default function EditButton({ menuItems = [], disabled = false }) {
           {/* Backdrop */}
           <div
             onClick={handleBackdropClick}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleBackdropClick();
+              }
+            }}
+            role="button"
+            tabIndex={-1}
+            aria-label="Close menu"
             style={{
               position: "fixed",
               top: 0,

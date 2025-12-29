@@ -106,4 +106,81 @@ describe('TwoFactorOptionItem', () => {
     const box = container.firstChild;
     expect(box).toHaveStyle({ cursor: 'pointer' });
   });
+
+  it('calls onClick when Enter key is pressed', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+        onClick={mockOnClick}
+      />
+    );
+    const container = screen.getByText('SMS').closest('div').parentElement;
+    fireEvent.keyDown(container, { key: 'Enter' });
+    expect(mockOnClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClick when Space key is pressed', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+        onClick={mockOnClick}
+      />
+    );
+    const container = screen.getByText('SMS').closest('div').parentElement;
+    fireEvent.keyDown(container, { key: ' ' });
+    expect(mockOnClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onClick for other keys', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+        onClick={mockOnClick}
+      />
+    );
+    const container = screen.getByText('SMS').closest('div').parentElement;
+    fireEvent.keyDown(container, { key: 'a' });
+    fireEvent.keyDown(container, { key: 'Escape' });
+    expect(mockOnClick).not.toHaveBeenCalled();
+  });
+
+  it('does not throw error when onClick is undefined and key is pressed', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+      />
+    );
+    const container = screen.getByText('SMS').closest('div').parentElement;
+    expect(() => {
+      fireEvent.keyDown(container, { key: 'Enter' });
+    }).not.toThrow();
+  });
+
+  it('has role="button" for accessibility', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+        onClick={mockOnClick}
+      />
+    );
+    const button = screen.getByRole('button');
+    expect(button).toBeInTheDocument();
+  });
+
+  it('has tabIndex for keyboard navigation', () => {
+    render(
+      <TwoFactorOptionItem
+        type="sms"
+        title="SMS"
+        onClick={mockOnClick}
+      />
+    );
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('tabIndex', '0');
+  });
 });

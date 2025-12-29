@@ -75,4 +75,67 @@ describe('PasswordField', () => {
     render(<PasswordField value="mypassword" onChange={mockOnChange} />);
     expect(screen.getByDisplayValue('mypassword')).toBeInTheDocument();
   });
+
+  it('toggles visibility when Enter key is pressed on Show/Hide button', () => {
+    render(<PasswordField value="secret123" onChange={mockOnChange} />);
+    const input = screen.getByDisplayValue('secret123');
+    const showHideButton = screen.getByRole('button', { name: /show password/i });
+    
+    // Initially hidden
+    expect(input).toHaveAttribute('type', 'password');
+    
+    // Press Enter to show
+    fireEvent.keyDown(showHideButton, { key: 'Enter' });
+    expect(input).toHaveAttribute('type', 'text');
+    
+    // Press Enter to hide again
+    const hideButton = screen.getByRole('button', { name: /hide password/i });
+    fireEvent.keyDown(hideButton, { key: 'Enter' });
+    expect(input).toHaveAttribute('type', 'password');
+  });
+
+  it('toggles visibility when Space key is pressed on Show/Hide button', () => {
+    render(<PasswordField value="secret123" onChange={mockOnChange} />);
+    const input = screen.getByDisplayValue('secret123');
+    const showHideButton = screen.getByRole('button', { name: /show password/i });
+    
+    // Initially hidden
+    expect(input).toHaveAttribute('type', 'password');
+    
+    // Press Space to show
+    fireEvent.keyDown(showHideButton, { key: ' ' });
+    expect(input).toHaveAttribute('type', 'text');
+  });
+
+  it('does not toggle for other keys', () => {
+    render(<PasswordField value="secret123" onChange={mockOnChange} />);
+    const input = screen.getByDisplayValue('secret123');
+    const showHideButton = screen.getByRole('button', { name: /show password/i });
+    
+    // Initially hidden
+    expect(input).toHaveAttribute('type', 'password');
+    
+    // Press other keys - should not toggle
+    fireEvent.keyDown(showHideButton, { key: 'a' });
+    fireEvent.keyDown(showHideButton, { key: 'Escape' });
+    expect(input).toHaveAttribute('type', 'password');
+  });
+
+  it('has proper accessibility attributes', () => {
+    render(<PasswordField value="" onChange={mockOnChange} />);
+    const showHideButton = screen.getByRole('button', { name: /show password/i });
+    
+    expect(showHideButton).toHaveAttribute('tabIndex', '0');
+    expect(showHideButton).toHaveAttribute('aria-label', 'Show password');
+  });
+
+  it('updates aria-label when password is shown', () => {
+    render(<PasswordField value="secret123" onChange={mockOnChange} />);
+    const showButton = screen.getByRole('button', { name: /show password/i });
+    
+    fireEvent.click(showButton);
+    
+    const hideButton = screen.getByRole('button', { name: /hide password/i });
+    expect(hideButton).toHaveAttribute('aria-label', 'Hide password');
+  });
 });

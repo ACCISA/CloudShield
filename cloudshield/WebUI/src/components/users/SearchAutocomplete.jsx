@@ -226,6 +226,15 @@ export default function SearchAutocomplete({
           <div
             style={styles.checkboxLabel}
             onClick={() => onAllChange?.(!allSelected)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onAllChange?.(!allSelected);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Select all ${label.replace("Assign ", "")}`}
           >
             <Checkbox
               checked={allSelected}
@@ -278,6 +287,15 @@ export default function SearchAutocomplete({
                         ...(isHighlighted ? styles.itemSelected : {}),
                       }}
                       onClick={() => handleSelect(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleSelect(item);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Select ${item.name || item.code || item.id}`}
                       onMouseEnter={(e) => {
                         if (!isHighlighted) {
                           e.currentTarget.style.backgroundColor =

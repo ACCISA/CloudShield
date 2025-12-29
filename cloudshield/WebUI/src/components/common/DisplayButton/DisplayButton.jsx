@@ -151,6 +151,14 @@ export default function DisplayButton({
           {/* Backdrop */}
           <div
             onClick={handleClose}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleClose();
+              }
+            }}
+            role="button"
+            tabIndex={-1}
+            aria-label="Close display options"
             style={{
               position: "fixed",
               top: 0,
