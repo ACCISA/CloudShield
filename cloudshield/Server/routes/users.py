@@ -21,7 +21,6 @@ This module exposes CRUD-like admin actions on users:
 
 Security:
 - All routes require a valid JWT ('require_auth') and the "admin" role ('require_role("admin")').
-
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"

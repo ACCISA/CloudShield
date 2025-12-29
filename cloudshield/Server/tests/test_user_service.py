@@ -6,7 +6,7 @@ import pytest
 from bson import ObjectId
 
 
-# Mock pymongo, rq, and provisioner first
+# Mock all problematic modules BEFORE any imports
 mock_pymongo = unittest.mock.MagicMock()
 mock_pymongo_errors = unittest.mock.MagicMock()
 mock_rq = unittest.mock.MagicMock()
@@ -14,14 +14,21 @@ mock_rq.get_current_job = unittest.mock.MagicMock(return_value=None)
 mock_provisioner = unittest.mock.MagicMock()
 mock_provisioner.get_target_dir = unittest.mock.MagicMock(return_value="/mock/path")
 
+# Mock tasks module to prevent circular import when services/__init__.py imports job_service
+mock_tasks = unittest.mock.MagicMock()
+sys.modules['tasks'] = mock_tasks
+sys.modules['tasks.dc_management'] = unittest.mock.MagicMock()
+sys.modules['tasks.task'] = unittest.mock.MagicMock()
+
 
 @pytest.fixture(autouse=True)
 def setup_pymongo_mocks(monkeypatch):
-    """Set up pymongo, rq, and provisioner mocks with proper cleanup"""
+    """Set up pymongo, rq, provisioner, and tasks mocks with proper cleanup"""
     monkeypatch.setitem(sys.modules, 'pymongo', mock_pymongo)
     monkeypatch.setitem(sys.modules, 'pymongo.errors', mock_pymongo_errors)
     monkeypatch.setitem(sys.modules, 'rq', mock_rq)
     monkeypatch.setitem(sys.modules, 'provisioner', mock_provisioner)
+    monkeypatch.setitem(sys.modules, 'tasks', mock_tasks)
 
 
 class TestUserService:

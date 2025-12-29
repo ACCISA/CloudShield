@@ -1,12 +1,6 @@
-try:
-    from .job_service import service_dispatcher as service_dispatcher
-    from .job_service import get_job_status as get_job_status
-    from .job_service import health_status as health_status
-except ImportError:  # pragma: no cover - allow unit tests without full infra deps
-    service_dispatcher = None
-    get_job_status = None
-    health_status = None
-
+from .job_service import service_dispatcher as service_dispatcher
+from .job_service import get_job_status as get_job_status
+from .job_service import health_status as health_status
 from .user_service import create_user as create_user
 from .user_service import update_user as update_user
 from .user_service import deactivate_user as deactivate_user

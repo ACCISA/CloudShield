@@ -95,6 +95,7 @@ def install_fake_guards_module():
     mod.require_auth = require_auth
     mod.require_role = require_role
     sys.modules["security.guards"] = mod
+    sys.modules["security"] = mod  # Also install as 'security' for direct imports
 
 #In-memory fake collection to simulate MongoDB operations
 class _InsertRes:
