@@ -12,7 +12,7 @@ export default function LoginCard() {
 
     try {
       // 2. Call the Flask API
-      const response = await fetch("http://127.0.0.1:5050/api/auth/login", {
+      const response = await fetch("http://172.23.0.2:5050/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -24,6 +24,7 @@ export default function LoginCard() {
 
       if (!response.ok) {
         // Handle 401 or 500 errors from auth.py
+        console.error("Login error:", data.error);
         throw new Error(
           data.error || "Login failed. Please check your credentials."
         );
@@ -47,7 +48,7 @@ export default function LoginCard() {
             onChange={(e) => setEmail(e.target.value)}
             type="text"
             placeholder="johndoe@example.com"
-            className="p-2 w-full rounded border bg-card-background text-faint-grey border-faint-grey"
+            className="p-2 w-full rounded border bg-card-background text-white placeholder:text-faint-grey border-faint-grey"
           />
         </div>
         <div className="flex flex-col items-start w-full px-8 mt-4">
@@ -60,7 +61,7 @@ export default function LoginCard() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             placeholder="********"
-            className="p-2 w-full rounded border bg-card-background text-faint-grey border-faint-grey"
+            className="p-2 w-full rounded border bg-card-background text-white placeholder:text-faint-grey border-faint-grey"
           />
         </div>
         <button
