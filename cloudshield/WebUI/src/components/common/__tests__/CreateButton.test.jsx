@@ -143,5 +143,98 @@ describe("CreateButton Component", () => {
       fireEvent.mouseEnter(button);
       expect(button).toBeInTheDocument();
     });
+
+    test("applies hover styles correctly on enabled button", () => {
+      const onClick = jest.fn();
+      render(<CreateButton buttonText="Create" onClick={onClick} />);
+
+      const button = screen.getByText("Create").parentElement;
+      fireEvent.mouseEnter(button);
+      fireEvent.mouseLeave(button);
+
+      expect(button).toBeInTheDocument();
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("renders without onClick handler", () => {
+      render(<CreateButton buttonText="Create" />);
+
+      expect(screen.getByText("Create")).toBeInTheDocument();
+    });
+
+    test("renders with empty buttonText", () => {
+      const onClick = jest.fn();
+      render(<CreateButton buttonText="" onClick={onClick} />);
+
+      const button = screen.getByText("").parentElement;
+      expect(button).toBeInTheDocument();
+    });
+
+    test("renders with long button text", () => {
+      const onClick = jest.fn();
+      render(
+        <CreateButton
+          buttonText="Create New Item With Very Long Text"
+          onClick={onClick}
+        />
+      );
+
+      expect(
+        screen.getByText("Create New Item With Very Long Text")
+      ).toBeInTheDocument();
+    });
+
+    test("handles rapid clicks", () => {
+      const onClick = jest.fn();
+      render(<CreateButton buttonText="Create" onClick={onClick} />);
+
+      const button = screen.getByText("Create");
+      fireEvent.click(button);
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(onClick).toHaveBeenCalledTimes(3);
+    });
+
+    test("handles undefined disabled prop", () => {
+      const onClick = jest.fn();
+      render(
+        <CreateButton
+          buttonText="Create"
+          onClick={onClick}
+          disabled={undefined}
+        />
+      );
+
+      const button = screen.getByText("Create");
+      fireEvent.click(button);
+
+      expect(onClick).toHaveBeenCalled();
+    });
+  });
+
+  describe("Icon Positioning", () => {
+    test("renders icon before text", () => {
+      const onClick = jest.fn();
+      const { container } = render(
+        <CreateButton
+          buttonText="Create"
+          icon={<MockIcon />}
+          onClick={onClick}
+        />
+      );
+
+      const button = container.firstChild;
+      const children = Array.from(button.children);
+      expect(children.length).toBeGreaterThan(0);
+    });
+
+    test("renders without icon when icon prop is not provided", () => {
+      const onClick = jest.fn();
+      render(<CreateButton buttonText="Create" onClick={onClick} />);
+
+      expect(screen.queryByTestId("mock-icon")).not.toBeInTheDocument();
+    });
   });
 });

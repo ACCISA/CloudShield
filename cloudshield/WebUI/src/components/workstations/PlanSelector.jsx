@@ -87,10 +87,20 @@ export default function PlanSelector({
     <div style={styles.container}>
       {plans.map((p) => {
         const selected = selectedPlan === p.id;
+        const handleKeyDown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onPlanSelect(p.id);
+          }
+        };
         return (
           <div
             key={p.id}
             onClick={() => onPlanSelect(p.id)}
+            onKeyDown={handleKeyDown}
+            role="button"
+            tabIndex={0}
+            aria-label={`Select ${p.title} plan`}
             style={{
               ...styles.planCard,
               ...(selected

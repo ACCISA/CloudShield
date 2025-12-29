@@ -105,6 +105,15 @@ export default function EditButton({ menuItems = [], disabled = false }) {
               <div key={index}>
                 <div
                   onClick={() => handleMenuItemClick(item.onClick)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleMenuItemClick(item.onClick);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={item.label}
                   style={{
                     display: "flex",
                     alignItems: "center",

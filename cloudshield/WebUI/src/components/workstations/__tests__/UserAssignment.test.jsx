@@ -196,4 +196,64 @@ describe("UserAssignment", () => {
     const boxes = container.querySelectorAll(".MuiBox-root");
     expect(boxes.length).toBeGreaterThan(0);
   });
+
+  it("handles empty users array correctly", () => {
+    render(<UserAssignment users={[]} onToggleUser={mockOnToggleUser} />);
+
+    // All buttons should be outlined (unselected)
+    const buttons = screen.getAllByRole("button");
+    buttons.forEach((button) => {
+      expect(button.className).toMatch(/MuiButton-outlined/);
+    });
+  });
+
+  it("handles all users being selected", () => {
+    const allUsers = [
+      "Michael Scott",
+      "Jim Halpert",
+      "Pam Beasly",
+      "Dwight Schrute",
+    ];
+    render(<UserAssignment users={allUsers} onToggleUser={mockOnToggleUser} />);
+
+    // All buttons should be contained (selected)
+    const buttons = screen.getAllByRole("button");
+    buttons.forEach((button) => {
+      expect(button.className).toMatch(/MuiButton-contained/);
+    });
+  });
+
+  it("properly handles user toggle for selected user", () => {
+    const selectedUsers = ["Michael Scott"];
+    render(
+      <UserAssignment users={selectedUsers} onToggleUser={mockOnToggleUser} />
+    );
+
+    const michaelButton = screen.getByRole("button", { name: "Michael Scott" });
+    fireEvent.click(michaelButton);
+
+    // Should be called to deselect
+    expect(mockOnToggleUser).toHaveBeenCalledWith("Michael Scott");
+  });
+
+  it("does not break when onToggleUser is not provided", () => {
+    render(<UserAssignment users={[]} />);
+
+    const michaelButton = screen.getByRole("button", { name: "Michael Scott" });
+
+    // Should not throw error
+    expect(() => fireEvent.click(michaelButton)).not.toThrow();
+  });
+
+  it("renders checkbox label correctly", () => {
+    render(
+      <UserAssignment
+        users={[]}
+        onToggleUser={mockOnToggleUser}
+        showAllUsersCheckbox={true}
+      />
+    );
+
+    expect(screen.getByText("All users")).toBeInTheDocument();
+  });
 });

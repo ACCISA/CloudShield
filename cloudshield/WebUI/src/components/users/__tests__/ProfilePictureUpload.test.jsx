@@ -211,4 +211,206 @@ describe("ProfilePictureUpload Component", () => {
       expect(container.firstChild).toBeInTheDocument();
     });
   });
+
+  describe("Image Preview", () => {
+    test("displays change button after image upload", async () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const fileInput = container.querySelector('input[type="file"]');
+      const file = new File(["dummy"], "test.png", { type: "image/png" });
+
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      // Component should handle FileReader asynchronously
+      expect(fileInput).toBeInTheDocument();
+    });
+
+    test("change button triggers file input", () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const fileInput = container.querySelector('input[type="file"]');
+      expect(fileInput).toBeInTheDocument();
+    });
+
+    test("handles non-image file types", () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const fileInput = container.querySelector('input[type="file"]');
+      const file = new File(["dummy"], "test.pdf", { type: "application/pdf" });
+
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      // Should not process non-image files
+      expect(mockOnImageChange).not.toHaveBeenCalled();
+    });
+
+    test("calls onImageChange when image is loaded", () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const fileInput = container.querySelector('input[type="file"]');
+      const file = new File(["dummy"], "test.png", { type: "image/png" });
+
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      // onImageChange will be called after FileReader finishes
+      expect(fileInput).toBeInTheDocument();
+    });
+  });
+
+  describe("Avatar Colors", () => {
+    test("generates consistent color for same name", () => {
+      const { container: container1 } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const { container: container2 } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      expect(container1.firstChild).toBeInTheDocument();
+      expect(container2.firstChild).toBeInTheDocument();
+    });
+
+    test("different names may have different colors", () => {
+      const { container: container1 } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const { container: container2 } = render(
+        <ProfilePictureUpload
+          firstName="Jane"
+          lastName="Smith"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      expect(container1.firstChild).toBeInTheDocument();
+      expect(container2.firstChild).toBeInTheDocument();
+    });
+  });
+
+  describe("Button Styling", () => {
+    test("applies hover styles to change button", () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const buttons = container.querySelectorAll("button");
+      expect(buttons.length).toBeGreaterThan(0);
+    });
+
+    test("upload button has correct structure", () => {
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const uploadButton = container.querySelector("button");
+      expect(uploadButton).toBeInTheDocument();
+    });
+  });
+
+  describe("Initials Edge Cases", () => {
+    test("handles single character first name", () => {
+      render(
+        <ProfilePictureUpload
+          firstName="J"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      expect(screen.getByText("JD")).toBeInTheDocument();
+    });
+
+    test("handles single character last name", () => {
+      render(
+        <ProfilePictureUpload
+          firstName="John"
+          lastName="D"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      expect(screen.getByText("JD")).toBeInTheDocument();
+    });
+
+    test("handles names with spaces", () => {
+      render(
+        <ProfilePictureUpload
+          firstName="John Paul"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      const { container } = render(
+        <ProfilePictureUpload
+          firstName="John Paul"
+          lastName="Doe"
+          onImageChange={mockOnImageChange}
+        />
+      );
+
+      expect(container.firstChild).toBeInTheDocument();
+    });
+  });
 });

@@ -10,7 +10,7 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false }) => {
     gap: "8px",
     minWidth: "120px",
     height: "48px",
-    background: disabled ? "#1a1a1a" : "#1a1a1a",
+    background: "#1a1a1a",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     borderRadius: "8px",
     cursor: disabled ? "not-allowed" : "pointer",
@@ -23,9 +23,11 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false }) => {
   };
 
   return (
-    <div
+    <button
       style={buttonContainerStyle}
       onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      aria-label={buttonText}
       onMouseEnter={(e) => {
         if (!disabled) {
           e.currentTarget.style.background = "#242424";
@@ -41,7 +43,7 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false }) => {
     >
       {icon}
       {buttonText}
-    </div>
+    </button>
   );
 };
 

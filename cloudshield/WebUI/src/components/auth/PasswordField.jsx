@@ -30,6 +30,15 @@ export default function PasswordField({
   // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
 
+  const handleToggle = () => setShow(!show);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
+
   return (
     <Box sx={{ width: '100%', mb: 3 }}>
       <Typography
@@ -58,11 +67,15 @@ export default function PasswordField({
             opacity: 0.8,
             cursor: 'pointer',
           }}
-          onClick={() => setShow(!show)}
+          onClick={handleToggle}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={show ? 'Hide password' : 'Show password'}
         >
           {show ? 'Hide' : 'Show'}
           <IconButton
-            onClick={() => setShow(!show)}
+            onClick={handleToggle}
             size="small"
             sx={{
               color: '#fff',

@@ -116,12 +116,23 @@ export default function DisplayButton({
     color: "#fff",
   });
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleOpen();
+    }
+  };
+
   return (
     <>
       <div
         ref={setButtonRef}
         style={buttonStyle}
         onClick={handleOpen}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label="Display options"
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "#242424";
           e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
@@ -162,6 +173,15 @@ export default function DisplayButton({
               {/* Cards Option */}
               <div
                 onClick={() => handleLayoutChange("cards")}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLayoutChange("cards");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Cards layout"
                 style={getOptionStyle(layout === "cards")}
                 onMouseEnter={(e) => {
                   if (layout !== "cards") {
@@ -191,6 +211,15 @@ export default function DisplayButton({
               {/* List Option */}
               <div
                 onClick={() => handleLayoutChange("list")}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLayoutChange("list");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="List layout"
                 style={getOptionStyle(layout === "list")}
                 onMouseEnter={(e) => {
                   if (layout !== "list") {
@@ -218,6 +247,15 @@ export default function DisplayButton({
               {/* Icons Option */}
               <div
                 onClick={() => handleLayoutChange("icons")}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLayoutChange("icons");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Icons layout"
                 style={getOptionStyle(layout === "icons")}
                 onMouseEnter={(e) => {
                   if (layout !== "icons") {

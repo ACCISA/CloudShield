@@ -261,4 +261,219 @@ describe("UserCreateModal Component", () => {
     const nextButton = screen.getByText(/Next/);
     expect(nextButton).toBeDisabled();
   });
+
+  test("can navigate through all steps using breadcrumb", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill basic info
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+
+    // Click on Workstations in breadcrumb
+    const workstationsBreadcrumb = screen.getByText("Workstations");
+    fireEvent.click(workstationsBreadcrumb);
+    expect(screen.getByText("Assign Workstations")).toBeInTheDocument();
+  });
+
+  test("navigates to Groups step", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill basic info and navigate
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    expect(screen.getByText("Assign Groups")).toBeInTheDocument();
+  });
+
+  test("navigates to Files step", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill basic info
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+
+    // Navigate through steps
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    expect(screen.getByText("Assign Files")).toBeInTheDocument();
+  });
+
+  test("displays Create button on final step", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill basic info and navigate to final step
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    const createButton = screen.getByRole("button", { name: /create/i });
+    expect(createButton).toBeInTheDocument();
+  });
+
+  test("calls onSubmit when Create button is clicked on final step", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill basic info and navigate to final step
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    const createButton = screen.getByRole("button", { name: /create/i });
+    fireEvent.click(createButton);
+
+    expect(mockOnSubmit).toHaveBeenCalled();
+  });
+
+  test("calls onClose when Create is clicked", () => {
+    render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // Fill and submit
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Doe"), {
+      target: { value: "Doe" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/johndoe@example\.com/), {
+      target: { value: "john@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Software Engineer"), {
+      target: { value: "Engineer" },
+    });
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    const createButton = screen.getByRole("button", { name: /create/i });
+    fireEvent.click(createButton);
+
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  test("resets form when closed and reopened", () => {
+    const { rerender } = render(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("John"), {
+      target: { value: "John" },
+    });
+
+    rerender(
+      <UserCreateModal
+        open={false}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    rerender(
+      <UserCreateModal
+        open={true}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    const firstNameInput = screen.getByPlaceholderText("John");
+    expect(firstNameInput.value).toBe("");
+  });
 });

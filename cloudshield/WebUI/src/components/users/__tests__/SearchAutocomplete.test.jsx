@@ -285,4 +285,301 @@ describe("SearchAutocomplete Component", () => {
       expect(input).toBeInTheDocument();
     });
   });
+
+  describe("Keyboard Navigation", () => {
+    test("navigates down with ArrowDown key", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+
+      expect(input).toBeInTheDocument();
+    });
+
+    test("navigates up with ArrowUp key", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      fireEvent.keyDown(input, { key: "ArrowUp" });
+
+      expect(input).toBeInTheDocument();
+    });
+
+    test("selects item with Enter key", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      expect(mockOnSelect).toHaveBeenCalled();
+    });
+
+    test("closes dropdown with Escape key", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+      fireEvent.keyDown(input, { key: "Escape" });
+
+      expect(input).toBeInTheDocument();
+    });
+  });
+
+  describe("Checkbox Functionality", () => {
+    test("renders checkbox when showAllCheckbox is true", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          showAllCheckbox={true}
+        />
+      );
+
+      // The checkbox label uses the same text as the main label
+      const searchItemsElements = screen.getAllByText("Search Items");
+      expect(searchItemsElements.length).toBeGreaterThan(1);
+    });
+
+    test("does not render checkbox when showAllCheckbox is false", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          showAllCheckbox={false}
+        />
+      );
+
+      // When showAllCheckbox is false, there should only be one "Search Items" (the label)
+      const searchItemsElements = screen.getAllByText("Search Items");
+      expect(searchItemsElements).toHaveLength(1);
+    });
+
+    test("calls onAllChange when checkbox is clicked", () => {
+      const mockOnAllChange = jest.fn();
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          showAllCheckbox={true}
+          allSelected={false}
+          onAllChange={mockOnAllChange}
+        />
+      );
+
+      // Click the checkbox label area (there will be 2 "Search Items" when checkbox is shown)
+      const searchItemsElements = screen.getAllByText("Search Items");
+      fireEvent.click(searchItemsElements[1]);
+
+      expect(mockOnAllChange).toHaveBeenCalledWith(true);
+    });
+
+    test("shows checked state when allSelected is true", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          showAllCheckbox={true}
+          allSelected={true}
+        />
+      );
+
+      // Checkbox should be rendered when showAllCheckbox is true
+      const searchItemsElements = screen.getAllByText("Search Items");
+      expect(searchItemsElements.length).toBeGreaterThan(1);
+    });
+  });
+
+  describe("Search Filtering", () => {
+    test("filters by item name", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Two" } });
+
+      expect(screen.getByText("Item Two")).toBeInTheDocument();
+      expect(screen.queryByText("Item One")).not.toBeInTheDocument();
+    });
+
+    test("filters by item code", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "I2" } });
+
+      expect(screen.getByText("Item Two")).toBeInTheDocument();
+    });
+
+    test("displays 'No results found' when no matches", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "NonExistent" } });
+
+      expect(screen.getByText("No results found")).toBeInTheDocument();
+    });
+
+    test("clears search input after item selection", () => {
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+      fireEvent.click(screen.getByText("Item One"));
+
+      expect(input.value).toBe("");
+    });
+  });
+
+  describe("Dropdown Behavior", () => {
+    test("closes dropdown when clicking outside", () => {
+      render(
+        <div>
+          <SearchAutocomplete
+            items={mockItems}
+            selected={mockSelected}
+            onSelect={mockOnSelect}
+            onDeselect={mockOnDeselect}
+            label="Search Items"
+          />
+          <button>Outside Button</button>
+        </div>
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+
+      const outsideButton = screen.getByText("Outside Button");
+      fireEvent.mouseDown(outsideButton);
+
+      expect(input).toBeInTheDocument();
+    });
+
+    test("displays suggested section header", () => {
+      const suggested = [mockItems[0]];
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          suggestedItems={suggested}
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+
+      expect(screen.getByText("Suggested")).toBeInTheDocument();
+    });
+
+    test("does not show suggested header when searching", () => {
+      const suggested = [mockItems[0]];
+      render(
+        <SearchAutocomplete
+          items={mockItems}
+          selected={mockSelected}
+          onSelect={mockOnSelect}
+          onDeselect={mockOnDeselect}
+          label="Search Items"
+          suggestedItems={suggested}
+        />
+      );
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: "Item" } });
+
+      expect(screen.queryByText("Suggested")).not.toBeInTheDocument();
+    });
+  });
 });

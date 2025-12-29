@@ -154,4 +154,144 @@ describe("DisplayButton Component", () => {
       expect(container.firstChild).toHaveStyle({ margin: "10px" });
     });
   });
+
+  describe("Position Updates", () => {
+    test("updates popover position on window resize", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      // Trigger resize
+      global.dispatchEvent(new Event("resize"));
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+
+    test("does not update position when popover is closed", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      // Don't open popover, just trigger resize
+      global.dispatchEvent(new Event("resize"));
+
+      expect(screen.queryByText("List")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Layout Indicators", () => {
+    test("highlights active layout option for list", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton layout="list" onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+
+    test("highlights active layout option for cards", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton layout="cards" onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("Cards")).toBeInTheDocument();
+    });
+
+    test("highlights active layout option for icons", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton layout="icons" onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("icons")).toBeInTheDocument();
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("handles missing onLayoutChange callback", () => {
+      render(<DisplayButton layout="list" />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      const cardsOption = screen.getByText("Cards");
+      expect(() => fireEvent.click(cardsOption)).not.toThrow();
+    });
+
+    test("handles rapid layout changes", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton layout="list" onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      fireEvent.click(screen.getByText("Cards"));
+      fireEvent.click(screen.getByText("icons"));
+      fireEvent.click(screen.getByText("List"));
+
+      expect(onLayoutChange).toHaveBeenCalledTimes(3);
+    });
+
+    test("handles undefined layout prop", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+
+    test("handles invalid layout prop", () => {
+      const onLayoutChange = jest.fn();
+      render(
+        <DisplayButton layout="invalid" onLayoutChange={onLayoutChange} />
+      );
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+  });
+
+  describe("Button Toggle", () => {
+    test("opens popover on first click", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+
+    test("closes popover on second click", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(screen.queryByText("List")).not.toBeInTheDocument();
+    });
+
+    test("reopens popover after closing", () => {
+      const onLayoutChange = jest.fn();
+      render(<DisplayButton onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(screen.getByText("List")).toBeInTheDocument();
+    });
+  });
 });

@@ -245,4 +245,180 @@ describe("UserEditModal Component", () => {
 
     expect(screen.getByDisplayValue("John")).toBeInTheDocument();
   });
+
+  test("navigates through all steps", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    // Navigate to Groups step
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    expect(screen.getByText("Assign Groups")).toBeInTheDocument();
+
+    // Navigate to Files step
+    fireEvent.click(screen.getByText(/Next/));
+    expect(screen.getByText("Assign Files")).toBeInTheDocument();
+  });
+
+  test("displays Update button on final step", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    // Navigate to final step
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+
+    expect(screen.getByText("Update")).toBeInTheDocument();
+  });
+
+  test("calls onSubmit when Update button is clicked", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    // Navigate to final step and click Update
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText("Update"));
+
+    expect(mockOnSubmit).toHaveBeenCalled();
+  });
+
+  test("calls onClose when Update is clicked", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    // Navigate to final step and click Update
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText(/Next/));
+    fireEvent.click(screen.getByText("Update"));
+
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  test("hides Delete button on steps other than Basic Info", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    fireEvent.click(screen.getByText(/Next/));
+    expect(screen.queryByText("Delete")).not.toBeInTheDocument();
+  });
+
+  test("can navigate using breadcrumb", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    // Click on Groups in breadcrumb
+    const groupsBreadcrumb = screen.getByText("Groups");
+    fireEvent.click(groupsBreadcrumb);
+    expect(screen.getByText("Assign Groups")).toBeInTheDocument();
+  });
+
+  test("reloads data when user prop changes", () => {
+    const { rerender } = render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByDisplayValue("John")).toBeInTheDocument();
+
+    const newUser = {
+      ...mockUser,
+      name: "Jane Smith",
+    };
+
+    rerender(
+      <UserEditModal
+        open={true}
+        data={newUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByDisplayValue("Jane")).toBeInTheDocument();
+  });
+
+  test("Next button is disabled when first name is empty", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const firstNameInput = screen.getByDisplayValue("John");
+    fireEvent.change(firstNameInput, { target: { value: "" } });
+
+    const nextButton = screen.getByText(/Next/);
+    expect(nextButton).toBeDisabled();
+  });
+
+  test("closes modal and calls onClose on Delete", () => {
+    render(
+      <UserEditModal
+        open={true}
+        data={mockUser}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Delete"));
+    expect(mockOnClose).toHaveBeenCalled();
+  });
 });

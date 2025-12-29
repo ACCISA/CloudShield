@@ -47,6 +47,13 @@ export default function FilterButton({
     setIsOpen(false);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleOpen();
+    }
+  };
+
   const handleFilterToggle = (groupId, value) => {
     const group = filterGroups.find((g) => g.id === groupId);
     if (!group) return;
@@ -202,6 +209,10 @@ export default function FilterButton({
         ref={setButtonRef}
         style={buttonStyle}
         onClick={handleOpen}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label="Filter options"
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "#242424";
           e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
@@ -264,6 +275,15 @@ export default function FilterButton({
                         onClick={() =>
                           handleFilterToggle(group.id, option.value)
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleFilterToggle(group.id, option.value);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${isActive ? 'Deselect' : 'Select'} ${option.label}`}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor =
                             "rgba(255,255,255,0.05)";

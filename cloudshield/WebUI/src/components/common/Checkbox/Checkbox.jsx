@@ -41,6 +41,13 @@ export default function Checkbox({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !disabled && onChange) {
+      e.preventDefault();
+      onChange(!checked);
+    }
+  };
+
   const containerStyle = {
     ...styles.container,
     opacity: disabled ? 0.5 : 1,
@@ -54,7 +61,15 @@ export default function Checkbox({
   };
 
   return (
-    <div style={containerStyle} onClick={handleClick}>
+    <div
+      style={containerStyle}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="checkbox"
+      aria-checked={checked}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+    >
       <div style={checkboxStyle}>
         {checked && (
           <svg style={styles.checkmark} viewBox="0 0 16 16" fill="none">

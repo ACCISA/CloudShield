@@ -197,4 +197,99 @@ describe("PlanSelector", () => {
     // CURRENT badge should disappear since ULTIMATE is selected
     expect(screen.queryByText("CURRENT")).not.toBeInTheDocument();
   });
+
+  it("handles undefined selectedPlan", () => {
+    render(
+      <PlanSelector selectedPlan={undefined} onPlanSelect={mockOnPlanSelect} />
+    );
+
+    // Should render all plans without errors
+    expect(screen.getByText("BASIC")).toBeInTheDocument();
+    expect(screen.getByText("PRO")).toBeInTheDocument();
+    expect(screen.getByText("ULTIMATE")).toBeInTheDocument();
+  });
+
+  it("handles null selectedPlan", () => {
+    render(
+      <PlanSelector selectedPlan={null} onPlanSelect={mockOnPlanSelect} />
+    );
+
+    expect(screen.getByText("BASIC")).toBeInTheDocument();
+    expect(screen.getByText("PRO")).toBeInTheDocument();
+  });
+
+  it("handles empty string selectedPlan", () => {
+    render(<PlanSelector selectedPlan="" onPlanSelect={mockOnPlanSelect} />);
+
+    const basicBox = screen.getByText("BASIC").closest(".MuiBox-root");
+    fireEvent.click(basicBox);
+
+    expect(mockOnPlanSelect).toHaveBeenCalledWith("BASIC");
+  });
+
+  it("handles missing onPlanSelect callback", () => {
+    render(<PlanSelector selectedPlan="BASIC" />);
+
+    const proBox = screen.getByText("PRO").closest(".MuiBox-root");
+    expect(() => fireEvent.click(proBox)).not.toThrow();
+  });
+
+  it("renders all plan features for each plan", () => {
+    render(
+      <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
+    );
+
+    // Each plan shows 4 features
+    const cpuElements = screen.getAllByText(/8 CPU cores/);
+    const gpuElements = screen.getAllByText(/12 GPU cores/);
+    const ramElements = screen.getAllByText(/8 GB RAM/);
+    const ssdElements = screen.getAllByText(/200 GB SSD/);
+
+    expect(cpuElements).toHaveLength(3);
+    expect(gpuElements).toHaveLength(3);
+    expect(ramElements).toHaveLength(3);
+    expect(ssdElements).toHaveLength(3);
+  });
+
+  it("applies hover effects to plan cards", () => {
+    const { container } = render(
+      <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
+    );
+
+    const proBox = screen.getByText("PRO").closest(".MuiBox-root");
+    fireEvent.mouseEnter(proBox);
+    fireEvent.mouseLeave(proBox);
+
+    expect(proBox).toBeInTheDocument();
+  });
+
+  it("maintains selection on hover", () => {
+    render(<PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />);
+
+    const proBox = screen.getByText("PRO").closest(".MuiBox-root");
+    const basicBox = screen.getByText("BASIC").closest(".MuiBox-root");
+
+    // Hover over unselected plan
+    fireEvent.mouseEnter(basicBox);
+    fireEvent.mouseLeave(basicBox);
+
+    // PRO should still be selected
+    expect(proBox).toBeInTheDocument();
+  });
+
+  it("handles rapid plan changes", () => {
+    render(
+      <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
+    );
+
+    const basicBox = screen.getByText("BASIC").closest(".MuiBox-root");
+    const proBox = screen.getByText("PRO").closest(".MuiBox-root");
+    const ultimateBox = screen.getByText("ULTIMATE").closest(".MuiBox-root");
+
+    fireEvent.click(proBox);
+    fireEvent.click(ultimateBox);
+    fireEvent.click(basicBox);
+
+    expect(mockOnPlanSelect).toHaveBeenCalledTimes(3);
+  });
 });

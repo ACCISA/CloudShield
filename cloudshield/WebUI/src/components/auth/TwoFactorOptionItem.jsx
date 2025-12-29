@@ -35,9 +35,19 @@ export default function TwoFactorOptionItem({
   const IconLeft =
     type === 'sms' ? SmsOutlinedIcon : MailOutlineOutlinedIcon;
 
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <Box
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       sx={{
         width: '100%',
         backgroundColor: '#161616',
