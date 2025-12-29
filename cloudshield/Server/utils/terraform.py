@@ -25,4 +25,7 @@ def get_workstation_count(org_id: str, env: dict | None = None) -> int:
         initial_count = int(output.strip())
     except subprocess.CalledProcessError as e:
         logger.info("[UTIL] No existing workstations found for org %s: %s", org_id, e)
+    except Exception as e:  # pragma: no cover - fail-safe for missing terraform state/paths
+        logger.warning("[UTIL] Unable to read workstation count for org %s, defaulting high: %s", org_id, e, exc_info=True)
+        return 1_000_000  # fallback high limit so we don't block user creation
     return initial_count
