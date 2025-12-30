@@ -3,7 +3,8 @@ import redis
 from rq import Queue
 
 # Allow configuring Redis connection & default job timeout via environment
-REDIS_HOST = os.getenv("CLOUDSHIELD_REDIS_HOST", "localhost")
+# 172.23.0.5 is the ipv4 that we assigned in the docker-compose.yml for the redis container
+REDIS_HOST = os.getenv("CLOUDSHIELD_REDIS_HOST", "172.23.0.5")
 REDIS_PORT = int(os.getenv("CLOUDSHIELD_REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("CLOUDSHIELD_REDIS_DB", "0"))
 

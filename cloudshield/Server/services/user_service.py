@@ -42,6 +42,53 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
     return str(res.inserted_id)
 
 
+def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = None) -> bool:
+    """
+    Remove domain user from database with audit logging
+    
+    Args:
+        org_id (str): Organization ID that owns the user.
+        username (str): Username to be removed.
+        job_id (str | None): Optional job ID for audit trail context.
+    
+    Returns:
+        bool: True if user was found and deleted, False otherwise.
+    
+    """
+    deleted_user = users_admin.find_one_and_delete(
+        {"org_id": org_id, "username": username}
+    )
+    
+    if not deleted_user:
+        return False
+    
+    try:
+        log_audit(
+            action="dc_remove_user",
+            actor={"id": "system", "role": "system", "org_id": org_id},
+            resource="users",
+            target={
+                "id": str(deleted_user["_id"]),
+                "username": username,
+                "email": deleted_user.get("email")
+            },
+            reason="Domain controller user removal",
+            before={
+                "role": deleted_user.get("role"),
+                "status": deleted_user.get("status"),
+                "org_id": deleted_user.get("org_id"),
+                "username": username
+            },
+            after=None,
+            meta={"job_id": job_id} if job_id else {}
+        )
+    except Exception:
+        # Audit logging must never block deletion
+        pass
+    
+    return True
+
+
 def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
     """
     Create a new user account with audit logging.

@@ -1,0 +1,41 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y curl gnupg && \
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && apt-get install -y terraform bash procps net-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+# install docker compose
+RUN curl -fsSL https://get.docker.com/ | sh
+
+WORKDIR /app
+
+COPY cloudshield/Server/requirements.txt .
+COPY docker-compose.yml .
+COPY docker /app/docker
+
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install awscli supervisor
+RUN env
+
+RUN mkdir /var/lib/cloudshield
+
+RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
+
+COPY cloudshield/__init__.py /app/cloudshield/
+COPY cloudshield/Server /app/cloudshield/Server/
+
+RUN mkdir -p /app/cloudshield/RPCNode/build/
+# Instead of the terraform provisioner module we wrote, we will import the docker provisioner.
+# Docker provisioner allows us to test our api without using aws to save money and time.
+
+COPY cloudshield/Cloud/docker_provisioner /app/provisioner
+COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
+COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
+
+ENV PYTHONPATH=/app
+
+COPY docker/supervisord.conf /app/
+
+CMD ["supervisord", "-c", "supervisord.conf"]

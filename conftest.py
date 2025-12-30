@@ -1,7 +1,7 @@
 import sys
 import time
 import types
-
+from unittest.mock import MagicMock
 
 def _stub_module(name, attrs=None):
     if name in sys.modules:
@@ -87,8 +87,12 @@ def _fake_channel_ready_future(channel):
 def _fake_server(*_args, **_kwargs):
     return _FakeServer()
 
+mock_utilities = MagicMock()
+mock_utilities.first_version_is_lower = lambda v1, v2: False
 
 grpc_attrs = {
+    "_utilities": mock_utilities,
+    "__version__":'1.48.2',
     "insecure_channel": _fake_insecure_channel,
     "channel_ready_future": _fake_channel_ready_future,
     "server": _fake_server,
@@ -99,6 +103,9 @@ grpc_attrs = {
 
 _grpc_module = _stub_module("grpc", grpc_attrs)
 setattr(_grpc_module, "_FAKE_SERVER_REGISTRY", _SERVERS)
+
+sys.modules["grpc"] = _grpc_module
+sys.modules["grpc._utilities"] = mock_utilities
 
 
 class _Sched:
@@ -177,7 +184,7 @@ _stub_module(
     "provisioner",
     {
         "provision_network_terraform": _provision_network_terraform_stub,
-            "destroy": _destroy_stub,
+            "destroy_infra": _destroy_stub,
             "get_target_dir": _get_target_dir_stub,
     },
 )
