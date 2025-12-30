@@ -53,10 +53,13 @@ export function getInitials(name) {
 }
 
 /**
- * Generate a random avatar color
+ * Generate a random avatar color using cryptographically secure randomness
  * @returns {string} Random hex color
  */
 export function getRandomAvatarColor() {
-  // Using Math.random() is safe here - it's only for UI color selection, not security
-  return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+  // Use crypto.getRandomValues() for secure random number generation
+  const randomArray = new Uint32Array(1);
+  crypto.getRandomValues(randomArray);
+  const randomIndex = randomArray[0] % AVATAR_COLORS.length;
+  return AVATAR_COLORS[randomIndex];
 }
