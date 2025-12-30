@@ -1,24 +1,14 @@
-/**
- * WorkstationEditDialog.jsx
- *
- * Purpose:
- *   Modal dialog for editing an existing workstation's properties (name, users, plan, etc.).
- *
- * Props:
- *   - open: boolean controlling visibility
- *   - onClose: close handler
- *   - row: the workstation row being edited
- *   - onSave: save callback
- *   - onDelete: delete callback
- */
-import React, { useState } from 'react';
-import { Box, Typography, Button, Checkbox, FormControlLabel } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import WorkstationDialog from './WorkstationDialog';
-import StyledInput from './StyledInput';
-import PlanSelector from './PlanSelector';
-import UserAssignment from './UserAssignment';
+import React from "react";
+import WorkstationDialog from "./WorkstationDialog";
+import StyledInput from "./StyledInput";
+import PlanSelector from "./PlanSelector";
+import UserAssignment from "./UserAssignment";
+import { useWorkstationForm } from "./useWorkstationForm";
+import {
+  buttonStyles,
+  formStyles,
+  ActionButton,
+} from "./workstationDialogStyles";
 
 /**
  * Modal dialog for editing an existing workstation.
@@ -30,80 +20,54 @@ import UserAssignment from './UserAssignment';
  * @param {Function} props.onDelete - Called to delete the workstation
  * @returns {JSX.Element} Edit workstation dialog
  */
-export default function WorkstationEditDialog({ open, onClose, row, onSave, onDelete }) {
-  const [name, setName] = useState(row?.name || '');
-  const [group, setGroup] = useState('None');
-  const [users, setUsers] = useState([row?.currentUser].filter(Boolean));
-  const [allSoftware, setAllSoftware] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('BASIC');
-
-  /**
-   * Toggle a user in the selected users list.
-   * @param {string} u - User name to toggle
-   */
-  const toggleUser = (u) =>
-    setUsers((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]));
+export default function WorkstationEditDialog({
+  open,
+  onClose,
+  row,
+  onSave,
+  onDelete,
+}) {
+  const form = useWorkstationForm(row);
 
   /**
    * Submit updated workstation data to parent.
    */
   const handleSave = () => {
     onSave?.({
-      name,
+      name: form.name,
       code: row.code,
-      currentUser: users[0] || '—',
-      usersCount: users.length,
-      plan: selectedPlan,
+      currentUser: form.users[0] || "—",
+      usersCount: form.users.length,
+      plan: form.selectedPlan,
     });
   };
 
   const actions = (
     <>
-      <Button
+      <ActionButton
         onClick={onDelete}
-        startIcon={<DeleteOutlineIcon />}
-        sx={{
-          textTransform: 'none',
-          color: '#fff',
-          backgroundColor: '#7c1d1d',
-          borderRadius: '12px',
-          px: 2,
-          '&:hover': { backgroundColor: '#8a2323' },
-        }}
+        style={buttonStyles.deleteButton}
+        hoverStyle={{ backgroundColor: "#8a2323" }}
       >
-        Delete
-      </Button>
+        <span>🗑</span> Delete
+      </ActionButton>
 
-      <Box sx={{ display: 'flex', gap: 1.2, ml: 'auto' }}>
-        <Button
+      <div style={formStyles.actionsRight}>
+        <ActionButton
           onClick={onClose}
-          sx={{
-            textTransform: 'none',
-            color: '#fff',
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '12px',
-            px: 2,
-            '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)' },
-          }}
+          style={buttonStyles.cancelButton}
+          hoverStyle={{ backgroundColor: "rgba(255,255,255,0.14)" }}
         >
           Cancel
-        </Button>
-        <Button
+        </ActionButton>
+        <ActionButton
           onClick={handleSave}
-          startIcon={<EditOutlinedIcon />}
-          sx={{
-            textTransform: 'none',
-            color: '#000',
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            px: 2.5,
-            '&:hover': { backgroundColor: '#f2f2f2' },
-          }}
+          style={buttonStyles.editButton}
+          hoverStyle={{ backgroundColor: "#f2f2f2" }}
         >
-          Edit
-        </Button>
-      </Box>
+          <span>✏️</span> Edit
+        </ActionButton>
+      </div>
     </>
   );
 
@@ -112,91 +76,80 @@ export default function WorkstationEditDialog({ open, onClose, row, onSave, onDe
       open={open}
       onClose={onClose}
       title="Edit Workstation"
-      breadcrumb={['Workstations', 'Edit Workstation']}
+      breadcrumb={["Workstations", "Edit Workstation"]}
       actions={actions}
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+      <div style={formStyles.formGrid}>
         <StyledInput
           label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={form.name}
+          onChange={(e) => form.setName(e.target.value)}
         />
         <StyledInput
           label="Group"
-          value={group}
-          onChange={(e) => setGroup(e.target.value)}
+          value={form.group}
+          onChange={(e) => form.setGroup(e.target.value)}
           placeholder="None"
         />
-      </Box>
+      </div>
 
       <PlanSelector
-        selectedPlan={selectedPlan}
-        onPlanSelect={setSelectedPlan}
+        selectedPlan={form.selectedPlan}
+        onPlanSelect={form.setSelectedPlan}
         showCurrent={true}
       />
 
       <UserAssignment
-        users={users}
-        onToggleUser={toggleUser}
+        users={form.users}
+        onToggleUser={form.toggleUser}
         showAllUsersCheckbox={false}
       />
 
       {/* Software */}
-      <Box sx={{ mt: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography fontWeight={600}>Pre-Installed software</Typography>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={allSoftware}
-                onChange={(e) => setAllSoftware(e.target.checked)}
-                sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-              />
-            }
-            label="All software"
-          />
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {['Microsoft Word', 'Microsoft Excel', 'Slack', 'Microsoft Teams', 'Zoom'].map((s) => (
-            <Button
+      <div style={formStyles.softwareSection}>
+        <div style={formStyles.softwareHeader}>
+          <div style={formStyles.sectionTitle}>Pre-Installed software</div>
+          <label style={formStyles.checkboxContainer}>
+            <input
+              type="checkbox"
+              checked={form.allSoftware}
+              onChange={(e) => form.setAllSoftware(e.target.checked)}
+              style={formStyles.checkbox}
+            />
+            <span>All software</span>
+          </label>
+        </div>
+        <div style={formStyles.softwareButtons}>
+          {[
+            "Microsoft Word",
+            "Microsoft Excel",
+            "Slack",
+            "Microsoft Teams",
+            "Zoom",
+          ].map((s) => (
+            <button
               key={s}
-              size="small"
-              variant="outlined"
-              sx={{
-                textTransform: 'none',
-                color: '#fff',
-                borderColor: 'rgba(255,255,255,0.2)',
-                borderRadius: '10px',
-                '&:hover': { borderColor: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)' },
+              style={formStyles.softwareButton}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                e.currentTarget.style.background = "transparent";
               }}
             >
               {s}
-            </Button>
+            </button>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Wallpaper picker placeholder */}
-      <Box sx={{ mt: 2 }}>
-        <Typography fontWeight={600}>Desktop wallpaper</Typography>
-        <Box
-          sx={{
-            mt: 1,
-            width: 120,
-            height: 90,
-            borderRadius: '12px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '2rem',
-          }}
-        >
-          +
-        </Box>
-      </Box>
+      <div style={formStyles.wallpaperSection}>
+        <div style={formStyles.sectionTitle}>Desktop wallpaper</div>
+        <div style={formStyles.wallpaperBox}>+</div>
+      </div>
     </WorkstationDialog>
   );
 }

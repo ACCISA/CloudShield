@@ -9,6 +9,7 @@ import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 
 function AppWithAuth() {
   const devBypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
@@ -130,7 +131,7 @@ function AppWithAuth() {
           path="/users"
           element={
             <Protected>
-              <EmployeesPage />
+              <UsersPage />
             </Protected>
           }
         />

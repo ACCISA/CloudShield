@@ -1,40 +1,30 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import StyledInput from '../StyledInput';
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import StyledInput from "../StyledInput";
 
-describe('StyledInput', () => {
+describe("StyledInput", () => {
   const mockOnChange = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders with label', () => {
-    render(
-      <StyledInput
-        label="Username"
-        value=""
-        onChange={mockOnChange}
-      />
-    );
+  it("renders with label", () => {
+    render(<StyledInput label="Username" value="" onChange={mockOnChange} />);
 
-    expect(screen.getByText('Username')).toBeInTheDocument();
+    expect(screen.getByText("Username")).toBeInTheDocument();
   });
 
-  it('renders input field with value', () => {
+  it("renders input field with value", () => {
     render(
-      <StyledInput
-        label="Username"
-        value="testuser"
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="testuser" onChange={mockOnChange} />
     );
 
-    const input = screen.getByDisplayValue('testuser');
+    const input = screen.getByDisplayValue("testuser");
     expect(input).toBeInTheDocument();
   });
 
-  it('renders with placeholder', () => {
+  it("renders with placeholder", () => {
     render(
       <StyledInput
         label="Email"
@@ -44,65 +34,49 @@ describe('StyledInput', () => {
       />
     );
 
-    const input = screen.getByPlaceholderText('Enter your email');
+    const input = screen.getByPlaceholderText("Enter your email");
     expect(input).toBeInTheDocument();
   });
 
-  it('calls onChange when input value changes', () => {
-    render(
-      <StyledInput
-        label="Username"
-        value=""
-        onChange={mockOnChange}
-      />
-    );
+  it("calls onChange when input value changes", () => {
+    render(<StyledInput label="Username" value="" onChange={mockOnChange} />);
 
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'newvalue' } });
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "newvalue" } });
 
     expect(mockOnChange).toHaveBeenCalledTimes(1);
   });
 
-  it('updates value when typing', () => {
+  it("updates value when typing", () => {
     const { rerender } = render(
-      <StyledInput
-        label="Username"
-        value=""
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="" onChange={mockOnChange} />
     );
 
-    const input = screen.getByRole('textbox');
-    expect(input).toHaveValue('');
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue("");
 
     rerender(
-      <StyledInput
-        label="Username"
-        value="test"
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="test" onChange={mockOnChange} />
     );
 
-    expect(input).toHaveValue('test');
+    expect(input).toHaveValue("test");
   });
 
-  it('renders label above input field', () => {
+  it("renders label above input field", () => {
     const { container } = render(
-      <StyledInput
-        label="Username"
-        value="test"
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="test" onChange={mockOnChange} />
     );
 
-    const label = screen.getByText('Username');
-    const input = screen.getByDisplayValue('test');
+    const label = screen.getByText("Username");
+    const input = screen.getByDisplayValue("test");
 
     // Label should be rendered before input in DOM order
-    expect(label.compareDocumentPosition(input)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(label.compareDocumentPosition(input)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
   });
 
-  it('passes additional props to OutlinedInput', () => {
+  it("passes additional props to OutlinedInput", () => {
     render(
       <StyledInput
         label="Username"
@@ -112,11 +86,11 @@ describe('StyledInput', () => {
       />
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole("textbox");
     expect(input).toBeDisabled();
   });
 
-  it('supports type attribute', () => {
+  it("supports type attribute", () => {
     render(
       <StyledInput
         label="Email"
@@ -126,51 +100,37 @@ describe('StyledInput', () => {
       />
     );
 
-    const input = screen.getByRole('textbox');
-    expect(input).toHaveAttribute('type', 'email');
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("type", "email");
   });
 
-  it('renders with MUI OutlinedInput styling', () => {
+  it("renders with MUI OutlinedInput styling", () => {
     const { container } = render(
-      <StyledInput
-        label="Username"
-        value=""
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="" onChange={mockOnChange} />
     );
 
-    const outlinedInput = container.querySelector('.MuiOutlinedInput-root');
+    const outlinedInput = container.querySelector(".MuiOutlinedInput-root");
     expect(outlinedInput).toBeInTheDocument();
   });
 
-  it('renders with MUI Typography for label', () => {
+  it("renders with MUI Typography for label", () => {
     const { container } = render(
-      <StyledInput
-        label="Username"
-        value=""
-        onChange={mockOnChange}
-      />
+      <StyledInput label="Username" value="" onChange={mockOnChange} />
     );
 
-    const typography = container.querySelector('.MuiTypography-root');
+    const typography = container.querySelector(".MuiTypography-root");
     expect(typography).toBeInTheDocument();
-    expect(typography).toHaveTextContent('Username');
+    expect(typography).toHaveTextContent("Username");
   });
 
-  it('handles empty label', () => {
-    render(
-      <StyledInput
-        label=""
-        value="test"
-        onChange={mockOnChange}
-      />
-    );
+  it("handles empty label", () => {
+    render(<StyledInput label="" value="test" onChange={mockOnChange} />);
 
-    const input = screen.getByDisplayValue('test');
+    const input = screen.getByDisplayValue("test");
     expect(input).toBeInTheDocument();
   });
 
-  it('handles multiline input through additional props', () => {
+  it("handles multiline input through additional props", () => {
     render(
       <StyledInput
         label="Description"
@@ -181,7 +141,7 @@ describe('StyledInput', () => {
       />
     );
 
-    const textarea = screen.getByDisplayValue('Test description');
+    const textarea = screen.getByDisplayValue("Test description");
     expect(textarea).toBeInTheDocument();
   });
 });

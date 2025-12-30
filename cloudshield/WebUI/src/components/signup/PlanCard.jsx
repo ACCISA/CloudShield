@@ -1,9 +1,20 @@
 import { Box, Typography } from "@mui/material";
 
 export default function PlanCard({ plan, selected, onSelect }) {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect(plan.id);
+    }
+  };
+
   return (
     <Box
       onClick={() => onSelect(plan.id)}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Select ${plan.name} plan for $${plan.price} per month`}
       sx={{
         flex: "1 1 260px",
         maxWidth: 300,
