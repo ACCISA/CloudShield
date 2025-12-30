@@ -4,7 +4,7 @@ import base64
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
-from services.user_service import persist_domain_user
+from services.user_service import persist_domain_user, remove_domain_user_from_db
 from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
@@ -334,6 +334,12 @@ def dc_remove_user(org_id: str, username: str):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully removed user")
+        # Remove user from database with audit logging
+        removed = remove_domain_user_from_db(org_id, username, job_id=job_id)
+        if removed:
+            logger.info(f"User {username} removed from database")
+        else:
+            logger.warning(f"User {username} not found in database")
         return {"status": "SUCCESS", "message":"Successfully removed user"}
 
     if status == infra_pb2.FAILED:
