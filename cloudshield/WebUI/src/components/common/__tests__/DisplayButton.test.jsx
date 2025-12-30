@@ -277,7 +277,7 @@ describe("DisplayButton Component", () => {
 
       const button = screen.getByText("Display");
       fireEvent.click(button);
-      
+
       // Click backdrop to close
       const backdrop = document.querySelector('[style*="position: fixed"]');
       if (backdrop) {
@@ -293,13 +293,13 @@ describe("DisplayButton Component", () => {
 
       const button = screen.getByText("Display");
       fireEvent.click(button);
-      
+
       // Click backdrop to close
       const backdrop = document.querySelector('[style*="position: fixed"]');
       if (backdrop) {
         fireEvent.click(backdrop);
       }
-      
+
       // Reopen
       fireEvent.click(button);
 
@@ -312,8 +312,8 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       render(<DisplayButton onLayoutChange={onLayoutChange} />);
 
-      const button = screen.getByRole('button', { name: /display options/i });
-      fireEvent.keyDown(button, { key: 'Enter' });
+      const button = screen.getByRole("button", { name: /display options/i });
+      fireEvent.keyDown(button, { key: "Enter" });
 
       expect(screen.getByText("List")).toBeInTheDocument();
     });
@@ -322,8 +322,8 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       render(<DisplayButton onLayoutChange={onLayoutChange} />);
 
-      const button = screen.getByRole('button', { name: /display options/i });
-      fireEvent.keyDown(button, { key: ' ' });
+      const button = screen.getByRole("button", { name: /display options/i });
+      fireEvent.keyDown(button, { key: " " });
 
       expect(screen.getByText("List")).toBeInTheDocument();
     });
@@ -332,9 +332,9 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       render(<DisplayButton onLayoutChange={onLayoutChange} />);
 
-      const button = screen.getByRole('button', { name: /display options/i });
-      fireEvent.keyDown(button, { key: 'a' });
-      fireEvent.keyDown(button, { key: 'Escape' });
+      const button = screen.getByRole("button", { name: /display options/i });
+      fireEvent.keyDown(button, { key: "a" });
+      fireEvent.keyDown(button, { key: "Escape" });
 
       expect(screen.queryByText("List")).not.toBeInTheDocument();
     });
@@ -346,8 +346,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const cardsOption = screen.getByRole('button', { name: /cards layout/i });
-      fireEvent.keyDown(cardsOption, { key: 'Enter' });
+      const cardsOption = screen.getByRole("button", { name: /cards layout/i });
+      fireEvent.keyDown(cardsOption, { key: "Enter" });
 
       expect(onLayoutChange).toHaveBeenCalledWith("cards");
     });
@@ -359,8 +359,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const iconsOption = screen.getByRole('button', { name: /icons layout/i });
-      fireEvent.keyDown(iconsOption, { key: ' ' });
+      const iconsOption = screen.getByRole("button", { name: /icons layout/i });
+      fireEvent.keyDown(iconsOption, { key: " " });
 
       expect(onLayoutChange).toHaveBeenCalledWith("icons");
     });
@@ -372,8 +372,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const listOption = screen.getByRole('button', { name: /list layout/i });
-      fireEvent.keyDown(listOption, { key: 'Enter' });
+      const listOption = screen.getByRole("button", { name: /list layout/i });
+      fireEvent.keyDown(listOption, { key: "Enter" });
 
       expect(onLayoutChange).toHaveBeenCalledWith("list");
     });
@@ -385,8 +385,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const listOption = screen.getByRole('button', { name: /list layout/i });
-      fireEvent.keyDown(listOption, { key: ' ' });
+      const listOption = screen.getByRole("button", { name: /list layout/i });
+      fireEvent.keyDown(listOption, { key: " " });
 
       expect(onLayoutChange).toHaveBeenCalledWith("list");
     });
@@ -398,9 +398,9 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const cardsOption = screen.getByRole('button', { name: /cards layout/i });
-      fireEvent.keyDown(cardsOption, { key: 'a' });
-      fireEvent.keyDown(cardsOption, { key: 'Tab' });
+      const cardsOption = screen.getByRole("button", { name: /cards layout/i });
+      fireEvent.keyDown(cardsOption, { key: "a" });
+      fireEvent.keyDown(cardsOption, { key: "Tab" });
 
       expect(onLayoutChange).not.toHaveBeenCalled();
     });
@@ -411,15 +411,15 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       render(<DisplayButton onLayoutChange={onLayoutChange} />);
 
-      const button = screen.getByRole('button', { name: /display options/i });
-      
+      const button = screen.getByRole("button", { name: /display options/i });
+
       fireEvent.mouseEnter(button);
-      expect(button.style.background).toBe('rgb(36, 36, 36)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.2)');
-      
+      expect(button.style.background).toBe("rgb(36, 36, 36)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
+
       fireEvent.mouseLeave(button);
-      expect(button.style.background).toBe('rgb(10, 10, 10)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.1)');
+      expect(button.style.background).toBe("rgb(10, 10, 10)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
     });
 
     test("applies hover styles to unselected layout options", () => {
@@ -429,15 +429,19 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const cardsOption = screen.getByRole('button', { name: /cards layout/i });
-      
+      const cardsOption = screen.getByRole("button", { name: /cards layout/i });
+
       fireEvent.mouseEnter(cardsOption);
-      expect(cardsOption.style.backgroundColor).toBe('rgba(255, 255, 255, 0.08)');
-      
+      expect(cardsOption.style.backgroundColor).toBe(
+        "rgba(255, 255, 255, 0.08)"
+      );
+
       fireEvent.mouseLeave(cardsOption);
-      expect(cardsOption.style.backgroundColor).toBe('transparent');
+      expect(cardsOption.style.backgroundColor).toBe("transparent");
       // Border is cleared by setting it to 'none', but the actual style value might be empty string
-      expect(cardsOption.style.border === 'none' || cardsOption.style.border === '').toBeTruthy();
+      expect(
+        cardsOption.style.border === "none" || cardsOption.style.border === ""
+      ).toBeTruthy();
     });
 
     test("does not apply hover styles to selected layout option", () => {
@@ -447,8 +451,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const cardsOption = screen.getByRole('button', { name: /cards layout/i });
-      
+      const cardsOption = screen.getByRole("button", { name: /cards layout/i });
+
       // Should not change background for selected option
       const initialBackground = cardsOption.style.backgroundColor;
       fireEvent.mouseEnter(cardsOption);
@@ -462,13 +466,15 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const listOption = screen.getByRole('button', { name: /list layout/i });
-      
+      const listOption = screen.getByRole("button", { name: /list layout/i });
+
       fireEvent.mouseEnter(listOption);
-      expect(listOption.style.backgroundColor).toBe('rgba(255, 255, 255, 0.08)');
-      
+      expect(listOption.style.backgroundColor).toBe(
+        "rgba(255, 255, 255, 0.08)"
+      );
+
       fireEvent.mouseLeave(listOption);
-      expect(listOption.style.backgroundColor).toBe('transparent');
+      expect(listOption.style.backgroundColor).toBe("transparent");
     });
 
     test("does not apply hover styles to selected List option", () => {
@@ -478,8 +484,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const listOption = screen.getByRole('button', { name: /list layout/i });
-      
+      const listOption = screen.getByRole("button", { name: /list layout/i });
+
       const initialBackground = listOption.style.backgroundColor;
       fireEvent.mouseEnter(listOption);
       expect(listOption.style.backgroundColor).toBe(initialBackground);
@@ -492,13 +498,15 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const iconsOption = screen.getByRole('button', { name: /icons layout/i });
-      
+      const iconsOption = screen.getByRole("button", { name: /icons layout/i });
+
       fireEvent.mouseEnter(iconsOption);
-      expect(iconsOption.style.backgroundColor).toBe('rgba(255, 255, 255, 0.08)');
-      
+      expect(iconsOption.style.backgroundColor).toBe(
+        "rgba(255, 255, 255, 0.08)"
+      );
+
       fireEvent.mouseLeave(iconsOption);
-      expect(iconsOption.style.backgroundColor).toBe('transparent');
+      expect(iconsOption.style.backgroundColor).toBe("transparent");
     });
 
     test("does not apply hover styles to selected Icons option", () => {
@@ -508,8 +516,8 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const iconsOption = screen.getByRole('button', { name: /icons layout/i });
-      
+      const iconsOption = screen.getByRole("button", { name: /icons layout/i });
+
       const initialBackground = iconsOption.style.backgroundColor;
       fireEvent.mouseEnter(iconsOption);
       expect(iconsOption.style.backgroundColor).toBe(initialBackground);
@@ -521,10 +529,10 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       render(<DisplayButton onLayoutChange={onLayoutChange} />);
 
-      const button = screen.getByRole('button', { name: /display options/i });
-      expect(button).toHaveAttribute('role', 'button');
-      expect(button).toHaveAttribute('tabIndex', '0');
-      expect(button).toHaveAttribute('aria-label', 'Display options');
+      const button = screen.getByRole("button", { name: /display options/i });
+      expect(button).toHaveAttribute("role", "button");
+      expect(button).toHaveAttribute("tabIndex", "0");
+      expect(button).toHaveAttribute("aria-label", "Display options");
     });
 
     test("has proper accessibility attributes on layout options", () => {
@@ -534,13 +542,13 @@ describe("DisplayButton Component", () => {
       const button = screen.getByText("Display");
       fireEvent.click(button);
 
-      const cardsOption = screen.getByRole('button', { name: /cards layout/i });
-      const listOption = screen.getByRole('button', { name: /list layout/i });
-      const iconsOption = screen.getByRole('button', { name: /icons layout/i });
+      const cardsOption = screen.getByRole("button", { name: /cards layout/i });
+      const listOption = screen.getByRole("button", { name: /list layout/i });
+      const iconsOption = screen.getByRole("button", { name: /icons layout/i });
 
-      [cardsOption, listOption, iconsOption].forEach(option => {
-        expect(option).toHaveAttribute('role', 'button');
-        expect(option).toHaveAttribute('tabIndex', '0');
+      [cardsOption, listOption, iconsOption].forEach((option) => {
+        expect(option).toHaveAttribute("role", "button");
+        expect(option).toHaveAttribute("tabIndex", "0");
       });
     });
   });

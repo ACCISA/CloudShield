@@ -106,11 +106,11 @@ export default function WorkstationDialog({
   if (!open) return null;
 
   return (
-    <div 
-      style={styles.overlay} 
+    <div
+      style={styles.overlay}
       onClick={onClose}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') {
+        if (e.key === "Escape") {
           onClose();
         }
       }}
@@ -118,8 +118,8 @@ export default function WorkstationDialog({
       tabIndex={-1}
       aria-label="Close dialog"
     >
-      <div 
-        style={styles.dialog} 
+      <div
+        style={styles.dialog}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >

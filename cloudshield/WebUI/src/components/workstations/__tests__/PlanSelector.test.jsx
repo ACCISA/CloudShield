@@ -42,7 +42,7 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
     fireEvent.click(proButton);
 
     expect(mockOnPlanSelect).toHaveBeenCalledTimes(1);
@@ -54,15 +54,19 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
+    const basicButton = screen.getByRole("button", {
+      name: /select basic plan/i,
+    });
     fireEvent.click(basicButton);
     expect(mockOnPlanSelect).toHaveBeenLastCalledWith("BASIC");
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
     fireEvent.click(proButton);
     expect(mockOnPlanSelect).toHaveBeenLastCalledWith("PRO");
 
-    const ultimateButton = screen.getByRole('button', { name: /select ultimate plan/i });
+    const ultimateButton = screen.getByRole("button", {
+      name: /select ultimate plan/i,
+    });
     fireEvent.click(ultimateButton);
     expect(mockOnPlanSelect).toHaveBeenLastCalledWith("ULTIMATE");
 
@@ -147,21 +151,19 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const planButtons = screen.getAllByRole('button');
+    const planButtons = screen.getAllByRole("button");
     expect(planButtons).toHaveLength(3);
     // All plan cards should be clickable with role="button"
-    planButtons.forEach(button => {
-      expect(button).toHaveAttribute('role', 'button');
+    planButtons.forEach((button) => {
+      expect(button).toHaveAttribute("role", "button");
     });
   });
 
   it("highlights selected plan visually", () => {
-    render(
-      <PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />
-    );
+    render(<PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />);
 
     // PRO should be selected and highlighted
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
     expect(proButton).toBeInTheDocument();
   });
 
@@ -211,7 +213,9 @@ describe("PlanSelector", () => {
   it("handles empty string selectedPlan", () => {
     render(<PlanSelector selectedPlan="" onPlanSelect={mockOnPlanSelect} />);
 
-    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
+    const basicButton = screen.getByRole("button", {
+      name: /select basic plan/i,
+    });
     fireEvent.click(basicButton);
 
     expect(mockOnPlanSelect).toHaveBeenCalledWith("BASIC");
@@ -239,8 +243,8 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+
     // Test mouseEnter and mouseLeave
     fireEvent.mouseEnter(proButton);
     fireEvent.mouseLeave(proButton);
@@ -253,37 +257,37 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+
     // Hover should change border color for unselected plans
     fireEvent.mouseEnter(proButton);
     // Style changes are applied directly to element
     expect(proButton.style.borderColor).toBeTruthy();
-    
+
     fireEvent.mouseLeave(proButton);
     expect(proButton.style.borderColor).toBeTruthy();
   });
 
   it("maintains border color on hover for selected plan", () => {
-    render(
-      <PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />
-    );
+    render(<PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />);
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+
     // For selected plan, hover should maintain the selected border color
     fireEvent.mouseEnter(proButton);
-    expect(proButton.style.borderColor).toBe('#2de36b');
-    
+    expect(proButton.style.borderColor).toBe("#2de36b");
+
     fireEvent.mouseLeave(proButton);
-    expect(proButton.style.borderColor).toBe('#2de36b');
+    expect(proButton.style.borderColor).toBe("#2de36b");
   });
 
   it("maintains selection on hover", () => {
     render(<PlanSelector selectedPlan="PRO" onPlanSelect={mockOnPlanSelect} />);
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+    const basicButton = screen.getByRole("button", {
+      name: /select basic plan/i,
+    });
 
     // Hover over unselected plan
     fireEvent.mouseEnter(basicButton);
@@ -298,9 +302,13 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    const ultimateButton = screen.getByRole('button', { name: /select ultimate plan/i });
+    const basicButton = screen.getByRole("button", {
+      name: /select basic plan/i,
+    });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+    const ultimateButton = screen.getByRole("button", {
+      name: /select ultimate plan/i,
+    });
 
     fireEvent.click(proButton);
     fireEvent.click(ultimateButton);
@@ -314,8 +322,8 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    fireEvent.keyDown(proButton, { key: 'Enter' });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+    fireEvent.keyDown(proButton, { key: "Enter" });
 
     expect(mockOnPlanSelect).toHaveBeenCalledWith("PRO");
   });
@@ -325,8 +333,10 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const ultimateButton = screen.getByRole('button', { name: /select ultimate plan/i });
-    fireEvent.keyDown(ultimateButton, { key: ' ' });
+    const ultimateButton = screen.getByRole("button", {
+      name: /select ultimate plan/i,
+    });
+    fireEvent.keyDown(ultimateButton, { key: " " });
 
     expect(mockOnPlanSelect).toHaveBeenCalledWith("ULTIMATE");
   });
@@ -336,9 +346,9 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    fireEvent.keyDown(proButton, { key: 'a' });
-    fireEvent.keyDown(proButton, { key: 'Escape' });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+    fireEvent.keyDown(proButton, { key: "a" });
+    fireEvent.keyDown(proButton, { key: "Escape" });
 
     expect(mockOnPlanSelect).not.toHaveBeenCalled();
   });
@@ -348,16 +358,23 @@ describe("PlanSelector", () => {
       <PlanSelector selectedPlan="BASIC" onPlanSelect={mockOnPlanSelect} />
     );
 
-    const basicButton = screen.getByRole('button', { name: /select basic plan/i });
-    const proButton = screen.getByRole('button', { name: /select pro plan/i });
-    const ultimateButton = screen.getByRole('button', { name: /select ultimate plan/i });
+    const basicButton = screen.getByRole("button", {
+      name: /select basic plan/i,
+    });
+    const proButton = screen.getByRole("button", { name: /select pro plan/i });
+    const ultimateButton = screen.getByRole("button", {
+      name: /select ultimate plan/i,
+    });
 
-    expect(basicButton).toHaveAttribute('tabIndex', '0');
-    expect(proButton).toHaveAttribute('tabIndex', '0');
-    expect(ultimateButton).toHaveAttribute('tabIndex', '0');
+    expect(basicButton).toHaveAttribute("tabIndex", "0");
+    expect(proButton).toHaveAttribute("tabIndex", "0");
+    expect(ultimateButton).toHaveAttribute("tabIndex", "0");
 
-    expect(basicButton).toHaveAttribute('aria-label', 'Select BASIC plan');
-    expect(proButton).toHaveAttribute('aria-label', 'Select PRO plan');
-    expect(ultimateButton).toHaveAttribute('aria-label', 'Select ULTIMATE plan');
+    expect(basicButton).toHaveAttribute("aria-label", "Select BASIC plan");
+    expect(proButton).toHaveAttribute("aria-label", "Select PRO plan");
+    expect(ultimateButton).toHaveAttribute(
+      "aria-label",
+      "Select ULTIMATE plan"
+    );
   });
 });

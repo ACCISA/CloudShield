@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import FilterIcon from "../../../assets/FilterIcon.jsx";
 import ActiveIcon from "../../../assets/ActiveIcon.jsx";
+import { usePopover } from "../hooks/usePopover.js";
+import {
+  buttonStyle as baseButtonStyle,
+  getPopoverStyle,
+  backdropStyle,
+  buttonHoverHandlers,
+} from "../styles/popoverStyles.js";
 
 /**
  * FilterButton Component
@@ -24,35 +31,7 @@ export default function FilterButton({
   onFilterChange,
   style = {},
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [buttonRef, setButtonRef] = useState(null);
-  const [popoverPosition, setPopoverPosition] = useState({});
-
-  const updatePosition = () => {
-    if (buttonRef) {
-      const rect = buttonRef.getBoundingClientRect();
-      setPopoverPosition({
-        left: `${rect.left}px`,
-        top: `${rect.bottom}px`,
-      });
-    }
-  };
-
-  const handleOpen = () => {
-    updatePosition();
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleOpen();
-    }
-  };
+  const popover = usePopover();
 
   const handleFilterToggle = (groupId, value) => {
     const group = filterGroups.find((g) => g.id === groupId);
@@ -64,52 +43,9 @@ export default function FilterButton({
     onFilterChange?.(groupId, value, !isActive);
   };
 
-  // Update position on window resize when popover is open
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleResize = () => {
-      updatePosition();
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen, buttonRef]);
-
-  // Button styling matching CreateButton
-  const buttonStyle = {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "12px 24px",
-    gap: "8px",
-    minWidth: "120px",
-    height: "48px",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "16px",
-    fontWeight: "500",
-    color: "#ffffff",
-    transition: "all 0.2s ease",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-    position: "relative",
-    ...style,
-  };
-
-  // Popover container
+  const buttonStyle = { ...baseButtonStyle, ...style };
   const popoverStyle = {
-    position: "fixed",
-    backgroundColor: "#0A0A0A",
-    color: "#fff",
-    border: "1px solid rgba(255,255,255,0.2)",
-    borderRadius: "16px",
-    width: "320px",
-    marginTop: "8px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-    padding: "16px",
-    zIndex: 1300,
+    ...getPopoverStyle("320px"),
     maxHeight: "500px",
     overflowY: "auto",
   };
@@ -206,21 +142,14 @@ export default function FilterButton({
   return (
     <>
       <div
-        ref={setButtonRef}
+        ref={popover.setButtonRef}
         style={buttonStyle}
-        onClick={handleOpen}
-        onKeyDown={handleKeyDown}
+        onClick={popover.handleOpen}
+        onKeyDown={popover.handleKeyDown}
         role="button"
         tabIndex={0}
         aria-label="Filter options"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#242424";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "#0A0A0A";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-        }}
+        {...buttonHoverHandlers}
       >
         <FilterIcon width={16} height={16} color="#fff" />
         Filter
@@ -241,31 +170,24 @@ export default function FilterButton({
         )}
       </div>
 
-      {isOpen && (
+      {popover.isOpen && (
         <>
           {/* Backdrop */}
           <div
-            onClick={handleClose}
+            onClick={popover.handleClose}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                handleClose();
+              if (e.key === "Escape") {
+                popover.handleClose();
               }
             }}
             role="button"
             tabIndex={-1}
             aria-label="Close filters"
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 1299,
-            }}
+            style={backdropStyle}
           />
 
           {/* Popover */}
-          <div style={{ ...popoverStyle, ...popoverPosition }}>
+          <div style={{ ...popoverStyle, ...popover.popoverPosition }}>
             {filterGroups.map((group, groupIndex) => (
               <div key={group.id}>
                 {groupIndex > 0 && <div style={dividerStyle} />}
@@ -284,14 +206,16 @@ export default function FilterButton({
                           handleFilterToggle(group.id, option.value)
                         }
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             handleFilterToggle(group.id, option.value);
                           }
                         }}
                         role="button"
                         tabIndex={0}
-                        aria-label={`${isActive ? 'Deselect' : 'Select'} ${option.label}`}
+                        aria-label={`${isActive ? "Deselect" : "Select"} ${
+                          option.label
+                        }`}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor =
                             "rgba(255,255,255,0.05)";

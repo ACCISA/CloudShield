@@ -1,89 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import CardsIcon from "../../../assets/DisplayButton/CardsIcon.jsx";
 import ListIcon from "../../../assets/DisplayButton/ListIcon.jsx";
 import ImageIcon from "../../../assets/DisplayButton/ImageIcon.jsx";
 import DisplayIcon from "../../../assets/DisplayButton/DisplayIcon.jsx";
+import { usePopover } from "../hooks/usePopover.js";
+import {
+  buttonStyle as baseButtonStyle,
+  getPopoverStyle,
+  backdropStyle,
+  buttonHoverHandlers,
+} from "../styles/popoverStyles.js";
 
 export default function DisplayButton({
   layout = "list",
   onLayoutChange,
   style = {},
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [buttonRef, setButtonRef] = useState(null);
-  const [popoverPosition, setPopoverPosition] = useState({});
-
-  const updatePosition = () => {
-    if (buttonRef) {
-      const rect = buttonRef.getBoundingClientRect();
-      setPopoverPosition({
-        left: `${rect.left}px`,
-        top: `${rect.bottom}px`,
-      });
-    }
-  };
-
-  const handleOpen = () => {
-    updatePosition();
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
+  const popover = usePopover();
 
   const handleLayoutChange = (newLayout) => {
     onLayoutChange?.(newLayout);
     // Keep popover open when switching layouts
   };
 
-  // Update position on window resize when popover is open
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleResize = () => {
-      updatePosition();
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen, buttonRef]);
-
-  // Button styling matching CreateButton
-  const buttonStyle = {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "12px 24px",
-    gap: "8px",
-    minWidth: "120px",
-    height: "48px",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "16px",
-    fontWeight: "500",
-    color: "#ffffff",
-    transition: "all 0.2s ease",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-    position: "relative",
-    ...style,
-  };
-
-  // Popover container
-  const popoverStyle = {
-    position: "fixed",
-    backgroundColor: "#0A0A0A",
-    color: "#fff",
-    border: "1px solid rgba(255,255,255,0.2)",
-    borderRadius: "16px",
-    width: "380px",
-    marginTop: "8px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-    padding: "16px",
-    zIndex: 1300,
-  };
+  const buttonStyle = { ...baseButtonStyle, ...style };
+  const popoverStyle = getPopoverStyle("380px");
 
   // Option card styling
   const getOptionStyle = (isActive) => ({
@@ -116,61 +57,40 @@ export default function DisplayButton({
     color: "#fff",
   });
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleOpen();
-    }
-  };
-
   return (
     <>
       <div
-        ref={setButtonRef}
+        ref={popover.setButtonRef}
         style={buttonStyle}
-        onClick={handleOpen}
-        onKeyDown={handleKeyDown}
+        onClick={popover.handleOpen}
+        onKeyDown={popover.handleKeyDown}
         role="button"
         tabIndex={0}
         aria-label="Display options"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#242424";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "#0A0A0A";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-        }}
+        {...buttonHoverHandlers}
       >
         <DisplayIcon width={16} height={16} color="#fff" />
         Display
       </div>
 
-      {isOpen && (
+      {popover.isOpen && (
         <>
           {/* Backdrop */}
           <div
-            onClick={handleClose}
+            onClick={popover.handleClose}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                handleClose();
+              if (e.key === "Escape") {
+                popover.handleClose();
               }
             }}
             role="button"
             tabIndex={-1}
             aria-label="Close display options"
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 1299,
-            }}
+            style={backdropStyle}
           />
 
           {/* Popover */}
-          <div style={{ ...popoverStyle, ...popoverPosition }}>
+          <div style={{ ...popoverStyle, ...popover.popoverPosition }}>
             <div
               style={{
                 display: "grid",
@@ -182,7 +102,7 @@ export default function DisplayButton({
               <div
                 onClick={() => handleLayoutChange("cards")}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleLayoutChange("cards");
                   }
@@ -220,7 +140,7 @@ export default function DisplayButton({
               <div
                 onClick={() => handleLayoutChange("list")}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleLayoutChange("list");
                   }
@@ -256,7 +176,7 @@ export default function DisplayButton({
               <div
                 onClick={() => handleLayoutChange("icons")}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleLayoutChange("icons");
                   }

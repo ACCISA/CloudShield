@@ -88,7 +88,7 @@ export default function PlanSelector({
       {plans.map((p) => {
         const selected = selectedPlan === p.id;
         const handleKeyDown = (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onPlanSelect(p.id);
           }

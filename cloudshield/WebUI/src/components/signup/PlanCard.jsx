@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 
 export default function PlanCard({ plan, selected, onSelect }) {
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onSelect(plan.id);
     }

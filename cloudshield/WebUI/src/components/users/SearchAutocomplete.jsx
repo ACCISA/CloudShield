@@ -227,7 +227,7 @@ export default function SearchAutocomplete({
             style={styles.checkboxLabel}
             onClick={() => onAllChange?.(!allSelected)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onAllChange?.(!allSelected);
               }
@@ -288,7 +288,7 @@ export default function SearchAutocomplete({
                       }}
                       onClick={() => handleSelect(item)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           handleSelect(item);
                         }

@@ -108,12 +108,12 @@ export const formStyles = {
 /**
  * Reusable button component with hover effects
  */
-export function ActionButton({ 
-  onClick, 
-  style, 
-  hoverStyle, 
-  children, 
-  baseStyle = buttonStyles.button 
+export function ActionButton({
+  onClick,
+  style,
+  hoverStyle,
+  children,
+  baseStyle = buttonStyles.button,
 }) {
   return (
     <button

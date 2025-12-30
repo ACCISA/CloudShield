@@ -2,7 +2,7 @@ import { useState } from "react";
 
 /**
  * Custom hook for workstation form state management
- * 
+ *
  * @param {Object} initialData - Initial workstation data (for edit mode)
  * @returns {Object} Form state and handlers
  */
@@ -13,7 +13,9 @@ export function useWorkstationForm(initialData = {}) {
     initialData?.currentUser ? [initialData.currentUser].filter(Boolean) : []
   );
   const [allUsers, setAllUsers] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(initialData?.plan || "BASIC");
+  const [selectedPlan, setSelectedPlan] = useState(
+    initialData?.plan || "BASIC"
+  );
   const [allSoftware, setAllSoftware] = useState(false);
 
   /**

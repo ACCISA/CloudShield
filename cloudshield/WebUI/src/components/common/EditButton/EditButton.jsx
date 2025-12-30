@@ -76,7 +76,7 @@ export default function EditButton({ menuItems = [], disabled = false }) {
           <div
             onClick={handleBackdropClick}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') {
+              if (e.key === "Escape") {
                 handleBackdropClick();
               }
             }}
@@ -114,7 +114,7 @@ export default function EditButton({ menuItems = [], disabled = false }) {
                 <div
                   onClick={() => handleMenuItemClick(item.onClick)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       handleMenuItemClick(item.onClick);
                     }

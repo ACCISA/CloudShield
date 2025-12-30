@@ -15,10 +15,16 @@ import {
 
 // Mock child components
 jest.mock("../../ProfilePictureUpload", () => {
-  return function MockProfilePictureUpload({ firstName, lastName, onImageChange }) {
+  return function MockProfilePictureUpload({
+    firstName,
+    lastName,
+    onImageChange,
+  }) {
     return (
       <div data-testid="profile-picture-upload">
-        <span>Profile for {firstName} {lastName}</span>
+        <span>
+          Profile for {firstName} {lastName}
+        </span>
         <button onClick={() => onImageChange("mock-image.jpg")}>
           Upload Image
         </button>
@@ -130,8 +136,12 @@ describe("BasicInfoStep Component", () => {
       render(<BasicInfoStep {...defaultProps} />);
       expect(screen.getByPlaceholderText("John")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Doe")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("johndoe@example.com")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Software Engineer")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("johndoe@example.com")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("Software Engineer")
+      ).toBeInTheDocument();
     });
 
     test("displays current values in inputs", () => {
@@ -143,7 +153,7 @@ describe("BasicInfoStep Component", () => {
         title: "Manager",
       };
       render(<BasicInfoStep {...props} />);
-      
+
       expect(screen.getByDisplayValue("Jane")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Smith")).toBeInTheDocument();
       expect(screen.getByDisplayValue("jane@example.com")).toBeInTheDocument();
@@ -155,46 +165,48 @@ describe("BasicInfoStep Component", () => {
     test("calls setFirstName when first name input changes", () => {
       render(<BasicInfoStep {...defaultProps} />);
       const input = screen.getByPlaceholderText("John");
-      
+
       fireEvent.change(input, { target: { value: "John" } });
-      
+
       expect(defaultProps.setFirstName).toHaveBeenCalledWith("John");
     });
 
     test("calls setLastName when last name input changes", () => {
       render(<BasicInfoStep {...defaultProps} />);
       const input = screen.getByPlaceholderText("Doe");
-      
+
       fireEvent.change(input, { target: { value: "Doe" } });
-      
+
       expect(defaultProps.setLastName).toHaveBeenCalledWith("Doe");
     });
 
     test("calls setEmail when email input changes", () => {
       render(<BasicInfoStep {...defaultProps} />);
       const input = screen.getByPlaceholderText("johndoe@example.com");
-      
+
       fireEvent.change(input, { target: { value: "test@email.com" } });
-      
+
       expect(defaultProps.setEmail).toHaveBeenCalledWith("test@email.com");
     });
 
     test("calls setTitle when title input changes", () => {
       render(<BasicInfoStep {...defaultProps} />);
       const input = screen.getByPlaceholderText("Software Engineer");
-      
+
       fireEvent.change(input, { target: { value: "Developer" } });
-      
+
       expect(defaultProps.setTitle).toHaveBeenCalledWith("Developer");
     });
 
     test("calls setProfileImage when image is uploaded", () => {
       render(<BasicInfoStep {...defaultProps} />);
       const uploadButton = screen.getByText("Upload Image");
-      
+
       fireEvent.click(uploadButton);
-      
-      expect(defaultProps.setProfileImage).toHaveBeenCalledWith("mock-image.jpg");
+
+      expect(defaultProps.setProfileImage).toHaveBeenCalledWith(
+        "mock-image.jpg"
+      );
     });
   });
 
@@ -206,7 +218,7 @@ describe("BasicInfoStep Component", () => {
         lastName: "Doe",
       };
       render(<BasicInfoStep {...props} />);
-      
+
       expect(screen.getByText("Profile for John Doe")).toBeInTheDocument();
     });
   });
@@ -249,7 +261,9 @@ describe("WorkstationsStep Component", () => {
 
     test("does not show assigned section when no workstations selected", () => {
       render(<WorkstationsStep {...defaultProps} />);
-      expect(screen.queryByText("Assigned Workstations")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Assigned Workstations")
+      ).not.toBeInTheDocument();
     });
 
     test("shows assigned section when workstations are selected", () => {
@@ -258,7 +272,7 @@ describe("WorkstationsStep Component", () => {
         selectedWorkstations: mockWorkstations,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       expect(screen.getByText("Assigned Workstations")).toBeInTheDocument();
     });
 
@@ -268,7 +282,7 @@ describe("WorkstationsStep Component", () => {
         allWorkstations: true,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       expect(screen.getByText("All Workstations")).toBeInTheDocument();
     });
 
@@ -278,7 +292,7 @@ describe("WorkstationsStep Component", () => {
         selectedWorkstations: mockWorkstations,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       expect(screen.getByTestId("assignment-card-ws-1")).toBeInTheDocument();
       expect(screen.getByTestId("assignment-card-ws-2")).toBeInTheDocument();
     });
@@ -287,10 +301,10 @@ describe("WorkstationsStep Component", () => {
   describe("User Interactions", () => {
     test("calls setSelectedWorkstations when adding a workstation", () => {
       render(<WorkstationsStep {...defaultProps} />);
-      
+
       const addButton = screen.getByText("Add Development");
       fireEvent.click(addButton);
-      
+
       expect(defaultProps.setSelectedWorkstations).toHaveBeenCalledWith([
         mockWorkstations[0],
       ]);
@@ -298,10 +312,10 @@ describe("WorkstationsStep Component", () => {
 
     test("toggles all workstations when checkbox is checked", () => {
       render(<WorkstationsStep {...defaultProps} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllWorkstations).toHaveBeenCalledWith(true);
       expect(defaultProps.setSelectedWorkstations).toHaveBeenCalledWith([]);
     });
@@ -312,10 +326,10 @@ describe("WorkstationsStep Component", () => {
         allWorkstations: true,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllWorkstations).toHaveBeenCalledWith(false);
       // When unchecking, it should not clear selected workstations
       expect(defaultProps.setSelectedWorkstations).not.toHaveBeenCalled();
@@ -327,10 +341,10 @@ describe("WorkstationsStep Component", () => {
         selectedWorkstations: mockWorkstations,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setSelectedWorkstations).toHaveBeenCalledWith([
         mockWorkstations[1],
       ]);
@@ -342,10 +356,10 @@ describe("WorkstationsStep Component", () => {
         allWorkstations: true,
       };
       render(<WorkstationsStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setAllWorkstations).toHaveBeenCalledWith(false);
     });
   });
@@ -397,7 +411,7 @@ describe("GroupsStep Component", () => {
         selectedGroups: mockGroups,
       };
       render(<GroupsStep {...props} />);
-      
+
       expect(screen.getByText("Assigned Groups")).toBeInTheDocument();
     });
 
@@ -407,7 +421,7 @@ describe("GroupsStep Component", () => {
         allGroups: true,
       };
       render(<GroupsStep {...props} />);
-      
+
       expect(screen.getByText("All Groups")).toBeInTheDocument();
     });
 
@@ -417,7 +431,7 @@ describe("GroupsStep Component", () => {
         selectedGroups: mockGroups,
       };
       render(<GroupsStep {...props} />);
-      
+
       expect(screen.getByTestId("assignment-card-g-1")).toBeInTheDocument();
       expect(screen.getByTestId("assignment-card-g-2")).toBeInTheDocument();
     });
@@ -426,10 +440,10 @@ describe("GroupsStep Component", () => {
   describe("User Interactions", () => {
     test("calls setSelectedGroups when adding a group", () => {
       render(<GroupsStep {...defaultProps} />);
-      
+
       const addButton = screen.getByText("Add Sales");
       fireEvent.click(addButton);
-      
+
       expect(defaultProps.setSelectedGroups).toHaveBeenCalledWith([
         mockGroups[0],
       ]);
@@ -437,10 +451,10 @@ describe("GroupsStep Component", () => {
 
     test("toggles all groups when checkbox is checked", () => {
       render(<GroupsStep {...defaultProps} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllGroups).toHaveBeenCalledWith(true);
       expect(defaultProps.setSelectedGroups).toHaveBeenCalledWith([]);
     });
@@ -451,10 +465,10 @@ describe("GroupsStep Component", () => {
         allGroups: true,
       };
       render(<GroupsStep {...props} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllGroups).toHaveBeenCalledWith(false);
       expect(defaultProps.setSelectedGroups).not.toHaveBeenCalled();
     });
@@ -465,10 +479,10 @@ describe("GroupsStep Component", () => {
         selectedGroups: mockGroups,
       };
       render(<GroupsStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setSelectedGroups).toHaveBeenCalledWith([
         mockGroups[1],
       ]);
@@ -480,10 +494,10 @@ describe("GroupsStep Component", () => {
         allGroups: true,
       };
       render(<GroupsStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setAllGroups).toHaveBeenCalledWith(false);
     });
   });
@@ -535,7 +549,7 @@ describe("FilesStep Component", () => {
         selectedFiles: mockFiles,
       };
       render(<FilesStep {...props} />);
-      
+
       expect(screen.getByText("Assigned Files")).toBeInTheDocument();
     });
 
@@ -545,7 +559,7 @@ describe("FilesStep Component", () => {
         allFiles: true,
       };
       render(<FilesStep {...props} />);
-      
+
       expect(screen.getByText("All Files")).toBeInTheDocument();
     });
 
@@ -555,7 +569,7 @@ describe("FilesStep Component", () => {
         selectedFiles: mockFiles,
       };
       render(<FilesStep {...props} />);
-      
+
       expect(screen.getByTestId("assignment-card-f-1")).toBeInTheDocument();
       expect(screen.getByTestId("assignment-card-f-2")).toBeInTheDocument();
     });
@@ -564,10 +578,10 @@ describe("FilesStep Component", () => {
   describe("User Interactions", () => {
     test("calls setSelectedFiles when adding a file", () => {
       render(<FilesStep {...defaultProps} />);
-      
+
       const addButton = screen.getByText("Add Document.pdf");
       fireEvent.click(addButton);
-      
+
       expect(defaultProps.setSelectedFiles).toHaveBeenCalledWith([
         mockFiles[0],
       ]);
@@ -575,10 +589,10 @@ describe("FilesStep Component", () => {
 
     test("toggles all files when checkbox is checked", () => {
       render(<FilesStep {...defaultProps} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllFiles).toHaveBeenCalledWith(true);
       expect(defaultProps.setSelectedFiles).toHaveBeenCalledWith([]);
     });
@@ -589,10 +603,10 @@ describe("FilesStep Component", () => {
         allFiles: true,
       };
       render(<FilesStep {...props} />);
-      
+
       const checkbox = screen.getByTestId("all-checkbox");
       fireEvent.click(checkbox);
-      
+
       expect(defaultProps.setAllFiles).toHaveBeenCalledWith(false);
       expect(defaultProps.setSelectedFiles).not.toHaveBeenCalled();
     });
@@ -603,10 +617,10 @@ describe("FilesStep Component", () => {
         selectedFiles: mockFiles,
       };
       render(<FilesStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setSelectedFiles).toHaveBeenCalledWith([
         mockFiles[1],
       ]);
@@ -618,10 +632,10 @@ describe("FilesStep Component", () => {
         allFiles: true,
       };
       render(<FilesStep {...props} />);
-      
+
       const removeButtons = screen.getAllByText("Remove");
       fireEvent.click(removeButtons[0]);
-      
+
       expect(defaultProps.setAllFiles).toHaveBeenCalledWith(false);
     });
   });
@@ -643,7 +657,7 @@ describe("Edge Cases and Integration", () => {
         setProfileImage: jest.fn(),
         styles: mockStyles,
       };
-      
+
       const { container } = render(<BasicInfoStep {...props} />);
       expect(container).toBeInTheDocument();
     });
@@ -657,9 +671,11 @@ describe("Edge Cases and Integration", () => {
         suggestedWorkstations: [],
         styles: mockStyles,
       };
-      
+
       render(<WorkstationsStep {...props} />);
-      expect(screen.queryByText("Assigned Workstations")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Assigned Workstations")
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -673,7 +689,7 @@ describe("Edge Cases and Integration", () => {
         suggestedWorkstations: [],
         styles: mockStyles,
       };
-      
+
       render(<WorkstationsStep {...props} />);
       expect(screen.getByText("All Workstations")).toBeInTheDocument();
     });

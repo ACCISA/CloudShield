@@ -267,8 +267,8 @@ describe("FilterButton Component", () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /filter options/i });
-      fireEvent.keyDown(button, { key: 'Enter' });
+      const button = screen.getByRole("button", { name: /filter options/i });
+      fireEvent.keyDown(button, { key: "Enter" });
 
       expect(screen.getByText("Status")).toBeInTheDocument();
     });
@@ -282,8 +282,8 @@ describe("FilterButton Component", () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /filter options/i });
-      fireEvent.keyDown(button, { key: ' ' });
+      const button = screen.getByRole("button", { name: /filter options/i });
+      fireEvent.keyDown(button, { key: " " });
 
       expect(screen.getByText("Status")).toBeInTheDocument();
     });
@@ -297,9 +297,9 @@ describe("FilterButton Component", () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /filter options/i });
-      fireEvent.keyDown(button, { key: 'a' });
-      fireEvent.keyDown(button, { key: 'Escape' });
+      const button = screen.getByRole("button", { name: /filter options/i });
+      fireEvent.keyDown(button, { key: "a" });
+      fireEvent.keyDown(button, { key: "Escape" });
 
       expect(screen.queryByText("Status")).not.toBeInTheDocument();
     });
@@ -317,8 +317,10 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const activeOption = screen.getByRole('button', { name: /select active/i });
-      fireEvent.keyDown(activeOption, { key: 'Enter' });
+      const activeOption = screen.getByRole("button", {
+        name: /select active/i,
+      });
+      fireEvent.keyDown(activeOption, { key: "Enter" });
 
       expect(onFilterChange).toHaveBeenCalledWith("status", "active", true);
     });
@@ -336,8 +338,10 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const inactiveOption = screen.getByRole('button', { name: /select inactive/i });
-      fireEvent.keyDown(inactiveOption, { key: ' ' });
+      const inactiveOption = screen.getByRole("button", {
+        name: /select inactive/i,
+      });
+      fireEvent.keyDown(inactiveOption, { key: " " });
 
       expect(onFilterChange).toHaveBeenCalledWith("status", "inactive", true);
     });
@@ -355,9 +359,11 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const activeOption = screen.getByRole('button', { name: /select active/i });
-      fireEvent.keyDown(activeOption, { key: 'a' });
-      fireEvent.keyDown(activeOption, { key: 'Tab' });
+      const activeOption = screen.getByRole("button", {
+        name: /select active/i,
+      });
+      fireEvent.keyDown(activeOption, { key: "a" });
+      fireEvent.keyDown(activeOption, { key: "Tab" });
 
       expect(onFilterChange).not.toHaveBeenCalled();
     });
@@ -373,15 +379,15 @@ describe("FilterButton Component", () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /filter options/i });
-      
+      const button = screen.getByRole("button", { name: /filter options/i });
+
       fireEvent.mouseEnter(button);
-      expect(button.style.background).toBe('rgb(36, 36, 36)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.2)');
-      
+      expect(button.style.background).toBe("rgb(36, 36, 36)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
+
       fireEvent.mouseLeave(button);
-      expect(button.style.background).toBe('rgb(10, 10, 10)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.1)');
+      expect(button.style.background).toBe("rgb(10, 10, 10)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
     });
 
     test("applies hover styles to filter options", () => {
@@ -397,13 +403,17 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const activeOption = screen.getByRole('button', { name: /select active/i });
-      
+      const activeOption = screen.getByRole("button", {
+        name: /select active/i,
+      });
+
       fireEvent.mouseEnter(activeOption);
-      expect(activeOption.style.backgroundColor).toBe('rgba(255, 255, 255, 0.05)');
-      
+      expect(activeOption.style.backgroundColor).toBe(
+        "rgba(255, 255, 255, 0.05)"
+      );
+
       fireEvent.mouseLeave(activeOption);
-      expect(activeOption.style.backgroundColor).toBe('transparent');
+      expect(activeOption.style.backgroundColor).toBe("transparent");
     });
   });
 
@@ -445,10 +455,10 @@ describe("FilterButton Component", () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /filter options/i });
-      expect(button).toHaveAttribute('role', 'button');
-      expect(button).toHaveAttribute('tabIndex', '0');
-      expect(button).toHaveAttribute('aria-label', 'Filter options');
+      const button = screen.getByRole("button", { name: /filter options/i });
+      expect(button).toHaveAttribute("role", "button");
+      expect(button).toHaveAttribute("tabIndex", "0");
+      expect(button).toHaveAttribute("aria-label", "Filter options");
     });
 
     test("has proper accessibility attributes on filter options", () => {
@@ -464,12 +474,16 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const activeOption = screen.getByRole('button', { name: /select active/i });
-      const inactiveOption = screen.getByRole('button', { name: /select inactive/i });
+      const activeOption = screen.getByRole("button", {
+        name: /select active/i,
+      });
+      const inactiveOption = screen.getByRole("button", {
+        name: /select inactive/i,
+      });
 
-      [activeOption, inactiveOption].forEach(option => {
-        expect(option).toHaveAttribute('role', 'button');
-        expect(option).toHaveAttribute('tabIndex', '0');
+      [activeOption, inactiveOption].forEach((option) => {
+        expect(option).toHaveAttribute("role", "button");
+        expect(option).toHaveAttribute("tabIndex", "0");
       });
     });
 
@@ -486,8 +500,10 @@ describe("FilterButton Component", () => {
       const button = screen.getByText("Filter");
       fireEvent.click(button);
 
-      const activeOption = screen.getByRole('button', { name: /deselect active/i });
-      expect(activeOption).toHaveAttribute('aria-label', 'Deselect Active');
+      const activeOption = screen.getByRole("button", {
+        name: /deselect active/i,
+      });
+      expect(activeOption).toHaveAttribute("aria-label", "Deselect Active");
     });
   });
 });

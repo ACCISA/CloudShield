@@ -115,23 +115,23 @@ describe("CreateButton Component", () => {
       const onClick = jest.fn();
       render(<CreateButton buttonText="Create" onClick={onClick} />);
 
-      const button = screen.getByRole('button');
+      const button = screen.getByRole("button");
       fireEvent.mouseEnter(button);
 
-      expect(button.style.background).toBe('rgb(36, 36, 36)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.2)');
+      expect(button.style.background).toBe("rgb(36, 36, 36)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
     });
 
     test("restores styles on mouse leave", () => {
       const onClick = jest.fn();
       render(<CreateButton buttonText="Create" onClick={onClick} />);
 
-      const button = screen.getByRole('button');
+      const button = screen.getByRole("button");
       fireEvent.mouseEnter(button);
       fireEvent.mouseLeave(button);
 
-      expect(button.style.background).toBe('rgb(26, 26, 26)');
-      expect(button.style.borderColor).toBe('rgba(255, 255, 255, 0.1)');
+      expect(button.style.background).toBe("rgb(26, 26, 26)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
     });
 
     test("does not change styles on hover when disabled", () => {
@@ -140,14 +140,14 @@ describe("CreateButton Component", () => {
         <CreateButton buttonText="Create" onClick={onClick} disabled={true} />
       );
 
-      const button = screen.getByRole('button');
+      const button = screen.getByRole("button");
       const initialBackground = button.style.background;
       const initialBorderColor = button.style.borderColor;
 
       fireEvent.mouseEnter(button);
       expect(button.style.background).toBe(initialBackground);
       expect(button.style.borderColor).toBe(initialBorderColor);
-      
+
       fireEvent.mouseLeave(button);
       expect(button.style.background).toBe(initialBackground);
       expect(button.style.borderColor).toBe(initialBorderColor);
@@ -176,7 +176,7 @@ describe("CreateButton Component", () => {
       const onClick = jest.fn();
       render(<CreateButton buttonText="" onClick={onClick} />);
 
-      const button = screen.getByRole('button', { name: '' });
+      const button = screen.getByRole("button", { name: "" });
       expect(button).toBeInTheDocument();
     });
 

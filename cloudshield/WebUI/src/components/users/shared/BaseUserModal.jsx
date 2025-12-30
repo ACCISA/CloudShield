@@ -16,7 +16,7 @@ import { modalStyles as styles } from "./userModalStyles";
 
 /**
  * BaseUserModal - Shared modal component for creating and editing users
- * 
+ *
  * @param {Object} props
  * @param {boolean} props.open - Whether modal is open
  * @param {Function} props.onClose - Close handler
