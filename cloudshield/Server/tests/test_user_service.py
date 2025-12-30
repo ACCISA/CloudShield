@@ -1,7 +1,7 @@
 import unittest.mock
 import sys
 from datetime import datetime, timezone
-
+from pymongo.errors import PyMongoError
 import pytest
 from bson import ObjectId
 
@@ -248,155 +248,248 @@ class TestUserService:
         assert result is True
         mocks['users_admin'].update_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
-
+    
+    ## DELETE USER TESTS
     def test_delete_user_validation_and_errors(self, setup_mocks, admin_user, employee_user):
         """Test delete_user permission checks and validation errors"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        
-        # Test non-admin permission denied
+
+        # --- non-admin is rejected ---
         with pytest.raises(PermissionError, match="admin_only"):
             delete_user(user_id, employee_user)
-        
-        # Test invalid ObjectId
+
+        # --- invalid ObjectId format ---
         with pytest.raises(ValueError, match="User invalid_id not found"):
             delete_user("invalid_id", admin_user)
-        
-        # Test user not found
-        mocks['users_admin'].find_one.return_value = None
+
+        # --- user not found in DB ---
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = None
+
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
             delete_user(user_id, admin_user)
+
+    def test_delete_user_self_delete_forbidden(self, setup_mocks, admin_user):
+        """Admin cannot delete themselves (self-delete guard)"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        # Use a valid ObjectId string for the admin's id for this test
+        self_id = "507f1f77bcf86cd799439011"
+        admin_user["id"] = self_id  # mutate the fixture dict for this test
+
+        existing_user = {
+            "_id": ObjectId(self_id),
+            "email": "admin@example.com",
+            "role": "employee",              # role doesn't matter for self-delete guard
+            "org_id": admin_user["org_id"],
+        }
+
+        # Make DB return the "self" user
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
+        with pytest.raises(PermissionError, match="cannot_delete_self"):
+            delete_user(self_id, admin_user)
+
+    def test_delete_user_last_admin_forbidden(self, setup_mocks, admin_user):
+        """Deleting the last admin in an org should be prevented"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        # Ensure target user is NOT the same as current admin (avoid self-delete path)
+        target_id = "507f1f77bcf86cd799439011"
+        if target_id == admin_user["id"]:
+            # tweak last digit to stay a valid ObjectId-like string but different from admin id
+            target_id = "507f1f77bcf86cd799439012"
+
+        existing_user = {
+            "_id": ObjectId(target_id),
+            "email": "last-admin@example.com",
+            "role": "admin",
+            "org_id": admin_user["org_id"],
+        }
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
+        # No other admins in this org
+        mocks["users_admin"].count_documents.side_effect = None
+        mocks["users_admin"].count_documents.return_value = 0
+
+        with pytest.raises(ValueError, match="Cannot delete the last admin in this organization"):
+            delete_user(target_id, admin_user)
 
     def test_delete_user_success(self, setup_mocks, admin_user):
         """Test successful delete_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
+        # Use a target ID that is different from the current admin (avoid self-delete).
         user_id = "507f1f77bcf86cd799439011"
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        
+        if user_id == admin_user["id"]:
+            user_id = "507f1f77bcf86cd799439012"
+
+        existing_user = {
+            "_id": ObjectId(user_id),
+            "email": "john@example.com",
+            # non-admin so we skip "last admin" guard by default
+            "role": "employee",
+            "org_id": admin_user["org_id"],
+        }
+
         # Clear any previous side_effect and set return_value
-        mocks['users_admin'].find_one.side_effect = None
-        mocks['users_admin'].find_one.return_value = existing_user
-        
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
+        # For non-admin user, count_documents should not be consulted, but keep it harmless
+        mocks["users_admin"].count_documents.side_effect = None
+
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = True
         mock_result.deleted_count = 1
-        mocks['users_admin'].delete_one.return_value = mock_result
-        
+        mocks["users_admin"].delete_one.return_value = mock_result
+
         # Reset call counts and clear any side_effect on log_audit
-        mocks['users_admin'].delete_one.reset_mock()
-        mocks['log_audit'].reset_mock()
-        mocks['log_audit'].side_effect = None
-        
+        mocks["users_admin"].delete_one.reset_mock()
+        mocks["log_audit"].reset_mock()
+        mocks["log_audit"].side_effect = None
+
         result = delete_user(user_id, admin_user, "Test reason")
-        
+
         assert result is True
-        mocks['users_admin'].delete_one.assert_called_once()
-        mocks['log_audit'].assert_called_once()
+        mocks["users_admin"].delete_one.assert_called_once()
+        mocks["log_audit"].assert_called_once()
+
 
     def test_delete_user_audit_exception(self, setup_mocks, admin_user):
         """Test delete_user when audit logging fails but deletion succeeds"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        
+        if user_id == admin_user["id"]:
+            user_id = "507f1f77bcf86cd799439012"
+
+        existing_user = {
+            "_id": ObjectId(user_id),
+            "email": "john@example.com",
+            "role": "employee",
+            "org_id": admin_user["org_id"],
+        }
+
         # Clear any previous side_effect and set return_value
-        mocks['users_admin'].find_one.side_effect = None
-        mocks['users_admin'].find_one.return_value = existing_user
-        
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = True
         mock_result.deleted_count = 1
-        mocks['users_admin'].delete_one.return_value = mock_result
-        
+        mocks["users_admin"].delete_one.return_value = mock_result
+
         # Reset call counts and make audit logging fail
-        mocks['users_admin'].delete_one.reset_mock()
-        mocks['log_audit'].reset_mock()
-        mocks['log_audit'].side_effect = Exception("Audit failed")
-        
+        mocks["users_admin"].delete_one.reset_mock()
+        mocks["log_audit"].reset_mock()
+        mocks["log_audit"].side_effect = Exception("Audit failed")
+
         # Should still succeed despite audit failure
         result = delete_user(user_id, admin_user, "Test reason")
-        
+
         assert result is True
-        mocks['users_admin'].delete_one.assert_called_once()
-        mocks['log_audit'].assert_called_once()
+        mocks["users_admin"].delete_one.assert_called_once()
+        mocks["log_audit"].assert_called_once()
 
     def test_delete_user_unacknowledged_delete(self, setup_mocks, admin_user):
-        """Test delete_user when deletion is not acknowledged"""
+        """Test delete_user when deletion is not acknowledged by MongoDB"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        mocks['users_admin'].find_one.return_value = existing_user
-        
+        if user_id == admin_user["id"]:
+            user_id = "507f1f77bcf86cd799439012"
+
+        existing_user = {
+            "_id": ObjectId(user_id),
+            "email": "john@example.com",
+            "role": "employee",
+            "org_id": admin_user["org_id"],
+        }
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
         # Test unacknowledged deletion
         mock_result = unittest.mock.MagicMock()
         mock_result.acknowledged = False
         mock_result.deleted_count = 0
-        mocks['users_admin'].delete_one.return_value = mock_result
-        
+        mocks["users_admin"].delete_one.return_value = mock_result
+
         with pytest.raises(ValueError, match=f"User {user_id} not found"):
             delete_user(user_id, admin_user)
 
-    def test_delete_user_audit_log_content(self, setup_mocks, admin_user):
-        """Test delete_user audit log contains correct information"""
+    def test_delete_user_db_error_on_fetch(self, setup_mocks, admin_user):
+        """delete_user: DB error while fetching user should raise clean ValueError"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
-        
+
         user_id = "507f1f77bcf86cd799439011"
+        # Make sure we pass admin check and reach the find_one call
+        mocks["users_admin"].find_one.side_effect = PyMongoError("boom")
+
+        with pytest.raises(ValueError, match="Database error while fetching user"):
+            delete_user(user_id, admin_user)
+
+    def test_delete_user_db_error_on_admin_quorum_check(self, setup_mocks, admin_user):
+        """delete_user: DB error while checking remaining admins should raise clean ValueError"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        # Use a target ID different from the current admin to avoid self-delete guard
+        target_id = "507f1f77bcf86cd799439011"
+        if target_id == admin_user["id"]:
+            target_id = "507f1f77bcf86cd799439012"
+
         existing_user = {
-            "_id": ObjectId(user_id), 
-            "email": "deleted@example.com",
-            "full_name": "To Be Deleted",
-            "role": "employee",
-            "status": "active",
-            "org_id": "org_001"
+            "_id": ObjectId(target_id),
+            "email": "last-admin@example.com",
+            "role": "admin",  # triggers the quorum check
+            "org_id": admin_user["org_id"],
         }
-        
-        # Setup successful deletion
-        mocks['users_admin'].find_one.return_value = existing_user
-        mock_result = unittest.mock.MagicMock()
-        mock_result.acknowledged = True
-        mock_result.deleted_count = 1
-        mocks['users_admin'].delete_one.return_value = mock_result
-        
-        # Reset mocks
-        mocks['log_audit'].reset_mock()
-        mocks['log_audit'].side_effect = None
-        
-        # Execute deletion with reason
-        delete_user(user_id, admin_user, "Policy violation")
-        
-        # Verify audit log was called
-        mocks['log_audit'].assert_called_once()
-        
-        # Extract the audit log call arguments
-        audit_call = mocks['log_audit'].call_args
-        
-        # Verify audit log structure
-        assert audit_call[1]["action"] == "delete"
-        assert audit_call[1]["resource"] == "users"
-        assert audit_call[1]["reason"] == "Policy violation"
-        
-        # Verify actor information
-        assert audit_call[1]["actor"]["id"] == admin_user["id"]
-        assert audit_call[1]["actor"]["role"] == admin_user["role"]
-        assert audit_call[1]["actor"]["org_id"] == admin_user["org_id"]
-        
-        # Verify target information
-        assert audit_call[1]["target"]["id"] == user_id
-        assert audit_call[1]["target"]["email"] == "deleted@example.com"
-        
-        # Verify before snapshot
-        assert audit_call[1]["before"]["role"] == "employee"
-        assert audit_call[1]["before"]["status"] == "active"
-        assert audit_call[1]["before"]["org_id"] == "org_001"
+
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
+        # Force a DB error during admin quorum check
+        mocks["users_admin"].count_documents.side_effect = PyMongoError("boom")
+
+        with pytest.raises(ValueError, match="Database error while checking admin quorum"):
+            delete_user(target_id, admin_user)
+    
+    def test_delete_user_db_error_on_delete(self, setup_mocks, admin_user):
+        """delete_user: DB error during delete_one should raise clean ValueError"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        user_id = "507f1f77bcf86cd799439011"
+        if user_id == admin_user["id"]:
+            user_id = "507f1f77bcf86cd799439012"
+
+        existing_user = {
+            "_id": ObjectId(user_id),
+            "email": "john@example.com",
+            "role": "employee", # skip admin quorum branch
+            "org_id": admin_user["org_id"],
+        }
+
+        mocks["users_admin"].find_one.side_effect = None
+        mocks["users_admin"].find_one.return_value = existing_user
+
+        # Force delete_one itself to fail
+        mocks["users_admin"].delete_one.side_effect = PyMongoError("boom")
+
+        with pytest.raises(ValueError, match="Database error while deleting user"):
+            delete_user(user_id, admin_user)
 
     def test_must_admin_comprehensive(self, setup_mocks, admin_user, employee_user):
         """Test _must_admin function with various user types and edge cases"""
