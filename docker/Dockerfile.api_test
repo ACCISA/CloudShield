@@ -29,7 +29,7 @@ COPY cloudshield/Server /app/cloudshield/Server/
 RUN mkdir -p /app/cloudshield/RPCNode/build/
 # Instead of the terraform provisioner module we wrote, we will import the docker provisioner.
 # Docker provisioner allows us to test our api without using aws to save money and time.
-
+COPY .env /app/
 COPY cloudshield/Cloud/docker_provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
 COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
