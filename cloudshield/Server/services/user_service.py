@@ -5,6 +5,8 @@ from utils import users_admin, users_public, log_audit
 from models import UserCreate, UserUpdate
 from security import hash_password
 from utils.terraform import get_workstation_count
+from pymongo.errors import PyMongoError
+from bson.errors import InvalidId
 
 def _must_admin(current_user: dict | None) -> None:
     """
@@ -38,6 +40,53 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
     }
     res = users_admin.insert_one(user_doc)
     return str(res.inserted_id)
+
+
+def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = None) -> bool:
+    """
+    Remove domain user from database with audit logging
+    
+    Args:
+        org_id (str): Organization ID that owns the user.
+        username (str): Username to be removed.
+        job_id (str | None): Optional job ID for audit trail context.
+    
+    Returns:
+        bool: True if user was found and deleted, False otherwise.
+    
+    """
+    deleted_user = users_admin.find_one_and_delete(
+        {"org_id": org_id, "username": username}
+    )
+    
+    if not deleted_user:
+        return False
+    
+    try:
+        log_audit(
+            action="dc_remove_user",
+            actor={"id": "system", "role": "system", "org_id": org_id},
+            resource="users",
+            target={
+                "id": str(deleted_user["_id"]),
+                "username": username,
+                "email": deleted_user.get("email")
+            },
+            reason="Domain controller user removal",
+            before={
+                "role": deleted_user.get("role"),
+                "status": deleted_user.get("status"),
+                "org_id": deleted_user.get("org_id"),
+                "username": username
+            },
+            after=None,
+            meta={"job_id": job_id} if job_id else {}
+        )
+    except Exception:
+        # Audit logging must never block deletion
+        pass
+    
+    return True
 
 
 def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
@@ -197,59 +246,101 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     """
     Permanently delete user from database with audit logging.
 
-    Args:
-        user_id (str): The target user's MongoDB ObjectId string.
-        current_user (dict): The admin performing the deletion.
-        reason (str | None): Optional justification for deletion (used in audit log).
+    Steps:
+        1. Ensure the caller is an admin.
+        2. Validate ObjectId and load BEFORE snapshot (secret-safe).
+        3. Block:
+            - Self-deletion
+            - Deletion of the last admin in an organization
+        4. Perform deletion and validate acknowledgment.
+        5. Write a best-effort audit log including:
+            - actor (admin performing deletion)
+            - target (deleted user)
+            - full before snapshot (email, name, role, org, timestamps)
+            - reason (optional)
 
     Raises:
-        PermissionError: If the requester is not an admin.
-        ValueError: If the user does not exist or deletion fails.
+        PermissionError: Not admin or forbidden deletion (self-delete).
+        ValueError: Invalid id, missing user, DB failures, or last-admin protection.
 
     Returns:
-        bool: True on successful deletion.
-
-    Process:
-        1. Confirms admin permissions.
-        2. Fetches and stores the "before" snapshot for audit.
-        3. Deletes the record using 'delete_one'.
-        4. Validates the deletion acknowledgment.
-        5. Logs a "delete" audit event, recording actor, target, and 'reason'.
-
-    Safety:
-        - Always performs a pre-delete lookup to preserve audit data.
-        - Catches and ignores audit log failures so they don't block deletion.
-        - If the ObjectId is malformed, raises a ValueError early.
+        bool: True when deletion is successful.
     """
     _must_admin(current_user)
 
+    # Validate ObjectId format
     try:
-        _id = ObjectId(user_id)
-    except Exception:
-        raise ValueError(f"User {user_id} not found")  # invalid id format
+        oid = ObjectId(user_id)
+    except (InvalidId, Exception):
+        raise ValueError(f"User {user_id} not found")
 
-    before = users_admin.find_one({"_id": _id}, {"password": 0})
+    # Fetch BEFORE snapshot safely
+    try:
+        before = users_admin.find_one({"_id": oid}, {"password": 0})
+    except PyMongoError as e:
+        raise ValueError("Database error while fetching user") from e
+    
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    res = users_admin.delete_one({"_id": _id})
+    # Prevent self-delete (common foot-gun)
+    if str(oid) == str(current_user.get("id")):
+        raise PermissionError("cannot_delete_self")
+
+    # Prevent deleting the last admin in the org (availability / compliance guard)
+    if before.get("role") == "admin":
+        try:
+            remaining_admins = users_admin.count_documents({
+                "org_id": before.get("org_id"),
+                "role": "admin",
+                "_id": {"$ne": oid}
+            })
+        except PyMongoError as e:
+            raise ValueError("Database error while checking admin quorum") from e
+
+        if remaining_admins == 0:
+            raise ValueError("Cannot delete the last admin in this organization")
+
+    # Perform deletion and validate the result
+    try:
+        res = users_admin.delete_one({"_id": oid})
+    except PyMongoError as e:
+        raise ValueError("Database error while deleting user") from e
+    
     if not res.acknowledged or res.deleted_count != 1:
         # nothing was deleted; treat as not found/race condition
         raise ValueError(f"User {user_id} not found")
 
     # Best-effort audit; never let it throw
     try:
+        # Build a richer "before" while staying secret-safe
+        before_safe = {
+            k: before.get(k) for k in [
+                "email", "full_name", "role", "status", "org_id",
+                "created_at", "updated_at"
+            ] if k in before
+        }
+        # Normalize datetimes for readability
+        for k in ("created_at", "updated_at"):
+            if isinstance(before_safe.get(k), (datetime,)):
+                before_safe[k] = before_safe[k].isoformat()
+
         log_audit(
             action="delete",
-            actor={"id": current_user.get("id"), "role": current_user.get("role"), "org_id": current_user.get("org_id")},
             resource="users",
-            target={"id": str(before["_id"]), "email": before.get("email")},
+            actor={
+                "id": current_user.get("id"),
+                "role": current_user.get("role"),
+                "org_id": current_user.get("org_id"),
+            },
+            target={"id": str(oid), "email": before.get("email")},
             reason=reason,
-            before={"role": before.get("role"), "status": before.get("status"), "org_id": before.get("org_id")},
-            after=None
+            before=before_safe,
+            after=None,
+            severity="info",
         )
     except Exception:
-        # Audit logging must never block deletion; swallow and continue.
+        # Audit must never prevent a successful deletion
         pass
 
     return True

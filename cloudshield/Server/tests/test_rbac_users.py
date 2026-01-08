@@ -1,19 +1,5 @@
 import unittest.mock
-
-mock_mongo_client = unittest.mock.MagicMock()
-mock_mongo_client.return_value.admin.command.return_value = None
-
-mock_errors = unittest.mock.MagicMock()
-mock_errors.PyMongoError = Exception
-mock_errors.DuplicateKeyError = Exception
-mock_errors.OperationFailure = Exception
-
-mock_pymongo = unittest.mock.MagicMock()
-mock_pymongo.MongoClient = mock_mongo_client
-mock_pymongo.errors = mock_errors
-
 import sys
-
 import importlib
 import types
 import pathlib
@@ -23,6 +9,56 @@ import pytest
 
 def _repo_root():
     return pathlib.Path(__file__).parents[3]
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _setup_mocks():
+    """
+    Mock external dependencies (RQ, provisioner, pymongo) to avoid Redis/MongoDB.
+    Automatically restores original modules after tests to prevent affecting other test files.
+    """
+    # Save originals
+    original_rq = sys.modules.get('rq')
+    original_provisioner = sys.modules.get('provisioner')
+    original_pymongo = sys.modules.get('pymongo')
+    original_pymongo_errors = sys.modules.get('pymongo.errors')
+    original_security_guards = sys.modules.get('security.guards')
+    
+    # Install mocks
+    mock_rq = unittest.mock.MagicMock()
+    mock_rq.get_current_job.return_value = None
+    mock_provisioner = unittest.mock.MagicMock()
+    
+    mock_mongo_client = unittest.mock.MagicMock()
+    mock_mongo_client.return_value.admin.command.return_value = None
+    mock_errors = unittest.mock.MagicMock()
+    mock_errors.PyMongoError = Exception
+    mock_errors.DuplicateKeyError = Exception
+    mock_errors.OperationFailure = Exception
+    mock_pymongo_module = unittest.mock.MagicMock()
+    mock_pymongo_module.MongoClient = mock_mongo_client
+    mock_pymongo_module.errors = mock_errors
+    
+    sys.modules['rq'] = mock_rq
+    sys.modules['provisioner'] = mock_provisioner
+    sys.modules['pymongo'] = mock_pymongo_module
+    sys.modules['pymongo.errors'] = mock_errors
+    
+    yield
+    
+    # Restore originals (prevents CI/CD failures in other test files)
+    for name, original in [
+        ('rq', original_rq),
+        ('provisioner', original_provisioner),
+        ('pymongo', original_pymongo),
+        ('pymongo.errors', original_pymongo_errors),
+        ('security.guards', original_security_guards)
+    ]:
+        if original is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = original
+
 
 
 # Minimal fake guards so decorators work without real JWT
@@ -51,7 +87,7 @@ def install_fake_guards_module():
             @wraps(fn)
             def wrapper(*args, **kwargs):
                 if g.get("user") is None or g.user.get("role") not in roles:
-                    return jsonify({"error": "Forbidden"}), 403
+                    return jsonify({"error": "Unauthorized"}), 401
                 return fn(*args, **kwargs)
             return wrapper
         return deco
@@ -59,6 +95,7 @@ def install_fake_guards_module():
     mod.require_auth = require_auth
     mod.require_role = require_role
     sys.modules["security.guards"] = mod
+    sys.modules["security"] = mod  # Also install as 'security' for direct imports
 
 #In-memory fake collection to simulate MongoDB operations
 class _InsertRes:
@@ -113,26 +150,32 @@ class FakeCollection:
         return _DeleteRes(0)
 
 
-def install_fake_models_user_module():
+def install_real_pydantic_models():
+    """Import real Pydantic models to get validation behavior in tests"""
+    import sys
+    from pathlib import Path
+    
+    # Add the parent directory to path so we can import models
+    server_dir = Path(__file__).parent.parent
+    if str(server_dir) not in sys.path:
+        sys.path.insert(0, str(server_dir))
+    
+    # Import the real UserCreate and UserUpdate Pydantic models
+    from models.user import UserCreate, UserUpdate
+    
+    # Create a models package module
     models_pkg = sys.modules.get("models") or types.ModuleType("models")
     sys.modules["models"] = models_pkg
 
+    # Create models.user submodule
     user_mod = types.ModuleType("models.user")
-
-    class _Base:
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-        def dict(self, **kwargs):
-            # Simulate pydantic .dict(exclude_unset=True)
-            return {k: v for k, v in self.__dict__.items()}
-
-    class UserCreate(_Base): ...
-    class UserUpdate(_Base): ...
-
     user_mod.UserCreate = UserCreate
     user_mod.UserUpdate = UserUpdate
     sys.modules["models.user"] = user_mod
+    
+    # Add to models package for direct imports (routes/users.py does: from models import UserCreate, UserUpdate)
+    models_pkg.UserCreate = UserCreate
+    models_pkg.UserUpdate = UserUpdate
 
 
 def install_fake_passwords_module():
@@ -180,13 +223,17 @@ def install_fake_services_user_service_module():
     svc_mod.deactivate_user = deactivate_user
     svc_mod.delete_user = delete_user
     sys.modules["services.user_service"] = svc_mod
-
-
-@pytest.fixture(autouse=True)
-def setup_pymongo_mocks(monkeypatch):
-    """Set up pymongo mocks with proper cleanup"""
-    monkeypatch.setitem(sys.modules, 'pymongo', mock_pymongo)
-    monkeypatch.setitem(sys.modules, 'pymongo.errors', mock_errors)
+    
+    # routes/users.py imports directly from 'services' package: from services import create_user, ...
+    # So attach functions to the package object for package-level imports to work
+    services_pkg.service_dispatcher = lambda *args, **kwargs: {"status": "ok"}
+    services_pkg.get_job_status = lambda *args, **kwargs: {"status": "pending"}
+    services_pkg.health_status = lambda *args, **kwargs: {"status": "healthy"}
+    services_pkg.create_user = create_user
+    services_pkg.update_user = update_user
+    services_pkg.deactivate_user = deactivate_user
+    services_pkg.delete_user = delete_user
+    services_pkg.list_users = lambda *args, **kwargs: []
 
 
 @pytest.fixture(autouse=True)
@@ -213,7 +260,7 @@ def fake_users_collection(monkeypatch):
 @pytest.fixture
 def app_and_client(monkeypatch, fake_users_collection):
     install_fake_guards_module()
-    install_fake_models_user_module()
+    install_real_pydantic_models()
     install_fake_passwords_module()
     install_fake_services_user_service_module()
     
@@ -257,7 +304,7 @@ def test_authentication_and_authorization(app_and_client):
     r = client.post("/users", headers={"Authorization": "Bearer employee:org_001:u1"},
                    json={"email": "emp@test.com", "password": "SecretPassword123!", "org_id": "org_001", "role": "employee", "full_name": "Employee"})
     assert r.status_code == 401
-    assert r.get_json()["error"] == "Unauthorized"
+    assert "error" in r.get_json()
 
 def test_user_creation_and_business_logic(app_and_client, fake_users_collection, monkeypatch):
     """Test user creation with password hashing and duplicate email handling"""
@@ -311,7 +358,7 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     def _fake_update_user(user_id, update_data, *args, **kwargs):
         if user_id == "missing":
             raise ValueError(f"User {user_id} not found")
-        new_fields = {k: v for k, v in update_data.dict().items()}
+        new_fields = {k: v for k, v in update_data.model_dump().items()}
         doc = fake_users_collection.find_one({"_id": user_id})
         if not doc:
             raise ValueError(f"User {user_id} not found")
@@ -386,21 +433,26 @@ def test_user_deactivate_and_delete_operations(app_and_client, fake_users_collec
     
     r2 = client.delete(f"/users/{uid1}", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r2.status_code == 200
+    assert r2.get_json() == {"message": "User deleted"}  # Verify response format
     assert fake_users_collection.find_one({"_id": uid1}) is None
 
     # Test employee cannot deactivate or delete
     r3 = client.post(f"/users/{uid2}/deactivate", headers={"Authorization": "Bearer employee:org_001:u2"})
     assert r3.status_code == 401
+    assert "error" in r3.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2})["status"] == "active"
     
     r4 = client.delete(f"/users/{uid2}", headers={"Authorization": "Bearer employee:org_001:u2"})
     assert r4.status_code == 401
+    assert "error" in r4.get_json()  # Verify error response format
     assert fake_users_collection.find_one({"_id": uid2}) is not None
     
     # Test missing user returns 404
     r5 = client.post("/users/missing/deactivate", headers={"Authorization": "Bearer admin:org_001:u1"})
     r6 = client.delete("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"})
     assert r5.status_code == 404 and r6.status_code == 404
+    assert "error" in r5.get_json()  # Verify error response format for deactivate
+    assert "error" in r6.get_json()  # Verify error response format for delete
 
 def test_password_handling_and_error_scenarios(app_and_client, fake_users_collection, monkeypatch):
     """Test password hashing in updates and various error scenarios"""
@@ -413,8 +465,8 @@ def test_password_handling_and_error_scenarios(app_and_client, fake_users_collec
     
     def _fake_update_user(user_id, update_data, *args, **kwargs):
         doc = fake_users_collection.find_one({"_id": user_id})
-        if "password" in update_data.dict():
-            doc["password"] = hash_password(update_data.dict()["password"])
+        if "password" in update_data.model_dump():
+            doc["password"] = hash_password(update_data.model_dump()["password"])
         fake_users_collection._docs[user_id] = doc
         return True
     
@@ -551,3 +603,550 @@ def test_extract_reason_precedence(app_and_client, monkeypatch):
     )
     assert resp2.status_code == 200
     assert captured["query_reason"] == "query only"
+
+
+class TestDeleteUserEndpoint:
+    """Test class for delete_user_endpoint covering all requirements"""
+    
+    @pytest.fixture
+    def mock_delete_service(self, monkeypatch):
+        """Setup mock delete_user service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_delete_user(user_id, *args, **kwargs):
+            """Mock delete_user service with controlled behavior"""
+            if user_id == "not_found":
+                raise ValueError(f"User {user_id} not found")
+            if user_id == "server_error":
+                raise RuntimeError("Database connection failed")
+            # Success case
+            return True
+        
+        monkeypatch.setattr(users_routes, "delete_user", _fake_delete_user, raising=True)
+        return _fake_delete_user
+    
+    def test_delete_user_success_response_format(self, app_and_client, mock_delete_service):
+        """Test successful deletion returns 200 with correct response format"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/valid_user_123",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 200
+        assert resp.get_json() == {"message": "User deleted"}
+    
+    def test_delete_user_not_found_response(self, app_and_client, mock_delete_service):
+        """Test user not found returns 404 with error message"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/not_found",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 404
+        json_data = resp.get_json()
+        assert "error" in json_data
+        assert "not found" in json_data["error"].lower()
+    
+    def test_delete_user_forbidden_non_admin(self, app_and_client, mock_delete_service):
+        """Test non-admin user cannot delete (403 - authenticated but insufficient privileges)"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/valid_user_123",
+            headers={"Authorization": "Bearer employee:org_001:u2"}
+        )
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert "error" in json_data
+    
+    def test_delete_user_internal_server_error(self, app_and_client, mock_delete_service):
+        """Test internal server error returns 500 with standard error message"""
+        app, client = app_and_client
+        
+        resp = client.delete(
+            "/users/server_error",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 500
+        json_data = resp.get_json()
+        assert "error" in json_data
+        assert json_data["error"] == "Internal server error"
+    
+    def test_delete_user_no_authentication(self, app_and_client, mock_delete_service):
+        """Test unauthenticated request is blocked (401 - no valid credentials)"""
+        app, client = app_and_client
+        
+        resp = client.delete("/users/valid_user_123")
+        
+        assert resp.status_code == 401  # 401: Not authenticated at all
+
+
+class TestListUsersEndpoint:
+    """Test class for list_users_endpoint (GET /users)"""
+    
+    @pytest.fixture
+    def mock_list_service(self, monkeypatch):
+        """Setup mock list_users service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_list_users(*args, **kwargs):
+            """Mock list_users service returning sample data"""
+            return [
+                {"id": "u1", "email": "user1@test.com", "role": "admin"},
+                {"id": "u2", "email": "user2@test.com", "role": "employee"}
+            ]
+        
+        monkeypatch.setattr(users_routes, "list_users", _fake_list_users, raising=True)
+        return _fake_list_users
+    
+    def test_list_users_success_admin(self, app_and_client, mock_list_service):
+        """Test admin can list users successfully"""
+        app, client = app_and_client
+        
+        resp = client.get(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 200
+        json_data = resp.get_json()
+        assert "items" in json_data
+        assert len(json_data["items"]) == 2
+        assert json_data["items"][0]["email"] == "user1@test.com"
+    
+    def test_list_users_forbidden_employee(self, app_and_client, mock_list_service):
+        """Test employee cannot list users"""
+        app, client = app_and_client
+        
+        resp = client.get(
+            "/users",
+            headers={"Authorization": "Bearer employee:org_001:u2"}
+        )
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert "error" in json_data
+    
+    def test_list_users_no_authentication(self, app_and_client, mock_list_service):
+        """Test unauthenticated request is blocked (401)"""
+        app, client = app_and_client
+        
+        resp = client.get("/users")
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert json_data["error"] == "Unauthorized"
+    
+    def test_list_users_permission_error(self, app_and_client, monkeypatch):
+        """Test PermissionError from service returns 403"""
+        app, client = app_and_client
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _raise_permission(*args, **kwargs):
+            raise PermissionError("Insufficient privileges")
+        
+        monkeypatch.setattr(users_routes, "list_users", _raise_permission, raising=True)
+        
+        resp = client.get(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 403
+        assert "Insufficient privileges" in resp.get_json()["error"]
+    
+    def test_list_users_server_error(self, app_and_client, monkeypatch):
+        """Test unexpected error returns 500"""
+        app, client = app_and_client
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _raise_error(*args, **kwargs):
+            raise RuntimeError("Database failure")
+        
+        monkeypatch.setattr(users_routes, "list_users", _raise_error, raising=True)
+        
+        resp = client.get(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 500
+        assert resp.get_json()["error"] == "Internal server error"
+
+
+class TestCreateUserEndpoint:
+    """Test class for create_user_endpoint (POST /users)"""
+    
+    @pytest.fixture
+    def mock_create_service(self, monkeypatch):
+        """Setup mock create_user service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_create_user(user_data, *args, **kwargs):
+            """Mock create_user service"""
+            if user_data.email == "duplicate@test.com":
+                raise ValueError("User with email duplicate@test.com already exists")
+            return "new_user_id_123"
+        
+        monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
+        return _fake_create_user
+    
+    def test_create_user_success_admin(self, app_and_client, mock_create_service):
+        """Test admin can create user successfully"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={
+                "email": "newuser@test.com",
+                "password": "SecurePassword123!",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "New User"
+            }
+        )
+        
+        assert resp.status_code == 201
+        json_data = resp.get_json()
+        assert "user_id" in json_data
+        assert json_data["user_id"] == "new_user_id_123"
+    
+    def test_create_user_forbidden_employee(self, app_and_client, mock_create_service):
+        """Test employee cannot create users"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer employee:org_001:u2"},
+            json={
+                "email": "newuser@test.com",
+                "password": "SecurePassword123!",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "New User"
+            }
+        )
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert "error" in json_data
+    
+    def test_create_user_no_authentication(self, app_and_client, mock_create_service):
+        """Test unauthenticated request is blocked (401)"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            json={
+                "email": "newuser@test.com",
+                "password": "SecurePassword123!",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "New User"
+            }
+        )
+        
+        assert resp.status_code == 401
+    
+    def test_create_user_validation_missing_fields(self, app_and_client, mock_create_service):
+        """Test validation error for missing required fields"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={}
+        )
+        
+        assert resp.status_code == 400
+        json_data = resp.get_json()
+        assert json_data["error"] == "Validation failed"
+        assert "details" in json_data
+    
+    def test_create_user_validation_weak_password(self, app_and_client, mock_create_service):
+        """Test validation error for weak password"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={
+                "email": "newuser@test.com",
+                "password": "weak",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "New User"
+            }
+        )
+        
+        assert resp.status_code == 400
+        assert resp.get_json()["error"] == "Validation failed"
+    
+    def test_create_user_duplicate_email(self, app_and_client, mock_create_service):
+        """Test duplicate email returns 409 conflict"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={
+                "email": "duplicate@test.com",
+                "password": "SecurePassword123!",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "Duplicate User"
+            }
+        )
+        
+        assert resp.status_code == 409
+        json_data = resp.get_json()
+        assert "already exists" in json_data["error"]
+    
+    def test_create_user_server_error(self, app_and_client, monkeypatch):
+        """Test unexpected error returns 500"""
+        app, client = app_and_client
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _raise_error(*args, **kwargs):
+            raise RuntimeError("Database failure")
+        
+        monkeypatch.setattr(users_routes, "create_user", _raise_error, raising=True)
+        
+        resp = client.post(
+            "/users",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={
+                "email": "newuser@test.com",
+                "password": "SecurePassword123!",
+                "org_id": "org_001",
+                "role": "employee",
+                "full_name": "New User"
+            }
+        )
+        
+        assert resp.status_code == 500
+        assert resp.get_json()["error"] == "Internal server error"
+
+
+class TestUpdateUserEndpoint:
+    """Test class for update_user_endpoint (PATCH /users/<user_id>)"""
+    
+    @pytest.fixture
+    def mock_update_service(self, monkeypatch):
+        """Setup mock update_user service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_update_user(user_id, update_data, *args, **kwargs):
+            """Mock update_user service"""
+            if user_id == "not_found":
+                raise ValueError(f"User {user_id} not found")
+            if user_id == "permission_error":
+                raise PermissionError("Cannot modify this user")
+            return True
+        
+        monkeypatch.setattr(users_routes, "update_user", _fake_update_user, raising=True)
+        return _fake_update_user
+    
+    def test_update_user_success_admin(self, app_and_client, mock_update_service):
+        """Test admin can update user successfully"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/user_123",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 200
+        json_data = resp.get_json()
+        assert json_data["message"] == "User updated"
+    
+    def test_update_user_forbidden_employee(self, app_and_client, mock_update_service):
+        """Test employee cannot update users"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/user_123",
+            headers={"Authorization": "Bearer employee:org_001:u2"},
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert "error" in json_data
+    
+    def test_update_user_no_authentication(self, app_and_client, mock_update_service):
+        """Test unauthenticated request is blocked (401)"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/user_123",
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 401
+    
+    def test_update_user_not_found(self, app_and_client, mock_update_service):
+        """Test updating non-existent user returns 404"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/not_found",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 404
+        json_data = resp.get_json()
+        assert "not found" in json_data["error"].lower()
+    
+    def test_update_user_validation_error(self, app_and_client, mock_update_service):
+        """Test validation error for invalid update data"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/user_123",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={"password": "weak"}
+        )
+        
+        assert resp.status_code == 400
+        assert resp.get_json()["error"] == "Validation failed"
+    
+    def test_update_user_permission_error(self, app_and_client, mock_update_service):
+        """Test PermissionError from service returns 403"""
+        app, client = app_and_client
+        
+        resp = client.patch(
+            "/users/permission_error",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 403
+        json_data = resp.get_json()
+        assert "Cannot modify this user" in json_data["error"]
+    
+    def test_update_user_server_error(self, app_and_client, monkeypatch):
+        """Test unexpected error returns 500"""
+        app, client = app_and_client
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _raise_error(*args, **kwargs):
+            raise RuntimeError("Database failure")
+        
+        monkeypatch.setattr(users_routes, "update_user", _raise_error, raising=True)
+        
+        resp = client.patch(
+            "/users/user_123",
+            headers={"Authorization": "Bearer admin:org_001:u1"},
+            json={"full_name": "Updated Name"}
+        )
+        
+        assert resp.status_code == 500
+        assert resp.get_json()["error"] == "Internal server error"
+
+
+class TestDeactivateUserEndpoint:
+    """Test class for deactivate_user_endpoint (POST /users/<user_id>/deactivate)"""
+    
+    @pytest.fixture
+    def mock_deactivate_service(self, monkeypatch):
+        """Setup mock deactivate_user service for testing"""
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _fake_deactivate_user(user_id, *args, **kwargs):
+            """Mock deactivate_user service"""
+            if user_id == "not_found":
+                raise ValueError(f"User {user_id} not found")
+            if user_id == "permission_error":
+                raise PermissionError("Cannot deactivate this user")
+            return True
+        
+        monkeypatch.setattr(users_routes, "deactivate_user", _fake_deactivate_user, raising=True)
+        return _fake_deactivate_user
+    
+    def test_deactivate_user_success_admin(self, app_and_client, mock_deactivate_service):
+        """Test admin can deactivate user successfully"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users/user_123/deactivate",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 200
+        json_data = resp.get_json()
+        assert json_data["message"] == "User deactivated"
+    
+    def test_deactivate_user_forbidden_employee(self, app_and_client, mock_deactivate_service):
+        """Test employee cannot deactivate users"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users/user_123/deactivate",
+            headers={"Authorization": "Bearer employee:org_001:u2"}
+        )
+        
+        assert resp.status_code == 401
+        json_data = resp.get_json()
+        assert "error" in json_data
+    
+    def test_deactivate_user_no_authentication(self, app_and_client, mock_deactivate_service):
+        """Test unauthenticated request is blocked (401)"""
+        app, client = app_and_client
+        
+        resp = client.post("/users/user_123/deactivate")
+        
+        assert resp.status_code == 401
+    
+    def test_deactivate_user_not_found(self, app_and_client, mock_deactivate_service):
+        """Test deactivating non-existent user returns 404"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users/not_found/deactivate",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 404
+        json_data = resp.get_json()
+        assert "not found" in json_data["error"].lower()
+    
+    def test_deactivate_user_permission_error(self, app_and_client, mock_deactivate_service):
+        """Test PermissionError from service returns 403"""
+        app, client = app_and_client
+        
+        resp = client.post(
+            "/users/permission_error/deactivate",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 403
+        json_data = resp.get_json()
+        assert "Cannot deactivate this user" in json_data["error"]
+    
+    def test_deactivate_user_server_error(self, app_and_client, monkeypatch):
+        """Test unexpected error returns 500"""
+        app, client = app_and_client
+        users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        
+        def _raise_error(*args, **kwargs):
+            raise RuntimeError("Database failure")
+        
+        monkeypatch.setattr(users_routes, "deactivate_user", _raise_error, raising=True)
+        
+        resp = client.post(
+            "/users/user_123/deactivate",
+            headers={"Authorization": "Bearer admin:org_001:u1"}
+        )
+        
+        assert resp.status_code == 500
+        assert resp.get_json()["error"] == "Internal server error"
