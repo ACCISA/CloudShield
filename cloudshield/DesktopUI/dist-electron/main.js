@@ -1,7 +1,8 @@
-import { app, BrowserWindow } from "electron";
+import { ipcMain, app, BrowserWindow } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { spawn } from "child_process";
 createRequire(import.meta.url);
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname$1, "..");
@@ -26,6 +27,80 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
 }
+ipcMain.handle("run-openvpn", async () => {
+  return new Promise((resolve, reject) => {
+    var _a, _b;
+    try {
+      const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]);
+      let output = "";
+      let error = "";
+      resolve({
+        success: true,
+        pid: child.pid,
+        message: "xfreerdp3 launched"
+      });
+      (_a = child.stdout) == null ? void 0 : _a.on("data", (data) => {
+        output += data.toString();
+      });
+      (_b = child.stderr) == null ? void 0 : _b.on("data", (data) => {
+        error += data.toString();
+        console.log("[xfreerdp3 stderr]:", data.toString());
+      });
+      child.on("close", (code) => {
+        if (code !== 0) {
+          console.log(`[xfreerdp3] Process exited with code ${code}`);
+          if (error) console.log("[xfreerdp3 error output]:", error);
+        }
+      });
+      child.on("error", (err) => {
+        console.error("[xfreerdp3 spawn error]:", err);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+});
+ipcMain.handle(
+  "run-xfreerdp",
+  async (_event, params) => {
+    return new Promise((resolve, reject) => {
+      var _a, _b;
+      try {
+        const child = spawn("xfreerdp3", [
+          `/u:${params.username}`,
+          `/p:${params.password}`,
+          `/v:${params.ip}`,
+          "/cert:tofu"
+        ]);
+        let output = "";
+        let error = "";
+        resolve({
+          success: true,
+          pid: child.pid,
+          message: "xfreerdp3 launched"
+        });
+        (_a = child.stdout) == null ? void 0 : _a.on("data", (data) => {
+          output += data.toString();
+        });
+        (_b = child.stderr) == null ? void 0 : _b.on("data", (data) => {
+          error += data.toString();
+          console.log("[xfreerdp3 stderr]:", data.toString());
+        });
+        child.on("close", (code) => {
+          if (code !== 0) {
+            console.log(`[xfreerdp3] Process exited with code ${code}`);
+            if (error) console.log("[xfreerdp3 error output]:", error);
+          }
+        });
+        child.on("error", (err) => {
+          console.error("[xfreerdp3 spawn error]:", err);
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+);
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();

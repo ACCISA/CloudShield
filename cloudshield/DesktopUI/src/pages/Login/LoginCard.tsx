@@ -1,25 +1,21 @@
 import { useState } from "react";
 import Logo from "../../assets/cloudShieldLogo.svg";
 import SearchIcon from "../../assets/icons8-search.svg";
+import RDPOpenVPNCard from "../RDPOpvenVPN/RDPOpenVPNCard";
 export default function LoginCard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  // Source - https://stackoverflow.com/a
-  // Posted by Etienne Martin, modified by community. See post 'Timeline' for change history
-  // Retrieved 2025-12-28, License - CC BY-SA 4.0
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   async function handleLogin() {
-    // 1. Basic Client-side validation
     if (!email || !password) {
       return;
     }
 
     try {
-      // 2. Call the Flask API
       const response = await fetch("http://172.23.0.2:5050/api/auth/login", {
         method: "POST",
         headers: {
@@ -31,14 +27,12 @@ export default function LoginCard() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle 401 or 500 errors from auth.py
         console.error("Login error:", data.error);
         throw new Error(
           data.error || "Login failed. Please check your credentials."
         );
       }
 
-      // 3. On Success: Pass data (access_token, etc) up to App.jsx
       console.log("Login successful:", data);
     } catch (err) {
     } finally {
@@ -86,6 +80,7 @@ export default function LoginCard() {
               </button>
             </div>
 
+            <button className="text-text mt-20 underline">Can't login?</button>
             <button
               onClick={async () => {
                 setIsSearching(true);
@@ -94,7 +89,7 @@ export default function LoginCard() {
               }}
               className="text-text mt-20 underline"
             >
-              Can't login?
+              Search Demo
             </button>
           </>
         ) : (
@@ -107,6 +102,8 @@ export default function LoginCard() {
             <p className="text-text">Searching...</p>
           </div>
         )}
+        //TODO: Remove later
+        <RDPOpenVPNCard />
       </div>
     </>
   );
