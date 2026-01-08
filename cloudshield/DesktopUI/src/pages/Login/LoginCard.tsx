@@ -7,7 +7,9 @@ export default function LoginCard() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-
+  // Source - https://stackoverflow.com/a
+  // Posted by Etienne Martin, modified by community. See post 'Timeline' for change history
+  // Retrieved 2025-12-28, License - CC BY-SA 4.0
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   async function handleLogin() {
