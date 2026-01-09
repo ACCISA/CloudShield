@@ -44,7 +44,7 @@ export default function LoginCard() {
   return (
     <>
       <div className="h-[90%] w-1/3 bg-card-background flex items-center  rounded-lg shadow-lg flex-col">
-        <img src={Logo} alt="CloudShield Logo" className="w-24 h-24 m-30" />
+        <img src={Logo} alt="cloudShieldLogo" className="w-24 h-24 m-30" />
         {!isSearching ? (
           <>
             <div className="flex flex-col items-start w-full px-8 ">

@@ -195,7 +195,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
 
       - name: Install DesktopUI dependencies
         working-directory: cloudshield/DesktopUI
@@ -203,7 +203,7 @@ jobs:
 
       - name: Run DesktopUI tests with coverage
         working-directory: cloudshield/DesktopUI
-        run: CI=true npm test -- --coverage --watchAll=false || echo "⚠️ JS tests failed but continuing..."
+        run: npm run test:coverage || echo "⚠️ JS tests failed but continuing..."
 
       - name: Collect JS coverage
         run: |
