@@ -91,7 +91,7 @@ describe("Sidebar", () => {
       renderWithRouter(<Sidebar collapsed={false} />);
       expect(screen.getByText("Dashboard")).toBeInTheDocument();
       expect(screen.getByText("Workstations")).toBeInTheDocument();
-      expect(screen.getByText("Users")).toBeInTheDocument();
+      expect(screen.getByText("Employees")).toBeInTheDocument();
       expect(screen.getByText("Groups")).toBeInTheDocument();
     });
 
@@ -164,7 +164,7 @@ describe("Sidebar", () => {
       // In collapsed mode, navigation item labels should not be visible as separate text
       expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
       expect(screen.queryByText("Workstations")).not.toBeInTheDocument();
-      expect(screen.queryByText("Users")).not.toBeInTheDocument();
+      expect(screen.queryByText("Employees")).not.toBeInTheDocument();
     });
 
     it("shows expand button when collapsed", () => {
@@ -226,10 +226,10 @@ describe("Sidebar", () => {
       }
     });
 
-    it("expands users section when clicked", () => {
+    it("expands employees section when clicked", () => {
       renderWithRouter(<Sidebar />);
-      const usersItem = screen.getByText("Users");
-      const expandButton = usersItem.parentElement.querySelector(
+      const employeesItem = screen.getByText("Employees");
+      const expandButton = employeesItem.parentElement.querySelector(
         '[aria-label*="Expand"]'
       );
       if (expandButton) {
@@ -411,10 +411,12 @@ describe("Sidebar", () => {
       expect(workstationsItem.textContent).toContain("6");
     });
 
-    it("displays count badge for Users", () => {
+    it("displays count badge for Employees", () => {
       renderWithRouter(<Sidebar collapsed={false} />);
-      const usersItem = screen.getByText("Users").closest('[role="button"]');
-      expect(usersItem.textContent).toContain("6");
+      const employeesItem = screen
+        .getByText("Employees")
+        .closest('[role="button"]');
+      expect(employeesItem.textContent).toContain("6");
     });
 
     it("displays count badge for Groups", () => {
@@ -443,11 +445,13 @@ describe("Sidebar", () => {
       expect(window.location.pathname).toBe("/workstations");
     });
 
-    it("navigates to users page", () => {
+    it("navigates to employees page", () => {
       renderWithRouter(<Sidebar />);
-      const usersButton = screen.getByText("Users").closest('[role="button"]');
-      fireEvent.click(usersButton);
-      expect(window.location.pathname).toBe("/users");
+      const employeesButton = screen
+        .getByText("Employees")
+        .closest('[role="button"]');
+      fireEvent.click(employeesButton);
+      expect(window.location.pathname).toBe("/employees");
     });
 
     it("navigates to groups page", () => {
@@ -481,8 +485,8 @@ describe("Sidebar", () => {
       expect(workstationsIcon).toHaveAttribute("data-selected", "true");
     });
 
-    it("marks users as active when on users route", () => {
-      renderWithRouter(<Sidebar />, { route: "/users" });
+    it("marks employees as active when on employees route", () => {
+      renderWithRouter(<Sidebar />, { route: "/employees" });
       const usersIcon = screen.getByTestId("users-icon");
       expect(usersIcon).toHaveAttribute("data-selected", "true");
     });
