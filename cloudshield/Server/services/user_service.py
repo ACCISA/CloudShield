@@ -1,5 +1,6 @@
 """User management service layer with audit logging."""
 from bson import ObjectId
+from typing import Optional
 from datetime import datetime, timezone
 from utils import users_admin, users_public, log_audit
 from models import UserCreate, UserUpdate
@@ -89,31 +90,58 @@ def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = 
     return True
 
 
-def create_user(user_data: UserCreate, current_user: dict, reason: str | None = None) -> str:
+def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str | None = None) -> str:
     """
     Create a new user account with audit logging.
-    
+
+    - Admin flow (dashboard): current_user is a dict and must be admin.
+    - Public signup flow: current_user is None and is only allowed if the org has no users yet.
+
     Args:
         user_data: Validated user creation data (email, password, role, org_id)
-        current_user: Admin user performing the creation
+        current_user: Admin user performing the creation, or None for public signup
         reason: Optional justification for audit trail
-        
+
     Returns:
         str: MongoDB ObjectId of created user
-        
-    Raises:
-        PermissionError: If current_user is not admin
-        ValueError: If email already exists in database
-    """
-    _must_admin(current_user)
 
+    Raises:
+        PermissionError: If public signup is not allowed or current_user is not admin
+        ValueError: If email already exists or org user limit is exceeded
+    """
+
+    # -----------------------------
+    # Auth / permission rules
+    # -----------------------------
+    if current_user is not None:
+        # Dashboard/admin creation: enforce admin
+        _must_admin(current_user)
+    else:
+        # Public signup: allow only FIRST user for this org (prevents random public user creation later)
+        existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
+        if existing_db_count > 0:
+            raise PermissionError("Public signup is disabled for this organization (admin already exists).")
+
+        # Optional hardening: force role admin on public signup (extra safety)
+        # If you already force it in the route, you can remove this.
+        if getattr(user_data, "role", None) != "admin":
+            raise PermissionError("Public signup can only create an admin user.")
+
+    # -----------------------------
+    # Uniqueness / limits
+    # -----------------------------
     if users_admin.find_one({"email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
+
+    # Keep your workstation/user limit rule
     existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
     existing_workstation_count = get_workstation_count(user_data.org_id)
     if existing_db_count + 1 > existing_workstation_count:
         raise ValueError("User limit reached for this organization")
 
+    # -----------------------------
+    # Insert user
+    # -----------------------------
     user_doc = {
         "email": user_data.email,
         "password": hash_password(user_data.password),
@@ -125,16 +153,33 @@ def create_user(user_data: UserCreate, current_user: dict, reason: str | None = 
         "updated_at": datetime.now(timezone.utc),
     }
     res = users_admin.insert_one(user_doc)
-    
+
+    # -----------------------------
+    # Audit logging (must not crash when current_user is None)
+    # -----------------------------
+    if current_user is not None:
+        actor = {
+            "id": current_user["id"],
+            "role": current_user["role"],
+            "org_id": current_user["org_id"],
+        }
+    else:
+        actor = {
+            "system": "public_signup",
+            "role": "admin",
+            "org_id": user_data.org_id,
+        }
+
     log_audit(
         action="create",
-        actor={"id": current_user["id"], "role": current_user["role"], "org_id": current_user["org_id"]},
+        actor=actor,
         resource="users",
         target={"id": str(res.inserted_id), "email": user_data.email},
         reason=reason,
         before=None,
-        after={"role": user_data.role, "status": "active", "org_id": user_data.org_id}
+        after={"role": user_data.role, "status": "active", "org_id": user_data.org_id},
     )
+
     return str(res.inserted_id)
 
 

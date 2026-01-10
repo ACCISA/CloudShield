@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
 
+from pydantic import ValidationError
+from models import UserCreate
+from services import create_user
+
 from services import service_dispatcher, get_job_status, health_status
 from utils.logging_setup import get_logger
 
@@ -279,3 +283,42 @@ def health():
     payload, code = health_status()
     return jsonify(payload), code
 
+@api_bp.route("/signup_admin", methods=["POST"])
+def signup_admin():
+    """
+    Public endpoint: create first admin user (NO AUTH).
+
+    POST /api/signup_admin
+    """
+    try:
+        data = request.get_json() or {}
+        reason = data.get("reason")
+
+        # Force admin role no matter what client sends
+        data = dict(data)
+        data["role"] = "admin"
+
+        user_data = UserCreate(**data)
+
+        # Public signup → current_user=None
+        user_id = create_user(user_data, current_user=None, reason=reason)
+
+        return jsonify({"user_id": user_id}), 201
+
+    except ValidationError as e:
+        return jsonify({
+            "error": "Validation failed",
+            "details": e.errors()
+        }), 400
+
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
+
+    except Exception as e:
+        return jsonify({
+            "error": "Internal server error",
+            "details": str(e)
+        }), 500
