@@ -32,7 +32,7 @@ RUN mkdir -p /app/cloudshield/RPCNode/build/
 
 COPY cloudshield/Cloud/docker_provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
-#COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
+COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
 
 ENV PYTHONPATH=/app
 
