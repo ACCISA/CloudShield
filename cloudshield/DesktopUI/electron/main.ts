@@ -60,7 +60,7 @@ ipcMain.handle("run-openvpn", async () => {
       resolve({
         success: true,
         pid: child.pid,
-        message: "xfreerdp3 launched",
+        message: "OpenVPN Connected",
       });
 
       child.stdout?.on("data", (data) => {

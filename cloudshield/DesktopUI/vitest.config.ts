@@ -14,6 +14,7 @@ export default defineConfig({
         "dist-electron/",
         "src/main.tsx",
         "src/App.tsx",
+        "**/*.svg",
         "**/*.test.{ts,tsx}",
         "**/__tests__/**",
       ],

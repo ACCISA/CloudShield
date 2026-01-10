@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import LoginPage from "./LoginPage";
+import LoginPage from "../LoginPage";
 
 describe("LoginPage Component", () => {
   it("renders the LoginPage", () => {

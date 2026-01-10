@@ -14,6 +14,7 @@ export default function LoginCard() {
 
   async function handleLogin() {
     if (!email || !password) {
+      alert("Email and Password cannot be empty.");
       return;
     }
 
@@ -98,7 +99,7 @@ export default function LoginCard() {
           <div className="mt-20">
             <img
               src={SearchIcon}
-              alt="Searching..."
+              alt="searchIcon"
               className="w-12 h-12 animate-ping"
             />
             <p className="text-text">Searching...</p>
