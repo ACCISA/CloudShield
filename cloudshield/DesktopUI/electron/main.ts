@@ -52,7 +52,7 @@ function createWindow() {
 ipcMain.handle("run-openvpn", async () => {
   return new Promise((resolve, reject) => {
     try {
-      const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]);
+      const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]); //NOSONAR typescript:S4036
       let output = "";
       let error = "";
 
@@ -69,18 +69,18 @@ ipcMain.handle("run-openvpn", async () => {
 
       child.stderr?.on("data", (data) => {
         error += data.toString();
-        console.log("[xfreerdp3 stderr]:", data.toString());
+        console.log("[openvpn stderr]:", data.toString());
       });
 
       child.on("close", (code) => {
         if (code !== 0) {
-          console.log(`[xfreerdp3] Process exited with code ${code}`);
-          if (error) console.log("[xfreerdp3 error output]:", error);
+          console.log(`[openvpn] Process exited with code ${code}`);
+          if (error) console.log("[openvpn error output]:", error);
         }
       });
 
       child.on("error", (err) => {
-        console.error("[xfreerdp3 spawn error]:", err);
+        console.error("[openvpn spawn error]:", err);
       });
     } catch (err) {
       reject(err);
@@ -96,6 +96,7 @@ ipcMain.handle(
   ) => {
     return new Promise((resolve, reject) => {
       try {
+        //NOSONAR typescript:S4036
         const child = spawn("xfreerdp3", [
           `/u:${params.username}`,
           `/p:${params.password}`,

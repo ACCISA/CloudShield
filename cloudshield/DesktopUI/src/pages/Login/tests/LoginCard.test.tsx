@@ -70,7 +70,7 @@ describe("LoginCard Component", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://172.23.0.2:5050/api/auth/login",
+        "https://172.23.0.2:5050/api/auth/login",
         expect.objectContaining({
           method: "POST",
           headers: {
@@ -111,7 +111,7 @@ describe("LoginCard Component", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://172.23.0.2:5050/api/auth/login",
+        "https://172.23.0.2:5050/api/auth/login",
         expect.objectContaining({
           method: "POST",
           headers: {

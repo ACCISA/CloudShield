@@ -19,7 +19,7 @@ export default function LoginCard() {
     }
 
     try {
-      const response = await fetch("http://172.23.0.2:5050/api/auth/login", {
+      const response = await fetch("https://172.23.0.2:5050/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ export default function LoginCard() {
             <p className="text-text">Searching...</p>
           </div>
         )}
-        //TODO: Remove later
+        {/* TODO: Remove later */}
         <RDPOpenVPNCard />
       </div>
     </>
