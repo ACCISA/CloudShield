@@ -110,7 +110,6 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const validate = () => {
     const next = {};
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
 
     if (!isEmailValid(email)) {
       next.email = "Invalid email format.";
@@ -135,59 +134,80 @@ export default function SignupPage({ onSignupSuccess }) {
 
   function extractServerErrors(res, data) {
     if (res.status === 400) {
-      if (data.errors && typeof data.errors === 'object') {
+      if (data.errors && typeof data.errors === "object") {
         return data.errors;
       }
-      return { form: data.message || "Validation error. Please check your inputs." };
+      return {
+        form: data.message || "Validation error. Please check your inputs.",
+      };
     }
-  
+
     if (res.status === 409) {
-      return { form: data.message || "An account with this email or organization ID already exists." };
+      return {
+        form:
+          data.message ||
+          "An account with this email or organization ID already exists.",
+      };
     }
-  
+
     if (!res.ok) {
-      return { form: data.message || "Unexpected error during signup. Please try again." };
+      return {
+        form:
+          data.message ||
+          "Unexpected error during signup. Please try again.",
+      };
     }
-  
+
     return null;
   }
 
-
   const handleSignup = async () => {
     if (!validate()) return;
-  
+
     setSubmitting(true);
     setErrors((prev) => ({ ...prev, form: undefined }));
-  
+
     try {
       const res = await fetch("");
       let data = {};
-  
-      try { data = await res.json(); } catch {}
-  
+
+      try {
+        data = await res.json();
+      } catch {}
+
       const serverErrors = extractServerErrors(res, data);
       if (serverErrors) {
         setErrors((prev) => ({ ...prev, ...serverErrors }));
         return;
       }
-  
+
       const token = data.token || data.access_token || null;
-      const user = data.user || { email, company_name: company, org_id: orgId, plan };
-  
+      const user = data.user || {
+        email,
+        company_name: company,
+        org_id: orgId,
+        plan,
+      };
+
       if (token) {
-        try { localStorage.setItem("jwt", token); } catch {}
+        try {
+          localStorage.setItem("jwt", token);
+        } catch {}
       }
-  
+
       onSignupSuccess?.({ token, user });
-      navigate("/provisioning", { replace: true });
-  
+
+      // 🔹 CHANGED: go to login instead of provisioning
+      navigate("/login", { replace: true });
     } catch (err) {
-      setErrors((prev) => ({ ...prev, form: err?.message || "Network error during signup." }));
+      setErrors((prev) => ({
+        ...prev,
+        form: err?.message || "Network error during signup.",
+      }));
     } finally {
       setSubmitting(false);
     }
   };
-
 
   return (
     <Box
@@ -304,6 +324,14 @@ export default function SignupPage({ onSignupSuccess }) {
             <PrimaryButton onClick={handleSignup} disabled={submitting}>
               {submitting ? "Creating..." : "Create Organization"}
             </PrimaryButton>
+
+            {/* 🔹 NEW: Already have an account */}
+            <Typography
+              onClick={() => navigate("/login")}
+              sx={{ cursor: "pointer", mt: 1.5, textAlign: "center" }}
+            >
+              Already have an account? Log in
+            </Typography>
           </SignupCard>
         </Box>
 

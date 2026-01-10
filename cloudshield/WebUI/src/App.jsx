@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import WorkstationsPage from './pages/WorkstationsPage.jsx';
-import ProvisioningPage from './pages/ProvisioningPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
@@ -16,7 +15,7 @@ function AppWithAuth() {
 
   useEffect(() => {
     if (devBypass) {
-      // Warn when auth/provisioning is bypassed in dev mode
+      // Warn when auth is bypassed in dev mode
       console.warn('[App] Auth bypass is active (VITE_BYPASS_AUTH=true).');
     }
   }, [devBypass]);
@@ -26,60 +25,40 @@ function AppWithAuth() {
     return devBypass || !!localStorage.getItem('jwt');
   });
 
-  const [isProvisioned, setIsProvisioned] = useState(() => {
-    try {
-      return devBypass || localStorage.getItem('isProvisioned') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const handleProvisioned = () => {
-    setIsProvisioned(true);
-    localStorage.setItem('isProvisioned', 'true');
-  };
-
   /**
    * Unified Handler for Login OR Signup Success
-   * Expects: { access_token: "...", ... } from API response
+   * Expects: { access_token: "...", user: { org_id?: "..." }, ... } from API response
    */
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
       localStorage.setItem('jwt', data.access_token);
       setIsAuthed(true);
     }
-    
+
     // If the backend returns org_id or user info, store it safely
     if (data?.user?.org_id) {
-        localStorage.setItem('org_id', data.user.org_id);
+      localStorage.setItem('org_id', data.user.org_id);
     }
   };
 
   const Protected = useMemo(() => {
     return function ProtectedWrapper({ children }) {
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
-      if (!devBypass && !isProvisioned) return <Navigate to="/provisioning" replace />;
       return (
         <AppLayout showSidebar sidebarMode="full">
           {children}
         </AppLayout>
       );
     };
-  }, [devBypass, isAuthed, isProvisioned]);
+  }, [devBypass, isAuthed]);
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public route: login */}
+        {/* Landing page: sign up */}
         <Route
-          path="/login"
-          element={
-            isAuthed ? <Navigate to="/dashboard" replace /> : (
-              <AuthPage
-                onLoginSuccess={handleAuthSuccess}
-              />
-            )
-          }
+          path="/"
+          element={<Navigate to="/signup" replace />}
         />
 
         {/* Public route: sign up */}
@@ -87,28 +66,22 @@ function AppWithAuth() {
           path="/signup"
           element={
             isAuthed ? <Navigate to="/dashboard" replace /> : (
-              <SignUpPage
-                onSignupSuccess={handleAuthSuccess} 
-              />
+              <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
           }
         />
 
-        {/* Provisioning route */}
+        {/* Public route: login */}
         <Route
-          path="/provisioning"
+          path="/login"
           element={
-            isAuthed ? (
-              <AppLayout showSidebar sidebarMode="provisioning">
-                <ProvisioningPage onProvisioned={handleProvisioned} />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
+            isAuthed ? <Navigate to="/dashboard" replace /> : (
+              <AuthPage onLoginSuccess={handleAuthSuccess} />
             )
           }
         />
 
-        {/* App routes */}
+        {/* App routes (protected) */}
         <Route
           path="/dashboard"
           element={
@@ -136,18 +109,23 @@ function AppWithAuth() {
           }
         />
 
+        <Route
+          path="/employees"
+          element={
+            <Protected>
+              <EmployeesPage />
+            </Protected>
+          }
+        />
+
         {/* Catch-all */}
         <Route
           path="*"
           element={
             isAuthed ? (
-              isProvisioned ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <Navigate to="/provisioning" replace />
-              )
+              <Navigate to="/dashboard" replace />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/signup" replace />
             )
           }
         />
