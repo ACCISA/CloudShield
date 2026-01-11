@@ -764,8 +764,8 @@ class TestUserService:
         assert result == "507f1f77bcf86cd799439011"
         mocks['users_admin'].insert_one.assert_called_once()
 
-    def test_persist_domain_user_with_minimal_data(self, setup_mocks):
-        """Test persist_domain_user with edge case inputs"""
+    def test_persist_domain_user_with_minimal_valid_inputs(self, setup_mocks):
+        """Test persist_domain_user with minimal but valid edge case inputs to verify boundary conditions"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import persist_domain_user
         
@@ -773,7 +773,7 @@ class TestUserService:
         mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
         mocks['users_admin'].insert_one.return_value = mock_result
         
-        # Test with minimal valid data
+        # Test with minimal valid data to verify no unexpected length requirements
         result = persist_domain_user("org", "usr", "Pass1!", "e@example.co")
         
         assert result == "507f1f77bcf86cd799439011"
@@ -781,3 +781,4 @@ class TestUserService:
         assert call_args["org_id"] == "org"
         assert call_args["username"] == "usr"
         assert call_args["email"] == "e@example.co"
+        assert call_args["password"].startswith("hashed::")
