@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ActionButton, buttonStyles, formStyles } from './workstationDialogStyles.jsx';
+import { ActionButton, buttonStyles, formStyles } from '../workstationDialogStyles.jsx';
 
 describe('workstationDialogStyles exports', () => {
   test('exposes shared style objects', () => {
