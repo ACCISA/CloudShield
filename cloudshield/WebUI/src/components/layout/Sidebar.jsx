@@ -236,7 +236,7 @@ export default function Sidebar({
   // accordion open states
   const [open, setOpen] = useState({
     workstations: false,
-    users: false,
+    employees: false,
     groups: false,
     files: false,
   });
@@ -439,14 +439,16 @@ export default function Sidebar({
           <NavItem
             collapsed={collapsed}
             icon={<UsersIcon width={20} height={20} />}
-            label="Users"
-            to="/users"
-            active={isActive("/users")}
+            label="Employees"
+            to="/employees"
+            active={isActive("/employees") || isActive("/users")}
             count={6}
             countColor={usersPill}
-            expanded={open.users}
-            onToggleExpand={() => setOpen((s) => ({ ...s, users: !s.users }))}
-            onNavigate={() => navigate("/users")}
+            expanded={open.employees}
+            onToggleExpand={() =>
+              setOpen((s) => ({ ...s, employees: !s.employees }))
+            }
+            onNavigate={() => navigate("/employees")}
           />
           <NavItem
             collapsed={collapsed}
