@@ -274,6 +274,15 @@ class TestSignupAdminEndpoint:
         except ValidationError as e:
             validation_error = e
 
+        def json_normalize(value):
+            if isinstance(value, tuple):
+                return [json_normalize(v) for v in value]
+            if isinstance(value, list):
+                return [json_normalize(v) for v in value]
+            if isinstance(value, dict):
+                return {k: json_normalize(v) for k, v in value.items()}
+            return value
+
         monkeypatch.setattr(users_routes, "_make_json_safe", lambda x: x)
 
         def fake_handle_user_create(_):
@@ -285,7 +294,7 @@ class TestSignupAdminEndpoint:
         assert resp.status_code == 400
         body = resp.get_json()
         assert body["error"] == "Validation failed"
-        assert body["details"] == validation_error.errors()
+        assert body["details"] == json_normalize(validation_error.errors())
 
     def test_signup_admin_permission_error_returns_403(self, client, monkeypatch):
         def fake_handle_user_create(_):
