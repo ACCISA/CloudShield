@@ -77,6 +77,25 @@ def _extract_reason() -> str | None:
     return (reason or "").strip() or None
 
 
+def _handle_user_create(current_user):
+    """
+    Shared handler for creating a user.
+    - If current_user is provided: normal admin flow.
+    - If current_user is None: public signup flow (service layer enforces rules).
+    """
+    body = _json_or_empty()
+    reason = _extract_reason()
+
+    # If this is public signup, force admin role
+    if current_user is None:
+        body = dict(body)
+        body["role"] = "admin"
+
+    user_data = UserCreate(**body)
+    user_id = create_user(user_data, current_user=current_user, reason=reason)
+    return jsonify({"user_id": user_id}), 201
+
+
 @users_bp.route("/users", methods=["GET"])
 @require_auth
 @require_role("admin")
@@ -132,11 +151,7 @@ def create_user_endpoint():
           leak back to clients beyond the 'user_id'.
     """
     try:
-        body = _json_or_empty()
-        reason = _extract_reason()
-        user_data = UserCreate(**body)
-        user_id = create_user(user_data, current_user=g.user, reason=reason)
-        return jsonify({"user_id": user_id}), 201
+        return _handle_user_create(g.user)
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
         return jsonify({"error": "Validation failed", "details": safe_errors}), 400
@@ -146,7 +161,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        return jsonify({"error": INTERNAL_SERVER_ERROR, "details":str(e)}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
@@ -261,33 +276,22 @@ def delete_user_endpoint(user_id):
         return jsonify({"error": str(e)}), 404
     except Exception:
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
-    
+
+
 @users_bp.route("/signup_admin", methods=["POST"])
 def signup_admin_endpoint():
     try:
-        body = _json_or_empty()
-        reason = _extract_reason()
-
-        # Force admin role no matter what client sends
-        body = dict(body)
-        body["role"] = "admin"
-
-        user_data = UserCreate(**body)
-
-        user_id = create_user(user_data, current_user=None, reason=reason)
-        return jsonify({"user_id": user_id}), 201
+        return _handle_user_create(None)
 
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
         return jsonify({"error": "Validation failed", "details": safe_errors}), 400
 
     except PermissionError as e:
-        # important: also stringify PermissionError
         return jsonify({"error": str(e)}), 403
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
 
     except Exception as e:
-        # never jsonify raw exception objects
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
