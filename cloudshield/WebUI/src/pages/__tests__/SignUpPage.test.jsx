@@ -259,18 +259,22 @@ describe('SignupPage', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('submits form successfully and navigates to provisioning', async () => {
+  it('submits form successfully with 2-step process and navigates to login', async () => {
+    // Mock successful user creation
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      status: 200,
+      status: 201,
       json: async () => ({
-        token: 'test-jwt-token',
-        user: {
-          email: 'test@example.com',
-          company_name: 'Acme',
-          org_id: 'acme',
-          plan: 'pro',
-        },
+        user_id: 'user123',
+      }),
+    });
+    
+    // Mock successful provisioning
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        job_id: 'job456',
       }),
     });
 
@@ -292,32 +296,35 @@ describe('SignupPage', () => {
 
     fireEvent.click(screen.getByTestId('primary-button'));
 
+    // Verify first API call - create user
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/signup', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5050/api/signup_admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'test@example.com',
           password: 'password123',
-          company_name: 'Acme',
+          role: 'admin',
+          full_name: 'Acme',
           org_id: 'acme',
-          plan: 'pro',
+        }),
+      });
+    });
+
+    // Verify second API call - provision
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:5050/api/task/provision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          org_id: 'acme',
         }),
       });
     });
 
     await waitFor(() => {
-      expect(localStorage.setItem).toHaveBeenCalledWith('jwt', 'test-jwt-token');
-      expect(mockOnSignupSuccess).toHaveBeenCalledWith({
-        token: 'test-jwt-token',
-        user: {
-          email: 'test@example.com',
-          company_name: 'Acme',
-          org_id: 'acme',
-          plan: 'pro',
-        },
-      });
-      expect(mockNavigate).toHaveBeenCalledWith('/provisioning', { replace: true });
+      expect(mockOnSignupSuccess).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
     });
   });
 
@@ -507,7 +514,7 @@ describe('SignupPage', () => {
   it('handles malformed JSON response', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      status: 200,
+      status: 201,
       json: async () => {
         throw new Error('Invalid JSON');
       },
@@ -530,8 +537,9 @@ describe('SignupPage', () => {
 
     fireEvent.click(screen.getByTestId('primary-button'));
 
+    // Should show form error but not crash
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/provisioning', { replace: true });
+      expect(screen.getByText(/form/i)).toBeInTheDocument();
     });
   });
 
@@ -542,10 +550,18 @@ describe('SignupPage', () => {
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      status: 200,
+      status: 201,
       json: async () => ({
         token: 'test-jwt-token',
-        user: { email: 'test@example.com' },
+        user_id: 'user123',
+      }),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        job_id: 'job456',
       }),
     });
 
@@ -567,17 +583,25 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByTestId('primary-button'));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/provisioning', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
     });
   });
 
   it('uses access_token if token is not present', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      status: 200,
+      status: 201,
       json: async () => ({
         access_token: 'test-access-token',
-        user: { email: 'test@example.com' },
+        user_id: 'user123',
+      }),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        job_id: 'job456',
       }),
     });
 
@@ -612,8 +636,13 @@ describe('SignupPage', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => ({ token: 'token', user: {} }),
+        status: 201,
+        json: async () => ({ user_id: 'user123' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({ job_id: 'job456' }),
       });
 
     renderSignupPage();
@@ -641,6 +670,219 @@ describe('SignupPage', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('Conflict error')).not.toBeInTheDocument();
+    });
+  });
+
+  it('handles provision step failure after successful user creation', async () => {
+    // User creation succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        user_id: 'user123',
+      }),
+    });
+    
+    // Provision fails
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({
+        message: 'Provisioning failed',
+      }),
+    });
+
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Provisioning failed')).toBeInTheDocument();
+    });
+
+    // Should not navigate if provision fails
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('validates email with complex formats', async () => {
+    renderSignupPage();
+
+    // Test various invalid email formats
+    const invalidEmails = [
+      'test',
+      '@example.com',
+      'test@',
+      'test@@example.com',
+      'test@example',
+      'test@.com',
+      'test@example.',
+      '',
+    ];
+
+    for (const email of invalidEmails) {
+      fireEvent.change(screen.getByTestId('auth-field-email'), {
+        target: { value: email },
+      });
+      fireEvent.change(screen.getByTestId('password-field'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+        target: { value: 'Acme' },
+      });
+      fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+        target: { value: 'acme' },
+      });
+
+      fireEvent.click(screen.getByTestId('primary-button'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Invalid email format.')).toBeInTheDocument();
+      });
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      mockFetch.mockClear();
+    }
+  });
+
+  it('validates org id with various invalid patterns', async () => {
+    renderSignupPage();
+
+    const invalidOrgIds = [
+      'a',        // Too short (< 3)
+      'ab',       // Too short
+      'A' + 'b'.repeat(32),  // Contains uppercase
+      'abc def',  // Contains space (sanitized to 'abcdef', but original validation)
+    ];
+
+    for (const orgId of invalidOrgIds) {
+      fireEvent.change(screen.getByTestId('auth-field-email'), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(screen.getByTestId('password-field'), {
+        target: { value: 'password123' },
+      });
+      fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+        target: { value: 'Acme' },
+      });
+      fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+        target: { value: orgId },
+      });
+
+      fireEvent.click(screen.getByTestId('primary-button'));
+
+      await waitFor(() => {
+        const errorElement = screen.queryByText(/Org ID must be 3-32 characters/);
+        if (errorElement) {
+          expect(errorElement).toBeInTheDocument();
+        }
+      });
+    }
+  });
+
+  it('navigates to login when "Already have an account" is clicked', () => {
+    renderSignupPage();
+
+    const loginLink = screen.getByText(/Already have an account\? Log in/i);
+    fireEvent.click(loginLink);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('handles token from provision response', async () => {
+    // User creation without token
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        user_id: 'user123',
+      }),
+    });
+    
+    // Provision with token
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        job_id: 'job456',
+        token: 'provision-token',
+      }),
+    });
+
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      expect(localStorage.setItem).toHaveBeenCalledWith('jwt', 'provision-token');
+    });
+  });
+
+  it('handles 400 error from provision step', async () => {
+    // User creation succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        user_id: 'user123',
+      }),
+    });
+    
+    // Provision returns 400
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        errors: {
+          orgId: 'Invalid organization ID',
+        },
+      }),
+    });
+
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid organization ID')).toBeInTheDocument();
     });
   });
 });

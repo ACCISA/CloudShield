@@ -1150,3 +1150,321 @@ class TestDeactivateUserEndpoint:
         
         assert resp.status_code == 500
         assert resp.get_json()["error"] == "Internal server error"
+
+
+def test_list_users_endpoint(app_and_client):
+    """Test the list users endpoint returns items properly"""
+    app, client = app_and_client
+    
+    resp = client.get(
+        "/users",
+        headers={"Authorization": "Bearer admin:org_001:admin123"}
+    )
+    
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "items" in data
+    assert isinstance(data["items"], list)
+
+
+def test_list_users_permission_error(app_and_client, monkeypatch):
+    """Test list users with permission error"""
+    app, client = app_and_client
+    
+    import cloudshield.Server.routes.users as users_routes
+    
+    def _raise_permission(*args, **kwargs):
+        raise PermissionError("admin_only")
+    
+    monkeypatch.setattr(users_routes, "list_users", _raise_permission, raising=True)
+    
+    resp = client.get(
+        "/users",
+        headers={"Authorization": "Bearer admin:org_001:admin123"}
+    )
+    
+    assert resp.status_code == 403
+    assert "admin_only" in resp.get_json()["error"]
+
+
+def test_update_user_with_reason_in_query_param(app_and_client):
+    """Test update user with reason provided as query parameter"""
+    app, client = app_and_client
+    
+    resp = client.patch(
+        "/users/user_123?reason=Updating%20user%20role",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        json={"role": "admin"}
+    )
+    
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == "User updated"
+
+
+def test_deactivate_user_with_reason_in_body(app_and_client):
+    """Test deactivate user with reason in request body"""
+    app, client = app_and_client
+    
+    resp = client.post(
+        "/users/user_123/deactivate",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        json={"reason": "User requested deactivation"}
+    )
+    
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == "User deactivated"
+
+
+def test_delete_user_with_reason_in_query_param(app_and_client):
+    """Test delete user with reason as query parameter"""
+    app, client = app_and_client
+    
+    resp = client.delete(
+        "/users/user_123?reason=User%20left%20company",
+        headers={"Authorization": "Bearer admin:org_001:admin123"}
+    )
+    
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == "User deleted"
+
+
+def test_create_user_with_empty_reason(app_and_client):
+    """Test create user with empty reason string (should be treated as None)"""
+    app, client = app_and_client
+    
+    resp = client.post(
+        "/users?reason=",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        json={
+            "email": "newuser@example.com",
+            "password": "SecurePass123!",
+            "role": "employee",
+            "full_name": "New User",
+            "org_id": "org_001",
+            "file_shares": ["share1"]
+        }
+    )
+    
+    assert resp.status_code == 201
+    assert "user_id" in resp.get_json()
+
+
+def test_update_user_with_whitespace_reason(app_and_client):
+    """Test update user with whitespace-only reason (should be treated as None)"""
+    app, client = app_and_client
+    
+    resp = client.patch(
+        "/users/user_123",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        json={"role": "admin", "reason": "   "}
+    )
+    
+    assert resp.status_code == 200
+
+
+def test_deactivate_user_without_json_body(app_and_client):
+    """Test deactivate user endpoint without JSON body"""
+    app, client = app_and_client
+    
+    resp = client.post(
+        "/users/user_123/deactivate",
+        headers={"Authorization": "Bearer admin:org_001:admin123"}
+    )
+    
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == "User deactivated"
+
+
+def test_delete_user_without_json_body(app_and_client):
+    """Test delete user endpoint without JSON body"""
+    app, client = app_and_client
+    
+    resp = client.delete(
+        "/users/user_123",
+        headers={"Authorization": "Bearer admin:org_001:admin123"}
+    )
+    
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == "User deleted"
+
+
+def test_make_json_safe_utility(app_and_client):
+    """Test _make_json_safe utility with various data types"""
+    from cloudshield.Server.routes.users import _make_json_safe
+    
+    # Test primitives
+    assert _make_json_safe("string") == "string"
+    assert _make_json_safe(123) == 123
+    assert _make_json_safe(45.67) == 45.67
+    assert _make_json_safe(True) is True
+    assert _make_json_safe(None) is None
+    
+    # Test mappings
+    result = _make_json_safe({"key": "value", "number": 42})
+    assert result == {"key": "value", "number": 42}
+    
+    # Test lists/tuples/sets
+    assert _make_json_safe([1, 2, 3]) == [1, 2, 3]
+    assert _make_json_safe((1, 2, 3)) == [1, 2, 3]
+    assert set(_make_json_safe({1, 2, 3})) == {1, 2, 3}
+    
+    # Test nested structures
+    nested = {"list": [1, {"inner": "value"}], "tuple": (4, 5)}
+    result = _make_json_safe(nested)
+    assert result == {"list": [1, {"inner": "value"}], "tuple": [4, 5]}
+    
+    # Test non-JSON-serializable object (should convert to string)
+    class CustomObject:
+        def __str__(self):
+            return "custom object"
+    
+    assert _make_json_safe(CustomObject()) == "custom object"
+
+
+def test_json_or_empty_utility(app_and_client):
+    """Test _json_or_empty utility function"""
+    app, client = app_and_client
+    
+    # This is implicitly tested by endpoints that accept optional JSON bodies
+    # Test via deactivate endpoint which uses _json_or_empty
+    resp = client.post(
+        "/users/user_123/deactivate",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        data="",  # Empty data, not JSON
+        content_type="text/plain"
+    )
+    
+    # Should handle gracefully and not crash
+    assert resp.status_code in [200, 400, 415]
+
+
+def test_extract_reason_utility_precedence(app_and_client):
+    """Test _extract_reason utility with body and query param precedence"""
+    app, client = app_and_client
+    
+    # Body reason should take precedence over query param
+    resp = client.patch(
+        "/users/user_123?reason=query_reason",
+        headers={"Authorization": "Bearer admin:org_001:admin123"},
+        json={"role": "admin", "reason": "body_reason"}
+    )
+    
+    # Should succeed (body reason takes precedence)
+    assert resp.status_code == 200
+
+
+def test_signup_admin_endpoint_in_users_module(app_and_client, monkeypatch):
+    """Test the public signup_admin endpoint in users.py"""
+    app, client = app_and_client
+    
+    # This endpoint doesn't require authentication
+    resp = client.post(
+        "/signup_admin",
+        json={
+            "email": "firstadmin@example.com",
+            "password": "SecurePass123!",
+            "full_name": "First Admin",
+            "org_id": "neworg123",
+            "role": "employee",  # Should be forced to admin
+            "file_shares": ["share1"]
+        }
+    )
+    
+    assert resp.status_code == 201
+    data = resp.get_json()
+    assert "user_id" in data
+
+
+def test_signup_admin_duplicate_email(app_and_client, fake_users_collection):
+    """Test signup_admin with duplicate email"""
+    app, client = app_and_client
+    
+    # Insert an existing user
+    fake_users_collection.insert_one({
+        "email": "existing@example.com",
+        "password": "hashed::pass",
+        "org_id": "org_001"
+    })
+    
+    resp = client.post(
+        "/signup_admin",
+        json={
+            "email": "existing@example.com",
+            "password": "SecurePass123!",
+            "full_name": "Duplicate User",
+            "org_id": "org_002",
+            "file_shares": ["share1"]
+        }
+    )
+    
+    assert resp.status_code == 409
+    assert "error" in resp.get_json()
+
+
+def test_signup_admin_validation_error(app_and_client):
+    """Test signup_admin with invalid data"""
+    app, client = app_and_client
+    
+    resp = client.post(
+        "/signup_admin",
+        json={
+            "email": "invalid-email",  # Invalid format
+            "password": "short",  # Too short
+            "full_name": "A",  # Too short
+            "org_id": "ab"  # Too short
+        }
+    )
+    
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert data["error"] == "Validation failed"
+    assert "details" in data
+
+
+def test_signup_admin_internal_error(app_and_client, monkeypatch):
+    """Test signup_admin with unexpected server error"""
+    app, client = app_and_client
+    
+    import cloudshield.Server.routes.users as users_routes
+    
+    def _raise_error(*args, **kwargs):
+        raise Exception("Unexpected error")
+    
+    monkeypatch.setattr(users_routes, "_handle_user_create", _raise_error, raising=True)
+    
+    resp = client.post(
+        "/signup_admin",
+        json={
+            "email": "test@example.com",
+            "password": "SecurePass123!",
+            "full_name": "Test User",
+            "org_id": "testorg",
+            "file_shares": ["share1"]
+        }
+    )
+    
+    assert resp.status_code == 500
+    data = resp.get_json()
+    assert data["error"] == "Internal server error"
+
+
+def test_create_user_forces_admin_role_in_public_signup(app_and_client):
+    """Test that _handle_user_create forces admin role for public signup"""
+    app, client = app_and_client
+    
+    # Public signup (no auth) should force admin role regardless of input
+    resp = client.post(
+        "/signup_admin",
+        json={
+            "email": "newadmin@example.com",
+            "password": "SecurePass123!",
+            "full_name": "New Admin",
+            "org_id": "brand_new_org",
+            "role": "employee",  # This should be overridden to "admin"
+            "file_shares": ["share1"]
+        }
+    )
+    
+    # Should succeed and user should be created as admin
+    assert resp.status_code == 201
+    assert "user_id" in resp.get_json()

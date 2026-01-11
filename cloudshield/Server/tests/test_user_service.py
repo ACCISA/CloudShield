@@ -686,3 +686,98 @@ class TestUserService:
             "username": "testuser"
         })
         mocks['log_audit'].assert_called_once()  # Audit was attempted
+
+    ## PUBLIC SIGNUP TESTS
+    def test_create_user_public_signup_first_admin(self, setup_mocks, user_data):
+        """Test public signup flow - first admin for organization"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+        
+        # Ensure role is admin for public signup
+        user_data.role = "admin"
+        
+        # No existing users in org (first signup)
+        mocks['users_admin'].count_documents.return_value = 0
+        mocks['users_admin'].find_one.return_value = None
+        mocks['get_workstation_count'].return_value = 5
+        
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks['users_admin'].insert_one.return_value = mock_result
+        
+        # Public signup - current_user is None
+        result = create_user(user_data, current_user=None, reason="Public signup")
+        
+        assert result == "507f1f77bcf86cd799439011"
+        mocks['users_admin'].insert_one.assert_called_once()
+        mocks['log_audit'].assert_called_once()
+        
+        # Verify audit log has correct actor for public signup
+        audit_call = mocks['log_audit'].call_args[1]
+        assert audit_call['actor'].get('system') == 'public_signup'
+
+    def test_create_user_public_signup_blocked_existing_users(self, setup_mocks, user_data):
+        """Test public signup blocked when organization already has users"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+        
+        user_data.role = "admin"
+        
+        # Existing users in org
+        mocks['users_admin'].count_documents.return_value = 1
+        
+        # Public signup should be blocked
+        with pytest.raises(PermissionError, match="Public signup is disabled"):
+            create_user(user_data, current_user=None)
+
+    def test_create_user_public_signup_requires_admin_role(self, setup_mocks, user_data):
+        """Test public signup must create admin role"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+        
+        # Try to create non-admin via public signup
+        user_data.role = "employee"
+        
+        # No existing users (would pass first check)
+        mocks['users_admin'].count_documents.return_value = 0
+        
+        # Should be rejected for non-admin role
+        with pytest.raises(PermissionError, match="Public signup can only create an admin user"):
+            create_user(user_data, current_user=None)
+
+    def test_create_user_workstation_limit_edge_case(self, setup_mocks, admin_user, user_data):
+        """Test user creation at exact workstation limit"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+        
+        # Existing users: 4, workstation count: 5, creating 1 more = exactly at limit
+        mocks['users_admin'].find_one.return_value = None
+        mocks['users_admin'].count_documents.return_value = 4
+        mocks['get_workstation_count'].return_value = 5
+        
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks['users_admin'].insert_one.return_value = mock_result
+        
+        result = create_user(user_data, admin_user)
+        
+        assert result == "507f1f77bcf86cd799439011"
+        mocks['users_admin'].insert_one.assert_called_once()
+
+    def test_persist_domain_user_with_minimal_data(self, setup_mocks):
+        """Test persist_domain_user with edge case inputs"""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import persist_domain_user
+        
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks['users_admin'].insert_one.return_value = mock_result
+        
+        # Test with minimal valid data
+        result = persist_domain_user("a", "u", "P", "e@e.co")
+        
+        assert result == "507f1f77bcf86cd799439011"
+        call_args = mocks['users_admin'].insert_one.call_args[0][0]
+        assert call_args["org_id"] == "a"
+        assert call_args["username"] == "u"
+        assert call_args["email"] == "e@e.co"
