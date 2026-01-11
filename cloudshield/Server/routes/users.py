@@ -7,6 +7,16 @@ from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
 
+# Expose service functions at module scope so tests can monkeypatch:
+# tests expect cloudshield.Server.routes.users.create_user, etc.
+from services import (  # noqa: E402
+    create_user,
+    update_user,
+    deactivate_user,
+    delete_user,
+    list_users,
+)
+
 users_bp = Blueprint('users', __name__)
 """
 Users routes (admin-only mutations).
@@ -91,7 +101,6 @@ def _handle_user_create(current_user):
         body["role"] = "admin"
 
     user_data = UserCreate(**body)
-    from services import create_user
 
     user_id = create_user(user_data, current_user=current_user, reason=reason)
     return jsonify({"user_id": user_id}), 201
@@ -113,8 +122,6 @@ def list_users_endpoint():
         500: { "error": "Internal server error" }
     """
     try:
-        from services import list_users
-
         users = list_users(current_user=g.user)
         return jsonify({"items": users}), 200
     except PermissionError as e:
@@ -197,8 +204,6 @@ def update_user_endpoint(user_id):
         - Service layer should apply field-specific rules (e.g., password hashing).
     """
     try:
-        from services import update_user
-
         body = _json_or_empty()
         reason = _extract_reason()
         update_data = UserUpdate(**body)
@@ -240,8 +245,6 @@ def deactivate_user_endpoint(user_id):
         - This action should be idempotent where possible (repeated deactivations are safe).
     """
     try:
-        from services import deactivate_user
-
         reason = _extract_reason()
         deactivate_user(user_id, current_user=g.user, reason=reason)
         return jsonify({"message": "User deactivated"}), 200
@@ -274,8 +277,6 @@ def delete_user_endpoint(user_id):
         500: { "error": "Internal server error" }
     """
     try:
-        from services import delete_user
-
         reason = _extract_reason()
         delete_user(user_id, current_user=g.user, reason=reason)
         return jsonify({"message": "User deleted"}), 200
