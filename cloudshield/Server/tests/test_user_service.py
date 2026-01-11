@@ -774,10 +774,10 @@ class TestUserService:
         mocks['users_admin'].insert_one.return_value = mock_result
         
         # Test with minimal valid data
-        result = persist_domain_user("a", "u", "P", "e@e.co")
+        result = persist_domain_user("org", "usr", "Pass1!", "e@example.co")
         
         assert result == "507f1f77bcf86cd799439011"
         call_args = mocks['users_admin'].insert_one.call_args[0][0]
-        assert call_args["org_id"] == "a"
-        assert call_args["username"] == "u"
-        assert call_args["email"] == "e@e.co"
+        assert call_args["org_id"] == "org"
+        assert call_args["username"] == "usr"
+        assert call_args["email"] == "e@example.co"
