@@ -135,59 +135,131 @@ export default function SignupPage({ onSignupSuccess }) {
 
   function extractServerErrors(res, data) {
     if (res.status === 400) {
-      if (data.errors && typeof data.errors === 'object') {
+      if (data.errors && typeof data.errors === "object") {
         return data.errors;
       }
-      return { form: data.message || "Validation error. Please check your inputs." };
+      return {
+        form: data.message || "Validation error. Please check your inputs.",
+      };
     }
-  
+
     if (res.status === 409) {
-      return { form: data.message || "An account with this email or organization ID already exists." };
+      return {
+        form:
+          data.message ||
+          "An account with this email or organization ID already exists.",
+      };
     }
-  
+
     if (!res.ok) {
-      return { form: data.message || "Unexpected error during signup. Please try again." };
+      return {
+        form: data.message || "Unexpected error during signup. Please try again.",
+      };
     }
-  
+
     return null;
   }
 
-
   const handleSignup = async () => {
     if (!validate()) return;
-  
+
     setSubmitting(true);
     setErrors((prev) => ({ ...prev, form: undefined }));
-  
+
     try {
-      const res = await fetch("");
-      let data = {};
-  
-      try { data = await res.json(); } catch {}
-  
-      const serverErrors = extractServerErrors(res, data);
-      if (serverErrors) {
-        setErrors((prev) => ({ ...prev, ...serverErrors }));
+      // -----------------------------
+      // 1) Create user: POST /api/signup_admin
+      // Body based on your screenshot:
+      // { email, password, role, full_name, org_id }
+      // We map "company" input -> full_name (since there's no full name field in the form)
+      // -----------------------------
+      const createUserRes = await fetch("http://localhost:5050/api/signup_admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role: "admin",
+          full_name: company,
+          org_id: orgId,
+        }),
+      });
+
+      let createUserData = {};
+      try {
+        createUserData = await createUserRes.json();
+      } catch {}
+
+      const createUserErrors = extractServerErrors(createUserRes, createUserData);
+      if (createUserErrors) {
+        setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
       }
-  
-      const token = data.token || data.access_token || null;
-      const user = data.user || { email, company_name: company, org_id: orgId, plan };
-  
-      if (token) {
-        try { localStorage.setItem("jwt", token); } catch {}
+
+      // -----------------------------
+      // 2) Provision org: POST /api/task/provision
+      // Body based on your screenshot:
+      // { org_id }
+      // -----------------------------
+      const provisionRes = await fetch("http://localhost:5050/api/task/provision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          org_id: orgId,
+        }),
+      });
+
+      let provisionData = {};
+      try {
+        provisionData = await provisionRes.json();
+      } catch {}
+
+      const provisionErrors = extractServerErrors(provisionRes, provisionData);
+      if (provisionErrors) {
+        setErrors((prev) => ({ ...prev, ...provisionErrors }));
+        return;
       }
-  
-      onSignupSuccess?.({ token, user });
-      navigate("/provisioning", { replace: true });
-  
+
+      // If backend returns a token from either call, store it (optional)
+      const token =
+        createUserData.token ||
+        createUserData.access_token ||
+        provisionData.token ||
+        provisionData.access_token ||
+        null;
+
+      if (token) {
+        try {
+          localStorage.setItem("jwt", token);
+        } catch {}
+      }
+
+      // Keep callback shape compatible with App.jsx handler (access_token + user.org_id)
+      onSignupSuccess?.({
+        access_token: token,
+        user: createUserData.user || {
+          email,
+          org_id: orgId,
+          company_name: company,
+          plan,
+        },
+      });
+
+      // After signup + provisioning -> go to login
+      navigate("/login", { replace: true });
     } catch (err) {
-      setErrors((prev) => ({ ...prev, form: err?.message || "Network error during signup." }));
+      setErrors((prev) => ({
+        ...prev,
+        form: err?.message || "Network error during signup.",
+      }));
     } finally {
       setSubmitting(false);
     }
   };
-
 
   return (
     <Box
@@ -304,6 +376,13 @@ export default function SignupPage({ onSignupSuccess }) {
             <PrimaryButton onClick={handleSignup} disabled={submitting}>
               {submitting ? "Creating..." : "Create Organization"}
             </PrimaryButton>
+
+            <Typography
+              onClick={() => navigate("/login")}
+              sx={{ cursor: "pointer", mt: 1.5, textAlign: "center" }}
+            >
+              Already have an account? Log in
+            </Typography>
           </SignupCard>
         </Box>
 

@@ -17,7 +17,13 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
 from utils import get_logger  # type: ignore
-from routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+
+# Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
+# and so the app uses a single module path.
+try:
+    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+except Exception:  # pragma: no cover
+    from routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
 
 
 def _coerce_exception_class(candidate, name: str):

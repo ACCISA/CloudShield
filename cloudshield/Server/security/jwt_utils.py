@@ -1,7 +1,10 @@
 """JWT token generation and verification for CloudShield authentication."""
 import os
 import time
-import jwt
+try:
+    import jwt  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    jwt = None  # type: ignore
 
 JWT_SECRET   = os.getenv("JWT_SECRET")
 JWT_ISSUER   = os.getenv("JWT_ISSUER", "cloudshield")
@@ -31,6 +34,9 @@ def issue_token(sub: str, role: str, org_id: str):
         - The token is signed using the secret stored in 'JWT_SECRET'.
         - Adds a 10-second offset to 'iat' to prevent invalid token errors.
     """
+    if jwt is None:  # pragma: no cover
+        raise RuntimeError("PyJWT is required to issue tokens (install 'PyJWT')")
+
     now = int(time.time())
     payload = {
         "sub": sub,
@@ -63,6 +69,9 @@ def verify_token(token: str):
         - Allows up to 30 seconds of leeway for clock skew.
         - Does not strictly enforce 'verify_iat' (to avoid rejecting new tokens).
     """
+    if jwt is None:  # pragma: no cover
+        raise RuntimeError("PyJWT is required to verify tokens (install 'PyJWT')")
+
     return jwt.decode(
         token,
         JWT_SECRET,

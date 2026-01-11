@@ -6,7 +6,16 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
-from services import create_user, update_user, deactivate_user, delete_user, list_users
+
+# Expose service functions at module scope so tests can monkeypatch:
+# tests expect cloudshield.Server.routes.users.create_user, etc.
+from services import (  # noqa: E402
+    create_user,
+    update_user,
+    deactivate_user,
+    delete_user,
+    list_users,
+)
 
 users_bp = Blueprint('users', __name__)
 """
@@ -77,6 +86,26 @@ def _extract_reason() -> str | None:
     return (reason or "").strip() or None
 
 
+def _handle_user_create(current_user):
+    """
+    Shared handler for creating a user.
+    - If current_user is provided: normal admin flow.
+    - If current_user is None: public signup flow (service layer enforces rules).
+    """
+    body = _json_or_empty()
+    reason = _extract_reason()
+
+    # If this is public signup, force admin role
+    if current_user is None:
+        body = dict(body)
+        body["role"] = "admin"
+
+    user_data = UserCreate(**body)
+
+    user_id = create_user(user_data, current_user=current_user, reason=reason)
+    return jsonify({"user_id": user_id}), 201
+
+
 @users_bp.route("/users", methods=["GET"])
 @require_auth
 @require_role("admin")
@@ -132,11 +161,7 @@ def create_user_endpoint():
           leak back to clients beyond the 'user_id'.
     """
     try:
-        body = _json_or_empty()
-        reason = _extract_reason()
-        user_data = UserCreate(**body)
-        user_id = create_user(user_data, current_user=g.user, reason=reason)
-        return jsonify({"user_id": user_id}), 201
+        return _handle_user_create(g.user)
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
         return jsonify({"error": "Validation failed", "details": safe_errors}), 400
@@ -146,7 +171,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        return jsonify({"error": INTERNAL_SERVER_ERROR, "details":str(e)}), 500
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
@@ -261,3 +286,22 @@ def delete_user_endpoint(user_id):
         return jsonify({"error": str(e)}), 404
     except Exception:
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
+
+
+@users_bp.route("/signup_admin", methods=["POST"])
+def signup_admin_endpoint():
+    try:
+        return _handle_user_create(None)
+
+    except ValidationError as e:
+        safe_errors = [_make_json_safe(err) for err in e.errors()]
+        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
+
+    except Exception as e:
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
