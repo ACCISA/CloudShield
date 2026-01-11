@@ -643,4 +643,149 @@ describe('SignupPage', () => {
       expect(screen.queryByText('Conflict error')).not.toBeInTheDocument();
     });
   });
+
+  // ---------------------------
+  // ADDITIONS: tests for provisioning errors, token picking, onSignupSuccess shape, and /login navigation
+  // ---------------------------
+
+  it('stops after provisioning errors and does not navigate or call onSignupSuccess', async () => {
+    // 1) signup/create user succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: {
+          email: 'test@example.com',
+          company_name: 'Acme',
+          org_id: 'acme',
+          plan: 'pro',
+        },
+      }),
+    });
+
+    // 2) provisioning returns field errors -> provisionErrors is truthy -> setErrors + return
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        errors: {
+          orgId: 'Provisioning failed for org',
+        },
+      }),
+    });
+
+    const mockOnSignupSuccess = jest.fn();
+    renderSignupPage({ onSignupSuccess: mockOnSignupSuccess });
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      // should have tried both calls
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    await waitFor(() => {
+      // provisioning error should be shown
+      expect(screen.getByText('Provisioning failed for org')).toBeInTheDocument();
+    });
+
+    expect(mockOnSignupSuccess).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalledWith('/login', { replace: true });
+  });
+
+  it('stores token from either createUser or provision response and navigates to /login with fallback user shape', async () => {
+    // 1) create user returns no token and no user object -> forces fallback user object
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    });
+
+    // 2) provision returns access_token -> should be stored + passed
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        access_token: 'prov-access-token',
+      }),
+    });
+
+    const mockOnSignupSuccess = jest.fn();
+    renderSignupPage({ onSignupSuccess: mockOnSignupSuccess });
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    await waitFor(() => {
+      // token stored
+      expect(localStorage.setItem).toHaveBeenCalledWith('jwt', 'prov-access-token');
+      // callback shape compatible: access_token + user.org_id fallback
+      expect(mockOnSignupSuccess).toHaveBeenCalledWith({
+        access_token: 'prov-access-token',
+        user: {
+          email: 'test@example.com',
+          org_id: 'acme',
+          company_name: 'Acme',
+          plan: 'pro',
+        },
+      });
+      // final navigation after signup + provisioning
+      expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+    });
+  });
+
+  it('sets default form error message when catch receives a non-Error rejection', async () => {
+    // Reject with plain object -> err?.message is undefined -> default string
+    mockFetch.mockRejectedValueOnce({});
+
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId('auth-field-email'), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('password-field'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
+      target: { value: 'Acme' },
+    });
+    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
+      target: { value: 'acme' },
+    });
+
+    fireEvent.click(screen.getByTestId('primary-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Network error during signup.')).toBeInTheDocument();
+    });
+  });
 });

@@ -359,3 +359,135 @@ class TestHealthEndpoint:
         resp = client.get("/api/health")
         assert resp.status_code == 200
         assert "status" in resp.json
+
+
+# ---------------------------
+# ADDITION: tests for POST /api/signup_admin
+# ---------------------------
+
+class TestSignupAdminPublicEndpoint:
+    """Tests for public admin signup endpoint: POST /api/signup_admin"""
+
+    def test_signup_admin_success_forces_admin_role_and_passes_reason(self, client, monkeypatch):
+        import cloudshield.Server.routes.api as api_mod
+
+        captured = {}
+
+        def fake_user_create(**kwargs):
+            # Ensure role is forced to admin even if client sends employee
+            captured["user_create_data"] = kwargs
+            return kwargs
+
+        def fake_create_user(user_data, current_user=None, reason=None):
+            captured["current_user"] = current_user
+            captured["reason"] = reason
+            captured["role"] = getattr(user_data, "role", None)
+            return "user-123"
+
+        monkeypatch.setattr(api_mod, "UserCreate", fake_user_create)
+        monkeypatch.setattr(api_mod, "create_user", fake_create_user)
+
+        resp = client.post("/api/signup_admin", json={
+            "email": "admin@example.com",
+            "password": "StrongPass123!",
+            "role": "employee",  # should be overridden
+            "full_name": "Admin User",
+            "org_id": "acme-corp",
+            "file_shares": ["aa"],
+            "reason": "bootstrap"
+        })
+
+        assert resp.status_code == 201
+        assert resp.json == {"user_id": "user-123"}
+        assert captured["user_create_data"]["role"] == "admin"
+        assert captured["current_user"] is None
+        assert captured["reason"] == "bootstrap"
+        assert captured["role"] == "admin"
+
+    def test_signup_admin_defaults_json_to_empty_dict_and_returns_400_on_validation(self, client, monkeypatch):
+        import cloudshield.Server.routes.api as api_mod
+        from pydantic import ValidationError
+
+        # Raise a pydantic ValidationError no matter what input arrives
+        def fake_user_create(**kwargs):
+            raise ValidationError.from_exception_data(
+                "UserCreate",
+                [{"loc": ("email",), "msg": "field required", "type": "missing"}],
+            )
+
+        monkeypatch.setattr(api_mod, "UserCreate", fake_user_create)
+
+        # Post with no JSON body -> request.get_json() will be None in Flask test client
+        resp = client.post("/api/signup_admin")
+        assert resp.status_code == 400
+        body = resp.json
+        assert body["error"] == "Validation failed"
+        assert isinstance(body["details"], list)
+        assert body["details"][0]["loc"] == ["email"]
+
+    def test_signup_admin_permission_error_returns_403(self, client, monkeypatch):
+        import cloudshield.Server.routes.api as api_mod
+
+        def fake_user_create(**kwargs):
+            return kwargs
+
+        def fake_create_user(user_data, current_user=None, reason=None):
+            raise PermissionError("forbidden")
+
+        monkeypatch.setattr(api_mod, "UserCreate", fake_user_create)
+        monkeypatch.setattr(api_mod, "create_user", fake_create_user)
+
+        resp = client.post("/api/signup_admin", json={
+            "email": "admin@example.com",
+            "password": "StrongPass123!",
+            "full_name": "Admin User",
+            "org_id": "acme-corp",
+            "file_shares": ["aa"],
+        })
+        assert resp.status_code == 403
+        assert resp.json == {"error": "forbidden"}
+
+    def test_signup_admin_value_error_returns_409(self, client, monkeypatch):
+        import cloudshield.Server.routes.api as api_mod
+
+        def fake_user_create(**kwargs):
+            return kwargs
+
+        def fake_create_user(user_data, current_user=None, reason=None):
+            raise ValueError("already exists")
+
+        monkeypatch.setattr(api_mod, "UserCreate", fake_user_create)
+        monkeypatch.setattr(api_mod, "create_user", fake_create_user)
+
+        resp = client.post("/api/signup_admin", json={
+            "email": "admin@example.com",
+            "password": "StrongPass123!",
+            "full_name": "Admin User",
+            "org_id": "acme-corp",
+            "file_shares": ["aa"],
+        })
+        assert resp.status_code == 409
+        assert resp.json == {"error": "already exists"}
+
+    def test_signup_admin_unexpected_exception_returns_500(self, client, monkeypatch):
+        import cloudshield.Server.routes.api as api_mod
+
+        def fake_user_create(**kwargs):
+            return kwargs
+
+        def fake_create_user(user_data, current_user=None, reason=None):
+            raise Exception("boom")
+
+        monkeypatch.setattr(api_mod, "UserCreate", fake_user_create)
+        monkeypatch.setattr(api_mod, "create_user", fake_create_user)
+
+        resp = client.post("/api/signup_admin", json={
+            "email": "admin@example.com",
+            "password": "StrongPass123!",
+            "full_name": "Admin User",
+            "org_id": "acme-corp",
+            "file_shares": ["aa"],
+        })
+        assert resp.status_code == 500
+        assert resp.json["error"] == "Internal server error"
+        assert resp.json["details"] == "boom"
