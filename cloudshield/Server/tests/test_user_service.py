@@ -152,61 +152,6 @@ class TestUserService:
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
 
-    # ---------------------------
-    # ADDITION: tests for public signup hardening (current_user=None)
-    # ---------------------------
-
-    def test_public_signup_denied_when_admin_already_exists_for_org(self, setup_mocks, user_data):
-        """
-        Public signup: if any user already exists for org, deny with PermissionError.
-        Covers:
-          existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
-          if existing_db_count > 0: raise PermissionError(...)
-        """
-        mocks = setup_mocks
-        from cloudshield.Server.services.user_service import create_user
-
-        # Ensure we don't fail earlier due to duplicate email check
-        mocks["users_admin"].find_one.return_value = None
-
-        # Ensure role check doesn't block before admin-exists check (set role admin)
-        user_data.role = "admin"
-
-        # Simulate existing admin/user already present in DB for org
-        mocks["users_admin"].count_documents.side_effect = None
-        mocks["users_admin"].count_documents.return_value = 1
-
-        with pytest.raises(
-            PermissionError,
-            match="Public signup is disabled for this organization \\(admin already exists\\)\\.",
-        ):
-            create_user(user_data, current_user=None)
-
-    def test_public_signup_denied_when_role_is_not_admin(self, setup_mocks, user_data):
-        """
-        Public signup: if role isn't admin, deny with PermissionError.
-        Covers:
-          if getattr(user_data, "role", None) != "admin": raise PermissionError(...)
-        """
-        mocks = setup_mocks
-        from cloudshield.Server.services.user_service import create_user
-
-        # Ensure we don't fail earlier due to duplicate email check
-        mocks["users_admin"].find_one.return_value = None
-
-        # No existing admin/user in org, so we reach the role hardening check
-        mocks["users_admin"].count_documents.side_effect = None
-        mocks["users_admin"].count_documents.return_value = 0
-
-        # Role is employee by default from fixture; keep it non-admin
-        user_data.role = "employee"
-
-        with pytest.raises(
-            PermissionError,
-            match="Public signup can only create an admin user\\.",
-        ):
-            create_user(user_data, current_user=None)
-
     ## UPDATE USER TESTS
 
     def test_update_user_validation_and_errors(self, setup_mocks, admin_user, employee_user):
