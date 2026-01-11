@@ -152,6 +152,88 @@ class TestUserService:
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
 
+    # ✅ New tests for public-signup permission rules in create_user()
+
+    def test_create_user_public_signup_denied_when_org_already_has_user(self, setup_mocks, user_data):
+        """
+        Covers:
+          - current_user is None (public signup)
+          - users_admin.count_documents({"org_id": ...}) > 0 -> PermissionError
+        """
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        # Make public signup attempt look like org already has users/admins
+        mocks["users_admin"].count_documents.return_value = 1
+
+        # Ensure we don't trip other branches before this check
+        user_data.role = "admin"  # would pass the role gate, but should fail on existing count first
+
+        with pytest.raises(
+            PermissionError,
+            match=r"Public signup is disabled for this organization \(admin already exists\)\."
+        ):
+            create_user(user_data, current_user=None, reason="bootstrap")
+
+        # Ensure we didn't proceed to email uniqueness/insert
+        mocks["users_admin"].find_one.assert_not_called()
+        mocks["users_admin"].insert_one.assert_not_called()
+
+    def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data):
+        """
+        Covers:
+          - current_user is None (public signup)
+          - org has 0 users
+          - role != admin -> PermissionError("Public signup can only create an admin user.")
+        """
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        mocks["users_admin"].count_documents.return_value = 0
+        user_data.role = "employee"  # should be rejected
+
+        with pytest.raises(PermissionError, match="Public signup can only create an admin user."):
+            create_user(user_data, current_user=None, reason="bootstrap")
+
+        mocks["users_admin"].find_one.assert_not_called()
+        mocks["users_admin"].insert_one.assert_not_called()
+
+    def test_create_user_public_signup_success_when_first_user_and_admin_role(self, setup_mocks, user_data):
+        """
+        Covers:
+          - current_user is None (public signup)
+          - org has 0 users
+          - role == admin
+          - continues through uniqueness + workstation limit + insert + audit
+        """
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        # Public signup conditions
+        mocks["users_admin"].count_documents.return_value = 0
+        user_data.role = "admin"
+
+        # Pass uniqueness + limit checks
+        mocks["users_admin"].find_one.return_value = None
+        mocks["get_workstation_count"].return_value = 5
+
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks["users_admin"].insert_one.return_value = mock_result
+
+        mocks["users_admin"].insert_one.reset_mock()
+        mocks["log_audit"].reset_mock()
+
+        new_id = create_user(user_data, current_user=None, reason="bootstrap")
+
+        assert new_id == "507f1f77bcf86cd799439011"
+        mocks["users_admin"].insert_one.assert_called_once()
+        mocks["log_audit"].assert_called_once()
+
+        # Optional: ensure the inserted doc keeps the role admin (service-layer hardening)
+        inserted_doc = mocks["users_admin"].insert_one.call_args[0][0]
+        assert inserted_doc["role"] == "admin"
+
     ## UPDATE USER TESTS
 
     def test_update_user_validation_and_errors(self, setup_mocks, admin_user, employee_user):
