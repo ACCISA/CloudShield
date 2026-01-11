@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
+from pydantic_core import PydanticCustomError
 from typing import Literal, Optional, List
 import re
 
@@ -62,14 +63,24 @@ class UserCreate(BaseModel):
         email = info.data.get("email", "")
         local = email.split("@", 1)[0] if email else ""
         if not PASSWORD_RX.match(v):
-            raise ValueError(
-                "Password must be 12+ chars and include upper, lower, digit, and symbol"
+            raise PydanticCustomError(
+                "password_strength",
+                "Password must be 12+ chars and include upper, lower, digit, and symbol",
+                {},
             )
         if local and local.lower() in v.lower():
-            raise ValueError("Password must not contain your email name")
+            raise PydanticCustomError(
+                "password_contains_email",
+                "Password must not contain your email name",
+                {},
+            )
         COMMON = {"password", "password123", "qwerty", "letmein", "admin"}
         if v.lower() in COMMON:
-            raise ValueError("Password is too common")
+            raise PydanticCustomError(
+                "password_common",
+                "Password is too common",
+                {},
+            )
         return v
 
     @field_validator("org_id")
@@ -87,9 +98,13 @@ class UserCreate(BaseModel):
         """
         v2 = v.strip()
         if not v2:
-            raise ValueError("org_id is required")
+            raise PydanticCustomError("org_id_required", "org_id is required", {})
         if not ORG_RX.match(v2):
-            raise ValueError("org_id must be 3–32 chars: a–z, 0–9, _ or -")
+            raise PydanticCustomError(
+                "org_id_format",
+                "org_id must be 3–32 chars: a–z, 0–9, _ or -",
+                {},
+            )
         return v2
 
     @field_validator("full_name")
@@ -106,7 +121,11 @@ class UserCreate(BaseModel):
         """
         v2 = v.strip()
         if len(v2) < 2:
-            raise ValueError("full_name must be at least 2 characters")
+            raise PydanticCustomError(
+                "full_name_too_short",
+                "full_name must be at least 2 characters",
+                {},
+            )
         return v2
 
 class UserUpdate(BaseModel):
