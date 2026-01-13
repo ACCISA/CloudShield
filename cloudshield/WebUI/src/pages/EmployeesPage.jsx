@@ -30,7 +30,7 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import { listUsers, deleteUser, createUser } from '../services/usersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-function UserTable({ users, onDelete }) {
+function UserTable({ users, onDelete, currentUserId, deletingUserId }) {
   if (!users.length) {
     return (
       <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>
@@ -51,39 +51,60 @@ function UserTable({ users, onDelete }) {
         </TableRow>
       </TableHead>
       <TableBody>
-        {users.map((user) => (
-          <TableRow key={user._id} hover sx={{ '&:last-of-type td': { borderBottom: 0 } }}>
-            <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              {user.full_name || '—'}
-            </TableCell>
-            <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              {user.email || '—'}
-            </TableCell>
-            <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              {user.role || 'employee'}
-            </TableCell>
-            <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              {user.status || 'active'}
-            </TableCell>
-            <TableCell align="right" sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              <Tooltip title="Delete user">
-                <IconButton
-                  aria-label={`Delete user ${user.full_name || user.email}`}
-                  onClick={() => onDelete(user)}
-                  sx={{
-                    color: '#fff',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.08)' },
-                  }}
-                  size="small"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </TableCell>
-          </TableRow>
-        ))}
+        {users.map((user) => {
+          const isCurrentUser = user._id === currentUserId;
+          const isDeleting = user._id === deletingUserId;
+          const tooltipTitle = isCurrentUser ? "Cannot delete yourself" : "Delete user";
+          
+          return (
+            <TableRow key={user._id} hover sx={{ '&:last-of-type td': { borderBottom: 0 } }}>
+              <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                {user.full_name || '—'}
+              </TableCell>
+              <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                {user.email || '—'}
+              </TableCell>
+              <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                {user.role || 'employee'}
+              </TableCell>
+              <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                {user.status || 'active'}
+              </TableCell>
+              <TableCell align="right" sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                <Tooltip title={tooltipTitle}>
+                  <span>
+                    <IconButton
+                      aria-label={`Delete user ${user.full_name || user.email}`}
+                      onClick={() => onDelete(user)}
+                      disabled={isCurrentUser || isDeleting}
+                      sx={{
+                        color: (isCurrentUser || isDeleting) ? 'rgba(255,255,255,0.3)' : '#fff',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        '&:hover': { 
+                          backgroundColor: (isCurrentUser || isDeleting) ? 'transparent' : 'rgba(255,255,255,0.08)' 
+                        },
+                        '&.Mui-disabled': {
+                          color: 'rgba(255,255,255,0.3)',
+                          opacity: 0.5,
+                          cursor: 'not-allowed',
+                        },
+                      }}
+                      size="small"
+                    >
+                      {/* Show spinner while deleting this specific user, otherwise show trash icon */}
+                      {isDeleting ? (
+                        <CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.5)' }} />
+                      ) : (
+                        <DeleteOutlineIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );
@@ -97,6 +118,7 @@ export default function EmployeesPage() {
   const [banner, setBanner] = useState(null);
   const [dialogUser, setDialogUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -206,6 +228,7 @@ export default function EmployeesPage() {
     setDeleteError('');
     setDialogUser(null);
     setIsDeleting(false);
+    setDeletingUserId(null);
   };
 
   const isSelfDelete = dialogUser?._id === currentUser?.id;
@@ -224,6 +247,7 @@ export default function EmployeesPage() {
     }
 
     setIsDeleting(true);
+    setDeletingUserId(dialogUser._id);
     try {
       await deleteUser(dialogUser._id, { token: accessToken });
       setUsers((prev) => prev.filter((user) => user._id !== dialogUser._id));
@@ -237,6 +261,7 @@ export default function EmployeesPage() {
       setDeleteError(message);
       setBanner({ severity: 'error', message });
       setIsDeleting(false);
+      setDeletingUserId(null);
     }
   };
 
@@ -403,7 +428,12 @@ export default function EmployeesPage() {
             <CircularProgress size={32} />
           </Box>
         ) : (
-          <UserTable users={sortedUsers} onDelete={handleOpenDeleteDialog} />
+          <UserTable 
+            users={sortedUsers} 
+            onDelete={handleOpenDeleteDialog} 
+            currentUserId={currentUser?.id}
+            deletingUserId={deletingUserId}
+          />
         )}
       </Paper>
 
