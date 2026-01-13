@@ -9,6 +9,7 @@ from services import create_user
 
 from services import service_dispatcher, get_job_status, health_status
 from utils.logging_setup import get_logger
+from utils import organizations
 
 logger = get_logger("api")
 
@@ -164,13 +165,36 @@ def task_provision():
     """
     data = request.get_json() or {}
 
+    def _coerce_int(val):
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            return None
+
     logger.info("[API] Received /task/provision POST request")
     org_id = data.get("org_id")
-    workstation_count = data.get("workstation_count", 0)
 
     if not org_id:
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
+
+    org_doc = organizations.find_one({"org_id": org_id}, {"workstation_limit": 1})
+    org_limit = _coerce_int(org_doc.get("workstation_limit")) if org_doc else None
+
+    requested_count = data.get("workstation_count")
+    if requested_count is None:
+        workstation_count = org_limit if org_limit is not None else 1
+    else:
+        workstation_count = _coerce_int(requested_count)
+        if workstation_count is None:
+            return jsonify({"error": "workstation_count must be an integer"}), 400
+
+    if org_limit is not None and org_limit > 0 and workstation_count > org_limit:
+        logger.warning("Requested workstation_count exceeds org limit; capping to %s", org_limit)
+        workstation_count = org_limit
+
+    if workstation_count is None or workstation_count <= 0:
+        workstation_count = 1
 
     job = service_dispatcher(
         service_name="provision_network", 

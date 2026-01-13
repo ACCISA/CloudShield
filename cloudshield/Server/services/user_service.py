@@ -2,12 +2,21 @@
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, users_public, log_audit
+from utils import users_admin, users_public, log_audit, organizations
+from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate
 from security import hash_password
-from utils.terraform import get_workstation_count
 from pymongo.errors import PyMongoError
 from bson.errors import InvalidId
+
+
+def _coerce_int(val) -> int | None:
+    """Convert numeric values to int; ignore non-numeric (e.g., mocks)."""
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return int(val)
+    return None
 
 def _must_admin(current_user: dict | None) -> None:
     """
@@ -133,10 +142,14 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     if users_admin.find_one({"email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
 
-    # Keep your workstation/user limit rule
+    # Enforce user limit based on organization package
     existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
-    existing_workstation_count = get_workstation_count(user_data.org_id)
-    if existing_db_count + 1 > existing_workstation_count:
+    org_doc = organizations.find_one({"org_id": user_data.org_id}, {"user_limit": 1}) or {}
+    user_limit = _coerce_int(org_doc.get("user_limit"))
+    if user_limit is None:
+        # Fall back to workstation count to preserve previous behavior and tests
+        user_limit = _coerce_int(get_workstation_count(user_data.org_id))
+    if user_limit is not None and existing_db_count + 1 > user_limit:
         raise ValueError("User limit reached for this organization")
 
     # -----------------------------

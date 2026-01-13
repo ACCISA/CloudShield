@@ -340,3 +340,23 @@ def test_database_ping_success():
     # Verify that the clients have admin attribute
     assert hasattr(database.admin_client, 'admin')
     assert hasattr(database.emp_client, 'admin')
+
+
+def test_organizations_collection_and_indexes(monkeypatch):
+    """Ensure organizations collection is available and indexes are created."""
+    import importlib
+
+    if 'cloudshield.Server.utils.database' in sys.modules:
+        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
+
+    from cloudshield.Server.utils import database
+
+    assert hasattr(database, "organizations")
+    orgs = database.organizations
+    assert orgs is not None
+    assert hasattr(orgs, "create_index")
+
+    calls = getattr(orgs, "create_index", lambda: []).call_args_list
+    assert any(args == ("org_id",) and kwargs.get("unique") for args, kwargs in calls), "org_id unique index missing"
+    assert any(args == ("package",) for args, kwargs in calls)
+    assert any(args == ("provisioning_status",) for args, kwargs in calls)

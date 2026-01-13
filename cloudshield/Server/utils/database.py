@@ -55,6 +55,7 @@ try:
     # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
     users_public = db_emp["users_public"]
+    organizations = db_admin["organizations"]
 
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
@@ -71,6 +72,11 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
+    # Organizations: unique org_id and quick lookups by package/status
+    organizations.create_index("org_id", unique=True)
+    organizations.create_index("package")
+    organizations.create_index("provisioning_status")
+
     print(f"[database.py] Connected to MongoDB DB='{DB_NAME}' (admin+employee clients ready)")
 except PyMongoError as e:
     print(f"[database.py] MongoDB connection failed: {e}")
@@ -83,6 +89,7 @@ __all__ = [
     "emp_client",
     "users_admin",
     "users_public",
+    "organizations",
     "db",
     "client"
 ]
