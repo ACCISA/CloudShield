@@ -1,43 +1,32 @@
-import paramiko
-import socket
-import threading
 import re
-import time
+import uuid
+import base64
 from rq import get_current_job
-from .forward import forward_tunnel
+from google.protobuf import empty_pb2
 
-from utils import get_logger, get_inventory_from_org_id
-from services.user_service import persist_domain_user
-from models import Inventory
+from services.user_service import persist_domain_user, remove_domain_user_from_db
+from utils import get_logger
+
+from genproto.infra_service import infra_service_pb2 as infra_pb2
+
+from .task import proxy_rpc_request, get_server_nodes
+
+
+def short_uuid():
+    # Generate UUID4 and encode it in URL-safe Base64
+    return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
+
 
 USERNAME_RE = re.compile(r'^[A-Za-z0-9._-]{1,20}$')
 MIN_PW_LEN = 8
 MAX_PW_LEN = 128
 PRIVATE_KEYS_PATH = "/var/lib/cloudshield/terraform/generated"
 
+
+PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"}
+
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
-
-class SSHExecResult:
-    def __init__(self, stdin, stdout, stderr):
-        self.stdin = stdin
-        self.stdout = stdout
-        self.stderr = stderr
-
-def forward_ssh_tunnel(local_port, remote_host, remote_port, transport, target_port, logger=None):
-    """
-    Create an SSH tunnel to forward comms via SSH transport.
-    """
-    if logger is None:
-        logger = _module_logger
-    
-    logger.info(f"SSH tunnel created {local_port}:{remote_host}:{remote_port}")
-    t = threading.Thread(
-            target=forward_tunnel,
-            args=(local_port, remote_host, target_port, transport),
-            daemon=True
-    )
-    t.start()
 
 def validate_username(username: str, logger=None):
     """
@@ -69,97 +58,185 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
-class ExecSSHConfig:
+def dc_create_file_share(org_id: str, share_name: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "stating dc_create_samba_file_share"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id)
     
-    def __init__(self, inventory: Inventory):
-        self.inventory = inventory
-        self.org_id = inventory.org_id
-        self.openvpn_server_name = f"{inventory.org_id}_openvpn_server"
-        self.dc_name = f"{inventory.org_id}_samba"
-        self.vpn_ip = None
-        self.vpn_key = None
-        self.dc_priv_ip = None
-        self.dc_key = None
-        self.failed = False
+    request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
 
-        self.populate_config()
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
-    def populate_config(self):
-        for asset in self.inventory.assets:
-            if asset.name == self.openvpn_server_name:
-                self.vpn_ip      = asset.public_ip
-                self.vpn_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
-                continue
-            if asset.name == self.dc_name:
-                self.dc_priv_ip = asset.private_ip
-                self.dc_key     = f"{PRIVATE_KEYS_PATH}/{self.org_id}/{asset.priv_key_path}.pem"
 
-        if None in [self.vpn_ip, self.vpn_key, self.dc_priv_ip, self.dc_key]:
-            logger = _module_logger
-            logger.error("missing data from inventory assets")
-            logger.error(self.inventory)
-            self.failed = True
+    response = infra_pb2.CreateSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
 
-def get_available_local_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('',0))
-    return s.getsockname()[1]
-
-def exec_ssh(org_id: str, command: str, logger=None):
-    if logger is None:
-        logger = _module_logger
-
-    if len(command) == 0:
-        return None
-
-    inventory = get_inventory_from_org_id(org_id)
-
-    if not inventory:
-        logger.error(f"No ITAM inventory found for org_id={org_id}")
-        return None
-
-    exec_ssh_config = ExecSSHConfig(inventory)
-
-    if exec_ssh_config.failed is True:
-        logger.error("Database does not contain the necessary data for task management") 
-
-    jump_host       = exec_ssh_config.vpn_ip
-    dc_host         = exec_ssh_config.dc_priv_ip
-    dc_host_port    = 22
-    jump_key        = exec_ssh_config.vpn_key
-    local_port      = get_available_local_port()
-    target_port     = 22
-
-    logger.info(f"Fetched VPN IPv4: {jump_host}")
+    status = response.status
     
-    # Connect to the openvpn server
-    jump_client = paramiko.SSHClient()
-    jump_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    jump_client.connect(jump_host, username="ubuntu", key_filename=jump_key)
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created new samba file share")
+        return {"status":"SUCCESS","message":"Successfully created new samba file share"}
 
-    transport = jump_client.get_transport()
+    if status == infra_pb2.FAILED:
+        logger.info("Failed to create new samba file share")
+        return {"status":"FAILED","message":"Failed to create new samba file share"}
 
-    forward_ssh_tunnel(local_port, dc_host, dc_host_port, transport, target_port)
+    logger.error("Failed to create file share, uknown reason")
+    return {"status":"UNKNOWN","message":"Failed to create new samba file share, reason unknown"}
+
+
+def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "stating dc_delete_file_share"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id)
     
-    # Avoid a race condition so let the creation of the ssh tunnel complete
-    time.sleep(3)
+    request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)
 
-    dc_client = paramiko.SSHClient()
-    dc_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    dc_client.connect("127.0.0.1", port=local_port, username="ubuntu", key_filename=jump_key)
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)
 
-    logger.info("Connected to dc through SSH tunnel")
-
-
-    stdin, stdout, stderr = dc_client.exec_command(command)
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
     
-    if stdout is None and stderr is None:
-        logger.error("Failed to read output from command execution")
-        return None
-    stdout_str = stdout.read().decode().strip() if stdout is not None else None
-    stderr_str = stderr.read().decode().strip() if stderr is not None else None
 
-    return SSHExecResult(stdin, stdout_str, stderr_str)
+    response = infra_pb2.DeleteSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully delete new samba file share")
+        return {"status":"SUCCESS","message":"Successfully deleted new samba file share"}
+    if status == infra_pb2.SHARE_NOT_FOUND:
+        logger.info("Failed to find samba file share")
+        return {"status":"SHARE_NOT_FOUND", "message":"Failed to find samba file share"}
+    if status == infra_pb2.FAILED:
+        logger.info("Failed to delete new samba file share")
+        return {"status":"FAILED","message":"Failed to delete new samba file share"}
+
+    return {"status":"UNKNOWN","message":"Failed to delete new samba file share, unknown reason"}
+
+def dc_restart_samba_service(org_id: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_restart_samba_service"
+        job.save_meta()
+    
+    nodes = get_server_nodes(org_id)
+
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.RestartSambaService", request = empty_pb2.Empty())
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+
+    response = infra_pb2.RestartSambaServiceDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully restart samba-ad-dc service")
+        return {"status":"SUCCESS","message":"Successfully restared samba-ad-dc service"}
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to restart samba-ad-dc service")
+        return {"status":"FAILED", "message":"Failed to restart samba-ad-dc service"}
+
+    logger.error("Failed to restart samba-ad-dc service, for unknown reason")
+    return {"status":"UNKNOWN","message":"Failed to restart samba-ad-dc service, for unknown reason"}
+
+def dc_set_password(org_id: str, username: str, new_password: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_set_password"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.ResetUserPasswordData(username=username, password=new_password)
+
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.ResetUserPassword", request=request)
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+
+    response = infra_pb2.ResetUserPasswordDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully set user password")
+        return {"status":"SUCCESS", "message":"Successfully set user password"}
+
+    if status == infra_pb2.PASSWORD_REQ_FAILED:
+        logger.error("New password violates constraints")
+        return {"status":"PASSWORD_REQ_FAILED", "message":"New password violates constraints"}
+
+    if status == infra_pb2.USER_NOT_FOUND:
+        logger.error(f"User not found (user={username}")
+        return {"status":"USER_NOT_FOUND", "message":"User not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to set password")
+        return {"status":"FAILED", "message":"Failed to set password"}
+    
+    logger.error("Failed to set user password, unknwon reason")
+    return {"status":"UNKNOWN", "message":"Failed to set user password, unknown"}
+
+
+
+def dc_user_list(org_id: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_user_list"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id)
+
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.GetUserList", request = empty_pb2.Empty())
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.GetUserListDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    users = response.users
+
+    logger.info("users: " + str(users))
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully retrieved user list")
+        return {"status":"SUCCESS", "message":"Successfully retrieved user list", "result":{"users":list(users)}}
+
+    logger.error("Failed to retrieve user list")
+    return {"status":"FAILED", "message":"Failed to retrieve user list"}
+
 
 def dc_add_user(org_id: str, username: str, password: str):
     """
@@ -184,18 +261,94 @@ def dc_add_user(org_id: str, username: str, password: str):
             job.meta["progress"] = "invalid password"
             job.save_meta()
         return {"message":f"the provider password is invalid (password={password})"}
+    
+    
+    # this tasks is meant for the domain controller so we get that node's ip
+    nodes = get_server_nodes(org_id)
 
-    command = f"sudo samba-tool user create {username} {password} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%'"
+    request = infra_pb2.AddDomainUserData(username=username, password=password)
 
-    result = exec_ssh(org_id, command, logger=logger)
-    logger.info(result.stdout)
-    logger.info(result.stderr)
+    # this request needs to be proxyed through the vpn server because it is destined for the domain controller
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
+        
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
 
-    #if no stderr, the command succeeded, the data can be persisted
-    if not result.stderr:
-        logger.info("User added to samba ad-dc")
-        domain_user_id = persist_domain_user(org_id, username, password, "temp@email.com")
-        logger.info(f"Domain user persisted with id: {domain_user_id}")
+    # we have to first serialize the bytes from the proxy_response.response field
+    response = infra_pb2.AddDomainUserDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    result = response.result
+
+    logger.info("result: " + str(result))
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully added user")
+        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        return {"status": "SUCCESS", "message":"Successfully added user"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to add user")
+        return {"status": "FAILED", "message":"Failed to add user"}
+    
+    if status == infra_pb2.DUPLICATE:
+        logger.error("Duplicate user found")
+        return {"status": "DUPLICATE", "message":"User already exists"}
+    logger.error("Failed to add user for unexpected reason")
+    return {"status":"UNKNOWN", "message":"Unexpected response"}
 
 
 
+def dc_remove_user(org_id: str, username: str):
+    """
+    Note: this job should only be executed if a network was provisioned for that org_id
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_remove_user"
+        job.save_meta()
+
+    
+    # this tasks is meant for the domain controller so we get that node's ip
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.RemoveDomainUserData(username=username)
+
+    # this request needs to be proxyed through the vpn server because it is destined for the domain controller
+    proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.RemoveDomainUser", request=request)
+        
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    # we have to first serialize the bytes from the proxy_response.response field
+    response = infra_pb2.RemoveDomainUserDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully removed user")
+        # Remove user from database with audit logging
+        removed = remove_domain_user_from_db(org_id, username, job_id=job_id)
+        if removed:
+            logger.info(f"User {username} removed from database")
+        else:
+            logger.warning(f"User {username} not found in database")
+        return {"status": "SUCCESS", "message":"Successfully removed user"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to remove user")
+        return {"status": "FAILED", "message":"Failed to remove user"}
+    
+    if status == infra_pb2.USER_NOT_FOUND:
+        logger.error("Failed to find user")
+        return {"status": "USER_NOT_FOUND", "message":"User not found"}
+    
+    logger.error("unknown error when removing user")
+    return {"status":"UNKNOWN", "message":"Unexpected response"}

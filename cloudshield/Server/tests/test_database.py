@@ -159,7 +159,8 @@ def test_get_inventory_from_org_id_success(monkeypatch):
                 "status": "running",
                 "storage_size_gb": 50,
                 "subnet_id": "subnet-123",
-                "updated_at": "2025-01-01"
+                "updated_at": "2025-01-01",
+                "port":"50055"
             },
             {
                 "name": "asset2",
@@ -177,7 +178,8 @@ def test_get_inventory_from_org_id_success(monkeypatch):
                 "status": "running",
                 "storage_size_gb": 100,
                 "subnet_id": "subnet-456",
-                "updated_at": "2025-01-01"
+                "updated_at": "2025-01-01",
+                "port":"50055"
             }
         ]
     }

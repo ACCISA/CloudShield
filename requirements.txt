@@ -6,3 +6,4 @@ grpcio
 boto3
 grpcio-tools
 elasticsearch
+flask_cors

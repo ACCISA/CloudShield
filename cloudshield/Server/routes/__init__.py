@@ -1,22 +1,35 @@
-try:
-    from .api import api_bp as api_bp  # noqa: F401
-except ImportError:  # pragma: no cover - happens in tests with partial mocks
-    api_bp = None  # type: ignore[assignment]
+from __future__ import annotations
 
-# Auth blueprint – tests depend on this one
-try:
-    from .auth import auth_bp as auth_bp  # noqa: F401
-except ImportError:  # pragma: no cover - should not happen in normal runs
-    auth_bp = None  # type: ignore[assignment]
+from typing import Any
 
-# Users management blueprint
-try:
-    from .users import users_bp as users_bp  # noqa: F401
-except ImportError:  # pragma: no cover - e.g. when deep imports fail under mocks
-    users_bp = None  # type: ignore[assignment]
+__all__ = [
+	"api_bp",
+	"users_bp",
+	"users_read_bp",
+	"auth_bp",
+]
 
-# Read-only users blueprint
-try:
-    from .users_read import users_read_bp as users_read_bp  # noqa: F401
-except ImportError:  # pragma: no cover
-    users_read_bp = None  # type: ignore[assignment]
+
+def __getattr__(name: str) -> Any:
+	if name == "api_bp":
+		from .api import api_bp as _api_bp
+
+		return _api_bp
+
+	if name == "users_bp":
+		from .users import users_bp as _users_bp
+
+		return _users_bp
+
+	if name == "users_read_bp":
+		from .users_read import users_read_bp as _users_read_bp
+
+		return _users_read_bp
+
+	if name == "auth_bp":
+		from .auth import auth_bp as _auth_bp
+
+		return _auth_bp
+
+	raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+

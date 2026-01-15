@@ -1,14 +1,9 @@
 import os
-try:
-    from cloudshield.Server.redis_client import redis_conn
-    from cloudshield.Server.utils.logging_setup import cleanup_old_logs
-except ImportError:
-    from redis_client import redis_conn
-    from utils.logging_setup import cleanup_old_logs
-
+from redis_client import redis_conn
+from utils.logging_setup import cleanup_old_logs
 from rq import Worker, Queue
 from rq_scheduler import Scheduler
-from datetime import datetime
+from datetime import datetime, UTC
 
 try:
     from rq import SimpleWorker
@@ -19,7 +14,7 @@ if __name__ == "__main__":
     scheduler = Scheduler(connection=redis_conn)
     # Run cleanup every day
     scheduler.schedule(
-        scheduled_time=datetime.utcnow(),
+        scheduled_time=datetime.now(UTC),
         func=cleanup_old_logs,
         args=(30,),
         interval=86400,

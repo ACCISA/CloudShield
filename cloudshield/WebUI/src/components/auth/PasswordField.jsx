@@ -9,10 +9,10 @@
  *   - value: current password value
  *   - onChange: change handler (e) => void
  */
-import React, { useState } from 'react';
-import { Box, Typography, OutlinedInput, IconButton } from '@mui/material';
-import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import React, { useState } from "react";
+import { Box, Typography, OutlinedInput, IconButton } from "@mui/material";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 /**
  * Password input field with show/hide toggle.
@@ -22,25 +22,30 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
  * @param {Function} props.onChange - Change handler
  * @returns {JSX.Element} Password input with visibility toggle
  */
-export default function PasswordField({
-  label = 'Password',
-  value,
-  onChange,
-}) {
+export default function PasswordField({ label = "Password", value, onChange }) {
   // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
 
+  const handleToggle = () => setShow(!show);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
+
   return (
-    <Box sx={{ width: '100%', mb: 3 }}>
+    <Box sx={{ width: "100%", mb: 3 }}>
       <Typography
         sx={{
-          color: '#fff',
-          fontSize: '0.9rem',
+          color: "#fff",
+          fontSize: "0.9rem",
           fontWeight: 500,
-          mb: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          mb: "6px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           lineHeight: 1.2,
         }}
       >
@@ -49,23 +54,27 @@ export default function PasswordField({
         <Box
           component="span"
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#fff',
-            fontSize: '0.9rem',
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            color: "#fff",
+            fontSize: "0.9rem",
             fontWeight: 400,
             opacity: 0.8,
-            cursor: 'pointer',
+            cursor: "pointer",
           }}
-          onClick={() => setShow(!show)}
+          onClick={handleToggle}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={show ? "Hide password" : "Show password"}
         >
-          {show ? 'Hide' : 'Show'}
+          {show ? "Hide" : "Show"}
           <IconButton
-            onClick={() => setShow(!show)}
+            onClick={handleToggle}
             size="small"
             sx={{
-              color: '#fff',
+              color: "#fff",
               p: 0,
             }}
           >
@@ -79,32 +88,32 @@ export default function PasswordField({
       </Typography>
 
       <OutlinedInput
-        type={show ? 'text' : 'password'}
+        type={show ? "text" : "password"}
         value={value}
         onChange={onChange}
         sx={{
-          width: '100%',
-          backgroundColor: '#161616',
-          borderRadius: '8px',
-          color: '#fff',
-          fontSize: '0.95rem',
+          width: "100%",
+          backgroundColor: "#161616",
+          borderRadius: "8px",
+          color: "#fff",
+          fontSize: "0.95rem",
           lineHeight: 1.3,
-          border: '1px solid rgba(255,255,255,0.18)',
-          paddingY: '12px',
-          paddingX: '12px',
-          '& .MuiOutlinedInput-notchedOutline': {
-            border: 'none',
+          border: "1px solid rgba(255,255,255,0.18)",
+          paddingY: "12px",
+          paddingX: "12px",
+          "& .MuiOutlinedInput-notchedOutline": {
+            border: "none",
           },
-          '&:hover': {
-            backgroundColor: '#1a1a1a',
+          "&:hover": {
+            backgroundColor: "#1a1a1a",
           },
-          '&.Mui-focused': {
-            outline: '2px solid rgba(255,255,255,0.4)',
-            outlineOffset: '0px',
+          "&.Mui-focused": {
+            outline: "2px solid rgba(255,255,255,0.4)",
+            outlineOffset: "0px",
           },
-          '& input': {
+          "& input": {
             padding: 0,
-            letterSpacing: '0.15em', // like password dots feel tighter
+            letterSpacing: "0.15em", // like password dots feel tighter
           },
         }}
       />
