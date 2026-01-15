@@ -82,6 +82,7 @@ std::string SambaTask::ResetUserPassword(std::string username, std::string new_p
 	return this->RunCommand(full_cmd);
 }
 
+
 std::string SambaTask::CreateSambaFileShare(std::string share_name)
 {
 
@@ -195,4 +196,35 @@ bool SambaTask::DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& resul
 	}
 
 	return true;
+}
+
+bool SambaTask::SyncNetlogonScript(const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups)
+{
+	if (groups.empty()) return false;
+
+	std::ofstream out_file(this->NETLOGON_SCRIPT_PATH);
+
+	out_file << "@echo off\n";
+	out_file << "net use * /delete /y\n";
+
+	if (!out_file.is_open()) return false;
+	
+	for (const auto& group_mapping : groups) {
+		std::string group_name = group_mapping.group_name();
+
+		out_file << "net groups /domain | findstr /i \"" << group_name << "\" > nul\n";
+		out_file << "if %errorlevel% equ 0 (\n";
+
+
+		for (const auto& share : group_mapping.shares()) {
+	    		std::string share_path = share.share_path();
+			std::string drive_letter = share.drive_letter();
+
+			out_file << "	if not exist " << drive_letter << ": net use " << drive_letter << ": " << share_path << "\n";
+
+		}
+
+		out_file << ")\n";
+		out_file << "\n";
+	}
 }

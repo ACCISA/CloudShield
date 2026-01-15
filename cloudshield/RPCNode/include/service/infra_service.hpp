@@ -22,7 +22,7 @@ class InfraService final : public is::InfraService::Service
 public:
 	InfraService();
 
-	
+	Status SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response) override;
   	Status AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response) override;
   	Status ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response) override;
   	Status GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response) override;

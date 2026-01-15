@@ -24,6 +24,7 @@ namespace infra_service {
 namespace v1 {
 
 static const char* InfraService_method_names[] = {
+  "/infra_service.v1.InfraService/SyncNetlogonScript",
   "/infra_service.v1.InfraService/AddDNSRecord",
   "/infra_service.v1.InfraService/DeleteDNSRecord",
   "/infra_service.v1.InfraService/GetUserList",
@@ -43,17 +44,41 @@ std::unique_ptr< InfraService::Stub> InfraService::NewStub(const std::shared_ptr
 }
 
 InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
-  : channel_(channel), rpcmethod_AddDNSRecord_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_DeleteDNSRecord_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetUserList_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RestartSambaService_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_ResetUserPassword_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[8], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetFileShareSize_(InfraService_method_names[9], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  : channel_(channel), rpcmethod_SyncNetlogonScript_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDNSRecord_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteDNSRecord_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetUserList_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RestartSambaService_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[8], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[9], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetFileShareSize_(InfraService_method_names[10], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
+
+::grpc::Status InfraService::Stub::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_SyncNetlogonScript_, context, request, response);
+}
+
+void InfraService::Stub::async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* InfraService::Stub::PrepareAsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::SyncNetlogonScriptDataAck, ::infra_service::v1::SyncNetlogonScriptData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_SyncNetlogonScript_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* InfraService::Stub::AsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncSyncNetlogonScriptRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
 
 ::grpc::Status InfraService::Stub::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::infra_service::v1::AddDNSRecordDataAck* response) {
   return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDNSRecord_, context, request, response);
@@ -289,6 +314,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::SyncNetlogonScriptData* req,
+             ::infra_service::v1::SyncNetlogonScriptDataAck* resp) {
+               return service->SyncNetlogonScript(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[1],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
              ::grpc::ServerContext* ctx,
@@ -297,7 +332,7 @@ InfraService::Service::Service() {
                return service->AddDNSRecord(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[1],
+      InfraService_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -307,7 +342,7 @@ InfraService::Service::Service() {
                return service->DeleteDNSRecord(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[2],
+      InfraService_method_names[3],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -317,7 +352,7 @@ InfraService::Service::Service() {
                return service->GetUserList(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[3],
+      InfraService_method_names[4],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -327,7 +362,7 @@ InfraService::Service::Service() {
                return service->RestartSambaService(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[4],
+      InfraService_method_names[5],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -337,7 +372,7 @@ InfraService::Service::Service() {
                return service->CreateSambaFileShare(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[5],
+      InfraService_method_names[6],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -347,7 +382,7 @@ InfraService::Service::Service() {
                return service->DeleteSambaFileShare(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[6],
+      InfraService_method_names[7],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -357,7 +392,7 @@ InfraService::Service::Service() {
                return service->ResetUserPassword(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[7],
+      InfraService_method_names[8],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -367,7 +402,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[8],
+      InfraService_method_names[9],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -377,7 +412,7 @@ InfraService::Service::Service() {
                return service->RemoveDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[9],
+      InfraService_method_names[10],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -389,6 +424,13 @@ InfraService::Service::Service() {
 }
 
 InfraService::Service::~Service() {
+}
+
+::grpc::Status InfraService::Service::SyncNetlogonScript(::grpc::ServerContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
 ::grpc::Status InfraService::Service::AddDNSRecord(::grpc::ServerContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response) {

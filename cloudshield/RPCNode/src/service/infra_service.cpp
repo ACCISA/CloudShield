@@ -279,3 +279,9 @@ Status InfraService::DeleteDNSRecord(ServerContext* context, const is::DeleteDNS
 
 	return Status(grpc::StatusCode::OK, "Deleted DNS entry");
 }
+
+Status InfraService::SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response)
+{
+	return Status(grpc::StatusCode::OK, "Netlogon scripts synced");	
+}
+  	

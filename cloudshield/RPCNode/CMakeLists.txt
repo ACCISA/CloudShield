@@ -29,6 +29,8 @@ target_link_libraries(${GENPROTO_LIB}
         utf8_range::utf8_validity
 )
 
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS my_message.proto)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/service/infra_service.cpp

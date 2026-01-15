@@ -8,10 +8,16 @@
 #include <cstdio>
 #include <vector>
 #include <memory>
+#include <google/protobuf/repeated_field.h>
 
 #include "utils/exec.hpp"
 
+#include "infra_service/infra_service.grpc.pb.h"
+#include "infra_service/infra_service.pb.h"
+
 #define DEV_MODE //comment this line in prod
+
+namespace is = infra_service::v1;
 
 struct AddDNSRecordData {
 	std::string zone;
@@ -51,6 +57,9 @@ private:
 	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword %s --newpassword=%s";
 	static constexpr const char* USER_LIST_CMD = "samba-tool user list";
 
+	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/samdom.example.com/scripts/logon.bat";
+	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '%s' > nul\n";
+
 public:
 	std::string AddDomainUser(std::string username, std::string password);
 	std::string RemoveDomainUser(std::string username);
@@ -62,4 +71,5 @@ public:
 	bool IsDomainUser(std::string username);
 	bool AddDNSRecord(AddDNSRecordData& dns_record, std::string& result);
 	bool DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result);
+	bool SyncNetlogonScript(const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups);
 };
