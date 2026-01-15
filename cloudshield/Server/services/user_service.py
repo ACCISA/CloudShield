@@ -1,10 +1,12 @@
 """User management service layer with audit logging."""
+import re
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
 from utils import users_admin, users_public, log_audit, organizations
 from utils.terraform import get_workstation_count
-from models import UserCreate, UserUpdate
+from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
+from models.organization import ORG_RX
 from security import hash_password
 from pymongo.errors import PyMongoError
 from bson.errors import InvalidId
@@ -17,6 +19,45 @@ def _coerce_int(val) -> int | None:
     if isinstance(val, (int, float)):
         return int(val)
     return None
+
+
+def _slugify_org_id(seed: str) -> str:
+    """Generate a slug that matches ORG_RX from an arbitrary seed."""
+    candidate = re.sub(r"[^a-z0-9_-]+", "-", seed.strip().lower())
+    candidate = re.sub(r"-+", "-", candidate).strip("-")
+    if not candidate:
+        candidate = "org"
+    if len(candidate) < 3:
+        candidate = (candidate + "-org")[:32]
+    return candidate[:32]
+
+
+def _generate_unique_org_id(seed: str) -> str:
+    """Generate a unique org_id that satisfies ORG_RX, adding numeric suffixes if needed."""
+    base = _slugify_org_id(seed)
+    if not ORG_RX.match(base):
+        base = "org"
+    candidate = base
+    suffix = 1
+    while organizations.find_one({"org_id": candidate}):
+        suffix_str = f"-{suffix}"
+        candidate = f"{base[:32 - len(suffix_str)]}{suffix_str}"
+        suffix += 1
+    return candidate
+
+
+def _create_org_if_needed_for_signup(org_id: Optional[str], org_name: Optional[str], package: str) -> tuple[str, dict]:
+    """Ensure an organization exists for public signup; create it with package limits if missing."""
+    resolved_org_id = org_id or _generate_unique_org_id(org_name or "org")
+
+    existing = organizations.find_one({"org_id": resolved_org_id})
+    if existing:
+        return resolved_org_id, existing
+
+    org_model = OrganizationCreate(org_id=resolved_org_id, name=org_name, package=package)
+    org_doc = create_organization_doc(org_model)
+    organizations.insert_one(org_doc)
+    return resolved_org_id, org_doc
 
 def _must_admin(current_user: dict | None) -> None:
     """
@@ -119,20 +160,30 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         ValueError: If email already exists or org user limit is exceeded
     """
 
+    # Determine org + package for this signup
+    package = (user_data.package or "basic").strip() if isinstance(user_data.package, str) else "basic"
+    org_name = (user_data.org_name or "").strip() or None
+
     # -----------------------------
-    # Auth / permission rules
+    # Auth / permission rules + org provisioning
     # -----------------------------
     if current_user is not None:
-        # Dashboard/admin creation: enforce admin
+        # Dashboard/admin creation: enforce admin and require explicit org_id
         _must_admin(current_user)
+        if not user_data.org_id:
+            raise ValueError("org_id is required when creating users as an admin")
+        org_id = user_data.org_id
+        org_doc = organizations.find_one({"org_id": org_id}, {"user_limit": 1}) or {}
     else:
-        # Public signup: allow only FIRST user for this org (prevents random public user creation later)
-        existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
+        # Public signup: create org if missing, then allow only FIRST user
+        seed = org_name or user_data.full_name or user_data.email.split("@", 1)[0]
+        org_id, org_doc = _create_org_if_needed_for_signup(user_data.org_id, seed, package)
+
+        existing_db_count = users_admin.count_documents({"org_id": org_id})
         if existing_db_count > 0:
             raise PermissionError("Public signup is disabled for this organization (admin already exists).")
 
         # Optional hardening: force role admin on public signup (extra safety)
-        # If you already force it in the route, you can remove this.
         if getattr(user_data, "role", None) != "admin":
             raise PermissionError("Public signup can only create an admin user.")
 
@@ -143,12 +194,11 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
-    existing_db_count = users_admin.count_documents({"org_id": user_data.org_id})
-    org_doc = organizations.find_one({"org_id": user_data.org_id}, {"user_limit": 1}) or {}
+    existing_db_count = users_admin.count_documents({"org_id": org_id})
     user_limit = _coerce_int(org_doc.get("user_limit"))
     if user_limit is None:
         # Fall back to workstation count to preserve previous behavior and tests
-        user_limit = _coerce_int(get_workstation_count(user_data.org_id))
+        user_limit = _coerce_int(get_workstation_count(org_id))
     if user_limit is not None and existing_db_count + 1 > user_limit:
         raise ValueError("User limit reached for this organization")
 
@@ -158,7 +208,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     user_doc = {
         "email": user_data.email,
         "password": hash_password(user_data.password),
-        "org_id": user_data.org_id,
+        "org_id": org_id,
         "role": user_data.role,
         "full_name": user_data.full_name,
         "status": "active",
@@ -180,7 +230,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         actor = {
             "system": "public_signup",
             "role": "admin",
-            "org_id": user_data.org_id,
+            "org_id": org_id,
         }
 
     log_audit(
@@ -190,8 +240,14 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         target={"id": str(res.inserted_id), "email": user_data.email},
         reason=reason,
         before=None,
-        after={"role": user_data.role, "status": "active", "org_id": user_data.org_id},
+        after={"role": user_data.role, "status": "active", "org_id": org_id},
     )
+
+    # Expose the resolved org_id on the user_data object for callers that need it (e.g., routes)
+    try:
+        user_data.org_id = org_id  # type: ignore[attr-defined]
+    except Exception:
+        pass
 
     return str(res.inserted_id)
 

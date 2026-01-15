@@ -65,8 +65,6 @@ const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_REQUIREMENTS_MESSAGE =
   `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
 
-const ORG_ID_REGEX = /^[a-z0-9]{3,32}$/;
-
 // Simple structural email validation without regex
 function isEmailValid(raw) {
   if (!raw) return false;
@@ -102,7 +100,6 @@ export default function SignupPage({ onSignupSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
-  const [orgId, setOrgId] = useState("");
   const [plan, setPlan] = useState("pro");
 
   const [errors, setErrors] = useState({});
@@ -122,11 +119,6 @@ export default function SignupPage({ onSignupSuccess }) {
 
     if (!company.trim()) {
       next.company = "Company name is required.";
-    }
-
-    if (!ORG_ID_REGEX.test(orgId)) {
-      next.orgId =
-        "Org ID must be 3-32 characters, lowercase letters and digits only.";
     }
 
     setErrors(next);
@@ -170,8 +162,8 @@ export default function SignupPage({ onSignupSuccess }) {
       // -----------------------------
       // 1) Create user: POST /api/signup_admin
       // Body based on your screenshot:
-      // { email, password, role, full_name, org_id }
-      // We map "company" input -> full_name (since there's no full name field in the form)
+      // { email, password, role, full_name, org_name?, package }
+      // We map "company" input -> full_name and org_name
       // -----------------------------
       const createUserRes = await fetch("http://localhost:5050/api/signup_admin", {
         method: "POST",
@@ -183,7 +175,8 @@ export default function SignupPage({ onSignupSuccess }) {
           password,
           role: "admin",
           full_name: company,
-          org_id: orgId,
+          org_name: company,
+          package: plan,
         }),
       });
 
@@ -209,7 +202,7 @@ export default function SignupPage({ onSignupSuccess }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          org_id: orgId,
+          org_id: createUserData.org_id,
         }),
       });
 
@@ -243,7 +236,7 @@ export default function SignupPage({ onSignupSuccess }) {
         access_token: token,
         user: createUserData.user || {
           email,
-          org_id: orgId,
+          org_id: createUserData.org_id,
           company_name: company,
           plan,
         },
@@ -352,24 +345,6 @@ export default function SignupPage({ onSignupSuccess }) {
                 sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
               >
                 {errors.company}
-              </Typography>
-            )}
-
-            <AuthTextField
-              label="Organization ID"
-              placeholder="acme"
-              value={orgId}
-              onChange={(e) =>
-                setOrgId(
-                  e.target.value.toLowerCase().replaceAll(/[^a-z0-9]/g, "")
-                )
-              }
-            />
-            {errors.orgId && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
-                {errors.orgId}
               </Typography>
             )}
 

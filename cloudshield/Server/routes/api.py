@@ -327,7 +327,8 @@ def signup_admin():
         # Public signup → current_user=None
         user_id = create_user(user_data, current_user=None, reason=reason)
 
-        return jsonify({"user_id": user_id}), 201
+        # org_id is set on user_data by the service for public signup
+        return jsonify({"user_id": user_id, "org_id": user_data.org_id}), 201
 
     except ValidationError as e:
         return jsonify({

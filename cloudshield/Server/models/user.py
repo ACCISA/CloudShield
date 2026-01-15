@@ -18,19 +18,24 @@ class UserCreate(BaseModel):
         password (str): The user's password; must be strong and secure.
         role (Literal["admin", "employee"]): The assigned role for the new user.
         full_name (str): The user's full name; must be non-empty.
-        org_id (str): Organization identifier the user belongs to, validated via regex.
+        org_id (Optional[str]): Organization identifier. Required for admin-created users; optional for public signup (auto-generated).
+        org_name (Optional[str]): Human-friendly org name used for signup-created orgs.
+        package (Literal["basic", "pro", "enterprise"] | None): Package chosen during signup; defaults to "basic".
+        file_shares (list[str] | None): Optional file share access list.
 
     Notes:
         - Enforces password strength (≥12 chars, upper/lower/digit/special).
         - Rejects common passwords and passwords containing the local part of the email.
-        - Ensures valid org_id structure (3–32 lowercase alphanumeric, underscores, or dashes).
+        - If org_id is provided, it must match the org_id regex (3–32 lowercase alphanumeric, underscores, or dashes).
     """
     email: EmailStr
     password: str
     username: Optional[str] = None
     role: Literal["admin", "employee"]
     full_name: str
-    org_id: str
+    org_id: Optional[str] = None
+    org_name: Optional[str] = None
+    package: Optional[Literal["basic", "pro", "enterprise"]] = "basic"
     file_shares: Optional[List[str]] = []
 
     # normalize + validate
@@ -85,20 +90,19 @@ class UserCreate(BaseModel):
 
     @field_validator("org_id")
     @classmethod
-    def valid_org(cls, v: str) -> str:
+    def valid_org(cls, v: Optional[str]) -> Optional[str]:
         """
-        Validate organization identifier (org_id).
+        Validate organization identifier (org_id) when provided.
 
-        - Must not be empty.
-        - Must match regex pattern allowing lowercase letters, numbers, underscores, or dashes.
+        - If provided, must match regex pattern allowing lowercase letters, numbers, underscores, or dashes.
         - Length must be between 3 and 32 characters.
-
-        Raises:
-            ValueError: If org_id format is invalid.
+        - If omitted (None/empty), service layer may generate one for public signup.
         """
+        if v is None:
+            return v
         v2 = v.strip()
         if not v2:
-            raise PydanticCustomError("org_id_required", "org_id is required", {})
+            return None
         if not ORG_RX.match(v2):
             raise PydanticCustomError(
                 "org_id_format",
