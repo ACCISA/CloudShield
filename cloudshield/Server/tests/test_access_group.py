@@ -699,3 +699,308 @@ class TestAddMembersRoute:
         mock_collection.update_one.assert_called_once()
         call_args = mock_collection.update_one.call_args
         assert call_args[0][0]["name"] == "marketing"
+
+
+class TestListAccessGroupsRoute:
+    """Tests for GET /api/access-groups endpoint"""
+
+    def test_list_access_groups_success_with_members_info(self, client, monkeypatch):
+        """Test successfully listing access groups with enriched member info"""
+        test_client, mock_collection = client
+
+        now = datetime.now(timezone.utc)
+        group_oid = ObjectId()
+        member_oid1 = ObjectId()
+        member_oid2 = ObjectId()
+
+        # Mock access_groups.find().sort() chain
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": group_oid,
+                "name": "marketing",
+                "description": "Marketing team",
+                "members": [member_oid1, member_oid2],
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        # Mock users_admin collection
+        mock_users_coll = MagicMock()
+        mock_users_coll.find.return_value = [
+            {
+                "_id": member_oid1,
+                "email": "user1@example.com",
+                "full_name": "User One",
+                "role": "employee",
+                "org_id": "acme",
+                "status": "active",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": member_oid2,
+                "email": "user2@example.com",
+                "full_name": "User Two",
+                "role": "admin",
+                "org_id": "acme",
+                "status": "active",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        monkeypatch.setattr(
+            "cloudshield.Server.routes.access_groups.users_admin",
+            mock_users_coll,
+            raising=False
+        )
+        # Also patch the lazy import path
+        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+            response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "access_groups" in data
+        assert len(data["access_groups"]) == 1
+
+        group = data["access_groups"][0]
+        assert group["group_name"] == "marketing"
+        assert len(group["members"]) == 2
+        assert "members_info" in group
+        assert len(group["members_info"]) == 2
+        assert group["members_info"][0]["email"] == "user1@example.com"
+        assert group["members_info"][1]["email"] == "user2@example.com"
+        assert "members_missing" in group
+        assert len(group["members_missing"]) == 0
+
+    def test_list_access_groups_empty(self, client):
+        """Test listing when no access groups exist"""
+        test_client, mock_collection = client
+
+        # Mock empty result
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = []
+        mock_collection.find.return_value = mock_cursor
+
+        response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "access_groups" in data
+        assert len(data["access_groups"]) == 0
+
+    def test_list_access_groups_with_missing_members(self, client, monkeypatch):
+        """Test listing access groups where some members are not found in users"""
+        test_client, mock_collection = client
+
+        now = datetime.now(timezone.utc)
+        group_oid = ObjectId()
+        member_oid1 = ObjectId()
+        missing_member_oid = ObjectId()
+
+        # Mock access_groups.find().sort() chain
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": group_oid,
+                "name": "dev-team",
+                "description": None,
+                "members": [member_oid1, missing_member_oid],
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        # Mock users_admin - only return one user (the other is missing)
+        mock_users_coll = MagicMock()
+        mock_users_coll.find.return_value = [
+            {
+                "_id": member_oid1,
+                "email": "found@example.com",
+                "full_name": "Found User",
+                "role": "employee",
+                "org_id": "acme",
+                "status": "active",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+            response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        group = data["access_groups"][0]
+
+        assert len(group["members_info"]) == 1
+        assert group["members_info"][0]["email"] == "found@example.com"
+        assert len(group["members_missing"]) == 1
+        assert group["members_missing"][0] == str(missing_member_oid)
+
+    def test_list_access_groups_sorted_by_created_at(self, client):
+        """Test access groups are sorted by created_at descending"""
+        test_client, mock_collection = client
+
+        # Mock the find().sort() chain
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = []
+        mock_collection.find.return_value = mock_cursor
+
+        test_client.get("/api/access-groups")
+
+        # Verify sort was called with created_at descending (-1)
+        mock_collection.find.assert_called_once_with({})
+        mock_cursor.sort.assert_called_once_with("created_at", -1)
+
+    def test_list_access_groups_db_error(self, client):
+        """Test database error returns 500"""
+        test_client, mock_collection = client
+
+        mock_collection.find.side_effect = Exception("Database connection failed")
+
+        response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "Internal server error" in data["error"]
+        assert "Database connection failed" in data["details"]
+
+    def test_list_access_groups_with_none_members(self, client):
+        """Test listing access groups handles None members gracefully"""
+        test_client, mock_collection = client
+
+        now = datetime.now(timezone.utc)
+        oid = ObjectId()
+
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": oid,
+                "name": "test-group",
+                "description": None,
+                "members": None,  # None instead of list
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["access_groups"]) == 1
+        group = data["access_groups"][0]
+        assert group["members"] == []
+        assert group["members_info"] == []
+        assert group["members_missing"] == []
+
+    def test_list_access_groups_with_missing_fields(self, client):
+        """Test listing access groups handles missing optional fields"""
+        test_client, mock_collection = client
+
+        oid = ObjectId()
+
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": oid,
+                "name": "minimal-group",
+                # missing description, members, created_at, updated_at
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["access_groups"]) == 1
+        group = data["access_groups"][0]
+        assert group["group_name"] == "minimal-group"
+        assert group["description"] is None
+        assert group["members"] == []
+        assert group["members_info"] == []
+        assert group["members_missing"] == []
+        assert group["created_at"] is None
+        assert group["updated_at"] is None
+
+    def test_list_access_groups_no_users_query_when_no_members(self, client, monkeypatch):
+        """Test that users collection is not queried when there are no members"""
+        test_client, mock_collection = client
+
+        now = datetime.now(timezone.utc)
+
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": ObjectId(),
+                "name": "empty-group",
+                "description": None,
+                "members": [],
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        # Mock users_admin - should NOT be called
+        mock_users_coll = MagicMock()
+        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+            response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        # Verify users collection was not queried since there are no members
+        mock_users_coll.find.assert_not_called()
+
+    def test_list_access_groups_multiple_groups_dedup_members(self, client, monkeypatch):
+        """Test that member ObjectIds are deduplicated across groups"""
+        test_client, mock_collection = client
+
+        now = datetime.now(timezone.utc)
+        shared_member_oid = ObjectId()
+        unique_member_oid = ObjectId()
+
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": ObjectId(),
+                "name": "group-a",
+                "description": None,
+                "members": [shared_member_oid],
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "name": "group-b",
+                "description": None,
+                "members": [shared_member_oid, unique_member_oid],
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        # Mock users_admin
+        mock_users_coll = MagicMock()
+        mock_users_coll.find.return_value = [
+            {"_id": shared_member_oid, "email": "shared@example.com"},
+            {"_id": unique_member_oid, "email": "unique@example.com"},
+        ]
+        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+            response = test_client.get("/api/access-groups")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["access_groups"]) == 2
+
+        # Verify users query was called with deduplicated member OIDs
+        mock_users_coll.find.assert_called_once()
+        call_args = mock_users_coll.find.call_args
+        queried_oids = call_args[0][0]["_id"]["$in"]
+        # Should be 2 unique OIDs, not 3
+        assert len(queried_oids) == 2
