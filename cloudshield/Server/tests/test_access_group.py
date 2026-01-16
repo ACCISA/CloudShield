@@ -751,13 +751,8 @@ class TestListAccessGroupsRoute:
                 "updated_at": now,
             },
         ]
-        monkeypatch.setattr(
-            "cloudshield.Server.routes.access_groups.users_admin",
-            mock_users_coll,
-            raising=False
-        )
-        # Also patch the lazy import path
-        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+        # Patch the lazy import path used by the route
+        with patch("utils.database.users_admin", mock_users_coll):
             response = test_client.get("/api/access-groups")
 
         assert response.status_code == 200
@@ -828,7 +823,8 @@ class TestListAccessGroupsRoute:
                 "updated_at": now,
             },
         ]
-        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+        # Patch the lazy import path used by the route
+        with patch("utils.database.users_admin", mock_users_coll):
             response = test_client.get("/api/access-groups")
 
         assert response.status_code == 200
@@ -949,7 +945,8 @@ class TestListAccessGroupsRoute:
 
         # Mock users_admin - should NOT be called
         mock_users_coll = MagicMock()
-        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+        # Patch the lazy import path used by the route
+        with patch("utils.database.users_admin", mock_users_coll):
             response = test_client.get("/api/access-groups")
 
         assert response.status_code == 200
@@ -991,7 +988,8 @@ class TestListAccessGroupsRoute:
             {"_id": shared_member_oid, "email": "shared@example.com"},
             {"_id": unique_member_oid, "email": "unique@example.com"},
         ]
-        with patch("cloudshield.Server.utils.database.users_admin", mock_users_coll):
+        # Patch the lazy import path used by the route
+        with patch("utils.database.users_admin", mock_users_coll):
             response = test_client.get("/api/access-groups")
 
         assert response.status_code == 200
