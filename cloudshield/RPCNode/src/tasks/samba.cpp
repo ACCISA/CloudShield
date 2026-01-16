@@ -1,5 +1,4 @@
 #include "tasks/samba.hpp"
-#include "tasks/CreateSambaFileShare/task.hpp"
 
 std::string ExecutableTask::RunCommand(std::string &command)
 {
@@ -78,21 +77,33 @@ std::string SambaTask::ResetUserPassword(std::string username, std::string new_p
 }
 
 
-bool SambaTask::CreateSambaFileShare(std::string share_name, std::string share_size)
+is::Status SambaTask::CreateSambaFileShare(std::string share_name, std::string share_size)
 {
 
-	bool status;
+	is::Status status;
 
 	status = _create_sparse_file(share_name, share_size);
+
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to create sparse file" << std::endl;
+		return status;
+	}
 	
 	status = _add_share_conf(share_name);
 
-	if (!status) {
-		std::cout << "Failed to write samba share config to /etc/samba/smb.conf" << std::endl;
-		return false;
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to create new samba share" << std::endl;
+		return status;
 	}
 	
 	status = _restart_samba_service();
+
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to restart samba service" << std::endl;
+		return status;
+	}
+
+	return status;
 	
 }
 
@@ -212,4 +223,10 @@ bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::Re
 		out_file << "\n";
 	}
 	return true;
+}
+
+is::Status SambaTask::RestartSambaService()
+{
+	_restart_samba_service();
+	return is::Status::SUCCESS;
 }

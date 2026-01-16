@@ -885,40 +885,43 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "realm\030\001 \001(\t\022.\n\006groups\030\002 \003(\0132\036.infra_serv"
     "ice.v1.GroupMapping\"E\n\031SyncNetlogonScrip"
     "tDataAck\022(\n\006status\030\001 \001(\0162\030.infra_service"
-    ".v1.Status*\326\001\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FA"
+    ".v1.Status*\300\002\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FA"
     "ILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USER_NOT_FOUND\020"
     "\003\022\027\n\023PASSWORD_REQ_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022"
     "\023\n\017SHARE_NOT_FOUND\020\006\022\024\n\020DNS_RECORD_EXIST"
     "\020\007\022\030\n\024DNS_RECORD_NOT_EXIST\020\010\022\026\n\022DNS_ZONE"
-    "_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n2\340\010\n\014InfraSer"
-    "vice\022k\n\022SyncNetlogonScript\022(.infra_servi"
-    "ce.v1.SyncNetlogonScriptData\032+.infra_ser"
-    "vice.v1.SyncNetlogonScriptDataAck\022Y\n\014Add"
-    "DNSRecord\022\".infra_service.v1.AddDNSRecor"
-    "dData\032%.infra_service.v1.AddDNSRecordDat"
-    "aAck\022b\n\017DeleteDNSRecord\022%.infra_service."
-    "v1.DeleteDNSRecordData\032(.infra_service.v"
-    "1.DeleteDNSRecordDataAck\022K\n\013GetUserList\022"
-    "\026.google.protobuf.Empty\032$.infra_service."
-    "v1.GetUserListDataAck\022[\n\023RestartSambaSer"
-    "vice\022\026.google.protobuf.Empty\032,.infra_ser"
-    "vice.v1.RestartSambaServiceDataAck\022q\n\024Cr"
-    "eateSambaFileShare\022*.infra_service.v1.Cr"
-    "eateSambaFileShareData\032-.infra_service.v"
-    "1.CreateSambaFileShareDataAck\022q\n\024DeleteS"
-    "ambaFileShare\022*.infra_service.v1.DeleteS"
-    "ambaFileShareData\032-.infra_service.v1.Del"
-    "eteSambaFileShareDataAck\022h\n\021ResetUserPas"
-    "sword\022\'.infra_service.v1.ResetUserPasswo"
-    "rdData\032*.infra_service.v1.ResetUserPassw"
-    "ordDataAck\022\\\n\rAddDomainUser\022#.infra_serv"
-    "ice.v1.AddDomainUserData\032&.infra_service"
-    ".v1.AddDomainUserDataAck\022e\n\020RemoveDomain"
-    "User\022&.infra_service.v1.RemoveDomainUser"
-    "Data\032).infra_service.v1.RemoveDomainUser"
-    "DataAck\022e\n\020GetFileShareSize\022&.infra_serv"
-    "ice.v1.GetFileShareSizeData\032).infra_serv"
-    "ice.v1.GetFileShareSizeDataAckb\006proto3"
+    "_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n\022\013\n\007DD_FAIL\020\013"
+    "\022\r\n\tMKFS_FAIL\020\014\022\016\n\nMOUNT_FAIL\020\r\022\021\n\rNO_SP"
+    "ACE_LEFT\020\016\022\025\n\021PERMISSION_DENIED\020\017\022\022\n\016FIL"
+    "E_NOT_FOUND\020\0202\340\010\n\014InfraService\022k\n\022SyncNe"
+    "tlogonScript\022(.infra_service.v1.SyncNetl"
+    "ogonScriptData\032+.infra_service.v1.SyncNe"
+    "tlogonScriptDataAck\022Y\n\014AddDNSRecord\022\".in"
+    "fra_service.v1.AddDNSRecordData\032%.infra_"
+    "service.v1.AddDNSRecordDataAck\022b\n\017Delete"
+    "DNSRecord\022%.infra_service.v1.DeleteDNSRe"
+    "cordData\032(.infra_service.v1.DeleteDNSRec"
+    "ordDataAck\022K\n\013GetUserList\022\026.google.proto"
+    "buf.Empty\032$.infra_service.v1.GetUserList"
+    "DataAck\022[\n\023RestartSambaService\022\026.google."
+    "protobuf.Empty\032,.infra_service.v1.Restar"
+    "tSambaServiceDataAck\022q\n\024CreateSambaFileS"
+    "hare\022*.infra_service.v1.CreateSambaFileS"
+    "hareData\032-.infra_service.v1.CreateSambaF"
+    "ileShareDataAck\022q\n\024DeleteSambaFileShare\022"
+    "*.infra_service.v1.DeleteSambaFileShareD"
+    "ata\032-.infra_service.v1.DeleteSambaFileSh"
+    "areDataAck\022h\n\021ResetUserPassword\022\'.infra_"
+    "service.v1.ResetUserPasswordData\032*.infra"
+    "_service.v1.ResetUserPasswordDataAck\022\\\n\r"
+    "AddDomainUser\022#.infra_service.v1.AddDoma"
+    "inUserData\032&.infra_service.v1.AddDomainU"
+    "serDataAck\022e\n\020RemoveDomainUser\022&.infra_s"
+    "ervice.v1.RemoveDomainUserData\032).infra_s"
+    "ervice.v1.RemoveDomainUserDataAck\022e\n\020Get"
+    "FileShareSize\022&.infra_service.v1.GetFile"
+    "ShareSizeData\032).infra_service.v1.GetFile"
+    "ShareSizeDataAckb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
@@ -928,7 +931,7 @@ static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2epr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    2958,
+    3064,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
@@ -948,7 +951,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor() {
   return file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t Status_internal_data_[] = {
-    720896u, 0u, };
+    1114112u, 0u, };
 // ===================================================================
 
 class AddDomainUserData::_Internal {

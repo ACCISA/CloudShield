@@ -1,6 +1,5 @@
 #include "service/infra_service.hpp"
 #include "tasks/samba.hpp"
-#include "tasks/CreateSambaFileShare/task.hpp"
 
 InfraService::InfraService()
 {
@@ -145,7 +144,7 @@ Status InfraService::GetUserList(ServerContext* context, const google::protobuf:
 Status InfraService::CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
-	bool status;
+	is::Status status;
 
 	std::string share_name = request->share_name().c_str();
 	std::string share_size = request->share_size().c_str();
@@ -154,21 +153,23 @@ Status InfraService::CreateSambaFileShare(ServerContext* context, const is::Crea
 
 	status = samba->CreateSambaFileShare(share_name, share_size);
 
+	response->set_status(status);
+
 	return Status(grpc::StatusCode::OK, "New File share added successfully");
 }
 
 Status InfraService::RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
-	bool status;
+	is::Status status;
 	
 	auto samba = std::make_unique<SambaTask>();
 
-	status = _restart_samba_service();
+	status = samba->RestartSambaService();
 
 	std::cout << "Restarted samba service" << std::endl;
 
-	response->set_status(is::Status::SUCCESS);
+	response->set_status(status);
 		
 	return Status(grpc::StatusCode::OK, "Restared samba-ad-dc service");
 }

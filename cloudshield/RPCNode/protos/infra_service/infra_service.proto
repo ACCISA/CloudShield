@@ -15,6 +15,12 @@ enum Status {
         DNS_RECORD_NOT_EXIST = 8;
         DNS_ZONE_NOT_FOUND = 9;
         AUTH_FAIL = 10;
+        DD_FAIL = 11;
+        MKFS_FAIL = 12;
+        MOUNT_FAIL = 13;
+        NO_SPACE_LEFT = 14;
+        PERMISSION_DENIED = 15;
+        FILE_NOT_FOUND = 16;
 }
 
 message AddDomainUserData {

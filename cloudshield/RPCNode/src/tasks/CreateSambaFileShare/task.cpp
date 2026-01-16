@@ -1,6 +1,6 @@
 #include "tasks/CreateSambaFileShare/task.hpp"
 
-bool _add_share_conf(std::string share_name)
+is::Status _add_share_conf(std::string share_name)
 {
 	std::ofstream out_file;
 	out_file.open(SambaTask::SAMBA_SMB_CONF_PATH, std::ios_base::app);
@@ -18,24 +18,75 @@ bool _add_share_conf(std::string share_name)
 		out_file.close();
 
 	} else {
-		return false;
+		return is::Status::FAILED;
 	}
 
-	return true;
+	return is::Status::SUCCESS;
 }
 
-bool _create_sparse_file(std::string share_name, std::string share_size)
+bool _delete_sparse_file(std::string share_name)
 {
-	std::string dd_cmd = BuildCommand("dd if=/dev/zero of=/srv/samba/shares/%s.img bs=%s count=0 seek=10" );
-	std::string format_cmd = BuildCommand("mkfs.ext4 /srv/samba/shares/%s.img");
-	std::string mount_cmd = BuildCommand("mount -o loop /srv/samba/shares/%s.img /srv/samba/shares/%s");
-
-
-	return false;
+	try {
+		if (fs::remove(BuildCommand("/srv/samba/shares/%s.img", share_name))) {
+		    std::cout << "Sparse file deleted successfully " << std::endl;
+		    return true;
+		} else {
+		    std::cout << "File not found: " << BuildCommand("/srv/samba/shares/%s.img", share_name) << std::endl;
+		    return false;
+		}
+	    } catch (const fs::filesystem_error& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return false;
+	}
 }
 
-bool _restart_samba_service()
+is::Status _create_sparse_file(std::string share_name, std::string share_size)
+{
+	int exit_status;
+	std::string result_str;
+
+	std::string dd_cmd = BuildCommand("dd if=/dev/zero of=/srv/samba/shares/%s.img bs=%s count=0 seek=10", share_name, share_size);
+	std::string format_cmd = BuildCommand("mkfs.ext4 /srv/samba/shares/%s.img", share_name);
+	std::string mount_cmd = BuildCommand("mount -o loop /srv/samba/shares/%s.img /srv/samba/shares/%s", share_name);
+
+	result_str = ExecuteBinary(dd_cmd);
+	std::cout << result_str << std::endl;
+
+	if (result_str.find("No space left on device") != std::string::npos) {
+		std::cout << "No space left on device for new share" << std::endl;
+		return is::Status::NO_SPACE_LEFT;
+	}
+
+	std::cout << "Created space image file" << std::endl;
+
+	result_str = ExecuteBinary(format_cmd);
+	std::cout << result_str << std::endl;
+
+	if (result_str.find("Permission denied")) {
+		std::cout << "Permissioned denied for formatting" << std::endl;
+		_delete_sparse_file(share_name);
+		return is::Status::PERMISSION_DENIED;
+	}
+
+	if (result_str.find(BuildCommand("The file /srv/samba/shares/%s.img does not exist", share_name)) != std::string::npos) {
+		std::cout << "Image file not found" << std::endl;
+		return is::Status::FILE_NOT_FOUND;
+	}
+	
+	std::cout << "Formatted image file" << std::endl;
+
+	result_str = ExecuteBinary(mount_cmd);
+
+	if (result_str.find("failed to setup loop device") != std::string::npos) {
+		_delete_sparse_file(share_name);
+		return is::Status::MOUNT_FAIL;
+	}
+
+	return is::Status::SUCCESS;
+}
+
+is::Status _restart_samba_service()
 {
 	std::system(SambaTask::RESTART_SAMBA_CMD);
-	return true;
+	return is::Status::SUCCESS;
 }

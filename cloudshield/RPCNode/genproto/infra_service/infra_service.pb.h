@@ -170,6 +170,12 @@ enum Status : int {
   DNS_RECORD_NOT_EXIST = 8,
   DNS_ZONE_NOT_FOUND = 9,
   AUTH_FAIL = 10,
+  DD_FAIL = 11,
+  MKFS_FAIL = 12,
+  MOUNT_FAIL = 13,
+  NO_SPACE_LEFT = 14,
+  PERMISSION_DENIED = 15,
+  FILE_NOT_FOUND = 16,
   Status_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   Status_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -180,11 +186,11 @@ extern const uint32_t Status_internal_data_[];
 inline constexpr Status Status_MIN =
     static_cast<Status>(0);
 inline constexpr Status Status_MAX =
-    static_cast<Status>(10);
+    static_cast<Status>(16);
 inline bool Status_IsValid(int value) {
-  return 0 <= value && value <= 10;
+  return 0 <= value && value <= 16;
 }
-inline constexpr int Status_ARRAYSIZE = 10 + 1;
+inline constexpr int Status_ARRAYSIZE = 16 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL Status_descriptor();
 template <typename T>
 const ::std::string& Status_Name(T value) {
@@ -195,7 +201,7 @@ const ::std::string& Status_Name(T value) {
 }
 template <>
 inline const ::std::string& Status_Name(Status value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 10>(
+  return ::google::protobuf::internal::NameOfDenseEnum<Status_descriptor, 0, 16>(
       static_cast<int>(value));
 }
 inline bool Status_Parse(
