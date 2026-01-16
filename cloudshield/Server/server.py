@@ -21,9 +21,9 @@ from utils import get_logger  # type: ignore
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.
 try:
-    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp  # type: ignore
 except Exception:  # pragma: no cover
-    from routes import api_bp, auth_bp, users_bp, users_read_bp  # type: ignore
+    from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp  # type: ignore
 
 
 def _coerce_exception_class(candidate, name: str):
@@ -77,6 +77,9 @@ def create_app() -> Flask:
     # Register Users -> /api/users
     app.register_blueprint(users_bp, url_prefix="/api")
     app.register_blueprint(users_read_bp, url_prefix="/api")
+
+    app.register_blueprint(access_groups_bp, url_prefix="/api")
+    logger.debug("Registered access_groups blueprint: %s", access_groups_bp.name)
 
     if audit_bp:
         app.register_blueprint(audit_bp, url_prefix="/api")
@@ -178,8 +181,6 @@ def _handle_generic(e: Exception):
 def healthz():
     return jsonify({"status": "ok", "request_id": g.request_id}), 200
 
-
-# Task endpoints removed - functionality moved to api_bp routes
 
 # Entrypoint
 if __name__ == "__main__":
