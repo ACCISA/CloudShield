@@ -41,6 +41,7 @@ add_executable(${PROJECT_NAME}
     src/utils/ssh_tunnel.cpp
     src/tasks/samba.cpp
     src/tasks/openvpn.cpp
+    src/tasks/CreateSambaFileShare/task.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

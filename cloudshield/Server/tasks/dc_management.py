@@ -58,6 +58,16 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
+def sync_netlogon_script():
+    """
+    After editing file shares we must sync the netlogon scripts so that users get the updates shares mapped to a network drive when they login
+    """
+    #TODO complete makign RPC request to sync netlogon script
+    request = infra_pb2.SyncNetlogonScript(realm=realm)
+
+    #TODO call real func to pull all shares
+    shares = get_all_group_shares()
+
 def dc_create_file_share(org_id: str, share_name: str):
     job = get_current_job()
     job_id = job.id if job else "unknown"
@@ -80,6 +90,9 @@ def dc_create_file_share(org_id: str, share_name: str):
     status = response.status
     
     if status == infra_pb2.SUCCESS:
+        # store new file share in mongodb
+        # sync netlogon share
+        sync_netlogon_script(realm)
         logger.info("Successfully created new samba file share")
         return {"status":"SUCCESS","message":"Successfully created new samba file share"}
 

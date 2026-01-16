@@ -1,5 +1,6 @@
 #include "service/infra_service.hpp"
 #include "tasks/samba.hpp"
+#include "tasks/CreateSambaFileShare/task.hpp"
 
 InfraService::InfraService()
 {
@@ -144,12 +145,14 @@ Status InfraService::GetUserList(ServerContext* context, const google::protobuf:
 Status InfraService::CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	bool status;
 
 	std::string share_name = request->share_name().c_str();
+	std::string share_size = request->share_size().c_str();
 
 	auto samba = std::make_unique<SambaTask>();
 
-	std::string result = samba->CreateSambaFileShare(share_name);
+	status = samba->CreateSambaFileShare(share_name, share_size);
 
 	return Status(grpc::StatusCode::OK, "New File share added successfully");
 }
@@ -157,10 +160,11 @@ Status InfraService::CreateSambaFileShare(ServerContext* context, const is::Crea
 Status InfraService::RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	bool status;
 	
 	auto samba = std::make_unique<SambaTask>();
 
-	std::string result = samba->RestartSambaService();
+	status = _restart_samba_service();
 
 	std::cout << "Restarted samba service" << std::endl;
 
@@ -282,6 +286,13 @@ Status InfraService::DeleteDNSRecord(ServerContext* context, const is::DeleteDNS
 
 Status InfraService::SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response)
 {
+	std::lock_guard<std::mutex> lock(this->mutex_);
+	std::string realm = request->realm().c_str();
+	
+	auto samba = std::make_unique<SambaTask>();
+
+	bool status = samba->SyncNetlogonScript(realm, request->groups());
+
 	return Status(grpc::StatusCode::OK, "Netlogon scripts synced");	
 }
   	

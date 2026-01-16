@@ -38,6 +38,7 @@ message RemoveDomainUserDataAck {
 
 message CreateSambaFileShareData {
         string share_name = 1;
+        string share_size = 2;
 }
 
 message CreateSambaFileShareDataAck {
@@ -113,7 +114,8 @@ message GroupMapping {
 }
 
 message SyncNetlogonScriptData {
-        repeated GroupMapping groups = 1;
+        string realm = 1;
+        repeated GroupMapping groups = 2;
 }
 
 message SyncNetlogonScriptDataAck {

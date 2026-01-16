@@ -1,4 +1,5 @@
 #include "tasks/samba.hpp"
+#include "tasks/CreateSambaFileShare/task.hpp"
 
 std::string ExecutableTask::RunCommand(std::string &command)
 {
@@ -20,12 +21,6 @@ std::string SambaTask::RemoveDomainUser(std::string username)
 
 	std::string full_cmd = BuildCommand(this->USER_DELETE_CMD, username.c_str());
 	return this->RunCommand(full_cmd);
-}
-
-std::string SambaTask::RestartSambaService()
-{
-	std::system(this->RESTART_SAMBA_CMD);
-	return "";
 }
 
 std::vector<std::string> SambaTask::GetUserList()
@@ -83,32 +78,22 @@ std::string SambaTask::ResetUserPassword(std::string username, std::string new_p
 }
 
 
-std::string SambaTask::CreateSambaFileShare(std::string share_name)
+bool SambaTask::CreateSambaFileShare(std::string share_name, std::string share_size)
 {
 
+	bool status;
 
-	std::ofstream out_file;
-	out_file.open(SAMBA_SMB_CONF_PATH, std::ios_base::app);
+	status = _create_sparse_file(share_name, share_size);
+	
+	status = _add_share_conf(share_name);
 
-	if (out_file.is_open()) {
-
-		out_file << "[" << share_name << "]" << std::endl;
-		out_file << "	path = /srv/samba/shared/" << share_name << std::endl;
-		out_file << "	browseable = yes" << std::endl;
-		out_file << "	read only = no" << std::endl;
-		out_file << "	valid users = @\"Domain Users" << std::endl;
-		out_file << "	create mask = 0660" << std::endl;
-		out_file << "	directory mask = 2770" << std::endl;
-
-		out_file.close();
-
-		this->RestartSambaService();
-
-	} else {
-		return "";
+	if (!status) {
+		std::cout << "Failed to write samba share config to /etc/samba/smb.conf" << std::endl;
+		return false;
 	}
-
-	return "";
+	
+	status = _restart_samba_service();
+	
 }
 
 bool SambaTask::DeleteSambaFileShare(std::string share_name)
@@ -198,11 +183,11 @@ bool SambaTask::DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& resul
 	return true;
 }
 
-bool SambaTask::SyncNetlogonScript(const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups)
+bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups)
 {
 	if (groups.empty()) return false;
 
-	std::ofstream out_file(this->NETLOGON_SCRIPT_PATH);
+	std::ofstream out_file(BuildCommand(this->NETLOGON_SCRIPT_PATH, realm));
 
 	out_file << "@echo off\n";
 	out_file << "net use * /delete /y\n";
@@ -221,10 +206,10 @@ bool SambaTask::SyncNetlogonScript(const google::protobuf::RepeatedPtrField<infr
 			std::string drive_letter = share.drive_letter();
 
 			out_file << "	if not exist " << drive_letter << ": net use " << drive_letter << ": " << share_path << "\n";
-
 		}
 
 		out_file << ")\n";
 		out_file << "\n";
 	}
+	return true;
 }

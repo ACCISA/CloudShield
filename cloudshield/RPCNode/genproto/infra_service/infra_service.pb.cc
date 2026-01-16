@@ -440,6 +440,9 @@ inline constexpr CreateSambaFileShareData::Impl_::Impl_(
       : _cached_size_{0},
         share_name_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        share_size_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -611,8 +614,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 
 inline constexpr SyncNetlogonScriptData::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
-      : groups_{},
-        _cached_size_{0} {}
+      : _cached_size_{0},
+        groups_{},
+        realm_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SyncNetlogonScriptData::SyncNetlogonScriptData(::_pbi::ConstantInitialized)
@@ -670,9 +676,11 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareData, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareData, _impl_.share_name_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareData, _impl_.share_size_),
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateSambaFileShareDataAck, _impl_._has_bits_),
         4, // hasbit index offset
@@ -772,8 +780,13 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::GroupMapping, _impl_.shares_),
         0,
         ~0u,
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::SyncNetlogonScriptData, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::SyncNetlogonScriptData, _impl_.realm_),
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::SyncNetlogonScriptData, _impl_.groups_),
+        0,
+        ~0u,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::SyncNetlogonScriptDataAck, _impl_._has_bits_),
         4, // hasbit index offset
@@ -788,23 +801,23 @@ static const ::_pbi::MigrationSchema
         {14, sizeof(::infra_service::v1::RemoveDomainUserData)},
         {19, sizeof(::infra_service::v1::RemoveDomainUserDataAck)},
         {26, sizeof(::infra_service::v1::CreateSambaFileShareData)},
-        {31, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
-        {36, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
-        {41, sizeof(::infra_service::v1::ResetUserPasswordData)},
-        {48, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
-        {53, sizeof(::infra_service::v1::GetUserListDataAck)},
-        {60, sizeof(::infra_service::v1::GetFileShareSizeData)},
-        {65, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
-        {72, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
-        {79, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
-        {84, sizeof(::infra_service::v1::AddDNSRecordData)},
-        {95, sizeof(::infra_service::v1::AddDNSRecordDataAck)},
-        {100, sizeof(::infra_service::v1::DeleteDNSRecordData)},
-        {111, sizeof(::infra_service::v1::DeleteDNSRecordDataAck)},
-        {116, sizeof(::infra_service::v1::Share)},
-        {123, sizeof(::infra_service::v1::GroupMapping)},
-        {130, sizeof(::infra_service::v1::SyncNetlogonScriptData)},
-        {132, sizeof(::infra_service::v1::SyncNetlogonScriptDataAck)},
+        {33, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
+        {38, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
+        {43, sizeof(::infra_service::v1::ResetUserPasswordData)},
+        {50, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
+        {55, sizeof(::infra_service::v1::GetUserListDataAck)},
+        {62, sizeof(::infra_service::v1::GetFileShareSizeData)},
+        {67, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
+        {74, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
+        {81, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
+        {86, sizeof(::infra_service::v1::AddDNSRecordData)},
+        {97, sizeof(::infra_service::v1::AddDNSRecordDataAck)},
+        {102, sizeof(::infra_service::v1::DeleteDNSRecordData)},
+        {113, sizeof(::infra_service::v1::DeleteDNSRecordDataAck)},
+        {118, sizeof(::infra_service::v1::Share)},
+        {125, sizeof(::infra_service::v1::GroupMapping)},
+        {132, sizeof(::infra_service::v1::SyncNetlogonScriptData)},
+        {139, sizeof(::infra_service::v1::SyncNetlogonScriptDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
@@ -840,72 +853,72 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "tatus\022\016\n\006result\030\002 \001(\t\"(\n\024RemoveDomainUse"
     "rData\022\020\n\010username\030\001 \001(\t\"S\n\027RemoveDomainU"
     "serDataAck\022(\n\006status\030\001 \001(\0162\030.infra_servi"
-    "ce.v1.Status\022\016\n\006result\030\002 \001(\t\".\n\030CreateSa"
-    "mbaFileShareData\022\022\n\nshare_name\030\001 \001(\t\"G\n\033"
-    "CreateSambaFileShareDataAck\022(\n\006status\030\001 "
-    "\001(\0162\030.infra_service.v1.Status\"F\n\032Restart"
-    "SambaServiceDataAck\022(\n\006status\030\001 \001(\0162\030.in"
-    "fra_service.v1.Status\";\n\025ResetUserPasswo"
-    "rdData\022\020\n\010username\030\001 \001(\t\022\020\n\010password\030\002 \001"
-    "(\t\"D\n\030ResetUserPasswordDataAck\022(\n\006status"
-    "\030\001 \001(\0162\030.infra_service.v1.Status\"M\n\022GetU"
-    "serListDataAck\022(\n\006status\030\001 \001(\0162\030.infra_s"
-    "ervice.v1.Status\022\r\n\005users\030\002 \003(\t\"*\n\024GetFi"
-    "leShareSizeData\022\022\n\nshare_name\030\001 \001(\t\"A\n\027G"
-    "etFileShareSizeDataAck\022\022\n\ntotal_size\030\001 \001"
-    "(\005\022\022\n\nusage_size\030\002 \001(\005\"A\n\030DeleteSambaFil"
-    "eShareData\022\022\n\nshare_name\030\001 \001(\t\022\021\n\twipe_d"
-    "ata\030\002 \001(\010\"G\n\033DeleteSambaFileShareDataAck"
+    "ce.v1.Status\022\016\n\006result\030\002 \001(\t\"B\n\030CreateSa"
+    "mbaFileShareData\022\022\n\nshare_name\030\001 \001(\t\022\022\n\n"
+    "share_size\030\002 \001(\t\"G\n\033CreateSambaFileShare"
+    "DataAck\022(\n\006status\030\001 \001(\0162\030.infra_service."
+    "v1.Status\"F\n\032RestartSambaServiceDataAck\022"
+    "(\n\006status\030\001 \001(\0162\030.infra_service.v1.Statu"
+    "s\";\n\025ResetUserPasswordData\022\020\n\010username\030\001"
+    " \001(\t\022\020\n\010password\030\002 \001(\t\"D\n\030ResetUserPassw"
+    "ordDataAck\022(\n\006status\030\001 \001(\0162\030.infra_servi"
+    "ce.v1.Status\"M\n\022GetUserListDataAck\022(\n\006st"
+    "atus\030\001 \001(\0162\030.infra_service.v1.Status\022\r\n\005"
+    "users\030\002 \003(\t\"*\n\024GetFileShareSizeData\022\022\n\ns"
+    "hare_name\030\001 \001(\t\"A\n\027GetFileShareSizeDataA"
+    "ck\022\022\n\ntotal_size\030\001 \001(\005\022\022\n\nusage_size\030\002 \001"
+    "(\005\"A\n\030DeleteSambaFileShareData\022\022\n\nshare_"
+    "name\030\001 \001(\t\022\021\n\twipe_data\030\002 \001(\010\"G\n\033DeleteS"
+    "ambaFileShareDataAck\022(\n\006status\030\001 \001(\0162\030.i"
+    "nfra_service.v1.Status\"P\n\020AddDNSRecordDa"
+    "ta\022\014\n\004zone\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\016\n\006target"
+    "\030\003 \001(\t\022\020\n\010password\030\004 \001(\t\"\?\n\023AddDNSRecord"
+    "DataAck\022(\n\006status\030\001 \001(\0162\030.infra_service."
+    "v1.Status\"S\n\023DeleteDNSRecordData\022\014\n\004zone"
+    "\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010"
+    "password\030\004 \001(\t\"B\n\026DeleteDNSRecordDataAck"
     "\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.Stat"
-    "us\"P\n\020AddDNSRecordData\022\014\n\004zone\030\001 \001(\t\022\014\n\004"
-    "name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010password\030\004"
-    " \001(\t\"\?\n\023AddDNSRecordDataAck\022(\n\006status\030\001 "
-    "\001(\0162\030.infra_service.v1.Status\"S\n\023DeleteD"
-    "NSRecordData\022\014\n\004zone\030\001 \001(\t\022\014\n\004name\030\002 \001(\t"
-    "\022\016\n\006target\030\003 \001(\t\022\020\n\010password\030\004 \001(\t\"B\n\026De"
-    "leteDNSRecordDataAck\022(\n\006status\030\001 \001(\0162\030.i"
-    "nfra_service.v1.Status\"1\n\005Share\022\022\n\nshare"
-    "_path\030\001 \001(\t\022\024\n\014drive_letter\030\002 \001(\t\"K\n\014Gro"
-    "upMapping\022\022\n\ngroup_name\030\001 \001(\t\022\'\n\006shares\030"
-    "\002 \003(\0132\027.infra_service.v1.Share\"H\n\026SyncNe"
-    "tlogonScriptData\022.\n\006groups\030\001 \003(\0132\036.infra"
-    "_service.v1.GroupMapping\"E\n\031SyncNetlogon"
-    "ScriptDataAck\022(\n\006status\030\001 \001(\0162\030.infra_se"
-    "rvice.v1.Status*\326\001\n\006Status\022\013\n\007SUCCESS\020\000\022"
-    "\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USER_NOT_F"
-    "OUND\020\003\022\027\n\023PASSWORD_REQ_FAILED\020\004\022\013\n\007UNKNO"
-    "WN\020\005\022\023\n\017SHARE_NOT_FOUND\020\006\022\024\n\020DNS_RECORD_"
-    "EXIST\020\007\022\030\n\024DNS_RECORD_NOT_EXIST\020\010\022\026\n\022DNS"
-    "_ZONE_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n2\340\010\n\014Inf"
-    "raService\022k\n\022SyncNetlogonScript\022(.infra_"
-    "service.v1.SyncNetlogonScriptData\032+.infr"
-    "a_service.v1.SyncNetlogonScriptDataAck\022Y"
-    "\n\014AddDNSRecord\022\".infra_service.v1.AddDNS"
-    "RecordData\032%.infra_service.v1.AddDNSReco"
-    "rdDataAck\022b\n\017DeleteDNSRecord\022%.infra_ser"
-    "vice.v1.DeleteDNSRecordData\032(.infra_serv"
-    "ice.v1.DeleteDNSRecordDataAck\022K\n\013GetUser"
-    "List\022\026.google.protobuf.Empty\032$.infra_ser"
-    "vice.v1.GetUserListDataAck\022[\n\023RestartSam"
-    "baService\022\026.google.protobuf.Empty\032,.infr"
-    "a_service.v1.RestartSambaServiceDataAck\022"
-    "q\n\024CreateSambaFileShare\022*.infra_service."
-    "v1.CreateSambaFileShareData\032-.infra_serv"
-    "ice.v1.CreateSambaFileShareDataAck\022q\n\024De"
-    "leteSambaFileShare\022*.infra_service.v1.De"
-    "leteSambaFileShareData\032-.infra_service.v"
-    "1.DeleteSambaFileShareDataAck\022h\n\021ResetUs"
-    "erPassword\022\'.infra_service.v1.ResetUserP"
-    "asswordData\032*.infra_service.v1.ResetUser"
-    "PasswordDataAck\022\\\n\rAddDomainUser\022#.infra"
-    "_service.v1.AddDomainUserData\032&.infra_se"
-    "rvice.v1.AddDomainUserDataAck\022e\n\020RemoveD"
-    "omainUser\022&.infra_service.v1.RemoveDomai"
-    "nUserData\032).infra_service.v1.RemoveDomai"
-    "nUserDataAck\022e\n\020GetFileShareSize\022&.infra"
-    "_service.v1.GetFileShareSizeData\032).infra"
-    "_service.v1.GetFileShareSizeDataAckb\006pro"
-    "to3"
+    "us\"1\n\005Share\022\022\n\nshare_path\030\001 \001(\t\022\024\n\014drive"
+    "_letter\030\002 \001(\t\"K\n\014GroupMapping\022\022\n\ngroup_n"
+    "ame\030\001 \001(\t\022\'\n\006shares\030\002 \003(\0132\027.infra_servic"
+    "e.v1.Share\"W\n\026SyncNetlogonScriptData\022\r\n\005"
+    "realm\030\001 \001(\t\022.\n\006groups\030\002 \003(\0132\036.infra_serv"
+    "ice.v1.GroupMapping\"E\n\031SyncNetlogonScrip"
+    "tDataAck\022(\n\006status\030\001 \001(\0162\030.infra_service"
+    ".v1.Status*\326\001\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FA"
+    "ILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USER_NOT_FOUND\020"
+    "\003\022\027\n\023PASSWORD_REQ_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022"
+    "\023\n\017SHARE_NOT_FOUND\020\006\022\024\n\020DNS_RECORD_EXIST"
+    "\020\007\022\030\n\024DNS_RECORD_NOT_EXIST\020\010\022\026\n\022DNS_ZONE"
+    "_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n2\340\010\n\014InfraSer"
+    "vice\022k\n\022SyncNetlogonScript\022(.infra_servi"
+    "ce.v1.SyncNetlogonScriptData\032+.infra_ser"
+    "vice.v1.SyncNetlogonScriptDataAck\022Y\n\014Add"
+    "DNSRecord\022\".infra_service.v1.AddDNSRecor"
+    "dData\032%.infra_service.v1.AddDNSRecordDat"
+    "aAck\022b\n\017DeleteDNSRecord\022%.infra_service."
+    "v1.DeleteDNSRecordData\032(.infra_service.v"
+    "1.DeleteDNSRecordDataAck\022K\n\013GetUserList\022"
+    "\026.google.protobuf.Empty\032$.infra_service."
+    "v1.GetUserListDataAck\022[\n\023RestartSambaSer"
+    "vice\022\026.google.protobuf.Empty\032,.infra_ser"
+    "vice.v1.RestartSambaServiceDataAck\022q\n\024Cr"
+    "eateSambaFileShare\022*.infra_service.v1.Cr"
+    "eateSambaFileShareData\032-.infra_service.v"
+    "1.CreateSambaFileShareDataAck\022q\n\024DeleteS"
+    "ambaFileShare\022*.infra_service.v1.DeleteS"
+    "ambaFileShareData\032-.infra_service.v1.Del"
+    "eteSambaFileShareDataAck\022h\n\021ResetUserPas"
+    "sword\022\'.infra_service.v1.ResetUserPasswo"
+    "rdData\032*.infra_service.v1.ResetUserPassw"
+    "ordDataAck\022\\\n\rAddDomainUser\022#.infra_serv"
+    "ice.v1.AddDomainUserData\032&.infra_service"
+    ".v1.AddDomainUserDataAck\022e\n\020RemoveDomain"
+    "User\022&.infra_service.v1.RemoveDomainUser"
+    "Data\032).infra_service.v1.RemoveDomainUser"
+    "DataAck\022e\n\020GetFileShareSize\022&.infra_serv"
+    "ice.v1.GetFileShareSizeData\032).infra_serv"
+    "ice.v1.GetFileShareSizeDataAckb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
@@ -915,7 +928,7 @@ static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2epr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    2923,
+    2958,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
@@ -2122,7 +2135,8 @@ PROTOBUF_NDEBUG_INLINE CreateSambaFileShareData::Impl_::Impl_(
     const ::infra_service::v1::CreateSambaFileShareData& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        share_name_(arena, from.share_name_) {}
+        share_name_(arena, from.share_name_),
+        share_size_(arena, from.share_size_) {}
 
 CreateSambaFileShareData::CreateSambaFileShareData(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2144,7 +2158,8 @@ PROTOBUF_NDEBUG_INLINE CreateSambaFileShareData::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        share_name_(arena) {}
+        share_name_(arena),
+        share_size_(arena) {}
 
 inline void CreateSambaFileShareData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -2158,6 +2173,7 @@ inline void CreateSambaFileShareData::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.share_name_.Destroy();
+  this_._impl_.share_size_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -2204,16 +2220,16 @@ CreateSambaFileShareData::GetClassData() const {
   return CreateSambaFileShareData_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 60, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 70, 2>
 CreateSambaFileShareData::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     CreateSambaFileShareData_class_data_.base(),
@@ -2223,6 +2239,9 @@ CreateSambaFileShareData::_table_ = {
     ::_pbi::TcParser::GetTable<::infra_service::v1::CreateSambaFileShareData>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // string share_size = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0, PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_size_)}},
     // string share_name = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0, PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_name_)}},
@@ -2232,12 +2251,16 @@ CreateSambaFileShareData::_table_ = {
     // string share_name = 1;
     {PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_name_), _Internal::kHasBitsOffset + 0, 0,
     (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string share_size = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateSambaFileShareData, _impl_.share_size_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\51\12\0\0\0\0\0\0"
+    "\51\12\12\0\0\0\0\0"
     "infra_service.v1.CreateSambaFileShareData"
     "share_name"
+    "share_size"
   }},
 };
 PROTOBUF_NOINLINE void CreateSambaFileShareData::Clear() {
@@ -2248,8 +2271,13 @@ PROTOBUF_NOINLINE void CreateSambaFileShareData::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if ((cached_has_bits & 0x00000001u) != 0) {
-    _impl_.share_name_.ClearNonDefaultToEmpty();
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.share_name_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.share_size_.ClearNonDefaultToEmpty();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -2280,6 +2308,16 @@ PROTOBUF_NOINLINE void CreateSambaFileShareData::Clear() {
     }
   }
 
+  // string share_size = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_share_size().empty()) {
+      const ::std::string& _s = this_._internal_share_size();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateSambaFileShareData.share_size");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2303,13 +2341,21 @@ PROTOBUF_NOINLINE void CreateSambaFileShareData::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
     // string share_name = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if ((cached_has_bits & 0x00000001u) != 0) {
       if (!this_._internal_share_name().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_share_name());
+      }
+    }
+    // string share_size = 2;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_share_size().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_share_size());
       }
     }
   }
@@ -2326,12 +2372,23 @@ void CreateSambaFileShareData::MergeImpl(::google::protobuf::MessageLite& to_msg
   (void) cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if ((cached_has_bits & 0x00000001u) != 0) {
-    if (!from._internal_share_name().empty()) {
-      _this->_internal_set_share_name(from._internal_share_name());
-    } else {
-      if (_this->_impl_.share_name_.IsDefault()) {
-        _this->_internal_set_share_name("");
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_share_name().empty()) {
+        _this->_internal_set_share_name(from._internal_share_name());
+      } else {
+        if (_this->_impl_.share_name_.IsDefault()) {
+          _this->_internal_set_share_name("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_share_size().empty()) {
+        _this->_internal_set_share_size(from._internal_share_size());
+      } else {
+        if (_this->_impl_.share_size_.IsDefault()) {
+          _this->_internal_set_share_size("");
+        }
       }
     }
   }
@@ -2354,6 +2411,7 @@ void CreateSambaFileShareData::InternalSwap(CreateSambaFileShareData* PROTOBUF_R
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.share_name_, &other->_impl_.share_name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.share_size_, &other->_impl_.share_size_, arena);
 }
 
 ::google::protobuf::Metadata CreateSambaFileShareData::GetMetadata() const {
@@ -6601,6 +6659,10 @@ void GroupMapping::InternalSwap(GroupMapping* PROTOBUF_RESTRICT PROTOBUF_NONNULL
 
 class SyncNetlogonScriptData::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<SyncNetlogonScriptData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_._has_bits_);
 };
 
 SyncNetlogonScriptData::SyncNetlogonScriptData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
@@ -6616,8 +6678,10 @@ PROTOBUF_NDEBUG_INLINE SyncNetlogonScriptData::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     const ::infra_service::v1::SyncNetlogonScriptData& from_msg)
-      : groups_{visibility, arena, from.groups_},
-        _cached_size_{0} {}
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        groups_{visibility, arena, from.groups_},
+        realm_(arena, from.realm_) {}
 
 SyncNetlogonScriptData::SyncNetlogonScriptData(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -6638,8 +6702,9 @@ SyncNetlogonScriptData::SyncNetlogonScriptData(
 PROTOBUF_NDEBUG_INLINE SyncNetlogonScriptData::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : groups_{visibility, arena},
-        _cached_size_{0} {}
+      : _cached_size_{0},
+        groups_{visibility, arena},
+        realm_(arena) {}
 
 inline void SyncNetlogonScriptData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -6652,6 +6717,7 @@ inline void SyncNetlogonScriptData::SharedDtor(MessageLite& self) {
   SyncNetlogonScriptData& this_ = static_cast<SyncNetlogonScriptData&>(self);
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.realm_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -6668,7 +6734,7 @@ constexpr auto SyncNetlogonScriptData::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
         sizeof(SyncNetlogonScriptData), alignof(SyncNetlogonScriptData), *arena_bits);
   } else {
     return ::google::protobuf::internal::MessageCreator(&SyncNetlogonScriptData::PlacementNew_,
@@ -6710,16 +6776,16 @@ SyncNetlogonScriptData::GetClassData() const {
   return SyncNetlogonScriptData_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+const ::_pbi::TcParseTable<1, 2, 1, 53, 2>
 SyncNetlogonScriptData::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     SyncNetlogonScriptData_class_data_.base(),
@@ -6729,20 +6795,29 @@ SyncNetlogonScriptData::_table_ = {
     ::_pbi::TcParser::GetTable<::infra_service::v1::SyncNetlogonScriptData>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // repeated .infra_service.v1.GroupMapping groups = 1;
+    // repeated .infra_service.v1.GroupMapping groups = 2;
     {::_pbi::TcParser::FastMtR1,
-     {10, 63, 0, PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.groups_)}},
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.groups_)}},
+    // string realm = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.realm_)}},
   }}, {{
     65535, 65535
   }}, {{
-    // repeated .infra_service.v1.GroupMapping groups = 1;
-    {PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.groups_), 0, 0,
+    // string realm = 1;
+    {PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.realm_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .infra_service.v1.GroupMapping groups = 2;
+    {PROTOBUF_FIELD_OFFSET(SyncNetlogonScriptData, _impl_.groups_), -1, 0,
     (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::infra_service::v1::GroupMapping>()},
   }},
   {{
+    "\47\5\0\0\0\0\0\0"
+    "infra_service.v1.SyncNetlogonScriptData"
+    "realm"
   }},
 };
 PROTOBUF_NOINLINE void SyncNetlogonScriptData::Clear() {
@@ -6753,6 +6828,11 @@ PROTOBUF_NOINLINE void SyncNetlogonScriptData::Clear() {
   (void) cached_has_bits;
 
   _impl_.groups_.Clear();
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    _impl_.realm_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -6771,14 +6851,24 @@ PROTOBUF_NOINLINE void SyncNetlogonScriptData::Clear() {
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  // repeated .infra_service.v1.GroupMapping groups = 1;
+  // string realm = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_realm().empty()) {
+      const ::std::string& _s = this_._internal_realm();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.SyncNetlogonScriptData.realm");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated .infra_service.v1.GroupMapping groups = 2;
   for (unsigned i = 0, n = static_cast<unsigned>(
                            this_._internal_groups_size());
        i < n; i++) {
     const auto& repfield = this_._internal_groups().Get(i);
     target =
         ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-            1, repfield, repfield.GetCachedSize(),
+            2, repfield, repfield.GetCachedSize(),
             target, stream);
   }
 
@@ -6807,11 +6897,21 @@ PROTOBUF_NOINLINE void SyncNetlogonScriptData::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
    {
-    // repeated .infra_service.v1.GroupMapping groups = 1;
+    // repeated .infra_service.v1.GroupMapping groups = 2;
     {
       total_size += 1UL * this_._internal_groups_size();
       for (const auto& msg : this_._internal_groups()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+  }
+   {
+    // string realm = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_realm().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_realm());
       }
     }
   }
@@ -6829,6 +6929,17 @@ void SyncNetlogonScriptData::MergeImpl(::google::protobuf::MessageLite& to_msg, 
 
   _this->_internal_mutable_groups()->MergeFrom(
       from._internal_groups());
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (!from._internal_realm().empty()) {
+      _this->_internal_set_realm(from._internal_realm());
+    } else {
+      if (_this->_impl_.realm_.IsDefault()) {
+        _this->_internal_set_realm("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -6842,8 +6953,12 @@ void SyncNetlogonScriptData::CopyFrom(const SyncNetlogonScriptData& from) {
 
 void SyncNetlogonScriptData::InternalSwap(SyncNetlogonScriptData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.groups_.InternalSwap(&other->_impl_.groups_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.realm_, &other->_impl_.realm_, arena);
 }
 
 ::google::protobuf::Metadata SyncNetlogonScriptData::GetMetadata() const {

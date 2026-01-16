@@ -3398,6 +3398,7 @@ class CreateSambaFileShareData final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kShareNameFieldNumber = 1,
+    kShareSizeFieldNumber = 2,
   };
   // string share_name = 1;
   void clear_share_name() ;
@@ -3414,12 +3415,27 @@ class CreateSambaFileShareData final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_share_name();
 
   public:
+  // string share_size = 2;
+  void clear_share_size() ;
+  const ::std::string& share_size() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_share_size(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_share_size();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_share_size();
+  void set_allocated_share_size(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_share_size() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_share_size(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_share_size();
+
+  public:
   // @@protoc_insertion_point(class_scope:infra_service.v1.CreateSambaFileShareData)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 60,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 70,
                                    2>
       _table_;
 
@@ -3441,6 +3457,7 @@ class CreateSambaFileShareData final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr share_name_;
+    ::google::protobuf::internal::ArenaStringPtr share_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -4667,9 +4684,10 @@ class SyncNetlogonScriptData final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kGroupsFieldNumber = 1,
+    kGroupsFieldNumber = 2,
+    kRealmFieldNumber = 1,
   };
-  // repeated .infra_service.v1.GroupMapping groups = 1;
+  // repeated .infra_service.v1.GroupMapping groups = 2;
   int groups_size() const;
   private:
   int _internal_groups_size() const;
@@ -4686,12 +4704,27 @@ class SyncNetlogonScriptData final : public ::google::protobuf::Message
   const ::infra_service::v1::GroupMapping& groups(int index) const;
   ::infra_service::v1::GroupMapping* PROTOBUF_NONNULL add_groups();
   const ::google::protobuf::RepeatedPtrField<::infra_service::v1::GroupMapping>& groups() const;
+  // string realm = 1;
+  void clear_realm() ;
+  const ::std::string& realm() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_realm(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_realm();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_realm();
+  void set_allocated_realm(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_realm() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_realm(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_realm();
+
+  public:
   // @@protoc_insertion_point(class_scope:infra_service.v1.SyncNetlogonScriptData)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 53,
                                    2>
       _table_;
 
@@ -4710,8 +4743,10 @@ class SyncNetlogonScriptData final : public ::google::protobuf::Message
         ::google::protobuf::internal::InternalVisibility visibility,
         ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
         const SyncNetlogonScriptData& from_msg);
-    ::google::protobuf::RepeatedPtrField< ::infra_service::v1::GroupMapping > groups_;
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::infra_service::v1::GroupMapping > groups_;
+    ::google::protobuf::internal::ArenaStringPtr realm_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -5188,6 +5223,71 @@ inline void CreateSambaFileShareData::set_allocated_share_name(::std::string* PR
     _impl_.share_name_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateSambaFileShareData.share_name)
+}
+
+// string share_size = 2;
+inline void CreateSambaFileShareData::clear_share_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.share_size_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline const ::std::string& CreateSambaFileShareData::share_size() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateSambaFileShareData.share_size)
+  return _internal_share_size();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateSambaFileShareData::set_share_size(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.share_size_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateSambaFileShareData.share_size)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSambaFileShareData::mutable_share_size()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_share_size();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateSambaFileShareData.share_size)
+  return _s;
+}
+inline const ::std::string& CreateSambaFileShareData::_internal_share_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.share_size_.Get();
+}
+inline void CreateSambaFileShareData::_internal_set_share_size(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.share_size_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateSambaFileShareData::_internal_mutable_share_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  return _impl_.share_size_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateSambaFileShareData::release_share_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateSambaFileShareData.share_size)
+  if ((_impl_._has_bits_[0] & 0x00000002u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  auto* released = _impl_.share_size_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.share_size_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateSambaFileShareData::set_allocated_share_size(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  _impl_.share_size_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.share_size_.IsDefault()) {
+    _impl_.share_size_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateSambaFileShareData.share_size)
 }
 
 // -------------------------------------------------------------------
@@ -6583,7 +6683,72 @@ GroupMapping::_internal_mutable_shares() {
 
 // SyncNetlogonScriptData
 
-// repeated .infra_service.v1.GroupMapping groups = 1;
+// string realm = 1;
+inline void SyncNetlogonScriptData::clear_realm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.realm_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& SyncNetlogonScriptData::realm() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.SyncNetlogonScriptData.realm)
+  return _internal_realm();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SyncNetlogonScriptData::set_realm(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.realm_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.SyncNetlogonScriptData.realm)
+}
+inline ::std::string* PROTOBUF_NONNULL SyncNetlogonScriptData::mutable_realm()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_realm();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.SyncNetlogonScriptData.realm)
+  return _s;
+}
+inline const ::std::string& SyncNetlogonScriptData::_internal_realm() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.realm_.Get();
+}
+inline void SyncNetlogonScriptData::_internal_set_realm(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.realm_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SyncNetlogonScriptData::_internal_mutable_realm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.realm_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SyncNetlogonScriptData::release_realm() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.SyncNetlogonScriptData.realm)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.realm_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.realm_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SyncNetlogonScriptData::set_allocated_realm(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.realm_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.realm_.IsDefault()) {
+    _impl_.realm_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.SyncNetlogonScriptData.realm)
+}
+
+// repeated .infra_service.v1.GroupMapping groups = 2;
 inline int SyncNetlogonScriptData::_internal_groups_size() const {
   return _internal_groups().size();
 }
