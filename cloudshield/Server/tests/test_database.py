@@ -291,6 +291,9 @@ def test_database_env_var_override():
     """Test that environment variables can override defaults"""
     # Drop cached database module so it re-imports with the new env var
     sys.modules.pop('cloudshield.Server.utils.database', None)
+    sys.modules.pop('utils.database', None)
+    sys.modules.pop('cloudshield.Server.utils', None)
+    sys.modules.pop('utils', None)
 
     import cloudshield.Server.utils as utils
     importlib.reload(utils)
