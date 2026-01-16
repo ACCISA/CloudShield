@@ -66,6 +66,12 @@ try:
 
     organizations = db_admin["organizations"]
 
+    access_groups = db_admin["access_groups"]
+    try:
+        access_groups.create_index("name", unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: access_groups index creation skipped: {e}")
+
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
     
@@ -99,6 +105,7 @@ __all__ = [
     "users_admin",
     "users_public",
     "organizations",
+    "access_groups",
     "db",
     "client",
     "orgs",
