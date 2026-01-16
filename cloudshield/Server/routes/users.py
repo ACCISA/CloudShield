@@ -103,7 +103,7 @@ def _handle_user_create(current_user):
     user_data = UserCreate(**body)
 
     user_id = create_user(user_data, current_user=current_user, reason=reason)
-    return jsonify({"user_id": user_id}), 201
+    return jsonify({"user_id": user_id, "org_id": user_data.org_id}), 201
 
 
 @users_bp.route("/users", methods=["GET"])

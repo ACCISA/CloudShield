@@ -79,7 +79,7 @@ class TestUserCreate:
         print("Password validation works comprehensively")
     
     def test_invalid_org_id_formats(self):
-        """Test invalid org_id formats"""
+        """Test org_id validation: invalid non-empty values raise; empty is allowed (auto-generated)."""
         base_data = {
             "email": "john@example.com",
             "password": "StrongPass123!",
@@ -92,16 +92,19 @@ class TestUserCreate:
             "AB",  # Too short
             "ACME-CORP",  # Uppercase not allowed
             "acme corp",  # Spaces not allowed
-            "",  # Empty
         ]
-        
+
         for org_id in invalid_org_ids:
             user_data = {**base_data, "org_id": org_id}
-            
+
             with pytest.raises(ValidationError) as exc_info:
                 UserCreate(**user_data)
-            
+
             assert "org_id" in str(exc_info.value)
+
+        # Empty / omitted org_id is allowed (public signup auto-generates)
+        user = UserCreate(**base_data)
+        assert user.org_id is None
         
         print("Invalid org_id validation works")
 

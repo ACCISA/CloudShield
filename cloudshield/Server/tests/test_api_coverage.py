@@ -345,8 +345,8 @@ class TestDestroyEndpoint:
 class TestSignupAdminEndpoint:
     """Tests for /api/signup_admin"""
 
-    def test_signup_admin_success_forces_role_and_passes_reason(self, client, monkeypatch):
-        """Covers: success path + role forced to admin + reason forwarded + current_user=None"""
+    def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
+        """Covers: success path, role forced to admin, org_id returned for provisioning"""
         import cloudshield.Server.routes.api as api_mod
 
         captured = {}
@@ -356,6 +356,8 @@ class TestSignupAdminEndpoint:
             captured["current_user"] = current_user
             captured["reason"] = reason
             captured["email"] = getattr(user_data, "email", None)
+            # service sets org_id on user_data; simulate that
+            user_data.org_id = "org-auto-1"
             return "new_user_id_123"
 
         monkeypatch.setattr(api_mod, "create_user", _fake_create_user, raising=True)
@@ -363,7 +365,6 @@ class TestSignupAdminEndpoint:
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
             "password": "StrongPassword1!",
-            "org_id": "org_001",
             "role": "employee",  # should be overridden
             "full_name": "Admin User",
             "reason": "bootstrap"
@@ -371,6 +372,7 @@ class TestSignupAdminEndpoint:
 
         assert resp.status_code == 201
         assert resp.get_json()["user_id"] == "new_user_id_123"
+        assert resp.get_json()["org_id"] == "org-auto-1"
         assert captured["role"] == "admin"
         assert captured["current_user"] is None
         assert captured["reason"] == "bootstrap"

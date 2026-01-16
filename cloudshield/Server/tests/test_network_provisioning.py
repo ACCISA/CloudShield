@@ -386,6 +386,51 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
     assert mock_job.meta["progress"] == "completed destroy"
 
 
+def test_coerce_int_handles_bool_and_default():
+    from tasks.network_provisioning import _coerce_int
+
+    assert _coerce_int(True, default=5) == 5
+    assert _coerce_int(7, default=1) == 7
+    assert _coerce_int("x", default=3) == 3
+
+
+def test_provision_network_raises_when_exceeding_org_limit(monkeypatch):
+    import tasks.network_provisioning as np
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {"workstation_limit": 1}
+    monkeypatch.setattr(np, "organizations", orgs)
+
+    with pytest.raises(ValueError):
+        np.provision_network("test_org", workstation_count=2)
+
+
+def test_provision_network_uses_org_limit_and_updates_status(monkeypatch):
+    import tasks.network_provisioning as np
+
+    updates = []
+
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-123")
+    monkeypatch.setattr(np, "set_progress", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(np, "get_logger", lambda *args, **kwargs: unittest.mock.MagicMock())
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {"workstation_limit": 2}
+    monkeypatch.setattr(np, "organizations", orgs)
+
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda org_id, status, job_id, logger=None: updates.append(status))
+    monkeypatch.setattr(np, "provision_network_terraform", lambda **kwargs: [{"id": "asset"}])
+    monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda metadata: ["asset"])
+    monkeypatch.setattr(np, "insert_inventory", lambda db, org_id, assets: SimpleNamespace(inserted_id="inv1"))
+    monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
+
+    result = np.provision_network("test_org")
+
+    assert result["metadata"] == [{"id": "asset"}]
+    assert updates[0] == "in_progress"
+    assert updates[-1] == "completed"
+
+
 def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     from tasks.network_provisioning import destroy_environment
 
