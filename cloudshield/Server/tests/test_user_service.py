@@ -9,6 +9,7 @@ from bson import ObjectId
 # Mock pymongo, rq, and provisioner at module level
 mock_pymongo = unittest.mock.MagicMock()
 mock_pymongo_errors = unittest.mock.MagicMock()
+mock_pymongo_errors.PyMongoError = Exception
 mock_rq = unittest.mock.MagicMock()
 mock_rq.get_current_job = unittest.mock.MagicMock(return_value=None)
 mock_provisioner = unittest.mock.MagicMock()
@@ -198,20 +199,61 @@ class TestUserService:
         mocks["users_admin"].find_one.assert_not_called()
         mocks["users_admin"].insert_one.assert_not_called()
 
-    def test_create_user_public_signup_success_when_first_user_and_admin_role(self, setup_mocks, user_data):
+    def test_create_user_public_signup_creates_org_and_sets_org_id(self, setup_mocks, user_data, monkeypatch):
         """
         Covers:
-          - current_user is None (public signup)
-          - org has 0 users
-          - role == admin
-          - continues through uniqueness + workstation limit + insert + audit
+            - current_user is None (public signup)
+            - org auto-created when missing
+            - package and org_name flow through to org creation
+            - org_id is set back on user_data for caller use
         """
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import create_user
 
+        # Patch organizations to control lookups/inserts
+        fake_orgs = unittest.mock.MagicMock()
+        fake_orgs.find_one.return_value = None
+        inserted = {}
+
+        def _fake_insert_one(doc):
+            inserted.update(doc)
+            m = unittest.mock.MagicMock()
+            m.inserted_id = "org-doc-id"
+            return m
+
+        fake_orgs.insert_one.side_effect = _fake_insert_one
+        monkeypatch.setattr("cloudshield.Server.services.user_service.organizations", fake_orgs, raising=True)
+
         # Public signup conditions
         mocks["users_admin"].count_documents.return_value = 0
         user_data.role = "admin"
+        user_data.org_id = None
+        user_data.org_name = "Acme Corp"
+        user_data.package = "pro"
+
+        # Pass uniqueness + limit checks
+        mocks["users_admin"].find_one.return_value = None
+        mocks["get_workstation_count"].return_value = 5
+
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mocks["users_admin"].insert_one.return_value = mock_result
+
+        mocks["users_admin"].insert_one.reset_mock()
+        mocks["log_audit"].reset_mock()
+
+        new_id = create_user(user_data, current_user=None, reason="bootstrap")
+
+        assert new_id == "507f1f77bcf86cd799439011"
+        mocks["users_admin"].insert_one.assert_called_once()
+        mocks["log_audit"].assert_called_once()
+
+        # org_id should be generated and set back on user_data
+        assert getattr(user_data, "org_id", None)
+
+        # Org insert was called with package-derived limits applied via create_organization_doc
+        assert inserted.get("org_id") == getattr(user_data, "org_id")
+        assert inserted.get("package") == "pro"
 
         # Pass uniqueness + limit checks
         mocks["users_admin"].find_one.return_value = None
