@@ -28,7 +28,6 @@ try:
     import cloudshield.Server.routes.access_groups as access_groups_routes
     from cloudshield.Server.models.access_groups import (
         AccessGroupCreate,
-        AccessGroupAddMembers,
         create_access_group_doc,
         access_group_to_json,
     )
@@ -37,7 +36,6 @@ except Exception:  # pragma: no cover
     import routes.access_groups as access_groups_routes
     from models.access_groups import (
         AccessGroupCreate,
-        AccessGroupAddMembers,
         create_access_group_doc,
         access_group_to_json,
     )
