@@ -1,6 +1,7 @@
 import unittest.mock
 import os
 import sys
+import types
 import pytest
 
 mock_mongo_client = unittest.mock.MagicMock()
@@ -11,6 +12,12 @@ mock_pymongo.MongoClient = mock_mongo_client
 mock_pymongo.errors = unittest.mock.MagicMock()
 mock_pymongo.errors.PyMongoError = Exception
 
+if "jwt" not in sys.modules:
+    dummy_jwt = types.ModuleType("jwt")
+    dummy_jwt.encode = lambda *args, **kwargs: "dummy-token"
+    dummy_jwt.decode = lambda *args, **kwargs: {}
+    sys.modules["jwt"] = dummy_jwt
+    
 import importlib
 from unittest.mock import patch
 
@@ -282,13 +289,17 @@ def test_database_constants():
 @patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
 def test_database_env_var_override():
     """Test that environment variables can override defaults"""
-    # Reload the module to pick up new env vars
-    if 'cloudshield.Server.utils.database' in sys.modules:
-        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
-    
+    # Drop cached database module so it re-imports with the new env var
+    sys.modules.pop('cloudshield.Server.utils.database', None)
+
+    import cloudshield.Server.utils as utils
+    importlib.reload(utils)
+
     from cloudshield.Server.utils import database
-    
+
     assert database.DB_NAME == 'custom_db'
+
+
 
 
 def test_database_exports_all():

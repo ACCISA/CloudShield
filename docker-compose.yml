@@ -91,6 +91,9 @@ services:
       - CLOUDSHIELD_DEV_ROLE=${CLOUDSHIELD_DEV_ROLE}
       - CLOUDSHIELD_DEV_ORG=${CLOUDSHIELD_DEV_ORG}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISS=${JWT_ISS}
+      - JWT_AUD=${JWT_AUD}
+      - JWT_EXPIRE_SECONDS=${JWT_EXPIRE_SECONDS}
     depends_on:
       - redis
     ports:
