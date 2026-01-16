@@ -42,6 +42,103 @@ def _get_access_groups_collection():
     return access_groups
 
 
+@access_groups_bp.route("/access-groups", methods=["GET"])
+def list_access_groups():
+    """
+    Fetch all access groups and include enriched member user info.
+
+    GET /api/access-groups
+
+    Response:
+    {
+      "access_groups": [
+        {
+          "id": "...",
+          "group_name": "marketing",
+          "description": "...",
+          "members": ["<user_id>", ...],
+          "members_info": [
+            {
+              "_id": "<user_id>",
+              "email": "...",
+              "full_name": "...",
+              "role": "...",
+              "org_id": "...",
+              "status": "...",
+              "created_at": "...",
+              "updated_at": "..."
+            }
+          ],
+          "members_missing": ["<user_id_not_found>", ...],
+          "created_at": "...",
+          "updated_at": "..."
+        }
+      ]
+    }
+    """
+    try:
+        coll = _get_access_groups_collection()
+
+        # Lazily import users collection (admin view; excludes password via projection)
+        try:
+            from utils.database import users_admin as users_coll
+        except Exception:  # pragma: no cover
+            from cloudshield.Server.utils.database import users_admin as users_coll  # type: ignore[no-redef]
+
+        group_docs = list(coll.find({}).sort("created_at", -1))
+
+        # Collect all member ObjectIds across all groups (dedup)
+        member_oids = []
+        seen = set()
+        for gdoc in group_docs:
+            for oid in (gdoc.get("members") or []):
+                if isinstance(oid, ObjectId):
+                    key = str(oid)
+                    if key not in seen:
+                        seen.add(key)
+                        member_oids.append(oid)
+
+        # Fetch user docs in one query
+        user_map = {}
+        if member_oids:
+            projection = {"password": 0}
+            user_docs = list(users_coll.find({"_id": {"$in": member_oids}}, projection))
+            for u in user_docs:
+                uid = str(u.get("_id"))
+                u["_id"] = uid
+                # make datetimes JSON friendly if present
+                if u.get("created_at"):
+                    u["created_at"] = u["created_at"].isoformat()
+                if u.get("updated_at"):
+                    u["updated_at"] = u["updated_at"].isoformat()
+                user_map[uid] = u
+
+        # Build response
+        out = []
+        for gdoc in group_docs:
+            g_json = access_group_to_json(gdoc)
+
+            # Attach enriched members
+            member_ids = g_json.get("members") or []
+            members_info = []
+            members_missing = []
+
+            for mid in member_ids:
+                u = user_map.get(mid)
+                if u:
+                    members_info.append(u)
+                else:
+                    members_missing.append(mid)
+
+            g_json["members_info"] = members_info
+            g_json["members_missing"] = members_missing
+            out.append(g_json)
+
+        return jsonify({"access_groups": out}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
 
 @access_groups_bp.route("/access-groups", methods=["POST"])
 def create_access_group():
