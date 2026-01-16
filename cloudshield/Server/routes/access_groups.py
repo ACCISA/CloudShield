@@ -23,13 +23,6 @@ access_groups_bp = Blueprint("access_groups", __name__)
 ERROR_GROUP_NAME_REQUIRED = "group_name is required"
 
 
-def _mock_rpc_sync_access_group(group_doc: dict) -> None:
-    """Mock RPC request. Real RPC will be implemented in another task."""
-    try:
-        logger.info("[MOCK RPC] Sync access group: %s", str(group_doc.get("_id")))
-    except Exception:
-        pass
-
 
 @access_groups_bp.route("/access-groups", methods=["POST"])
 def create_access_group():
@@ -57,7 +50,7 @@ def create_access_group():
         res = access_groups.insert_one(doc)
         created = access_groups.find_one({"_id": res.inserted_id})
 
-        _mock_rpc_sync_access_group(created)
+        #TODO rpc_sync_access_group(created)
 
         return jsonify({"access_group": access_group_to_json(created)}), 201
 
@@ -99,7 +92,7 @@ def add_members_to_access_group():
 
         updated = access_groups.find_one({"name": add_req.group_name})
 
-        _mock_rpc_sync_access_group(updated)
+        #TODO rpc_sync_access_group(updated)
 
         return jsonify({"access_group": access_group_to_json(updated)}), 200
 

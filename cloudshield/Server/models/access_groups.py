@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from bson import ObjectId
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 GROUP_RX = re.compile(r"^[a-z0-9_-]{3,64}$")
@@ -21,7 +21,7 @@ def _coerce_object_id(v: str) -> ObjectId:
 class AccessGroupBase(BaseModel):
     group_name: str
     description: Optional[str] = None
-    members: List[str] = []
+    members: List[str] = Field(default_factory=list, description="List of user ObjectId strings")
 
     @field_validator("group_name")
     @classmethod
@@ -66,7 +66,7 @@ class AccessGroupCreate(AccessGroupBase):
 
 class AccessGroupAddMembers(BaseModel):
     group_name: str
-    members: List[str] = []
+    members: List[str] = Field(default_factory=list, description="List of user ObjectId strings")
 
     @field_validator("group_name")
     @classmethod
