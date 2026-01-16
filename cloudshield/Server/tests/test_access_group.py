@@ -1,11 +1,22 @@
 # test_access_group.py
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import pytest
 from bson import ObjectId
+
+
+# Ensure imports work whether pytest is run from repo root or from cloudshield/Server.
+_THIS_FILE = Path(__file__).resolve()
+_SERVER_DIR = _THIS_FILE.parents[1]  # .../cloudshield/Server
+_REPO_ROOT = _THIS_FILE.parents[3]  # .../CloudShield
+for _p in (str(_REPO_ROOT), str(_SERVER_DIR)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 
 # -----------------------------
