@@ -6,8 +6,6 @@ Tests cover:
 """
 import sys
 import os
-import types
-import unittest.mock
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
@@ -19,7 +17,6 @@ from pydantic import ValidationError
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cloudshield.Server.models.access_groups import (
-    AccessGroupBase,
     AccessGroupCreate,
     AccessGroupAddMembers,
     create_access_group_doc,
