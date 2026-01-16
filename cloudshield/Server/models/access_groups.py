@@ -18,6 +18,42 @@ def _coerce_object_id(v: str) -> ObjectId:
         raise PydanticCustomError("object_id_invalid", "Invalid ObjectId", {"value": v}) from exc
 
 
+def _normalize_group_name(v: str) -> str:
+    v2 = (v or "").strip().lower()
+    if not v2:
+        raise PydanticCustomError("group_name_required", "group_name is required", {})
+    if not GROUP_RX.match(v2):
+        raise PydanticCustomError(
+            "group_name_format",
+            "group_name must be 3-64 chars: a-z, 0-9, _ or -",
+            {},
+        )
+    return v2
+
+
+def _normalize_member_ids(v: Optional[List[str]]) -> List[str]:
+    if v is None:
+        return []
+    if not isinstance(v, list):
+        raise PydanticCustomError("members_format", "members must be a list", {})
+
+    # Validate each is a valid ObjectId string
+    for mid in v:
+        if not isinstance(mid, str) or not mid.strip():
+            raise PydanticCustomError("member_invalid", "member id must be a non-empty string", {})
+        _coerce_object_id(mid.strip())
+
+    # Normalize: strip + unique preserve order
+    seen = set()
+    out: List[str] = []
+    for mid in v:
+        s = mid.strip()
+        if s not in seen:
+            out.append(s)
+            seen.add(s)
+    return out
+
+
 class AccessGroupBase(BaseModel):
     group_name: str
     description: Optional[str] = None
@@ -26,82 +62,23 @@ class AccessGroupBase(BaseModel):
     @field_validator("group_name")
     @classmethod
     def valid_group_name(cls, v: str) -> str:
-        v2 = (v or "").strip().lower()
-        if not v2:
-            raise PydanticCustomError("group_name_required", "group_name is required", {})
-        if not GROUP_RX.match(v2):
-            raise PydanticCustomError(
-                "group_name_format",
-                "group_name must be 3-64 chars: a-z, 0-9, _ or -",
-                {},
-            )
-        return v2
+        return _normalize_group_name(v)
 
     @field_validator("members")
     @classmethod
-    def valid_members(cls, v: List[str]) -> List[str]:
-        if v is None:
-            return []
-        if not isinstance(v, list):
-            raise PydanticCustomError("members_format", "members must be a list", {})
-        # Validate each is a valid ObjectId string
-        for mid in v:
-            if not isinstance(mid, str) or not mid.strip():
-                raise PydanticCustomError("member_invalid", "member id must be a non-empty string", {})
-            _coerce_object_id(mid.strip())
-        # Normalize: strip + unique preserve order
-        seen = set()
-        out = []
-        for mid in v:
-            s = mid.strip()
-            if s not in seen:
-                out.append(s)
-                seen.add(s)
-        return out
+    def valid_members(cls, v: Optional[List[str]]) -> List[str]:
+        return _normalize_member_ids(v)
 
 
 class AccessGroupCreate(AccessGroupBase):
     pass
 
 
-class AccessGroupAddMembers(BaseModel):
-    group_name: str
-    members: List[str] = Field(default_factory=list, description="List of user ObjectId strings")
-
-    @field_validator("group_name")
-    @classmethod
-    def valid_group_name(cls, v: str) -> str:
-        v2 = (v or "").strip().lower()
-        if not v2:
-            raise PydanticCustomError("group_name_required", "group_name is required", {})
-        if not GROUP_RX.match(v2):
-            raise PydanticCustomError(
-                "group_name_format",
-                "group_name must be 3-64 chars: a-z, 0-9, _ or -",
-                {},
-            )
-        return v2
-
-    @field_validator("members")
-    @classmethod
-    def valid_members(cls, v: List[str]) -> List[str]:
-        if v is None:
-            return []
-        if not isinstance(v, list):
-            raise PydanticCustomError("members_format", "members must be a list", {})
-        for mid in v:
-            if not isinstance(mid, str) or not mid.strip():
-                raise PydanticCustomError("member_invalid", "member id must be a non-empty string", {})
-            _coerce_object_id(mid.strip())
-        # Normalize unique
-        seen = set()
-        out = []
-        for mid in v:
-            s = mid.strip()
-            if s not in seen:
-                out.append(s)
-                seen.add(s)
-        return out
+class AccessGroupAddMembers(AccessGroupBase):
+    """
+    Reuses the same validation as AccessGroupBase, but does not accept description.
+    """
+    description: None = None
 
 
 def create_access_group_doc(group: AccessGroupCreate) -> dict:
