@@ -238,6 +238,60 @@ def dc_user_list(org_id: str):
     return {"status":"FAILED", "message":"Failed to retrieve user list"}
 
 
+def dc_add_group(org_id: str, group_name: str):
+    """
+    Create a new security group in Samba and nest it under the Domain Users group
+    to keep group visibility consistent for default user access.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_add_group"
+        job.save_meta()
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid group name"
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.AddDomainGroupData(group_name=group_name)
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.AddDomainGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.AddDomainGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created group and linked to Domain Users")
+        return {"status": "SUCCESS", "message": "Successfully created group"}
+
+    if status == infra_pb2.DUPLICATE:
+        logger.warning("Group already exists")
+        return {"status": "DUPLICATE", "message": "Group already exists"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to create group")
+        return {"status": "FAILED", "message": "Failed to create group"}
+
+    logger.error("Unexpected response when creating group")
+    return {"status": "UNKNOWN", "message": "Unexpected response"}
+
+
 def dc_add_user(org_id: str, username: str, password: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id

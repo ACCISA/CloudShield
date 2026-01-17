@@ -28,6 +28,7 @@ static const char* InfraService_method_names[] = {
   "/infra_service.v1.InfraService/RestartSambaService",
   "/infra_service.v1.InfraService/CreateSambaFileShare",
   "/infra_service.v1.InfraService/DeleteSambaFileShare",
+  "/infra_service.v1.InfraService/AddDomainGroup",
   "/infra_service.v1.InfraService/ResetUserPassword",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
@@ -45,10 +46,11 @@ InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& chann
   , rpcmethod_RestartSambaService_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_CreateSambaFileShare_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_ResetUserPassword_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetFileShareSize_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainGroup_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetFileShareSize_(InfraService_method_names[8], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status InfraService::Stub::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::GetUserListDataAck* response) {
@@ -139,6 +141,29 @@ void InfraService::Stub::async::DeleteSambaFileShare(::grpc::ClientContext* cont
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::AsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncDeleteSambaFileShareRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
+::grpc::Status InfraService::Stub::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::infra_service::v1::AddDomainGroupDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDomainGroup_, context, request, response);
+}
+
+void InfraService::Stub::async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::AddDomainGroupDataAck, ::infra_service::v1::AddDomainGroupData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AddDomainGroup_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::AsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncAddDomainGroupRaw(context, request, cq);
   result->StartCall();
   return result;
 }
@@ -279,6 +304,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[4],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](InfraService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::infra_service::v1::AddDomainGroupData* req,
+             ::infra_service::v1::AddDomainGroupDataAck* resp) {
+               return service->AddDomainGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[5],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
              ::grpc::ServerContext* ctx,
@@ -287,7 +322,7 @@ InfraService::Service::Service() {
                return service->ResetUserPassword(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[5],
+      InfraService_method_names[6],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -297,7 +332,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[6],
+      InfraService_method_names[7],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -307,7 +342,7 @@ InfraService::Service::Service() {
                return service->RemoveDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[7],
+      InfraService_method_names[8],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](InfraService::Service* service,
@@ -343,6 +378,13 @@ InfraService::Service::~Service() {
 }
 
 ::grpc::Status InfraService::Service::DeleteSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status InfraService::Service::AddDomainGroup(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response) {
   (void) context;
   (void) request;
   (void) response;

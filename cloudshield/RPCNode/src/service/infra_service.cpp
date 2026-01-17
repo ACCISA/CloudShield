@@ -55,6 +55,49 @@ Status InfraService::AddDomainUser(ServerContext* context, const is::AddDomainUs
 	return Status(grpc::StatusCode::OK, "User added to domain successfully");
 }
 
+Status InfraService::AddDomainGroup(ServerContext* context, const is::AddDomainGroupData* request, is::AddDomainGroupDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::string group_name = request->group_name().c_str();
+
+	auto samba = std::make_unique<SambaTask>();
+
+	if (samba->IsDomainGroup(group_name)) {
+		response->set_result("Group already exists");
+		response->set_status(is::Status::DUPLICATE);
+		return Status(grpc::StatusCode::OK, "Group exists");
+	}
+
+	std::string create_result = samba->AddDomainGroup(group_name);
+
+	if (create_result.find(this->GROUP_EXISTS) != std::string::npos) {
+		response->set_result(create_result);
+		response->set_status(is::Status::DUPLICATE);
+		return Status(grpc::StatusCode::OK, "Group exists");
+	}
+
+	if (create_result.find(this->GROUP_ADD_SUCCESS) == std::string::npos) {
+		response->set_result(create_result);
+		response->set_status(is::Status::FAILED);
+		return Status(grpc::StatusCode::OK, "Failed to add group");
+	}
+
+	std::string link_result = samba->LinkGroupToDomainUsers(group_name);
+
+	std::string combined_result = create_result + "\n" + link_result;
+
+	if (link_result.find(this->GROUP_ADD_MEMBERS_SUCCESS) == std::string::npos) {
+		response->set_result(combined_result);
+		response->set_status(is::Status::FAILED);
+		return Status(grpc::StatusCode::OK, "Failed to link group to Domain Users");
+	}
+
+	response->set_result(combined_result);
+	response->set_status(is::Status::SUCCESS);
+	return Status(grpc::StatusCode::OK, "Group added and linked successfully");
+}
+
 Status InfraService::ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);

@@ -65,6 +65,13 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::DeleteSambaFileShareDataAck>> PrepareAsyncDeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::DeleteSambaFileShareDataAck>>(PrepareAsyncDeleteSambaFileShareRaw(context, request, cq));
     }
+    virtual ::grpc::Status AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::infra_service::v1::AddDomainGroupDataAck* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>> AsyncAddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>>(AsyncAddDomainGroupRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>> PrepareAsyncAddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>>(PrepareAsyncAddDomainGroupRaw(context, request, cq));
+    }
     virtual ::grpc::Status ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::infra_service::v1::ResetUserPasswordDataAck* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::ResetUserPasswordDataAck>> AsyncResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::ResetUserPasswordDataAck>>(AsyncResetUserPasswordRaw(context, request, cq));
@@ -104,6 +111,8 @@ class InfraService final {
       virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
       virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
       virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
       virtual void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) = 0;
       virtual void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
       virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
@@ -125,6 +134,8 @@ class InfraService final {
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::CreateSambaFileShareDataAck>* PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::DeleteSambaFileShareDataAck>* AsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::DeleteSambaFileShareDataAck>* PrepareAsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>* AsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainGroupDataAck>* PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::ResetUserPasswordDataAck>* AsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::ResetUserPasswordDataAck>* PrepareAsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>* AsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
@@ -165,6 +176,13 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>> PrepareAsyncDeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>>(PrepareAsyncDeleteSambaFileShareRaw(context, request, cq));
     }
+    ::grpc::Status AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::infra_service::v1::AddDomainGroupDataAck* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>> AsyncAddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>>(AsyncAddDomainGroupRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>> PrepareAsyncAddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>>(PrepareAsyncAddDomainGroupRaw(context, request, cq));
+    }
     ::grpc::Status ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::infra_service::v1::ResetUserPasswordDataAck* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>> AsyncResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>>(AsyncResetUserPasswordRaw(context, request, cq));
@@ -204,6 +222,8 @@ class InfraService final {
       void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
       void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
       void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) override;
+      void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
       void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) override;
       void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
       void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
@@ -231,6 +251,8 @@ class InfraService final {
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* AsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* PrepareAsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* AsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* AsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* PrepareAsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* AsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) override;
@@ -243,6 +265,7 @@ class InfraService final {
     const ::grpc::internal::RpcMethod rpcmethod_RestartSambaService_;
     const ::grpc::internal::RpcMethod rpcmethod_CreateSambaFileShare_;
     const ::grpc::internal::RpcMethod rpcmethod_DeleteSambaFileShare_;
+    const ::grpc::internal::RpcMethod rpcmethod_AddDomainGroup_;
     const ::grpc::internal::RpcMethod rpcmethod_ResetUserPassword_;
     const ::grpc::internal::RpcMethod rpcmethod_AddDomainUser_;
     const ::grpc::internal::RpcMethod rpcmethod_RemoveDomainUser_;
@@ -258,6 +281,7 @@ class InfraService final {
     virtual ::grpc::Status RestartSambaService(::grpc::ServerContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response);
     virtual ::grpc::Status CreateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response);
     virtual ::grpc::Status DeleteSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response);
+    virtual ::grpc::Status AddDomainGroup(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response);
     virtual ::grpc::Status ResetUserPassword(::grpc::ServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response);
     virtual ::grpc::Status AddDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response);
     virtual ::grpc::Status RemoveDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response);
@@ -344,12 +368,32 @@ class InfraService final {
     }
   };
   template <class BaseClass>
+  class WithAsyncMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodAsync(4);
+    }
+    ~WithAsyncMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestAddDomainGroup(::grpc::ServerContext* context, ::infra_service::v1::AddDomainGroupData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::AddDomainGroupDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
   class WithAsyncMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodAsync(4);
+      ::grpc::Service::MarkMethodAsync(5);
     }
     ~WithAsyncMethod_ResetUserPassword() override {
       BaseClassMustBeDerivedFromService(this);
@@ -360,7 +404,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestResetUserPassword(::grpc::ServerContext* context, ::infra_service::v1::ResetUserPasswordData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::ResetUserPasswordDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(5, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -369,7 +413,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodAsync(5);
+      ::grpc::Service::MarkMethodAsync(6);
     }
     ~WithAsyncMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -380,7 +424,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestAddDomainUser(::grpc::ServerContext* context, ::infra_service::v1::AddDomainUserData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::AddDomainUserDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(5, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(6, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -389,7 +433,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodAsync(6);
+      ::grpc::Service::MarkMethodAsync(7);
     }
     ~WithAsyncMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -400,7 +444,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRemoveDomainUser(::grpc::ServerContext* context, ::infra_service::v1::RemoveDomainUserData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::RemoveDomainUserDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(6, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(7, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -409,7 +453,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodAsync(7);
+      ::grpc::Service::MarkMethodAsync(8);
     }
     ~WithAsyncMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -420,10 +464,10 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestGetFileShareSize(::grpc::ServerContext* context, ::infra_service::v1::GetFileShareSizeData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::GetFileShareSizeDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(7, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(8, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_GetUserList<WithAsyncMethod_RestartSambaService<WithAsyncMethod_CreateSambaFileShare<WithAsyncMethod_DeleteSambaFileShare<WithAsyncMethod_ResetUserPassword<WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<WithAsyncMethod_GetFileShareSize<Service > > > > > > > > AsyncService;
+  typedef WithAsyncMethod_GetUserList<WithAsyncMethod_RestartSambaService<WithAsyncMethod_CreateSambaFileShare<WithAsyncMethod_DeleteSambaFileShare<WithAsyncMethod_AddDomainGroup<WithAsyncMethod_ResetUserPassword<WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<WithAsyncMethod_GetFileShareSize<Service > > > > > > > > > AsyncService;
   template <class BaseClass>
   class WithCallbackMethod_GetUserList : public BaseClass {
    private:
@@ -533,18 +577,45 @@ class InfraService final {
       ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteSambaFileShareData* /*request*/, ::infra_service::v1::DeleteSambaFileShareDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
+  class WithCallbackMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response) { return this->AddDomainGroup(context, request, response); }));}
+    void SetMessageAllocatorFor_AddDomainGroup(
+        ::grpc::MessageAllocator< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(4);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* AddDomainGroup(
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
   class WithCallbackMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodCallback(4,
+      ::grpc::Service::MarkMethodCallback(5,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response) { return this->ResetUserPassword(context, request, response); }));}
     void SetMessageAllocatorFor_ResetUserPassword(
         ::grpc::MessageAllocator< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(4);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(5);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -565,13 +636,13 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodCallback(5,
+      ::grpc::Service::MarkMethodCallback(6,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response) { return this->AddDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_AddDomainUser(
         ::grpc::MessageAllocator< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(5);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(6);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -592,13 +663,13 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodCallback(6,
+      ::grpc::Service::MarkMethodCallback(7,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response) { return this->RemoveDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_RemoveDomainUser(
         ::grpc::MessageAllocator< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(6);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(7);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -619,13 +690,13 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithCallbackMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodCallback(7,
+      ::grpc::Service::MarkMethodCallback(8,
           new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response) { return this->GetFileShareSize(context, request, response); }));}
     void SetMessageAllocatorFor_GetFileShareSize(
         ::grpc::MessageAllocator< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>* allocator) {
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(7);
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(8);
       static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
@@ -640,7 +711,7 @@ class InfraService final {
     virtual ::grpc::ServerUnaryReactor* GetFileShareSize(
       ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::GetFileShareSizeData* /*request*/, ::infra_service::v1::GetFileShareSizeDataAck* /*response*/)  { return nullptr; }
   };
-  typedef WithCallbackMethod_GetUserList<WithCallbackMethod_RestartSambaService<WithCallbackMethod_CreateSambaFileShare<WithCallbackMethod_DeleteSambaFileShare<WithCallbackMethod_ResetUserPassword<WithCallbackMethod_AddDomainUser<WithCallbackMethod_RemoveDomainUser<WithCallbackMethod_GetFileShareSize<Service > > > > > > > > CallbackService;
+  typedef WithCallbackMethod_GetUserList<WithCallbackMethod_RestartSambaService<WithCallbackMethod_CreateSambaFileShare<WithCallbackMethod_DeleteSambaFileShare<WithCallbackMethod_AddDomainGroup<WithCallbackMethod_ResetUserPassword<WithCallbackMethod_AddDomainUser<WithCallbackMethod_RemoveDomainUser<WithCallbackMethod_GetFileShareSize<Service > > > > > > > > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_GetUserList : public BaseClass {
@@ -711,12 +782,29 @@ class InfraService final {
     }
   };
   template <class BaseClass>
+  class WithGenericMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodGeneric(4);
+    }
+    ~WithGenericMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
+  template <class BaseClass>
   class WithGenericMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodGeneric(4);
+      ::grpc::Service::MarkMethodGeneric(5);
     }
     ~WithGenericMethod_ResetUserPassword() override {
       BaseClassMustBeDerivedFromService(this);
@@ -733,7 +821,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodGeneric(5);
+      ::grpc::Service::MarkMethodGeneric(6);
     }
     ~WithGenericMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -750,7 +838,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodGeneric(6);
+      ::grpc::Service::MarkMethodGeneric(7);
     }
     ~WithGenericMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -767,7 +855,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodGeneric(7);
+      ::grpc::Service::MarkMethodGeneric(8);
     }
     ~WithGenericMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -859,12 +947,32 @@ class InfraService final {
     }
   };
   template <class BaseClass>
+  class WithRawMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodRaw(4);
+    }
+    ~WithRawMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestAddDomainGroup(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
   class WithRawMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodRaw(4);
+      ::grpc::Service::MarkMethodRaw(5);
     }
     ~WithRawMethod_ResetUserPassword() override {
       BaseClassMustBeDerivedFromService(this);
@@ -875,7 +983,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestResetUserPassword(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(5, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -884,7 +992,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodRaw(5);
+      ::grpc::Service::MarkMethodRaw(6);
     }
     ~WithRawMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -895,7 +1003,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestAddDomainUser(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(5, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(6, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -904,7 +1012,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodRaw(6);
+      ::grpc::Service::MarkMethodRaw(7);
     }
     ~WithRawMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
@@ -915,7 +1023,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRemoveDomainUser(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(6, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(7, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -924,7 +1032,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodRaw(7);
+      ::grpc::Service::MarkMethodRaw(8);
     }
     ~WithRawMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -935,7 +1043,7 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestGetFileShareSize(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(7, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(8, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -1027,12 +1135,34 @@ class InfraService final {
       ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
+  class WithRawCallbackMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodRawCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainGroup(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* AddDomainGroup(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
   class WithRawCallbackMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodRawCallback(4,
+      ::grpc::Service::MarkMethodRawCallback(5,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->ResetUserPassword(context, request, response); }));
@@ -1054,7 +1184,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodRawCallback(5,
+      ::grpc::Service::MarkMethodRawCallback(6,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainUser(context, request, response); }));
@@ -1076,7 +1206,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodRawCallback(6,
+      ::grpc::Service::MarkMethodRawCallback(7,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RemoveDomainUser(context, request, response); }));
@@ -1098,7 +1228,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawCallbackMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodRawCallback(7,
+      ::grpc::Service::MarkMethodRawCallback(8,
           new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
                    ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->GetFileShareSize(context, request, response); }));
@@ -1223,12 +1353,39 @@ class InfraService final {
     virtual ::grpc::Status StreamedDeleteSambaFileShare(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::DeleteSambaFileShareData,::infra_service::v1::DeleteSambaFileShareDataAck>* server_unary_streamer) = 0;
   };
   template <class BaseClass>
+  class WithStreamedUnaryMethod_AddDomainGroup : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodStreamed(4,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>* streamer) {
+                       return this->StreamedAddDomainGroup(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_AddDomainGroup() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status AddDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedAddDomainGroup(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::AddDomainGroupData,::infra_service::v1::AddDomainGroupDataAck>* server_unary_streamer) = 0;
+  };
+  template <class BaseClass>
   class WithStreamedUnaryMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_ResetUserPassword() {
-      ::grpc::Service::MarkMethodStreamed(4,
+      ::grpc::Service::MarkMethodStreamed(5,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
             [this](::grpc::ServerContext* context,
@@ -1255,7 +1412,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_AddDomainUser() {
-      ::grpc::Service::MarkMethodStreamed(5,
+      ::grpc::Service::MarkMethodStreamed(6,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
             [this](::grpc::ServerContext* context,
@@ -1282,7 +1439,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_RemoveDomainUser() {
-      ::grpc::Service::MarkMethodStreamed(6,
+      ::grpc::Service::MarkMethodStreamed(7,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
             [this](::grpc::ServerContext* context,
@@ -1309,7 +1466,7 @@ class InfraService final {
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodStreamed(7,
+      ::grpc::Service::MarkMethodStreamed(8,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
             [this](::grpc::ServerContext* context,
@@ -1330,9 +1487,9 @@ class InfraService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedGetFileShareSize(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::GetFileShareSizeData,::infra_service::v1::GetFileShareSizeDataAck>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > StreamedUnaryService;
+  typedef WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > StreamedService;
+  typedef WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > StreamedService;
 };
 
 }  // namespace v1
