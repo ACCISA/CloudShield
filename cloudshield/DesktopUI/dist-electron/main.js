@@ -35,23 +35,23 @@ ipcMain.handle("run-openvpn", async () => {
       resolve({
         success: true,
         pid: child.pid,
-        message: "xfreerdp3 launched"
+        message: "OpenVPN Connected"
       });
       (_a = child.stdout) == null ? void 0 : _a.on("data", (data) => {
         output += data.toString();
       });
       (_b = child.stderr) == null ? void 0 : _b.on("data", (data) => {
         error += data.toString();
-        console.log("[xfreerdp3 stderr]:", data.toString());
+        console.log("[openvpn stderr]:", data.toString());
       });
       child.on("close", (code) => {
         if (code !== 0) {
-          console.log(`[xfreerdp3] Process exited with code ${code}`);
-          if (error) console.log("[xfreerdp3 error output]:", error);
+          console.log(`[openvpn] Process exited with code ${code}`);
+          if (error) console.log("[openvpn error output]:", error);
         }
       });
       child.on("error", (err) => {
-        console.error("[xfreerdp3 spawn error]:", err);
+        console.error("[openvpn spawn error]:", err);
       });
     } catch (err) {
       reject(err);
