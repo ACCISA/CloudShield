@@ -7,24 +7,24 @@
 #include "infra_service/vpn_service.pb.h"
 
 #include <functional>
-#include <grpcpp/generic/async_generic_service.h>
-#include <grpcpp/support/async_stream.h>
-#include <grpcpp/support/async_unary_call.h>
-#include <grpcpp/support/client_callback.h>
-#include <grpcpp/client_context.h>
-#include <grpcpp/completion_queue.h>
-#include <grpcpp/support/message_allocator.h>
-#include <grpcpp/support/method_handler.h>
-#include <grpcpp/impl/proto_utils.h>
-#include <grpcpp/impl/rpc_method.h>
-#include <grpcpp/support/server_callback.h>
-#include <grpcpp/impl/server_callback_handlers.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/impl/service_type.h>
-#include <grpcpp/support/status.h>
-#include <grpcpp/support/stub_options.h>
-#include <grpcpp/support/sync_stream.h>
-#include <grpcpp/ports_def.inc>
+#include <grpc/impl/codegen/port_platform.h>
+#include <grpcpp/impl/codegen/async_generic_service.h>
+#include <grpcpp/impl/codegen/async_stream.h>
+#include <grpcpp/impl/codegen/async_unary_call.h>
+#include <grpcpp/impl/codegen/client_callback.h>
+#include <grpcpp/impl/codegen/client_context.h>
+#include <grpcpp/impl/codegen/completion_queue.h>
+#include <grpcpp/impl/codegen/message_allocator.h>
+#include <grpcpp/impl/codegen/method_handler.h>
+#include <grpcpp/impl/codegen/proto_utils.h>
+#include <grpcpp/impl/codegen/rpc_method.h>
+#include <grpcpp/impl/codegen/server_callback.h>
+#include <grpcpp/impl/codegen/server_callback_handlers.h>
+#include <grpcpp/impl/codegen/server_context.h>
+#include <grpcpp/impl/codegen/service_type.h>
+#include <grpcpp/impl/codegen/status.h>
+#include <grpcpp/impl/codegen/stub_options.h>
+#include <grpcpp/impl/codegen/sync_stream.h>
 
 namespace vpn_service {
 namespace v1 {
@@ -58,20 +58,54 @@ class VPNService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::vpn_service::v1::RelayDataAck>> PrepareAsyncRelay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::vpn_service::v1::RelayDataAck>>(PrepareAsyncRelayRaw(context, request, cq));
     }
-    class async_interface {
+    class experimental_async_interface {
      public:
-      virtual ~async_interface() {}
+      virtual ~experimental_async_interface() {}
       virtual void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      virtual void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
       virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
       virtual void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)>) = 0;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      virtual void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      #else
+      virtual void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
+      #endif
     };
-    typedef class async_interface experimental_async_interface;
-    virtual class async_interface* async() { return nullptr; }
-    class async_interface* experimental_async() { return async(); }
-   private:
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+    typedef class experimental_async_interface async_interface;
+    #endif
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+    async_interface* async() { return experimental_async(); }
+    #endif
+    virtual class experimental_async_interface* experimental_async() { return nullptr; }
+  private:
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::vpn_service::v1::CreateVPNClientDataAck>* AsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::vpn_service::v1::CreateVPNClientDataAck>* PrepareAsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::vpn_service::v1::OpenSSHTunnelDataAck>* AsyncOpenSSHTunnelRaw(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::grpc::CompletionQueue* cq) = 0;
@@ -81,7 +115,7 @@ class VPNService final {
   };
   class Stub final : public StubInterface {
    public:
-    Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
+    Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
     ::grpc::Status CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::vpn_service::v1::CreateVPNClientDataAck* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>> AsyncCreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>>(AsyncCreateVPNClientRaw(context, request, cq));
@@ -103,26 +137,56 @@ class VPNService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::RelayDataAck>> PrepareAsyncRelay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::RelayDataAck>>(PrepareAsyncRelayRaw(context, request, cq));
     }
-    class async final :
-      public StubInterface::async_interface {
+    class experimental_async final :
+      public StubInterface::experimental_async_interface {
      public:
       void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)>) override;
+      void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)>) override;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
       void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)>) override;
+      void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)>) override;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
       void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)>) override;
+      void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)>) override;
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
+      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
+      #else
+      void Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
+      #endif
      private:
       friend class Stub;
-      explicit async(Stub* stub): stub_(stub) { }
+      explicit experimental_async(Stub* stub): stub_(stub) { }
       Stub* stub() { return stub_; }
       Stub* stub_;
     };
-    class async* async() override { return &async_stub_; }
+    class experimental_async_interface* experimental_async() override { return &async_stub_; }
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
-    class async async_stub_{this};
+    class experimental_async async_stub_{this};
     ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>* AsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>* PrepareAsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::OpenSSHTunnelDataAck>* AsyncOpenSSHTunnelRaw(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::grpc::CompletionQueue* cq) override;
@@ -205,22 +269,36 @@ class VPNService final {
   };
   typedef WithAsyncMethod_CreateVPNClient<WithAsyncMethod_OpenSSHTunnel<WithAsyncMethod_Relay<Service > > > AsyncService;
   template <class BaseClass>
-  class WithCallbackMethod_CreateVPNClient : public BaseClass {
+  class ExperimentalWithCallbackMethod_CreateVPNClient : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithCallbackMethod_CreateVPNClient() {
-      ::grpc::Service::MarkMethodCallback(0,
-          new ::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>(
+    ExperimentalWithCallbackMethod_CreateVPNClient() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodCallback(0,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response) { return this->CreateVPNClient(context, request, response); }));}
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response) { return this->CreateVPNClient(context, request, response); }));}
     void SetMessageAllocatorFor_CreateVPNClient(
-        ::grpc::MessageAllocator< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>* allocator) {
+        ::grpc::experimental::MessageAllocator< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>* allocator) {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>*>(handler)
+    #else
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(0);
+    #endif
+      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~WithCallbackMethod_CreateVPNClient() override {
+    ~ExperimentalWithCallbackMethod_CreateVPNClient() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -228,26 +306,46 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateVPNClient(
-      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::CreateVPNClientData* /*request*/, ::vpn_service::v1::CreateVPNClientDataAck* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::CreateVPNClientData* /*request*/, ::vpn_service::v1::CreateVPNClientDataAck* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* CreateVPNClient(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::vpn_service::v1::CreateVPNClientData* /*request*/, ::vpn_service::v1::CreateVPNClientDataAck* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
-  class WithCallbackMethod_OpenSSHTunnel : public BaseClass {
+  class ExperimentalWithCallbackMethod_OpenSSHTunnel : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithCallbackMethod_OpenSSHTunnel() {
-      ::grpc::Service::MarkMethodCallback(1,
-          new ::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>(
+    ExperimentalWithCallbackMethod_OpenSSHTunnel() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodCallback(1,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response) { return this->OpenSSHTunnel(context, request, response); }));}
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response) { return this->OpenSSHTunnel(context, request, response); }));}
     void SetMessageAllocatorFor_OpenSSHTunnel(
-        ::grpc::MessageAllocator< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>* allocator) {
+        ::grpc::experimental::MessageAllocator< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>* allocator) {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>*>(handler)
+    #else
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(1);
+    #endif
+      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~WithCallbackMethod_OpenSSHTunnel() override {
+    ~ExperimentalWithCallbackMethod_OpenSSHTunnel() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -255,26 +353,46 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* OpenSSHTunnel(
-      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::OpenSSHTunnelData* /*request*/, ::vpn_service::v1::OpenSSHTunnelDataAck* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::OpenSSHTunnelData* /*request*/, ::vpn_service::v1::OpenSSHTunnelDataAck* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* OpenSSHTunnel(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::vpn_service::v1::OpenSSHTunnelData* /*request*/, ::vpn_service::v1::OpenSSHTunnelDataAck* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
-  class WithCallbackMethod_Relay : public BaseClass {
+  class ExperimentalWithCallbackMethod_Relay : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithCallbackMethod_Relay() {
-      ::grpc::Service::MarkMethodCallback(2,
-          new ::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>(
+    ExperimentalWithCallbackMethod_Relay() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodCallback(2,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response) { return this->Relay(context, request, response); }));}
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response) { return this->Relay(context, request, response); }));}
     void SetMessageAllocatorFor_Relay(
-        ::grpc::MessageAllocator< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>* allocator) {
+        ::grpc::experimental::MessageAllocator< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>* allocator) {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>*>(handler)
+    #else
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(2);
+    #endif
+      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~WithCallbackMethod_Relay() override {
+    ~ExperimentalWithCallbackMethod_Relay() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -282,11 +400,20 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* Relay(
-      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::RelayData* /*request*/, ::vpn_service::v1::RelayDataAck* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::vpn_service::v1::RelayData* /*request*/, ::vpn_service::v1::RelayDataAck* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* Relay(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::vpn_service::v1::RelayData* /*request*/, ::vpn_service::v1::RelayDataAck* /*response*/)
+    #endif
+      { return nullptr; }
   };
-  typedef WithCallbackMethod_CreateVPNClient<WithCallbackMethod_OpenSSHTunnel<WithCallbackMethod_Relay<Service > > > CallbackService;
-  typedef CallbackService ExperimentalCallbackService;
+  #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+  typedef ExperimentalWithCallbackMethod_CreateVPNClient<ExperimentalWithCallbackMethod_OpenSSHTunnel<ExperimentalWithCallbackMethod_Relay<Service > > > CallbackService;
+  #endif
+
+  typedef ExperimentalWithCallbackMethod_CreateVPNClient<ExperimentalWithCallbackMethod_OpenSSHTunnel<ExperimentalWithCallbackMethod_Relay<Service > > > ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_CreateVPNClient : public BaseClass {
    private:
@@ -399,17 +526,27 @@ class VPNService final {
     }
   };
   template <class BaseClass>
-  class WithRawCallbackMethod_CreateVPNClient : public BaseClass {
+  class ExperimentalWithRawCallbackMethod_CreateVPNClient : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithRawCallbackMethod_CreateVPNClient() {
-      ::grpc::Service::MarkMethodRawCallback(0,
-          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    ExperimentalWithRawCallbackMethod_CreateVPNClient() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodRawCallback(0,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateVPNClient(context, request, response); }));
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateVPNClient(context, request, response); }));
     }
-    ~WithRawCallbackMethod_CreateVPNClient() override {
+    ~ExperimentalWithRawCallbackMethod_CreateVPNClient() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -417,21 +554,37 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateVPNClient(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* CreateVPNClient(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
-  class WithRawCallbackMethod_OpenSSHTunnel : public BaseClass {
+  class ExperimentalWithRawCallbackMethod_OpenSSHTunnel : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithRawCallbackMethod_OpenSSHTunnel() {
-      ::grpc::Service::MarkMethodRawCallback(1,
-          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    ExperimentalWithRawCallbackMethod_OpenSSHTunnel() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodRawCallback(1,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->OpenSSHTunnel(context, request, response); }));
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->OpenSSHTunnel(context, request, response); }));
     }
-    ~WithRawCallbackMethod_OpenSSHTunnel() override {
+    ~ExperimentalWithRawCallbackMethod_OpenSSHTunnel() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -439,21 +592,37 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* OpenSSHTunnel(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* OpenSSHTunnel(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
-  class WithRawCallbackMethod_Relay : public BaseClass {
+  class ExperimentalWithRawCallbackMethod_Relay : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    WithRawCallbackMethod_Relay() {
-      ::grpc::Service::MarkMethodRawCallback(2,
-          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    ExperimentalWithRawCallbackMethod_Relay() {
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+      ::grpc::Service::
+    #else
+      ::grpc::Service::experimental().
+    #endif
+        MarkMethodRawCallback(2,
+          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->Relay(context, request, response); }));
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+                   ::grpc::CallbackServerContext*
+    #else
+                   ::grpc::experimental::CallbackServerContext*
+    #endif
+                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->Relay(context, request, response); }));
     }
-    ~WithRawCallbackMethod_Relay() override {
+    ~ExperimentalWithRawCallbackMethod_Relay() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -461,8 +630,14 @@ class VPNService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
+    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* Relay(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #else
+    virtual ::grpc::experimental::ServerUnaryReactor* Relay(
+      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
+    #endif
+      { return nullptr; }
   };
   template <class BaseClass>
   class WithStreamedUnaryMethod_CreateVPNClient : public BaseClass {
@@ -473,8 +648,8 @@ class VPNService final {
       ::grpc::Service::MarkMethodStreamed(0,
         new ::grpc::internal::StreamedUnaryHandler<
           ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>(
-            [this](::grpc::ServerContext* context,
-                   ::grpc::ServerUnaryStreamer<
+            [this](::grpc_impl::ServerContext* context,
+                   ::grpc_impl::ServerUnaryStreamer<
                      ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>* streamer) {
                        return this->StreamedCreateVPNClient(context,
                          streamer);
@@ -500,8 +675,8 @@ class VPNService final {
       ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler<
           ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>(
-            [this](::grpc::ServerContext* context,
-                   ::grpc::ServerUnaryStreamer<
+            [this](::grpc_impl::ServerContext* context,
+                   ::grpc_impl::ServerUnaryStreamer<
                      ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>* streamer) {
                        return this->StreamedOpenSSHTunnel(context,
                          streamer);
@@ -527,8 +702,8 @@ class VPNService final {
       ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler<
           ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>(
-            [this](::grpc::ServerContext* context,
-                   ::grpc::ServerUnaryStreamer<
+            [this](::grpc_impl::ServerContext* context,
+                   ::grpc_impl::ServerUnaryStreamer<
                      ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>* streamer) {
                        return this->StreamedRelay(context,
                          streamer);
@@ -554,5 +729,4 @@ class VPNService final {
 }  // namespace vpn_service
 
 
-#include <grpcpp/ports_undef.inc>
 #endif  // GRPC_infra_5fservice_2fvpn_5fservice_2eproto__INCLUDED

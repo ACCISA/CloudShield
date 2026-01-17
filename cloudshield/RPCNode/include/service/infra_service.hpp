@@ -2,6 +2,7 @@
 
 #include <string>
 #include <mutex>
+#include <utility>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server_context.h>
@@ -43,7 +44,15 @@ private:
 	static constexpr const char* GROUP_ADD_FAILED = "Failed to add group";
 	static constexpr const char* GROUP_EXISTS = "already exists";
 
-	void populate_repeated(auto* response_field, const auto& source_vector);
+	template <typename RepeatedField, typename Container>
+	void populate_repeated(RepeatedField* response_field, const Container& source_vector)
+	{
+		response_field->Clear();
+		for (const auto& item : source_vector) {
+			auto copy = item; // copy const element before moving into protobuf field
+			response_field->Add(std::move(copy));
+		}
+	}
 
 	std::mutex mutex_;
 };

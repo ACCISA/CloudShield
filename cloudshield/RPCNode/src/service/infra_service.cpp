@@ -6,13 +6,6 @@ InfraService::InfraService()
 
 }
 
-void InfraService::populate_repeated(auto* repeated_field, const auto& source_vector)
-{
-	for (const auto& item : source_vector) {
-		*repeated_field->Add() = item;
-	}
-}
-
 Status InfraService::AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
@@ -172,7 +165,7 @@ Status InfraService::GetUserList(ServerContext* context, const google::protobuf:
 
 	std::cout << "User count = " << users.size() << std::endl;
 
-	response->mutable_users()->Assign(users.begin(), users.end());
+	this->populate_repeated(response->mutable_users(), users);
 
 	if (users.empty()) {
 		response->set_status(is::Status::FAILED);
