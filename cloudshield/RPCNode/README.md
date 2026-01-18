@@ -18,7 +18,6 @@ Because the API cannot reach a `DOMAIN_CONTROLLER` directly, it uses a **Proxy R
 
 <img width="500" height="300" alt="image" src="https://github.com/user-attachments/assets/1a245005-3c2e-4281-b04c-f8d333e03a2a" />
 
-
 ## Implementing RPC Methods
 
 To create a new task, follow this three-step implementation process:
