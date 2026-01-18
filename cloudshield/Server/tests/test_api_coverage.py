@@ -235,6 +235,28 @@ class TestDCAddUser:
         })
         # The endpoint has a bug - it logs warning but returns without proper error code
         assert resp.status_code in [200, 500]
+
+
+class TestDCAddUserWithGroup:
+    """Tests for /task/dc/add_user_with_group"""
+
+    def test_add_user_with_group_success(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_with_group",
+            json={"org_id": "acme", "username": "newuser", "password": "newpass", "group_name": "team"},
+        )
+        assert resp.status_code == 202
+        assert "job_id" in resp.json
+
+    @pytest.mark.parametrize("missing_field", ["org_id", "username", "password"])
+    def test_add_user_with_group_missing_required(self, client, missing_field):
+        body = {"org_id": "acme", "username": "user1", "password": "pass1"}
+        body.pop(missing_field)
+
+        resp = client.post("/api/task/dc/add_user_with_group", json=body)
+
+        assert resp.status_code == 422
+        assert resp.json["error"] == f"{missing_field} is required"
     
     def test_add_user_missing_username(self, client):
         """Line 126-128: missing username"""
