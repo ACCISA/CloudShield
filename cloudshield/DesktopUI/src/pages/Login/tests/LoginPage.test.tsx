@@ -11,15 +11,15 @@ describe("LoginPage Component", () => {
   it("renders with correct background styling", () => {
     const { container } = render(<LoginPage />);
     const mainDiv = container.querySelector("div");
-    expect(mainDiv?.className).toContain("bg-background");
-    expect(mainDiv?.className).toContain("bg-black");
+    expect(mainDiv?.className).toContain("bg-[#0a0a0a]");
+    expect(mainDiv?.className).toContain("text-white");
   });
 
   it("has full screen dimensions", () => {
     const { container } = render(<LoginPage />);
     const mainDiv = container.querySelector("div");
-    expect(mainDiv?.className).toContain("w-screen");
-    expect(mainDiv?.className).toContain("h-screen");
+    expect(mainDiv?.className).toContain("min-h-screen");
+    expect(mainDiv?.className).toContain("w-full");
   });
 
   it("centers content", () => {
@@ -28,5 +28,6 @@ describe("LoginPage Component", () => {
     expect(mainDiv?.className).toContain("flex");
     expect(mainDiv?.className).toContain("items-center");
     expect(mainDiv?.className).toContain("justify-center");
+    expect(mainDiv?.className).toContain("px-4");
   });
 });

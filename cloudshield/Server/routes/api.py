@@ -1,6 +1,9 @@
 """Task dispatch and job status API endpoints."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from uuid import uuid4
+
 from flask import Blueprint, request, jsonify
 
 from pydantic import ValidationError
@@ -10,6 +13,7 @@ from services import create_user
 from services import service_dispatcher, get_job_status, health_status
 from utils.logging_setup import get_logger
 from utils import organizations
+from cloudshield.Server.utils.database import db_admin
 
 logger = get_logger("api")
 
@@ -17,6 +21,24 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+
+
+def _seed_workstations(org_id: str, count: int) -> None:
+    if count <= 0:
+        return
+
+    workstations = db_admin["workstations"]
+    now = datetime.now(timezone.utc)
+    docs = [
+        {
+            "org_id": org_id,
+            "name": f"{org_id}-ws-{uuid4().hex[:8]}",
+            "status": "provisioning",
+            "created_at": now,
+        }
+        for _ in range(count)
+    ]
+    workstations.insert_many(docs)
 
 @api_bp.route("/task/dc/delete_file_share", methods=["POST"])
 def task_delete_file_share():
@@ -196,6 +218,8 @@ def task_provision():
     if workstation_count is None or workstation_count <= 0:
         workstation_count = 1
 
+    _seed_workstations(org_id, workstation_count)
+
     job = service_dispatcher(
         service_name="provision_network", 
         org_id=org_id, 
@@ -239,7 +263,15 @@ def task_provision_workstations():
         data.get("region", "us-west-2"),
         data.get("count", 1),
     )
-    count = data.get("count", 1)
+    try:
+        count = int(data.get("count", 1))
+    except (TypeError, ValueError):
+        return jsonify({"error": "count must be an integer"}), 400
+
+    if count <= 0:
+        count = 1
+
+    _seed_workstations(org_id, count)
     job = service_dispatcher(service_name="provision_workstations",org_id=org_id, region=data.get("region", "us-west-2"), count=count)
 
     return jsonify({"job_id": job.id}), 202

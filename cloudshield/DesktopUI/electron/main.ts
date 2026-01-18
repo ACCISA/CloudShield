@@ -53,7 +53,6 @@ ipcMain.handle("run-openvpn", async () => {
   return new Promise((resolve, reject) => {
     try {
       const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]); //NOSONAR typescript:S4036
-      let output = "";
       let error = "";
 
       // Resolve immediately on successful spawn (xfreerdp3 is a UI app)
@@ -63,9 +62,7 @@ ipcMain.handle("run-openvpn", async () => {
         message: "OpenVPN Connected",
       });
 
-      child.stdout?.on("data", (data) => {
-        output += data.toString();
-      });
+      child.stdout?.on("data", () => undefined);
 
       child.stderr?.on("data", (data) => {
         error += data.toString();
@@ -103,7 +100,6 @@ ipcMain.handle(
           `/v:${params.ip}`,
           "/cert:tofu",
         ]);
-        let output = "";
         let error = "";
 
         // Resolve immediately on successful spawn (xfreerdp3 is a UI app)
@@ -113,9 +109,7 @@ ipcMain.handle(
           message: "xfreerdp3 launched",
         });
 
-        child.stdout?.on("data", (data) => {
-          output += data.toString();
-        });
+        child.stdout?.on("data", () => undefined);
 
         child.stderr?.on("data", (data) => {
           error += data.toString();

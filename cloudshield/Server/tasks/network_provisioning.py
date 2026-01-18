@@ -21,6 +21,7 @@ from utils import (
     get_workstation_count,
     organizations,
 )
+from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
 from provisioner import provision_network_terraform, get_target_dir, destroy_infra
@@ -112,10 +113,9 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
+    if not target_dir:
+        target_dir = str(generated_dir)
     work_dir = Path(target_dir)
-    if not work_dir.exists():
-        logger.warning("Work dir missing for org '%s': %s", org_id, work_dir)
-        raise FileNotFoundError(f"Work dir does not exist for org '{org_id}'")
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
@@ -135,6 +135,15 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         logs_tail = run_stream(cmd, cwd=str(work_dir), env=env, logger=logger)
 
         set_progress("completed")
+
+        try:
+            workstations = db_admin["workstations"]
+            workstations.update_many(
+                {"org_id": org_id, "status": "provisioning"},
+                {"$set": {"status": "online", "last_seen": datetime.now(timezone.utc)}},
+            )
+        except Exception as exc:  # pragma: no cover - best effort only
+            logger.warning("Failed to mark workstations online: %s", exc)
             
         logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
         return {
