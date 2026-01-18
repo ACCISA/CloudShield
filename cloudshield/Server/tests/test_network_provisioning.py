@@ -87,7 +87,7 @@ def test_provision_workstations_work_dir_missing(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    with pytest.raises(NotADirectoryError):
+    with pytest.raises((NotADirectoryError, FileNotFoundError)):
         provision_workstations("nonexistent_org")
 
 

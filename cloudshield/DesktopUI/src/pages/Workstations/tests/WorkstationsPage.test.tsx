@@ -4,17 +4,6 @@ import WorkstationsPage from "../WorkstationsPage";
 
 const WORKSTATIONS_URL = "http://127.0.0.1:5050/api/workstations/assigned";
 
-type WorkstationsResponse = {
-  items?: Array<{
-    id?: string;
-    name?: string;
-    status?: string;
-    assigned_user?: string;
-    last_seen?: string;
-    users_count?: number;
-  }>;
-};
-
 const mockResponse = (payload: unknown, ok = true): Response =>
   ({
     ok,
