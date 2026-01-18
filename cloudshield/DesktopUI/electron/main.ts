@@ -3,7 +3,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "child_process";
-const regedit = require('regedit').promisified
+import { list } from "regedit-rs";
+import { OVPNPathResult } from "./models/OVPNPathResult.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
@@ -49,7 +50,26 @@ function createWindow() {
   }
 }
 
+const getWinOVPNPath = async (): Promise<OVPNPathResult> => {
+  const res = await list(["HKLM\\SOFTWARE\\OpenVPN"]);
+  if (!res["HKLM\\SOFTWARE\\OpenVPN"].exists) {
+    return { success: false, message: "OpenVPN is not installed.", path: null };
+  }
+  const exePath = res["HKLM\\SOFTWARE\\OpenVPN"].values["exe_path"]
+    .value as string;
+  if (!fs.existsSync(exePath)) {
+    return {
+      success: false,
+      message: "OpenVPN executable not found.",
+      path: null,
+    };
+  }
+  return { success: true, message: "OpenVPN is installed.", path: exePath };
+};
 
+ipcMain.handle("get-win-ovpn-path", async (): Promise<OVPNPathResult> => {
+  return getWinOVPNPath();
+});
 
 export const getBinPath = (exeName: string) => {
   if (app.isPackaged) {
@@ -82,7 +102,7 @@ ipcMain.handle(
       ovpnPath: "",
     },
   ) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         if (!fs.existsSync(params.ovpnPath)) {
           return reject(
@@ -90,9 +110,19 @@ ipcMain.handle(
           );
         }
 
-        const child = spawn("openvpn", [params.ovpnPath],{
-  stdio: "inherit",
-}); //NOSONAR typescript:S4036
+        let command: string = "openvpn";
+
+        if (process.platform === "win32") {
+          let winOVPN = await getWinOVPNPath();
+          if (winOVPN.success) {
+            command = winOVPN.path!;
+          } else {
+            return reject(new Error(winOVPN.message));
+          }
+        }
+        const child = spawn(command, [params.ovpnPath], {
+          stdio: "inherit",
+        }); //NOSONAR typescript:S4036
         let output = "";
         let error = "";
 

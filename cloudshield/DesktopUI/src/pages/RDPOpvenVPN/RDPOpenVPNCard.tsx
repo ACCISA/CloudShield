@@ -34,8 +34,15 @@ export default function RDPOpenVPNCard() {
       console.error("runOpenVPN not available");
       return;
     }
-    const result = await api.runOpenVPN(ovpnFilePath || undefined);
-    console.log("OpenVPN launched:", result);
+    try {
+      const result = await api.runOpenVPN(ovpnFilePath || undefined);
+      console.log("OpenVPN launched:", result);
+    } catch (e) {
+      alert(
+        "Failed to launch OpenVPN: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
   }
 
   function selectOvpnFile() {
