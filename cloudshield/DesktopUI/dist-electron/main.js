@@ -30,16 +30,13 @@ ipcMain.handle("run-openvpn", async () => {
     var _a, _b;
     try {
       const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]);
-      let output = "";
       let error = "";
       resolve({
         success: true,
         pid: child.pid,
         message: "OpenVPN Connected"
       });
-      (_a = child.stdout) == null ? void 0 : _a.on("data", (data) => {
-        output += data.toString();
-      });
+      (_a = child.stdout) == null ? void 0 : _a.on("data", () => void 0);
       (_b = child.stderr) == null ? void 0 : _b.on("data", (data) => {
         error += data.toString();
         console.log("[openvpn stderr]:", data.toString());
@@ -70,16 +67,13 @@ ipcMain.handle(
           `/v:${params.ip}`,
           "/cert:tofu"
         ]);
-        let output = "";
         let error = "";
         resolve({
           success: true,
           pid: child.pid,
           message: "xfreerdp3 launched"
         });
-        (_a = child.stdout) == null ? void 0 : _a.on("data", (data) => {
-          output += data.toString();
-        });
+        (_a = child.stdout) == null ? void 0 : _a.on("data", () => void 0);
         (_b = child.stderr) == null ? void 0 : _b.on("data", (data) => {
           error += data.toString();
           console.log("[xfreerdp3 stderr]:", data.toString());

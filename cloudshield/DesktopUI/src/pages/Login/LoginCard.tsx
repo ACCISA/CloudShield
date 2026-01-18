@@ -76,6 +76,21 @@ export default function LoginCard() {
         expiresIn: data.expires_in,
         email: sanitizedEmail,
       });
+      if (!window.authStore) {
+        const expiresAt = data.expires_in
+          ? Date.now() + data.expires_in * 1000
+          : undefined;
+        localStorage.setItem(
+          "cloudshield.auth",
+          JSON.stringify({
+            accessToken: data.access_token,
+            tokenType: data.token_type || "Bearer",
+            expiresAt,
+            email: sanitizedEmail,
+          })
+        );
+      }
+      window.dispatchEvent(new Event("auth-changed"));
 
       setSuccess("Signed in successfully.");
     } catch (err) {
