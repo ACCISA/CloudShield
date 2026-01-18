@@ -25,5 +25,6 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
 });
 electron.contextBridge.exposeInMainWorld("electronAPI", {
   runXfreerdp: (username, password, ip) => electron.ipcRenderer.invoke("run-xfreerdp", { username, password, ip }),
-  runOpenVPN: () => electron.ipcRenderer.invoke("run-openvpn")
+  runOpenVPN: (ovpnPath) => electron.ipcRenderer.invoke("run-openvpn", { ovpnPath }),
+  showOpenDialog: (options) => electron.ipcRenderer.invoke("show-open-dialog", options)
 });
