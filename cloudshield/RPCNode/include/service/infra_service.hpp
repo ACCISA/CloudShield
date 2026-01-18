@@ -50,9 +50,9 @@ private:
 	{
 		response_field->Clear();
 		for (const auto& item : source_vector) {
-			auto copy = item; // copy const element before moving into protobuf field
-			response_field->Add(std::move(copy));
+			*response_field->Add() = item;
 		}
+	}
 	}
 
 	std::mutex mutex_;
