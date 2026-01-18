@@ -417,7 +417,11 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created user with group linkage")
-        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        email_local_part = re.sub(r'[^A-Za-z0-9._%+-]', '', short_uuid())
+        if not email_local_part:
+            email_local_part = "user-" + short_uuid()
+        email = f"{email_local_part}@example.com"
+        persist_domain_user(org_id, username, password, email)
         return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
 
     if status == infra_pb2.DUPLICATE:
