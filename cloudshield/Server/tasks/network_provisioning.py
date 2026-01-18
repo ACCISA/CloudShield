@@ -6,7 +6,6 @@ Expects the provisioner module to be available in the same directory (configured
 via Docker volume mounts in docker-compose.yml).
 """
 import os
-import shutil
 import subprocess
 from pathlib import Path
 from datetime import datetime, timezone

@@ -87,13 +87,14 @@ def test_provision_workstations_work_dir_missing(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(NotADirectoryError):
         provision_workstations("nonexistent_org")
 
 
 def test_provision_workstations_success(monkeypatch, tmp_path):
     from tasks import provision_workstations
     import tasks.network_provisioning as np_module
+    import unittest.mock
 
     monkeypatch.setattr(
         "tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
@@ -129,8 +130,20 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         lambda name, job_id=None: mock_logger
     )
 
+    monkeypatch.setattr(
+        "tasks.network_provisioning.get_target_dir",
+        lambda org_id, generated_dir: None,
+    )
+
+    fake_collection = unittest.mock.MagicMock()
+    monkeypatch.setattr(
+        "tasks.network_provisioning.db_admin",
+        {"workstations": fake_collection},
+    )
+
     # Mock run_stream to simulate successful TF apply
     def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
+        assert cwd == str(generated_dir)
         return ["Apply complete!"]
 
     monkeypatch.setattr(
@@ -149,6 +162,7 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     result = provision_workstations("test_org", count=2)
     assert "complete" in result["message"].lower()
     assert mock_job.meta["progress"] == "completed"
+    fake_collection.update_many.assert_called_once()
 
 
 def test_provision_workstations_failure(monkeypatch, tmp_path):

@@ -15,7 +15,7 @@ type WorkstationsResponse = {
   }>;
 };
 
-const mockResponse = (payload: WorkstationsResponse, ok = true): Response =>
+const mockResponse = (payload: unknown, ok = true): Response =>
   ({
     ok,
     json: async () => payload,
@@ -115,6 +115,59 @@ describe("WorkstationsPage", () => {
     expect(screen.getByText("Jim Halpert")).toBeTruthy();
   });
 
+  it("shows connect action for available workstations", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [{ id: "WS-010", name: "Marketing", status: "online" }],
+      })
+    );
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Marketing")).toBeTruthy();
+    expect(screen.getByText("Connect")).toBeTruthy();
+  });
+
+  it("shows API error details when request fails", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ error: "No access" }, false)
+    );
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText(/no access/i)).toBeTruthy();
+  });
+
+  it("uses local storage auth when authStore is unavailable", async () => {
+    delete window.authStore;
+    localStorage.setItem(
+      "cloudshield.auth",
+      JSON.stringify({ accessToken: "local-token", expiresAt: Date.now() + 60000 })
+    );
+    fetchMock.mockResolvedValueOnce(mockResponse({ items: [] }));
+
+    render(<WorkstationsPage />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        WORKSTATIONS_URL,
+        expect.objectContaining({
+          headers: { Authorization: "Bearer local-token" },
+        })
+      );
+    });
+  });
+
   it("filters workstations by search query", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
@@ -161,5 +214,27 @@ describe("WorkstationsPage", () => {
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("clears auth when logout is clicked", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(mockResponse({ items: [] }));
+    localStorage.setItem("cloudshield.auth", "{}");
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText(/no assigned workstations/i);
+
+    fireEvent.click(screen.getByText("Logout"));
+
+    expect(clearAuthMock).toHaveBeenCalled();
+    expect(localStorage.getItem("cloudshield.auth")).toBeNull();
+    expect(dispatchSpy).toHaveBeenCalled();
+
+    dispatchSpy.mockRestore();
   });
 });
