@@ -63,6 +63,21 @@ message ResetUserPasswordDataAck {
         Status status = 1;
 }
 
+// Create a domain user and ensure a dedicated group is created and nested under Domain Users
+message CreateDomainUserWithGroupData {
+        string username = 1;
+        string password = 2;
+        string group_name = 3;
+}
+
+message CreateDomainUserWithGroupDataAck {
+        Status status = 1;
+        string user_result = 2;
+        string group_result = 3;
+        string link_result = 4;
+        string membership_result = 5;
+}
+
 message GetUserListDataAck {
         Status status = 1;
         repeated string users = 2;
@@ -92,6 +107,7 @@ service InfraService {
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
         rpc DeleteSambaFileShare(DeleteSambaFileShareData) returns (DeleteSambaFileShareDataAck);
         rpc AddDomainGroup(AddDomainGroupData) returns (AddDomainGroupDataAck);
+        rpc CreateDomainUserWithGroup(CreateDomainUserWithGroupData) returns (CreateDomainUserWithGroupDataAck);
         rpc ResetUserPassword(ResetUserPasswordData) returns (ResetUserPasswordDataAck);
         rpc AddDomainUser(AddDomainUserData) returns (AddDomainUserDataAck);
         rpc RemoveDomainUser(RemoveDomainUserData) returns (RemoveDomainUserDataAck);

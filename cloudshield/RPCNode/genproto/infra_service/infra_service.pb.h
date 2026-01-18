@@ -49,7 +49,7 @@ struct TableStruct_infra_5fservice_2finfra_5fservice_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxillaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[16]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[18]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -70,6 +70,12 @@ extern AddDomainUserDataDefaultTypeInternal _AddDomainUserData_default_instance_
 class AddDomainUserDataAck;
 class AddDomainUserDataAckDefaultTypeInternal;
 extern AddDomainUserDataAckDefaultTypeInternal _AddDomainUserDataAck_default_instance_;
+class CreateDomainUserWithGroupData;
+class CreateDomainUserWithGroupDataDefaultTypeInternal;
+extern CreateDomainUserWithGroupDataDefaultTypeInternal _CreateDomainUserWithGroupData_default_instance_;
+class CreateDomainUserWithGroupDataAck;
+class CreateDomainUserWithGroupDataAckDefaultTypeInternal;
+extern CreateDomainUserWithGroupDataAckDefaultTypeInternal _CreateDomainUserWithGroupDataAck_default_instance_;
 class CreateSambaFileShareData;
 class CreateSambaFileShareDataDefaultTypeInternal;
 extern CreateSambaFileShareDataDefaultTypeInternal _CreateSambaFileShareData_default_instance_;
@@ -113,6 +119,8 @@ template<> ::infra_service::v1::AddDomainGroupData* Arena::CreateMaybeMessage<::
 template<> ::infra_service::v1::AddDomainGroupDataAck* Arena::CreateMaybeMessage<::infra_service::v1::AddDomainGroupDataAck>(Arena*);
 template<> ::infra_service::v1::AddDomainUserData* Arena::CreateMaybeMessage<::infra_service::v1::AddDomainUserData>(Arena*);
 template<> ::infra_service::v1::AddDomainUserDataAck* Arena::CreateMaybeMessage<::infra_service::v1::AddDomainUserDataAck>(Arena*);
+template<> ::infra_service::v1::CreateDomainUserWithGroupData* Arena::CreateMaybeMessage<::infra_service::v1::CreateDomainUserWithGroupData>(Arena*);
+template<> ::infra_service::v1::CreateDomainUserWithGroupDataAck* Arena::CreateMaybeMessage<::infra_service::v1::CreateDomainUserWithGroupDataAck>(Arena*);
 template<> ::infra_service::v1::CreateSambaFileShareData* Arena::CreateMaybeMessage<::infra_service::v1::CreateSambaFileShareData>(Arena*);
 template<> ::infra_service::v1::CreateSambaFileShareDataAck* Arena::CreateMaybeMessage<::infra_service::v1::CreateSambaFileShareDataAck>(Arena*);
 template<> ::infra_service::v1::DeleteSambaFileShareData* Arena::CreateMaybeMessage<::infra_service::v1::DeleteSambaFileShareData>(Arena*);
@@ -1883,6 +1891,458 @@ class ResetUserPasswordDataAck PROTOBUF_FINAL :
 };
 // -------------------------------------------------------------------
 
+class CreateDomainUserWithGroupData PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:infra_service.v1.CreateDomainUserWithGroupData) */ {
+ public:
+  inline CreateDomainUserWithGroupData() : CreateDomainUserWithGroupData(nullptr) {};
+  virtual ~CreateDomainUserWithGroupData();
+
+  CreateDomainUserWithGroupData(const CreateDomainUserWithGroupData& from);
+  CreateDomainUserWithGroupData(CreateDomainUserWithGroupData&& from) noexcept
+    : CreateDomainUserWithGroupData() {
+    *this = ::std::move(from);
+  }
+
+  inline CreateDomainUserWithGroupData& operator=(const CreateDomainUserWithGroupData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateDomainUserWithGroupData& operator=(CreateDomainUserWithGroupData&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const CreateDomainUserWithGroupData& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const CreateDomainUserWithGroupData* internal_default_instance() {
+    return reinterpret_cast<const CreateDomainUserWithGroupData*>(
+               &_CreateDomainUserWithGroupData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    11;
+
+  friend void swap(CreateDomainUserWithGroupData& a, CreateDomainUserWithGroupData& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(CreateDomainUserWithGroupData* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateDomainUserWithGroupData* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline CreateDomainUserWithGroupData* New() const final {
+    return CreateMaybeMessage<CreateDomainUserWithGroupData>(nullptr);
+  }
+
+  CreateDomainUserWithGroupData* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<CreateDomainUserWithGroupData>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const CreateDomainUserWithGroupData& from);
+  void MergeFrom(const CreateDomainUserWithGroupData& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(CreateDomainUserWithGroupData* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "infra_service.v1.CreateDomainUserWithGroupData";
+  }
+  protected:
+  explicit CreateDomainUserWithGroupData(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_infra_5fservice_2finfra_5fservice_2eproto);
+    return ::descriptor_table_infra_5fservice_2finfra_5fservice_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kPasswordFieldNumber = 2,
+    kGroupNameFieldNumber = 3,
+  };
+  // string username = 1;
+  void clear_username();
+  const std::string& username() const;
+  void set_username(const std::string& value);
+  void set_username(std::string&& value);
+  void set_username(const char* value);
+  void set_username(const char* value, size_t size);
+  std::string* mutable_username();
+  std::string* release_username();
+  void set_allocated_username(std::string* username);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_username();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_username(
+      std::string* username);
+  private:
+  const std::string& _internal_username() const;
+  void _internal_set_username(const std::string& value);
+  std::string* _internal_mutable_username();
+  public:
+
+  // string password = 2;
+  void clear_password();
+  const std::string& password() const;
+  void set_password(const std::string& value);
+  void set_password(std::string&& value);
+  void set_password(const char* value);
+  void set_password(const char* value, size_t size);
+  std::string* mutable_password();
+  std::string* release_password();
+  void set_allocated_password(std::string* password);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_password();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_password(
+      std::string* password);
+  private:
+  const std::string& _internal_password() const;
+  void _internal_set_password(const std::string& value);
+  std::string* _internal_mutable_password();
+  public:
+
+  // string group_name = 3;
+  void clear_group_name();
+  const std::string& group_name() const;
+  void set_group_name(const std::string& value);
+  void set_group_name(std::string&& value);
+  void set_group_name(const char* value);
+  void set_group_name(const char* value, size_t size);
+  std::string* mutable_group_name();
+  std::string* release_group_name();
+  void set_allocated_group_name(std::string* group_name);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_group_name();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_group_name(
+      std::string* group_name);
+  private:
+  const std::string& _internal_group_name() const;
+  void _internal_set_group_name(const std::string& value);
+  std::string* _internal_mutable_group_name();
+  public:
+
+  // @@protoc_insertion_point(class_scope:infra_service.v1.CreateDomainUserWithGroupData)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr username_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr password_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr group_name_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+// -------------------------------------------------------------------
+
+class CreateDomainUserWithGroupDataAck PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:infra_service.v1.CreateDomainUserWithGroupDataAck) */ {
+ public:
+  inline CreateDomainUserWithGroupDataAck() : CreateDomainUserWithGroupDataAck(nullptr) {};
+  virtual ~CreateDomainUserWithGroupDataAck();
+
+  CreateDomainUserWithGroupDataAck(const CreateDomainUserWithGroupDataAck& from);
+  CreateDomainUserWithGroupDataAck(CreateDomainUserWithGroupDataAck&& from) noexcept
+    : CreateDomainUserWithGroupDataAck() {
+    *this = ::std::move(from);
+  }
+
+  inline CreateDomainUserWithGroupDataAck& operator=(const CreateDomainUserWithGroupDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateDomainUserWithGroupDataAck& operator=(CreateDomainUserWithGroupDataAck&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const CreateDomainUserWithGroupDataAck& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const CreateDomainUserWithGroupDataAck* internal_default_instance() {
+    return reinterpret_cast<const CreateDomainUserWithGroupDataAck*>(
+               &_CreateDomainUserWithGroupDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    12;
+
+  friend void swap(CreateDomainUserWithGroupDataAck& a, CreateDomainUserWithGroupDataAck& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(CreateDomainUserWithGroupDataAck* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateDomainUserWithGroupDataAck* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline CreateDomainUserWithGroupDataAck* New() const final {
+    return CreateMaybeMessage<CreateDomainUserWithGroupDataAck>(nullptr);
+  }
+
+  CreateDomainUserWithGroupDataAck* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<CreateDomainUserWithGroupDataAck>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const CreateDomainUserWithGroupDataAck& from);
+  void MergeFrom(const CreateDomainUserWithGroupDataAck& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(CreateDomainUserWithGroupDataAck* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "infra_service.v1.CreateDomainUserWithGroupDataAck";
+  }
+  protected:
+  explicit CreateDomainUserWithGroupDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_infra_5fservice_2finfra_5fservice_2eproto);
+    return ::descriptor_table_infra_5fservice_2finfra_5fservice_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUserResultFieldNumber = 2,
+    kGroupResultFieldNumber = 3,
+    kLinkResultFieldNumber = 4,
+    kMembershipResultFieldNumber = 5,
+    kStatusFieldNumber = 1,
+  };
+  // string user_result = 2;
+  void clear_user_result();
+  const std::string& user_result() const;
+  void set_user_result(const std::string& value);
+  void set_user_result(std::string&& value);
+  void set_user_result(const char* value);
+  void set_user_result(const char* value, size_t size);
+  std::string* mutable_user_result();
+  std::string* release_user_result();
+  void set_allocated_user_result(std::string* user_result);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_user_result();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_user_result(
+      std::string* user_result);
+  private:
+  const std::string& _internal_user_result() const;
+  void _internal_set_user_result(const std::string& value);
+  std::string* _internal_mutable_user_result();
+  public:
+
+  // string group_result = 3;
+  void clear_group_result();
+  const std::string& group_result() const;
+  void set_group_result(const std::string& value);
+  void set_group_result(std::string&& value);
+  void set_group_result(const char* value);
+  void set_group_result(const char* value, size_t size);
+  std::string* mutable_group_result();
+  std::string* release_group_result();
+  void set_allocated_group_result(std::string* group_result);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_group_result();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_group_result(
+      std::string* group_result);
+  private:
+  const std::string& _internal_group_result() const;
+  void _internal_set_group_result(const std::string& value);
+  std::string* _internal_mutable_group_result();
+  public:
+
+  // string link_result = 4;
+  void clear_link_result();
+  const std::string& link_result() const;
+  void set_link_result(const std::string& value);
+  void set_link_result(std::string&& value);
+  void set_link_result(const char* value);
+  void set_link_result(const char* value, size_t size);
+  std::string* mutable_link_result();
+  std::string* release_link_result();
+  void set_allocated_link_result(std::string* link_result);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_link_result();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_link_result(
+      std::string* link_result);
+  private:
+  const std::string& _internal_link_result() const;
+  void _internal_set_link_result(const std::string& value);
+  std::string* _internal_mutable_link_result();
+  public:
+
+  // string membership_result = 5;
+  void clear_membership_result();
+  const std::string& membership_result() const;
+  void set_membership_result(const std::string& value);
+  void set_membership_result(std::string&& value);
+  void set_membership_result(const char* value);
+  void set_membership_result(const char* value, size_t size);
+  std::string* mutable_membership_result();
+  std::string* release_membership_result();
+  void set_allocated_membership_result(std::string* membership_result);
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  std::string* unsafe_arena_release_membership_result();
+  GOOGLE_PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_membership_result(
+      std::string* membership_result);
+  private:
+  const std::string& _internal_membership_result() const;
+  void _internal_set_membership_result(const std::string& value);
+  std::string* _internal_mutable_membership_result();
+  public:
+
+  // .infra_service.v1.Status status = 1;
+  void clear_status();
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:infra_service.v1.CreateDomainUserWithGroupDataAck)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr user_result_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr group_result_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr link_result_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr membership_result_;
+  int status_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+// -------------------------------------------------------------------
+
 class GetUserListDataAck PROTOBUF_FINAL :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:infra_service.v1.GetUserListDataAck) */ {
  public:
@@ -1925,7 +2385,7 @@ class GetUserListDataAck PROTOBUF_FINAL :
                &_GetUserListDataAck_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    13;
 
   friend void swap(GetUserListDataAck& a, GetUserListDataAck& b) {
     a.Swap(&b);
@@ -2088,7 +2548,7 @@ class GetFileShareSizeData PROTOBUF_FINAL :
                &_GetFileShareSizeData_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    14;
 
   friend void swap(GetFileShareSizeData& a, GetFileShareSizeData& b) {
     a.Swap(&b);
@@ -2241,7 +2701,7 @@ class GetFileShareSizeDataAck PROTOBUF_FINAL :
                &_GetFileShareSizeDataAck_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    15;
 
   friend void swap(GetFileShareSizeDataAck& a, GetFileShareSizeDataAck& b) {
     a.Swap(&b);
@@ -2389,7 +2849,7 @@ class DeleteSambaFileShareData PROTOBUF_FINAL :
                &_DeleteSambaFileShareData_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    16;
 
   friend void swap(DeleteSambaFileShareData& a, DeleteSambaFileShareData& b) {
     a.Swap(&b);
@@ -2553,7 +3013,7 @@ class DeleteSambaFileShareDataAck PROTOBUF_FINAL :
                &_DeleteSambaFileShareDataAck_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    17;
 
   friend void swap(DeleteSambaFileShareDataAck& a, DeleteSambaFileShareDataAck& b) {
     a.Swap(&b);
@@ -3629,6 +4089,601 @@ inline void ResetUserPasswordDataAck::set_status(::infra_service::v1::Status val
 
 // -------------------------------------------------------------------
 
+// CreateDomainUserWithGroupData
+
+// string username = 1;
+inline void CreateDomainUserWithGroupData::clear_username() {
+  username_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupData::username() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.username)
+  return _internal_username();
+}
+inline void CreateDomainUserWithGroupData::set_username(const std::string& value) {
+  _internal_set_username(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline std::string* CreateDomainUserWithGroupData::mutable_username() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.username)
+  return _internal_mutable_username();
+}
+inline const std::string& CreateDomainUserWithGroupData::_internal_username() const {
+  return username_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_username(const std::string& value) {
+  
+  username_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_username(std::string&& value) {
+  
+  username_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline void CreateDomainUserWithGroupData::set_username(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  username_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline void CreateDomainUserWithGroupData::set_username(const char* value,
+    size_t size) {
+  
+  username_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline std::string* CreateDomainUserWithGroupData::_internal_mutable_username() {
+  
+  return username_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupData::release_username() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.username)
+  return username_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_allocated_username(std::string* username) {
+  if (username != nullptr) {
+    
+  } else {
+    
+  }
+  username_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), username,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline std::string* CreateDomainUserWithGroupData::unsafe_arena_release_username() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupData.username)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return username_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupData::unsafe_arena_set_allocated_username(
+    std::string* username) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (username != nullptr) {
+    
+  } else {
+    
+  }
+  username_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      username, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+
+// string password = 2;
+inline void CreateDomainUserWithGroupData::clear_password() {
+  password_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupData::password() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.password)
+  return _internal_password();
+}
+inline void CreateDomainUserWithGroupData::set_password(const std::string& value) {
+  _internal_set_password(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline std::string* CreateDomainUserWithGroupData::mutable_password() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.password)
+  return _internal_mutable_password();
+}
+inline const std::string& CreateDomainUserWithGroupData::_internal_password() const {
+  return password_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_password(const std::string& value) {
+  
+  password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_password(std::string&& value) {
+  
+  password_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline void CreateDomainUserWithGroupData::set_password(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline void CreateDomainUserWithGroupData::set_password(const char* value,
+    size_t size) {
+  
+  password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline std::string* CreateDomainUserWithGroupData::_internal_mutable_password() {
+  
+  return password_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupData::release_password() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.password)
+  return password_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_allocated_password(std::string* password) {
+  if (password != nullptr) {
+    
+  } else {
+    
+  }
+  password_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), password,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline std::string* CreateDomainUserWithGroupData::unsafe_arena_release_password() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupData.password)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return password_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupData::unsafe_arena_set_allocated_password(
+    std::string* password) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (password != nullptr) {
+    
+  } else {
+    
+  }
+  password_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      password, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+
+// string group_name = 3;
+inline void CreateDomainUserWithGroupData::clear_group_name() {
+  group_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupData::group_name() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  return _internal_group_name();
+}
+inline void CreateDomainUserWithGroupData::set_group_name(const std::string& value) {
+  _internal_set_group_name(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline std::string* CreateDomainUserWithGroupData::mutable_group_name() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  return _internal_mutable_group_name();
+}
+inline const std::string& CreateDomainUserWithGroupData::_internal_group_name() const {
+  return group_name_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_group_name(const std::string& value) {
+  
+  group_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_group_name(std::string&& value) {
+  
+  group_name_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline void CreateDomainUserWithGroupData::set_group_name(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  group_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline void CreateDomainUserWithGroupData::set_group_name(const char* value,
+    size_t size) {
+  
+  group_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline std::string* CreateDomainUserWithGroupData::_internal_mutable_group_name() {
+  
+  return group_name_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupData::release_group_name() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  return group_name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupData::set_allocated_group_name(std::string* group_name) {
+  if (group_name != nullptr) {
+    
+  } else {
+    
+  }
+  group_name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), group_name,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline std::string* CreateDomainUserWithGroupData::unsafe_arena_release_group_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return group_name_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupData::unsafe_arena_set_allocated_group_name(
+    std::string* group_name) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (group_name != nullptr) {
+    
+  } else {
+    
+  }
+  group_name_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      group_name, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+
+// -------------------------------------------------------------------
+
+// CreateDomainUserWithGroupDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void CreateDomainUserWithGroupDataAck::clear_status() {
+  status_ = 0;
+}
+inline ::infra_service::v1::Status CreateDomainUserWithGroupDataAck::_internal_status() const {
+  return static_cast< ::infra_service::v1::Status >(status_);
+}
+inline ::infra_service::v1::Status CreateDomainUserWithGroupDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.status)
+  return _internal_status();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  
+  status_ = value;
+}
+inline void CreateDomainUserWithGroupDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.status)
+}
+
+// string user_result = 2;
+inline void CreateDomainUserWithGroupDataAck::clear_user_result() {
+  user_result_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::user_result() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  return _internal_user_result();
+}
+inline void CreateDomainUserWithGroupDataAck::set_user_result(const std::string& value) {
+  _internal_set_user_result(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::mutable_user_result() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  return _internal_mutable_user_result();
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::_internal_user_result() const {
+  return user_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_user_result(const std::string& value) {
+  
+  user_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_user_result(std::string&& value) {
+  
+  user_result_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_user_result(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  user_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_user_result(const char* value,
+    size_t size) {
+  
+  user_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::_internal_mutable_user_result() {
+  
+  return user_result_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupDataAck::release_user_result() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  return user_result_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_user_result(std::string* user_result) {
+  if (user_result != nullptr) {
+    
+  } else {
+    
+  }
+  user_result_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), user_result,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::unsafe_arena_release_user_result() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return user_result_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::unsafe_arena_set_allocated_user_result(
+    std::string* user_result) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (user_result != nullptr) {
+    
+  } else {
+    
+  }
+  user_result_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      user_result, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+
+// string group_result = 3;
+inline void CreateDomainUserWithGroupDataAck::clear_group_result() {
+  group_result_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::group_result() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  return _internal_group_result();
+}
+inline void CreateDomainUserWithGroupDataAck::set_group_result(const std::string& value) {
+  _internal_set_group_result(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::mutable_group_result() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  return _internal_mutable_group_result();
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::_internal_group_result() const {
+  return group_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_group_result(const std::string& value) {
+  
+  group_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_group_result(std::string&& value) {
+  
+  group_result_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_group_result(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  group_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_group_result(const char* value,
+    size_t size) {
+  
+  group_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::_internal_mutable_group_result() {
+  
+  return group_result_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupDataAck::release_group_result() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  return group_result_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_group_result(std::string* group_result) {
+  if (group_result != nullptr) {
+    
+  } else {
+    
+  }
+  group_result_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), group_result,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::unsafe_arena_release_group_result() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return group_result_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::unsafe_arena_set_allocated_group_result(
+    std::string* group_result) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (group_result != nullptr) {
+    
+  } else {
+    
+  }
+  group_result_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      group_result, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+
+// string link_result = 4;
+inline void CreateDomainUserWithGroupDataAck::clear_link_result() {
+  link_result_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::link_result() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  return _internal_link_result();
+}
+inline void CreateDomainUserWithGroupDataAck::set_link_result(const std::string& value) {
+  _internal_set_link_result(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::mutable_link_result() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  return _internal_mutable_link_result();
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::_internal_link_result() const {
+  return link_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_link_result(const std::string& value) {
+  
+  link_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_link_result(std::string&& value) {
+  
+  link_result_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_link_result(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  link_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_link_result(const char* value,
+    size_t size) {
+  
+  link_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::_internal_mutable_link_result() {
+  
+  return link_result_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupDataAck::release_link_result() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  return link_result_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_link_result(std::string* link_result) {
+  if (link_result != nullptr) {
+    
+  } else {
+    
+  }
+  link_result_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), link_result,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::unsafe_arena_release_link_result() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return link_result_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::unsafe_arena_set_allocated_link_result(
+    std::string* link_result) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (link_result != nullptr) {
+    
+  } else {
+    
+  }
+  link_result_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      link_result, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+
+// string membership_result = 5;
+inline void CreateDomainUserWithGroupDataAck::clear_membership_result() {
+  membership_result_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::membership_result() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  return _internal_membership_result();
+}
+inline void CreateDomainUserWithGroupDataAck::set_membership_result(const std::string& value) {
+  _internal_set_membership_result(value);
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::mutable_membership_result() {
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  return _internal_mutable_membership_result();
+}
+inline const std::string& CreateDomainUserWithGroupDataAck::_internal_membership_result() const {
+  return membership_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_membership_result(const std::string& value) {
+  
+  membership_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value, GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_membership_result(std::string&& value) {
+  
+  membership_result_.Set(
+    &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArena());
+  // @@protoc_insertion_point(field_set_rvalue:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_membership_result(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  
+  membership_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArena());
+  // @@protoc_insertion_point(field_set_char:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline void CreateDomainUserWithGroupDataAck::set_membership_result(const char* value,
+    size_t size) {
+  
+  membership_result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArena());
+  // @@protoc_insertion_point(field_set_pointer:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::_internal_mutable_membership_result() {
+  
+  return membership_result_.Mutable(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline std::string* CreateDomainUserWithGroupDataAck::release_membership_result() {
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  return membership_result_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_membership_result(std::string* membership_result) {
+  if (membership_result != nullptr) {
+    
+  } else {
+    
+  }
+  membership_result_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), membership_result,
+      GetArena());
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline std::string* CreateDomainUserWithGroupDataAck::unsafe_arena_release_membership_result() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  
+  return membership_result_.UnsafeArenaRelease(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      GetArena());
+}
+inline void CreateDomainUserWithGroupDataAck::unsafe_arena_set_allocated_membership_result(
+    std::string* membership_result) {
+  GOOGLE_DCHECK(GetArena() != nullptr);
+  if (membership_result != nullptr) {
+    
+  } else {
+    
+  }
+  membership_result_.UnsafeArenaSetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      membership_result, GetArena());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+
+// -------------------------------------------------------------------
+
 // GetUserListDataAck
 
 // .infra_service.v1.Status status = 1;
@@ -3986,6 +5041,10 @@ inline void DeleteSambaFileShareDataAck::set_status(::infra_service::v1::Status 
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -30,6 +30,7 @@ public:
     	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
     	Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response) override;
 	Status AddDomainGroup(ServerContext* context, const is::AddDomainGroupData* request, is::AddDomainGroupDataAck* response) override;
+	Status CreateDomainUserWithGroup(ServerContext* context, const is::CreateDomainUserWithGroupData* request, is::CreateDomainUserWithGroupDataAck* response) override;
 	Status RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response) override;
 	Status DeleteSambaFileShare(ServerContext* context, const is::DeleteSambaFileShareData* request, is::DeleteSambaFileShareDataAck* response) override;
 private:

@@ -353,6 +353,85 @@ def dc_add_user(org_id: str, username: str, password: str):
     return {"status":"UNKNOWN", "message":"Unexpected response"}
 
 
+def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
+    """
+    Create a domain user, provision a group, nest it under Domain Users, and add the user to that group.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_create_user_with_group"
+        job.save_meta()
+
+    if not validate_username(username, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid username"
+            job.save_meta()
+        return {"message": f"the provider username is invalid (username={username})"}
+
+    if not validate_password(password, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid password"
+            job.save_meta()
+        return {"message": f"the provider password is invalid (password={password})"}
+
+    if group_name is None or group_name.strip() == "":
+        group_name = f"{username}-group"
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid group name"
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.CreateDomainUserWithGroupData(
+        username=username,
+        password=password,
+        group_name=group_name,
+    )
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.CreateDomainUserWithGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.CreateDomainUserWithGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    result_payload = {
+        "user_result": response.user_result,
+        "group_result": response.group_result,
+        "link_result": response.link_result,
+        "membership_result": response.membership_result,
+    }
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created user with group linkage")
+        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
+
+    if status == infra_pb2.DUPLICATE:
+        logger.warning("User already exists")
+        return {"status": "DUPLICATE", "message": "User already exists", "result": result_payload}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to create user with group")
+        return {"status": "FAILED", "message": "Failed to create user with group", "result": result_payload}
+
+    logger.error("Unexpected response when creating user with group")
+    return {"status": "UNKNOWN", "message": "Unexpected response", "result": result_payload}
+
+
 
 def dc_remove_user(org_id: str, username: str):
     """

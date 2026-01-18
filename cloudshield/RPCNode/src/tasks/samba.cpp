@@ -34,6 +34,12 @@ std::string SambaTask::LinkGroupToDomainUsers(std::string group_name)
 	return this->RunCommand(full_cmd);
 }
 
+std::string SambaTask::AddUserToGroup(std::string group_name, std::string username)
+{
+	std::string full_cmd = BuildCommand(this->GROUP_ADD_MEMBER_CMD, group_name.c_str(), username.c_str());
+	return this->RunCommand(full_cmd);
+}
+
 std::string SambaTask::RestartSambaService()
 {
 	std::system(this->RESTART_SAMBA_CMD);

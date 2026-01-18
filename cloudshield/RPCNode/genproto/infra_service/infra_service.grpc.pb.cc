@@ -28,6 +28,7 @@ static const char* InfraService_method_names[] = {
   "/infra_service.v1.InfraService/CreateSambaFileShare",
   "/infra_service.v1.InfraService/DeleteSambaFileShare",
   "/infra_service.v1.InfraService/AddDomainGroup",
+  "/infra_service.v1.InfraService/CreateDomainUserWithGroup",
   "/infra_service.v1.InfraService/ResetUserPassword",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
@@ -46,10 +47,11 @@ InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& chann
   , rpcmethod_CreateSambaFileShare_(InfraService_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[3], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_AddDomainGroup_(InfraService_method_names[4], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_ResetUserPassword_(InfraService_method_names[5], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[6], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[7], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetFileShareSize_(InfraService_method_names[8], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateDomainUserWithGroup_(InfraService_method_names[5], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[6], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[7], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[8], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetFileShareSize_(InfraService_method_names[9], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status InfraService::Stub::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::GetUserListDataAck* response) {
@@ -190,6 +192,34 @@ void InfraService::Stub::experimental_async::AddDomainGroup(::grpc::ClientContex
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
   return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDomainGroupDataAck>::Create(channel_.get(), cq, rpcmethod_AddDomainGroup_, context, request, false);
+}
+
+::grpc::Status InfraService::Stub::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_CreateDomainUserWithGroup_, context, request, response);
+}
+
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateDomainUserWithGroupDataAck>* InfraService::Stub::AsyncCreateDomainUserWithGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateDomainUserWithGroupDataAck>::Create(channel_.get(), cq, rpcmethod_CreateDomainUserWithGroup_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateDomainUserWithGroupDataAck>* InfraService::Stub::PrepareAsyncCreateDomainUserWithGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateDomainUserWithGroupDataAck>::Create(channel_.get(), cq, rpcmethod_CreateDomainUserWithGroup_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::infra_service::v1::ResetUserPasswordDataAck* response) {
@@ -358,6 +388,16 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[5],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>(
+          [](InfraService::Service* service,
+             ::grpc_impl::ServerContext* ctx,
+             const ::infra_service::v1::CreateDomainUserWithGroupData* req,
+             ::infra_service::v1::CreateDomainUserWithGroupDataAck* resp) {
+               return service->CreateDomainUserWithGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[6],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
           [](InfraService::Service* service,
              ::grpc_impl::ServerContext* ctx,
@@ -366,7 +406,7 @@ InfraService::Service::Service() {
                return service->ResetUserPassword(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[6],
+      InfraService_method_names[7],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
           [](InfraService::Service* service,
@@ -376,7 +416,7 @@ InfraService::Service::Service() {
                return service->AddDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[7],
+      InfraService_method_names[8],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
           [](InfraService::Service* service,
@@ -386,7 +426,7 @@ InfraService::Service::Service() {
                return service->RemoveDomainUser(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      InfraService_method_names[8],
+      InfraService_method_names[9],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
           [](InfraService::Service* service,
@@ -429,6 +469,13 @@ InfraService::Service::~Service() {
 }
 
 ::grpc::Status InfraService::Service::AddDomainGroup(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status InfraService::Service::CreateDomainUserWithGroup(::grpc::ServerContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response) {
   (void) context;
   (void) request;
   (void) response;
