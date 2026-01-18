@@ -67,11 +67,17 @@ def dc_create_file_share(org_id: str, share_name: str):
         job.meta["progress"] = "stating dc_create_samba_file_share"
         job.save_meta()
 
-    nodes = get_server_nodes(org_id)
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
     
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
 
 
     response = infra_pb2.CreateSambaFileShareDataAck()
@@ -318,7 +324,10 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     
     # this tasks is meant for the domain controller so we get that node's ip
-    nodes = get_server_nodes(org_id)
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
 
     request = infra_pb2.AddDomainUserData(username=username, password=password)
 
