@@ -72,6 +72,17 @@ try:
     except Exception as e:
         print(f"[database.py] Note: access_groups index creation skipped: {e}")
 
+    # File shares collection with indexes
+    shares = db_admin["shares"]
+    try:
+        # Ensure unique share names per organization
+        shares.create_index([("org_id", 1), ("name", 1)], unique=True)
+        # Ensure unique drive letters per organization (Z, Y, X, etc. - excluding C)
+        shares.create_index([("org_id", 1), ("drive", 1)], unique=True)
+        shares.create_index("org_id")
+    except Exception as e:
+        print(f"[database.py] Note: shares index creation skipped: {e}")
+
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
     
@@ -109,7 +120,8 @@ __all__ = [
     "db",
     "client",
     "orgs",
-    "audit"
+    "audit",
+    "shares",
 ]
 
 
