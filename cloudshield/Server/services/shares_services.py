@@ -1,0 +1,216 @@
+"""Service layer for file shares (create/list/delete)."""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Iterable, List
+
+from pymongo.errors import PyMongoError
+
+from models.shares import FileShareCreate, create_fileshare_doc
+from utils import shares
+
+
+DRIVE_LETTERS = [chr(c) for c in range(ord("A"), ord("Z") + 1)]
+RESERVED_DRIVES = {"C"}
+
+
+def _normalize_drive_letter(value: str) -> str:
+    """
+    Normalize a drive letter to uppercase and strip whitespace.
+    
+    """
+    return (value or "").strip().upper()
+
+
+def _available_drive_letters(used: Iterable[str]) -> List[str]:
+    """
+    Calculate available drive letters excluding used and reserved drives.
+    
+    Args:
+        used: Iterable of already-assigned drive letters
+    
+    Returns:
+        List of available drive letters in reverse alphabetical order (Z->A)
+        excluding reserved drive 'C'
+    """
+    used_set = {_normalize_drive_letter(letter) for letter in used if letter}
+    candidates = [letter for letter in DRIVE_LETTERS if letter not in RESERVED_DRIVES]
+    candidates.reverse()
+    return [letter for letter in candidates if letter not in used_set]
+
+
+def allocate_drive_letter(org_id: str) -> str:
+    """
+    Allocate the next available drive letter for an organization.
+    
+    Queries MongoDB for existing drive assignments and returns the first
+    available drive letter in reverse alphabetical order (Z, Y, X, ..., D, B, A).
+    Drive letter 'C' is reserved and never assigned.
+    
+    Args:
+        org_id: Organization identifier to scope drive allocation
+    
+    Returns:
+        Next available drive letter (e.g., "Z", "Y", "X")
+    
+    Raises:
+        ValueError: If all 25 drive letters (A-Z excluding C) are exhausted
+    """
+    used = [
+        _normalize_drive_letter(doc.get("drive"))
+        for doc in shares.find({"org_id": org_id}, {"drive": 1})
+    ]
+    available = _available_drive_letters(used)
+    if not available:
+        raise ValueError("No available drive letters")
+    return available[0]
+
+
+def create_share(
+    org_id: str,
+    name: str,
+    groups: List[str] | None = None,
+    description: str | None = None,
+    owner: str | None = None,
+) -> dict:
+    """
+    Create a new file share record with auto-allocated drive letter.
+    
+    Allocates a unique drive letter (Z->A order), validates input via Pydantic,
+    and persists the share to. The share will be mountable as a network
+    drive on workstations (e.g., Z:, Y:, X:).
+    
+    Args:
+        org_id: Organization identifier to scope the share
+        name: Share name (must be unique within organization)
+        groups: Optional list of group names that have access to this share
+        description: Optional human-readable description
+        owner: Optional email/username of the share owner
+    
+    Returns:
+        Document dict with all share fields including:
+        - id: String representation of MongoDB ObjectId
+        - drive: Allocated drive letter (e.g., "Z")
+        - created_at/updated_at: ISO format timestamps
+    
+    Raises:
+        ValueError: If no drive letters available or MongoDB insertion fails
+        PyMongoError: If database operation fails (wrapped in ValueError)
+    """
+    drive = allocate_drive_letter(org_id)
+    share_model = FileShareCreate(
+        org_id=org_id,
+        name=name,
+        groups=groups or [],
+        drive=drive,
+        description=description,
+        owner=owner,
+    )
+    share_doc = create_fileshare_doc(share_model)
+    try:
+        res = shares.insert_one(share_doc)
+    except PyMongoError as exc:
+        raise ValueError(f"Failed to create file share: {exc}") from exc
+    share_doc["id"] = str(res.inserted_id)
+    return share_doc
+
+
+def list_shares(org_id: str) -> List[dict]:
+    """
+    List all file shares for an organization
+    
+    Args:
+        org_id: Organization identifier to filter shares
+    
+    Returns:
+        List of document dicts, each containing:
+        - _id: MongoDB ObjectId
+        - org_id: Organization identifier
+        - name: Share name
+        - drive: Allocated drive letter
+        - groups: List of group names with access
+        - description: Optional description
+        - owner: Optional owner email/username
+        - created_at/updated_at: datetime objects
+    """
+    docs = shares.find({"org_id": org_id}).sort("created_at", 1)
+    return list(docs)
+
+
+def list_groups_with_shares(org_id: str) -> List[dict]:
+    """
+    List groups and their associated shares (inverted view).
+    
+    Transforms share-centric data (share -> groups) into group-centric data
+    (group -> shares). Useful for displaying which shares each group has access to.
+    
+    Args:
+        org_id: Organization identifier to filter shares
+    
+    Returns:
+        List of dicts with structure:
+        [
+            {
+                "group": {
+                    "name": "engineering",
+                    "shares": ["Documents", "Projects"]
+                }
+            },
+            ...
+        ]
+        Groups are sorted by name, shares are sorted and deduplicated.
+    """
+    groups_map: dict[str, List[str]] = {}
+    for doc in shares.find({"org_id": org_id}, {"name": 1, "groups": 1}):
+        share_name = doc.get("name")
+        for group in doc.get("groups") or []:
+            groups_map.setdefault(group, []).append(share_name)
+    return [{"group": {"name": name, "shares": sorted(set(names))}} for name, names in groups_map.items()]
+
+
+def update_share(org_id: str, name: str, update_fields: dict) -> bool:
+    """
+    Update file share metadata (groups, description, owner).
+    
+    Automatically sets updated_at timestamp. Does not allow changing
+    org_id, name, or drive fields.
+    
+    Args:
+        org_id: Organization identifier to scope the update
+        name: Share name to update (immutable identifier)
+        update_fields: Dict of fields to update. Supported keys:
+            - groups: List[str] - Group names with access
+            - description: str - Human-readable description
+            - owner: str - Owner email/username
+    
+    Returns:
+        True if share was found and updated, False if not found
+    """
+    if not update_fields:
+        return False
+
+    update_fields["updated_at"] = datetime.now(timezone.utc)
+
+    result = shares.update_one(
+        {"org_id": org_id, "name": name},
+        {"$set": update_fields}
+    )
+    return result.matched_count > 0
+
+
+def delete_share(org_id: str, name: str) -> bool:
+    """
+    Delete a file share record from MongoDB.
+    
+    Removes the share document, freeing up the allocated drive letter
+    for reuse by future shares in the same organization.
+    
+    Args:
+        org_id: Organization identifier to scope the deletion
+        name: Share name to delete
+    
+    Returns:
+        True if share was found and deleted, False if not found
+    """
+    deleted = shares.find_one_and_delete({"org_id": org_id, "name": name})
+    return deleted is not None
