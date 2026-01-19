@@ -524,6 +524,8 @@ describe('EmployeesPage', () => {
   expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
 
   expect(deleteJaneButton).toBeDisabled();
+
+  expect(within(deleteJaneButton).getByRole('progressbar')).toBeInTheDocument();
   });
 
 });
