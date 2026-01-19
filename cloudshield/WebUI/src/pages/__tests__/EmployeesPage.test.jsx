@@ -14,13 +14,6 @@ jest.mock('../../services/usersApi.js', () => ({
   createUser: jest.fn(),
 }));
 
-jest.mock("../../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: { id: "admin-001", role: "admin", org_id: "org_001" },
-    accessToken: "fake-token",
-  }),
-}));
-
 const AuthSpy = ({ onAuth }) => {
   onAuth(useAuth());
   return null;
@@ -543,23 +536,28 @@ describe('EmployeesPage', () => {
   });
 
   it("shows error when user is not found (404) and keeps the row", async () => {
-  deleteUser.mockRejectedValueOnce({
-    status: 404,
-    payload: { error: "Not found" },
+  const err = new Error("Not found");
+  err.payload = { error: "Not found" };
+  err.status = 404;
+  deleteUser.mockRejectedValueOnce(err);
+
+  renderWithProviders();
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
   });
 
-  render(<EmployeesPage />);
+  await user.click(screen.getByRole("button", { name: /delete user jane smith/i }));
+  await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
 
-  const userEmail = "employee.one@acme.com";
+  await user.click(screen.getByRole("button", { name: /confirm/i }));
 
-  const deleteBtn = await screen.findByLabelText(
-    new RegExp(`Delete user.*${userEmail}`, "i")
-  );
+  await waitFor(() => {
+    expect(screen.getAllByText(/not found/i).length).toBeGreaterThan(0);
+  });
 
-  fireEvent.click(deleteBtn);
-  fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-
-  await screen.findByLabelText(new RegExp(`Delete user.*${userEmail}`, "i"));
-  expect(screen.getByLabelText(new RegExp(`Delete user.*${userEmail}`, "i"))).toBeInTheDocument();
+  expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /delete user jane smith/i })).toBeInTheDocument();
   });
 });
