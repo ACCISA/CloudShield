@@ -584,3 +584,89 @@ class TestFileShareListEndpoints:
         resp = client.get("/api/file_share_groups")
         assert resp.status_code == 422
         assert "org_id is required" in resp.get_json()["error"]
+
+
+class TestUpdateFileShareEndpoint:
+    """Tests for PATCH /file_shares/<share_name>"""
+
+    def test_update_file_share_success(self, client, monkeypatch):
+        """Test successful update with groups"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "org_id": "org1",
+            "groups": ["groupA", "groupB"]
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["status"] == "SUCCESS"
+        assert "updated successfully" in data["message"]
+
+    def test_update_file_share_with_description(self, client, monkeypatch):
+        """Test update with description"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "org_id": "org1",
+            "description": "New description"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_owner(self, client, monkeypatch):
+        """Test update with owner"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "org_id": "org1",
+            "owner": "admin@example.com"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_all_fields(self, client, monkeypatch):
+        """Test update with all optional fields"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "org_id": "org1",
+            "groups": ["groupA"],
+            "description": "Updated description",
+            "owner": "owner@example.com"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_missing_org_id(self, client):
+        """Test missing org_id validation"""
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "groups": ["groupA"]
+        })
+        assert resp.status_code == 422
+        assert "org_id is required" in resp.get_json()["error"]
+
+    def test_update_file_share_no_fields(self, client):
+        """Test error when no update fields provided"""
+        resp = client.patch("/api/file_shares/TestShare", json={
+            "org_id": "org1"
+        })
+        assert resp.status_code == 400
+        assert "No fields to update" in resp.get_json()["error"]
+
+    def test_update_file_share_not_found(self, client, monkeypatch):
+        """Test 404 when share doesn't exist"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: False)
+
+        resp = client.patch("/api/file_shares/NonExistentShare", json={
+            "org_id": "org1",
+            "groups": ["groupA"]
+        })
+        assert resp.status_code == 404
+        assert "Share not found" in resp.get_json()["error"]
