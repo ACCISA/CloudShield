@@ -22,4 +22,14 @@ test("E2E: delete user flow (API seed + pre-auth -> delete -> UI updates)", asyn
       reason: "api e2e create",
     },
   });
+
+  await page.addInitScript(
+  ({ token }) => {
+    localStorage.setItem("jwt", token);
+    localStorage.setItem("access_token", token);
+    localStorage.setItem("org_id", "org_001");
+    localStorage.setItem("isProvisioned", "true");
+  },
+  { token: adminToken }
+  );
 });
