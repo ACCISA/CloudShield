@@ -19,6 +19,13 @@ const AuthSpy = ({ onAuth }) => {
   return null;
 };
 
+// Utility to create a deferred promise
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
 async function openDeleteDialog(user, label) {
   await user.click(screen.getByRole('button', { name: new RegExp(`delete user ${label}`, 'i') }));
   await waitFor(() => {
