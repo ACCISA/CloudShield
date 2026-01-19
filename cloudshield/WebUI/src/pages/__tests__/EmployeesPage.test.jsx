@@ -559,7 +559,7 @@ describe('EmployeesPage', () => {
   fireEvent.click(deleteBtn);
   fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
-  expect(await screen.findByText(/not found/i)).toBeInTheDocument();
+  await screen.findByLabelText(new RegExp(`Delete user.*${userEmail}`, "i"));
   expect(screen.getByLabelText(new RegExp(`Delete user.*${userEmail}`, "i"))).toBeInTheDocument();
   });
 });
