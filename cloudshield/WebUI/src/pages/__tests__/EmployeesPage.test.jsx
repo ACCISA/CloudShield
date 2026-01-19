@@ -410,4 +410,28 @@ describe('EmployeesPage', () => {
     expect(await screen.findByText(/user limit reached/i)).toBeInTheDocument();
     expect(createUser).toHaveBeenCalled();
   });
+
+
+  it('cancels deletion: closes dialog and does not call API', async () => {
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
 });
