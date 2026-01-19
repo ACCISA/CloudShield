@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import PropTypes from "prop-types"; // Import PropTypes for validation
+import PropTypes from "prop-types";
 
-// Noah's Custom UI Components
+// UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
 import UserEditModal from "../components/users/UserEditModal.jsx";
 import UserCreateModal from "../components/users/UserCreateModal.jsx";
@@ -12,11 +12,11 @@ import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx"
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 
-// Richard's Backend Logic & Context
+// Backend & Context
 import { listUsers, deleteUser, createUser, updateUser } from '../services/usersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-// --- Simple Custom Toast Component (Replaces MUI Snackbar) ---
+// Toast Notification
 const CustomToast = ({ msg, type, onClose }) => {
   if (!msg) return null;
 
@@ -26,7 +26,7 @@ const CustomToast = ({ msg, type, onClose }) => {
     right: '24px',
     padding: '12px 24px',
     borderRadius: '12px',
-    backgroundColor: type === 'error' ? '#d32f2f' : '#2e7d32', // Red for error, Green for success
+    backgroundColor: type === 'error' ? '#d32f2f' : '#2e7d32',
     color: '#fff',
     fontSize: '1rem',
     boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
@@ -37,7 +37,6 @@ const CustomToast = ({ msg, type, onClose }) => {
     cursor: 'pointer'
   };
 
-  // Accessibility fix: Keyboard support for the clickable div
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -59,7 +58,6 @@ const CustomToast = ({ msg, type, onClose }) => {
   );
 };
 
-// PropTypes validation (Fixes SonarCloud "missing in props validation")
 CustomToast.propTypes = {
   msg: PropTypes.string.isRequired,
   type: PropTypes.oneOf(['success', 'error', 'info', 'warning']),
@@ -71,49 +69,39 @@ CustomToast.defaultProps = {
 };
 
 export default function EmployeesPage() {
-  // --- Auth & Context ---
   const { accessToken, currentUser } = useAuth();
 
-  // --- UI State ---
+  // UI State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [layout, setLayout] = useState("list");
-  
-  // Note: Removed unused state variables (showTitle, showWorkstations, etc.)
-  // and passed them directly as props to UsersTable to fix "Unused variable" Code Smells.
 
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
 
-  // --- Data State ---
+  // Data State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   
-  // Filter state
   const [activeFilters, setActiveFilters] = useState({
     status: new Set(),
   });
 
-  // Toast State
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
   const openToast = (msg, type = "success") => {
     setToast({ open: true, msg, type });
-    // Auto-hide after 3 seconds
     setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
   };
 
-  // --- Helpers ---
-  
-  // Maps Backend API Object -> UI Component Object
+  // Mappers
   const mapUserToUI = (user) => ({
     id: user._id,
     name: user.full_name || user.email, 
     email: user.email,
     title: user.role || "Employee",
-    // Defaults to 0 if backend doesn't send these yet
     workstations: user.workstations || 0, 
     groups: user.groups || 0,
     files: user.files || 0,
@@ -121,14 +109,12 @@ export default function EmployeesPage() {
     _original: user 
   });
 
-  // --- API Actions ---
-
+  // API Actions
   const fetchUsers = useCallback(async () => {
     if (!accessToken) return;
     
     setLoading(true);
     try {
-      // Calls Richard's API
       const data = await listUsers({
         token: accessToken,
         search: search, 
@@ -147,7 +133,6 @@ export default function EmployeesPage() {
     }
   }, [accessToken, search]);
 
-  // Initial Fetch
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
@@ -219,8 +204,7 @@ export default function EmployeesPage() {
     }
   };
 
-  // --- Filtering & Sorting (Noah's Logic) ---
-
+  // Logic: Filter & Sort
   const filtered = useMemo(() => {
     let out = [...users];
     
@@ -382,7 +366,6 @@ export default function EmployeesPage() {
         onSubmit={handleCreate}
       />
 
-      {/* Custom Toast Notification (No MUI) */}
       {toast.open && (
         <CustomToast 
           msg={toast.msg} 
