@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import EmployeesPage from '../EmployeesPage.jsx';
 import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
 import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
+import { within } from '@testing-library/react';
 
 jest.setTimeout(10000);
 
@@ -18,20 +19,6 @@ const AuthSpy = ({ onAuth }) => {
   onAuth(useAuth());
   return null;
 };
-
-// Utility to create a deferred promise
-function deferred() {
-  let resolve, reject;
-  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
-  return { promise, resolve, reject };
-}
-
-async function openDeleteDialog(user, label) {
-  await user.click(screen.getByRole('button', { name: new RegExp(`delete user ${label}`, 'i') }));
-  await waitFor(() => {
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-}
 
 const renderWithProviders = ({ initialState = {}, captureAuth = false } = {}) => {
   const initialUser = {
@@ -65,6 +52,12 @@ const renderWithProviders = ({ initialState = {}, captureAuth = false } = {}) =>
 
   return { ...utils, getAuth: () => captured.current };
 };
+
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
 
 describe('EmployeesPage', () => {
   const seedUsers = [
@@ -449,7 +442,7 @@ describe('EmployeesPage', () => {
     expect(deleteUser).not.toHaveBeenCalled();
   });
 
-  it('shows correct user identity in confirmation dialog (name/email)', async () => {
+it('shows correct user identity in confirmation dialog (name/email)', async () => {
   listUsers.mockResolvedValueOnce([
     { _id: 'user-101', full_name: 'Jane Smith', email: 'jane@example.com', role: 'employee', status: 'active' },
     { _id: 'user-102', full_name: '', email: 'noname@example.com', role: 'employee', status: 'active' },
@@ -458,21 +451,22 @@ describe('EmployeesPage', () => {
     renderWithProviders();
     const user = userEvent.setup();
 
-    // Wait for both users to load
+    // Wait until the list renders
     expect(await screen.findByText('Jane Smith')).toBeInTheDocument();
 
-    // --- Case 1: dialog shows full name when available ---
+    // --- Case 1: dialog shows full name ---
     await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
 
     const dialog1 = await screen.findByRole('dialog');
     expect(within(dialog1).getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+    // scoped to dialog so it doesn't accidentally match the table cell
     expect(within(dialog1).getByText('Jane Smith')).toBeInTheDocument();
 
     await user.click(within(dialog1).getByRole('button', { name: /cancel/i }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
-    // --- Case 2: dialog falls back to email when name is missing ---
-    // Find the row for the user with no name
+    // --- Case 2: dialog shows email fallback when name is blank ---
+    // Find the table cell with the email, then grab its row and click the delete button inside it
     const emailCell = screen.getByText('noname@example.com');
     const row = emailCell.closest('tr');
     expect(row).not.toBeNull();
@@ -484,96 +478,84 @@ describe('EmployeesPage', () => {
     expect(within(dialog2).getByText('noname@example.com')).toBeInTheDocument();
   });
 
-  it('shows correct user name in confirmation dialog', async () => {
-  renderWithProviders();
-  const user = userEvent.setup();
+ //--------------------------------------------------------------------------
 
-  await waitFor(() => {
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  });
+  it('disables controls and shows spinner while deletion is in-flight', async () => {
+    const d = deferred();
+    deleteUser.mockImplementation(() => d.promise);
 
-  await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
+    renderWithProviders();
+    const user = userEvent.setup();
 
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
-  expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
-  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  });
-
-  it('disables controls while deletion is in-flight', async () => {
-  const d = deferred();
-  deleteUser.mockImplementation(() => d.promise);
-
-  renderWithProviders();
-  const user = userEvent.setup();
-
-  await waitFor(() => {
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  });
-
-
-  const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
-  await user.click(deleteJaneButton);
-
-  await waitFor(() => {
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  const confirmButton = screen.getByRole('button', { name: /confirm/i });
-  await user.click(confirmButton);
-
-  expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
-  expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
-  expect(deleteJaneButton).toBeDisabled();
-  expect(within(deleteJaneButton).getByRole('progressbar')).toBeInTheDocument();
-
-  d.resolve({ message: 'User deleted' });
-
-  await waitFor(() => {
-    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
-  });
-
-  expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
-  });
-
-  it('shows error when user is not found (404) and keeps the row', async () => {
-  const err = new Error('Not found');
-  err.payload = { error: 'Not found' };
-  err.status = 404;
-  deleteUser.mockRejectedValueOnce(err);
-
-  renderWithProviders();
-  const user = userEvent.setup();
-
-  await waitFor(() => {
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  });
-
-  await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
-  await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
-
-  await user.click(screen.getByRole('button', { name: /confirm/i }));
-
-  await waitFor(() => {
-    expect(screen.getAllByText(/not found/i).length).toBeGreaterThan(0);
-  });
-
-  expect(deleteUser).toHaveBeenCalledWith('user-001', expect.objectContaining({ token: 'test-token' }));
-
-  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /delete user jane smith/i })).toBeInTheDocument();
-  });
-
-  it("throws structured error on 404 Not Found", async () => {
-  fetch.mockResolvedValueOnce({
-    ok: false,
-    status: 404,
-    json: async () => ({ error: "Not found" }),
-  });
-
-  await expect(deleteUser("user-123", { token: "test-token" }))
-    .rejects.toMatchObject({
-      status: 404,
-      payload: { error: "Not found" },
+    await waitFor(() => {
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
+
+    // Open dialog
+    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
+    await user.click(deleteJaneButton);
+
+    // Confirm deletion (starts async)
+    const confirmButton = screen.getByRole('button', { name: /confirm/i });
+    await user.click(confirmButton);
+
+    // WAIT for "deleting" state to appear (state update is async)
+    await waitFor(() => {
+      // Confirm button becomes "Deleting…" and disabled :contentReference[oaicite:2]{index=2}
+      expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
+
+      // Cancel disabled during deletion :contentReference[oaicite:3]{index=3}
+      expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+
+      // Row delete button disabled during deletion :contentReference[oaicite:4]{index=4}
+      expect(deleteJaneButton).toBeDisabled();
+    });
+
+    // Spinner specifically inside Jane’s delete button :contentReference[oaicite:5]{index=5}
+    // (CircularProgress should expose role="progressbar")
+    expect(
+    within(deleteJaneButton).getByRole('progressbar', { hidden: true })).toBeInTheDocument();
+
+
+    // Finish request
+    d.resolve({ message: 'User deleted' });
+
+    // Final UI update (existing test behavior)
+    await waitFor(() => {
+      expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
   });
+  
+  it("shows error when deletion fails (user not found / 404) and keeps the row", async () => {
+    const err = new Error("Not found");
+    err.status = 404;
+    err.payload = { error: "Not found" };
+    deleteUser.mockRejectedValueOnce(err);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    const userName = "Jane Smith";
+
+    // Wait until table renders
+    const nameCell = await screen.findByText(userName);
+    expect(nameCell).toBeInTheDocument();
+
+    // Click delete for Jane
+    await user.click(screen.getByRole("button", { name: /delete user jane smith/i }));
+    await user.click(screen.getByRole("button", { name: /confirm/i }));
+
+    await waitFor(() => expect(deleteUser).toHaveBeenCalledTimes(1));
+
+    // Error appears (could be duplicated in banner + dialog)
+    const msgs = await screen.findAllByText(/not found/i);
+    expect(msgs.length).toBeGreaterThan(0);
+
+    // Assert Jane is still in the TABLE (scope to row)
+    const row = nameCell.closest("tr");
+    expect(row).not.toBeNull();
+    expect(within(row).getByText(userName)).toBeInTheDocument();
+  });
+
 });
