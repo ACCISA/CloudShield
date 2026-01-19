@@ -7,11 +7,14 @@ describe("LoginCard Component", () => {
   const consoleErrorMock = vi
     .spyOn(console, "error")
     .mockImplementation(() => {});
+  const runOpenVPNMock = vi.fn<ElectronAPI["runOpenVPN"]>();
+  const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
   beforeEach(() => {
     global.fetch = vi.fn();
     global.window.electronAPI = {
-      runOpenVPN: vi.fn(),
-      runXfreerdp: vi.fn(),
+      runOpenVPN: runOpenVPNMock,
+      runXfreerdp: runXfreerdpMock,
+      showOpenDialog: vi.fn(),
     };
   });
 
@@ -33,7 +36,7 @@ describe("LoginCard Component", () => {
   });
 
   it("handles OpenVPN launch", async () => {
-    (window.electronAPI!.runOpenVPN as any).mockResolvedValueOnce({
+    runOpenVPNMock.mockResolvedValueOnce({
       success: true,
       pid: 12345,
       message: "OpenVPN started successfully",
@@ -54,7 +57,7 @@ describe("LoginCard Component", () => {
   });
 
   it("handles RDP launch", async () => {
-    (window.electronAPI!.runXfreerdp as any).mockResolvedValueOnce({
+    runXfreerdpMock.mockResolvedValueOnce({
       success: true,
       pid: 12345,
       message: "xfreerdp3 launched",
@@ -86,7 +89,7 @@ describe("LoginCard Component", () => {
   });
 
   it("shows an error if electron isn't available", async () => {
-    (window.electronAPI as any) = undefined;
+    delete window.electronAPI;
     render(<RDPOpenVPNCard />);
     expect(screen.queryByText("Error: Electron API not available")).toBeNull();
 

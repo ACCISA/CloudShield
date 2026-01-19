@@ -1,25 +1,10 @@
 import { useState } from "react";
-declare global {
-  interface Window {
-    electronAPI?: {
-      runXfreerdp: (
-        username: string,
-        password: string,
-        ip: string
-      ) => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-      runOpenVPN: (ovpnPath?: string) => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-      showOpenDialog?: (options: any) => Promise<{ canceled: boolean; filePaths: string[] }>;
-    };
-  }
-}
+
+type ElectronResult = {
+  success: boolean;
+  pid?: number;
+  message: string;
+};
 
 export default function RDPOpenVPNCard() {
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
@@ -35,7 +20,7 @@ export default function RDPOpenVPNCard() {
       return;
     }
     try {
-      const result = await api.runOpenVPN(ovpnFilePath || undefined);
+      const result = await api.runOpenVPN(ovpnFilePath || undefined) as ElectronResult | undefined;
       console.log("OpenVPN launched:", result);
     } catch (e) {
       alert(
@@ -83,11 +68,11 @@ export default function RDPOpenVPNCard() {
 
     try {
       setRdpStatus("Launching xfreerdp3...");
-      const result = await window.electronAPI.runXfreerdp(
+      const result = (await window.electronAPI.runXfreerdp(
         rdpUsername,
         rdpPassword,
         rdpIp
-      );
+      )) as ElectronResult;
       setRdpStatus(`Connected! (PID: ${result.pid})`);
       console.log("RDP launched:", result);
     } catch (error) {

@@ -193,7 +193,6 @@ ipcMain.handle(
           `/v:${params.ip}`,
           "/cert:tofu",
         ]);
-        let output = "";
         let error = "";
 
         resolve({
@@ -202,9 +201,7 @@ ipcMain.handle(
           message: "xfreerdp3 launched",
         });
 
-        child.stdout?.on("data", (data) => {
-          output += data.toString();
-        });
+        child.stdout?.on("data", () => undefined);
 
         child.stderr?.on("data", (data) => {
           error += data.toString();
