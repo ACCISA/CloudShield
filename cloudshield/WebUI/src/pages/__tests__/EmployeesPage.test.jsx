@@ -19,6 +19,13 @@ const AuthSpy = ({ onAuth }) => {
   return null;
 };
 
+async function openDeleteDialog(user, label) {
+  await user.click(screen.getByRole('button', { name: new RegExp(`delete user ${label}`, 'i') }));
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+}
+
 const renderWithProviders = ({ initialState = {}, captureAuth = false } = {}) => {
   const initialUser = {
     id: 'admin-001',
