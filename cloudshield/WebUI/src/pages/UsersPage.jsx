@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Box, Snackbar, Alert } from "@mui/material";
 
 import UsersTable from "../components/users/UsersTable.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -14,11 +12,6 @@ import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 
 export default function UsersPage() {
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-
-  const [editTarget, setEditTarget] = useState(null);
-
   const [users, setUsers] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -139,37 +132,6 @@ export default function UsersPage() {
     });
   };
 
-  const handleMockCreate = (payload) => {
-    const newUser = {
-      id: String(Date.now()),
-      name: `${payload.firstName} ${payload.lastName}`,
-      email: payload.email,
-      title: payload.jobTitle,
-      workstations: 1,
-      groups: 1,
-      files: 1,
-      status: "offline",
-    };
-    setUsers((p) => [...p, newUser]);
-    openToast("User created successfully");
-  };
-
-  const handleMockUpdate = (id, payload) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? {
-              ...u,
-              name: `${payload.firstName} ${payload.lastName}`,
-              email: payload.email,
-              title: payload.jobTitle,
-            }
-          : u
-      )
-    );
-    openToast("User updated successfully");
-  };
-
   const handleMockDelete = (id) => {
     setUsers((p) => p.filter((u) => u.id !== id));
     openToast("User deleted");
@@ -233,7 +195,7 @@ export default function UsersPage() {
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={() => setCreateModalOpen(true)}
+            onClick={() => {}}
           />
         </div>
       </div>
@@ -247,25 +209,8 @@ export default function UsersPage() {
         onSort={toggleSort}
         sortField={sortField}
         sortDir={sortDir}
-        onEdit={(u) => {
-          setEditTarget(u);
-          setEditModalOpen(true);
-        }}
+        onEdit={(u) => {}}
         onDelete={(u) => handleMockDelete(u.id)}
-      />
-
-      <UserEditModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        data={editTarget}
-        onSubmit={(payload) => handleMockUpdate(editTarget.id, payload)}
-        onDelete={() => handleMockDelete(editTarget.id)}
-      />
-
-      <UserCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSubmit={handleMockCreate}
       />
 
       <Snackbar

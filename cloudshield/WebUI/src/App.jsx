@@ -7,6 +7,8 @@ import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
+import GroupsPage from './pages/GroupsPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
@@ -36,7 +38,7 @@ function AppWithAuth() {
 
     // If the backend returns org_id or user info, store it safely
     if (data?.user?.org_id) {
-      localStorage.setItem('org_id', data.user.org_id);
+
     }
   };
 
@@ -108,20 +110,21 @@ function AppWithAuth() {
           }
         />
 
+       
+
         <Route
           path="/users"
           element={
             <Protected>
-              <EmployeesPage />
+              <UsersPage />
             </Protected>
           }
         />
-
         <Route
-          path="/employees"
+          path="/groups"
           element={
             <Protected>
-              <EmployeesPage />
+              <GroupsPage />
             </Protected>
           }
         />

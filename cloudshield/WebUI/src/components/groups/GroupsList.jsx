@@ -1,0 +1,325 @@
+/**
+ * GroupsList.jsx
+ *
+ * Purpose:
+ *   Render a list of group rows with actions like edit and delete,
+ *   matching the workstations and users list patterns.
+ *
+ * Props:
+ *   - rows: array of group objects to display
+ *   - onEdit(row)
+ *   - onDelete(id)
+ *   - showUsers: boolean (Display control)
+ *   - showWorkstations: boolean (Display control)
+ *   - showFiles: boolean (Display control)
+ */
+
+import React, { useState } from "react";
+import EditButton from "../common/EditButton/EditButton.jsx";
+import EditIcon from "../../assets/EditIcon.jsx";
+import TrashIcon from "../../assets/TrashIcon.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+
+/* ---------------------------- styles ---------------------------- */
+
+const styles = {
+  tableHeaders: {
+    display: "grid",
+    alignItems: "center",
+    gap: "12px",
+    padding: "24px 24px 4px 24px",
+  },
+  headerLabel: {
+    fontSize: "0.85rem",
+    opacity: 0.7,
+    color: "#fff",
+  },
+  listPanel: {
+    borderRadius: "18px",
+    border: "1px solid rgba(255,255,255,0.16)",
+    backgroundColor: "#0F0F0F",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+    padding: "16px",
+  },
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  row: {
+    display: "grid",
+    alignItems: "center",
+    gap: "12px",
+    color: "#fff",
+    padding: "12px 8px",
+    borderRadius: "12px",
+    position: "relative",
+    zIndex: 1,
+  },
+  nameSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  nameContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  name: {
+    fontWeight: 600,
+    lineHeight: 1.15,
+  },
+  description: {
+    fontSize: "0.85rem",
+    opacity: 0.85,
+    marginTop: "2px",
+  },
+  countBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    fontSize: "0.85rem",
+    color: "#fff",
+  },
+  editContainer: {
+    display: "flex",
+    justifyContent: "flex-end",
+  },
+  divider: {
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+    margin: "0 8px",
+  },
+  avatarsContainer: {
+    display: "flex",
+    alignItems: "center",
+  },
+  extraCount: {
+    marginLeft: "8px",
+    fontSize: "0.9rem",
+    opacity: 0.85,
+  },
+};
+
+/* ---------------------------- helpers & components ---------------------------- */
+
+function UsersPill({ row }) {
+  const usersList = Array.isArray(row.users) ? row.users : [];
+  const show = usersList.slice(0, 3);
+  const totalCount = row.memberCount || usersList.length;
+  const extra = Math.max(totalCount - show.length, 0);
+
+  if (show.length === 0) {
+    return (
+      <div style={styles.countBadge}>
+        <span>+ {totalCount}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={styles.avatarsContainer}>
+        {show.map((user, idx) => (
+          <div
+            key={`${user.firstName}-${idx}`}
+            style={{
+              marginLeft: idx === 0 ? 0 : "-8px",
+              zIndex: show.length - idx,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <DisplayIcon type="user" data={user} size="small" />
+          </div>
+        ))}
+      </div>
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
+    </div>
+  );
+}
+
+function WorkstationsPill({ row }) {
+  const workstationsList = Array.isArray(row.workstations)
+    ? row.workstations
+    : [];
+  const show = workstationsList.slice(0, 3);
+  const totalCount = workstationsList.length;
+  const extra = Math.max(totalCount - show.length, 0);
+
+  if (show.length === 0) {
+    return (
+      <div style={styles.countBadge}>
+        <span>+ {totalCount}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={styles.avatarsContainer}>
+        {show.map((workstation, idx) => (
+          <div
+            key={`${workstation.name}-${idx}`}
+            style={{
+              marginLeft: idx === 0 ? 0 : "-8px",
+              zIndex: show.length - idx,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <DisplayIcon type="workstation" data={workstation} size="small" />
+          </div>
+        ))}
+      </div>
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
+    </div>
+  );
+}
+
+function GroupRow({
+  r,
+  cols,
+  showUsers,
+  showWorkstations,
+  showFiles,
+  onEdit,
+  onDelete,
+  isLast,
+}) {
+  const [checked, setChecked] = useState(false);
+
+  return (
+    <>
+      {/* Row */}
+      <div
+        style={{
+          ...styles.row,
+          gridTemplateColumns: cols.join(" "),
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+          e.currentTarget.style.zIndex = "100";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+          e.currentTarget.style.zIndex = "1";
+        }}
+      >
+        {/* select */}
+        <Checkbox checked={checked} onChange={setChecked} />
+
+        {/* name + description + DisplayIcon */}
+        <div style={styles.nameSection}>
+          <DisplayIcon type="group" data={r} size="small" />
+          <div style={styles.nameContainer}>
+            <span style={styles.name}>{r.name}</span>
+            <span style={styles.description}>↳ {r.description}</span>
+          </div>
+        </div>
+
+        {/* users */}
+        {showUsers && <UsersPill row={r} />}
+
+        {/* workstations */}
+        {showWorkstations && <WorkstationsPill row={r} />}
+
+        {/* files count */}
+        {showFiles && (
+          <div style={styles.countBadge}>
+            <span>+ {r.files || 0}</span>
+          </div>
+        )}
+
+        {/* edit */}
+        <div style={styles.editContainer}>
+          <EditButton
+            menuItems={[
+              {
+                icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                label: "edit group",
+                color: "#1a1a1a",
+                onClick: () => onEdit?.(r),
+              },
+              {
+                icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                label: "delete group",
+                color: "#D51616",
+                onClick: () => onDelete?.(r.id),
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* divider */}
+      {!isLast && <div style={styles.divider} />}
+    </>
+  );
+}
+
+export default function GroupsList({
+  rows,
+  onEdit,
+  onDelete,
+  showUsers = true,
+  showWorkstations = true,
+  showFiles = true,
+}) {
+  // Build grid template dynamically based on which columns are visible.
+  const cols = [
+    "28px", // checkbox
+    "1.2fr", // name/description with icon
+    showUsers ? "0.6fr" : null,
+    showWorkstations ? "0.8fr" : null,
+    showFiles ? "0.8fr" : null,
+    "0.25fr", // edit
+  ].filter(Boolean);
+
+  return (
+    <>
+      {/* Table Headers */}
+      <div
+        style={{
+          ...styles.tableHeaders,
+          gridTemplateColumns: cols.join(" "),
+          paddingLeft: "calc(16px + 8px + 8px)",
+          paddingRight: "calc(16px + 8px + 8px)",
+        }}
+      >
+        <div />
+        <span style={styles.headerLabel}>Name/Description</span>
+        {showUsers && <span style={styles.headerLabel}>Users</span>}
+        {showWorkstations && (
+          <span style={styles.headerLabel}>Workstations</span>
+        )}
+        {showFiles && <span style={styles.headerLabel}>Files</span>}
+        <div />
+      </div>
+
+      {/* List panel */}
+      <div style={styles.listPanel}>
+        <div style={{ padding: "0 8px" }}>
+          <div style={styles.container}>
+            {rows.map((r, idx) => (
+              <GroupRow
+                key={r.id}
+                r={r}
+                cols={cols}
+                showUsers={showUsers}
+                showWorkstations={showWorkstations}
+                showFiles={showFiles}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                isLast={idx === rows.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
