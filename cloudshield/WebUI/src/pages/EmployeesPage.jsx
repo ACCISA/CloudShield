@@ -26,11 +26,27 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-
+import PropTypes from 'prop-types';
 import { listUsers, deleteUser, createUser } from '../services/usersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-function UserTable({ users, onDelete, currentUserId, deletingUserId }) {
+UserTable.propTypes = {
+  users: PropTypes.arrayOf(
+    PropTypes.shape({
+      _id: PropTypes.string.isRequired,
+      full_name: PropTypes.string,
+      email: PropTypes.string,
+      role: PropTypes.string,
+      status: PropTypes.string,
+    })
+  ),
+
+  onDelete: PropTypes.func.isRequired,
+  currentUserId: PropTypes.string,
+  deletingUserId: PropTypes.string,
+};
+
+function UserTable({ users = [], onDelete, currentUserId, deletingUserId }) {
   if (!users.length) {
     return (
       <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>
