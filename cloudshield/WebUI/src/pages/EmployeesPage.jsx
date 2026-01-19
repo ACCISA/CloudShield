@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types"; // Import PropTypes for validation
 
 // Noah's Custom UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
@@ -36,11 +37,37 @@ const CustomToast = ({ msg, type, onClose }) => {
     cursor: 'pointer'
   };
 
+  // Accessibility fix: Keyboard support for the clickable div
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
-    <div style={styles} onClick={onClose}>
+    <div 
+      style={styles} 
+      onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      aria-label="Close notification"
+    >
       {msg}
     </div>
   );
+};
+
+// PropTypes validation (Fixes SonarCloud "missing in props validation")
+CustomToast.propTypes = {
+  msg: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['success', 'error', 'info', 'warning']),
+  onClose: PropTypes.func.isRequired,
+};
+
+CustomToast.defaultProps = {
+  type: 'success',
 };
 
 export default function EmployeesPage() {
@@ -53,11 +80,8 @@ export default function EmployeesPage() {
   const [editTarget, setEditTarget] = useState(null);
   const [layout, setLayout] = useState("list");
   
-  // View options
-  const [showTitle, setShowTitle] = useState(true);
-  const [showWorkstations, setShowWorkstations] = useState(true);
-  const [showGroups, setShowGroups] = useState(true);
-  const [showFiles, setShowFiles] = useState(true);
+  // Note: Removed unused state variables (showTitle, showWorkstations, etc.)
+  // and passed them directly as props to UsersTable to fix "Unused variable" Code Smells.
 
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
@@ -165,7 +189,6 @@ export default function EmployeesPage() {
         role: payload.jobTitle,
       };
 
-      // Ensure this function exists in usersApi.js
       await updateUser(id, apiPayload, { token: accessToken });
       
       openToast("User updated successfully");
@@ -328,10 +351,10 @@ export default function EmployeesPage() {
 
       <UsersTable
         users={filtered}
-        showTitle={showTitle}
-        showWorkstations={showWorkstations}
-        showGroups={showGroups}
-        showFiles={showFiles}
+        showTitle={true}
+        showWorkstations={true}
+        showGroups={true}
+        showFiles={true}
         onSort={toggleSort}
         sortField={sortField}
         sortDir={sortDir}
