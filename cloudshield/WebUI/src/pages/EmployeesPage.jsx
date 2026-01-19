@@ -231,7 +231,9 @@ export default function EmployeesPage() {
     setDeletingUserId(null);
   };
 
-  const isSelfDelete = dialogUser?._id === currentUser?.id;
+  const currentUserId = currentUser?.id ?? currentUser?._id;
+  const isSelfDelete = dialogUser?._id === currentUserId;
+
 
   const handleConfirmDelete = async () => {
     if (!dialogUser) return;
@@ -431,7 +433,7 @@ export default function EmployeesPage() {
           <UserTable 
             users={sortedUsers} 
             onDelete={handleOpenDeleteDialog} 
-            currentUserId={currentUser?.id}
+            currentUserId={currentUser?.id ?? currentUser?._id}
             deletingUserId={deletingUserId}
           />
         )}
