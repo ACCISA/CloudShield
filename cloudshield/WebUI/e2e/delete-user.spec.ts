@@ -40,4 +40,11 @@ test("E2E: delete user flow (API seed + pre-auth -> delete -> UI updates)", asyn
   const row = page.locator(`tr:has-text("${email}")`);
   await row.locator('button[aria-label^="Delete user"]').click();
 
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByText("Delete User")).toBeVisible();
+
+  await page.getByRole("button", { name: "Confirm" }).click();
+
+  await expect(page.getByText(email)).toHaveCount(0);
+  await expect(page.getByText(/was deleted successfully/i)).toBeVisible();
 });
