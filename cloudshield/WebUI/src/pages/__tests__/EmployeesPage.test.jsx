@@ -14,6 +14,13 @@ jest.mock('../../services/usersApi.js', () => ({
   createUser: jest.fn(),
 }));
 
+jest.mock("../../context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "admin-001", role: "admin", org_id: "org_001" },
+    accessToken: "fake-token",
+  }),
+}));
+
 const AuthSpy = ({ onAuth }) => {
   onAuth(useAuth());
   return null;
@@ -509,6 +516,7 @@ describe('EmployeesPage', () => {
   await waitFor(() => {
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
+
 
   const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
   await user.click(deleteJaneButton);
