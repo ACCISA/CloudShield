@@ -522,6 +522,8 @@ describe('EmployeesPage', () => {
 
   expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
   expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+
+  expect(deleteJaneButton).toBeDisabled();
   });
 
 });
