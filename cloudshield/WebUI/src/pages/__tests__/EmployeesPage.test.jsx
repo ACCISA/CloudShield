@@ -542,4 +542,24 @@ describe('EmployeesPage', () => {
   expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
   });
 
+  it("shows error when user is not found (404) and keeps the row", async () => {
+  deleteUser.mockRejectedValueOnce({
+    status: 404,
+    payload: { error: "Not found" },
+  });
+
+  render(<EmployeesPage />);
+
+  const userEmail = "employee.one@acme.com";
+
+  const deleteBtn = await screen.findByLabelText(
+    new RegExp(`Delete user.*${userEmail}`, "i")
+  );
+
+  fireEvent.click(deleteBtn);
+  fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+  expect(await screen.findByText(/not found/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(new RegExp(`Delete user.*${userEmail}`, "i"))).toBeInTheDocument();
+  });
 });
