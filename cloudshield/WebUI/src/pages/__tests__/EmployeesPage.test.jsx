@@ -434,4 +434,39 @@ describe('EmployeesPage', () => {
 
     expect(deleteUser).not.toHaveBeenCalled();
   });
+
+  it('shows correct user identity in confirmation dialog (name/email)', async () => {
+  listUsers.mockResolvedValueOnce([
+    { _id: 'user-101', full_name: 'Jane Smith', email: 'jane@example.com', role: 'employee', status: 'active' },
+    { _id: 'user-102', full_name: '', email: 'noname@example.com', role: 'employee', status: 'active' },
+  ]);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    // Wait for both users to load
+    expect(await screen.findByText('Jane Smith')).toBeInTheDocument();
+
+    // --- Case 1: dialog shows full name when available ---
+    await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
+
+    const dialog1 = await screen.findByRole('dialog');
+    expect(within(dialog1).getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+    expect(within(dialog1).getByText('Jane Smith')).toBeInTheDocument();
+
+    await user.click(within(dialog1).getByRole('button', { name: /cancel/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    // --- Case 2: dialog falls back to email when name is missing ---
+    // Find the row for the user with no name
+    const emailCell = screen.getByText('noname@example.com');
+    const row = emailCell.closest('tr');
+    expect(row).not.toBeNull();
+
+    await user.click(within(row).getByRole('button', { name: /delete user/i }));
+
+    const dialog2 = await screen.findByRole('dialog');
+    expect(within(dialog2).getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+    expect(within(dialog2).getByText('noname@example.com')).toBeInTheDocument();
+  });
 });
