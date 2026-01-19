@@ -36,4 +36,8 @@ test("E2E: delete user flow (API seed + pre-auth -> delete -> UI updates)", asyn
   await page.goto("/employees");
   await expect(page).not.toHaveURL(/\/login/i);
   await expect(page.getByText(email)).toBeVisible({ timeout: 15000 });
+
+  const row = page.locator(`tr:has-text("${email}")`);
+  await row.locator('button[aria-label^="Delete user"]').click();
+
 });
