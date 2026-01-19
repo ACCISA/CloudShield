@@ -32,4 +32,8 @@ test("E2E: delete user flow (API seed + pre-auth -> delete -> UI updates)", asyn
   },
   { token: adminToken }
   );
+
+  await page.goto("/employees");
+  await expect(page).not.toHaveURL(/\/login/i);
+  await expect(page.getByText(email)).toBeVisible({ timeout: 15000 });
 });
