@@ -149,6 +149,10 @@ Status InfraService::CreateSambaFileShare(ServerContext* context, const is::Crea
 	std::string share_name = request->share_name().c_str();
 	std::string share_size = request->share_size().c_str();
 
+	std::cout << "Creating new file share" << std::endl;
+	std::cout << "share_name: " << share_name << std::endl;
+	std::cout << "share_size: " << share_size << std::endl;
+
 	auto samba = std::make_unique<SambaTask>();
 
 	status = samba->CreateSambaFileShare(share_name, share_size);

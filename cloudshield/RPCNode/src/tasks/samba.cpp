@@ -7,14 +7,21 @@ std::string ExecutableTask::RunCommand(std::string &command)
 };
 
 std::string SambaTask::AddDomainUser(std::string username, std::string password)
-{
+{	
+	std::cout << "aaaa" << std::endl;
+	std::cout << this->USER_ADD_CMD << std::endl;
+	std::cout << username.c_str() << std::endl;
+	std::cout << password.c_str() << std::endl;
 	std::string full_cmd = BuildCommand(this->USER_ADD_CMD, username.c_str(), password.c_str());
+	std::cout << "debug" << std::endl;
+	std::cout << full_cmd << std::endl;
 	return this->RunCommand(full_cmd);
 }
 
 std::string SambaTask::RemoveDomainUser(std::string username)
 {
 	if (!this->IsDomainUser(username)) {
+		std::cout << "User not found" << std::endl;
 		return "not_found";
 	}
 

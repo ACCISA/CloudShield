@@ -50,15 +50,15 @@ public:
 class SambaTask : public ExecutableTask {
 private:
 	// IMPORTANT TODO these commands allow command injections, we need sanitize inputs at some point
-	static constexpr const char* ADD_DNS_CMD = "samba-tool dns add 127.0.0.1 %s %s A %s -U administrator --password='%s'";
-	static constexpr const char* DELETE_DNS_CMD = "samba-tool dns delete 127.0.0.1 %s %s A %s -U administrator --password='%s'";
-	static constexpr const char* USER_DELETE_CMD = "sudo samba-tool user delete %s";
-	static constexpr const char* USER_ADD_CMD = "samba-tool user add %s %s --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%' --script-path=\"logon.bat\"";
-	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword %s --newpassword=%s";
+	static constexpr const char* ADD_DNS_CMD = "samba-tool dns add 127.0.0.1 {} {} A {} -U administrator --password='{}'";
+	static constexpr const char* DELETE_DNS_CMD = "samba-tool dns delete 127.0.0.1 {} {} A {} -U administrator --password='{}'";
+	static constexpr const char* USER_DELETE_CMD = "sudo samba-tool user delete {}";
+	static constexpr const char* USER_ADD_CMD = "samba-tool user add {} {} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%' --script-path=logon.bat";
+	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword {} --newpassword={}";
 	static constexpr const char* USER_LIST_CMD = "samba-tool user list";
 
-	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/%s/scripts/logon.bat";
-	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '%s' > nul\n";
+	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/{}/scripts/logon.bat";
+	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '{}' > nul\n";
 
 public:
 	static constexpr const char* SAMBA_SMB_CONF_PATH = "/etc/samba/smb.conf";
