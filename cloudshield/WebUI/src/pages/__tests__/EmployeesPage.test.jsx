@@ -469,4 +469,20 @@ describe('EmployeesPage', () => {
     expect(within(dialog2).getByText(/are you sure you want to delete/i)).toBeInTheDocument();
     expect(within(dialog2).getByText('noname@example.com')).toBeInTheDocument();
   });
+
+  it('shows correct user name in confirmation dialog', async () => {
+  renderWithProviders();
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
 });
