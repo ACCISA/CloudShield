@@ -558,4 +558,123 @@ it('shows correct user identity in confirmation dialog (name/email)', async () =
     expect(within(row).getByText(userName)).toBeInTheDocument();
   });
 
+  it('sorts users by full_name, falling back to email then empty string', async () => {
+    listUsers.mockResolvedValueOnce([
+      { _id: 'u3', full_name: null, email: null, role: 'employee', status: 'active' },
+      { _id: 'u2', full_name: '', email: 'bob@example.com', role: 'employee', status: 'active' },
+      { _id: 'u1', full_name: 'Alice', email: 'alice@example.com', role: 'employee', status: 'active' },
+    ]);
+
+    renderWithProviders();
+
+    await screen.findByText('Alice');
+
+    const rows = screen.getAllByRole('row').slice(1);
+
+    // First row: null name/email
+    expect(within(rows[0]).getAllByText('—')).toHaveLength(2);
+    // Second row: Alice
+    expect(within(rows[1]).getByText('Alice')).toBeInTheDocument();
+    // Third row:
+    expect(within(rows[2]).getByText('bob@example.com')).toBeInTheDocument();
+  });
+
+  it('does not fetch users when accessToken becomes null (fetchUsers early return)', async () => {
+    const { rerender } = renderWithProviders();
+
+    await screen.findByText('Jane Smith');
+    expect(listUsers).toHaveBeenCalled();
+
+    // Rerender with null accessToken
+    rerender(
+      <AuthProvider initialState={{ currentUser: { id: 'admin-001' }, accessToken: null, disableBootstrap: true }}>
+        <EmployeesPage />
+      </AuthProvider>
+    );
+
+    // Try to refresh
+    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    expect(listUsers).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows default load error message when error.message is missing', async () => {
+    listUsers.mockRejectedValueOnce({}); // no message
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Failed to load users.');
+    });
+  });
+
+  it('blocks create when no access token is present (submit path)', async () => {
+    renderWithProviders({ initialState: { accessToken: null } });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+
+    await user.type(screen.getByLabelText(/full name/i), 'Tokenless User');
+    await user.type(screen.getByLabelText(/email/i), 'noauth@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+
+    // Submit the form directly
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(createUser).not.toHaveBeenCalled();
+    expect(await screen.findByText(/missing authentication token/i)).toBeInTheDocument();
+  });
+
+  it('applies search when pressing Enter in search input', async () => {
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await screen.findByText('Jane Smith');
+
+    const input = screen.getByPlaceholderText(/search employees/i);
+    await user.type(input, 'neo{enter}');
+
+    await waitFor(() => {
+      const lastCall = listUsers.mock.calls[listUsers.mock.calls.length - 1][0];
+      expect(lastCall.search).toBe('neo');
+    });
+  });
+
+  it("does not close the create dialog while isCreating is true", async () => {
+    const d = deferred();
+    createUser.mockImplementation(() => d.promise);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await screen.findByText("Jane Smith");
+
+    await user.click(screen.getByRole("button", { name: /add employee/i }));
+
+    await user.type(screen.getByLabelText(/full name/i), "Pending User");
+    await user.type(screen.getByLabelText(/email/i), "pending@example.com");
+    await user.type(screen.getByLabelText(/initial password/i), "Password123!");
+
+    // Submit the form
+    const createBtn = screen.getByRole("button", { name: /^create$/i });
+    await user.click(createBtn);
+    // At this point, isCreating should be true
+
+    // Buttons should be disabled while creating
+    const creatingBtn = await screen.findByRole("button", { name: /creating/i });
+    const cancelBtn = screen.getByRole("button", { name: /cancel/i });
+
+    expect(creatingBtn).toBeDisabled();
+    expect(cancelBtn).toBeDisabled();
+
+    // Dialog should STILL be open while creation is pending
+    expect(screen.getByRole("dialog", { name: /add employee/i })).toBeInTheDocument();
+
+    d.resolve({ user_id: "user-123" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /add employee/i })).not.toBeInTheDocument();
+    });
+  });
+
 });
