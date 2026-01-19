@@ -522,10 +522,16 @@ describe('EmployeesPage', () => {
 
   expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
   expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
-
   expect(deleteJaneButton).toBeDisabled();
-
   expect(within(deleteJaneButton).getByRole('progressbar')).toBeInTheDocument();
+
+  d.resolve({ message: 'User deleted' });
+
+  await waitFor(() => {
+    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
   });
 
 });
