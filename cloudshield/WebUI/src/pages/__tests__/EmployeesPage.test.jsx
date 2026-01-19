@@ -535,9 +535,9 @@ describe('EmployeesPage', () => {
   expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
   });
 
-  it("shows error when user is not found (404) and keeps the row", async () => {
-  const err = new Error("Not found");
-  err.payload = { error: "Not found" };
+  it('shows error when user is not found (404) and keeps the row', async () => {
+  const err = new Error('Not found');
+  err.payload = { error: 'Not found' };
   err.status = 404;
   deleteUser.mockRejectedValueOnce(err);
 
@@ -545,20 +545,22 @@ describe('EmployeesPage', () => {
   const user = userEvent.setup();
 
   await waitFor(() => {
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
-  await user.click(screen.getByRole("button", { name: /delete user jane smith/i }));
-  await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+  await user.click(screen.getByRole('button', { name: /delete user jane smith/i }));
+  await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
 
-  await user.click(screen.getByRole("button", { name: /confirm/i }));
+  await user.click(screen.getByRole('button', { name: /confirm/i }));
 
   await waitFor(() => {
     expect(screen.getAllByText(/not found/i).length).toBeGreaterThan(0);
   });
 
-  expect(screen.getByText("Jane Smith")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /delete user jane smith/i })).toBeInTheDocument();
+  expect(deleteUser).toHaveBeenCalledWith('user-001', expect.objectContaining({ token: 'test-token' }));
+
+  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /delete user jane smith/i })).toBeInTheDocument();
   });
 
   it("throws structured error on 404 Not Found", async () => {
