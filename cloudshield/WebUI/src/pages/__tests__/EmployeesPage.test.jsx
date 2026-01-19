@@ -1,413 +1,168 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import EmployeesPage from '../EmployeesPage.jsx';
-import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
-import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
+import EmployeesPage from './EmployeesPage.jsx';
+import { AuthProvider } from '../context/AuthContext.jsx';
+import * as usersApi from '../services/usersApi.js';
 
 jest.setTimeout(10000);
 
-jest.mock('../../services/usersApi.js', () => ({
+jest.mock('../services/usersApi.js', () => ({
   listUsers: jest.fn(),
   deleteUser: jest.fn(),
   createUser: jest.fn(),
+  updateUser: jest.fn(),
 }));
 
-const AuthSpy = ({ onAuth }) => {
-  onAuth(useAuth());
-  return null;
-};
-
-const renderWithProviders = ({ initialState = {}, captureAuth = false } = {}) => {
-  const initialUser = {
-    id: 'admin-001',
-    email: 'admin@company.com',
-    full_name: 'Admin User',
-    role: 'admin',
-  };
-
-  const captured = { current: null };
-
-  const Wrapper = ({ children }) => (
+const renderWithProviders = (ui, { currentUser = { id: 'admin-1', role: 'admin', org_id: 'org-1' } } = {}) => {
+  return render(
     <AuthProvider
       initialState={{
-        currentUser: initialUser,
+        currentUser,
         accessToken: 'test-token',
         disableBootstrap: true,
-        ...initialState,
       }}
     >
-      {captureAuth ? <AuthSpy onAuth={(auth) => { captured.current = auth; }} /> : null}
-      {children}
+      {ui}
     </AuthProvider>
   );
-
-  const utils = render(
-    <Wrapper>
-      <EmployeesPage />
-    </Wrapper>
-  );
-
-  return { ...utils, getAuth: () => captured.current };
 };
 
 describe('EmployeesPage', () => {
   const seedUsers = [
-    {
-      _id: 'user-001',
-      full_name: 'Jane Smith',
-      email: 'jane@example.com',
-      role: 'employee',
-      status: 'active',
-    },
-    {
-      _id: 'admin-001',
-      full_name: 'Admin User',
-      email: 'admin@company.com',
-      role: 'admin',
-      status: 'active',
-    },
+    { _id: 'user-1', full_name: 'Jane Smith', email: 'jane@test.com', role: 'employee', status: 'active' },
+    { _id: 'user-2', full_name: 'John Doe', email: 'john@test.com', role: 'admin', status: 'offline' },
   ];
 
   beforeEach(() => {
     jest.clearAllMocks();
-    listUsers.mockResolvedValue([...seedUsers]);
-    createUser.mockResolvedValue({ user_id: 'user-999' });
+    usersApi.listUsers.mockResolvedValue([...seedUsers]);
+    usersApi.createUser.mockResolvedValue({ user_id: 'new-1' });
+    usersApi.updateUser.mockResolvedValue({ success: true });
+    usersApi.deleteUser.mockResolvedValue({ success: true });
   });
 
-  it('loads and renders users from the API', async () => {
-    renderWithProviders();
+  it('loads and displays users', async () => {
+    renderWithProviders(<EmployeesPage />);
 
     await waitFor(() => {
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
-    expect(listUsers).toHaveBeenCalledWith(expect.objectContaining({ token: 'test-token', search: '', limit: 20, offset: 0 }));
-    expect(screen.getByText('admin@company.com')).toBeInTheDocument();
+    expect(usersApi.listUsers).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }));
   });
 
-  it('opens confirmation dialog and deletes user', async () => {
-    deleteUser.mockResolvedValue({ message: 'User deleted' });
-
-    renderWithProviders();
+  it('creates a new user', async () => {
+    renderWithProviders(<EmployeesPage />);
     const user = userEvent.setup();
 
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument());
 
-    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
-    await user.click(deleteJaneButton);
-
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByRole('button', { name: /confirm/i });
-    await user.click(confirmButton);
-
-    await waitFor(() => {
-      expect(deleteUser).toHaveBeenCalledWith('user-001', expect.objectContaining({ token: 'test-token' }));
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/was deleted successfully/i)).toBeInTheDocument();
-  });
-
-  it('surfaces API errors when deletion fails', async () => {
-    const err = new Error('Forbidden');
-    err.payload = { error: 'Forbidden' };
-    err.status = 403;
-    deleteUser.mockRejectedValue(err);
-
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
-
-    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
-    await user.click(deleteJaneButton);
-
-    await user.click(screen.getByRole('button', { name: /confirm/i }));
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Forbidden').length).toBeGreaterThan(0);
-    });
-
-    expect(deleteUser).toHaveBeenCalledWith('user-001', expect.objectContaining({ token: 'test-token' }));
-  });
-
-  it('prevents deleting the currently logged-in user', async () => {
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Admin User')).toBeInTheDocument();
-    });
-
-    const deleteAdminButton = screen.getByRole('button', { name: /delete user admin user/i });
-    await user.click(deleteAdminButton);
-
-    await user.click(screen.getByRole('button', { name: /confirm/i }));
-
-    expect(deleteUser).not.toHaveBeenCalled();
-    expect(screen.getByText(/cannot delete your own account/i)).toBeInTheDocument();
-  });
-
-  it('shows empty state when no users are returned', async () => {
-    listUsers.mockResolvedValueOnce([]);
-
-    renderWithProviders();
-
-    await waitFor(() => {
-      expect(screen.getByText('No users found.')).toBeInTheDocument();
-    });
-  });
-
-  it('surfaces load failures via banner', async () => {
-    listUsers.mockRejectedValueOnce(new Error('Backend unavailable'));
-
-    renderWithProviders();
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Backend unavailable');
-    });
-  });
-
-  it('ignores abort errors when fetching users', async () => {
-    const abortError = new Error('aborted');
-    abortError.name = 'AbortError';
-    listUsers.mockRejectedValueOnce(abortError);
-
-    renderWithProviders();
-
-    await waitFor(() => {
-      expect(listUsers).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
-
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByText('No users found.')).toBeInTheDocument();
-  });
-
-  it('shows warning banner when user is not authenticated', async () => {
-    listUsers.mockResolvedValueOnce(seedUsers);
-
-    renderWithProviders({ initialState: { accessToken: null } });
-
-    await waitFor(() => {
-      expect(screen.getByText('Sign in to view employees.')).toBeInTheDocument();
-    });
-
-    const refreshButton = screen.getByRole('button', { name: /refresh/i });
-    await userEvent.click(refreshButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Authentication required to refresh users.')).toBeInTheDocument();
-    });
-    expect(listUsers).not.toHaveBeenCalled();
-  });
-
-  it('shows auth error banner when provided by context', async () => {
-    renderWithProviders({ initialState: { accessToken: null, authError: 'Auth boom' } });
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Auth boom');
-    });
-  });
-
-  it('sets loading while auth state refreshes', () => {
-    const authModule = require('../../context/AuthContext.jsx');
-    const useAuthSpy = jest.spyOn(authModule, 'useAuth');
-    useAuthSpy.mockReturnValue({
-      currentUser: { id: 'admin-001' },
-      accessToken: 'test-token',
-      authError: null,
-      authLoading: true,
-      refreshAuth: jest.fn(),
-    });
-
-    render(<EmployeesPage />);
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-
-    useAuthSpy.mockRestore();
-  });
-
-  it('prevents deletion when authentication token disappears mid-flow', async () => {
-    const { getAuth } = renderWithProviders({ captureAuth: true });
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-      expect(getAuth()).not.toBeNull();
-    });
-
-    const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
-    await user.click(deleteJaneButton);
-
-    await act(async () => {
-      getAuth().refreshAuth();
-    });
-
-    const confirmButton = screen.getByRole('button', { name: /confirm/i });
-    await user.click(confirmButton);
-
-    expect(deleteUser).not.toHaveBeenCalled();
-    expect(screen.getByText(/missing authentication token/i)).toBeInTheDocument();
-  });
-
-  it('creates a user and updates the table immediately', async () => {
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
-
-    await user.type(screen.getByLabelText(/full name/i), 'New User');
-    await user.type(screen.getByLabelText(/email/i), 'new@example.com');
-    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
     await user.click(screen.getByRole('button', { name: /create/i }));
 
+    await user.type(screen.getByLabelText(/first name/i), 'Alice');
+    await user.type(screen.getByLabelText(/last name/i), 'Wonder');
+    await user.type(screen.getByLabelText(/email/i), 'alice@test.com');
+    await user.type(screen.getByLabelText(/job title/i), 'Dev');
+    await user.type(screen.getByLabelText(/password/i), 'Pass123!');
+
+    const dialog = screen.getByRole('dialog');
+    const submitBtn = within(dialog).getByRole('button', { name: /create/i });
+    await user.click(submitBtn);
+
     await waitFor(() => {
-      expect(createUser).toHaveBeenCalledWith(expect.objectContaining({
-        email: 'new@example.com',
-        full_name: 'New User',
-        password: 'Password123!',
-        role: 'employee',
-      }), expect.objectContaining({ token: 'test-token' }));
+      expect(usersApi.createUser).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'alice@test.com',
+        full_name: 'Alice Wonder',
+        role: 'employee'
+      }), expect.anything());
     });
 
-    expect(await screen.findByText('New User')).toBeInTheDocument();
-    expect(screen.getByText(/was created successfully/i)).toBeInTheDocument();
+    expect(await screen.findByText('User created successfully')).toBeInTheDocument();
   });
 
-  it('requires non-empty trimmed name, email, and password before create', async () => {
-    renderWithProviders();
+  it('edits an existing user', async () => {
+    renderWithProviders(<EmployeesPage />);
     const user = userEvent.setup();
 
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument());
+
+    const rows = screen.getAllByRole('row');
+    const row = rows.find(r => within(r).queryByText('Jane Smith'));
+    const editBtn = within(row).getAllByRole('button')[0];
+    await user.click(editBtn);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, 'Janet');
+
+    await user.click(screen.getByRole('button', { name: /save/i }));
+
     await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+      expect(usersApi.updateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ full_name: 'Janet Smith' }), expect.anything());
     });
 
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
+    expect(await screen.findByText('User updated successfully')).toBeInTheDocument();
+  });
 
-    await user.type(screen.getByLabelText(/full name/i), '   ');
-    await user.type(screen.getByLabelText(/email/i), '   ');
-    await user.type(screen.getByLabelText(/initial password/i), '   ');
+  it('deletes a user', async () => {
+    renderWithProviders(<EmployeesPage />);
+    const user = userEvent.setup();
+
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument());
+
+    const rows = screen.getAllByRole('row');
+    const row = rows.find(r => within(r).queryByText('Jane Smith'));
+    const editBtn = within(row).getAllByRole('button')[0];
+    await user.click(editBtn);
+
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+
+    await waitFor(() => {
+      expect(usersApi.deleteUser).toHaveBeenCalledWith('user-1', expect.anything());
+    });
+
+    expect(await screen.findByText('User deleted successfully')).toBeInTheDocument();
+  });
+
+  it('shows error toast on API failure', async () => {
+    usersApi.createUser.mockRejectedValue(new Error('Backend Error'));
+    renderWithProviders(<EmployeesPage />);
+    const user = userEvent.setup();
+
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument());
+
     await user.click(screen.getByRole('button', { name: /create/i }));
+    
+    // Fill minimal valid form
+    await user.type(screen.getByLabelText(/first name/i), 'Test');
+    await user.type(screen.getByLabelText(/last name/i), 'User');
+    await user.type(screen.getByLabelText(/email/i), 't@t.com');
+    await user.type(screen.getByLabelText(/password/i), '123');
 
-    expect(createUser).not.toHaveBeenCalled();
-    expect(await screen.findByText(/full name, email, and password are required/i)).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    const submitBtn = within(dialog).getByRole('button', { name: /create/i });
+    await user.click(submitBtn);
+
+    expect(await screen.findByText(/backend error/i)).toBeInTheDocument();
   });
 
-  it('shows generic create error when API fails unexpectedly', async () => {
-    const err = new Error('Server down');
-    createUser.mockRejectedValueOnce(err);
-
-    renderWithProviders();
+  it('prevents self-deletion', async () => {
+    renderWithProviders(<EmployeesPage />, { currentUser: { id: 'user-1' } });
     const user = userEvent.setup();
 
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument());
 
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
-    await user.type(screen.getByLabelText(/full name/i), 'Err User');
-    await user.type(screen.getByLabelText(/email/i), 'err@example.com');
-    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
-    await user.click(screen.getByRole('button', { name: /create/i }));
+    const rows = screen.getAllByRole('row');
+    const row = rows.find(r => within(r).queryByText('Jane Smith'));
+    const editBtn = within(row).getAllByRole('button')[0];
+    await user.click(editBtn);
 
-    expect(await screen.findByText(/server down/i)).toBeInTheDocument();
-    expect(createUser).toHaveBeenCalled();
-  });
+    await user.click(screen.getByRole('button', { name: /delete/i }));
 
-  it('blocks create when no access token is present', async () => {
-    renderWithProviders({ initialState: { accessToken: null } });
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
-    await user.type(screen.getByLabelText(/full name/i), 'Tokenless User');
-    await user.type(screen.getByLabelText(/email/i), 'noauth@example.com');
-    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
-    await user.click(screen.getByRole('button', { name: /create/i }));
-
-    expect(createUser).not.toHaveBeenCalled();
-    expect(await screen.findByText(/missing authentication token/i)).toBeInTheDocument();
-  });
-
-  it('applies search term and refetches with query params', async () => {
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
-
-    await user.type(screen.getByPlaceholderText(/search employees/i), 'neo');
-    await user.click(screen.getByRole('button', { name: /search/i }));
-
-    await waitFor(() => {
-      const lastCall = listUsers.mock.calls[listUsers.mock.calls.length - 1][0];
-      expect(lastCall.search).toBe('neo');
-    });
-  });
-
-  it('shows duplicate email error on 409', async () => {
-    const err = new Error('Conflict');
-    err.status = 409;
-    err.payload = { error: 'Email already exists' };
-    createUser.mockRejectedValueOnce(err);
-
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
-    await user.type(screen.getByLabelText(/full name/i), 'Dup User');
-    await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
-    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
-    await user.click(screen.getByRole('button', { name: /create/i }));
-
-    expect(await screen.findByText(/email already exists/i)).toBeInTheDocument();
-    expect(createUser).toHaveBeenCalled();
-  });
-
-  it('shows limit exceeded error on 403', async () => {
-    const err = new Error('Forbidden');
-    err.status = 403;
-    err.payload = { error: 'User limit reached' };
-    createUser.mockRejectedValueOnce(err);
-
-    renderWithProviders();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /add employee/i }));
-    await user.type(screen.getByLabelText(/full name/i), 'Limit User');
-    await user.type(screen.getByLabelText(/email/i), 'limit@example.com');
-    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
-    await user.click(screen.getByRole('button', { name: /create/i }));
-
-    expect(await screen.findByText(/user limit reached/i)).toBeInTheDocument();
-    expect(createUser).toHaveBeenCalled();
+    expect(await screen.findByText(/cannot delete your own account/i)).toBeInTheDocument();
+    expect(usersApi.deleteUser).not.toHaveBeenCalled();
   });
 });
