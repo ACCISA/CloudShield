@@ -7,7 +7,14 @@ from pydantic import ValidationError
 from models import UserCreate
 from services import create_user
 
-from services import service_dispatcher, get_job_status, health_status
+from services import (
+    service_dispatcher,
+    get_job_status,
+    health_status,
+    list_shares,
+    list_groups_with_shares,
+    update_share,
+)
 from utils.logging_setup import get_logger
 from utils import organizations
 
@@ -17,6 +24,41 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+
+
+def _share_doc_to_payload(doc: dict) -> dict:
+    """
+    Transform MongoDB share document into API response payload.
+    
+    Converts internal MongoDB document format to client-friendly JSON,
+    including ObjectId to string conversion and datetime to ISO format.
+    
+    Args:
+        doc: MongoDB document dict with share fields
+    
+    Returns:
+        Dict suitable for JSON serialization with fields:
+        - id: String representation of MongoDB _id
+        - org_id: Organization identifier
+        - name: Share name
+        - groups: List of group names (empty list if None)
+        - drive: Allocated drive letter (e.g., "Z")
+        - description: Optional description
+        - owner: Optional owner email/username
+        - created_at: ISO 8601 timestamp string
+        - updated_at: ISO 8601 timestamp string
+    """
+    return {
+        "id": str(doc.get("_id")) if doc.get("_id") else None,
+        "org_id": doc.get("org_id"),
+        "name": doc.get("name"),
+        "groups": doc.get("groups") or [],
+        "drive": doc.get("drive"),
+        "description": doc.get("description"),
+        "owner": doc.get("owner"),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+    }
 
 @api_bp.route("/task/dc/delete_file_share", methods=["POST"])
 def task_delete_file_share():
@@ -50,6 +92,153 @@ def task_create_file_share():
     job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
 
     return jsonify({"job_id":job.id}), 202
+
+
+@api_bp.route("/file_shares", methods=["GET"])
+def list_file_shares():
+    """
+    List all file shares for an organization.
+    
+    Endpoint:
+        GET /api/file_shares?org_id=<org_id>
+    
+    Query Parameters:
+        - org_id (str, required): Organization identifier
+    
+    Returns:
+        200: JSON with structure:
+            {
+                "shares": [
+                    {
+                        "share": {
+                            "id": "...",
+                            "name": "Documents",
+                            "drive": "Z",
+                            "groups": ["engineering", "hr"],
+                            "description": "...",
+                            "owner": "admin@example.com",
+                            "created_at": "2026-01-18T22:44:34.480000",
+                            "updated_at": "2026-01-18T22:44:34.480000"
+                        }
+                    },
+                    ...
+                ]
+            }
+        422: Missing org_id parameter
+    """
+    org_id = request.args.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+
+    docs = list_shares(org_id)
+    payload = [{"share": _share_doc_to_payload(doc)} for doc in docs]
+    return jsonify({"shares": payload}), 200
+
+
+@api_bp.route("/file_share_groups", methods=["GET"])
+def list_file_share_groups():
+    """
+    List groups and their associated file shares (inverted view).
+    
+    Transforms share-centric data into group-centric view, useful for
+    displaying which shares each group has access to.
+    
+    Endpoint:
+        GET /api/file_share_groups?org_id=<org_id>
+    
+    Query Parameters:
+        - org_id (str, required): Organization identifier
+    
+    Returns:
+        200: JSON with structure:
+            {
+                "groups": [
+                    {
+                        "group": {
+                            "name": "engineering",
+                            "shares": ["Documents", "Projects"]
+                        }
+                    },
+                    {
+                        "group": {
+                            "name": "hr",
+                            "shares": ["Documents"]
+                        }
+                    },
+                    ...
+                ]
+            }
+        422: Missing org_id parameter
+    """
+    org_id = request.args.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+
+    payload = list_groups_with_shares(org_id)
+    return jsonify({"groups": payload}), 200
+
+@api_bp.route("/file_shares/<share_name>", methods=["PATCH"])
+def update_file_share(share_name):
+    """
+    Update file share metadata (groups, description, owner).
+    
+    Allows modification of share access and metadata without recreating
+    the share or changing the allocated drive letter.
+    
+    Endpoint:
+        PATCH /api/file_shares/<share_name>
+    
+    Path Parameters:
+        - share_name (str): Name of the share to update
+    
+    Request JSON:
+        - org_id (str, required): Organization identifier
+        - groups (list[str], optional): List of group names with access
+        - description (str, optional): Human-readable description
+        - owner (str, optional): Owner email or username
+    
+    Returns:
+        200: JSON with structure:
+            {
+                "status": "SUCCESS",
+                "message": "Share updated successfully"
+            }
+        400: No fields provided to update
+        404: Share not found
+        422: Missing org_id in request body
+    
+    Notes:
+        - At least one optional field must be provided
+        - updated_at timestamp is automatically set
+        - Cannot modify org_id, name, or drive letter
+    """
+    data = request.get_json() or {}
+    
+    org_id = data.get("org_id")
+    
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+    
+    # Build update fields from request
+    update_fields = {}
+    if "groups" in data:
+        update_fields["groups"] = data["groups"]
+    if "description" in data:
+        update_fields["description"] = data["description"]
+    if "owner" in data:
+        update_fields["owner"] = data["owner"]
+    
+    if not update_fields:
+        return jsonify({"error": "No fields to update"}), 400
+    
+    success = update_share(org_id, share_name, update_fields)
+
+    if not success:
+        return jsonify({"error": "Share not found"}), 404
+
+    return jsonify({"status": "SUCCESS", "message": "Share updated successfully"}), 200
 
 @api_bp.route("/task/dc/set_password", methods=["POST"])
 def task_set_password():
