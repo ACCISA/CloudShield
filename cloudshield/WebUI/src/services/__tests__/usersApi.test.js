@@ -164,7 +164,8 @@ describe('usersApi', () => {
       payload: null,
     });
   });
-});
+
+  // --- THESE TESTS ARE NOW CORRECTLY INSIDE THE DESCRIBE BLOCK ---
 
   it('updates a user via PATCH', async () => {
     const payload = { full_name: 'Updated Name', role: 'admin' };
@@ -218,3 +219,5 @@ describe('usersApi', () => {
 
     expect(global.fetch).toHaveBeenCalledWith('/api/users/user%2F123', expect.anything());
   });
+
+});
