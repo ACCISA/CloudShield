@@ -499,4 +499,29 @@ describe('EmployeesPage', () => {
   expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
+  it('disables controls while deletion is in-flight', async () => {
+  const d = deferred();
+  deleteUser.mockImplementation(() => d.promise);
+
+  renderWithProviders();
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  const deleteJaneButton = screen.getByRole('button', { name: /delete user jane smith/i });
+  await user.click(deleteJaneButton);
+
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  const confirmButton = screen.getByRole('button', { name: /confirm/i });
+  await user.click(confirmButton);
+
+  expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
+  expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+  });
+
 });
