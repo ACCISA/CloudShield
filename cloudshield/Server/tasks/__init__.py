@@ -3,6 +3,7 @@ from .network_provisioning import destroy_environment as destroy_environment
 from .network_provisioning import provision_workstations as provision_workstations
 
 from .dc_management import dc_add_user as dc_add_user
+from .dc_management import dc_add_user_to_group as dc_add_user_to_group
 from .dc_management import dc_remove_user as dc_remove_user
 from .dc_management import dc_restart_samba_service as dc_restart_samba_service
 from .dc_management import dc_user_list as dc_user_list

@@ -145,6 +145,30 @@ def task_dc_add_user():
     return jsonify({"job_id": job.id}), 202
 
 
+@api_bp.route("/task/dc/add_user_to_group", methods=["POST"])
+def task_dc_add_user_to_group():
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    username = data.get("username")
+    group_name = data.get("group_name")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+    if username is None:
+        return jsonify({"error": "username is required"}), 422
+    if group_name is None:
+        return jsonify({"error": "group_name is required"}), 422
+
+    job = service_dispatcher(
+        service_name="dc_add_user_to_group",
+        org_id=org_id,
+        username=username,
+        group_name=group_name,
+    )
+    return jsonify({"job_id": job.id}), 202
+
+
 @api_bp.route("/task/dc/add_user_with_group", methods=["POST"])
 def task_dc_add_user_with_group():
     """

@@ -254,6 +254,71 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     mock_persist.assert_not_called()
 
 
+def test_dc_add_user_to_group_success(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    body = infra_pb2.AddUserToGroupDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body),
+    )
+
+    result = dc_add_user_to_group("org1", "jane", "admins")
+
+    assert result["status"] == "SUCCESS"
+    assert "job-123" == mock_job.id
+
+
+def test_dc_add_user_to_group_user_not_found(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    body = infra_pb2.AddUserToGroupDataAck(status=infra_pb2.USER_NOT_FOUND).SerializeToString()
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body),
+    )
+
+    result = dc_add_user_to_group("org1", "missing", "admins")
+
+    assert result["status"] == "USER_NOT_FOUND"
+
+
+def test_dc_add_user_to_group_invalid_inputs(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    result_user = dc_add_user_to_group("org1", "bad user", "admins")
+    assert "invalid" in result_user["message"]
+    assert mock_job.meta["progress"] == "invalid username"
+
+    result_group = dc_add_user_to_group("org1", "jane", "bad group")
+    assert "invalid" in result_group["message"]
+    assert mock_job.meta["progress"] == "invalid group name"
+
+
 def test_dc_create_file_share_success_no_job(monkeypatch):
     """Test that dc_add_user persists user data when command succeeds"""
     from tasks.dc_management import dc_create_file_share

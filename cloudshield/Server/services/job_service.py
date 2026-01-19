@@ -17,6 +17,7 @@ try:
         provision_workstations,
         dc_add_user,
         dc_create_user_with_group,
+        dc_add_user_to_group,
         dc_remove_user,
         dc_restart_samba_service,
         dc_user_list,
@@ -26,7 +27,7 @@ try:
     )
 except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
     from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_create_user_with_group, dc_restart_samba_service, dc_user_list, dc_set_password
-    from tasks import dc_create_file_share, dc_delete_file_share, dc_remove_user
+    from tasks import dc_create_file_share, dc_delete_file_share, dc_remove_user, dc_add_user_to_group
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -188,6 +189,17 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
     logger.info("Enqueued dc_add_user job")
     return job
 
+
+def enqueue_dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    job = task_queue.enqueue(
+            dc_add_user_to_group,
+            org_id,
+            username,
+            group_name,
+    )
+    logger.info("Enqueued dc_add_user_to_group job")
+    return job
+
 def enqueue_dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str):
     """
     Enqueue a task that creates a user, provisions a group, links it to Domain Users, and adds the user to that group.
@@ -287,6 +299,7 @@ SERVICES = {
     "provision_workstations": enqueue_provision_workstations,
     "destroy": enqueue_destroy,
     "dc_add_user": enqueue_dc_add_user,
+    "dc_add_user_to_group": enqueue_dc_add_user_to_group,
     "dc_create_user_with_group": enqueue_dc_create_user_with_group,
     "dc_remove_user": enqueue_dc_remove_user,
     "dc_restart_samba_service": enqueue_dc_restart_samba_service,
