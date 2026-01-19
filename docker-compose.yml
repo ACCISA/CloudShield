@@ -105,6 +105,16 @@ services:
       - realm_name=${REALM_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    devices:
+      - "/dev/loop0:/dev/loop0"
+      - "/dev/loop1:/dev/loop1"
+      - "/dev/loop2:/dev/loop2"
+      - "/dev/loop3:/dev/loop3"
+      - "/dev/loop4:/dev/loop4"
+      - "/dev/loop5:/dev/loop5"
+      - "/dev/loop6:/dev/loop6"
+      - "/dev/loop7:/dev/loop7"
+      - "/dev/loop-control:/dev/loop-control"
     networks:
       vpc_net:
         ipv4_address: 172.23.0.10
