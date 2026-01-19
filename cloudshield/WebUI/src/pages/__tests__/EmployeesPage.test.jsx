@@ -560,4 +560,18 @@ describe('EmployeesPage', () => {
   expect(screen.getByText("Jane Smith")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /delete user jane smith/i })).toBeInTheDocument();
   });
+
+  it("throws structured error on 404 Not Found", async () => {
+  fetch.mockResolvedValueOnce({
+    ok: false,
+    status: 404,
+    json: async () => ({ error: "Not found" }),
+  });
+
+  await expect(deleteUser("user-123", { token: "test-token" }))
+    .rejects.toMatchObject({
+      status: 404,
+      payload: { error: "Not found" },
+    });
+  });
 });
