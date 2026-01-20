@@ -170,30 +170,21 @@ describe('FilesPage', () => {
     });
 
     it('should cap storage percentage at 100%', () => {
-      const { container } = render(<FilesPage />);
+      const { container } = render(<FilesPage usedGB={150} totalGB={100} />);
       const fill = container.querySelector('.storageFill');
-      const width = parseFloat(fill.style.width);
-      expect(width).toBeLessThanOrEqual(100);
+      expect(fill.style.width).toBe('100%');
     });
 
-    it('should have positive storage percentage', () => {
-      const { container } = render(<FilesPage />);
+    it('should handle zero storage', () => {
+      const { container } = render(<FilesPage usedGB={0} totalGB={100} />);
       const fill = container.querySelector('.storageFill');
-      const width = parseFloat(fill.style.width);
-      expect(width).toBeGreaterThanOrEqual(0);
+      expect(fill.style.width).toBe('0%');
     });
 
-    it('should handle zero storage calculation', () => {
-      const { container } = render(<FilesPage />);
+    it('should handle negative used storage', () => {
+      const { container } = render(<FilesPage usedGB={-10} totalGB={100} />);
       const fill = container.querySelector('.storageFill');
-      expect(fill.style.width).toBe('62%');
-    });
-
-    it('should not have negative storage percentage', () => {
-      const { container } = render(<FilesPage />);
-      const fill = container.querySelector('.storageFill');
-      const width = parseFloat(fill.style.width);
-      expect(width).toBeGreaterThanOrEqual(0);
+      expect(fill.style.width).toBe('0%');
     });
 
     it('should render storage text container', () => {
