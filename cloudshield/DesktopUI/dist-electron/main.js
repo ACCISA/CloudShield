@@ -53,7 +53,6 @@ const getWinOVPNPath = async () => {
   }
   return { success: true, message: "OpenVPN is installed.", path: exePath };
 };
-*/
 
 ipcMain.handle("get-win-ovpn-path", async () => {
   return getWinOVPNPath();
@@ -71,14 +70,24 @@ export const getBinPath = (exeName) => {
         ? "mac"
         : "linux";
 
-  return path.join(__dirname, "..", "..", "resources", "bin", platform, exeName);
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    "resources",
+    "bin",
+    platform,
+    exeName,
+  );
 };
 
 ipcMain.handle("run-openvpn", async (_event, params = { ovpnPath: "" }) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!fs.existsSync(params.ovpnPath)) {
-        return reject(new Error(`OpenVPN config not found: ${params.ovpnPath}`));
+        return reject(
+          new Error(`OpenVPN config not found: ${params.ovpnPath}`),
+        );
       }
 
       let command = "openvpn";
@@ -145,7 +154,9 @@ ipcMain.handle("run-xfreerdp", async (_event, params) => {
         const candidate = getBinPath(exeName);
         if (fs.existsSync(candidate)) exePath = candidate;
         else if (!fs.existsSync(candidate))
-          return reject(new Error(`Bundled xfreerdp not found at ${candidate}`));
+          return reject(
+            new Error(`Bundled xfreerdp not found at ${candidate}`),
+          );
       }
 
       const child = spawn(exePath, [

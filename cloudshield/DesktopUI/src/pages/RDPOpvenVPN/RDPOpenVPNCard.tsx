@@ -1,25 +1,4 @@
 import { useState } from "react";
-declare global {
-  interface Window {
-    electronAPI?: {
-      runXfreerdp: (
-        username: string,
-        password: string,
-        ip: string
-      ) => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-      runOpenVPN: (ovpnPath?: string) => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-      showOpenDialog?: (options: any) => Promise<{ canceled: boolean; filePaths: string[] }>;
-    };
-  }
-}
 
 type ElectronResult = {
   success: boolean;
@@ -92,7 +71,7 @@ export default function RDPOpenVPNCard() {
       const result = (await window.electronAPI.runXfreerdp(
         rdpUsername,
         rdpPassword,
-        rdpIp
+        rdpIp,
       )) as ElectronResult;
       setRdpStatus(`Connected! (PID: ${result.pid})`);
       console.log("RDP launched:", result);
