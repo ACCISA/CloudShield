@@ -215,7 +215,11 @@ class TestFileShareModel:
             "description": "Shared documents folder",
             "owner": "john.doe@example.com",
             "drive": "Z",
-            "groups": ["groupA"]
+            "groups": ["groupA"],
+            "kind": None,
+            "users": [],
+            "current_size": 0,
+            "max_size": None
         }
         
         share = FileShare(**share_data)
