@@ -316,14 +316,26 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
           const isFolder = node.kind === NODE_KIND.FOLDER;
           const isSelected = selectedIds.has(node.id);
 
+          const handleKeyDown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleSelect(node.id);
+            } else if (e.key === "Enter" && e.shiftKey) {
+              e.preventDefault();
+              isFolder ? openFolder(node.id) : openEdit(node);
+            }
+          };
+
           return (
             <div
               key={node.id}
               className={`iconTile ${isSelected ? "selected" : ""}`}
               onClick={() => toggleSelect(node.id)}
               onDoubleClick={() => (isFolder ? openFolder(node.id) : openEdit(node))}
+              onKeyDown={handleKeyDown}
               role="button"
               tabIndex={0}
+              aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
             >
               <div className={`tileCheck ${isSelected ? "show" : ""}`}>
                 <Checkbox checked={isSelected} onChange={() => toggleSelect(node.id)} />

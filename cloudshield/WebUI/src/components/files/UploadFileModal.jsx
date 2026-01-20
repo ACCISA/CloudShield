@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { modalStyles } from "./modalStyles.jsx";
+import AssignmentSection from "./AssignmentSection.jsx";
 
 const mockUsers = [
   "Michael Scott",
@@ -32,6 +33,12 @@ export default function UploadFileModal({
     }
   }, []);
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -52,6 +59,10 @@ export default function UploadFileModal({
           }}
           onDragLeave={() => setDragActive(false)}
           onDrop={onDrop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          aria-label="Drag and drop area for file upload"
         >
           <div className="uploadIcon">⬆</div>
           <div>Drag and drop files here, or</div>
@@ -74,41 +85,17 @@ export default function UploadFileModal({
           />
         </div>
 
-        <div className="section">
-          <div className="sectionHeader">
-            <span>Assign users</span>
-            <label><input type="checkbox" /> All users</label>
-          </div>
+        <AssignmentSection
+          title="Assign users"
+          items={mockUsers}
+          placeholder="Search for users"
+        />
 
-          <input placeholder="Search for users" />
-          <div className="suggested">suggested</div>
-
-          <div className="chips">
-            {mockUsers.map((u) => (
-              <label key={u}>
-                <input type="checkbox" /> {u}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="section">
-          <div className="sectionHeader">
-            <span>Assign groups</span>
-            <label><input type="checkbox" /> All groups</label>
-          </div>
-
-          <input placeholder="Search for groups" />
-          <div className="suggested">suggested</div>
-
-          <div className="chips">
-            {mockGroups.map((g) => (
-              <label key={g}>
-                <input type="checkbox" /> {g}
-              </label>
-            ))}
-          </div>
-        </div>
+        <AssignmentSection
+          title="Assign groups"
+          items={mockGroups}
+          placeholder="Search for groups"
+        />
 
         <footer className="modalFooter">
           <button className="primary" onClick={() => onUpload?.({ file, fileName })}>

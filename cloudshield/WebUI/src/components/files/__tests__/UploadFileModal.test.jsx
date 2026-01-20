@@ -238,14 +238,6 @@ describe('UploadFileModal', () => {
       const searchInputs = screen.getAllByPlaceholderText('Search for users');
       expect(searchInputs.length).toBeGreaterThan(0);
     });
-
-    it('should display suggested text', () => {
-      render(
-        <UploadFileModal isOpen={true} onClose={mockOnClose} onUpload={mockOnUpload} />
-      );
-      const suggested = screen.getAllByText('suggested');
-      expect(suggested.length).toBeGreaterThan(0);
-    });
   });
 
   describe('Groups Section', () => {

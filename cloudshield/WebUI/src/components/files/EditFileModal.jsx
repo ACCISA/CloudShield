@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { modalStyles } from "./modalStyles.jsx";
+import AssignmentSection from "./AssignmentSection.jsx";
 
 const mockUsers = [
   "Michael Scott",
@@ -44,41 +45,17 @@ export default function EditFileModal({
           />
         </div>
 
-        <div className="section">
-          <div className="sectionHeader">
-            <span>Assign users</span>
-            <label><input type="checkbox" /> All users</label>
-          </div>
+        <AssignmentSection
+          title="Assign users"
+          items={mockUsers}
+          placeholder="Search for users"
+        />
 
-          <input placeholder="Search for users" />
-          <div className="suggested">suggested</div>
-
-          <div className="chips">
-            {mockUsers.map((u) => (
-              <label key={u}>
-                <input type="checkbox" /> {u}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="section">
-          <div className="sectionHeader">
-            <span>Assign groups</span>
-            <label><input type="checkbox" /> All groups</label>
-          </div>
-
-          <input placeholder="Search for groups" />
-          <div className="suggested">suggested</div>
-
-          <div className="chips">
-            {mockGroups.map((g) => (
-              <label key={g}>
-                <input type="checkbox" /> {g}
-              </label>
-            ))}
-          </div>
-        </div>
+        <AssignmentSection
+          title="Assign groups"
+          items={mockGroups}
+          placeholder="Search for groups"
+        />
 
         <footer className="modalFooter space">
           <button className="danger" onClick={onDelete}>
