@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
 import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -34,172 +35,7 @@ const styles = {
 };
 /* ----------------------------------- seed ---------------------------------- */
 
-const seed = [
-  {
-    id: "ws-1",
-    name: "Development-WS-001",
-    hostname: "DEV-WS-001",
-    code: "WS-001",
-    usersCount: 3,
-    users: [
-      {
-        firstName: "Jim",
-        lastName: "Halpert",
-        active: true,
-        title: "Sales Representative",
-        email: "jim@dundermifflin.com",
-      },
-      {
-        firstName: "Pam",
-        lastName: "Beasly",
-        active: true,
-        title: "Receptionist",
-        email: "pam@dundermifflin.com",
-      },
-      {
-        firstName: "Dwight",
-        lastName: "Schrute",
-        active: true,
-        title: "Assistant Regional Manager",
-        email: "dwight@dundermifflin.com",
-      },
-    ],
-    currentUser: {
-      firstName: "Jim",
-      lastName: "Halpert",
-      active: true,
-      title: "Sales Representative",
-      email: "jim@dundermifflin.com",
-    },
-    lastUsed: "03/11/2025",
-    status: "connected",
-    online: true,
-    ipAddress: "192.168.1.101",
-    operatingSystem: "Windows 11 Pro",
-    assignedUser: "Jim Halpert",
-    lastSeen: "2026-01-15T10:30:00Z",
-  },
-  {
-    id: "ws-2",
-    name: "Marketing-WS-002",
-    hostname: "MKT-WS-002",
-    code: "WS-002",
-    usersCount: 2,
-    users: [
-      {
-        firstName: "Pam",
-        lastName: "Beasly",
-        active: true,
-        title: "Receptionist",
-        email: "pam@dundermifflin.com",
-      },
-      {
-        firstName: "Michael",
-        lastName: "Scott",
-        active: true,
-        title: "Regional Manager",
-        email: "michael@dundermifflin.com",
-      },
-    ],
-    currentUser: {
-      firstName: "Pam",
-      lastName: "Beasly",
-      active: true,
-      title: "Receptionist",
-      email: "pam@dundermifflin.com",
-    },
-    lastUsed: "—",
-    status: "busy",
-    online: true,
-    ipAddress: "192.168.1.102",
-    operatingSystem: "Windows 10 Pro",
-    assignedUser: "Pam Beasly",
-    lastSeen: "2026-01-15T09:15:00Z",
-  },
-  {
-    id: "ws-3",
-    name: "Sales-WS-003",
-    hostname: "SALES-WS-003",
-    code: "WS-003",
-    usersCount: 3,
-    users: [
-      {
-        firstName: "Jim",
-        lastName: "Halpert",
-        active: true,
-        title: "Sales Representative",
-        email: "jim@dundermifflin.com",
-      },
-      {
-        firstName: "Dwight",
-        lastName: "Schrute",
-        active: true,
-        title: "Assistant Regional Manager",
-        email: "dwight@dundermifflin.com",
-      },
-      {
-        firstName: "Michael",
-        lastName: "Scott",
-        active: true,
-        title: "Regional Manager",
-        email: "michael@dundermifflin.com",
-      },
-    ],
-    currentUser: {
-      firstName: "Jim",
-      lastName: "Halpert",
-      active: true,
-      title: "Sales Representative",
-      email: "jim@dundermifflin.com",
-    },
-    lastUsed: "03/11/2025",
-    status: "connected",
-    online: true,
-    ipAddress: "192.168.1.103",
-    operatingSystem: "Windows 11 Pro",
-    assignedUser: "Jim Halpert",
-    lastSeen: "2026-01-15T10:45:00Z",
-  },
-  {
-    id: "ws-4",
-    name: "Accounting-WS-004",
-    hostname: "ACCT-WS-004",
-    code: "WS-004",
-    usersCount: 2,
-    users: [
-      {
-        firstName: "Angela",
-        lastName: "Martin",
-        active: true,
-        title: "Senior Accountant",
-        email: "angela@dundermifflin.com",
-        profileImage: "https://i.pravatar.cc/150?img=5",
-      },
-      {
-        firstName: "Kevin",
-        lastName: "Malone",
-        active: false,
-        title: "Accountant",
-        email: "kevin@dundermifflin.com",
-      },
-    ],
-    currentUser: {
-      firstName: "Angela",
-      lastName: "Martin",
-      active: true,
-      title: "Senior Accountant",
-      email: "angela@dundermifflin.com",
-      profileImage: "https://i.pravatar.cc/150?img=5",
-    },
-    lastUsed: "03/10/2025",
-    status: "disconnected",
-    online: false,
-    ipAddress: "192.168.1.104",
-    operatingSystem: "macOS Sonoma",
-    assignedUser: "Angela Martin",
-    lastSeen: "2026-01-14T17:30:00Z",
-  },
-];
+const seed = MOCK_WORKSTATIONS_FULL;
 
 /* ---------------------------------- page ----------------------------------- */
 
@@ -232,8 +68,8 @@ export default function WorkstationsPage() {
     if (q) {
       data = data.filter((r) =>
         [r.name, r.code, r.currentUser].some((v) =>
-          (v || "").toLowerCase().includes(q)
-        )
+          (v || "").toLowerCase().includes(q),
+        ),
       );
     }
 
@@ -284,7 +120,7 @@ export default function WorkstationsPage() {
 
   const handleEditSave = (id, changes) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...changes } : r))
+      prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
     );
   };
 
@@ -298,7 +134,7 @@ export default function WorkstationsPage() {
         if (r.status === "connected") return { ...r, status: "disconnected" };
         if (r.status === "disconnected") return { ...r, status: "connected" };
         return r; // busy unchanged
-      })
+      }),
     );
   };
 
@@ -306,7 +142,6 @@ export default function WorkstationsPage() {
     console.log(`Layout changed to: ${newLayout}`);
     setLayout(newLayout);
   };
-  
 
   return (
     <div style={styles.container}>

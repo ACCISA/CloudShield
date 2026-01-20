@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
+import GroupsModal from "../components/groups/GroupsModal.jsx";
+import { MOCK_GROUPS_FULL } from "../data/mockData.js";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -30,243 +32,15 @@ export default function GroupsPage() {
 
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+
   const openToast = (msg, type = "success") =>
     setToast({ open: true, msg, type });
 
   const mockFetchGroups = async () => {
-    const mock = [
-      {
-        id: "1",
-        name: "Sales Team",
-        groupName: "Sales Team",
-        description: "Sales Reps & Account Manager",
-        memberCount: 8,
-        users: [
-          {
-            firstName: "Jim",
-            lastName: "Halpert",
-            active: true,
-            title: "Sales Representative",
-            email: "jim@dundermifflin.com",
-          },
-          {
-            firstName: "Dwight",
-            lastName: "Schrute",
-            active: true,
-            title: "Assistant Regional Manager",
-            email: "dwight@dundermifflin.com",
-          },
-          {
-            firstName: "Stanley",
-            lastName: "Hudson",
-            active: true,
-            title: "Sales Representative",
-            email: "stanley@dundermifflin.com",
-          },
-          {
-            firstName: "Phyllis",
-            lastName: "Vance",
-            active: true,
-            title: "Sales Representative",
-            email: "phyllis@dundermifflin.com",
-          },
-          {
-            firstName: "Andy",
-            lastName: "Bernard",
-            active: false,
-            title: "Sales Representative",
-            email: "andy@dundermifflin.com",
-          },
-        ],
-        workstations: [
-          {
-            name: "Sales-WS-001",
-            hostname: "SALES-WS-001",
-            online: true,
-            ipAddress: "192.168.1.101",
-          },
-          {
-            name: "Sales-WS-002",
-            hostname: "SALES-WS-002",
-            online: true,
-            ipAddress: "192.168.1.102",
-          },
-          {
-            name: "Sales-WS-003",
-            hostname: "SALES-WS-003",
-            online: false,
-            ipAddress: "192.168.1.103",
-          },
-        ],
-        files: 24,
-        type: "Department",
-        createdDate: "2025-01-10T00:00:00Z",
-      },
-      {
-        id: "2",
-        name: "Engineering",
-        groupName: "Engineering",
-        description: "Software development team",
-        memberCount: 12,
-        users: [
-          {
-            firstName: "Michael",
-            lastName: "Scott",
-            active: true,
-            title: "Regional Manager",
-            email: "michael@dundermifflin.com",
-            profileImage: "https://i.pravatar.cc/150?img=12",
-          },
-          {
-            firstName: "Pam",
-            lastName: "Beasly",
-            active: true,
-            title: "Receptionist",
-            email: "pam@dundermifflin.com",
-          },
-          {
-            firstName: "Ryan",
-            lastName: "Howard",
-            active: true,
-            title: "Temp",
-            email: "ryan@dundermifflin.com",
-          },
-          {
-            firstName: "Kelly",
-            lastName: "Kapoor",
-            active: true,
-            title: "Customer Service",
-            email: "kelly@dundermifflin.com",
-          },
-          {
-            firstName: "Oscar",
-            lastName: "Martinez",
-            active: true,
-            title: "Accountant",
-            email: "oscar@dundermifflin.com",
-          },
-          {
-            firstName: "Angela",
-            lastName: "Martin",
-            active: true,
-            title: "Senior Accountant",
-            email: "angela@dundermifflin.com",
-          },
-        ],
-        workstations: [
-          {
-            name: "ENG-WS-001",
-            hostname: "ENG-WS-001",
-            online: true,
-            ipAddress: "192.168.2.101",
-          },
-          {
-            name: "ENG-WS-002",
-            hostname: "ENG-WS-002",
-            online: true,
-            ipAddress: "192.168.2.102",
-          },
-          {
-            name: "ENG-WS-003",
-            hostname: "ENG-WS-003",
-            online: true,
-            ipAddress: "192.168.2.103",
-          },
-          {
-            name: "ENG-WS-004",
-            hostname: "ENG-WS-004",
-            online: false,
-            ipAddress: "192.168.2.104",
-          },
-        ],
-        files: 156,
-        type: "Department",
-        createdDate: "2025-02-15T00:00:00Z",
-        profileImage: "https://i.pravatar.cc/150?img=68",
-      },
-      {
-        id: "3",
-        name: "Marketing",
-        groupName: "Marketing",
-        description: "Marketing and communications",
-        memberCount: 6,
-        users: [
-          {
-            firstName: "Toby",
-            lastName: "Flenderson",
-            active: true,
-            title: "HR Representative",
-            email: "toby@dundermifflin.com",
-          },
-          {
-            firstName: "Creed",
-            lastName: "Bratton",
-            active: true,
-            title: "Quality Assurance",
-            email: "creed@dundermifflin.com",
-          },
-          {
-            firstName: "Meredith",
-            lastName: "Palmer",
-            active: false,
-            title: "Supplier Relations",
-            email: "meredith@dundermifflin.com",
-          },
-        ],
-        workstations: [
-          {
-            name: "MKT-WS-001",
-            hostname: "MKT-WS-001",
-            online: true,
-            ipAddress: "192.168.3.101",
-          },
-          {
-            name: "MKT-WS-002",
-            hostname: "MKT-WS-002",
-            online: true,
-            ipAddress: "192.168.3.102",
-          },
-        ],
-        files: 89,
-        type: "Department",
-        createdDate: "2025-03-20T00:00:00Z",
-      },
-      {
-        id: "4",
-        name: "HR Department",
-        groupName: "HR Department",
-        description: "Human Resources team",
-        memberCount: 4,
-        users: [
-          {
-            firstName: "Kevin",
-            lastName: "Malone",
-            active: true,
-            title: "Accountant",
-            email: "kevin@dundermifflin.com",
-          },
-          {
-            firstName: "Erin",
-            lastName: "Hannon",
-            active: true,
-            title: "Receptionist",
-            email: "erin@dundermifflin.com",
-          },
-        ],
-        workstations: [
-          {
-            name: "HR-WS-001",
-            hostname: "HR-WS-001",
-            online: false,
-            ipAddress: "192.168.4.101",
-          },
-        ],
-        files: 42,
-        type: "Department",
-        createdDate: "2025-01-05T00:00:00Z",
-      },
-    ];
-    setGroups(mock);
+    setGroups(MOCK_GROUPS_FULL);
   };
 
   useEffect(() => {
@@ -279,7 +53,7 @@ export default function GroupsPage() {
 
     if (q) {
       out = out.filter((g) =>
-        [g.name, g.description].some((v) => v.toLowerCase().includes(q))
+        [g.name, g.description].some((v) => v.toLowerCase().includes(q)),
       );
     }
 
@@ -352,6 +126,62 @@ export default function GroupsPage() {
     openToast("Group deleted");
   };
 
+  const handleOpenCreateModal = () => {
+    setEditingGroup(null);
+    setModalOpen(true);
+  };
+
+  const handleOpenEditModal = (group) => {
+    setEditingGroup(group);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingGroup(null);
+  };
+
+  const handleSubmitGroup = (groupData) => {
+    if (editingGroup) {
+      // Edit mode - update existing group
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === editingGroup.id
+            ? {
+                ...g,
+                name: groupData.name,
+                groupName: groupData.name,
+                description: groupData.description,
+                image: groupData.image,
+                users: groupData.users || [],
+                memberCount: groupData.users?.length || 0,
+                workstations: groupData.workstations || [],
+                files: groupData.files?.length || 0,
+              }
+            : g,
+        ),
+      );
+      openToast("Group updated successfully");
+    } else {
+      // Create mode - add new group (temporary UI visualization)
+      const newGroup = {
+        id: String(Date.now()),
+        name: groupData.name,
+        groupName: groupData.name,
+        description: groupData.description,
+        image: groupData.image,
+        users: groupData.users || [],
+        memberCount: groupData.users?.length || 0,
+        workstations: groupData.workstations || [],
+        files: groupData.files?.length || 0, // Convert array to count
+        type: "Custom",
+        createdDate: new Date().toISOString(),
+      };
+      setGroups((prev) => [...prev, newGroup]);
+      openToast("Group created successfully");
+    }
+  };
+
   const styles = {
     container: {
       display: "flex",
@@ -362,16 +192,19 @@ export default function GroupsPage() {
       justifyContent: "space-between",
       gap: "12px",
       flexWrap: "wrap",
+      marginBottom: "8px",
     },
     leftActions: {
       display: "flex",
       gap: "10px",
       flex: "1 1 auto",
       flexWrap: "wrap",
+      minWidth: "0",
     },
     rightActions: {
       display: "flex",
       gap: "10px",
+      flexWrap: "wrap",
     },
   };
 
@@ -385,16 +218,30 @@ export default function GroupsPage() {
             value={search}
             onChange={setSearch}
             placeholder="Search groups"
-            width="420px"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
+              flex: "1 1 200px",
+              minWidth: "200px",
               maxWidth: "680px",
+              width: "100%",
             }}
           />
 
-          <DisplayButton layout={layout} onLayoutChange={setLayout} />
+          <DisplayButton
+            layout={layout}
+            onLayoutChange={setLayout}
+            columnToggles={{
+              showUsers,
+              showWorkstations,
+              showFiles,
+              onToggle: (column) => {
+                if (column === "showUsers") setShowUsers((prev) => !prev);
+                if (column === "showWorkstations")
+                  setShowWorkstations((prev) => !prev);
+                if (column === "showFiles") setShowFiles((prev) => !prev);
+              },
+            }}
+          />
 
           <FilterButton
             filterGroups={filterGroups}
@@ -410,7 +257,7 @@ export default function GroupsPage() {
           <CreateButton
             icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
             buttonText="Create"
-            onClick={() => {}}
+            onClick={handleOpenCreateModal}
           />
         </div>
       </div>
@@ -420,8 +267,15 @@ export default function GroupsPage() {
         showUsers={showUsers}
         showWorkstations={showWorkstations}
         showFiles={showFiles}
-        onEdit={(g) => {}}
+        onEdit={handleOpenEditModal}
         onDelete={(g) => handleMockDelete(g.id)}
+      />
+
+      <GroupsModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        groupData={editingGroup}
+        onSubmit={handleSubmitGroup}
       />
     </div>
   );

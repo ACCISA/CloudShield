@@ -3,6 +3,7 @@ import CardsIcon from "../../../assets/DisplayButton/CardsIcon.jsx";
 import ListIcon from "../../../assets/DisplayButton/ListIcon.jsx";
 import ImageIcon from "../../../assets/DisplayButton/ImageIcon.jsx";
 import DisplayIcon from "../../../assets/DisplayButton/DisplayIcon.jsx";
+import ColumnToggle from "./ColumnToggle.jsx";
 import { usePopover } from "../hooks/usePopover.js";
 import {
   buttonStyle as baseButtonStyle,
@@ -15,6 +16,7 @@ export default function DisplayButton({
   layout = "list",
   onLayoutChange,
   style = {},
+  columnToggles = null, // { showUsers, showWorkstations, showFiles, onToggle }
 }) {
   const popover = usePopover();
 
@@ -24,7 +26,7 @@ export default function DisplayButton({
   };
 
   const buttonStyle = { ...baseButtonStyle, ...style };
-  const popoverStyle = getPopoverStyle("380px");
+  const popoverStyle = getPopoverStyle(columnToggles ? "400px" : "380px");
 
   // Option card styling
   const getOptionStyle = (isActive) => ({
@@ -210,6 +212,52 @@ export default function DisplayButton({
                 <div style={getLabelStyle(layout === "icons")}>icons</div>
               </div>
             </div>
+
+            {/* Column Toggles */}
+            {columnToggles && (
+              <>
+                <div
+                  style={{
+                    borderTop: "1px solid rgba(255,255,255,0.1)",
+                    margin: "12px 0",
+                  }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#fff",
+                      marginBottom: "4px",
+                      opacity: 0.9,
+                    }}
+                  >
+                    Show Columns
+                  </div>
+                  <ColumnToggle
+                    label="Users"
+                    checked={columnToggles.showUsers}
+                    onChange={() => columnToggles.onToggle("showUsers")}
+                  />
+                  <ColumnToggle
+                    label="Workstations"
+                    checked={columnToggles.showWorkstations}
+                    onChange={() => columnToggles.onToggle("showWorkstations")}
+                  />
+                  <ColumnToggle
+                    label="Files"
+                    checked={columnToggles.showFiles}
+                    onChange={() => columnToggles.onToggle("showFiles")}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

@@ -10,6 +10,7 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { MOCK_USERS_FULL } from "../data/mockData.js";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -36,29 +37,7 @@ export default function UsersPage() {
     setToast({ open: true, msg, type });
 
   const mockFetchUsers = async () => {
-    const mock = [
-      {
-        id: "1",
-        name: "aniss tralala",
-        email: "aniss@tralala.com",
-        title: "Regional Manager",
-        workstations: 3,
-        groups: 3,
-        files: 3,
-        status: "online",
-      },
-      {
-        id: "2",
-        name: "john tralala",
-        email: "john@cloudshield.com",
-        title: "Cuisinier",
-        workstations: 2,
-        groups: 2,
-        files: 1,
-        status: "offline",
-      },
-    ];
-    setUsers(mock);
+    setUsers(MOCK_USERS_FULL);
   };
 
   useEffect(() => {
@@ -71,7 +50,7 @@ export default function UsersPage() {
 
     if (q) {
       out = out.filter((u) =>
-        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q))
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)),
       );
     }
 
