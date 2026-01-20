@@ -12,24 +12,28 @@ class FileShare(BaseModel):
     File share read model with all fields.
     
     Represents a complete file share as stored in MongoDB and returned by API.
-    File shares are network folders mounted on workstations with assigned drive letters.
+    File shares are network folders or files mounted on workstations with assigned drive letters.
     
     Attributes:
         org_id: Organization identifier
         name: Share name (unique within organization)
+        kind: Type of share (e.g., "folder", "file", etc.)
         description: Description
         owner: Email or username of the share owner
         drive: Windows drive letter assignment (Z, Y, X, etc. - excluding C)
         groups: List of group names that have access to this share
+        users: List of usernames that have access to this share
         current_size: Current storage usage in bytes (optional, defaults to 0)
         max_size: Maximum storage quota in bytes (optional, None means unlimited)
     """
     org_id: str
     name: str
+    kind: Optional[str] = None
     description: str
     owner: str
     drive: str
     groups: List[str] = Field(default_factory=list)
+    users: List[str] = Field(default_factory=list)
     current_size: Optional[int] = 0
     max_size: Optional[int] = None
 
@@ -44,7 +48,9 @@ class FileShareCreate(BaseModel):
     Attributes:
         org_id: Organization identifier
         name: Share name (required, must be unique within organization)
+        kind: Type of share (e.g., "folder", "file", etc.) - optional
         groups: List of group names with access (defaults to empty list)
+        users: List of usernames with access (defaults to empty list)
         drive: Windows drive letter (required, auto-allocated by service layer)
         description: description
         owner: Owner info
@@ -56,10 +62,13 @@ class FileShareCreate(BaseModel):
         - created_at and updated_at timestamps are added by create_fileshare_doc()
         - current_size starts at 0 and is updated as files are added
         - max_size is optional quota limit in bytes
+        - kind is optional and can be any string value
     """
     org_id: str
     name: str
+    kind: Optional[str] = None
     groups: List[str] = Field(default_factory=list)
+    users: List[str] = Field(default_factory=list)
     drive: str
     description: Optional[str] = None
     owner: Optional[str] = None
@@ -102,7 +111,9 @@ def create_fileshare_doc(share: FileShareCreate) -> dict:
     return {
         "org_id": share.org_id,
         "name": share.name,
+        "kind": share.kind,
         "groups": share.groups,
+        "users": share.users,
         "drive": share.drive,
         "description": share.description,
         "owner": share.owner,

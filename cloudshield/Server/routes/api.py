@@ -63,7 +63,9 @@ def _share_doc_to_payload(doc: dict) -> dict:
         - id: String representation of MongoDB _id
         - org_id: Organization identifier
         - name: Share name
+        - kind: Type of share ("folder" or "file")
         - groups: List of group names (empty list if None)
+        - users: List of usernames (empty list if None)
         - drive: Allocated drive letter (e.g., "Z")
         - description: Optional description
         - owner: Optional owner email/username
@@ -76,7 +78,9 @@ def _share_doc_to_payload(doc: dict) -> dict:
         "id": str(doc.get("_id")) if doc.get("_id") else None,
         "org_id": doc.get("org_id"),
         "name": doc.get("name"),
+        "kind": doc.get("kind"),
         "groups": doc.get("groups") or [],
+        "users": doc.get("users") or [],
         "drive": doc.get("drive"),
         "description": doc.get("description"),
         "owner": doc.get("owner"),
@@ -208,7 +212,7 @@ def list_file_share_groups():
 @api_bp.route("/file_shares/<org_id>/<share_name>", methods=["PATCH"])
 def update_file_share(org_id, share_name):
     """
-    Update file share metadata (groups, description, owner, sizes).
+    Update file share metadata (kind, groups, users, description, owner, sizes).
     
     Allows modification of share access and metadata without recreating
     the share or changing the allocated drive letter.
@@ -221,7 +225,9 @@ def update_file_share(org_id, share_name):
         - share_name (str): Name of the share to update
     
     Request JSON (all optional):
+        - kind (str, optional): Type of share (flexible string, e.g., "folder", "file", etc.)
         - groups (list[str], optional): List of group names with access
+        - users (list[str], optional): List of usernames with access
         - description (str, optional): Human-readable description
         - owner (str, optional): Owner email or username
         - current_size (int, optional): Current storage usage in bytes
@@ -240,20 +246,23 @@ def update_file_share(org_id, share_name):
         - At least one optional field must be provided
         - updated_at timestamp is automatically set
         - Cannot modify org_id, name, or drive letter
-        - current_size typically updated by background processes monitoring disk usage
         - max_size of None means unlimited quota
     
     Example:
         curl -X PATCH "http://localhost:5050/api/file_shares/test123/Documents" \\
           -H "Content-Type: application/json" \\
-          -d '{"groups": ["engineering", "hr"], "max_size": 10737418240}'
+          -d '{"kind": "shared_folder", "groups": ["engineering"], "users": ["alice", "bob"], "max_size": 10737418240}'
     """
     data = request.get_json() or {}
     
     # Build update fields from request
     update_fields = {}
+    if "kind" in data:
+        update_fields["kind"] = data["kind"]
     if "groups" in data:
         update_fields["groups"] = data["groups"]
+    if "users" in data:
+        update_fields["users"] = data["users"]
     if "description" in data:
         update_fields["description"] = data["description"]
     if "owner" in data:

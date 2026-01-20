@@ -69,7 +69,9 @@ def allocate_drive_letter(org_id: str) -> str:
 def create_share(
     org_id: str,
     name: str,
+    kind: str | None = None,
     groups: List[str] | None = None,
+    users: List[str] | None = None,
     description: str | None = None,
     owner: str | None = None,
     current_size: int | None = None,
@@ -85,7 +87,9 @@ def create_share(
     Args:
         org_id: Organization identifier to scope the share
         name: Share name (must be unique within organization)
+        kind: Type of share (e.g., "folder", "file", etc.) - optional
         groups: Optional list of group names that have access to this share
+        users: Optional list of usernames that have access to this share
         description: Optional human-readable description
         owner: Optional email/username of the share owner
         current_size: Current storage usage
@@ -95,6 +99,9 @@ def create_share(
         Document dict with all share fields including:
         - id: String representation of MongoDB ObjectId
         - drive: Allocated drive letter (e.g., "Z")
+        - kind: Type of share (or None)
+        - groups: List of group names
+        - users: List of usernames
         - current_size: Storage usage in bytes
         - max_size: Storage quota in bytes (or None)
         - created_at/updated_at: ISO format timestamps
@@ -107,7 +114,9 @@ def create_share(
     share_model = FileShareCreate(
         org_id=org_id,
         name=name,
+        kind=kind,
         groups=groups or [],
+        users=users or [],
         drive=drive,
         description=description,
         owner=owner,
