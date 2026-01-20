@@ -7,6 +7,7 @@ import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
+import FilesPage from './pages/FilesPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
@@ -122,6 +123,15 @@ function AppWithAuth() {
           element={
             <Protected>
               <EmployeesPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/files"
+          element={
+            <Protected>
+              <FilesPage />
             </Protected>
           }
         />
