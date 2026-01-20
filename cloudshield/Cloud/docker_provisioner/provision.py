@@ -209,9 +209,10 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     return metadata
 
 
-def get_target_dir():
-    # this function doesnt need implementation for docker provisioning
-    pass
+def get_target_dir(*args, **kwargs):
+    # docker provisioning doesn't need this, but callers may pass args
+    return None
+
 
 def destroy_network_docker():
     # will dev this last cus we dont really care about destroying containers and we should hopefully have a seperate db for testing

@@ -55,6 +55,33 @@ try:
     # Employee path: "users_public" VIEW (read-only, excludes sensitive fields).
     users_admin  = db_admin["users"]
     users_public = db_emp["users_public"]
+    orgs = db_admin["orgs"]
+    audit = db_admin["audit"]    
+
+    try:
+        orgs.create_index("org_id", unique=True)
+        orgs.create_index("company_name", unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: orgs index creation skipped: {e}")
+
+    organizations = db_admin["organizations"]
+
+    access_groups = db_admin["access_groups"]
+    try:
+        access_groups.create_index("name", unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: access_groups index creation skipped: {e}")
+
+    # File shares collection with indexes
+    shares = db_admin["shares"]
+    try:
+        # Ensure unique share names per organization
+        shares.create_index([("org_id", 1), ("name", 1)], unique=True)
+        # Ensure unique drive letters per organization (Z, Y, X, etc. - excluding C)
+        shares.create_index([("org_id", 1), ("drive", 1)], unique=True)
+        shares.create_index("org_id")
+    except Exception as e:
+        print(f"[database.py] Note: shares index creation skipped: {e}")
 
     # Create a unique index on email for users collection
     users_admin.create_index("email", unique=True)
@@ -71,6 +98,11 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
+    # Organizations: unique org_id and quick lookups by package/status
+    organizations.create_index("org_id", unique=True)
+    organizations.create_index("package")
+    organizations.create_index("provisioning_status")
+
     print(f"[database.py] Connected to MongoDB DB='{DB_NAME}' (admin+employee clients ready)")
 except PyMongoError as e:
     print(f"[database.py] MongoDB connection failed: {e}")
@@ -83,8 +115,13 @@ __all__ = [
     "emp_client",
     "users_admin",
     "users_public",
+    "organizations",
+    "access_groups",
     "db",
-    "client"
+    "client",
+    "orgs",
+    "audit",
+    "shares",
 ]
 
 

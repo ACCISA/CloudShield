@@ -11,10 +11,63 @@
  *   - onAllUsersChange: callback when "All users" changes
  *   - showAllUsersCheckbox: whether to show the "All users" checkbox
  */
-import React from 'react';
-import { Box, Typography, Button, Checkbox, FormControlLabel } from '@mui/material';
+import React from "react";
 
-const availableUsers = ['Michael Scott', 'Jim Halpert', 'Pam Beasly', 'Dwight Schrute'];
+const styles = {
+  container: {
+    marginTop: "16px",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  title: {
+    fontWeight: 600,
+    color: "#fff",
+  },
+  checkboxContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  checkbox: {
+    width: "18px",
+    height: "18px",
+    cursor: "pointer",
+    accentColor: "#fff",
+  },
+  checkboxLabel: {
+    color: "#fff",
+    cursor: "pointer",
+  },
+  usersGrid: {
+    display: "flex",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginTop: "8px",
+  },
+  userButton: {
+    textTransform: "none",
+    borderRadius: "10px",
+    color: "#fff",
+    padding: "6px 12px",
+    cursor: "pointer",
+    fontSize: "0.875rem",
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "transparent",
+  },
+  userButtonSelected: {
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+};
+
+const availableUsers = [
+  "Michael Scott",
+  "Jim Halpert",
+  "Pam Beasly",
+  "Dwight Schrute",
+];
 
 /**
  * User assignment component with toggle buttons.
@@ -26,53 +79,53 @@ const availableUsers = ['Michael Scott', 'Jim Halpert', 'Pam Beasly', 'Dwight Sc
  * @param {boolean} props.showAllUsersCheckbox - Show the "All users" checkbox
  * @returns {JSX.Element} User assignment section
  */
-export default function UserAssignment({ 
-  users, 
-  onToggleUser, 
-  allUsers = false, 
-  onAllUsersChange, 
-  showAllUsersCheckbox = true 
+export default function UserAssignment({
+  users,
+  onToggleUser,
+  allUsers = false,
+  onAllUsersChange,
+  showAllUsersCheckbox = true,
 }) {
   return (
-    <Box sx={{ mt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography fontWeight={600}>Assign users</Typography>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div style={styles.title}>Assign users</div>
         {showAllUsersCheckbox && (
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={allUsers}
-                onChange={(e) => onAllUsersChange?.(e.target.checked)}
-                sx={{ color: '#fff', '&.Mui-checked': { color: '#fff' } }}
-              />
-            }
-            label="All users"
-          />
+          <label style={styles.checkboxContainer}>
+            <input
+              type="checkbox"
+              checked={allUsers}
+              onChange={(e) => onAllUsersChange?.(e.target.checked)}
+              style={styles.checkbox}
+            />
+            <span style={styles.checkboxLabel}>All users</span>
+          </label>
         )}
-      </Box>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+      </div>
+      <div style={styles.usersGrid}>
         {availableUsers.map((u) => (
-          <Button
+          <button
             key={u}
             onClick={() => onToggleUser(u)}
-            variant={users.includes(u) ? 'contained' : 'outlined'}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              borderRadius: '10px',
-              color: '#fff',
-              backgroundColor: users.includes(u) ? 'rgba(255,255,255,0.12)' : 'transparent',
-              borderColor: 'rgba(255,255,255,0.2)',
-              '&:hover': {
-                borderColor: 'rgba(255,255,255,0.35)',
-                backgroundColor: 'rgba(255,255,255,0.08)',
-              },
+            style={{
+              ...styles.userButton,
+              ...(users.includes(u) ? styles.userButtonSelected : {}),
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)";
+              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+              e.currentTarget.style.backgroundColor = users.includes(u)
+                ? "rgba(255,255,255,0.12)"
+                : "transparent";
             }}
           >
             {u}
-          </Button>
+          </button>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

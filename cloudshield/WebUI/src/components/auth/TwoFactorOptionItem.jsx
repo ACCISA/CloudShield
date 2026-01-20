@@ -10,11 +10,11 @@
  *   - subtitle: secondary descriptive text (e.g. masked phone/email)
  *   - onClick: click handler
  */
-import React from 'react';
-import { Box, Typography } from '@mui/material';
-import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
-import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined';
-import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
+import React from "react";
+import { Box, Typography } from "@mui/material";
+import SmsOutlinedIcon from "@mui/icons-material/SmsOutlined";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 
 /**
  * Clickable 2FA delivery method option (SMS or Email).
@@ -26,55 +26,64 @@ import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined';
  * @returns {JSX.Element} Styled clickable option row
  */
 export default function TwoFactorOptionItem({
-  type = 'sms',
+  type = "sms",
   title,
   subtitle,
   onClick,
 }) {
   // Select the appropriate icon based on type
-  const IconLeft =
-    type === 'sms' ? SmsOutlinedIcon : MailOutlineOutlinedIcon;
+  const IconLeft = type === "sms" ? SmsOutlinedIcon : MailOutlineOutlinedIcon;
+
+  const handleKeyDown = (e) => {
+    if ((e.key === "Enter" || e.key === " ") && onClick) {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <Box
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       sx={{
-        width: '100%',
-        backgroundColor: '#161616',
-        borderRadius: '12px',
-        border: '1px solid rgba(255,255,255,0.18)',
-        paddingY: '14px',
-        paddingX: '16px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        cursor: 'pointer',
+        width: "100%",
+        backgroundColor: "#161616",
+        borderRadius: "12px",
+        border: "1px solid rgba(255,255,255,0.18)",
+        paddingY: "14px",
+        paddingX: "16px",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        cursor: "pointer",
         mb: 2,
-        '&:hover': {
-          backgroundColor: '#1a1a1a',
+        "&:hover": {
+          backgroundColor: "#1a1a1a",
         },
       }}
     >
-      <Box sx={{ display: 'flex', gap: '12px' }}>
+      <Box sx={{ display: "flex", gap: "12px" }}>
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            color: '#fff',
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            color: "#fff",
             lineHeight: 0,
-            pt: '2px',
+            pt: "2px",
           }}
         >
           <IconLeft fontSize="small" />
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: "flex", flexDirection: "column" }}>
           <Typography
             sx={{
-              color: '#fff',
+              color: "#fff",
               fontWeight: 500,
-              fontSize: '1rem',
+              fontSize: "1rem",
               lineHeight: 1.3,
             }}
           >
@@ -83,8 +92,8 @@ export default function TwoFactorOptionItem({
           {subtitle && (
             <Typography
               sx={{
-                color: 'rgba(255,255,255,0.7)',
-                fontSize: '0.9rem',
+                color: "rgba(255,255,255,0.7)",
+                fontSize: "0.9rem",
                 lineHeight: 1.4,
               }}
             >
@@ -96,9 +105,9 @@ export default function TwoFactorOptionItem({
 
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          color: 'rgba(255,255,255,0.6)',
+          display: "flex",
+          alignItems: "center",
+          color: "rgba(255,255,255,0.6)",
           lineHeight: 0,
         }}
       >

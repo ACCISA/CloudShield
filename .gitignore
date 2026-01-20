@@ -50,6 +50,7 @@ cloudshield/DesktopUI/.vite/
 cloudshield/DesktopUI/.parcel-cache/
 cloudshield/DesktopUI/.next/
 cloudshield/DesktopUI/build/
+cloudshield/DesktopUI/release/
 cloudshield/DesktopUI/dist/
 cloudshield/DesktopUI/.env.local
 cloudshield/DesktopUI/.env*
@@ -97,3 +98,5 @@ chatmodes
 cloudshield/WebUI/package-lock.json
 
 cloudshield/WebUI/coverage/
+
+.scannerwork/

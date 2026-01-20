@@ -1,8 +1,17 @@
 import logging
 from pathlib import Path
-import cloudshield.Server.utils.logging_setup as ls
 import os
 import time
+import sys
+import types  # <-- new
+
+if "jwt" not in sys.modules:
+    dummy_jwt = types.ModuleType("jwt")
+    setattr(dummy_jwt, "encode", lambda *a, **k: "dummy-token")
+    setattr(dummy_jwt, "decode", lambda *a, **k: {"sub": "dummy"})
+    sys.modules["jwt"] = dummy_jwt
+
+import cloudshield.Server.utils.logging_setup as ls
 
 
 def test_get_logger_api(tmp_path, monkeypatch):
@@ -77,3 +86,79 @@ def test_cleanup_old_logs(tmp_path, monkeypatch, capsys):
     ls.cleanup_old_logs(days=30)
     out2 = capsys.readouterr().out
     assert "deleted 0 old logs" in out2
+
+
+def test_get_logger_permission_error_falls_back_to_console(
+    tmp_path, monkeypatch, capsys
+):
+    """
+    When RotatingFileHandler raises PermissionError, we should still get a
+    logger and a warning should be printed (exercise the except branch).
+    """
+    monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import importlib
+
+    importlib.reload(ls)
+
+    logger_name = "cloudshield.service"
+    pre = logging.getLogger(logger_name)
+    for h in list(pre.handlers):
+        pre.removeHandler(h)
+
+    class FailingHandler:
+        def __init__(self, *args, **kwargs):
+            raise PermissionError("no permission")
+
+    monkeypatch.setattr(ls, "RotatingFileHandler", FailingHandler)
+
+    ls.get_logger("service")
+    captured = capsys.readouterr()
+
+    assert "Could not open log file" in captured.err
+    assert "falling back to console logging only" in captured.err
+
+
+
+def test_summarize_job_log_missing_file(tmp_path, monkeypatch):
+    """
+    If the job log file does not exist, summarize_job_log must return size_bytes = 0
+    (exercise the FileNotFoundError branch).
+    """
+    monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import importlib
+    importlib.reload(ls)
+
+    summary = ls.summarize_job_log(job_id="does_not_exist", org_id="orgX")
+    assert summary["job_id"] == "does_not_exist"
+    assert summary["org_id"] == "orgX"
+    assert summary["size_bytes"] == 0  # FileNotFoundError path
+    assert summary["log_path"].endswith("job_does_not_exist.log")
+
+
+def test_cleanup_old_logs_handles_unlink_errors(tmp_path, monkeypatch, capsys):
+    """
+    If deleting an old job log raises an exception, cleanup_old_logs should
+    catch it and print the 'Could not delete ...' message (exercise the
+    generic Exception branch).
+    """
+    monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import importlib
+    importlib.reload(ls)
+
+    # Create an old log file that should be deleted
+    old_log = ls.JOB_LOG_DIR / "job_err.log"
+    old_log.write_text("test")
+    old_mtime = time.time() - (31 * 24 * 3600)  # 31 days ago
+    os.utime(old_log, (old_mtime, old_mtime))
+
+    # Make Path.unlink fail so we hit the except Exception block
+    def fail_unlink(self, *args, **kwargs):
+        raise RuntimeError("test unlink failure")
+
+    monkeypatch.setattr(ls.Path, "unlink", fail_unlink)
+
+    ls.cleanup_old_logs(days=30)
+    out = capsys.readouterr().out
+
+    assert "Could not delete" in out
+    assert "job_err.log" in out

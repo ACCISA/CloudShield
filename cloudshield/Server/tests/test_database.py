@@ -1,6 +1,7 @@
 import unittest.mock
 import os
 import sys
+import types
 import pytest
 
 mock_mongo_client = unittest.mock.MagicMock()
@@ -11,6 +12,12 @@ mock_pymongo.MongoClient = mock_mongo_client
 mock_pymongo.errors = unittest.mock.MagicMock()
 mock_pymongo.errors.PyMongoError = Exception
 
+if "jwt" not in sys.modules:
+    dummy_jwt = types.ModuleType("jwt")
+    dummy_jwt.encode = lambda *args, **kwargs: "dummy-token"
+    dummy_jwt.decode = lambda *args, **kwargs: {}
+    sys.modules["jwt"] = dummy_jwt
+    
 import importlib
 from unittest.mock import patch
 
@@ -282,13 +289,20 @@ def test_database_constants():
 @patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
 def test_database_env_var_override():
     """Test that environment variables can override defaults"""
-    # Reload the module to pick up new env vars
-    if 'cloudshield.Server.utils.database' in sys.modules:
-        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
-    
+    # Drop cached database module so it re-imports with the new env var
+    sys.modules.pop('cloudshield.Server.utils.database', None)
+    sys.modules.pop('utils.database', None)
+    sys.modules.pop('cloudshield.Server.utils', None)
+    sys.modules.pop('utils', None)
+
+    import cloudshield.Server.utils as utils
+    importlib.reload(utils)
+
     from cloudshield.Server.utils import database
-    
+
     assert database.DB_NAME == 'custom_db'
+
+
 
 
 def test_database_exports_all():
@@ -340,3 +354,23 @@ def test_database_ping_success():
     # Verify that the clients have admin attribute
     assert hasattr(database.admin_client, 'admin')
     assert hasattr(database.emp_client, 'admin')
+
+
+def test_organizations_collection_and_indexes(monkeypatch):
+    """Ensure organizations collection is available and indexes are created."""
+    import importlib
+
+    if 'cloudshield.Server.utils.database' in sys.modules:
+        importlib.reload(sys.modules['cloudshield.Server.utils.database'])
+
+    from cloudshield.Server.utils import database
+
+    assert hasattr(database, "organizations")
+    orgs = database.organizations
+    assert orgs is not None
+    assert hasattr(orgs, "create_index")
+
+    calls = getattr(orgs, "create_index", lambda: []).call_args_list
+    assert any(args == ("org_id",) and kwargs.get("unique") for args, kwargs in calls), "org_id unique index missing"
+    assert any(args == ("package",) for args, kwargs in calls)
+    assert any(args == ("provisioning_status",) for args, kwargs in calls)

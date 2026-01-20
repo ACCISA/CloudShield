@@ -4,7 +4,8 @@ import base64
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
-from services.user_service import persist_domain_user
+from services.user_service import persist_domain_user, remove_domain_user_from_db
+from services.shares_services import create_share, delete_share
 from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
@@ -94,6 +95,14 @@ def dc_create_file_share(org_id: str, share_name: str):
         # sync netlogon share
         sync_netlogon_script(realm)
         logger.info("Successfully created new samba file share")
+        try:
+            create_share(org_id=org_id, name=share_name)
+        except Exception as exc:
+            logger.error(f"Failed to persist file share in database: {exc}")
+            return {
+                "status": "FAILED",
+                "message": "File share created in samba but failed to persist in database",
+            }
         return {"status":"SUCCESS","message":"Successfully created new samba file share"}
 
     if status == infra_pb2.FAILED:
@@ -130,6 +139,14 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully delete new samba file share")
+        try:
+            delete_share(org_id=org_id, name=share_name)
+        except Exception as exc:
+            logger.error(f"Failed to delete file share from database: {exc}")
+            return {
+                "status": "FAILED",
+                "message": "File share deleted in samba but failed to delete from database",
+            }
         return {"status":"SUCCESS","message":"Successfully deleted new samba file share"}
     if status == infra_pb2.SHARE_NOT_FOUND:
         logger.info("Failed to find samba file share")
@@ -347,6 +364,12 @@ def dc_remove_user(org_id: str, username: str):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully removed user")
+        # Remove user from database with audit logging
+        removed = remove_domain_user_from_db(org_id, username, job_id=job_id)
+        if removed:
+            logger.info(f"User {username} removed from database")
+        else:
+            logger.warning(f"User {username} not found in database")
         return {"status": "SUCCESS", "message":"Successfully removed user"}
 
     if status == infra_pb2.FAILED:

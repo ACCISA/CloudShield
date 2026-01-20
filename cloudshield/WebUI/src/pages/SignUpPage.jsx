@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
 import PlanCard from "../components/signup/PlanCard.jsx";
@@ -64,8 +65,6 @@ const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_REQUIREMENTS_MESSAGE =
   `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
 
-const ORG_ID_REGEX = /^[a-z0-9]{3,32}$/;
-
 // Simple structural email validation without regex
 function isEmailValid(raw) {
   if (!raw) return false;
@@ -101,7 +100,6 @@ export default function SignupPage({ onSignupSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
-  const [orgId, setOrgId] = useState("");
   const [plan, setPlan] = useState("pro");
 
   const [errors, setErrors] = useState({});
@@ -109,6 +107,7 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const validate = () => {
     const next = {};
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
 
     if (!isEmailValid(email)) {
       next.email = "Invalid email format.";
@@ -122,107 +121,133 @@ export default function SignupPage({ onSignupSuccess }) {
       next.company = "Company name is required.";
     }
 
-    if (!ORG_ID_REGEX.test(orgId)) {
-      next.orgId =
-        "Org ID must be 3-32 characters, lowercase letters and digits only.";
-    }
-
     setErrors(next);
     return Object.keys(next).length === 0;
   };
+
+  function extractServerErrors(res, data) {
+    if (res.status === 400) {
+      if (data.errors && typeof data.errors === "object") {
+        return data.errors;
+      }
+      return {
+        form: data.message || "Validation error. Please check your inputs.",
+      };
+    }
+
+    if (res.status === 409) {
+      return {
+        form:
+          data.message ||
+          "An account with this email or organization ID already exists.",
+      };
+    }
+
+    if (!res.ok) {
+      return {
+        form: data.message || "Unexpected error during signup. Please try again.",
+      };
+    }
+
+    return null;
+  }
 
   const handleSignup = async () => {
     if (!validate()) return;
 
     setSubmitting(true);
-    // keep field errors, but clear global form error
     setErrors((prev) => ({ ...prev, form: undefined }));
 
     try {
-      const res = await fetch("/api/auth/signup", {
+      // -----------------------------
+      // 1) Create user: POST /api/signup_admin
+      // Body based on your screenshot:
+      // { email, password, role, full_name, org_name?, package }
+      // We map "company" input -> full_name and org_name
+      // -----------------------------
+      const createUserRes = await fetch("http://localhost:5050/api/signup_admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           email,
           password,
-          company_name: company,
-          org_id: orgId,
-          plan,
+          role: "admin",
+          full_name: company,
+          org_name: company,
+          package: plan,
         }),
       });
 
-      let data = {};
+      let createUserData = {};
       try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
+        createUserData = await createUserRes.json();
+      } catch {}
 
-      if (res.status === 400) {
-        const serverErrors = {};
-        if (data.errors && typeof data.errors === "object") {
-          for (const [field, msg] of Object.entries(data.errors)) {
-            serverErrors[field] = msg;
-          }
-        } else if (data.message) {
-          serverErrors.form = data.message;
-        } else {
-          serverErrors.form = "Validation error. Please check your inputs.";
-        }
-        setErrors((prev) => ({ ...prev, ...serverErrors }));
+      const createUserErrors = extractServerErrors(createUserRes, createUserData);
+      if (createUserErrors) {
+        setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
       }
 
-      if (res.status === 409) {
-        setErrors((prev) => ({
-          ...prev,
-          form:
-            data.message ||
-            "An account with this email or organization ID already exists.",
-        }));
+      // -----------------------------
+      // 2) Provision org: POST /api/task/provision
+      // Body based on your screenshot:
+      // { org_id }
+      // -----------------------------
+      const provisionRes = await fetch("http://localhost:5050/api/task/provision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          org_id: createUserData.org_id,
+        }),
+      });
+
+      let provisionData = {};
+      try {
+        provisionData = await provisionRes.json();
+      } catch {}
+
+      const provisionErrors = extractServerErrors(provisionRes, provisionData);
+      if (provisionErrors) {
+        setErrors((prev) => ({ ...prev, ...provisionErrors }));
         return;
       }
 
-      if (!res.ok) {
-        setErrors((prev) => ({
-          ...prev,
-          form:
-            data.message ||
-            "Unexpected error during signup. Please try again.",
-        }));
-        return;
-      }
+      // If backend returns a token from either call, store it (optional)
+      const token =
+        createUserData.token ||
+        createUserData.access_token ||
+        provisionData.token ||
+        provisionData.access_token ||
+        null;
 
-      const token = data.token || data.access_token || null;
-      const user =
-        data.user || {
-          email,
-          company_name: company,
-          org_id: orgId,
-          plan,
-        };
-
-      // Store JWT locally
       if (token) {
         try {
           localStorage.setItem("jwt", token);
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
 
-      if (onSignupSuccess) {
-        onSignupSuccess({ token, user });
-      }
+      // Keep callback shape compatible with App.jsx handler (access_token + user.org_id)
+      onSignupSuccess?.({
+        access_token: token,
+        user: createUserData.user || {
+          email,
+          org_id: createUserData.org_id,
+          company_name: company,
+          plan,
+        },
+      });
 
-      // After successful signup, go directly to provisioning
-      navigate("/provisioning", { replace: true });
+      // After signup + provisioning -> go to login
+      navigate("/login", { replace: true });
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
-        form:
-          err?.message ||
-          "Network error during signup. Please check your connection and try again.",
+        form: err?.message || "Network error during signup.",
       }));
     } finally {
       setSubmitting(false);
@@ -323,27 +348,16 @@ export default function SignupPage({ onSignupSuccess }) {
               </Typography>
             )}
 
-            <AuthTextField
-              label="Organization ID"
-              placeholder="acme"
-              value={orgId}
-              onChange={(e) =>
-                setOrgId(
-                  e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")
-                )
-              }
-            />
-            {errors.orgId && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
-                {errors.orgId}
-              </Typography>
-            )}
-
             <PrimaryButton onClick={handleSignup} disabled={submitting}>
               {submitting ? "Creating..." : "Create Organization"}
             </PrimaryButton>
+
+            <Typography
+              onClick={() => navigate("/login")}
+              sx={{ cursor: "pointer", mt: 1.5, textAlign: "center" }}
+            >
+              Already have an account? Log in
+            </Typography>
           </SignupCard>
         </Box>
 
@@ -382,3 +396,7 @@ export default function SignupPage({ onSignupSuccess }) {
     </Box>
   );
 }
+
+SignupPage.propTypes = {
+  onSignupSuccess: PropTypes.func,
+};

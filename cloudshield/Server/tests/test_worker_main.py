@@ -28,6 +28,7 @@ def test_worker_main_invokes_work(monkeypatch):
         Worker=FakeWorker,
         Queue=lambda connection: types.SimpleNamespace(),
         SimpleWorker=FakeSimpleWorker,
+        get_current_job=lambda: None,
     )
     monkeypatch.setitem(sys.modules, "rq", fake_rq)
 
