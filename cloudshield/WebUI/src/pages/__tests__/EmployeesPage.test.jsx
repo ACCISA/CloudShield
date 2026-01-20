@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import EmployeesPage from '../EmployeesPage.jsx';
 import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
 import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
-import { within } from '@testing-library/react';
+import { within, fireEvent } from '@testing-library/react';
 
 jest.setTimeout(10000);
 
@@ -674,6 +674,97 @@ it('shows correct user identity in confirmation dialog (name/email)', async () =
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: /add employee/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders the Employees table when users exist', async () => {
+    renderWithProviders();
+    await screen.findByText('Jane Smith');
+
+    // UserTable renders a MUI Table with aria-label "Employees table"
+    expect(screen.getByLabelText('Employees table')).toBeInTheDocument();
+  });
+
+  it('falls back to default role and status when missing', async () => {
+    listUsers.mockResolvedValueOnce([
+      { _id: 'u1', full_name: 'No Meta', email: 'nometa@example.com', role: null, status: null },
+    ]);
+
+    renderWithProviders();
+
+    await screen.findByText('No Meta');
+
+    // Role cell fallback
+    expect(screen.getByText('employee')).toBeInTheDocument();
+    // Status cell fallback
+    expect(screen.getByText('active')).toBeInTheDocument();
+  });
+
+  it('handleRefresh returns early when accessToken is missing', async () => {
+    renderWithProviders({ initialState: { accessToken: null } });
+
+    // Wait until the warning banner appears from useEffect
+    await screen.findByText('Sign in to view employees.');
+
+    const refreshButton = screen.getByRole('button', { name: /refresh/i });
+    await userEvent.click(refreshButton);
+
+    expect(screen.getByText('Authentication required to refresh users.')).toBeInTheDocument();
+    expect(listUsers).not.toHaveBeenCalled(); 
+  });
+
+  it('refresh button triggers fetchUsers when authenticated', async () => {
+    renderWithProviders();
+
+    await screen.findByText('Jane Smith');
+    expect(listUsers).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    await waitFor(() => expect(listUsers).toHaveBeenCalledTimes(2));
+  });
+
+  it('uses currentUser._id when currentUser.id is missing (self delete button disabled)', async () => {
+    renderWithProviders({
+      initialState: {
+        currentUser: { _id: 'admin-001', email: 'admin@company.com', full_name: 'Admin User', role: 'admin' },
+        accessToken: 'test-token',
+      },
+    });
+
+    await screen.findByText('Admin User');
+
+    const deleteAdminButton = screen.getByRole('button', { name: /delete user admin user/i });
+
+    // This proves currentUserId resolved to _id and matched the row -> button disabled
+    expect(deleteAdminButton).toBeDisabled();
+  });
+
+  it('does not close create dialog via Dialog onClose while isCreating is true', async () => {
+    const d = deferred();
+    createUser.mockImplementation(() => d.promise);
+
+    renderWithProviders();
+    const user = userEvent.setup();
+
+    await screen.findByText('Jane Smith');
+    await user.click(screen.getByRole('button', { name: /add employee/i }));
+
+    await user.type(screen.getByLabelText(/full name/i), 'Pending User');
+    await user.type(screen.getByLabelText(/email/i), 'pending@example.com');
+    await user.type(screen.getByLabelText(/initial password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    // While isCreating true, try to close dialog using Escape (triggers Dialog onClose)
+    await user.keyboard('{Escape}');
+
+    // Dialog should still be open because handleCloseCreate returns early
+    expect(screen.getByRole('dialog', { name: /add employee/i })).toBeInTheDocument();
+
+    d.resolve({ user_id: 'user-123' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /add employee/i })).not.toBeInTheDocument();
     });
   });
 
