@@ -1,4 +1,4 @@
-const API_PREFIX = '/api';
+const API_PREFIX = 'http://localhost:5050/api';
 
 function buildHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
@@ -53,6 +53,16 @@ export async function createUser(user, { token } = {}) {
     method: 'POST',
     headers: buildHeaders(token),
     body: JSON.stringify(user),
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateUser(userId, payload, { token } = {}) {
+  const response = await fetch(`${API_PREFIX}/users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH', 
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
   });
 
   return parseResponse(response);
