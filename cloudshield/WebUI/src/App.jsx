@@ -7,6 +7,7 @@ import WorkstationsPage from './pages/WorkstationsPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
@@ -112,7 +113,7 @@ function AppWithAuth() {
           path="/users"
           element={
             <Protected>
-              <EmployeesPage />
+              <UsersPage />
             </Protected>
           }
         />

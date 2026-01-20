@@ -57,3 +57,13 @@ export async function createUser(user, { token } = {}) {
 
   return parseResponse(response);
 }
+
+export async function updateUser(userId, payload, { token } = {}) {
+  const response = await fetch(`${API_PREFIX}/users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH', 
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
