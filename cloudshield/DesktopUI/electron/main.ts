@@ -33,7 +33,10 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs"),
+      preload: path.join(__dirname, "preload.cjs"),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   });
 
@@ -179,11 +182,20 @@ ipcMain.handle(
 
         if (isWin) {
           const candidate = getBinPath(exeName);
-          if (fs.existsSync(candidate)) exePath = candidate;
-          else if (!fs.existsSync(candidate))
-            return reject(
-              new Error(`Bundled xfreerdp not found at ${candidate}`),
-            );
+          if (fs.existsSync(candidate)) {
+            exePath = candidate;
+          } else {
+            // Fallback to Windows built-in RDP client
+            const mstsc = "mstsc.exe";
+            const child = spawn(mstsc, [
+              "/v:" + params.ip,
+            ]); //NOSONAR typescript:S4036
+            return resolve({
+              success: true,
+              pid: child.pid,
+              message: "mstsc launched",
+            });
+          }
         }
 
         //NOSONAR typescript:S4036

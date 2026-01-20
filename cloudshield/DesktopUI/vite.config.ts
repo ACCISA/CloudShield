@@ -28,6 +28,10 @@ export default defineConfig({
           build: {
             rollupOptions: {
               external: ["regedit-rs"],
+              output: {
+                format: "cjs",
+                entryFileNames: "preload.cjs",
+              },
             },
           },
         },

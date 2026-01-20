@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge } from "electron";
-import Store from "electron-store";
+import { createRequire } from "node:module";
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld("ipcRenderer", {
@@ -49,7 +49,38 @@ type SaveAuthPayload = {
 };
 
 // Persist auth tokens without exposing file system access to the renderer
-const authStore = new Store<AuthStoreSnapshot>({ name: "auth" });
+type AuthStore = {
+  set: (value: AuthStoreSnapshot) => void;
+  store: AuthStoreSnapshot;
+  clear: () => void;
+};
+
+const inMemoryStore: AuthStoreSnapshot = {};
+let authStore: AuthStore | null = null;
+
+try {
+  const require = createRequire(import.meta.url);
+  type StoreConstructor = new <T extends Record<string, unknown>>(
+    options?: import("electron-store").Options<T>
+  ) => import("electron-store").default<T>;
+  const Store = require("electron-store") as StoreConstructor;
+  authStore = new Store<AuthStoreSnapshot>({ name: "auth" });
+} catch (error) {
+  // Fall back to in-memory store when electron-store is unavailable
+  authStore = {
+    set: (value) => {
+      Object.assign(inMemoryStore, value);
+    },
+    get store() {
+      return { ...inMemoryStore };
+    },
+    clear: () => {
+      for (const key of Object.keys(inMemoryStore)) {
+        delete inMemoryStore[key as keyof AuthStoreSnapshot];
+      }
+    },
+  };
+}
 
 contextBridge.exposeInMainWorld("authStore", {
   saveAuth: (payload: SaveAuthPayload) => {
@@ -57,13 +88,13 @@ contextBridge.exposeInMainWorld("authStore", {
       ? Date.now() + payload.expiresIn * 1000
       : undefined;
 
-    authStore.set({
+    authStore?.set({
       accessToken: payload.accessToken,
       tokenType: payload.tokenType ?? "Bearer",
       expiresAt,
       email: payload.email,
     });
   },
-  loadAuth: (): AuthStoreSnapshot => authStore.store,
-  clearAuth: () => authStore.clear(),
+  loadAuth: (): AuthStoreSnapshot => authStore?.store ?? {},
+  clearAuth: () => authStore?.clear(),
 });
