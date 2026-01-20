@@ -320,9 +320,6 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               toggleSelect(node.id);
-            } else if (e.key === "Enter" && e.shiftKey) {
-              e.preventDefault();
-              isFolder ? openFolder(node.id) : openEdit(node);
             }
           };
 
