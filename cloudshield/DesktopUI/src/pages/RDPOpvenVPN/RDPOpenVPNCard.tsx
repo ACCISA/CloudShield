@@ -21,6 +21,12 @@ declare global {
   }
 }
 
+type ElectronResult = {
+  success: boolean;
+  pid?: number;
+  message: string;
+};
+
 export default function RDPOpenVPNCard() {
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
   const [rdpUsername, setRdpUsername] = useState("");
@@ -83,11 +89,11 @@ export default function RDPOpenVPNCard() {
 
     try {
       setRdpStatus("Launching xfreerdp3...");
-      const result = await window.electronAPI.runXfreerdp(
+      const result = (await window.electronAPI.runXfreerdp(
         rdpUsername,
         rdpPassword,
         rdpIp
-      );
+      )) as ElectronResult;
       setRdpStatus(`Connected! (PID: ${result.pid})`);
       console.log("RDP launched:", result);
     } catch (error) {
