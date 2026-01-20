@@ -72,6 +72,8 @@ def create_share(
     groups: List[str] | None = None,
     description: str | None = None,
     owner: str | None = None,
+    current_size: int | None = None,
+    max_size: int | None = None,
 ) -> dict:
     """
     Create a new file share record with auto-allocated drive letter.
@@ -86,11 +88,15 @@ def create_share(
         groups: Optional list of group names that have access to this share
         description: Optional human-readable description
         owner: Optional email/username of the share owner
-    
+        current_size: Current storage usage
+        max_size: Maximum storage quota (None means unlimited)
+
     Returns:
         Document dict with all share fields including:
         - id: String representation of MongoDB ObjectId
         - drive: Allocated drive letter (e.g., "Z")
+        - current_size: Storage usage in bytes
+        - max_size: Storage quota in bytes (or None)
         - created_at/updated_at: ISO format timestamps
     
     Raises:
@@ -105,6 +111,8 @@ def create_share(
         drive=drive,
         description=description,
         owner=owner,
+        current_size=current_size or 0,
+        max_size=max_size,
     )
     share_doc = create_fileshare_doc(share_model)
     try:
@@ -170,7 +178,7 @@ def list_groups_with_shares(org_id: str) -> List[dict]:
 
 def update_share(org_id: str, name: str, update_fields: dict) -> bool:
     """
-    Update file share metadata (groups, description, owner).
+    Update file share metadata (groups, description, owner, sizes).
     
     Automatically sets updated_at timestamp. Does not allow changing
     org_id, name, or drive fields.
@@ -182,6 +190,8 @@ def update_share(org_id: str, name: str, update_fields: dict) -> bool:
             - groups: List[str] - Group names with access
             - description: str - Human-readable description
             - owner: str - Owner email/username
+            - current_size: int - Current storage usage
+            - max_size: int | None - Maximum storage quota 
     
     Returns:
         True if share was found and updated, False if not found
@@ -196,6 +206,52 @@ def update_share(org_id: str, name: str, update_fields: dict) -> bool:
         {"$set": update_fields}
     )
     return result.matched_count > 0
+
+
+def update_share_current_size(org_id: str, name: str, current_size: int) -> bool:
+    """
+    Update the current storage usage for a file share.
+    
+    Convenience wrapper around update_share() for updating current_size.
+    Intended for use by background monitoring jobs that track disk usage.
+    
+    Args:
+        org_id: Organization identifier
+        name: Share name
+        current_size: Current storage usage in bytes
+    
+    Returns:
+        True if share was found and updated, False if not found
+    
+    Example:
+        >>> update_share_usage("test123", "Documents", 5368709120)
+        True
+    """
+    return update_share(org_id, name, {"current_size": current_size})
+
+
+def update_share_max_size(org_id: str, name: str, max_size: int | None) -> bool:
+    """
+    Update the maximum storage quota for a file share.
+    
+    Convenience wrapper around update_share() for updating max_size.
+    Intended for admin operations setting storage limits. Pass None for unlimited.
+    
+    Args:
+        org_id: Organization identifier
+        name: Share name
+        max_size: Maximum storage quota in bytes, or None for unlimited
+    
+    Returns:
+        True if share was found and updated, False if not found
+    
+    Example:
+        >>> update_share_quota("test123", "Documents", 10737418240)  # 10 GB limit
+        True
+        >>> update_share_quota("test123", "Public", None)  # Remove limit
+        True
+    """
+    return update_share(org_id, name, {"max_size": max_size})
 
 
 def delete_share(org_id: str, name: str) -> bool:

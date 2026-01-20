@@ -21,6 +21,8 @@ class FileShare(BaseModel):
         owner: Email or username of the share owner
         drive: Windows drive letter assignment (Z, Y, X, etc. - excluding C)
         groups: List of group names that have access to this share
+        current_size: Current storage usage in bytes (optional, defaults to 0)
+        max_size: Maximum storage quota in bytes (optional, None means unlimited)
     """
     org_id: str
     name: str
@@ -28,6 +30,8 @@ class FileShare(BaseModel):
     owner: str
     drive: str
     groups: List[str] = Field(default_factory=list)
+    current_size: Optional[int] = 0
+    max_size: Optional[int] = None
 
 
 class FileShareCreate(BaseModel):
@@ -44,10 +48,14 @@ class FileShareCreate(BaseModel):
         drive: Windows drive letter (required, auto-allocated by service layer)
         description: description
         owner: Owner info
+        current_size: Current storage usage in bytes (defaults to 0)
+        max_size: Maximum storage quota in bytes (None means unlimited)
     
     Notes:
         - Drive letter is typically allocated by allocate_drive_letter() service
         - created_at and updated_at timestamps are added by create_fileshare_doc()
+        - current_size starts at 0 and is updated as files are added
+        - max_size is optional quota limit in bytes
     """
     org_id: str
     name: str
@@ -55,6 +63,8 @@ class FileShareCreate(BaseModel):
     drive: str
     description: Optional[str] = None
     owner: Optional[str] = None
+    current_size: Optional[int] = 0
+    max_size: Optional[int] = None
 
 
 def create_fileshare_doc(share: FileShareCreate) -> dict:
@@ -76,6 +86,8 @@ def create_fileshare_doc(share: FileShareCreate) -> dict:
             "drive": str,
             "description": str | None,
             "owner": str | None,
+            "current_size": int (defaults to 0),
+            "max_size": int | None (None means unlimited),
             "created_at": datetime (UTC),
             "updated_at": datetime (UTC)
         }
@@ -84,6 +96,7 @@ def create_fileshare_doc(share: FileShareCreate) -> dict:
         - Both timestamps are set to the same value at creation
         - updated_at will be modified by update_share() service
         - Does not include _id (MongoDB generates this on insert)
+        - current_size initializes to 0 and is updated as files are added
     """
     now = datetime.now(timezone.utc)
     return {
@@ -93,6 +106,8 @@ def create_fileshare_doc(share: FileShareCreate) -> dict:
         "drive": share.drive,
         "description": share.description,
         "owner": share.owner,
+        "current_size": share.current_size or 0,
+        "max_size": share.max_size,
         "created_at": now,
         "updated_at": now,
     }

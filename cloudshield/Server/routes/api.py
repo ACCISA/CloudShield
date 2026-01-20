@@ -67,6 +67,8 @@ def _share_doc_to_payload(doc: dict) -> dict:
         - drive: Allocated drive letter (e.g., "Z")
         - description: Optional description
         - owner: Optional owner email/username
+        - current_size: Current storage usage in bytes
+        - max_size: Maximum storage quota in bytes (None means unlimited)
         - created_at: ISO 8601 timestamp string
         - updated_at: ISO 8601 timestamp string
     """
@@ -78,6 +80,8 @@ def _share_doc_to_payload(doc: dict) -> dict:
         "drive": doc.get("drive"),
         "description": doc.get("description"),
         "owner": doc.get("owner"),
+        "current_size": doc.get("current_size", 0),
+        "max_size": doc.get("max_size"),
         "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
         "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
     }
@@ -201,25 +205,27 @@ def list_file_share_groups():
     payload = list_groups_with_shares(org_id)
     return jsonify({"groups": payload}), 200
 
-@api_bp.route("/file_shares/<share_name>", methods=["PATCH"])
-def update_file_share(share_name):
+@api_bp.route("/file_shares/<org_id>/<share_name>", methods=["PATCH"])
+def update_file_share(org_id, share_name):
     """
-    Update file share metadata (groups, description, owner).
+    Update file share metadata (groups, description, owner, sizes).
     
     Allows modification of share access and metadata without recreating
     the share or changing the allocated drive letter.
     
     Endpoint:
-        PATCH /api/file_shares/<share_name>
+        PATCH /api/file_shares/<org_id>/<share_name>
     
     Path Parameters:
+        - org_id (str): Organization identifier
         - share_name (str): Name of the share to update
     
-    Request JSON:
-        - org_id (str, required): Organization identifier
+    Request JSON (all optional):
         - groups (list[str], optional): List of group names with access
         - description (str, optional): Human-readable description
         - owner (str, optional): Owner email or username
+        - current_size (int, optional): Current storage usage in bytes
+        - max_size (int, optional): Maximum storage quota in bytes (None for unlimited)
     
     Returns:
         200: JSON with structure:
@@ -229,19 +235,20 @@ def update_file_share(share_name):
             }
         400: No fields provided to update
         404: Share not found
-        422: Missing org_id in request body
     
     Notes:
         - At least one optional field must be provided
         - updated_at timestamp is automatically set
         - Cannot modify org_id, name, or drive letter
+        - current_size typically updated by background processes monitoring disk usage
+        - max_size of None means unlimited quota
+    
+    Example:
+        curl -X PATCH "http://localhost:5050/api/file_shares/test123/Documents" \\
+          -H "Content-Type: application/json" \\
+          -d '{"groups": ["engineering", "hr"], "max_size": 10737418240}'
     """
     data = request.get_json() or {}
-    
-    org_id = data.get("org_id")
-    
-    if org_id is None:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     
     # Build update fields from request
     update_fields = {}
@@ -251,6 +258,10 @@ def update_file_share(share_name):
         update_fields["description"] = data["description"]
     if "owner" in data:
         update_fields["owner"] = data["owner"]
+    if "current_size" in data:
+        update_fields["current_size"] = data["current_size"]
+    if "max_size" in data:
+        update_fields["max_size"] = data["max_size"]
     
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400
