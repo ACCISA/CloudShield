@@ -625,6 +625,50 @@ class TestUpdateFileShareEndpoint:
         })
         assert resp.status_code == 200
 
+    def test_update_file_share_with_kind(self, client, monkeypatch):
+        """Test update with kind field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "kind": "folder"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_users(self, client, monkeypatch):
+        """Test update with users field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "users": ["alice", "bob"]
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_current_size(self, client, monkeypatch):
+        """Test update with current_size field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "current_size": 1024
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_max_size(self, client, monkeypatch):
+        """Test update with max_size field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "max_size": 10737418240
+        })
+        assert resp.status_code == 200
+
     def test_update_file_share_all_fields(self, client, monkeypatch):
         """Test update with all optional fields"""
         import cloudshield.Server.routes.api as api_mod
@@ -632,9 +676,13 @@ class TestUpdateFileShareEndpoint:
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
 
         resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "kind": "file",
             "groups": ["groupA"],
+            "users": ["alice"],
             "description": "Updated description",
-            "owner": "owner@example.com"
+            "owner": "owner@example.com",
+            "current_size": 2048,
+            "max_size": 10737418240
         })
         assert resp.status_code == 200
 
