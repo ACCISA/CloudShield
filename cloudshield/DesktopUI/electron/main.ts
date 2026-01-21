@@ -177,25 +177,17 @@ ipcMain.handle(
     return new Promise((resolve, reject) => {
       try {
         const isWin = process.platform === "win32";
-        const exeName = isWin ? "wfreerdp.exe" : "xfreerdp3";
-        let exePath: string = exeName;
+        let exePath: string = "xfreerdp3";
 
         if (isWin) {
-          const candidate = getBinPath(exeName);
-          if (fs.existsSync(candidate)) {
-            exePath = candidate;
-          } else {
-            // Fallback to Windows built-in RDP client
-            const mstsc = "mstsc.exe";
-            const child = spawn(mstsc, [
-              "/v:" + params.ip,
-            ]); //NOSONAR typescript:S4036
-            return resolve({
-              success: true,
-              pid: child.pid,
-              message: "mstsc launched",
-            });
-          }
+          // Fallback to Windows built-in RDP client
+          const mstsc = "mstsc.exe";
+          const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
+          return resolve({
+            success: true,
+            pid: child.pid,
+            message: "mstsc launched",
+          });
         }
 
         //NOSONAR typescript:S4036
