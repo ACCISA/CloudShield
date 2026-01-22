@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
-import { MOCK_GROUPS_FULL } from "../data/mockData.js";
+// import { MOCK_GROUPS_FULL } from "../data/mockData.js";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -39,13 +39,13 @@ export default function GroupsPage() {
   const openToast = (msg, type = "success") =>
     setToast({ open: true, msg, type });
 
-  const mockFetchGroups = async () => {
-    setGroups(MOCK_GROUPS_FULL);
-  };
+  // const mockFetchGroups = async () => {
+  //   setGroups(MOCK_GROUPS_FULL);
+  // };
 
-  useEffect(() => {
-    mockFetchGroups();
-  }, []);
+  // useEffect(() => {
+  //   mockFetchGroups();
+  // }, []);
 
   const filtered = useMemo(() => {
     let out = [...groups];
@@ -121,10 +121,10 @@ export default function GroupsPage() {
     });
   };
 
-  const handleMockDelete = (id) => {
-    setGroups((p) => p.filter((g) => g.id !== id));
-    openToast("Group deleted");
-  };
+  // const handleMockDelete = (id) => {
+  //   setGroups((p) => p.filter((g) => g.id !== id));
+  //   openToast("Group deleted");
+  // };
 
   const handleOpenCreateModal = () => {
     setEditingGroup(null);
@@ -141,46 +141,46 @@ export default function GroupsPage() {
     setEditingGroup(null);
   };
 
-  const handleSubmitGroup = (groupData) => {
-    if (editingGroup) {
-      // Edit mode - update existing group
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === editingGroup.id
-            ? {
-                ...g,
-                name: groupData.name,
-                groupName: groupData.name,
-                description: groupData.description,
-                image: groupData.image,
-                users: groupData.users || [],
-                memberCount: groupData.users?.length || 0,
-                workstations: groupData.workstations || [],
-                files: groupData.files?.length || 0,
-              }
-            : g,
-        ),
-      );
-      openToast("Group updated successfully");
-    } else {
-      // Create mode - add new group (temporary UI visualization)
-      const newGroup = {
-        id: String(Date.now()),
-        name: groupData.name,
-        groupName: groupData.name,
-        description: groupData.description,
-        image: groupData.image,
-        users: groupData.users || [],
-        memberCount: groupData.users?.length || 0,
-        workstations: groupData.workstations || [],
-        files: groupData.files?.length || 0, // Convert array to count
-        type: "Custom",
-        createdDate: new Date().toISOString(),
-      };
-      setGroups((prev) => [...prev, newGroup]);
-      openToast("Group created successfully");
-    }
-  };
+  // const handleSubmitGroup = (groupData) => {
+  //   if (editingGroup) {
+  //     // Edit mode - update existing group
+  //     setGroups((prev) =>
+  //       prev.map((g) =>
+  //         g.id === editingGroup.id
+  //           ? {
+  //               ...g,
+  //               name: groupData.name,
+  //               groupName: groupData.name,
+  //               description: groupData.description,
+  //               image: groupData.image,
+  //               users: groupData.users || [],
+  //               memberCount: groupData.users?.length || 0,
+  //               workstations: groupData.workstations || [],
+  //               files: groupData.files?.length || 0,
+  //             }
+  //           : g,
+  //       ),
+  //     );
+  //     openToast("Group updated successfully");
+  //   } else {
+  //     // Create mode - add new group (temporary UI visualization)
+  //     const newGroup = {
+  //       id: String(Date.now()),
+  //       name: groupData.name,
+  //       groupName: groupData.name,
+  //       description: groupData.description,
+  //       image: groupData.image,
+  //       users: groupData.users || [],
+  //       memberCount: groupData.users?.length || 0,
+  //       workstations: groupData.workstations || [],
+  //       files: groupData.files?.length || 0, // Convert array to count
+  //       type: "Custom",
+  //       createdDate: new Date().toISOString(),
+  //     };
+  //     setGroups((prev) => [...prev, newGroup]);
+  //     openToast("Group created successfully");
+  //   }
+  // };
 
   const styles = {
     container: {
@@ -252,7 +252,7 @@ export default function GroupsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          <RefreshButton onClick={mockFetchGroups} />
+          {/* <RefreshButton onClick={mockFetchGroups} /> */}
 
           <CreateButton
             icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
@@ -268,14 +268,14 @@ export default function GroupsPage() {
         showWorkstations={showWorkstations}
         showFiles={showFiles}
         onEdit={handleOpenEditModal}
-        onDelete={(g) => handleMockDelete(g.id)}
+        // onDelete={(g) => handleMockDelete(g.id)}
       />
 
       <GroupsModal
         open={modalOpen}
         onClose={handleCloseModal}
         groupData={editingGroup}
-        onSubmit={handleSubmitGroup}
+        // onSubmit={handleSubmitGroup}
       />
     </div>
   );

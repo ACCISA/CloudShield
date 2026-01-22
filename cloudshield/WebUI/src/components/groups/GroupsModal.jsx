@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
-import {
-  MOCK_USERS,
-  MOCK_WORKSTATIONS,
-  MOCK_FILES,
-  findUserByEmail,
-  findWorkstationByName,
-} from "../../data/mockData.js";
+// import {
+//   MOCK_USERS,
+//   MOCK_WORKSTATIONS,
+//   MOCK_FILES,
+//   findUserByEmail,
+//   findWorkstationByName,
+// } from "../../data/mockData.js";
 import "./GroupsModal.css";
 
 const STEPS = ["Basic Info", "Users", "Workstations", "Files"];
@@ -46,15 +46,15 @@ export default function GroupsModal({
     if (!open) return;
 
     if (isEditMode && groupData) {
-      const matchedUsers = (groupData.users || [])
-        .map((user) => findUserByEmail(user.email))
-        .filter(Boolean);
+      // const matchedUsers = (groupData.users || [])
+      //   .map((user) => findUserByEmail(user.email))
+      //   .filter(Boolean);
 
       setFormData({
         groupName: groupData.name || "",
         description: groupData.description || "",
         groupImage: groupData.image || null,
-        selectedUsers: matchedUsers,
+        selectedUsers: groupData.users || [], // matchedUsers,
         selectedWorkstations: groupData.workstations || [],
         selectedFiles: [],
       });
@@ -74,31 +74,34 @@ export default function GroupsModal({
   }, [open, groupData, isEditMode]);
 
   // Filter lists
-  const filteredUsers = useMemo(
-    () =>
-      MOCK_USERS.filter((user) =>
-        `${user.firstName} ${user.lastName}`
-          .toLowerCase()
-          .includes(searchTerms.users.toLowerCase()),
-      ),
-    [searchTerms.users],
-  );
+  // const filteredUsers = useMemo(
+  //   () =>
+  //     MOCK_USERS.filter((user) =>
+  //       `${user.firstName} ${user.lastName}`
+  //         .toLowerCase()
+  //         .includes(searchTerms.users.toLowerCase()),
+  //     ),
+  //   [searchTerms.users],
+  // );
+  const filteredUsers = [];
 
-  const filteredWorkstations = useMemo(
-    () =>
-      MOCK_WORKSTATIONS.filter((ws) =>
-        ws.name.toLowerCase().includes(searchTerms.workstations.toLowerCase()),
-      ),
-    [searchTerms.workstations],
-  );
+  // const filteredWorkstations = useMemo(
+  //   () =>
+  //     MOCK_WORKSTATIONS.filter((ws) =>
+  //       ws.name.toLowerCase().includes(searchTerms.workstations.toLowerCase()),
+  //     ),
+  //   [searchTerms.workstations],
+  // );
+  const filteredWorkstations = [];
 
-  const filteredFiles = useMemo(
-    () =>
-      MOCK_FILES.filter((file) =>
-        file.name.toLowerCase().includes(searchTerms.files.toLowerCase()),
-      ),
-    [searchTerms.files],
-  );
+  // const filteredFiles = useMemo(
+  //   () =>
+  //     MOCK_FILES.filter((file) =>
+  //       file.name.toLowerCase().includes(searchTerms.files.toLowerCase()),
+  //     ),
+  //   [searchTerms.files],
+  // );
+  const filteredFiles = [];
 
   // Handlers
   const handleNavigate = (direction) => {
