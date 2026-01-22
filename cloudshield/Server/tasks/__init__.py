@@ -7,6 +7,7 @@ from .dc_management import dc_remove_user as dc_remove_user
 from .dc_management import dc_restart_samba_service as dc_restart_samba_service
 from .dc_management import dc_user_list as dc_user_list
 from .dc_management import dc_set_password as dc_set_password
+from .dc_management import dc_create_user_with_group as dc_create_user_with_group
 from .dc_management import dc_create_file_share as dc_create_file_share
 from .dc_management import dc_delete_file_share as dc_delete_file_share
 
