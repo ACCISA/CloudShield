@@ -80,7 +80,7 @@ def dc_create_file_share(org_id: str, share_name: str):
 
     nodes = get_server_nodes(org_id)
     
-    request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
+    request = infra_pb2.CreateSambaFileShareData(share_name=share_name, share_size="100M")
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
@@ -93,7 +93,7 @@ def dc_create_file_share(org_id: str, share_name: str):
     if status == infra_pb2.SUCCESS:
         # store new file share in mongodb
         # sync netlogon share
-        sync_netlogon_script(realm)
+        #sync_netlogon_script(realm)
         logger.info("Successfully created new samba file share")
         try:
             create_share(org_id=org_id, name=share_name)

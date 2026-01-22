@@ -29,6 +29,7 @@ services:
     volumes:
       - ./docker/workstation/storage:/storage
       - ./docker/workstation/shared:/shared
+      - ./docker/workstation/oem:/oem
     restart: always
     stop_grace_period: 2m
     networks:
@@ -106,15 +107,15 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     devices:
-      - "/dev/loop0:/dev/loop0"
-      - "/dev/loop1:/dev/loop1"
-      - "/dev/loop2:/dev/loop2"
-      - "/dev/loop3:/dev/loop3"
-      - "/dev/loop4:/dev/loop4"
-      - "/dev/loop5:/dev/loop5"
-      - "/dev/loop6:/dev/loop6"
-      - "/dev/loop7:/dev/loop7"
-      - "/dev/loop-control:/dev/loop-control"
+      - /dev/loop0:/dev/loop0
+      - /dev/loop1:/dev/loop1
+      - /dev/loop2:/dev/loop2
+      - /dev/loop3:/dev/loop3
+      - /dev/loop4:/dev/loop4
+      - /dev/loop5:/dev/loop5
+      - /dev/loop6:/dev/loop6
+      - /dev/loop7:/dev/loop7
+      - /dev/loop-control:/dev/loop-control
     networks:
       vpc_net:
         ipv4_address: 172.23.0.10

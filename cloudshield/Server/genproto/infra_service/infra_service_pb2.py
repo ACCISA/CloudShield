@@ -25,15 +25,15 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13infra_service.proto\x12\x10infra_service.v1\x1a\x1bgoogle/protobuf/empty.proto\"7\n\x11\x41\x64\x64\x44omainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"P\n\x14\x41\x64\x64\x44omainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\"(\n\x14RemoveDomainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\"S\n\x17RemoveDomainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\".\n\x18\x43reateSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\"G\n\x1b\x43reateSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"F\n\x1aRestartSambaServiceDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\";\n\x15ResetUserPasswordData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"D\n\x18ResetUserPasswordDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"M\n\x12GetUserListDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\r\n\x05users\x18\x02 \x03(\t\"*\n\x14GetFileShareSizeData\x12\x12\n\nshare_name\x18\x01 \x01(\t\"A\n\x17GetFileShareSizeDataAck\x12\x12\n\ntotal_size\x18\x01 \x01(\x05\x12\x12\n\nusage_size\x18\x02 \x01(\x05\"A\n\x18\x44\x65leteSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x11\n\twipe_data\x18\x02 \x01(\x08\"G\n\x1b\x44\x65leteSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status*\x7f\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\n\n\x06\x46\x41ILED\x10\x01\x12\r\n\tDUPLICATE\x10\x02\x12\x12\n\x0eUSER_NOT_FOUND\x10\x03\x12\x17\n\x13PASSWORD_REQ_FAILED\x10\x04\x12\x0b\n\x07UNKNOWN\x10\x05\x12\x13\n\x0fSHARE_NOT_FOUND\x10\x06\x32\xb4\x06\n\x0cInfraService\x12K\n\x0bGetUserList\x12\x16.google.protobuf.Empty\x1a$.infra_service.v1.GetUserListDataAck\x12[\n\x13RestartSambaService\x12\x16.google.protobuf.Empty\x1a,.infra_service.v1.RestartSambaServiceDataAck\x12q\n\x14\x43reateSambaFileShare\x12*.infra_service.v1.CreateSambaFileShareData\x1a-.infra_service.v1.CreateSambaFileShareDataAck\x12q\n\x14\x44\x65leteSambaFileShare\x12*.infra_service.v1.DeleteSambaFileShareData\x1a-.infra_service.v1.DeleteSambaFileShareDataAck\x12h\n\x11ResetUserPassword\x12\'.infra_service.v1.ResetUserPasswordData\x1a*.infra_service.v1.ResetUserPasswordDataAck\x12\\\n\rAddDomainUser\x12#.infra_service.v1.AddDomainUserData\x1a&.infra_service.v1.AddDomainUserDataAck\x12\x65\n\x10RemoveDomainUser\x12&.infra_service.v1.RemoveDomainUserData\x1a).infra_service.v1.RemoveDomainUserDataAck\x12\x65\n\x10GetFileShareSize\x12&.infra_service.v1.GetFileShareSizeData\x1a).infra_service.v1.GetFileShareSizeDataAckb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13infra_service.proto\x12\x10infra_service.v1\x1a\x1bgoogle/protobuf/empty.proto\"7\n\x11\x41\x64\x64\x44omainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"P\n\x14\x41\x64\x64\x44omainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\"(\n\x14RemoveDomainUserData\x12\x10\n\x08username\x18\x01 \x01(\t\"S\n\x17RemoveDomainUserDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\x0e\n\x06result\x18\x02 \x01(\t\"B\n\x18\x43reateSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x12\n\nshare_size\x18\x02 \x01(\t\"G\n\x1b\x43reateSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"F\n\x1aRestartSambaServiceDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\";\n\x15ResetUserPasswordData\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"D\n\x18ResetUserPasswordDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"M\n\x12GetUserListDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\x12\r\n\x05users\x18\x02 \x03(\t\"*\n\x14GetFileShareSizeData\x12\x12\n\nshare_name\x18\x01 \x01(\t\"A\n\x17GetFileShareSizeDataAck\x12\x12\n\ntotal_size\x18\x01 \x01(\x05\x12\x12\n\nusage_size\x18\x02 \x01(\x05\"A\n\x18\x44\x65leteSambaFileShareData\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x11\n\twipe_data\x18\x02 \x01(\x08\"G\n\x1b\x44\x65leteSambaFileShareDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"P\n\x10\x41\x64\x64\x44NSRecordData\x12\x0c\n\x04zone\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06target\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\"?\n\x13\x41\x64\x64\x44NSRecordDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"S\n\x13\x44\x65leteDNSRecordData\x12\x0c\n\x04zone\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06target\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\"B\n\x16\x44\x65leteDNSRecordDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status\"1\n\x05Share\x12\x12\n\nshare_path\x18\x01 \x01(\t\x12\x14\n\x0c\x64rive_letter\x18\x02 \x01(\t\"K\n\x0cGroupMapping\x12\x12\n\ngroup_name\x18\x01 \x01(\t\x12\'\n\x06shares\x18\x02 \x03(\x0b\x32\x17.infra_service.v1.Share\"W\n\x16SyncNetlogonScriptData\x12\r\n\x05realm\x18\x01 \x01(\t\x12.\n\x06groups\x18\x02 \x03(\x0b\x32\x1e.infra_service.v1.GroupMapping\"E\n\x19SyncNetlogonScriptDataAck\x12(\n\x06status\x18\x01 \x01(\x0e\x32\x18.infra_service.v1.Status*\xc0\x02\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\n\n\x06\x46\x41ILED\x10\x01\x12\r\n\tDUPLICATE\x10\x02\x12\x12\n\x0eUSER_NOT_FOUND\x10\x03\x12\x17\n\x13PASSWORD_REQ_FAILED\x10\x04\x12\x0b\n\x07UNKNOWN\x10\x05\x12\x13\n\x0fSHARE_NOT_FOUND\x10\x06\x12\x14\n\x10\x44NS_RECORD_EXIST\x10\x07\x12\x18\n\x14\x44NS_RECORD_NOT_EXIST\x10\x08\x12\x16\n\x12\x44NS_ZONE_NOT_FOUND\x10\t\x12\r\n\tAUTH_FAIL\x10\n\x12\x0b\n\x07\x44\x44_FAIL\x10\x0b\x12\r\n\tMKFS_FAIL\x10\x0c\x12\x0e\n\nMOUNT_FAIL\x10\r\x12\x11\n\rNO_SPACE_LEFT\x10\x0e\x12\x15\n\x11PERMISSION_DENIED\x10\x0f\x12\x12\n\x0e\x46ILE_NOT_FOUND\x10\x10\x32\xe0\x08\n\x0cInfraService\x12k\n\x12SyncNetlogonScript\x12(.infra_service.v1.SyncNetlogonScriptData\x1a+.infra_service.v1.SyncNetlogonScriptDataAck\x12Y\n\x0c\x41\x64\x64\x44NSRecord\x12\".infra_service.v1.AddDNSRecordData\x1a%.infra_service.v1.AddDNSRecordDataAck\x12\x62\n\x0f\x44\x65leteDNSRecord\x12%.infra_service.v1.DeleteDNSRecordData\x1a(.infra_service.v1.DeleteDNSRecordDataAck\x12K\n\x0bGetUserList\x12\x16.google.protobuf.Empty\x1a$.infra_service.v1.GetUserListDataAck\x12[\n\x13RestartSambaService\x12\x16.google.protobuf.Empty\x1a,.infra_service.v1.RestartSambaServiceDataAck\x12q\n\x14\x43reateSambaFileShare\x12*.infra_service.v1.CreateSambaFileShareData\x1a-.infra_service.v1.CreateSambaFileShareDataAck\x12q\n\x14\x44\x65leteSambaFileShare\x12*.infra_service.v1.DeleteSambaFileShareData\x1a-.infra_service.v1.DeleteSambaFileShareDataAck\x12h\n\x11ResetUserPassword\x12\'.infra_service.v1.ResetUserPasswordData\x1a*.infra_service.v1.ResetUserPasswordDataAck\x12\\\n\rAddDomainUser\x12#.infra_service.v1.AddDomainUserData\x1a&.infra_service.v1.AddDomainUserDataAck\x12\x65\n\x10RemoveDomainUser\x12&.infra_service.v1.RemoveDomainUserData\x1a).infra_service.v1.RemoveDomainUserDataAck\x12\x65\n\x10GetFileShareSize\x12&.infra_service.v1.GetFileShareSizeData\x1a).infra_service.v1.GetFileShareSizeDataAckb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'infra_service_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_STATUS']._serialized_start=990
-  _globals['_STATUS']._serialized_end=1117
+  _globals['_STATUS']._serialized_start=1599
+  _globals['_STATUS']._serialized_end=1919
   _globals['_ADDDOMAINUSERDATA']._serialized_start=70
   _globals['_ADDDOMAINUSERDATA']._serialized_end=125
   _globals['_ADDDOMAINUSERDATAACK']._serialized_start=127
@@ -43,25 +43,41 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REMOVEDOMAINUSERDATAACK']._serialized_start=251
   _globals['_REMOVEDOMAINUSERDATAACK']._serialized_end=334
   _globals['_CREATESAMBAFILESHAREDATA']._serialized_start=336
-  _globals['_CREATESAMBAFILESHAREDATA']._serialized_end=382
-  _globals['_CREATESAMBAFILESHAREDATAACK']._serialized_start=384
-  _globals['_CREATESAMBAFILESHAREDATAACK']._serialized_end=455
-  _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_start=457
-  _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_end=527
-  _globals['_RESETUSERPASSWORDDATA']._serialized_start=529
-  _globals['_RESETUSERPASSWORDDATA']._serialized_end=588
-  _globals['_RESETUSERPASSWORDDATAACK']._serialized_start=590
-  _globals['_RESETUSERPASSWORDDATAACK']._serialized_end=658
-  _globals['_GETUSERLISTDATAACK']._serialized_start=660
-  _globals['_GETUSERLISTDATAACK']._serialized_end=737
-  _globals['_GETFILESHARESIZEDATA']._serialized_start=739
-  _globals['_GETFILESHARESIZEDATA']._serialized_end=781
-  _globals['_GETFILESHARESIZEDATAACK']._serialized_start=783
-  _globals['_GETFILESHARESIZEDATAACK']._serialized_end=848
-  _globals['_DELETESAMBAFILESHAREDATA']._serialized_start=850
-  _globals['_DELETESAMBAFILESHAREDATA']._serialized_end=915
-  _globals['_DELETESAMBAFILESHAREDATAACK']._serialized_start=917
-  _globals['_DELETESAMBAFILESHAREDATAACK']._serialized_end=988
-  _globals['_INFRASERVICE']._serialized_start=1120
-  _globals['_INFRASERVICE']._serialized_end=1940
+  _globals['_CREATESAMBAFILESHAREDATA']._serialized_end=402
+  _globals['_CREATESAMBAFILESHAREDATAACK']._serialized_start=404
+  _globals['_CREATESAMBAFILESHAREDATAACK']._serialized_end=475
+  _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_start=477
+  _globals['_RESTARTSAMBASERVICEDATAACK']._serialized_end=547
+  _globals['_RESETUSERPASSWORDDATA']._serialized_start=549
+  _globals['_RESETUSERPASSWORDDATA']._serialized_end=608
+  _globals['_RESETUSERPASSWORDDATAACK']._serialized_start=610
+  _globals['_RESETUSERPASSWORDDATAACK']._serialized_end=678
+  _globals['_GETUSERLISTDATAACK']._serialized_start=680
+  _globals['_GETUSERLISTDATAACK']._serialized_end=757
+  _globals['_GETFILESHARESIZEDATA']._serialized_start=759
+  _globals['_GETFILESHARESIZEDATA']._serialized_end=801
+  _globals['_GETFILESHARESIZEDATAACK']._serialized_start=803
+  _globals['_GETFILESHARESIZEDATAACK']._serialized_end=868
+  _globals['_DELETESAMBAFILESHAREDATA']._serialized_start=870
+  _globals['_DELETESAMBAFILESHAREDATA']._serialized_end=935
+  _globals['_DELETESAMBAFILESHAREDATAACK']._serialized_start=937
+  _globals['_DELETESAMBAFILESHAREDATAACK']._serialized_end=1008
+  _globals['_ADDDNSRECORDDATA']._serialized_start=1010
+  _globals['_ADDDNSRECORDDATA']._serialized_end=1090
+  _globals['_ADDDNSRECORDDATAACK']._serialized_start=1092
+  _globals['_ADDDNSRECORDDATAACK']._serialized_end=1155
+  _globals['_DELETEDNSRECORDDATA']._serialized_start=1157
+  _globals['_DELETEDNSRECORDDATA']._serialized_end=1240
+  _globals['_DELETEDNSRECORDDATAACK']._serialized_start=1242
+  _globals['_DELETEDNSRECORDDATAACK']._serialized_end=1308
+  _globals['_SHARE']._serialized_start=1310
+  _globals['_SHARE']._serialized_end=1359
+  _globals['_GROUPMAPPING']._serialized_start=1361
+  _globals['_GROUPMAPPING']._serialized_end=1436
+  _globals['_SYNCNETLOGONSCRIPTDATA']._serialized_start=1438
+  _globals['_SYNCNETLOGONSCRIPTDATA']._serialized_end=1525
+  _globals['_SYNCNETLOGONSCRIPTDATAACK']._serialized_start=1527
+  _globals['_SYNCNETLOGONSCRIPTDATAACK']._serialized_end=1596
+  _globals['_INFRASERVICE']._serialized_start=1922
+  _globals['_INFRASERVICE']._serialized_end=3042
 # @@protoc_insertion_point(module_scope)

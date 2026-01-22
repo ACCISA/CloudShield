@@ -4,7 +4,7 @@ import grpc
 import warnings
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from genproto.infra_service import infra_service_pb2 as infra__service__pb2
+import genproto.infra_service_pb2 as infra__service__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
 GRPC_VERSION = grpc.__version__
@@ -35,6 +35,21 @@ class InfraServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.SyncNetlogonScript = channel.unary_unary(
+                '/infra_service.v1.InfraService/SyncNetlogonScript',
+                request_serializer=infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
+                response_deserializer=infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
+                _registered_method=True)
+        self.AddDNSRecord = channel.unary_unary(
+                '/infra_service.v1.InfraService/AddDNSRecord',
+                request_serializer=infra__service__pb2.AddDNSRecordData.SerializeToString,
+                response_deserializer=infra__service__pb2.AddDNSRecordDataAck.FromString,
+                _registered_method=True)
+        self.DeleteDNSRecord = channel.unary_unary(
+                '/infra_service.v1.InfraService/DeleteDNSRecord',
+                request_serializer=infra__service__pb2.DeleteDNSRecordData.SerializeToString,
+                response_deserializer=infra__service__pb2.DeleteDNSRecordDataAck.FromString,
+                _registered_method=True)
         self.GetUserList = channel.unary_unary(
                 '/infra_service.v1.InfraService/GetUserList',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -79,6 +94,24 @@ class InfraServiceStub(object):
 
 class InfraServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def SyncNetlogonScript(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AddDNSRecord(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteDNSRecord(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetUserList(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -131,6 +164,21 @@ class InfraServiceServicer(object):
 
 def add_InfraServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'SyncNetlogonScript': grpc.unary_unary_rpc_method_handler(
+                    servicer.SyncNetlogonScript,
+                    request_deserializer=infra__service__pb2.SyncNetlogonScriptData.FromString,
+                    response_serializer=infra__service__pb2.SyncNetlogonScriptDataAck.SerializeToString,
+            ),
+            'AddDNSRecord': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddDNSRecord,
+                    request_deserializer=infra__service__pb2.AddDNSRecordData.FromString,
+                    response_serializer=infra__service__pb2.AddDNSRecordDataAck.SerializeToString,
+            ),
+            'DeleteDNSRecord': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteDNSRecord,
+                    request_deserializer=infra__service__pb2.DeleteDNSRecordData.FromString,
+                    response_serializer=infra__service__pb2.DeleteDNSRecordDataAck.SerializeToString,
+            ),
             'GetUserList': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUserList,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
@@ -181,6 +229,87 @@ def add_InfraServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class InfraService(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def SyncNetlogonScript(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/SyncNetlogonScript',
+            infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
+            infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AddDNSRecord(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/AddDNSRecord',
+            infra__service__pb2.AddDNSRecordData.SerializeToString,
+            infra__service__pb2.AddDNSRecordDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteDNSRecord(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/DeleteDNSRecord',
+            infra__service__pb2.DeleteDNSRecordData.SerializeToString,
+            infra__service__pb2.DeleteDNSRecordDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def GetUserList(request,

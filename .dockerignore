@@ -4,4 +4,4 @@ venv/
 **/venv/**
 *.pyc
 *.log
-docker/workstation/*
+docker/workstation/storage/
