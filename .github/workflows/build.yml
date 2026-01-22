@@ -84,7 +84,7 @@ jobs:
           test -f "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
           ls -lh "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
 
-desktopui:
+  desktopui:
     name: Build DesktopUI (no container)
     runs-on: ubuntu-latest
     defaults:
