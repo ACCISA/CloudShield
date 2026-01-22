@@ -11,19 +11,46 @@ import GroupsPage from "../GroupsPage";
 
 // Mock the child components
 jest.mock("../../components/groups/GroupsList.jsx", () => {
-  return function DummyGroupsList({ rows, onEdit, onDelete, showUsers, showWorkstations, showFiles }) {
+  return function DummyGroupsList({
+    rows,
+    onEdit,
+    onDelete,
+    showUsers,
+    showWorkstations,
+    showFiles,
+  }) {
     return (
       <div data-testid="groups-list">
         <div>Groups Count: {rows.length}</div>
-        <div data-testid="show-users">{showUsers ? "Users Shown" : "Users Hidden"}</div>
-        <div data-testid="show-workstations">{showWorkstations ? "Workstations Shown" : "Workstations Hidden"}</div>
-        <div data-testid="show-files">{showFiles ? "Files Shown" : "Files Hidden"}</div>
+        <div data-testid="show-users">
+          {showUsers ? "Users Shown" : "Users Hidden"}
+        </div>
+        <div data-testid="show-workstations">
+          {showWorkstations ? "Workstations Shown" : "Workstations Hidden"}
+        </div>
+        <div data-testid="show-files">
+          {showFiles ? "Files Shown" : "Files Hidden"}
+        </div>
         {rows.map((group) => (
           <div key={group.id} data-testid={`group-row-${group.id}`}>
             <span>{group.name}</span>
             <span>{group.description}</span>
-            {onEdit && <button onClick={() => onEdit(group)} data-testid={`edit-${group.id}`}>Edit</button>}
-            {onDelete && <button onClick={() => onDelete(group)} data-testid={`delete-${group.id}`}>Delete</button>}
+            {onEdit && (
+              <button
+                onClick={() => onEdit(group)}
+                data-testid={`edit-${group.id}`}
+              >
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(group)}
+                data-testid={`delete-${group.id}`}
+              >
+                Delete
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -36,8 +63,14 @@ jest.mock("../../components/groups/GroupsModal.jsx", () => {
     if (!open) return null;
     return (
       <div data-testid="groups-modal">
-        <span data-testid="modal-mode">{groupData ? "Edit Mode" : "Create Mode"}</span>
-        {onClose && <button onClick={onClose} data-testid="modal-close">Close</button>}
+        <span data-testid="modal-mode">
+          {groupData ? "Edit Mode" : "Create Mode"}
+        </span>
+        {onClose && (
+          <button onClick={onClose} data-testid="modal-close">
+            Close
+          </button>
+        )}
         {onSubmit && (
           <button
             onClick={() =>
@@ -85,25 +118,42 @@ jest.mock("../../components/common/CreateButton/CreateButton.jsx", () => {
 
 jest.mock("../../components/common/RefreshButton/RefreshButton.jsx", () => {
   return function DummyRefreshButton({ onClick }) {
-    return <button data-testid="refresh-button" onClick={onClick}>Refresh</button>;
+    return (
+      <button data-testid="refresh-button" onClick={onClick}>
+        Refresh
+      </button>
+    );
   };
 });
 
 jest.mock("../../components/common/DisplayButton/DisplayButton.jsx", () => {
-  return function DummyDisplayButton({ layout, onLayoutChange, columnToggles }) {
+  return function DummyDisplayButton({
+    layout,
+    onLayoutChange,
+    columnToggles,
+  }) {
     return (
       <div data-testid="display-button">
         <button onClick={() => onLayoutChange("list")}>List</button>
         <button onClick={() => onLayoutChange("grid")}>Grid</button>
         {columnToggles && (
           <>
-            <button onClick={() => columnToggles.onToggle("showUsers")} data-testid="toggle-users">
+            <button
+              onClick={() => columnToggles.onToggle("showUsers")}
+              data-testid="toggle-users"
+            >
               Toggle Users
             </button>
-            <button onClick={() => columnToggles.onToggle("showWorkstations")} data-testid="toggle-workstations">
+            <button
+              onClick={() => columnToggles.onToggle("showWorkstations")}
+              data-testid="toggle-workstations"
+            >
               Toggle Workstations
             </button>
-            <button onClick={() => columnToggles.onToggle("showFiles")} data-testid="toggle-files">
+            <button
+              onClick={() => columnToggles.onToggle("showFiles")}
+              data-testid="toggle-files"
+            >
               Toggle Files
             </button>
           </>
@@ -114,7 +164,11 @@ jest.mock("../../components/common/DisplayButton/DisplayButton.jsx", () => {
 });
 
 jest.mock("../../components/common/FilterButton/FilterButton.jsx", () => {
-  return function DummyFilterButton({ filterGroups, activeFilters, onFilterChange }) {
+  return function DummyFilterButton({
+    filterGroups,
+    activeFilters,
+    onFilterChange,
+  }) {
     return (
       <div data-testid="filter-button">
         {filterGroups.map((group) => (
@@ -245,7 +299,9 @@ describe("GroupsPage Component", () => {
       expect(screen.getByTestId("show-users")).toHaveTextContent("Users Shown");
 
       await userEvent.click(toggleButton);
-      expect(screen.getByTestId("show-users")).toHaveTextContent("Users Hidden");
+      expect(screen.getByTestId("show-users")).toHaveTextContent(
+        "Users Hidden",
+      );
 
       await userEvent.click(toggleButton);
       expect(screen.getByTestId("show-users")).toHaveTextContent("Users Shown");
@@ -255,10 +311,14 @@ describe("GroupsPage Component", () => {
       render(<GroupsPage />);
       const toggleButton = screen.getByTestId("toggle-workstations");
 
-      expect(screen.getByTestId("show-workstations")).toHaveTextContent("Workstations Shown");
+      expect(screen.getByTestId("show-workstations")).toHaveTextContent(
+        "Workstations Shown",
+      );
 
       await userEvent.click(toggleButton);
-      expect(screen.getByTestId("show-workstations")).toHaveTextContent("Workstations Hidden");
+      expect(screen.getByTestId("show-workstations")).toHaveTextContent(
+        "Workstations Hidden",
+      );
     });
 
     test("toggles showFiles state", async () => {
@@ -268,7 +328,9 @@ describe("GroupsPage Component", () => {
       expect(screen.getByTestId("show-files")).toHaveTextContent("Files Shown");
 
       await userEvent.click(toggleButton);
-      expect(screen.getByTestId("show-files")).toHaveTextContent("Files Hidden");
+      expect(screen.getByTestId("show-files")).toHaveTextContent(
+        "Files Hidden",
+      );
     });
   });
 
@@ -350,7 +412,7 @@ describe("GroupsPage Component", () => {
       render(<GroupsPage />);
       const smallFilter = screen.getByTestId("filter-small");
       const mediumFilter = screen.getByTestId("filter-medium");
-      
+
       await userEvent.click(smallFilter);
       await userEvent.click(mediumFilter);
       expect(screen.getByTestId("groups-list")).toBeInTheDocument();
@@ -397,7 +459,7 @@ describe("GroupsPage Component", () => {
 
     test("handles multiple state changes", async () => {
       render(<GroupsPage />);
-      
+
       // Change search
       const searchField = screen.getByTestId("search-field");
       await userEvent.type(searchField, "test");
@@ -415,23 +477,23 @@ describe("GroupsPage Component", () => {
 
     test("applies search and filter together", async () => {
       render(<GroupsPage />);
-      
+
       const searchField = screen.getByTestId("search-field");
       await userEvent.type(searchField, "eng");
-      
+
       const smallFilter = screen.getByTestId("filter-small");
       await userEvent.click(smallFilter);
-      
+
       expect(screen.getByTestId("groups-list")).toBeInTheDocument();
     });
 
     test("removes filter after applying it", async () => {
       render(<GroupsPage />);
-      
+
       const smallFilter = screen.getByTestId("filter-small");
       await userEvent.click(smallFilter);
       await userEvent.click(smallFilter); // Remove filter
-      
+
       expect(screen.getByTestId("groups-list")).toBeInTheDocument();
     });
   });

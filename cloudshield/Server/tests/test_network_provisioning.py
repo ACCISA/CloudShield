@@ -87,13 +87,14 @@ def test_provision_workstations_work_dir_missing(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises((NotADirectoryError, FileNotFoundError)):
         provision_workstations("nonexistent_org")
 
 
 def test_provision_workstations_success(monkeypatch, tmp_path):
     from tasks import provision_workstations
     import tasks.network_provisioning as np_module
+    import unittest.mock
 
     monkeypatch.setattr(
         "tasks.network_provisioning.CLOUDSHIELD_JOBS_DIR",
@@ -115,9 +116,12 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
     # Mock logger
     mock_logger = unittest.mock.MagicMock()
@@ -126,8 +130,20 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
         lambda name, job_id=None: mock_logger
     )
 
+    monkeypatch.setattr(
+        "tasks.network_provisioning.get_target_dir",
+        lambda org_id, generated_dir: None,
+    )
+
+    fake_collection = unittest.mock.MagicMock()
+    monkeypatch.setattr(
+        "tasks.network_provisioning.db_admin",
+        {"workstations": fake_collection},
+    )
+
     # Mock run_stream to simulate successful TF apply
     def fake_run_stream(cmd, cwd, env=None, logger=None, tail_keep=50):
+        assert cwd == str(generated_dir)
         return ["Apply complete!"]
 
     monkeypatch.setattr(
@@ -146,6 +162,7 @@ def test_provision_workstations_success(monkeypatch, tmp_path):
     result = provision_workstations("test_org", count=2)
     assert "complete" in result["message"].lower()
     assert mock_job.meta["progress"] == "completed"
+    fake_collection.update_many.assert_called_once()
 
 
 def test_provision_workstations_failure(monkeypatch, tmp_path):
@@ -167,9 +184,12 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
@@ -211,9 +231,12 @@ def test_provision_network_success(monkeypatch, tmp_path):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
 
     mock_logger = unittest.mock.MagicMock()
@@ -279,9 +302,12 @@ def test_provision_network_returns_none(monkeypatch):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
@@ -306,10 +332,6 @@ def test_provision_network_without_job(monkeypatch):
     # No job present
     monkeypatch.setattr(
         "tasks.network_provisioning.get_current_job",
-        lambda: None
-    )
-    monkeypatch.setattr(
-        "utils.progress.get_current_job",
         lambda: None
     )
     mock_logger = unittest.mock.MagicMock()
@@ -352,9 +374,12 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(
@@ -386,6 +411,51 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
     assert mock_job.meta["progress"] == "completed destroy"
 
 
+def test_coerce_int_handles_bool_and_default():
+    from tasks.network_provisioning import _coerce_int
+
+    assert _coerce_int(True, default=5) == 5
+    assert _coerce_int(7, default=1) == 7
+    assert _coerce_int("x", default=3) == 3
+
+
+def test_provision_network_raises_when_exceeding_org_limit(monkeypatch):
+    import tasks.network_provisioning as np
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {"workstation_limit": 1}
+    monkeypatch.setattr(np, "organizations", orgs)
+
+    with pytest.raises(ValueError):
+        np.provision_network("test_org", workstation_count=2)
+
+
+def test_provision_network_uses_org_limit_and_updates_status(monkeypatch):
+    import tasks.network_provisioning as np
+
+    updates = []
+
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-123")
+    monkeypatch.setattr(np, "set_progress", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(np, "get_logger", lambda *args, **kwargs: unittest.mock.MagicMock())
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {"workstation_limit": 2}
+    monkeypatch.setattr(np, "organizations", orgs)
+
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda org_id, status, job_id, logger=None: updates.append(status))
+    monkeypatch.setattr(np, "provision_network_terraform", lambda **kwargs: [{"id": "asset"}])
+    monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda metadata: ["asset"])
+    monkeypatch.setattr(np, "insert_inventory", lambda db, org_id, assets: SimpleNamespace(inserted_id="inv1"))
+    monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
+
+    result = np.provision_network("test_org")
+
+    assert result["metadata"] == [{"id": "asset"}]
+    assert updates[0] == "in_progress"
+    assert updates[-1] == "completed"
+
+
 def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     from tasks.network_provisioning import destroy_environment
 
@@ -394,10 +464,6 @@ def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     mock_job.meta = {"progress":""}
     monkeypatch.setattr(
         "tasks.network_provisioning.get_current_job",
-        lambda: mock_job
-    )
-    monkeypatch.setattr(
-        "utils.progress.get_current_job",
         lambda: mock_job
     )
     mock_logger = unittest.mock.MagicMock()
@@ -429,9 +495,12 @@ def test_destroy_environment_failure(monkeypatch, tmp_path):
         "tasks.network_provisioning.get_current_job",
         lambda: mock_job
     )
+    # Mock set_progress to update mock_job.meta
+    def fake_set_progress(text):
+        mock_job.meta["progress"] = text
     monkeypatch.setattr(
-        "utils.progress.get_current_job",
-        lambda: mock_job
+        "tasks.network_provisioning.set_progress",
+        fake_set_progress
     )
     mock_logger = unittest.mock.MagicMock()
     monkeypatch.setattr(

@@ -9,6 +9,8 @@ import AppLayout from './components/layout/AppLayout.jsx';
 import SignUpPage from './pages/SignUpPage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
 import GroupsPage from './pages/GroupsPage.jsx';
+import FilesPage from './pages/FilesPage.jsx';
+
 import { AuthProvider } from './context/AuthContext.jsx';
 
 function AppWithAuth() {
@@ -125,6 +127,15 @@ function AppWithAuth() {
           element={
             <Protected>
               <GroupsPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/files"
+          element={
+            <Protected>
+              <FilesPage />
             </Protected>
           }
         />

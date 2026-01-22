@@ -71,7 +71,12 @@ const mockGroups = [
     description: "Development team",
     users: [
       { id: "u1", firstName: "John", lastName: "Doe", email: "john@test.com" },
-      { id: "u2", firstName: "Jane", lastName: "Smith", email: "jane@test.com" },
+      {
+        id: "u2",
+        firstName: "Jane",
+        lastName: "Smith",
+        email: "jane@test.com",
+      },
     ],
     memberCount: 2,
     workstations: [
@@ -95,14 +100,27 @@ const mockGroups = [
     description: "Sales team",
     users: [
       { id: "u3", firstName: "Bob", lastName: "Wilson", email: "bob@test.com" },
-      { id: "u4", firstName: "Alice", lastName: "Brown", email: "alice@test.com" },
-      { id: "u5", firstName: "Charlie", lastName: "Davis", email: "charlie@test.com" },
-      { id: "u6", firstName: "Diana", lastName: "Evans", email: "diana@test.com" },
+      {
+        id: "u4",
+        firstName: "Alice",
+        lastName: "Brown",
+        email: "alice@test.com",
+      },
+      {
+        id: "u5",
+        firstName: "Charlie",
+        lastName: "Davis",
+        email: "charlie@test.com",
+      },
+      {
+        id: "u6",
+        firstName: "Diana",
+        lastName: "Evans",
+        email: "diana@test.com",
+      },
     ],
     memberCount: 7,
-    workstations: [
-      { id: "w3", name: "WS-003" },
-    ],
+    workstations: [{ id: "w3", name: "WS-003" }],
     files: 8,
   },
 ];
@@ -129,16 +147,28 @@ describe("GroupsList Component", () => {
     });
 
     test("renders all groups", () => {
-      render(<GroupsList rows={mockGroups} onEdit={mockOnEdit} onDelete={mockOnDelete} />);
-      
+      render(
+        <GroupsList
+          rows={mockGroups}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />,
+      );
+
       expect(screen.getAllByText("Engineering").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Marketing").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Sales").length).toBeGreaterThan(0);
     });
 
     test("displays group descriptions", () => {
-      render(<GroupsList rows={mockGroups} onEdit={mockOnEdit} onDelete={mockOnDelete} />);
-      
+      render(
+        <GroupsList
+          rows={mockGroups}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />,
+      );
+
       expect(screen.getByText("↳ Development team")).toBeInTheDocument();
       expect(screen.getByText("↳ Marketing department")).toBeInTheDocument();
       expect(screen.getByText("↳ Sales team")).toBeInTheDocument();
@@ -221,7 +251,7 @@ describe("GroupsList Component", () => {
   describe("Files Display", () => {
     test("displays file counts", () => {
       render(<GroupsList rows={mockGroups} showFiles={true} />);
-      
+
       expect(screen.getByText("+ 5")).toBeInTheDocument();
       expect(screen.getByText("+ 3")).toBeInTheDocument();
       expect(screen.getByText("+ 8")).toBeInTheDocument();
@@ -237,20 +267,32 @@ describe("GroupsList Component", () => {
   // Edit button tests
   describe("Edit Functionality", () => {
     test("calls onEdit when edit button is clicked", async () => {
-      render(<GroupsList rows={mockGroups} onEdit={mockOnEdit} onDelete={mockOnDelete} />);
-      
+      render(
+        <GroupsList
+          rows={mockGroups}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />,
+      );
+
       const editButtons = screen.getAllByTestId("menu-item-0");
       await userEvent.click(editButtons[0]);
-      
+
       expect(mockOnEdit).toHaveBeenCalledWith(mockGroups[0]);
     });
 
     test("calls onDelete when delete button is clicked", async () => {
-      render(<GroupsList rows={mockGroups} onEdit={mockOnEdit} onDelete={mockOnDelete} />);
-      
+      render(
+        <GroupsList
+          rows={mockGroups}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />,
+      );
+
       const deleteButtons = screen.getAllByTestId("menu-item-1");
       await userEvent.click(deleteButtons[0]);
-      
+
       expect(mockOnDelete).toHaveBeenCalledWith(mockGroups[0].id);
     });
 
@@ -269,11 +311,11 @@ describe("GroupsList Component", () => {
         configurable: true,
         value: 500,
       });
-      
+
       const { rerender } = render(<GroupsList rows={mockGroups} />);
       fireEvent(window, new Event("resize"));
       rerender(<GroupsList rows={mockGroups} />);
-      
+
       // Headers should be hidden on mobile
       expect(screen.queryByText("Name/Description")).not.toBeInTheDocument();
     });
@@ -284,11 +326,13 @@ describe("GroupsList Component", () => {
         configurable: true,
         value: 800,
       });
-      
-      const { rerender } = render(<GroupsList rows={mockGroups} showWorkstations={true} />);
+
+      const { rerender } = render(
+        <GroupsList rows={mockGroups} showWorkstations={true} />,
+      );
       fireEvent(window, new Event("resize"));
       rerender(<GroupsList rows={mockGroups} showWorkstations={true} />);
-      
+
       // Workstations column should be hidden on tablet
       expect(screen.queryByText("Workstations")).not.toBeInTheDocument();
     });
@@ -299,16 +343,16 @@ describe("GroupsList Component", () => {
         configurable: true,
         value: 1920,
       });
-      
+
       render(
         <GroupsList
           rows={mockGroups}
           showUsers={true}
           showWorkstations={true}
           showFiles={true}
-        />
+        />,
       );
-      
+
       expect(screen.getByText("Users")).toBeInTheDocument();
       expect(screen.getByText("Workstations")).toBeInTheDocument();
       expect(screen.getByText("Files")).toBeInTheDocument();
@@ -335,7 +379,7 @@ describe("GroupsList Component", () => {
     test("checkbox can be toggled", async () => {
       render(<GroupsList rows={mockGroups} />);
       const checkboxes = screen.getAllByTestId("checkbox");
-      
+
       expect(checkboxes[0]).not.toBeChecked();
       await userEvent.click(checkboxes[0]);
       expect(checkboxes[0]).toBeChecked();
@@ -352,7 +396,7 @@ describe("GroupsList Component", () => {
           description: "Missing fields",
         },
       ];
-      
+
       render(<GroupsList rows={incompleteGroup} />);
       expect(screen.getAllByText("Incomplete Group").length).toBeGreaterThan(0);
     });
@@ -368,7 +412,7 @@ describe("GroupsList Component", () => {
           files: 0,
         },
       ];
-      
+
       render(<GroupsList rows={longNameGroup} />);
       expect(screen.getAllByText("A".repeat(100)).length).toBeGreaterThan(0);
     });
@@ -381,8 +425,10 @@ describe("GroupsList Component", () => {
 
     test("handles row hover effects", () => {
       const { container } = render(<GroupsList rows={mockGroups} />);
-      const rows = container.querySelectorAll('[style*="grid-template-columns"]');
-      
+      const rows = container.querySelectorAll(
+        '[style*="grid-template-columns"]',
+      );
+
       // Verify rows exist for hover testing
       expect(rows.length).toBeGreaterThan(0);
     });
@@ -394,7 +440,7 @@ describe("GroupsList Component", () => {
           files: undefined,
         },
       ];
-      
+
       render(<GroupsList rows={groupWithNoFiles} showFiles={true} />);
       expect(screen.getByText("+ 0")).toBeInTheDocument();
     });

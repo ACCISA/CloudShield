@@ -22,6 +22,24 @@ std::string SambaTask::RemoveDomainUser(std::string username)
 	return this->RunCommand(full_cmd);
 }
 
+std::string SambaTask::AddDomainGroup(std::string group_name)
+{
+	std::string full_cmd = BuildCommand(this->GROUP_ADD_CMD, group_name.c_str());
+	return this->RunCommand(full_cmd);
+}
+
+std::string SambaTask::LinkGroupToDomainUsers(std::string group_name)
+{
+	std::string full_cmd = BuildCommand(this->GROUP_ADD_TO_DOMAIN_USERS_CMD, group_name.c_str());
+	return this->RunCommand(full_cmd);
+}
+
+std::string SambaTask::AddUserToGroup(std::string group_name, std::string username)
+{
+	std::string full_cmd = BuildCommand(this->GROUP_ADD_MEMBER_CMD, group_name.c_str(), username.c_str());
+	return this->RunCommand(full_cmd);
+}
+
 std::string SambaTask::RestartSambaService()
 {
 	std::system(this->RESTART_SAMBA_CMD);
@@ -64,12 +82,59 @@ std::vector<std::string> SambaTask::GetUserList()
 	return users;
 }
 
+std::vector<std::string> SambaTask::GetGroupList()
+{
+	std::vector<std::string> groups;
+	char buffer[128];
+
+	FILE* pipe = popen(this->GROUP_LIST_CMD, "r");
+
+	if (!pipe) {
+		std::cout << "Failed to read pipe" << std::endl;
+		return {};
+	}
+
+	try {
+		while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+			std::string group = buffer;
+
+			if (!group.empty() && group.back() == '\n') {
+				group.pop_back();
+			}
+
+			if (!group.empty()) {
+				groups.push_back(group);
+			}
+
+		}
+	}
+	catch (...) {
+		pclose(pipe);
+		return {};
+	}
+
+	pclose(pipe);
+	return groups;
+}
+
 bool SambaTask::IsDomainUser(std::string user)
 {
 	std::vector<std::string> users = this->GetUserList();
 
 	for (const std::string& user_ : users) {
 		if (user_ == user) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool SambaTask::IsDomainGroup(std::string group)
+{
+	std::vector<std::string> groups = this->GetGroupList();
+
+	for (const std::string& group_ : groups) {
+		if (group_ == group) {
 			return true;
 		}
 	}

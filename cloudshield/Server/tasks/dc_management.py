@@ -5,6 +5,7 @@ from rq import get_current_job
 from google.protobuf import empty_pb2
 
 from services.user_service import persist_domain_user, remove_domain_user_from_db
+from services.shares_services import create_share, delete_share
 from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
@@ -67,11 +68,17 @@ def dc_create_file_share(org_id: str, share_name: str):
         job.meta["progress"] = "stating dc_create_samba_file_share"
         job.save_meta()
 
-    nodes = get_server_nodes(org_id)
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
     
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
 
 
     response = infra_pb2.CreateSambaFileShareDataAck()
@@ -81,6 +88,14 @@ def dc_create_file_share(org_id: str, share_name: str):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
+        try:
+            create_share(org_id=org_id, name=share_name)
+        except Exception as exc:
+            logger.error(f"Failed to persist file share in database: {exc}")
+            return {
+                "status": "FAILED",
+                "message": "File share created in samba but failed to persist in database",
+            }
         return {"status":"SUCCESS","message":"Successfully created new samba file share"}
 
     if status == infra_pb2.FAILED:
@@ -117,6 +132,14 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
     
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully delete new samba file share")
+        try:
+            delete_share(org_id=org_id, name=share_name)
+        except Exception as exc:
+            logger.error(f"Failed to delete file share from database: {exc}")
+            return {
+                "status": "FAILED",
+                "message": "File share deleted in samba but failed to delete from database",
+            }
         return {"status":"SUCCESS","message":"Successfully deleted new samba file share"}
     if status == infra_pb2.SHARE_NOT_FOUND:
         logger.info("Failed to find samba file share")
@@ -238,6 +261,60 @@ def dc_user_list(org_id: str):
     return {"status":"FAILED", "message":"Failed to retrieve user list"}
 
 
+def dc_add_group(org_id: str, group_name: str):
+    """
+    Create a new security group in Samba and nest it under the Domain Users group
+    to keep group visibility consistent for default user access.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_add_group"
+        job.save_meta()
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid group name"
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.AddDomainGroupData(group_name=group_name)
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.AddDomainGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.AddDomainGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created group and linked to Domain Users")
+        return {"status": "SUCCESS", "message": "Successfully created group"}
+
+    if status == infra_pb2.DUPLICATE:
+        logger.warning("Group already exists")
+        return {"status": "DUPLICATE", "message": "Group already exists"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to create group")
+        return {"status": "FAILED", "message": "Failed to create group"}
+
+    logger.error("Unexpected response when creating group")
+    return {"status": "UNKNOWN", "message": "Unexpected response"}
+
+
 def dc_add_user(org_id: str, username: str, password: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
@@ -264,7 +341,10 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     
     # this tasks is meant for the domain controller so we get that node's ip
-    nodes = get_server_nodes(org_id)
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
 
     request = infra_pb2.AddDomainUserData(username=username, password=password)
 
@@ -297,6 +377,89 @@ def dc_add_user(org_id: str, username: str, password: str):
         return {"status": "DUPLICATE", "message":"User already exists"}
     logger.error("Failed to add user for unexpected reason")
     return {"status":"UNKNOWN", "message":"Unexpected response"}
+
+
+def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
+    """
+    Create a domain user, provision a group, nest it under Domain Users, and add the user to that group.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_create_user_with_group"
+        job.save_meta()
+
+    if not validate_username(username, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid username"
+            job.save_meta()
+        return {"message": f"the provider username is invalid (username={username})"}
+
+    if not validate_password(password, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid password"
+            job.save_meta()
+        return {"message": f"the provider password is invalid (password={password})"}
+
+    if group_name is None or group_name.strip() == "":
+        group_name = f"{username}-group"
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid group name"
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.CreateDomainUserWithGroupData(
+        username=username,
+        password=password,
+        group_name=group_name,
+    )
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.CreateDomainUserWithGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.CreateDomainUserWithGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+    result_payload = {
+        "user_result": response.user_result,
+        "group_result": response.group_result,
+        "link_result": response.link_result,
+        "membership_result": response.membership_result,
+    }
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully created user with group linkage")
+        email_local_part = re.sub(r'[^A-Za-z0-9._%+-]', '', short_uuid())
+        if not email_local_part:
+            email_local_part = "user-" + short_uuid()
+        email = f"{email_local_part}@example.com"
+        persist_domain_user(org_id, username, password, email)
+        return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
+
+    if status == infra_pb2.DUPLICATE:
+        logger.warning("User already exists")
+        return {"status": "DUPLICATE", "message": "User already exists", "result": result_payload}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to create user with group")
+        return {"status": "FAILED", "message": "Failed to create user with group", "result": result_payload}
+
+    logger.error("Unexpected response when creating user with group")
+    return {"status": "UNKNOWN", "message": "Unexpected response", "result": result_payload}
 
 
 
