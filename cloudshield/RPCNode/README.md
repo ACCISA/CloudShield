@@ -18,8 +18,6 @@ Because the API cannot reach a `DOMAIN_CONTROLLER` directly, it uses a **Proxy R
 
 <img width="500" height="300" alt="image" src="https://github.com/user-attachments/assets/1a245005-3c2e-4281-b04c-f8d333e03a2a" />
 
----
-
 ## Implementing RPC Methods
 
 To create a new task, follow this three-step implementation process:
@@ -99,4 +97,32 @@ def dc_add_user(org_id: str, username: str, password: str):
   # We have to first serialize the bytes from the proxy_response.response field to extract the result from our proxied RPC
   response = infra_pb2.AddDomainUserDataAck()
   response.ParseFromString(proxy_response.response)
+```
+## Samba AD DC quick test for CreateDomainUserWithGroup
+
+Spin up a disposable Samba AD DC locally (no host ports needed) to validate the user+group workflow. `--privileged` avoids ACL issues on Windows Docker Desktop.
+
+```bash
+docker rm -f samba-ad-dc 2>/dev/null
+docker run -d --name samba-ad-dc --privileged \
+	-h dc1.samba.test \
+	-e DOMAIN=SAMBA.TEST \
+	-e DOMAINPASS=Passw0rd! \
+	-e DNSFORWARDER=8.8.8.8 \
+	nowsci/samba-domain:latest
+
+# Wait ~15s, then exercise the exact commands used by the RPC:
+docker exec samba-ad-dc samba-tool group add engineers
+docker exec samba-ad-dc samba-tool group addmembers "Domain Users" engineers
+docker exec samba-ad-dc samba-tool user add alice 'Str0ngPass!'
+docker exec samba-ad-dc samba-tool group addmembers engineers alice
+
+# Verify membership
+docker exec samba-ad-dc samba-tool group listmembers "Domain Users"
+docker exec samba-ad-dc samba-tool group listmembers engineers
+docker exec samba-ad-dc samba-tool user show alice
+
+# Stop/clean when done
+docker stop samba-ad-dc
+docker rm samba-ad-dc
 ```

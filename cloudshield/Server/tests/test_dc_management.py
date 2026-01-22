@@ -1,5 +1,6 @@
 import unittest.mock
 import logging
+import types
 from types import SimpleNamespace
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
@@ -408,6 +409,263 @@ def test_dc_create_file_share_success(monkeypatch):
 
     # Assert persist_domain_user was called with correct args
     assert result["status"] == "SUCCESS"
+
+
+# --- dc_add_group tests ---
+
+
+def _make_group_ack(status: int):
+    return infra_pb2.AddDomainGroupDataAck(status=status).SerializeToString()
+
+
+def _make_user_with_group_ack(status: int):
+    return infra_pb2.CreateDomainUserWithGroupDataAck(
+        status=status,
+        user_result="ok",
+        group_result="ok",
+        link_result="ok",
+        membership_result="ok",
+    ).SerializeToString()
+
+
+def test_dc_add_group_invalid_name_sets_progress(monkeypatch):
+    from tasks.dc_management import dc_add_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.meta = {}
+    mock_job.save_meta = lambda: None
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    result = dc_add_group("org", "bad name")
+
+    assert "invalid" in result["message"].lower()
+    assert mock_job.meta["progress"] == "invalid group name"
+
+
+def test_dc_add_group_success(monkeypatch):
+    from tasks.dc_management import dc_add_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+
+    def mock_proxy(nodes, method_name, request):
+        return types.SimpleNamespace(response=_make_group_ack(infra_pb2.SUCCESS))
+
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_add_group("org", "group1")
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_add_group_duplicate(monkeypatch):
+    from tasks.dc_management import dc_add_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_group_ack(infra_pb2.DUPLICATE)),
+    )
+
+    result = dc_add_group("org", "group1")
+    assert result["status"] == "DUPLICATE"
+
+
+def test_dc_add_group_failed(monkeypatch):
+    from tasks.dc_management import dc_add_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_group_ack(infra_pb2.FAILED)),
+    )
+
+    result = dc_add_group("org", "group1")
+    assert result["status"] == "FAILED"
+
+
+def test_dc_add_group_unknown(monkeypatch):
+    from tasks.dc_management import dc_add_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_group_ack(999)),
+    )
+
+    result = dc_add_group("org", "group1")
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_add_group_proxy_fail(monkeypatch):
+    from tasks.dc_management import dc_add_group
+    from tasks.dc_management import PROXY_FAIL_MESSAGE
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", lambda nodes, method_name, request: None)
+
+    result = dc_add_group("org", "group1")
+    assert result == PROXY_FAIL_MESSAGE
+
+
+# --- dc_create_user_with_group tests ---
+
+
+def test_dc_create_user_with_group_invalid_username(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.meta = {}
+    mock_job.save_meta = lambda: None
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+
+    result = dc_create_user_with_group("org", "bad user", "Password123!", "team")
+    assert "invalid" in result["message"].lower()
+    assert mock_job.meta["progress"] == "invalid username"
+
+
+def test_dc_create_user_with_group_invalid_password(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.meta = {}
+    mock_job.save_meta = lambda: None
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+
+    result = dc_create_user_with_group("org", "validuser", "short", "team")
+    assert "invalid" in result["message"].lower()
+    assert mock_job.meta["progress"] == "invalid password"
+
+
+def test_dc_create_user_with_group_invalid_group(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.meta = {}
+    mock_job.save_meta = lambda: None
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", "bad group")
+    assert "invalid" in result["message"].lower()
+    assert mock_job.meta["progress"] == "invalid group name"
+
+
+def test_dc_create_user_with_group_proxy_fail(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group, PROXY_FAIL_MESSAGE
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", lambda nodes, method_name, request: None)
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", "team")
+    assert result == PROXY_FAIL_MESSAGE
+
+
+def test_dc_create_user_with_group_success_persists(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr("tasks.dc_management.short_uuid", lambda: "abc123")
+
+    mock_persist = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.persist_domain_user", mock_persist)
+
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_user_with_group_ack(infra_pb2.SUCCESS)),
+    )
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", group_name=None)
+
+    mock_persist.assert_called_once()
+    persisted_email = mock_persist.call_args[0][3]
+    assert persisted_email.endswith("@example.com")
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_create_user_with_group_email_fallback(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr("tasks.dc_management.short_uuid", lambda: "!!!")
+
+    mock_persist = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.persist_domain_user", mock_persist)
+
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_user_with_group_ack(infra_pb2.SUCCESS)),
+    )
+
+    dc_create_user_with_group("org", "validuser", "Password123!", group_name="team")
+
+    persisted_email = mock_persist.call_args[0][3]
+    assert persisted_email.startswith("user-")
+    assert persisted_email.endswith("@example.com")
+
+
+def test_dc_create_user_with_group_duplicate(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_user_with_group_ack(infra_pb2.DUPLICATE)),
+    )
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", group_name="team")
+    assert result["status"] == "DUPLICATE"
+
+
+def test_dc_create_user_with_group_failed(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_user_with_group_ack(infra_pb2.FAILED)),
+    )
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", group_name="team")
+    assert result["status"] == "FAILED"
+
+
+def test_dc_create_user_with_group_unknown(monkeypatch):
+    from tasks.dc_management import dc_create_user_with_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_user_with_group_ack(999)),
+    )
+
+    result = dc_create_user_with_group("org", "validuser", "Password123!", group_name="team")
+    assert result["status"] == "UNKNOWN"
 
 
 def test_dc_create_file_share_failed(monkeypatch):
