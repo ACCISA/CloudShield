@@ -84,7 +84,7 @@ jobs:
           test -f "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
           ls -lh "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
 
-  desktopui:
+desktopui:
     name: Build DesktopUI (no container)
     runs-on: ubuntu-latest
     defaults:
@@ -97,17 +97,7 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: cloudshield/DesktopUI/package-lock.json
-
       - name: Install deps
         run: npm ci
-
       - name: Build
         run: npm run build
-
-      - name: Upload DesktopUI build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktopui-build-${{ github.sha }}
-          path: cloudshield/DesktopUI/release/
-          if-no-files-found: error
-          retention-days: 7
