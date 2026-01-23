@@ -487,12 +487,14 @@ export default function WorkstationsPage() {
               <input
                 type="text"
                 placeholder="Username"
+                data-testid="rdp-username-input"
                 value={rdpUsername}
                 onChange={(e) => setRdpUsername(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-[#0b0b0b] px-3 py-2 text-sm text-white/80 placeholder:text-white/30"
               />
               <input
                 type="password"
+                data-testid="rdp-password-input"
                 placeholder="Password"
                 value={rdpPassword}
                 onChange={(e) => setRdpPassword(e.target.value)}

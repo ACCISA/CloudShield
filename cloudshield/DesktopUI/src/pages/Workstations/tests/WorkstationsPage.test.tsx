@@ -205,6 +205,34 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  it("loads the RDPDraft", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [{ id: "WS-010", name: "Marketing", status: "online" }],
+      }),
+    );
+    localStorage.setItem(
+      "cloudshield.rdpDraft",
+      '{"username":"testuser","password":"testpassword"}',
+    );
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Marketing");
+
+    fireEvent.click(screen.getByText("Connect"));
+
+    const usernameInput = await screen.findByTestId("rdp-username-input");
+    const passwordInput = await screen.findByTestId("rdp-password-input");
+
+    expect((usernameInput as HTMLInputElement).value).toBe("testuser");
+    expect((passwordInput as HTMLInputElement).value).toBe("testpassword");
+  });
   it("clears auth when logout is clicked", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
