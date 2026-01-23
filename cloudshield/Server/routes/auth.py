@@ -11,6 +11,8 @@ except ImportError:
     db_admin = None
 from datetime import datetime, timezone
 from pymongo.errors import DuplicateKeyError
+import uuid
+from cloudshield.Server.services.job_service import service_dispatcher
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -80,14 +82,20 @@ def login():
 
 @auth_bp.route("/auth/signup", methods=["POST"])
 def signup():
+    if request.method == "OPTIONS":
+        return make_response("", 204)
+    print(">>> THIS SIGNUP ROUTE HIT <<<")
+
     body = request.get_json(silent=True) or {}
 
+    print("SIGNUP RAW BODY:", request.data)
+    print("SIGNUP PARSED JSON:", body)
     # Inputs (with fallbacks to support UI naming)
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     full_name = (body.get("full_name") or "").strip()
     company_name = (body.get("company_name") or body.get("company") or "").strip()
-    org_id = (body.get("org_id") or "").strip()
+    org_id = uuid.uuid4().hex[:16]  # lowercase, 16 chars, regex-safe
     package_type = (body.get("package_type") or body.get("plan") or "free").strip().lower()
 
     # Required fields check
@@ -95,7 +103,6 @@ def signup():
         "email": email,
         "password": password,
         "company_name": company_name,
-        "org_id": org_id,
     }.items() if not v]
     if missing:
         return jsonify({"error": "Missing fields", "details": missing}), 400
@@ -104,7 +111,7 @@ def signup():
     audit = db_admin["audit"]
 
     # Uniqueness: org_id OR company_name must not exist already
-    if orgs.find_one({"$or": [{"org_id": org_id}, {"company_name": company_name}]}):
+    if orgs.find_one({"company_name": company_name}):
         return jsonify({"error": "Organization already exists"}), 409
 
     now = datetime.now(timezone.utc)
@@ -116,6 +123,7 @@ def signup():
         "package_type": package_type,
         "created_at": now,
         "status": "active",
+        "provisioning_status": "pending",
     }
     orgs.insert_one(org_doc)
 
@@ -137,7 +145,46 @@ def signup():
         orgs.delete_one({"org_id": org_id})
         return jsonify({"error": "Email already exists"}), 409
 
-    # 3) Best-effort audit trail (non-blocking)
+    # 3) Provision automatically after organization and admin creation
+    try:
+        workstations = db_admin["workstations"]
+        workstations.insert_one({
+            "org_id": org_id,
+            "name": f"{org_id}-ws-001",
+            "status": "provisioning",
+            "created_at": now,
+        })
+
+        # enqueue provisioning job
+        job = service_dispatcher(
+            service_name="provision_network",
+            org_id=org_id,
+            region="ca-central-1",
+            workstation_count=1,
+        )
+
+        print(
+            "[SIGNUP] Provisioning job enqueued job_id=%s org_id=%s",
+            job.id,
+            org_id,
+        )
+
+        orgs.update_one(
+            {"org_id": org_id},
+            {
+                "$set": {
+                    "provisioning_status": "in_progress",
+                    "provisioning_job_id": job.id,
+                }
+            },
+        )
+    except Exception:
+        orgs.update_one(
+            {"org_id": org_id},
+            {"$set": {"provisioning_status": "failed"}},
+        )
+
+    # 4) Best-effort audit trail (non-blocking)
     try:
         audit.insert_one({
             "ts": now,
@@ -150,7 +197,7 @@ def signup():
     except Exception:
         pass
 
-    # 4) Issue JWT for the new admin
+    # 5) Issue JWT for the new admin
     token = issue_token(sub=uid, role="admin", org_id=org_id)
 
     return jsonify({
