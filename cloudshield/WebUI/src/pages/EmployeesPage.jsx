@@ -1,59 +1,48 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import PropTypes from 'prop-types';
-import { listUsers, deleteUser, createUser } from '../services/usersApi.js';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
+
+// UI Components
+import UsersTable from "../components/users/UsersTable.jsx";
+import UserEditModal from "../components/users/UserEditModal.jsx";
+import UserCreateModal from "../components/users/UserCreateModal.jsx";
+import SearchField from "../components/common/SearchField/SearchField.jsx";
+import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
+import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
+import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
+import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+
+// Backend & Context
+import { listUsers, deleteUser, createUser, updateUser } from '../services/usersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-UserTable.propTypes = {
-  users: PropTypes.arrayOf(
-    PropTypes.shape({
-      _id: PropTypes.string.isRequired,
-      full_name: PropTypes.string,
-      email: PropTypes.string,
-      role: PropTypes.string,
-      status: PropTypes.string,
-    })
-  ),
+// Toast Notification
+const CustomToast = ({ msg, type, onClose }) => {
+  if (!msg) return null;
 
-  onDelete: PropTypes.func.isRequired,
-  currentUserId: PropTypes.string,
-  deletingUserId: PropTypes.string,
-};
+  const styles = {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    padding: '12px 24px',
+    borderRadius: '12px',
+    backgroundColor: type === 'error' ? '#d32f2f' : '#2e7d32',
+    color: '#fff',
+    fontSize: '1rem',
+    boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    animation: 'fadeIn 0.3s ease-in-out',
+    cursor: 'pointer'
+  };
 
-function UserTable({ users = [], onDelete, currentUserId, deletingUserId }) {
-  if (!users.length) {
-    return (
-      <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>
-        <Typography>No users found.</Typography>
-      </Box>
-    );
-  }
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
 
   return (
     <div 
@@ -178,9 +167,12 @@ export default function EmployeesPage() {
   const handleUpdate = async (id, payload) => {
     if (!accessToken) return;
 
-  const currentUserId = currentUser?.id ?? currentUser?._id;
-  const isSelfDelete = dialogUser?._id === currentUserId;
-
+    try {
+      const apiPayload = {
+        full_name: `${payload.firstName} ${payload.lastName}`,
+        email: payload.email,
+        role: payload.jobTitle,
+      };
 
       await updateUser(id, apiPayload, { token: accessToken });
       
@@ -368,124 +360,19 @@ export default function EmployeesPage() {
         />
       )}
 
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '18px',
-          border: '1px solid rgba(255,255,255,0.16)',
-          backgroundColor: '#0F0F0F',
-          minHeight: 280,
-          overflow: 'hidden',
-        }}
-      >
-        {loading || authLoading ? (
-          <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : (
-          <UserTable 
-            users={sortedUsers} 
-            onDelete={handleOpenDeleteDialog} 
-            currentUserId={currentUser?.id ?? currentUser?._id}
-            deletingUserId={deletingUserId}
-          />
-        )}
-      </Paper>
+      <UserCreateModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={handleCreate}
+      />
 
-      <Dialog
-        open={Boolean(dialogUser)}
-        onClose={handleCloseDialog}
-        aria-labelledby="confirm-delete-user"
-      >
-        <DialogTitle id="confirm-delete-user">Delete User</DialogTitle>
-        <DialogContent sx={{ minWidth: 360 }}>
-          <Stack spacing={2}>
-            <Typography>
-              Are you sure you want to delete{' '}
-              <strong>{dialogUser?.full_name || dialogUser?.email}</strong>?
-            </Typography>
-            <Typography color="error">This action is permanent.</Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              The user will be removed from the organization and will lose access immediately.
-            </Typography>
-            {(deleteError || isSelfDelete) && (
-              <Alert severity="error">
-                {deleteError || 'You cannot delete your own account.'}
-              </Alert>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="error"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting…' : 'Confirm'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={createOpen} onClose={handleCloseCreate} aria-labelledby="create-user-dialog">
-        <DialogTitle id="create-user-dialog">Add Employee</DialogTitle>
-        <DialogContent sx={{ minWidth: 440 }}>
-          <Stack component="form" id="create-user-form" spacing={2} onSubmit={handleCreateUser}>
-            <TextField
-              label="Full Name"
-              value={form.full_name}
-              onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
-              required
-              autoFocus
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Initial Password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              required
-              fullWidth
-            />
-            <TextField
-              select
-              label="Role"
-              value={form.role}
-              onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-              fullWidth
-            >
-              <MenuItem value="employee">Employee</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-            </TextField>
-            {createError && (
-              <Alert severity="error">{createError}</Alert>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreate} disabled={isCreating}>
-            Cancel
-          </Button>
-          <Button
-            disabled={isCreating}
-            variant="contained"
-            type="submit"
-            form="create-user-form"
-          >
-            {isCreating ? 'Creating…' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {toast.open && (
+        <CustomToast 
+          msg={toast.msg} 
+          type={toast.type} 
+          onClose={() => setToast({ ...toast, open: false })} 
+        />
+      )}
+    </div>
   );
 }

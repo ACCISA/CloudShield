@@ -1,11 +1,10 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {within, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import EmployeesPage from '../EmployeesPage.jsx';
 import { AuthProvider, useAuth } from '../../context/AuthContext.jsx';
 import { listUsers, deleteUser, createUser } from '../../services/usersApi.js';
-import { within, fireEvent } from '@testing-library/react';
 
 jest.setTimeout(10000);
 
