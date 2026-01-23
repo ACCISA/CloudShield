@@ -24,7 +24,7 @@ from utils import (
 from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
-from provisioner import provision_network_terraform, get_target_dir, destroy_infra
+from provisioner import provision_network_terraform, get_target_dir, destroy_infra, provision_workstation
 
 
 """
@@ -232,6 +232,11 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
 
         logger.info("Provisioning complete for org %s", org_id)
+
+        logger.info("Starting to provision 1 workstation for testing")
+
+        provision_workstation(org_id, logger)
+
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
         

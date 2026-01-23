@@ -5,28 +5,33 @@
 $adapterName = "Ethernet"
 $dnsServers = @("SAMBA_IP")
 $domainName = "DOMAIN_NAME"
-$adminUsers = "ADMIN_USER"
+$adminUser = "ADMIN_USER"
 $adminPass = "ADMIN_PASS"
 
-# In our docker_provisioner we must make sure to set the DOMAIN_NAME, ADMIN_USER and ADMIN_PASS
+# In our docker_provisioner we must make sure to set the DOMAIN_NAME, SAMBA_IP, ADMIN_USER and ADMIN_PASS
 
 Write-Host "Starting workstation setup"
 
 try {
-    Set-DnsClientServerAddress -InterfaceAlias $adapterName -ServerAddresses $dnsServers
-    Write-Host "DNS set to $($dnsServers -join ', ')"
+	Set-DnsClientServerAddress -InterfaceAlias $adapterName -ServerAddresses $dnsServers
+	Write-Host "DNS set to $($dnsServers -join ', ')"
 } catch {
-    Write-Host "Failed to set DNS: $_"
+	Write-Host "Failed to set DNS: $_"
 }
 
 
 try {
-    $password = ConvertTo-SecureString $adminPass -AsPlainText -Force
-    $cred = New-Object System.Management.Automation.PSCredential ("$adminUser", $password)
-    Add-Computer -DomainName $domainName -Credential $cred -Force -Restart
-    Write-Host "Domain join successful: $domainName"
-    Add-LocalGroupMember -Group "Remote Desktop Users" -Member "$domainName\Domain Users"
+	$password = ConvertTo-SecureString $adminPass -AsPlainText -Force
+	$cred = New-Object System.Management.Automation.PSCredential ("$adminUser", $password)
+
+	$postJoinCommand = "powershell.exe -ExecutionPolicy Bypass -Command ""Add-LocalGroupMember -Group 'Remote Desktop Users' -Member 'DOMAIN_NAME\Domain Users'"""
+
+	$registryPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+	Set-ItemProperty -Path $registryPath -Name "AddDomainUsersToRDP" -Value $postJoinCommand
+
+	Add-Computer -DomainName $domainName -Credential $cred -Force -Restart
+
 } catch {
-    Write-Host "Failed to join domain: $_"
+	Write-Host "Failed to join domain: $_"
 }
 

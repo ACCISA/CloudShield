@@ -1,5 +1,6 @@
 # docker_provisioning is not part of code we release in prod. This is just to avoid spendng money on aws therefore we dont need to meet coverage requirements for this code.
 import os
+import sys
 from datetime import datetime, timezone
 import subprocess
 from python_on_whales import DockerClient
@@ -13,9 +14,9 @@ docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 # we are probably going to be provisioning infra. When we provision we will just docker compose up.
 OVPN_VOLUME_NAME = "opvn-data-cloudshield"
 PKI_INPUT = b"\n\n\n"
-
+print("BUILDING")
 docker.compose.build(
-    services=["samba-test", "openvpn-test"]
+    services=["samba-test", "openvpn-test","workstation"]
 )
 
 # Copy a file to a container
@@ -27,7 +28,7 @@ def copy_file_container(server_logger, container_id, path_in, path_out):
                 text=True,
                 check=True
         )
-        server_logger.info(f"Successfully copied file to contianer (file={path_in}, container_id={container_id})")
+        server_logger.info(f"Successfully copied file to container (file={path_in}, container_id={container_id})")
         return True
     except subprocess.CalledProcessError as e:
         server_logger.error(e)
@@ -75,11 +76,110 @@ def setup_ssh_keys(server_logger, private_key_path):
     
     server_logger.info("SSH Key generation complete")
     return public_key_path, private_key_path
-    
+
+def wait_workstation_completion(cid, server_logger):
+    target_string = "Windows started successfully"
+    server_logger.info(f"Monitoring logs for ID {cid}...")
+
+    for stream_type, data in docker.logs(cid, stream=True):
+        try:
+            clean_line = data.decode('utf-8').strip()
+        except UnicodeDecodeError:
+            clean_line = data.decode('latin-1').strip()
+
+        server_logger.debug(f"[{stream_type}] {clean_line}")
+
+        if target_string in clean_line:
+            server_logger.info("Target string detected. Task complete.")
+            return True
+
+    return False
+
+def create_auto_configure_scripts(variables: dict, container_id: str, server_logger):
+    """
+    Reads all .ps1 files in a folder and replaces variable placeholders
+    with values provided in the variables dictionary.
+    """
+    source_folder = "/app/docker/workstation/oem/"
+    output_folder = os.path.join(source_folder, "scripts")
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for filename in os.listdir(source_folder):
+        if filename.endswith(".ps1"):
+            source_path = os.path.join(source_folder, filename)
+            output_path = os.path.join(output_folder, filename)
+
+            with open(source_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+
+            new_content = content
+            for key, value in variables.items():
+                new_content = new_content.replace(key, str(value))
+
+            with open(output_path, 'w', encoding='utf-8') as file:
+                file.write(new_content)
+
+            if not copy_file_container(server_logger, container_id, output_path, "/oem/"+filename):
+                return
+
+def download_win11_iso(server_logger):
+    url = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_x64FRE_en-us.iso"
+
+    command = [
+        "wget",
+        url,
+        "-O", "/app/docker/workstation/storage/win11x64.iso",
+        "--continue",
+        # Removed -q (quiet) so we can actually see the output
+        "--timeout=30",
+        "--no-http-keep-alive",
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0",
+        "--show-progress",
+        "--progress=dot:giga"
+    ]
+
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"\nDownload failed with exit code {e.returncode}", file=sys.stderr)
+    except FileNotFoundError:
+        print("\nError: 'wget' is not installed.", file=sys.stderr)
+
+
+def provision_workstation_docker(org_id, server_logger):
+
+    container_ws = docker.compose.run(
+            service="workstation",
+            publish=[(8006, 8006)],
+            detach=True,
+            tty=False
+    )
+
+    if not Path("/data/win11x64.iso").exists():
+        server_logger.warning("No win11x64.iso was provided therefore it will be installed in this container.")
+        server_logger.warning("To make the building process faster, please pre-install win11x64.iso and place it in docker/workstation/")
+        server_logger.warning("run install_iso.sh to install win11x64.iso")
+        download_win11_iso(server_logger)
+
+    container_id_ws = container_ws.id
+
+    server_logger.info("Creating OEM scripts")
+    # all variables in docker/workstation/oem need to be set here
+    create_auto_configure_scripts({
+        "DOMAIN_NAME":"aniss.local",
+        "ADMIN_USER":"Administrator",
+        "ADMIN_PASS":"letmein123%",
+        "SAMBA_IP":"172.23.0.10"}, container_id_ws, server_logger) 
+
+    if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
+        return
+
+    server_logger.info("Windows workstation installation has started, this will take some time")
 
 
 
-# MAIN
 def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
 
     server_logger.info("count "+str(count))
@@ -109,7 +209,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     server_logger.info("Running docker provisioning")
 
     os.environ["DOMAIN_NAME"] = "ANISS"
-    os.environ["DC_ADMIN_PASSWORD"] = "4162728abb29acc12090e6432cdb6fd8%$@!"
+    os.environ["DC_ADMIN_PASSWORD"] = "letmein123%"
     os.environ["REALM_NAME"] = "ANISS.LOCAL"
     
     # We already built our containers so just start them
@@ -153,6 +253,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
 
     if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
         return
+
+        wait_workstation_completion(container_id_ws, server_logger)
 
     #docker.compose.run(
     #        service="openvpn-test",

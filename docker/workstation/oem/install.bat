@@ -9,7 +9,6 @@ netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
 
 if not exist "%target_dir%" (
     echo Error: The folder %target_dir% does not exist.
-    pause
     exit /b
 )
 
