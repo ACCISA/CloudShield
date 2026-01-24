@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
+import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 // import { MOCK_GROUPS_FULL } from "../data/mockData.js";
 
 // Import dynamic components
@@ -105,21 +106,7 @@ export default function GroupsPage() {
     },
   ];
 
-  const handleFilterChange = (groupId, value, isActive) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      const currentSet = new Set(newFilters[groupId] || []);
-
-      if (isActive) {
-        currentSet.add(value);
-      } else {
-        currentSet.delete(value);
-      }
-
-      newFilters[groupId] = currentSet;
-      return newFilters;
-    });
-  };
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
   // const handleMockDelete = (id) => {
   //   setGroups((p) => p.filter((g) => g.id !== id));

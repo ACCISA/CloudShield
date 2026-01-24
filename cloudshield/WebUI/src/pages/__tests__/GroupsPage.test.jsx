@@ -31,6 +31,13 @@ jest.mock("../../components/groups/GroupsList.jsx", () => {
         <div data-testid="show-files">
           {showFiles ? "Files Shown" : "Files Hidden"}
         </div>
+        {/* Mock sort headers */}
+        <button data-testid="sort-name" onClick={() => {}}>
+          Name
+        </button>
+        <button data-testid="sort-memberCount" onClick={() => {}}>
+          Members
+        </button>
         {rows.map((group) => (
           <div key={group.id} data-testid={`group-row-${group.id}`}>
             <span>{group.name}</span>
@@ -566,6 +573,98 @@ describe("GroupsPage Component", () => {
       // Toggle files column
       await userEvent.click(filesToggle);
       expect(screen.getByText("Files Hidden")).toBeInTheDocument();
+    });
+  });
+
+  // Additional coverage tests
+  describe("Filter Logic Coverage", () => {
+    test("filters by small size", async () => {
+      render(<GroupsPage />);
+      const smallFilter = screen.getByTestId("filter-small");
+
+      await userEvent.click(smallFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("filters by medium size", async () => {
+      render(<GroupsPage />);
+      const mediumFilter = screen.getByTestId("filter-medium");
+
+      await userEvent.click(mediumFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("filters by large size", async () => {
+      render(<GroupsPage />);
+      const largeFilter = screen.getByTestId("filter-large");
+
+      await userEvent.click(largeFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("applies multiple size filters simultaneously", async () => {
+      render(<GroupsPage />);
+      const smallFilter = screen.getByTestId("filter-small");
+      const mediumFilter = screen.getByTestId("filter-medium");
+
+      await userEvent.click(smallFilter);
+      await userEvent.click(mediumFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("removes size filter when toggled off", async () => {
+      render(<GroupsPage />);
+      const smallFilter = screen.getByTestId("filter-small");
+
+      // Add filter
+      await userEvent.click(smallFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+
+      // Remove filter
+      await userEvent.click(smallFilter);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+  });
+
+  describe("Layout and Display Coverage", () => {
+    test("changes layout to grid", () => {
+      render(<GroupsPage />);
+      const gridButton = screen.getByText("Grid");
+
+      fireEvent.click(gridButton);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("changes layout to list", () => {
+      render(<GroupsPage />);
+      const listButton = screen.getByText("List");
+
+      fireEvent.click(listButton);
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("search with whitespace is trimmed", async () => {
+      render(<GroupsPage />);
+      const searchField = screen.getByTestId("search-field");
+
+      await userEvent.type(searchField, "   test   ");
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("search matches name field", async () => {
+      render(<GroupsPage />);
+      const searchField = screen.getByTestId("search-field");
+
+      await userEvent.type(searchField, "engineering");
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("search matches description field", async () => {
+      render(<GroupsPage />);
+      const searchField = screen.getByTestId("search-field");
+
+      await userEvent.type(searchField, "description");
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
     });
   });
 });

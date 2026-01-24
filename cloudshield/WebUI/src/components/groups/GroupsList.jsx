@@ -168,6 +168,23 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers & components ---------------------------- */
 
+function getGroupMenuItems(group, onEdit, onDelete) {
+  return [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit group",
+      color: "#1a1a1a",
+      onClick: () => onEdit?.(group),
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete group",
+      color: "#D51616",
+      onClick: () => onDelete?.(group.id),
+    },
+  ];
+}
+
 function ItemsPill({ items, type, totalCount, getKey }) {
   const itemsList = Array.isArray(items) ? items : [];
   const show = itemsList.slice(0, 3);
@@ -284,22 +301,7 @@ function GroupRow({
 
         {/* edit */}
         <div style={styles.editContainer}>
-          <EditButton
-            menuItems={[
-              {
-                icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
-                label: "edit group",
-                color: "#1a1a1a",
-                onClick: () => onEdit?.(r),
-              },
-              {
-                icon: <TrashIcon width={12} height={14} color="#D51616" />,
-                label: "delete group",
-                color: "#D51616",
-                onClick: () => onDelete?.(r.id),
-              },
-            ]}
-          />
+          <EditButton menuItems={getGroupMenuItems(r, onEdit, onDelete)} />
         </div>
       </div>
 
