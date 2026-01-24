@@ -44,24 +44,3 @@ def test_get_workstation_count_non_existing(monkeypatch, tmp_path):
     
     assert result == 0
     mock_check_output.assert_called_once()
-
-def test_get_workstation_count_no_folder(monkeypatch, tmp_path):
-    """Test default to 0 when no target dir exists"""
-    from cloudshield.Server.utils.terraform import get_workstation_count
-
-    monkeypatch.setattr(
-        "cloudshield.Server.utils.terraform.base_dir",
-        tmp_path
-    )
-    monkeypatch.setattr(
-        "cloudshield.Server.utils.terraform.get_target_dir",
-        lambda org_id, generated_dir: None
-    )
-    
-    mock_check_output = unittest.mock.MagicMock()
-    monkeypatch.setattr(subprocess, "check_output", mock_check_output)
-    
-    result = get_workstation_count("test_org")
-    
-    assert result == 0
-    mock_check_output.assert_not_called()

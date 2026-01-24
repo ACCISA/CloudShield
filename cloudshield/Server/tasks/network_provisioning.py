@@ -115,7 +115,6 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     target_dir = get_target_dir(org_id, str(generated_dir))
     if not target_dir:
         target_dir = str(generated_dir)
-    
     work_dir = Path(target_dir)
     
     env = os.environ.copy()

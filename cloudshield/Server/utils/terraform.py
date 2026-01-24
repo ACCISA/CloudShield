@@ -19,9 +19,6 @@ def get_workstation_count(org_id: str, env: dict | None = None) -> int:
     initial_count = 0
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
-    if not target_dir:
-        logger.info("[UTIL] No target dir for org %s; defaulting workstation count to 0", org_id)
-        return 0
     try:
         count_cmd = f"terraform state list aws_instance.{org_id}_workstation | wc -l"
         output = subprocess.check_output(count_cmd, cwd=str(target_dir), env=env, shell=True, text=True)
