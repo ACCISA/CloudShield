@@ -4,7 +4,7 @@ FROM docker.io/library/ubuntu:24.04${BASEOS_DIGEST:-}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     software-properties-common \
-    rsyslog systemd systemd-cron sudo \
+    rsyslog systemd systemd-cron sudo wget\
     samba-ad-dc samba-ad-provision \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2 iputils-ping \
@@ -31,7 +31,7 @@ RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
 RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
 
 # Copy entrypoint script
-COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/new-samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

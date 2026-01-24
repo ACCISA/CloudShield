@@ -105,6 +105,7 @@ services:
       - domain_name=${DOMAIN_NAME}
       - dc_admin_password=${DC_ADMIN_PASSWORD}
       - realm_name=${REALM_NAME}
+      - realm_name_lwr=${REALM_NAME_LWR}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     devices:

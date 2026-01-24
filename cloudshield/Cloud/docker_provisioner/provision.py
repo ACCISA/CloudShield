@@ -208,9 +208,10 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
 
     server_logger.info("Running docker provisioning")
 
-    os.environ["DOMAIN_NAME"] = "ANISS"
+    os.environ["DOMAIN_NAME"] = "SAMDOM"
     os.environ["DC_ADMIN_PASSWORD"] = "letmein123%"
-    os.environ["REALM_NAME"] = "ANISS.LOCAL"
+    os.environ["REALM_NAME"] = "SAMDOM.EXAMPLE.COM"
+    os.environ["REALM_NAME_LWR"] = "SAMDOM.EXAMPLE.COM".lower()
     
     # We already built our containers so just start them
     container = docker.compose.run(
