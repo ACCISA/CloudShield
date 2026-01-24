@@ -443,7 +443,20 @@ def task_provision():
     if workstation_count is None or workstation_count <= 0:
         workstation_count = 1
 
+    # Check if the environment is already provisioned
+    provisioned = organizations.find_one({"org_id": org_id, "status": "complete"})
+    if provisioned:
+        logger.warning("Provisioning already completed for org_id: %s", org_id)
+        return jsonify({"error": "Environment already provisioned"}), 400
+
     _seed_workstations(org_id, workstation_count)
+
+    # Update MongoDB to mark the environment as provisioned
+    organizations.update_one(
+        {"org_id": org_id},
+        {"$set": {"status": "complete"}},
+        upsert=True
+    )
 
     job = service_dispatcher(
         service_name="provision_network", 
