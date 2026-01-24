@@ -1419,3 +1419,404 @@ class TestAccessGroupToJsonWithNewFields:
         doc = {"_id": ObjectId(), "name": "test", "file_shares": None}
         result = access_group_to_json(doc)
         assert result["file_shares"] == []
+
+
+# =============================================================================
+# Route Tests with Flask Test Client (Proper Mocking)
+# =============================================================================
+
+
+class TestAccessGroupRoutesWithFlask:
+    """
+    Tests for access_groups routes using Flask test client with isolated mocking.
+    These tests properly exercise the route functions.
+    """
+
+    @pytest.fixture
+    def app_client(self):
+        """Create Flask app with mocked database collection"""
+        from flask import Flask
+        from cloudshield.Server.routes.access_groups import access_groups_bp
+        import cloudshield.Server.routes.access_groups as routes_module
+
+        app = Flask(__name__)
+        app.register_blueprint(access_groups_bp, url_prefix="/api")
+
+        # Create mock collection
+        mock_coll = MagicMock()
+
+        # Store original and patch
+        original = routes_module.access_groups
+        routes_module.access_groups = mock_coll
+
+        yield app.test_client(), mock_coll
+
+        # Restore original
+        routes_module.access_groups = original
+
+    def test_get_access_groups_collection_caching(self):
+        """Test _get_access_groups_collection caches the collection"""
+        import cloudshield.Server.routes.access_groups as routes_module
+
+        # Save original
+        original = routes_module.access_groups
+
+        # Set a mock collection
+        mock_coll = MagicMock()
+        routes_module.access_groups = mock_coll
+
+        # Call should return the cached mock
+        result = routes_module._get_access_groups_collection()
+        assert result is mock_coll
+
+        # Restore
+        routes_module.access_groups = original
+
+    def test_update_access_group_not_found(self, app_client):
+        """Test PATCH returns 404 when group doesn't exist"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.find_one.return_value = None
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "updated"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "access group not found"
+
+    def test_update_access_group_success_description(self, app_client):
+        """Test PATCH successfully updates description"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "description": "old desc",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {**existing_doc, "description": "new description"}
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "new description"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["description"] == "new description"
+
+    def test_update_access_group_duplicate_name(self, app_client):
+        """Test PATCH returns 409 when new name already exists"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # First find_one returns existing group, second returns duplicate
+        mock_coll.find_one.side_effect = [
+            existing_doc,
+            {"_id": ObjectId()}  # Duplicate found
+        ]
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_name": "existing-name"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 409
+        data = response.get_json()
+        assert data["error"] == "access group already exists"
+
+    def test_update_access_group_empty_body_returns_current(self, app_client):
+        """Test PATCH with empty body returns current group without update"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "description": "original",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # First find_one for existence check, second for returning current
+        mock_coll.find_one.side_effect = [existing_doc, existing_doc]
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        # update_one should NOT have been called
+        mock_coll.update_one.assert_not_called()
+
+    def test_update_access_group_all_fields(self, app_client):
+        """Test PATCH updates all fields"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        member_id = str(ObjectId())
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "old-group",
+            "description": "old",
+            "group_image": None,
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            "_id": group_id,
+            "name": "new-group",
+            "description": "new desc",
+            "group_image": "data:image/png;base64,abc",
+            "members": [ObjectId(member_id)],
+            "workstations": ["ws-1"],
+            "file_shares": ["share-1"],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        mock_coll.find_one.side_effect = [
+            existing_doc,
+            None,  # No duplicate name
+            updated_doc
+        ]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={
+                "group_name": "new-group",
+                "description": "new desc",
+                "group_image": "data:image/png;base64,abc",
+                "members": [member_id],
+                "workstations": ["ws-1"],
+                "file_shares": ["share-1"]
+            },
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        mock_coll.update_one.assert_called_once()
+
+    def test_update_access_group_validation_error(self, app_client):
+        """Test PATCH returns 400 for invalid data"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_name": "ab"},  # Too short
+            content_type="application/json"
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Validation failed"
+
+    def test_update_access_group_internal_error(self, app_client):
+        """Test PATCH returns 500 on database error"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.find_one.side_effect = Exception("Database connection failed")
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "test"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Internal server error"
+
+    def test_delete_access_group_success(self, app_client):
+        """Test DELETE successfully removes group"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=1)
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["status"] == "deleted"
+        assert data["id"] == group_id
+
+    def test_delete_access_group_not_found(self, app_client):
+        """Test DELETE returns 404 when group doesn't exist"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=0)
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "access group not found"
+
+    def test_delete_access_group_internal_error(self, app_client):
+        """Test DELETE returns 500 on database error"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.side_effect = Exception("Database error")
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Internal server error"
+
+    def test_update_access_group_members_converted_to_objectid(self, app_client):
+        """Test PATCH converts member strings to ObjectIds"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        member1 = str(ObjectId())
+        member2 = str(ObjectId())
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "members": [ObjectId(member1), ObjectId(member2)]
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"members": [member1, member2]},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        # Verify update_one was called with ObjectIds
+        call_args = mock_coll.update_one.call_args
+        set_doc = call_args[0][1]["$set"]
+        assert "members" in set_doc
+        assert all(isinstance(m, ObjectId) for m in set_doc["members"])
+
+    def test_update_access_group_workstations_and_file_shares(self, app_client):
+        """Test PATCH correctly updates workstations and file_shares"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "workstations": ["ws-1", "ws-2"],
+            "file_shares": ["share-a", "share-b"]
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={
+                "workstations": ["ws-1", "ws-2"],
+                "file_shares": ["share-a", "share-b"]
+            },
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["workstations"] == ["ws-1", "ws-2"]
+        assert data["access_group"]["file_shares"] == ["share-a", "share-b"]
+
+    def test_update_access_group_group_image(self, app_client):
+        """Test PATCH correctly updates group_image"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "group_image": None,
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "group_image": "data:image/png;base64,newimage"
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_image": "data:image/png;base64,newimage"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["group_image"] == "data:image/png;base64,newimage"
+
