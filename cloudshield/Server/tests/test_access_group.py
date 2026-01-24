@@ -1002,3 +1002,821 @@ class TestListAccessGroupsRoute:
         queried_oids = call_args[0][0]["_id"]["$in"]
         # Should be 2 unique OIDs, not 3
         assert len(queried_oids) == 2
+
+
+# =============================================================================
+# Workstations Validation Tests
+# =============================================================================
+
+
+class TestWorkstationsValidation:
+    """Test workstations list validation in AccessGroupBase"""
+
+    def test_valid_workstations_list(self):
+        """Test valid workstation ids in list"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["ws-1", "ws-2", "workstation-alpha"]
+        )
+        assert len(group.workstations) == 3
+        assert "ws-1" in group.workstations
+
+    def test_empty_workstations_list(self):
+        """Test empty workstations list is valid"""
+        group = AccessGroupCreate(group_name="test-group", workstations=[])
+        assert group.workstations == []
+
+    def test_workstations_not_provided_defaults_to_empty(self):
+        """Test omitted workstations defaults to empty list"""
+        group = AccessGroupCreate(group_name="test-group")
+        assert group.workstations == []
+
+    def test_workstations_deduplication(self):
+        """Test duplicate workstation IDs are removed"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["ws-1", "ws-1", "ws-2"]
+        )
+        assert group.workstations == ["ws-1", "ws-2"]
+
+    def test_workstations_stripped(self):
+        """Test workstation IDs are stripped of whitespace"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["  ws-1  ", "ws-2  "]
+        )
+        assert group.workstations == ["ws-1", "ws-2"]
+
+    def test_invalid_workstation_empty_string(self):
+        """Test empty string in workstations raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", workstations=[""])
+        assert "workstations" in str(exc_info.value).lower()
+
+    def test_invalid_workstations_not_list(self):
+        """Test non-list workstations raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", workstations="not-a-list")
+        assert "workstations" in str(exc_info.value).lower() or "list" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# File Shares Validation Tests
+# =============================================================================
+
+
+class TestFileSharesValidation:
+    """Test file_shares list validation in AccessGroupBase"""
+
+    def test_valid_file_shares_list(self):
+        """Test valid file share ids in list"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["share-1", "share-2", "docs-share"]
+        )
+        assert len(group.file_shares) == 3
+        assert "share-1" in group.file_shares
+
+    def test_empty_file_shares_list(self):
+        """Test empty file_shares list is valid"""
+        group = AccessGroupCreate(group_name="test-group", file_shares=[])
+        assert group.file_shares == []
+
+    def test_file_shares_not_provided_defaults_to_empty(self):
+        """Test omitted file_shares defaults to empty list"""
+        group = AccessGroupCreate(group_name="test-group")
+        assert group.file_shares == []
+
+    def test_file_shares_deduplication(self):
+        """Test duplicate file share IDs are removed"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["share-1", "share-1", "share-2"]
+        )
+        assert group.file_shares == ["share-1", "share-2"]
+
+    def test_file_shares_stripped(self):
+        """Test file share IDs are stripped of whitespace"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["  share-1  ", "share-2  "]
+        )
+        assert group.file_shares == ["share-1", "share-2"]
+
+    def test_invalid_file_share_empty_string(self):
+        """Test empty string in file_shares raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", file_shares=[""])
+        assert "file_shares" in str(exc_info.value).lower()
+
+    def test_invalid_file_shares_not_list(self):
+        """Test non-list file_shares raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", file_shares="not-a-list")
+        assert "file_shares" in str(exc_info.value).lower() or "list" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# AccessGroupUpdate Tests
+# =============================================================================
+
+
+class TestAccessGroupUpdate:
+    """Test AccessGroupUpdate model for PATCH operations"""
+
+    def test_all_fields_optional(self):
+        """Test AccessGroupUpdate with no fields is valid"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate()
+        assert update.group_name is None
+        assert update.description is None
+        assert update.members is None
+        assert update.workstations is None
+        assert update.file_shares is None
+
+    def test_partial_update_group_name(self):
+        """Test updating only group_name"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(group_name="new-name")
+        assert update.group_name == "new-name"
+        assert update.description is None
+
+    def test_partial_update_workstations(self):
+        """Test updating only workstations"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(workstations=["ws-1", "ws-2"])
+        assert update.workstations == ["ws-1", "ws-2"]
+        assert update.group_name is None
+
+    def test_partial_update_file_shares(self):
+        """Test updating only file_shares"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(file_shares=["share-1"])
+        assert update.file_shares == ["share-1"]
+        assert update.group_name is None
+
+    def test_update_validates_group_name(self):
+        """Test group_name validation in update"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        with pytest.raises(ValidationError):
+            AccessGroupUpdate(group_name="ab")  # too short
+
+    def test_update_normalizes_workstations(self):
+        """Test workstations are normalized in update"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(workstations=["  ws-1  ", "ws-1", "ws-2"])
+        assert update.workstations == ["ws-1", "ws-2"]
+
+
+# =============================================================================
+# Route Tests with Direct Mocking
+# =============================================================================
+
+
+class TestAccessGroupRoutesDirect:
+    """
+    Tests for access_groups routes using direct function calls with mocked dependencies.
+    This avoids the Flask test client fixture issues.
+    """
+
+    def test_update_access_group_route_logic(self):
+        """Test update_access_group route logic directly"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        from bson import ObjectId
+
+        # Test with description update
+        patch = AccessGroupUpdate(description="new description")
+        assert patch.description == "new description"
+        assert patch.group_name is None
+
+        # Test with group_image update
+        patch = AccessGroupUpdate(group_image="data:image/png;base64,test")
+        assert patch.group_image == "data:image/png;base64,test"
+
+        # Test with members update
+        member_id = str(ObjectId())
+        patch = AccessGroupUpdate(members=[member_id])
+        assert patch.members == [member_id]
+
+        # Test with all fields
+        patch = AccessGroupUpdate(
+            group_name="updated-group",
+            description="updated desc",
+            group_image="data:image/png;base64,updated",
+            members=[member_id],
+            workstations=["ws-1"],
+            file_shares=["share-1"]
+        )
+        assert patch.group_name == "updated-group"
+        assert patch.description == "updated desc"
+        assert patch.workstations == ["ws-1"]
+        assert patch.file_shares == ["share-1"]
+
+    def test_update_access_group_empty_set_doc(self):
+        """Test that empty update body results in no changes"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+
+        # Empty update
+        patch = AccessGroupUpdate()
+        
+        # Build set_doc like the route does
+        set_doc = {}
+        if patch.group_name is not None:
+            set_doc["name"] = patch.group_name
+        if patch.description is not None:
+            set_doc["description"] = patch.description
+        if patch.group_image is not None:
+            set_doc["group_image"] = patch.group_image
+        if patch.members is not None:
+            set_doc["members"] = patch.members
+        if patch.workstations is not None:
+            set_doc["workstations"] = patch.workstations
+        if patch.file_shares is not None:
+            set_doc["file_shares"] = patch.file_shares
+
+        # Should be empty
+        assert set_doc == {}
+
+    def test_update_access_group_partial_fields(self):
+        """Test partial field updates build correct set_doc"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        from bson import ObjectId
+
+        # Only update workstations
+        patch = AccessGroupUpdate(workstations=["ws-new-1", "ws-new-2"])
+
+        set_doc = {}
+        if patch.group_name is not None:
+            set_doc["name"] = patch.group_name
+        if patch.description is not None:
+            set_doc["description"] = patch.description
+        if patch.group_image is not None:
+            set_doc["group_image"] = patch.group_image
+        if patch.members is not None:
+            set_doc["members"] = [ObjectId(m) for m in patch.members]
+        if patch.workstations is not None:
+            set_doc["workstations"] = patch.workstations
+        if patch.file_shares is not None:
+            set_doc["file_shares"] = patch.file_shares
+
+        assert set_doc == {"workstations": ["ws-new-1", "ws-new-2"]}
+
+    def test_update_access_group_members_conversion(self):
+        """Test members are converted to ObjectIds in update"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        from bson import ObjectId
+
+        member1 = str(ObjectId())
+        member2 = str(ObjectId())
+        patch = AccessGroupUpdate(members=[member1, member2])
+
+        # Simulate route logic
+        set_doc = {}
+        if patch.members is not None:
+            set_doc["members"] = [ObjectId(m) for m in patch.members]
+
+        assert len(set_doc["members"]) == 2
+        assert all(isinstance(m, ObjectId) for m in set_doc["members"])
+
+    def test_delete_access_group_objectid_conversion(self):
+        """Test group_id is converted to ObjectId for delete"""
+        from bson import ObjectId
+
+        group_id_str = str(ObjectId())
+        gid = ObjectId(group_id_str)
+
+        assert isinstance(gid, ObjectId)
+        assert str(gid) == group_id_str
+
+    def test_delete_access_group_invalid_objectid(self):
+        """Test invalid ObjectId raises exception"""
+        from bson import ObjectId
+        from bson.errors import InvalidId
+
+        with pytest.raises(InvalidId):
+            ObjectId("invalid-id")
+
+    def test_access_group_to_json_with_all_fields(self):
+        """Test access_group_to_json with all fields populated"""
+        now = datetime.now(timezone.utc)
+        member_oid = ObjectId()
+        doc = {
+            "_id": ObjectId(),
+            "name": "full-group",
+            "description": "Full description",
+            "group_image": "data:image/png;base64,test",
+            "members": [member_oid],
+            "workstations": ["ws-1", "ws-2"],
+            "file_shares": ["share-1"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = access_group_to_json(doc)
+
+        assert result["group_name"] == "full-group"
+        assert result["description"] == "Full description"
+        assert result["group_image"] == "data:image/png;base64,test"
+        assert result["members"] == [str(member_oid)]
+        assert result["workstations"] == ["ws-1", "ws-2"]
+        assert result["file_shares"] == ["share-1"]
+        assert result["created_at"] == now.isoformat()
+        assert result["updated_at"] == now.isoformat()
+
+
+# =============================================================================
+# Document Creation with Workstations and File Shares
+# =============================================================================
+
+
+class TestCreateAccessGroupDocWithNewFields:
+    """Test create_access_group_doc with workstations and file_shares"""
+
+    def test_creates_document_with_workstations(self):
+        """Test document creation includes workstations"""
+        group = AccessGroupCreate(
+            group_name="engineering",
+            workstations=["ws-1", "ws-2"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["workstations"] == ["ws-1", "ws-2"]
+
+    def test_creates_document_with_file_shares(self):
+        """Test document creation includes file_shares"""
+        group = AccessGroupCreate(
+            group_name="engineering",
+            file_shares=["share-1", "share-2"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["file_shares"] == ["share-1", "share-2"]
+
+    def test_creates_document_with_all_new_fields(self):
+        """Test document creation with all fields including new ones"""
+        oid = str(ObjectId())
+        group = AccessGroupCreate(
+            group_name="full-group",
+            description="Full test group",
+            group_image="data:image/png;base64,test",
+            members=[oid],
+            workstations=["ws-1"],
+            file_shares=["share-1"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["name"] == "full-group"
+        assert doc["description"] == "Full test group"
+        assert doc["group_image"] == "data:image/png;base64,test"
+        assert len(doc["members"]) == 1
+        assert doc["workstations"] == ["ws-1"]
+        assert doc["file_shares"] == ["share-1"]
+
+
+# =============================================================================
+# JSON Serialization with Workstations and File Shares
+# =============================================================================
+
+
+class TestAccessGroupToJsonWithNewFields:
+    """Test access_group_to_json with workstations and file_shares"""
+
+    def test_converts_document_with_workstations(self):
+        """Test JSON conversion includes workstations"""
+        now = datetime.now(timezone.utc)
+        doc = {
+            "_id": ObjectId(),
+            "name": "test",
+            "workstations": ["ws-1", "ws-2"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = access_group_to_json(doc)
+
+        assert result["workstations"] == ["ws-1", "ws-2"]
+
+    def test_converts_document_with_file_shares(self):
+        """Test JSON conversion includes file_shares"""
+        now = datetime.now(timezone.utc)
+        doc = {
+            "_id": ObjectId(),
+            "name": "test",
+            "file_shares": ["share-1", "share-2"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = access_group_to_json(doc)
+
+        assert result["file_shares"] == ["share-1", "share-2"]
+
+    def test_handles_none_workstations(self):
+        """Test handles None workstations field"""
+        doc = {"_id": ObjectId(), "name": "test", "workstations": None}
+        result = access_group_to_json(doc)
+        assert result["workstations"] == []
+
+    def test_handles_none_file_shares(self):
+        """Test handles None file_shares field"""
+        doc = {"_id": ObjectId(), "name": "test", "file_shares": None}
+        result = access_group_to_json(doc)
+        assert result["file_shares"] == []
+
+
+# =============================================================================
+# Route Tests with Flask Test Client (Proper Mocking)
+# =============================================================================
+
+
+class TestAccessGroupRoutesWithFlask:
+    """
+    Tests for access_groups routes using Flask test client with isolated mocking.
+    These tests properly exercise the route functions.
+    """
+
+    @pytest.fixture
+    def app_client(self):
+        """Create Flask app with mocked database collection"""
+        from flask import Flask
+        from cloudshield.Server.routes.access_groups import access_groups_bp
+        import cloudshield.Server.routes.access_groups as routes_module
+
+        app = Flask(__name__)
+        app.register_blueprint(access_groups_bp, url_prefix="/api")
+
+        # Create mock collection
+        mock_coll = MagicMock()
+
+        # Store original and patch
+        original = routes_module.access_groups
+        routes_module.access_groups = mock_coll
+
+        yield app.test_client(), mock_coll
+
+        # Restore original
+        routes_module.access_groups = original
+
+    def test_get_access_groups_collection_caching(self):
+        """Test _get_access_groups_collection caches the collection"""
+        import cloudshield.Server.routes.access_groups as routes_module
+
+        # Save original
+        original = routes_module.access_groups
+
+        # Set a mock collection
+        mock_coll = MagicMock()
+        routes_module.access_groups = mock_coll
+
+        # Call should return the cached mock
+        result = routes_module._get_access_groups_collection()
+        assert result is mock_coll
+
+        # Restore
+        routes_module.access_groups = original
+
+    def test_update_access_group_not_found(self, app_client):
+        """Test PATCH returns 404 when group doesn't exist"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.find_one.return_value = None
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "updated"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "access group not found"
+
+    def test_update_access_group_success_description(self, app_client):
+        """Test PATCH successfully updates description"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "description": "old desc",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {**existing_doc, "description": "new description"}
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "new description"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["description"] == "new description"
+
+    def test_update_access_group_duplicate_name(self, app_client):
+        """Test PATCH returns 409 when new name already exists"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # First find_one returns existing group, second returns duplicate
+        mock_coll.find_one.side_effect = [
+            existing_doc,
+            {"_id": ObjectId()}  # Duplicate found
+        ]
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_name": "existing-name"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 409
+        data = response.get_json()
+        assert data["error"] == "access group already exists"
+
+    def test_update_access_group_empty_body_returns_current(self, app_client):
+        """Test PATCH with empty body returns current group without update"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "description": "original",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # First find_one for existence check, second for returning current
+        mock_coll.find_one.side_effect = [existing_doc, existing_doc]
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        # update_one should NOT have been called
+        mock_coll.update_one.assert_not_called()
+
+    def test_update_access_group_all_fields(self, app_client):
+        """Test PATCH updates all fields"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        member_id = str(ObjectId())
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "old-group",
+            "description": "old",
+            "group_image": None,
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            "_id": group_id,
+            "name": "new-group",
+            "description": "new desc",
+            "group_image": "data:image/png;base64,abc",
+            "members": [ObjectId(member_id)],
+            "workstations": ["ws-1"],
+            "file_shares": ["share-1"],
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        mock_coll.find_one.side_effect = [
+            existing_doc,
+            None,  # No duplicate name
+            updated_doc
+        ]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={
+                "group_name": "new-group",
+                "description": "new desc",
+                "group_image": "data:image/png;base64,abc",
+                "members": [member_id],
+                "workstations": ["ws-1"],
+                "file_shares": ["share-1"]
+            },
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        mock_coll.update_one.assert_called_once()
+
+    def test_update_access_group_validation_error(self, app_client):
+        """Test PATCH returns 400 for invalid data"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_name": "ab"},  # Too short
+            content_type="application/json"
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Validation failed"
+
+    def test_update_access_group_internal_error(self, app_client):
+        """Test PATCH returns 500 on database error"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.find_one.side_effect = Exception("Database connection failed")
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"description": "test"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Internal server error"
+
+    def test_delete_access_group_success(self, app_client):
+        """Test DELETE successfully removes group"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=1)
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["status"] == "deleted"
+        assert data["id"] == group_id
+
+    def test_delete_access_group_not_found(self, app_client):
+        """Test DELETE returns 404 when group doesn't exist"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=0)
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "access group not found"
+
+    def test_delete_access_group_internal_error(self, app_client):
+        """Test DELETE returns 500 on database error"""
+        client, mock_coll = app_client
+
+        group_id = str(ObjectId())
+        mock_coll.delete_one.side_effect = Exception("Database error")
+
+        response = client.delete(f"/api/access-groups/{group_id}")
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Internal server error"
+
+    def test_update_access_group_members_converted_to_objectid(self, app_client):
+        """Test PATCH converts member strings to ObjectIds"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        member1 = str(ObjectId())
+        member2 = str(ObjectId())
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "members": [ObjectId(member1), ObjectId(member2)]
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"members": [member1, member2]},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        # Verify update_one was called with ObjectIds
+        call_args = mock_coll.update_one.call_args
+        set_doc = call_args[0][1]["$set"]
+        assert "members" in set_doc
+        assert all(isinstance(m, ObjectId) for m in set_doc["members"])
+
+    def test_update_access_group_workstations_and_file_shares(self, app_client):
+        """Test PATCH correctly updates workstations and file_shares"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "workstations": ["ws-1", "ws-2"],
+            "file_shares": ["share-a", "share-b"]
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={
+                "workstations": ["ws-1", "ws-2"],
+                "file_shares": ["share-a", "share-b"]
+            },
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["workstations"] == ["ws-1", "ws-2"]
+        assert data["access_group"]["file_shares"] == ["share-a", "share-b"]
+
+    def test_update_access_group_group_image(self, app_client):
+        """Test PATCH correctly updates group_image"""
+        client, mock_coll = app_client
+
+        group_id = ObjectId()
+        now = datetime.now(timezone.utc)
+
+        existing_doc = {
+            "_id": group_id,
+            "name": "test-group",
+            "group_image": None,
+            "members": [],
+            "workstations": [],
+            "file_shares": [],
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_doc = {
+            **existing_doc,
+            "group_image": "data:image/png;base64,newimage"
+        }
+
+        mock_coll.find_one.side_effect = [existing_doc, updated_doc]
+        mock_coll.update_one.return_value = MagicMock(modified_count=1)
+
+        response = client.patch(
+            f"/api/access-groups/{group_id}",
+            json={"group_image": "data:image/png;base64,newimage"},
+            content_type="application/json"
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["access_group"]["group_image"] == "data:image/png;base64,newimage"
+

@@ -24,7 +24,6 @@ import {
   resolveFolderByPath,
 } from "../components/files/FileHelper";
 
-
 const Chevron = ({ open }) => (
   <svg
     width="14"
@@ -73,7 +72,11 @@ function StoragePill({ usedGB = 62, totalGB = 100 }) {
 
 export default function FilesPage({ orgId = "test_drive_allocation" }) {
   const [layout, setLayout] = useState("list");
-  const [tree, setTree] = useState(HARD_CODED_TREE);
+  
+  // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
+  // If HARD_CODED_TREE causes issues, initialize as []
+  const [tree, setTree] = useState(HARD_CODED_TREE || []);
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
@@ -85,17 +88,53 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
-  const index = useMemo(() => buildIndex(tree), [tree]);
+  // Safe-guard index building: ensure tree is an array if buildIndex expects one
+  const index = useMemo(() => {
+    // If tree is null or invalid, return empty map
+    if (!tree) return new Map();
+    // If buildIndex expects array but we have object (and logic wasn't fixed in FileHelper), wrap it or fix input
+    // Assuming buildIndex iterates over the input:
+    return buildIndex(tree);
+  }, [tree]);
 
+  // --- CORRECTED FETCH LOGIC ---
   const fetchTree = useCallback(async () => {
     try {
-      const res = await fetch(`/api/file_shares?org_id=${orgId}`);
+      const res = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
+      
+      // FIX: Check if data is an array or an object wrapper (e.g., { file_shares: [...] })
+      let nodes = [];
+      if (Array.isArray(data)) {
+        nodes = data;
+      } else if (data && Array.isArray(data.file_shares)) {
+        nodes = data.file_shares;
+      } else if (data && Array.isArray(data.files)) {
+        nodes = data.files;
+      } else if (data && Array.isArray(data.items)) {
+         nodes = data.items;
+      } else {
+        // Fallback: if data is a single object, wrap it in array if your helper expects array
+        console.warn("API returned object, wrapping in array:", data);
+        nodes = [data]; 
+      }
+      
+      setTree(nodes);
 
     } catch (e) {
       console.error("Failed to fetch files:", e);
     }
   }, [orgId]);
+
+  // Trigger fetch on mount
+  useEffect(() => {
+    fetchTree();
+  }, [fetchTree]);
 
   const listFilteredTree = useMemo(() => {
     if (layout !== "list") return tree;
@@ -167,29 +206,6 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   const goToCrumb = (idx) => setCwdStack((s) => s.slice(0, idx + 1));
 
   const openEdit = (node) => setEditTarget(node);
-
-//web shortcut handlers, does not work for now
-//   useEffect(() => {
-//     const onKey = (e) => {
-//       const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
-//       if (layout === "icons" && isCmdL) {
-//         e.preventDefault();
-//         setPathMode(true);
-//         const currentPath = "/" + breadcrumb.map((b) => b.name).join("/");
-//         setPathValue(currentPath === "/" ? "" : currentPath);
-//         setTimeout(() => pathInputRef.current?.focus(), 0);
-//       }
-//       if (e.key === "Escape") setPathMode(false);
-//       if (layout === "icons" && e.key === "Backspace" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-//         if (cwdStack.length > 0) {
-//           e.preventDefault();
-//           goUp();
-//         }
-//       }
-//     };
-//     window.addEventListener("keydown", onKey);
-//     return () => window.removeEventListener("keydown", onKey);
-//   }, [layout, breadcrumb, cwdStack.length]);
 
   const submitPath = (e) => {
     e.preventDefault();
