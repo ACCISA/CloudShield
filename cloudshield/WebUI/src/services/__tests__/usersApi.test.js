@@ -1,4 +1,4 @@
-import { createUser, deleteUser, listUsers } from '../usersApi';
+import { createUser, deleteUser, listUsers, updateUser } from '../usersApi';
 
 describe('usersApi', () => {
   const originalFetch = global.fetch;
@@ -164,4 +164,60 @@ describe('usersApi', () => {
       payload: null,
     });
   });
+
+  // --- THESE TESTS ARE NOW CORRECTLY INSIDE THE DESCRIBE BLOCK ---
+
+  it('updates a user via PATCH', async () => {
+    const payload = { full_name: 'Updated Name', role: 'admin' };
+    
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ user_id: 'user-123', ...payload })),
+    });
+
+    const result = await updateUser('user-123', payload, { token: 'tok123' });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/users/user-123', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer tok123',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(result).toEqual({ user_id: 'user-123', ...payload });
+  });
+
+  it('throws descriptive error when update fails', async () => {
+    const payload = { role: 'invalid_role' };
+    const errorPayload = { error: 'Invalid role provided' };
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: () => Promise.resolve(JSON.stringify(errorPayload)),
+    });
+
+    await expect(updateUser('user-123', payload, { token: 'tok123' })).rejects.toMatchObject({
+      message: 'Invalid role provided',
+      status: 400,
+      payload: errorPayload,
+    });
+  });
+
+  it('encodes the user ID in update request', async () => {
+    const payload = { full_name: 'Test' };
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve('{}'),
+    });
+
+    await updateUser('user/123', payload, { token: 'tok123' });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/users/user%2F123', expect.anything());
+  });
+
 });
