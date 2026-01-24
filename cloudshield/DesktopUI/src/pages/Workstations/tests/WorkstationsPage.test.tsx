@@ -254,4 +254,156 @@ describe("WorkstationsPage", () => {
 
     dispatchSpy.mockRestore();
   });
+
+  it("shows error when Electron API is unavailable", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [
+          { id: "WS-100", name: "Sales", status: "online", ip: "10.0.0.1" },
+        ],
+      }),
+    );
+    window.electronAPI = {} as ElectronAPI;
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Sales");
+
+    fireEvent.click(screen.getByText("Connect"));
+
+    fireEvent.change(screen.getByTestId("rdp-username-input"), {
+      target: { value: "user" },
+    });
+    fireEvent.change(screen.getByTestId("rdp-password-input"), {
+      target: { value: "pass" },
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    expect(
+      await screen.findByText("Error: Electron API not available"),
+    ).toBeTruthy();
+  });
+
+  it("shows error when workstation IP is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [{ id: "WS-101", name: "Design", status: "online" }],
+      }),
+    );
+    window.electronAPI = { runXfreerdp: vi.fn() } as unknown as ElectronAPI;
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Design");
+
+    fireEvent.click(screen.getByText("Connect"));
+
+    fireEvent.change(screen.getByTestId("rdp-username-input"), {
+      target: { value: "user" },
+    });
+    fireEvent.change(screen.getByTestId("rdp-password-input"), {
+      target: { value: "pass" },
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    expect(
+      await screen.findByText("Error: Workstation IP is missing"),
+    ).toBeTruthy();
+  });
+
+  it("shows error when username or password is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [
+          {
+            id: "WS-102",
+            name: "Ops",
+            status: "online",
+            ip: "10.0.0.20",
+          },
+        ],
+      }),
+    );
+    window.electronAPI = { runXfreerdp: vi.fn() } as unknown as ElectronAPI;
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Ops");
+
+    fireEvent.click(screen.getByText("Connect"));
+
+    fireEvent.change(screen.getByTestId("rdp-username-input"), {
+      target: { value: "user" },
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    expect(
+      await screen.findByText("Error: Please provide username and password"),
+    ).toBeTruthy();
+  });
+
+  it("launches RDP and stores draft on success", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        items: [
+          {
+            id: "WS-103",
+            name: "QA",
+            status: "online",
+            ip: "10.0.0.30",
+          },
+        ],
+      }),
+    );
+    const runXfreerdp = vi.fn().mockResolvedValue({
+      success: true,
+      pid: 1234,
+      message: "ok",
+    });
+    window.electronAPI = { runXfreerdp } as unknown as ElectronAPI;
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("QA");
+
+    fireEvent.click(screen.getByText("Connect"));
+
+    fireEvent.change(screen.getByTestId("rdp-username-input"), {
+      target: { value: "user" },
+    });
+    fireEvent.change(screen.getByTestId("rdp-password-input"), {
+      target: { value: "pass" },
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    await screen.findByText("Connected! (PID: 1234)");
+    expect(runXfreerdp).toHaveBeenCalledWith("user", "pass", "10.0.0.30");
+    expect(localStorage.getItem("cloudshield.rdpDraft")).toBe(
+      JSON.stringify({ username: "user", password: "pass" }),
+    );
+  });
 });
