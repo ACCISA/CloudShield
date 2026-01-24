@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
-import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
-import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
 import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -56,7 +55,7 @@ export default function WorkstationsPage() {
   });
 
   // dialogs
-  const [openCreate, setOpenCreate] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
   const filtered = useMemo(() => {
@@ -108,19 +107,37 @@ export default function WorkstationsPage() {
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
+      strength: payload.strength || "basic",
       code: payload.code || "WS-NEW",
       usersCount: payload.users?.length || 0,
       users: payload.users || [],
-      currentUser: payload.users?.[0] || "—",
+      currentUser: payload.users?.[0] || null,
       lastUsed: "—",
       status: "disconnected",
+      image: payload.image,
+      desktopBackground: payload.desktopBackground,
+      wallpaper: payload.wallpaper,
+      groups: payload.groups || [],
+      software: payload.software || [],
+      allUsers: payload.allUsers || false,
+      allGroups: payload.allGroups || false,
+      allSoftware: payload.allSoftware || false,
     };
     setRows((prev) => [newRow, ...prev]);
   };
 
   const handleEditSave = (id, changes) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const updated = { ...r, ...changes };
+        // Recalculate usersCount if users array changed
+        if (changes.users) {
+          updated.usersCount = changes.users.length;
+          updated.currentUser = changes.users[0] || null;
+        }
+        return updated;
+      }),
     );
   };
 
@@ -163,7 +180,32 @@ export default function WorkstationsPage() {
           />
 
           {/* Display */}
-          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
+          <DisplayButton
+            layout={layout}
+            onLayoutChange={handleLayoutChange}
+            columnToggles={{
+              columns: [
+                { key: "showUsers", label: "Users", checked: showUsersCol },
+                {
+                  key: "showCurrent",
+                  label: "Current",
+                  checked: showCurrentCol,
+                },
+                {
+                  key: "showLastUsed",
+                  label: "Last Used",
+                  checked: showLastUsedCol,
+                },
+              ],
+              onToggle: (column) => {
+                if (column === "showUsers") setShowUsersCol((prev) => !prev);
+                if (column === "showCurrent")
+                  setShowCurrentCol((prev) => !prev);
+                if (column === "showLastUsed")
+                  setShowLastUsedCol((prev) => !prev);
+              },
+            }}
+          />
 
           {/* Filter */}
           <FilterButton
@@ -180,7 +222,10 @@ export default function WorkstationsPage() {
           <CreateButton
             icon={<CreateWorkstationIcon />}
             buttonText="Create"
-            onClick={() => setOpenCreate(true)}
+            onClick={() => {
+              setEditRow(null);
+              setOpenModal(true);
+            }}
           />
         </div>
       </div>
@@ -188,7 +233,10 @@ export default function WorkstationsPage() {
       {/* Workstation List with Headers */}
       <WorkstationList
         rows={filtered}
-        onEdit={(row) => setEditRow(row)}
+        onEdit={(row) => {
+          setEditRow(row);
+          setOpenModal(true);
+        }}
         onDelete={handleDelete}
         onToggleStatus={handleToggleStatus}
         showUsers={showUsersCol}
@@ -196,30 +244,33 @@ export default function WorkstationsPage() {
         showLastUsed={showLastUsedCol}
       />
 
-      {/* Create dialog */}
-      <WorkstationCreateDialog
-        open={openCreate}
-        onClose={() => setOpenCreate(false)}
-        onCreate={(payload) => {
-          handleCreate(payload);
-          setOpenCreate(false);
-        }}
-      />
-
-      {/* Edit dialog */}
-      {!!editRow && (
-        <WorkstationEditDialog
-          open
-          row={editRow}
-          onClose={() => setEditRow(null)}
-          onSave={(changes) => {
-            handleEditSave(editRow.id, changes);
+      {/* Workstation Modal */}
+      {openModal && (
+        <WorkstationModal
+          open={openModal}
+          onClose={() => {
+            setOpenModal(false);
             setEditRow(null);
           }}
-          onDelete={() => {
-            handleDelete(editRow.id);
+          workstationData={editRow}
+          onSubmit={(payload) => {
+            if (editRow) {
+              handleEditSave(editRow.id, payload);
+            } else {
+              handleCreate(payload);
+            }
+            setOpenModal(false);
             setEditRow(null);
           }}
+          onDelete={
+            editRow
+              ? () => {
+                  handleDelete(editRow.id);
+                  setOpenModal(false);
+                  setEditRow(null);
+                }
+              : undefined
+          }
         />
       )}
     </div>

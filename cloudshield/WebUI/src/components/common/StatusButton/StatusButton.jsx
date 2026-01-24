@@ -5,12 +5,14 @@
  *   Displays a status button with connect/disconnect states.
  *   Shows connect icon with green border when connected,
  *   disconnect icon with red border when disconnected or busy.
+ *   Responsive: shows text on desktop/tablet, icon-only on mobile.
  *
  * Props:
  *   - status: 'connected' | 'disconnected' | 'busy'
  *   - onClick: callback when button is clicked
+ *   - compact: boolean (optional) - force icon-only mode
  */
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ConnectIcon from "../../../assets/ConnectIcon.jsx";
 import DisconnectIcon from "../../../assets/DisconnectIcon.jsx";
 
@@ -18,21 +20,28 @@ const styles = {
   button: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    padding: "6px 16px",
-    borderRadius: "22px",
+    justifyContent: "center",
     cursor: "pointer",
     fontSize: "0.875rem",
     fontWeight: 500,
     border: "1.5px solid",
     background: "transparent",
   },
+  buttonWithText: {
+    gap: "8px",
+    padding: "6px 16px",
+    borderRadius: "22px",
+  },
+  buttonIconOnly: {
+    padding: "8px",
+    borderRadius: "50%",
+    width: "32px",
+    height: "32px",
+  },
   connected: {
-    color: "#fff",
     borderColor: "#116e34",
   },
   disconnected: {
-    color: "#fff",
     borderColor: "#7c1d1d",
   },
   iconWrapper: {
@@ -42,14 +51,29 @@ const styles = {
   },
 };
 
-export default function StatusButton({ status = "disconnected", onClick }) {
+export default function StatusButton({
+  status = "disconnected",
+  onClick,
+  compact,
+}) {
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const isConnected = status === "connected";
   const buttonStyle = isConnected ? styles.connected : styles.disconnected;
+  const isMobile = windowWidth < 768;
+  const showIconOnly = compact || isMobile;
 
   return (
     <button
       style={{
         ...styles.button,
+        ...(showIconOnly ? styles.buttonIconOnly : styles.buttonWithText),
         ...buttonStyle,
       }}
       onClick={onClick}
@@ -61,7 +85,7 @@ export default function StatusButton({ status = "disconnected", onClick }) {
           <DisconnectIcon width={14} height={14} color="#fff" />
         )}
       </span>
-      <span>{isConnected ? "Connect" : "Disconnect"}</span>
+      {!showIconOnly && <span>{isConnected ? "Connect" : "Disconnect"}</span>}
     </button>
   );
 }

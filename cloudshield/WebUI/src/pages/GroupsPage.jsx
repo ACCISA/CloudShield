@@ -231,9 +231,15 @@ export default function GroupsPage() {
             layout={layout}
             onLayoutChange={setLayout}
             columnToggles={{
-              showUsers,
-              showWorkstations,
-              showFiles,
+              columns: [
+                { key: "showUsers", label: "Users", checked: showUsers },
+                {
+                  key: "showWorkstations",
+                  label: "Workstations",
+                  checked: showWorkstations,
+                },
+                { key: "showFiles", label: "Files", checked: showFiles },
+              ],
               onToggle: (column) => {
                 if (column === "showUsers") setShowUsers((prev) => !prev);
                 if (column === "showWorkstations")

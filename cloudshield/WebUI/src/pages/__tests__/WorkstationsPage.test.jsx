@@ -28,42 +28,38 @@ jest.mock("../../components/workstations/WorkstationList", () => {
   };
 });
 
-jest.mock("../../components/workstations/WorkstationCreateDialog", () => {
-  return function MockWorkstationCreateDialog({ open, onClose, onCreate }) {
-    if (!open) return null;
-    return (
-      <div data-testid="create-dialog">
-        <button
-          onClick={() => {
-            onCreate({
-              name: "New Workstation",
-              code: "WS-NEW",
-              users: ["Test User"],
-            });
-          }}
-        >
-          Create Workstation
-        </button>
-        <button onClick={onClose}>Close</button>
-      </div>
-    );
-  };
-});
-
-jest.mock("../../components/workstations/WorkstationEditDialog", () => {
-  return function MockWorkstationEditDialog({
+jest.mock("../../components/workstations/WorkstationModal", () => {
+  return function MockWorkstationModal({
     open,
-    row,
     onClose,
-    onSave,
+    onSubmit,
+    workstation,
     onDelete,
   }) {
-    if (!open || !row) return null;
+    if (!open) return null;
     return (
-      <div data-testid="edit-dialog">
-        <span>Editing: {row.name}</span>
-        <button onClick={() => onSave({ name: "Updated Name" })}>Save</button>
-        <button onClick={onDelete}>Delete</button>
+      <div data-testid={workstation ? "edit-dialog" : "create-dialog"}>
+        {workstation ? (
+          <>
+            <span>Editing: {workstation.name}</span>
+            <button onClick={() => onSubmit({ name: "Updated Name" })}>
+              Save
+            </button>
+            {onDelete && <button onClick={onDelete}>Delete</button>}
+          </>
+        ) : (
+          <button
+            onClick={() => {
+              onSubmit({
+                name: "New Workstation",
+                code: "WS-NEW",
+                users: ["Test User"],
+              });
+            }}
+          >
+            Create Workstation
+          </button>
+        )}
         <button onClick={onClose}>Close</button>
       </div>
     );
@@ -138,7 +134,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(
-      screen.getByRole("button", { name: /display/i })
+      screen.getByRole("button", { name: /display/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
   });
@@ -235,7 +231,7 @@ describe("WorkstationsPage", () => {
 
     // Close dialog
     const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -280,7 +276,7 @@ describe("WorkstationsPage", () => {
 
     // Close dialog
     const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -296,7 +292,7 @@ describe("WorkstationsPage", () => {
 
     // Save changes
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -316,7 +312,7 @@ describe("WorkstationsPage", () => {
 
     // Delete
     const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete"
+      "Delete",
     );
     fireEvent.click(deleteButton);
 
@@ -377,7 +373,7 @@ describe("WorkstationsPage", () => {
 
     const { container } = render(<WorkstationsPage />);
     const refreshIcon = container.querySelector(
-      '[data-testid="RefreshOutlinedIcon"]'
+      '[data-testid="RefreshOutlinedIcon"]',
     );
 
     if (refreshIcon) {
@@ -397,7 +393,7 @@ describe("WorkstationsPage", () => {
 
     // Save with new name
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -442,7 +438,7 @@ describe("WorkstationsPage", () => {
     expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
 
     const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -493,7 +489,7 @@ describe("WorkstationsPage", () => {
     fireEvent.click(createButton);
 
     const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -523,7 +519,7 @@ describe("WorkstationsPage", () => {
     // Find a connected workstation (ws-1, ws-3, ws-4 are connected)
     const connectedWorkstation = screen.getByTestId("workstation-ws-1");
     expect(
-      within(connectedWorkstation).getByText("connected")
+      within(connectedWorkstation).getByText("connected"),
     ).toBeInTheDocument();
 
     const toggleButton =
@@ -532,7 +528,7 @@ describe("WorkstationsPage", () => {
 
     // Status should change to disconnected
     expect(
-      within(connectedWorkstation).getByText("disconnected")
+      within(connectedWorkstation).getByText("disconnected"),
     ).toBeInTheDocument();
   });
 
@@ -571,7 +567,7 @@ describe("WorkstationsPage", () => {
 
     // Save with changes (mock provides { name: "Updated Name" })
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -614,7 +610,7 @@ describe("WorkstationsPage", () => {
 
     // Delete from dialog
     const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete"
+      "Delete",
     );
     fireEvent.click(deleteButton);
 

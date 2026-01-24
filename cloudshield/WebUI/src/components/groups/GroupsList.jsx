@@ -369,8 +369,16 @@ export default function GroupsList({
           style={{
             ...responsiveStyles.tableHeaders,
             gridTemplateColumns: cols.join(" "),
-            paddingLeft: "calc(16px + 8px + 8px)",
-            paddingRight: "calc(16px + 8px + 8px)",
+            paddingLeft: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : isTablet
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
+            paddingRight: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : isTablet
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
           }}
         >
           <div />
@@ -386,7 +394,11 @@ export default function GroupsList({
 
       {/* List panel */}
       <div style={responsiveStyles.listPanel}>
-        <div style={{ padding: isMobile ? "0 4px" : "0 8px" }}>
+        <div
+          style={{
+            padding: isMobile ? "0 4px" : isTablet ? "0 8px" : "0 8px",
+          }}
+        >
           <div style={styles.container}>
             {rows.map((r, idx) => (
               <GroupRow

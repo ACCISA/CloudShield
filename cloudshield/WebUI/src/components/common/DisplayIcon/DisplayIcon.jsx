@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./DisplayIcon.css";
 
 /**
@@ -12,6 +12,37 @@ import "./DisplayIcon.css";
  */
 function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
   const [showCard, setShowCard] = useState(false);
+  const [cardPosition, setCardPosition] = useState({ top: 0, left: 0 });
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (showCard && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const cardWidth = 280;
+      const cardHeight = 200; // Approximate
+      const spacing = 8;
+
+      let top = rect.bottom + spacing;
+      let left = rect.left + rect.width / 2 - cardWidth / 2;
+
+      // Adjust if card goes off right edge
+      if (left + cardWidth > window.innerWidth - 16) {
+        left = window.innerWidth - cardWidth - 16;
+      }
+
+      // Adjust if card goes off left edge
+      if (left < 16) {
+        left = 16;
+      }
+
+      // Adjust if card goes off bottom edge
+      if (top + cardHeight > window.innerHeight - 16) {
+        top = rect.top - cardHeight - spacing;
+      }
+
+      setCardPosition({ top, left });
+    }
+  }, [showCard]);
 
   // Extract name based on type
   const getName = () => {
@@ -78,6 +109,7 @@ function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
 
   return (
     <div
+      ref={wrapperRef}
       className="display-icon-wrapper"
       onMouseEnter={() => setShowCard(true)}
       onMouseLeave={() => setShowCard(false)}
@@ -96,7 +128,13 @@ function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
       </div>
 
       {showCard && (
-        <div className="display-icon-card">
+        <div
+          className="display-icon-card"
+          style={{
+            top: `${cardPosition.top}px`,
+            left: `${cardPosition.left}px`,
+          }}
+        >
           {type === "user" && (
             <UserCard
               data={data}
@@ -136,8 +174,8 @@ function UserCard({ data, name, profileImage, initials, getBackgroundColor }) {
     data.active !== undefined
       ? data.active
       : data.isActive !== undefined
-      ? data.isActive
-      : true;
+        ? data.isActive
+        : true;
 
   return (
     <div className="hover-card">
@@ -203,8 +241,8 @@ function WorkstationCard({
     data.online !== undefined
       ? data.online
       : data.isOnline !== undefined
-      ? data.isOnline
-      : data.status === "online";
+        ? data.isOnline
+        : data.status === "online";
 
   return (
     <div className="hover-card">
