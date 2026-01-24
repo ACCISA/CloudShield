@@ -31,6 +31,8 @@ jest.mock('../../components/users/UsersTable.jsx', () => {
         {users.map((u) => (
           <div key={u.id} data-testid={`user-row-${u.id}`}>
             <span>{u.name}</span>
+            <span data-testid={`role-${u.id}`}>{u.title}</span>
+            <span data-testid={`status-${u.id}`}>{u.status}</span>
             <button data-testid={`edit-btn-${u.id}`} onClick={() => onEdit(u)}>Edit</button>
             <button data-testid={`delete-btn-${u.id}`} onClick={() => onDelete(u)}>Delete</button>
           </div>
@@ -274,4 +276,91 @@ describe('EmployeesPage Integration', () => {
     fireEvent.keyDown(toast, { key: 'Enter', code: 'Enter' });
     await waitFor(() => expect(screen.queryByText('User created successfully')).not.toBeInTheDocument());
   });
+
+  it('shows error when deletion fails and keeps the row', async () => {
+  usersApi.deleteUser.mockRejectedValueOnce(new Error('Not found'));
+
+  renderPage();
+  await screen.findByText('Alice');
+
+  await userEvent.click(screen.getByTestId('delete-btn-1'));
+
+  // toast / error message
+  expect(await screen.findByText(/not found/i)).toBeInTheDocument();
+
+  // row still present
+  expect(screen.getByText('Alice')).toBeInTheDocument();
+  });
+
+  it('applies search when pressing Enter', async () => {
+  renderPage(); // your helper
+  await screen.findByText('Alice'); // ensures initial load finished
+
+  const before = usersApi.listUsers.mock.calls.length;
+
+  await userEvent.clear(screen.getByTestId('search-input'));
+  await userEvent.type(screen.getByTestId('search-input'), 'neo');
+
+  fireEvent.keyDown(screen.getByTestId('search-input'), { key: 'Enter', code: 'Enter' });
+
+  await waitFor(() => {
+    expect(usersApi.listUsers.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  const lastCallArg = usersApi.listUsers.mock.calls.at(-1)[0];
+  expect(lastCallArg.search).toBe('neo');
+  });
+  
+  //Refresh early return
+  it('does not fetch users when accessToken is null', async () => {
+  renderPage({ accessToken: null });
+
+  // useEffect runs, but fetchUsers returns early, so listUsers should not be called
+  expect(usersApi.listUsers).not.toHaveBeenCalled();
+
+  await userEvent.click(screen.getByTestId('refresh-btn'));
+  expect(usersApi.listUsers).not.toHaveBeenCalled();
+  });
+
+  it('shows default load error message when error.message is missing', async () => {
+  usersApi.listUsers.mockRejectedValueOnce({}); // no message
+  renderPage();
+
+  expect(await screen.findByText('Failed to load users')).toBeInTheDocument();
+  });
+
+  it('sorts users by name (full_name), falling back to email then empty', async () => {
+  usersApi.listUsers.mockResolvedValueOnce([
+    { _id: 'u3', full_name: null, email: null, role: 'employee', status: 'active', files: 0 },
+    { _id: 'u2', full_name: '', email: 'bob@example.com', role: 'employee', status: 'active', files: 0 },
+    { _id: 'u1', full_name: 'Alice', email: 'alice@example.com', role: 'employee', status: 'active', files: 0 },
+  ]);
+
+  renderPage();
+
+  // Wait for any item that must appear
+  await screen.findByText('Alice');
+
+  // Collect rendered name spans in order
+  const rows = screen.getAllByTestId(/user-row-/);
+  const names = rows.map((r) => r.querySelector('span')?.textContent ?? '');
+
+  // First should be empty
+  expect(names[0]).toBe('');
+  expect(names[1]).toBe('Alice');
+  expect(names[2]).toBe('bob@example.com');
+  });
+
+  it('falls back to default role and status when missing', async () => {
+  usersApi.listUsers.mockResolvedValueOnce([
+    { _id: 'u1', full_name: 'No Meta', email: 'nometa@example.com', role: null, status: null, files: 0 },
+  ]);
+
+  renderPage();
+  await screen.findByText('No Meta');
+
+  expect(screen.getByTestId('role-u1')).toHaveTextContent('Employee');
+  expect(screen.getByTestId('status-u1')).toHaveTextContent('offline');
+  });
+
 });
