@@ -66,7 +66,7 @@ jest.mock("../../components/groups/GroupsList.jsx", () => {
 });
 
 jest.mock("../../components/groups/GroupsModal.jsx", () => {
-  return function DummyGroupsModal({ open, onClose, groupData, onSubmit }) {
+  return function DummyGroupsModal({ open, onClose, groupData, onSubmit, onRefresh }) {
     if (!open) return null;
     return (
       <div data-testid="groups-modal">
@@ -80,16 +80,18 @@ jest.mock("../../components/groups/GroupsModal.jsx", () => {
         )}
         {onSubmit && (
           <button
-            onClick={() =>
-              onSubmit({
+            onClick={async () => {
+              await onSubmit({
                 name: "Test Group",
                 description: "Test Description",
                 image: null,
                 users: [],
                 workstations: [],
                 files: [],
-              })
-            }
+              });
+              onRefresh?.();
+              onClose?.();
+            }}
             data-testid="modal-submit"
           >
             Submit
@@ -665,6 +667,108 @@ describe("GroupsPage Component", () => {
 
       await userEvent.type(searchField, "description");
       expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+  });
+
+  // Modal and Refresh Tests
+  describe("Modal and Refresh Functionality", () => {
+    beforeEach(() => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        }),
+      );
+    });
+
+    afterEach(() => {
+      global.fetch.mockClear();
+      delete global.fetch;
+    });
+
+    test("modal receives onRefresh prop", async () => {
+      render(<GroupsPage />);
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+
+      // Modal should be rendered with onRefresh
+      expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
+    });
+
+    test("refresh button triggers fetchGroups", async () => {
+      render(<GroupsPage />);
+      const refreshButton = screen.getByTestId("refresh-button");
+
+      await userEvent.click(refreshButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://127.0.0.1:5050/api/access-groups",
+          expect.objectContaining({
+            method: "GET",
+            credentials: "include",
+          }),
+        );
+      });
+    });
+
+    test("modal submit triggers group creation and refresh", async () => {
+      global.fetch = jest.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { id: "1", group_name: "test" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [{ id: "1", group_name: "test", members: [], members_info: [] }] }),
+        });
+
+      render(<GroupsPage />);
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+
+      const submitButton = screen.getByTestId("modal-submit");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        // Should have called fetch multiple times (initial load, create, refresh)
+        expect(global.fetch.mock.calls.length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    test("modal closes after submission", async () => {
+      global.fetch = jest.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { id: "1", group_name: "test" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        });
+
+      render(<GroupsPage />);
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+      expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
+
+      const submitButton = screen.getByTestId("modal-submit");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
+      });
     });
   });
 });

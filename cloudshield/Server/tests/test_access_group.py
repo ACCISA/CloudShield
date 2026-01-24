@@ -1002,3 +1002,265 @@ class TestListAccessGroupsRoute:
         queried_oids = call_args[0][0]["_id"]["$in"]
         # Should be 2 unique OIDs, not 3
         assert len(queried_oids) == 2
+
+
+# =============================================================================
+# Workstations Validation Tests
+# =============================================================================
+
+
+class TestWorkstationsValidation:
+    """Test workstations list validation in AccessGroupBase"""
+
+    def test_valid_workstations_list(self):
+        """Test valid workstation ids in list"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["ws-1", "ws-2", "workstation-alpha"]
+        )
+        assert len(group.workstations) == 3
+        assert "ws-1" in group.workstations
+
+    def test_empty_workstations_list(self):
+        """Test empty workstations list is valid"""
+        group = AccessGroupCreate(group_name="test-group", workstations=[])
+        assert group.workstations == []
+
+    def test_workstations_not_provided_defaults_to_empty(self):
+        """Test omitted workstations defaults to empty list"""
+        group = AccessGroupCreate(group_name="test-group")
+        assert group.workstations == []
+
+    def test_workstations_deduplication(self):
+        """Test duplicate workstation IDs are removed"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["ws-1", "ws-1", "ws-2"]
+        )
+        assert group.workstations == ["ws-1", "ws-2"]
+
+    def test_workstations_stripped(self):
+        """Test workstation IDs are stripped of whitespace"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            workstations=["  ws-1  ", "ws-2  "]
+        )
+        assert group.workstations == ["ws-1", "ws-2"]
+
+    def test_invalid_workstation_empty_string(self):
+        """Test empty string in workstations raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", workstations=[""])
+        assert "workstations" in str(exc_info.value).lower()
+
+    def test_invalid_workstations_not_list(self):
+        """Test non-list workstations raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", workstations="not-a-list")
+        assert "workstations" in str(exc_info.value).lower() or "list" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# File Shares Validation Tests
+# =============================================================================
+
+
+class TestFileSharesValidation:
+    """Test file_shares list validation in AccessGroupBase"""
+
+    def test_valid_file_shares_list(self):
+        """Test valid file share ids in list"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["share-1", "share-2", "docs-share"]
+        )
+        assert len(group.file_shares) == 3
+        assert "share-1" in group.file_shares
+
+    def test_empty_file_shares_list(self):
+        """Test empty file_shares list is valid"""
+        group = AccessGroupCreate(group_name="test-group", file_shares=[])
+        assert group.file_shares == []
+
+    def test_file_shares_not_provided_defaults_to_empty(self):
+        """Test omitted file_shares defaults to empty list"""
+        group = AccessGroupCreate(group_name="test-group")
+        assert group.file_shares == []
+
+    def test_file_shares_deduplication(self):
+        """Test duplicate file share IDs are removed"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["share-1", "share-1", "share-2"]
+        )
+        assert group.file_shares == ["share-1", "share-2"]
+
+    def test_file_shares_stripped(self):
+        """Test file share IDs are stripped of whitespace"""
+        group = AccessGroupCreate(
+            group_name="test-group",
+            file_shares=["  share-1  ", "share-2  "]
+        )
+        assert group.file_shares == ["share-1", "share-2"]
+
+    def test_invalid_file_share_empty_string(self):
+        """Test empty string in file_shares raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", file_shares=[""])
+        assert "file_shares" in str(exc_info.value).lower()
+
+    def test_invalid_file_shares_not_list(self):
+        """Test non-list file_shares raises validation error"""
+        with pytest.raises(ValidationError) as exc_info:
+            AccessGroupCreate(group_name="test-group", file_shares="not-a-list")
+        assert "file_shares" in str(exc_info.value).lower() or "list" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# AccessGroupUpdate Tests
+# =============================================================================
+
+
+class TestAccessGroupUpdate:
+    """Test AccessGroupUpdate model for PATCH operations"""
+
+    def test_all_fields_optional(self):
+        """Test AccessGroupUpdate with no fields is valid"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate()
+        assert update.group_name is None
+        assert update.description is None
+        assert update.members is None
+        assert update.workstations is None
+        assert update.file_shares is None
+
+    def test_partial_update_group_name(self):
+        """Test updating only group_name"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(group_name="new-name")
+        assert update.group_name == "new-name"
+        assert update.description is None
+
+    def test_partial_update_workstations(self):
+        """Test updating only workstations"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(workstations=["ws-1", "ws-2"])
+        assert update.workstations == ["ws-1", "ws-2"]
+        assert update.group_name is None
+
+    def test_partial_update_file_shares(self):
+        """Test updating only file_shares"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(file_shares=["share-1"])
+        assert update.file_shares == ["share-1"]
+        assert update.group_name is None
+
+    def test_update_validates_group_name(self):
+        """Test group_name validation in update"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        with pytest.raises(ValidationError):
+            AccessGroupUpdate(group_name="ab")  # too short
+
+    def test_update_normalizes_workstations(self):
+        """Test workstations are normalized in update"""
+        from cloudshield.Server.models.access_groups import AccessGroupUpdate
+        update = AccessGroupUpdate(workstations=["  ws-1  ", "ws-1", "ws-2"])
+        assert update.workstations == ["ws-1", "ws-2"]
+
+
+# =============================================================================
+# Document Creation with Workstations and File Shares
+# =============================================================================
+
+
+class TestCreateAccessGroupDocWithNewFields:
+    """Test create_access_group_doc with workstations and file_shares"""
+
+    def test_creates_document_with_workstations(self):
+        """Test document creation includes workstations"""
+        group = AccessGroupCreate(
+            group_name="engineering",
+            workstations=["ws-1", "ws-2"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["workstations"] == ["ws-1", "ws-2"]
+
+    def test_creates_document_with_file_shares(self):
+        """Test document creation includes file_shares"""
+        group = AccessGroupCreate(
+            group_name="engineering",
+            file_shares=["share-1", "share-2"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["file_shares"] == ["share-1", "share-2"]
+
+    def test_creates_document_with_all_new_fields(self):
+        """Test document creation with all fields including new ones"""
+        oid = str(ObjectId())
+        group = AccessGroupCreate(
+            group_name="full-group",
+            description="Full test group",
+            group_image="data:image/png;base64,test",
+            members=[oid],
+            workstations=["ws-1"],
+            file_shares=["share-1"]
+        )
+        doc = create_access_group_doc(group)
+
+        assert doc["name"] == "full-group"
+        assert doc["description"] == "Full test group"
+        assert doc["group_image"] == "data:image/png;base64,test"
+        assert len(doc["members"]) == 1
+        assert doc["workstations"] == ["ws-1"]
+        assert doc["file_shares"] == ["share-1"]
+
+
+# =============================================================================
+# JSON Serialization with Workstations and File Shares
+# =============================================================================
+
+
+class TestAccessGroupToJsonWithNewFields:
+    """Test access_group_to_json with workstations and file_shares"""
+
+    def test_converts_document_with_workstations(self):
+        """Test JSON conversion includes workstations"""
+        now = datetime.now(timezone.utc)
+        doc = {
+            "_id": ObjectId(),
+            "name": "test",
+            "workstations": ["ws-1", "ws-2"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = access_group_to_json(doc)
+
+        assert result["workstations"] == ["ws-1", "ws-2"]
+
+    def test_converts_document_with_file_shares(self):
+        """Test JSON conversion includes file_shares"""
+        now = datetime.now(timezone.utc)
+        doc = {
+            "_id": ObjectId(),
+            "name": "test",
+            "file_shares": ["share-1", "share-2"],
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = access_group_to_json(doc)
+
+        assert result["file_shares"] == ["share-1", "share-2"]
+
+    def test_handles_none_workstations(self):
+        """Test handles None workstations field"""
+        doc = {"_id": ObjectId(), "name": "test", "workstations": None}
+        result = access_group_to_json(doc)
+        assert result["workstations"] == []
+
+    def test_handles_none_file_shares(self):
+        """Test handles None file_shares field"""
+        doc = {"_id": ObjectId(), "name": "test", "file_shares": None}
+        result = access_group_to_json(doc)
+        assert result["file_shares"] == []

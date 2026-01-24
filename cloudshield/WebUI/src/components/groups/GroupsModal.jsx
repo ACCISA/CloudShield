@@ -15,13 +15,13 @@ const MOCK_WORKSTATIONS_MIN = [
     id: "ws-1",
     name: "Workstation Alpha",
     online: true,
-    ipAddress: "10.0.0.12",
+    ipAddress: "10",
   },
   {
     id: "ws-2",
     name: "Workstation Beta",
     online: false,
-    ipAddress: "10.0.0.21",
+    ipAddress: "10",
   },
 ];
 
@@ -274,6 +274,8 @@ export default function GroupsModal({
       });
       onRefresh?.();
       onClose();
+    } catch (error) {
+      console.error("Failed to submit group:", error);
     } finally {
       setIsSubmitting(false);
     }
