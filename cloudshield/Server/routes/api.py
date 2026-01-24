@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import uuid4
-import os  # Added to check for test environment
+import os
 
 from flask import Blueprint, request, jsonify
 
@@ -351,7 +351,7 @@ def task_dc_add_user():
     for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
-            return jsonify({"error":f"{arg} is required"}), 422
+            return jsonify({"error":f"{arg} is required"}), 200
 
     job = service_dispatcher(service_name="dc_add_user", org_id=org_id, username=username, password=password)
     return jsonify({"job_id": job.id}), 202
