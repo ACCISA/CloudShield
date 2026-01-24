@@ -168,16 +168,16 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers & components ---------------------------- */
 
-function UsersPill({ row }) {
-  const usersList = Array.isArray(row.users) ? row.users : [];
-  const show = usersList.slice(0, 3);
-  const totalCount = row.memberCount || usersList.length;
-  const extra = Math.max(totalCount - show.length, 0);
+function ItemsPill({ items, type, totalCount, getKey }) {
+  const itemsList = Array.isArray(items) ? items : [];
+  const show = itemsList.slice(0, 3);
+  const count = totalCount || itemsList.length;
+  const extra = Math.max(count - show.length, 0);
 
   if (show.length === 0) {
     return (
       <div style={styles.countBadge}>
-        <span>+ {totalCount}</span>
+        <span>+ {count}</span>
       </div>
     );
   }
@@ -185,9 +185,9 @@ function UsersPill({ row }) {
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       <div style={styles.avatarsContainer}>
-        {show.map((user, idx) => (
+        {show.map((item, idx) => (
           <div
-            key={`${user.firstName}-${idx}`}
+            key={getKey(item, idx)}
             style={{
               marginLeft: idx === 0 ? 0 : "-8px",
               zIndex: show.length - idx,
@@ -195,7 +195,7 @@ function UsersPill({ row }) {
               alignItems: "center",
             }}
           >
-            <DisplayIcon type="user" data={user} size="small" />
+            <DisplayIcon type={type} data={item} size="small" />
           </div>
         ))}
       </div>
@@ -204,41 +204,24 @@ function UsersPill({ row }) {
   );
 }
 
-function WorkstationsPill({ row }) {
-  const workstationsList = Array.isArray(row.workstations)
-    ? row.workstations
-    : [];
-  const show = workstationsList.slice(0, 3);
-  const totalCount = workstationsList.length;
-  const extra = Math.max(totalCount - show.length, 0);
-
-  if (show.length === 0) {
-    return (
-      <div style={styles.countBadge}>
-        <span>+ {totalCount}</span>
-      </div>
-    );
-  }
-
+function UsersPill({ row }) {
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      <div style={styles.avatarsContainer}>
-        {show.map((workstation, idx) => (
-          <div
-            key={`${workstation.name}-${idx}`}
-            style={{
-              marginLeft: idx === 0 ? 0 : "-8px",
-              zIndex: show.length - idx,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <DisplayIcon type="workstation" data={workstation} size="small" />
-          </div>
-        ))}
-      </div>
-      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
-    </div>
+    <ItemsPill
+      items={row.users}
+      type="user"
+      totalCount={row.memberCount}
+      getKey={(user, idx) => `${user.firstName}-${idx}`}
+    />
+  );
+}
+
+function WorkstationsPill({ row }) {
+  return (
+    <ItemsPill
+      items={row.workstations}
+      type="workstation"
+      getKey={(workstation, idx) => `${workstation.name}-${idx}`}
+    />
   );
 }
 

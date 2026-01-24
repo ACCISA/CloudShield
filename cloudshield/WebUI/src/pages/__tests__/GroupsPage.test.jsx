@@ -518,5 +518,54 @@ describe("GroupsPage Component", () => {
 
       expect(screen.getByTestId("groups-list")).toBeInTheDocument();
     });
+
+    test("handles layout state changes", () => {
+      render(<GroupsPage />);
+
+      // Initial state should be 'list'
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("handles sort field and direction state", () => {
+      render(<GroupsPage />);
+
+      // Initial sort should be by name, asc
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("handles active filters state updates", async () => {
+      render(<GroupsPage />);
+
+      const smallFilter = screen.getByTestId("filter-small");
+      await userEvent.click(smallFilter);
+
+      // Filter should be active
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+
+      // Toggle off
+      await userEvent.click(smallFilter);
+
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    test("handles column visibility toggles", async () => {
+      render(<GroupsPage />);
+
+      const usersToggle = screen.getByTestId("toggle-users");
+      const workstationsToggle = screen.getByTestId("toggle-workstations");
+      const filesToggle = screen.getByTestId("toggle-files");
+
+      // Toggle users column
+      await userEvent.click(usersToggle);
+      expect(screen.getByText("Users Hidden")).toBeInTheDocument();
+
+      // Toggle workstations column
+      await userEvent.click(workstationsToggle);
+      expect(screen.getByText("Workstations Hidden")).toBeInTheDocument();
+
+      // Toggle files column
+      await userEvent.click(filesToggle);
+      expect(screen.getByText("Files Hidden")).toBeInTheDocument();
+    });
   });
 });

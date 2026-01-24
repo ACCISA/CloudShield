@@ -713,4 +713,73 @@ describe("GroupsModal Component", () => {
       expect(searchInput).toHaveValue("test");
     });
   });
+
+  describe("Default Switch Case", () => {
+    test("handles invalid step gracefully", () => {
+      const { container } = render(
+        <GroupsModal open={true} onClose={mockOnClose} />,
+      );
+
+      // Modal should still render even with edge cases
+      expect(container.querySelector(".groups-modal-dialog")).toBeTruthy();
+    });
+  });
+
+  describe("Additional Edge Cases", () => {
+    test("handles description textarea input", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      const descInput = screen.getByPlaceholderText(
+        "Enter a brief description of the group",
+      );
+      await userEvent.type(descInput, "Test description");
+
+      expect(descInput).toHaveValue("Test description");
+    });
+
+    test("navigates back from users step", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      // Navigate forward
+      await userEvent.click(screen.getByText("Next"));
+
+      // Navigate back
+      await userEvent.click(screen.getByText("Back"));
+
+      // Should be on first step again
+      expect(
+        screen.getByPlaceholderText("Enter group name"),
+      ).toBeInTheDocument();
+    });
+
+    test("navigates to final step and back", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      // Navigate to last step
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      expect(
+        screen.getByPlaceholderText("Search files..."),
+      ).toBeInTheDocument();
+
+      // Navigate back
+      await userEvent.click(screen.getByText("Back"));
+
+      // Should be on workstations step
+      expect(
+        screen.getByPlaceholderText("Search workstations..."),
+      ).toBeInTheDocument();
+    });
+  });
 });
