@@ -4,8 +4,6 @@ import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
 
 import UsersTable from "../components/users/UsersTable.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -14,6 +12,7 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { MOCK_USERS_FULL } from "../data/mockData.js";
 
 export default function UsersPage() {
   const withClickLog = useClickLogger({ page: "users" });
@@ -46,29 +45,7 @@ export default function UsersPage() {
     setToast({ open: true, msg, type });
 
   const mockFetchUsers = async () => {
-    const mock = [
-      {
-        id: "1",
-        name: "aniss tralala",
-        email: "aniss@tralala.com",
-        title: "Regional Manager",
-        workstations: 3,
-        groups: 3,
-        files: 3,
-        status: "online",
-      },
-      {
-        id: "2",
-        name: "john tralala",
-        email: "john@cloudshield.com",
-        title: "Cuisinier",
-        workstations: 2,
-        groups: 2,
-        files: 1,
-        status: "offline",
-      },
-    ];
-    setUsers(mock);
+    setUsers(MOCK_USERS_FULL);
   };
 
   useEffect(() => {
@@ -81,7 +58,7 @@ export default function UsersPage() {
 
     if (q) {
       out = out.filter((u) =>
-        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q))
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)),
       );
     }
 
@@ -150,37 +127,6 @@ export default function UsersPage() {
       newFilters[groupId] = currentSet;
       return newFilters;
     });
-  };
-
-  const handleMockCreate = (payload) => {
-    const newUser = {
-      id: String(Date.now()),
-      name: `${payload.firstName} ${payload.lastName}`,
-      email: payload.email,
-      title: payload.jobTitle,
-      workstations: 1,
-      groups: 1,
-      files: 1,
-      status: "offline",
-    };
-    setUsers((p) => [...p, newUser]);
-    openToast("User created successfully");
-  };
-
-  const handleMockUpdate = (id, payload) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? {
-              ...u,
-              name: `${payload.firstName} ${payload.lastName}`,
-              email: payload.email,
-              title: payload.jobTitle,
-            }
-          : u
-      )
-    );
-    openToast("User updated successfully");
   };
 
   const handleMockDelete = (id) => {
@@ -270,25 +216,8 @@ export default function UsersPage() {
         onSort={toggleSort}
         sortField={sortField}
         sortDir={sortDir}
-        onEdit={(u) => {
-          setEditTarget(u);
-          setEditModalOpen(true);
-        }}
+        onEdit={(u) => {}}
         onDelete={(u) => handleMockDelete(u.id)}
-      />
-
-      <UserEditModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        data={editTarget}
-        onSubmit={(payload) => handleMockUpdate(editTarget.id, payload)}
-        onDelete={() => handleMockDelete(editTarget.id)}
-      />
-
-      <UserCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSubmit={handleMockCreate}
       />
 
       <Snackbar

@@ -13,42 +13,48 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 
 // Backend & Context
-import { listUsers, deleteUser, createUser, updateUser } from '../services/usersApi.js';
-import { useAuth } from '../context/AuthContext.jsx';
+import {
+  listUsers,
+  deleteUser,
+  createUser,
+  updateUser,
+} from "../services/usersApi.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 // Toast Notification
 const CustomToast = ({ msg, type, onClose }) => {
   if (!msg) return null;
 
   const styles = {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    padding: '12px 24px',
-    borderRadius: '12px',
-    backgroundColor: type === 'error' ? '#d32f2f' : '#2e7d32',
-    color: '#fff',
-    fontSize: '1rem',
-    boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
+    position: "fixed",
+    bottom: "24px",
+    right: "24px",
+    padding: "12px 24px",
+    borderRadius: "12px",
+    backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
+    color: "#fff",
+    fontSize: "1rem",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
     zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    animation: 'fadeIn 0.3s ease-in-out',
-    cursor: 'pointer'
+    display: "flex",
+    alignItems: "center",
+    animation: "fadeIn 0.3s ease-in-out",
+    cursor: "pointer",
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onClose();
     }
   };
 
   return (
-    <div 
-      style={styles} 
+    <div
+      style={styles}
       onClick={onClose}
       role="button"
       tabIndex={0}
@@ -62,12 +68,12 @@ const CustomToast = ({ msg, type, onClose }) => {
 
 CustomToast.propTypes = {
   msg: PropTypes.string.isRequired,
-  type: PropTypes.oneOf(['success', 'error', 'info', 'warning']),
+  type: PropTypes.oneOf(["success", "error", "info", "warning"]),
   onClose: PropTypes.func.isRequired,
 };
 
 CustomToast.defaultProps = {
-  type: 'success',
+  type: "success",
 };
 
 export default function EmployeesPage() {
@@ -87,7 +93,7 @@ export default function EmployeesPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  
+
   const [activeFilters, setActiveFilters] = useState({
     status: new Set(),
   });
@@ -102,32 +108,31 @@ export default function EmployeesPage() {
   // Mappers
   const mapUserToUI = (user) => ({
     id: user._id,
-    name: user.full_name || user.email, 
+    name: user.full_name || user.email,
     email: user.email,
     title: user.role || "Employee",
-    workstations: user.workstations || 0, 
+    workstations: user.workstations || 0,
     groups: user.groups || 0,
     files: user.files || 0,
     status: user.status || "offline",
-    _original: user 
+    _original: user,
   });
 
   // API Actions
   const fetchUsers = useCallback(async () => {
     if (!accessToken) return;
-    
+
     setLoading(true);
     try {
       const data = await listUsers({
         token: accessToken,
-        search: search, 
-        limit: 100, 
+        search: search,
+        limit: 100,
         offset: 0,
       });
 
       const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
       setUsers(mappedUsers);
-      
     } catch (error) {
       console.error("Failed to fetch users", error);
       openToast(error.message || "Failed to load users", "error");
@@ -142,8 +147,8 @@ export default function EmployeesPage() {
 
   const handleCreate = async (payload) => {
     if (!accessToken) {
-        openToast("You must be logged in to create a user", "error");
-        return;
+      openToast("You must be logged in to create a user", "error");
+      return;
     }
 
     try {
@@ -151,19 +156,21 @@ export default function EmployeesPage() {
       const apiPayload = {
         email: payload.email,
         full_name: `${payload.firstName} ${payload.lastName}`,
-        password: payload.password || "Password123!", 
-        role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee",
+        password: payload.password || "Password123!",
+        role: payload.jobTitle?.toLowerCase().includes("admin")
+          ? "admin"
+          : "employee",
         org_id: currentUser?.org_id,
       };
 
       await createUser(apiPayload, { token: accessToken });
-      
+
       openToast("User created successfully");
       setCreateModalOpen(false);
-      fetchUsers(); 
-
+      fetchUsers();
     } catch (error) {
-      const msg = error.payload?.error || error.message || "Failed to create user";
+      const msg =
+        error.payload?.error || error.message || "Failed to create user";
       openToast(msg, "error");
     }
   };
@@ -180,11 +187,10 @@ export default function EmployeesPage() {
       };
 
       await updateUser(id, apiPayload, { token: accessToken });
-      
+
       openToast("User updated successfully");
       setEditModalOpen(false);
       fetchUsers();
-
     } catch (error) {
       console.error(error);
       openToast("Update failed: Check API implementation", "error");
@@ -193,18 +199,18 @@ export default function EmployeesPage() {
 
   const handleDelete = async (id) => {
     if (!accessToken) return;
-    
+
     if (id === currentUser?.id) {
-        openToast("You cannot delete your own account", "error");
-        return;
+      openToast("You cannot delete your own account", "error");
+      return;
     }
 
     try {
       trackButton("employees/edit/delete", { page: "employees", id, control: "edit_dialog" });
       await deleteUser(id, { token: accessToken });
-      setUsers((prev) => prev.filter((u) => u.id !== id)); 
+      setUsers((prev) => prev.filter((u) => u.id !== id));
       openToast("User deleted successfully");
-      setEditModalOpen(false); 
+      setEditModalOpen(false);
     } catch (error) {
       openToast(error.message || "Failed to delete user", "error");
     }
@@ -218,12 +224,12 @@ export default function EmployeesPage() {
   // Logic: Filter & Sort
   const filtered = useMemo(() => {
     let out = [...users];
-    
+
     const q = search.trim().toLowerCase();
-    
+
     if (q) {
       out = out.filter((u) =>
-        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q))
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)),
       );
     }
 
@@ -265,20 +271,15 @@ export default function EmployeesPage() {
   ];
 
   const handleFilterChange = (groupId, value, isActive) => {
-    trackButton("employees/filter/change", { page: "employees", groupId, value, active: isActive });
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      const currentSet = new Set(newFilters[groupId] || []);
-
-      if (isActive) {
-        currentSet.add(value);
-      } else {
-        currentSet.delete(value);
-      }
-
-      newFilters[groupId] = currentSet;
-      return newFilters;
+    trackButton("employees/filter/change", {
+      page: "employees",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
     });
+    const applyFilter = createFilterChangeHandler(setActiveFilters);
+    applyFilter(groupId, value, isActive);
   };
 
   const styles = {
@@ -311,8 +312,10 @@ export default function EmployeesPage() {
         <div style={styles.leftActions}>
           <SearchField
             value={search}
-            onChange={setSearch} 
-            onKeyDown={(e) => { if (e.key === 'Enter') fetchUsers(); }} 
+            onChange={setSearch}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") fetchUsers();
+            }}
             placeholder="Search users"
             width="420px"
             showIcon={true}
@@ -368,11 +371,11 @@ export default function EmployeesPage() {
       {/* Modals */}
       {editTarget && (
         <UserEditModal
-            open={editModalOpen}
-            onClose={() => setEditModalOpen(false)}
-            data={editTarget}
-            onSubmit={(payload) => handleUpdate(editTarget.id, payload)}
-            onDelete={() => handleDelete(editTarget.id)}
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          data={editTarget}
+          onSubmit={(payload) => handleUpdate(editTarget.id, payload)}
+          onDelete={() => handleDelete(editTarget.id)}
         />
       )}
 
@@ -383,10 +386,10 @@ export default function EmployeesPage() {
       />
 
       {toast.open && (
-        <CustomToast 
-          msg={toast.msg} 
-          type={toast.type} 
-          onClose={() => setToast({ ...toast, open: false })} 
+        <CustomToast
+          msg={toast.msg}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, open: false })}
         />
       )}
     </div>
