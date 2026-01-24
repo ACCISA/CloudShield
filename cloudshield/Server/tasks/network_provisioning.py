@@ -113,9 +113,10 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
     target_dir = get_target_dir(org_id, str(generated_dir))
+    use_terraform = bool(target_dir)
     if not target_dir:
         target_dir = str(generated_dir)
-    
+    if not use_terraform:
         logger.info("[TASK] Docker provisioner mode detected; skipping terraform apply for org %s", org_id)
         set_progress("completed")
         try:
