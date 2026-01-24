@@ -1,27 +1,31 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import AuthPage from './pages/AuthPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
-import WorkstationsPage from './pages/WorkstationsPage.jsx';
-import EmployeesPage from './pages/EmployeesPage.jsx';
-import AppLayout from './components/layout/AppLayout.jsx';
-import SignUpPage from './pages/SignUpPage.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
+import AuthPage from "./pages/AuthPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import WorkstationsPage from "./pages/WorkstationsPage.jsx";
+import EmployeesPage from "./pages/EmployeesPage.jsx";
+import AppLayout from "./components/layout/AppLayout.jsx";
+import SignUpPage from "./pages/SignUpPage.jsx";
+
+import GroupsPage from "./pages/GroupsPage.jsx";
+import FilesPage from "./pages/FilesPage.jsx";
+
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 function AppWithAuth() {
-  const devBypass = import.meta.env.VITE_BYPASS_AUTH === 'true';
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
 
   useEffect(() => {
     if (devBypass) {
       // Warn when auth is bypassed in dev mode
-      console.warn('[App] Auth bypass is active (VITE_BYPASS_AUTH=true).');
+      console.warn("[App] Auth bypass is active (VITE_BYPASS_AUTH=true).");
     }
   }, [devBypass]);
 
   // Initialize auth state based on presence of JWT in storage
   const [isAuthed, setIsAuthed] = useState(() => {
-    return devBypass || !!localStorage.getItem('jwt');
+    return devBypass || !!localStorage.getItem("jwt");
   });
 
   /**
@@ -30,13 +34,12 @@ function AppWithAuth() {
    */
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
-      localStorage.setItem('jwt', data.access_token);
+      localStorage.setItem("jwt", data.access_token);
       setIsAuthed(true);
     }
 
     // If the backend returns org_id or user info, store it safely
     if (data?.user?.org_id) {
-      localStorage.setItem('org_id', data.user.org_id);
     }
   };
 
@@ -55,16 +58,15 @@ function AppWithAuth() {
     <BrowserRouter>
       <Routes>
         {/* Landing page: sign up */}
-        <Route
-          path="/"
-          element={<Navigate to="/signup" replace />}
-        />
+        <Route path="/" element={<Navigate to="/signup" replace />} />
 
         {/* Public route: sign up */}
         <Route
           path="/signup"
           element={
-            isAuthed ? <Navigate to="/dashboard" replace /> : (
+            isAuthed ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
               <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
           }
@@ -74,7 +76,9 @@ function AppWithAuth() {
         <Route
           path="/login"
           element={
-            isAuthed ? <Navigate to="/dashboard" replace /> : (
+            isAuthed ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
               <AuthPage onLoginSuccess={handleAuthSuccess} />
             )
           }
@@ -109,19 +113,19 @@ function AppWithAuth() {
         />
 
         <Route
-          path="/users"
+          path="/groups"
           element={
             <Protected>
-              <EmployeesPage />
+              <GroupsPage />
             </Protected>
           }
         />
 
         <Route
-          path="/employees"
+          path="/files"
           element={
             <Protected>
-              <EmployeesPage />
+              <FilesPage />
             </Protected>
           }
         />

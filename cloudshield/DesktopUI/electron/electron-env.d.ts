@@ -26,9 +26,12 @@ interface ElectronAPI {
   runXfreerdp: (
     username: string,
     password: string,
-    ip: string
+    ip: string,
   ) => Promise<unknown>;
-  runOpenVPN: () => Promise<unknown>;
+  runOpenVPN: (ovpnPath?: string) => Promise<unknown>;
+  showOpenDialog: (
+    options: import("electron").OpenDialogOptions,
+  ) => Promise<import("electron").OpenDialogReturnValue>;
 }
 
 interface AuthStoreAPI {

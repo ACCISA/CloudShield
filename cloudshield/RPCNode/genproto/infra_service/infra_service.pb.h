@@ -66,6 +66,14 @@ class AddDNSRecordDataAck;
 struct AddDNSRecordDataAckDefaultTypeInternal;
 extern AddDNSRecordDataAckDefaultTypeInternal _AddDNSRecordDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AddDNSRecordDataAck_class_data_;
+class AddDomainGroupData;
+struct AddDomainGroupDataDefaultTypeInternal;
+extern AddDomainGroupDataDefaultTypeInternal _AddDomainGroupData_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AddDomainGroupData_class_data_;
+class AddDomainGroupDataAck;
+struct AddDomainGroupDataAckDefaultTypeInternal;
+extern AddDomainGroupDataAckDefaultTypeInternal _AddDomainGroupDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AddDomainGroupDataAck_class_data_;
 class AddDomainUserData;
 struct AddDomainUserDataDefaultTypeInternal;
 extern AddDomainUserDataDefaultTypeInternal _AddDomainUserData_default_instance_;
@@ -74,6 +82,14 @@ class AddDomainUserDataAck;
 struct AddDomainUserDataAckDefaultTypeInternal;
 extern AddDomainUserDataAckDefaultTypeInternal _AddDomainUserDataAck_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AddDomainUserDataAck_class_data_;
+class CreateDomainUserWithGroupData;
+struct CreateDomainUserWithGroupDataDefaultTypeInternal;
+extern CreateDomainUserWithGroupDataDefaultTypeInternal _CreateDomainUserWithGroupData_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupData_class_data_;
+class CreateDomainUserWithGroupDataAck;
+struct CreateDomainUserWithGroupDataAckDefaultTypeInternal;
+extern CreateDomainUserWithGroupDataAckDefaultTypeInternal _CreateDomainUserWithGroupDataAck_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupDataAck_class_data_;
 class CreateSambaFileShareData;
 struct CreateSambaFileShareDataDefaultTypeInternal;
 extern CreateSambaFileShareDataDefaultTypeInternal _CreateSambaFileShareData_default_instance_;
@@ -270,7 +286,7 @@ class SyncNetlogonScriptDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const SyncNetlogonScriptDataAck*>(
         &_SyncNetlogonScriptDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 25;
   friend void swap(SyncNetlogonScriptDataAck& a, SyncNetlogonScriptDataAck& b) { a.Swap(&b); }
   inline void Swap(SyncNetlogonScriptDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -461,7 +477,7 @@ class Share final : public ::google::protobuf::Message
     return *reinterpret_cast<const Share*>(
         &_Share_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(Share& a, Share& b) { a.Swap(&b); }
   inline void Swap(Share* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -674,7 +690,7 @@ class RestartSambaServiceDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const RestartSambaServiceDataAck*>(
         &_RestartSambaServiceDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(RestartSambaServiceDataAck& a, RestartSambaServiceDataAck& b) { a.Swap(&b); }
   inline void Swap(RestartSambaServiceDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -865,7 +881,7 @@ class ResetUserPasswordDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResetUserPasswordDataAck*>(
         &_ResetUserPasswordDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(ResetUserPasswordDataAck& a, ResetUserPasswordDataAck& b) { a.Swap(&b); }
   inline void Swap(ResetUserPasswordDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1056,7 +1072,7 @@ class ResetUserPasswordData final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResetUserPasswordData*>(
         &_ResetUserPasswordData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(ResetUserPasswordData& a, ResetUserPasswordData& b) { a.Swap(&b); }
   inline void Swap(ResetUserPasswordData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1269,7 +1285,7 @@ class RemoveDomainUserDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveDomainUserDataAck*>(
         &_RemoveDomainUserDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(RemoveDomainUserDataAck& a, RemoveDomainUserDataAck& b) { a.Swap(&b); }
   inline void Swap(RemoveDomainUserDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1477,7 +1493,7 @@ class RemoveDomainUserData final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveDomainUserData*>(
         &_RemoveDomainUserData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(RemoveDomainUserData& a, RemoveDomainUserData& b) { a.Swap(&b); }
   inline void Swap(RemoveDomainUserData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1673,7 +1689,7 @@ class GetUserListDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetUserListDataAck*>(
         &_GetUserListDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(GetUserListDataAck& a, GetUserListDataAck& b) { a.Swap(&b); }
   inline void Swap(GetUserListDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1888,7 +1904,7 @@ class GetFileShareSizeDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetFileShareSizeDataAck*>(
         &_GetFileShareSizeDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(GetFileShareSizeDataAck& a, GetFileShareSizeDataAck& b) { a.Swap(&b); }
   inline void Swap(GetFileShareSizeDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2091,7 +2107,7 @@ class GetFileShareSizeData final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetFileShareSizeData*>(
         &_GetFileShareSizeData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(GetFileShareSizeData& a, GetFileShareSizeData& b) { a.Swap(&b); }
   inline void Swap(GetFileShareSizeData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2287,7 +2303,7 @@ class DeleteSambaFileShareDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteSambaFileShareDataAck*>(
         &_DeleteSambaFileShareDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 17;
   friend void swap(DeleteSambaFileShareDataAck& a, DeleteSambaFileShareDataAck& b) { a.Swap(&b); }
   inline void Swap(DeleteSambaFileShareDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2478,7 +2494,7 @@ class DeleteSambaFileShareData final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteSambaFileShareData*>(
         &_DeleteSambaFileShareData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(DeleteSambaFileShareData& a, DeleteSambaFileShareData& b) { a.Swap(&b); }
   inline void Swap(DeleteSambaFileShareData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2686,7 +2702,7 @@ class DeleteDNSRecordDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteDNSRecordDataAck*>(
         &_DeleteDNSRecordDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(DeleteDNSRecordDataAck& a, DeleteDNSRecordDataAck& b) { a.Swap(&b); }
   inline void Swap(DeleteDNSRecordDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2877,7 +2893,7 @@ class DeleteDNSRecordData final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteDNSRecordData*>(
         &_DeleteDNSRecordData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(DeleteDNSRecordData& a, DeleteDNSRecordData& b) { a.Swap(&b); }
   inline void Swap(DeleteDNSRecordData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3124,7 +3140,7 @@ class CreateSambaFileShareDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSambaFileShareDataAck*>(
         &_CreateSambaFileShareDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(CreateSambaFileShareDataAck& a, CreateSambaFileShareDataAck& b) { a.Swap(&b); }
   inline void Swap(CreateSambaFileShareDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3315,7 +3331,7 @@ class CreateSambaFileShareData final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSambaFileShareData*>(
         &_CreateSambaFileShareData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(CreateSambaFileShareData& a, CreateSambaFileShareData& b) { a.Swap(&b); }
   inline void Swap(CreateSambaFileShareData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3471,6 +3487,495 @@ class CreateSambaFileShareData final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CreateSambaFileShareData_class_data_;
+// -------------------------------------------------------------------
+
+class CreateDomainUserWithGroupDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.CreateDomainUserWithGroupDataAck) */ {
+ public:
+  inline CreateDomainUserWithGroupDataAck() : CreateDomainUserWithGroupDataAck(nullptr) {}
+  ~CreateDomainUserWithGroupDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateDomainUserWithGroupDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateDomainUserWithGroupDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateDomainUserWithGroupDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateDomainUserWithGroupDataAck(const CreateDomainUserWithGroupDataAck& from) : CreateDomainUserWithGroupDataAck(nullptr, from) {}
+  inline CreateDomainUserWithGroupDataAck(CreateDomainUserWithGroupDataAck&& from) noexcept
+      : CreateDomainUserWithGroupDataAck(nullptr, ::std::move(from)) {}
+  inline CreateDomainUserWithGroupDataAck& operator=(const CreateDomainUserWithGroupDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateDomainUserWithGroupDataAck& operator=(CreateDomainUserWithGroupDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateDomainUserWithGroupDataAck& default_instance() {
+    return *reinterpret_cast<const CreateDomainUserWithGroupDataAck*>(
+        &_CreateDomainUserWithGroupDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 12;
+  friend void swap(CreateDomainUserWithGroupDataAck& a, CreateDomainUserWithGroupDataAck& b) { a.Swap(&b); }
+  inline void Swap(CreateDomainUserWithGroupDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateDomainUserWithGroupDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateDomainUserWithGroupDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateDomainUserWithGroupDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateDomainUserWithGroupDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateDomainUserWithGroupDataAck& from) { CreateDomainUserWithGroupDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateDomainUserWithGroupDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.CreateDomainUserWithGroupDataAck"; }
+
+ protected:
+  explicit CreateDomainUserWithGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateDomainUserWithGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateDomainUserWithGroupDataAck& from);
+  CreateDomainUserWithGroupDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateDomainUserWithGroupDataAck&& from) noexcept
+      : CreateDomainUserWithGroupDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUserResultFieldNumber = 2,
+    kGroupResultFieldNumber = 3,
+    kLinkResultFieldNumber = 4,
+    kMembershipResultFieldNumber = 5,
+    kStatusFieldNumber = 1,
+  };
+  // string user_result = 2;
+  void clear_user_result() ;
+  const ::std::string& user_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_user_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_user_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_user_result();
+  void set_allocated_user_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_user_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_user_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_user_result();
+
+  public:
+  // string group_result = 3;
+  void clear_group_result() ;
+  const ::std::string& group_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_group_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_group_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_group_result();
+  void set_allocated_group_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_group_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_group_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_group_result();
+
+  public:
+  // string link_result = 4;
+  void clear_link_result() ;
+  const ::std::string& link_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_link_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_link_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_link_result();
+  void set_allocated_link_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_link_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_link_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_link_result();
+
+  public:
+  // string membership_result = 5;
+  void clear_membership_result() ;
+  const ::std::string& membership_result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_membership_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_membership_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_membership_result();
+  void set_allocated_membership_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_membership_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_membership_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_membership_result();
+
+  public:
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.CreateDomainUserWithGroupDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 109,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateDomainUserWithGroupDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr user_result_;
+    ::google::protobuf::internal::ArenaStringPtr group_result_;
+    ::google::protobuf::internal::ArenaStringPtr link_result_;
+    ::google::protobuf::internal::ArenaStringPtr membership_result_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class CreateDomainUserWithGroupData final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.CreateDomainUserWithGroupData) */ {
+ public:
+  inline CreateDomainUserWithGroupData() : CreateDomainUserWithGroupData(nullptr) {}
+  ~CreateDomainUserWithGroupData() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CreateDomainUserWithGroupData* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CreateDomainUserWithGroupData));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CreateDomainUserWithGroupData(::google::protobuf::internal::ConstantInitialized);
+
+  inline CreateDomainUserWithGroupData(const CreateDomainUserWithGroupData& from) : CreateDomainUserWithGroupData(nullptr, from) {}
+  inline CreateDomainUserWithGroupData(CreateDomainUserWithGroupData&& from) noexcept
+      : CreateDomainUserWithGroupData(nullptr, ::std::move(from)) {}
+  inline CreateDomainUserWithGroupData& operator=(const CreateDomainUserWithGroupData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CreateDomainUserWithGroupData& operator=(CreateDomainUserWithGroupData&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CreateDomainUserWithGroupData& default_instance() {
+    return *reinterpret_cast<const CreateDomainUserWithGroupData*>(
+        &_CreateDomainUserWithGroupData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(CreateDomainUserWithGroupData& a, CreateDomainUserWithGroupData& b) { a.Swap(&b); }
+  inline void Swap(CreateDomainUserWithGroupData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CreateDomainUserWithGroupData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CreateDomainUserWithGroupData* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CreateDomainUserWithGroupData>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CreateDomainUserWithGroupData& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CreateDomainUserWithGroupData& from) { CreateDomainUserWithGroupData::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CreateDomainUserWithGroupData* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.CreateDomainUserWithGroupData"; }
+
+ protected:
+  explicit CreateDomainUserWithGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CreateDomainUserWithGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CreateDomainUserWithGroupData& from);
+  CreateDomainUserWithGroupData(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CreateDomainUserWithGroupData&& from) noexcept
+      : CreateDomainUserWithGroupData(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kUsernameFieldNumber = 1,
+    kPasswordFieldNumber = 2,
+    kGroupNameFieldNumber = 3,
+  };
+  // string username = 1;
+  void clear_username() ;
+  const ::std::string& username() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_username(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_username();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_username();
+  void set_allocated_username(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_username() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_username(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_username();
+
+  public:
+  // string password = 2;
+  void clear_password() ;
+  const ::std::string& password() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_password(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_password();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_password();
+  void set_allocated_password(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_password() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_password(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_password();
+
+  public:
+  // string group_name = 3;
+  void clear_group_name() ;
+  const ::std::string& group_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_group_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_group_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_group_name();
+  void set_allocated_group_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_group_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_group_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_group_name();
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.CreateDomainUserWithGroupData)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 81,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CreateDomainUserWithGroupData& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr username_;
+    ::google::protobuf::internal::ArenaStringPtr password_;
+    ::google::protobuf::internal::ArenaStringPtr group_name_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupData_class_data_;
 // -------------------------------------------------------------------
 
 class AddDomainUserDataAck final : public ::google::protobuf::Message
@@ -3894,6 +4399,410 @@ class AddDomainUserData final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull AddDomainUserData_class_data_;
 // -------------------------------------------------------------------
 
+class AddDomainGroupDataAck final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.AddDomainGroupDataAck) */ {
+ public:
+  inline AddDomainGroupDataAck() : AddDomainGroupDataAck(nullptr) {}
+  ~AddDomainGroupDataAck() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AddDomainGroupDataAck* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AddDomainGroupDataAck));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AddDomainGroupDataAck(::google::protobuf::internal::ConstantInitialized);
+
+  inline AddDomainGroupDataAck(const AddDomainGroupDataAck& from) : AddDomainGroupDataAck(nullptr, from) {}
+  inline AddDomainGroupDataAck(AddDomainGroupDataAck&& from) noexcept
+      : AddDomainGroupDataAck(nullptr, ::std::move(from)) {}
+  inline AddDomainGroupDataAck& operator=(const AddDomainGroupDataAck& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AddDomainGroupDataAck& operator=(AddDomainGroupDataAck&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AddDomainGroupDataAck& default_instance() {
+    return *reinterpret_cast<const AddDomainGroupDataAck*>(
+        &_AddDomainGroupDataAck_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(AddDomainGroupDataAck& a, AddDomainGroupDataAck& b) { a.Swap(&b); }
+  inline void Swap(AddDomainGroupDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AddDomainGroupDataAck* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AddDomainGroupDataAck* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AddDomainGroupDataAck>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AddDomainGroupDataAck& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AddDomainGroupDataAck& from) { AddDomainGroupDataAck::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AddDomainGroupDataAck* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.AddDomainGroupDataAck"; }
+
+ protected:
+  explicit AddDomainGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AddDomainGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AddDomainGroupDataAck& from);
+  AddDomainGroupDataAck(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AddDomainGroupDataAck&& from) noexcept
+      : AddDomainGroupDataAck(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResultFieldNumber = 2,
+    kStatusFieldNumber = 1,
+  };
+  // string result = 2;
+  void clear_result() ;
+  const ::std::string& result() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_result(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_result();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_result();
+  void set_allocated_result(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_result() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_result(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_result();
+
+  public:
+  // .infra_service.v1.Status status = 1;
+  void clear_status() ;
+  ::infra_service::v1::Status status() const;
+  void set_status(::infra_service::v1::Status value);
+
+  private:
+  ::infra_service::v1::Status _internal_status() const;
+  void _internal_set_status(::infra_service::v1::Status value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.AddDomainGroupDataAck)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 53,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AddDomainGroupDataAck& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr result_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AddDomainGroupDataAck_class_data_;
+// -------------------------------------------------------------------
+
+class AddDomainGroupData final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:infra_service.v1.AddDomainGroupData) */ {
+ public:
+  inline AddDomainGroupData() : AddDomainGroupData(nullptr) {}
+  ~AddDomainGroupData() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AddDomainGroupData* PROTOBUF_NONNULL msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AddDomainGroupData));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AddDomainGroupData(::google::protobuf::internal::ConstantInitialized);
+
+  inline AddDomainGroupData(const AddDomainGroupData& from) : AddDomainGroupData(nullptr, from) {}
+  inline AddDomainGroupData(AddDomainGroupData&& from) noexcept
+      : AddDomainGroupData(nullptr, ::std::move(from)) {}
+  inline AddDomainGroupData& operator=(const AddDomainGroupData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AddDomainGroupData& operator=(AddDomainGroupData&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AddDomainGroupData& default_instance() {
+    return *reinterpret_cast<const AddDomainGroupData*>(
+        &_AddDomainGroupData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(AddDomainGroupData& a, AddDomainGroupData& b) { a.Swap(&b); }
+  inline void Swap(AddDomainGroupData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AddDomainGroupData* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AddDomainGroupData* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AddDomainGroupData>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AddDomainGroupData& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AddDomainGroupData& from) { AddDomainGroupData::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AddDomainGroupData* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "infra_service.v1.AddDomainGroupData"; }
+
+ protected:
+  explicit AddDomainGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AddDomainGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AddDomainGroupData& from);
+  AddDomainGroupData(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AddDomainGroupData&& from) noexcept
+      : AddDomainGroupData(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kGroupNameFieldNumber = 1,
+  };
+  // string group_name = 1;
+  void clear_group_name() ;
+  const ::std::string& group_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_group_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_group_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_group_name();
+  void set_allocated_group_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_group_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_group_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_group_name();
+
+  public:
+  // @@protoc_insertion_point(class_scope:infra_service.v1.AddDomainGroupData)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 54,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AddDomainGroupData& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr group_name_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_infra_5fservice_2finfra_5fservice_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AddDomainGroupData_class_data_;
+// -------------------------------------------------------------------
+
 class AddDNSRecordDataAck final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:infra_service.v1.AddDNSRecordDataAck) */ {
  public:
@@ -3949,7 +4858,7 @@ class AddDNSRecordDataAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddDNSRecordDataAck*>(
         &_AddDNSRecordDataAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(AddDNSRecordDataAck& a, AddDNSRecordDataAck& b) { a.Swap(&b); }
   inline void Swap(AddDNSRecordDataAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4140,7 +5049,7 @@ class AddDNSRecordData final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddDNSRecordData*>(
         &_AddDNSRecordData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(AddDNSRecordData& a, AddDNSRecordData& b) { a.Swap(&b); }
   inline void Swap(AddDNSRecordData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4387,7 +5296,7 @@ class GroupMapping final : public ::google::protobuf::Message
     return *reinterpret_cast<const GroupMapping*>(
         &_GroupMapping_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(GroupMapping& a, GroupMapping& b) { a.Swap(&b); }
   inline void Swap(GroupMapping* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4602,7 +5511,7 @@ class SyncNetlogonScriptData final : public ::google::protobuf::Message
     return *reinterpret_cast<const SyncNetlogonScriptData*>(
         &_SyncNetlogonScriptData_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 24;
   friend void swap(SyncNetlogonScriptData& a, SyncNetlogonScriptData& b) { a.Swap(&b); }
   inline void Swap(SyncNetlogonScriptData* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4998,6 +5907,168 @@ inline void AddDomainUserDataAck::set_allocated_result(::std::string* PROTOBUF_N
     _impl_.result_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:infra_service.v1.AddDomainUserDataAck.result)
+}
+
+// -------------------------------------------------------------------
+
+// AddDomainGroupData
+
+// string group_name = 1;
+inline void AddDomainGroupData::clear_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.group_name_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& AddDomainGroupData::group_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.AddDomainGroupData.group_name)
+  return _internal_group_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddDomainGroupData::set_group_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.group_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.AddDomainGroupData.group_name)
+}
+inline ::std::string* PROTOBUF_NONNULL AddDomainGroupData::mutable_group_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_group_name();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.AddDomainGroupData.group_name)
+  return _s;
+}
+inline const ::std::string& AddDomainGroupData::_internal_group_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.group_name_.Get();
+}
+inline void AddDomainGroupData::_internal_set_group_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.group_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddDomainGroupData::_internal_mutable_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.group_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddDomainGroupData::release_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.AddDomainGroupData.group_name)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.group_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.group_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddDomainGroupData::set_allocated_group_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.group_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.group_name_.IsDefault()) {
+    _impl_.group_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.AddDomainGroupData.group_name)
+}
+
+// -------------------------------------------------------------------
+
+// AddDomainGroupDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void AddDomainGroupDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline ::infra_service::v1::Status AddDomainGroupDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.AddDomainGroupDataAck.status)
+  return _internal_status();
+}
+inline void AddDomainGroupDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.AddDomainGroupDataAck.status)
+}
+inline ::infra_service::v1::Status AddDomainGroupDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void AddDomainGroupDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string result = 2;
+inline void AddDomainGroupDataAck::clear_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.result_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& AddDomainGroupDataAck::result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.AddDomainGroupDataAck.result)
+  return _internal_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AddDomainGroupDataAck::set_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.AddDomainGroupDataAck.result)
+}
+inline ::std::string* PROTOBUF_NONNULL AddDomainGroupDataAck::mutable_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_result();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.AddDomainGroupDataAck.result)
+  return _s;
+}
+inline const ::std::string& AddDomainGroupDataAck::_internal_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.result_.Get();
+}
+inline void AddDomainGroupDataAck::_internal_set_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AddDomainGroupDataAck::_internal_mutable_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AddDomainGroupDataAck::release_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.AddDomainGroupDataAck.result)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AddDomainGroupDataAck::set_allocated_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.result_.IsDefault()) {
+    _impl_.result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.AddDomainGroupDataAck.result)
 }
 
 // -------------------------------------------------------------------
@@ -5512,6 +6583,493 @@ inline ::infra_service::v1::Status ResetUserPasswordDataAck::_internal_status() 
 inline void ResetUserPasswordDataAck::_internal_set_status(::infra_service::v1::Status value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.status_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CreateDomainUserWithGroupData
+
+// string username = 1;
+inline void CreateDomainUserWithGroupData::clear_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.username_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::username() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.username)
+  return _internal_username();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupData::set_username(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.username_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::mutable_username()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.username)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::_internal_username() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.username_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_username(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.username_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::_internal_mutable_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.username_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupData::release_username() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.username)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.username_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupData::set_allocated_username(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.username_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.username_.IsDefault()) {
+    _impl_.username_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.username)
+}
+
+// string password = 2;
+inline void CreateDomainUserWithGroupData::clear_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.password_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::password() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.password)
+  return _internal_password();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupData::set_password(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.password_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::mutable_password()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_password();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.password)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::_internal_password() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.password_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_password(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.password_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::_internal_mutable_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  return _impl_.password_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupData::release_password() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.password)
+  if ((_impl_._has_bits_[0] & 0x00000002u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  auto* released = _impl_.password_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.password_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupData::set_allocated_password(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  _impl_.password_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.password_.IsDefault()) {
+    _impl_.password_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.password)
+}
+
+// string group_name = 3;
+inline void CreateDomainUserWithGroupData::clear_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.group_name_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000004u;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::group_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  return _internal_group_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupData::set_group_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_.group_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::mutable_group_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_group_name();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupData::_internal_group_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.group_name_.Get();
+}
+inline void CreateDomainUserWithGroupData::_internal_set_group_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_.group_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupData::_internal_mutable_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  return _impl_.group_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupData::release_group_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+  if ((_impl_._has_bits_[0] & 0x00000004u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000004u;
+  auto* released = _impl_.group_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.group_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupData::set_allocated_group_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000004u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000004u;
+  }
+  _impl_.group_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.group_name_.IsDefault()) {
+    _impl_.group_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupData.group_name)
+}
+
+// -------------------------------------------------------------------
+
+// CreateDomainUserWithGroupDataAck
+
+// .infra_service.v1.Status status = 1;
+inline void CreateDomainUserWithGroupDataAck::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  _impl_._has_bits_[0] &= ~0x00000010u;
+}
+inline ::infra_service::v1::Status CreateDomainUserWithGroupDataAck::status() const {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.status)
+  return _internal_status();
+}
+inline void CreateDomainUserWithGroupDataAck::set_status(::infra_service::v1::Status value) {
+  _internal_set_status(value);
+  _impl_._has_bits_[0] |= 0x00000010u;
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.status)
+}
+inline ::infra_service::v1::Status CreateDomainUserWithGroupDataAck::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::infra_service::v1::Status>(_impl_.status_);
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_status(::infra_service::v1::Status value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string user_result = 2;
+inline void CreateDomainUserWithGroupDataAck::clear_user_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.user_result_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::user_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  return _internal_user_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupDataAck::set_user_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.user_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::mutable_user_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_user_result();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::_internal_user_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.user_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_user_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  _impl_.user_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_internal_mutable_user_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  return _impl_.user_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupDataAck::release_user_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+  if ((_impl_._has_bits_[0] & 0x00000001u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  auto* released = _impl_.user_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.user_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_user_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  _impl_.user_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.user_result_.IsDefault()) {
+    _impl_.user_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.user_result)
+}
+
+// string group_result = 3;
+inline void CreateDomainUserWithGroupDataAck::clear_group_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.group_result_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000002u;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::group_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  return _internal_group_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupDataAck::set_group_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.group_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::mutable_group_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_group_result();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::_internal_group_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.group_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_group_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  _impl_.group_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_internal_mutable_group_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000002u;
+  return _impl_.group_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupDataAck::release_group_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+  if ((_impl_._has_bits_[0] & 0x00000002u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000002u;
+  auto* released = _impl_.group_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.group_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_group_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000002u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000002u;
+  }
+  _impl_.group_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.group_result_.IsDefault()) {
+    _impl_.group_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.group_result)
+}
+
+// string link_result = 4;
+inline void CreateDomainUserWithGroupDataAck::clear_link_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_result_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000004u;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::link_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  return _internal_link_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupDataAck::set_link_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_.link_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::mutable_link_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_link_result();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::_internal_link_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.link_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_link_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  _impl_.link_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_internal_mutable_link_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000004u;
+  return _impl_.link_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupDataAck::release_link_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+  if ((_impl_._has_bits_[0] & 0x00000004u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000004u;
+  auto* released = _impl_.link_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.link_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_link_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000004u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000004u;
+  }
+  _impl_.link_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.link_result_.IsDefault()) {
+    _impl_.link_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.link_result)
+}
+
+// string membership_result = 5;
+inline void CreateDomainUserWithGroupDataAck::clear_membership_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.membership_result_.ClearToEmpty();
+  _impl_._has_bits_[0] &= ~0x00000008u;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::membership_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  return _internal_membership_result();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CreateDomainUserWithGroupDataAck::set_membership_result(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000008u;
+  _impl_.membership_result_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::mutable_membership_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::std::string* _s = _internal_mutable_membership_result();
+  // @@protoc_insertion_point(field_mutable:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  return _s;
+}
+inline const ::std::string& CreateDomainUserWithGroupDataAck::_internal_membership_result() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.membership_result_.Get();
+}
+inline void CreateDomainUserWithGroupDataAck::_internal_set_membership_result(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000008u;
+  _impl_.membership_result_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_internal_mutable_membership_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_._has_bits_[0] |= 0x00000008u;
+  return _impl_.membership_result_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CreateDomainUserWithGroupDataAck::release_membership_result() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
+  if ((_impl_._has_bits_[0] & 0x00000008u) == 0) {
+    return nullptr;
+  }
+  _impl_._has_bits_[0] &= ~0x00000008u;
+  auto* released = _impl_.membership_result_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.membership_result_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CreateDomainUserWithGroupDataAck::set_allocated_membership_result(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000008u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000008u;
+  }
+  _impl_.membership_result_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.membership_result_.IsDefault()) {
+    _impl_.membership_result_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result)
 }
 
 // -------------------------------------------------------------------

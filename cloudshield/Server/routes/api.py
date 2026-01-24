@@ -356,6 +356,42 @@ def task_dc_add_user():
     return jsonify({"job_id": job.id}), 202
 
 
+@api_bp.route("/task/dc/add_user_with_group", methods=["POST"])
+def task_dc_add_user_with_group():
+    """
+    Queue domain controller user creation with dedicated group linkage.
+
+    Endpoint:
+        POST /api/task/dc/add_user_with_group
+
+    Request JSON:
+        - org_id (str, required)
+        - username (str, required)
+        - password (str, required)
+        - group_name (str, optional; defaults to "<username>-group" if omitted)
+    """
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    username = data.get("username")
+    password = data.get("password")
+    group_name = data.get("group_name")
+
+    for arg, val in {"org_id": org_id, "username": username, "password": password}.items():
+        if val is None:
+            logger.warning(f"DC add_user_with_group request missing {arg}")
+            return jsonify({"error": f"{arg} is required"}), 422
+
+    job = service_dispatcher(
+        service_name="dc_create_user_with_group",
+        org_id=org_id,
+        username=username,
+        password=password,
+        group_name=group_name,
+    )
+    return jsonify({"job_id": job.id}), 202
+
+
 @api_bp.route("/task/provision", methods=["POST"])
 def task_provision():
     """

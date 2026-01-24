@@ -465,6 +465,76 @@ struct CreateSambaFileShareDataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateSambaFileShareDataDefaultTypeInternal _CreateSambaFileShareData_default_instance_;
 
+inline constexpr CreateDomainUserWithGroupDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        user_result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        group_result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        link_result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        membership_result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateDomainUserWithGroupDataAck::CreateDomainUserWithGroupDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateDomainUserWithGroupDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateDomainUserWithGroupDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateDomainUserWithGroupDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateDomainUserWithGroupDataAckDefaultTypeInternal() {}
+  union {
+    CreateDomainUserWithGroupDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateDomainUserWithGroupDataAckDefaultTypeInternal _CreateDomainUserWithGroupDataAck_default_instance_;
+
+inline constexpr CreateDomainUserWithGroupData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        username_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        password_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        group_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR CreateDomainUserWithGroupData::CreateDomainUserWithGroupData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(CreateDomainUserWithGroupData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct CreateDomainUserWithGroupDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateDomainUserWithGroupDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateDomainUserWithGroupDataDefaultTypeInternal() {}
+  union {
+    CreateDomainUserWithGroupData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateDomainUserWithGroupDataDefaultTypeInternal _CreateDomainUserWithGroupData_default_instance_;
+
 inline constexpr AddDomainUserDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -522,6 +592,61 @@ struct AddDomainUserDataDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDomainUserDataDefaultTypeInternal _AddDomainUserData_default_instance_;
+
+inline constexpr AddDomainGroupDataAck::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        result_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        status_{static_cast< ::infra_service::v1::Status >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AddDomainGroupDataAck::AddDomainGroupDataAck(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AddDomainGroupDataAck_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AddDomainGroupDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AddDomainGroupDataAckDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AddDomainGroupDataAckDefaultTypeInternal() {}
+  union {
+    AddDomainGroupDataAck _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDomainGroupDataAckDefaultTypeInternal _AddDomainGroupDataAck_default_instance_;
+
+inline constexpr AddDomainGroupData::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        group_name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AddDomainGroupData::AddDomainGroupData(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AddDomainGroupData_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AddDomainGroupDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AddDomainGroupDataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AddDomainGroupDataDefaultTypeInternal() {}
+  union {
+    AddDomainGroupData _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddDomainGroupDataDefaultTypeInternal _AddDomainGroupData_default_instance_;
 
 inline constexpr AddDNSRecordDataAck::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -663,6 +788,18 @@ const ::uint32_t
         1,
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDomainGroupData, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDomainGroupData, _impl_.group_name_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDomainGroupDataAck, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDomainGroupDataAck, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddDomainGroupDataAck, _impl_.result_),
+        1,
+        0,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::RemoveDomainUserData, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::RemoveDomainUserData, _impl_.username_),
@@ -703,6 +840,28 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordDataAck, _impl_.status_),
         0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupData, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupData, _impl_.username_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupData, _impl_.password_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupData, _impl_.group_name_),
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_.user_result_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_.group_result_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_.link_result_),
+        PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupDataAck, _impl_.membership_result_),
+        4,
+        0,
+        1,
+        2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::infra_service::v1::GetUserListDataAck, _impl_._has_bits_),
         5, // hasbit index offset
@@ -798,30 +957,36 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::infra_service::v1::AddDomainUserData)},
         {7, sizeof(::infra_service::v1::AddDomainUserDataAck)},
-        {14, sizeof(::infra_service::v1::RemoveDomainUserData)},
-        {19, sizeof(::infra_service::v1::RemoveDomainUserDataAck)},
-        {26, sizeof(::infra_service::v1::CreateSambaFileShareData)},
-        {33, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
-        {38, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
-        {43, sizeof(::infra_service::v1::ResetUserPasswordData)},
-        {50, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
-        {55, sizeof(::infra_service::v1::GetUserListDataAck)},
-        {62, sizeof(::infra_service::v1::GetFileShareSizeData)},
-        {67, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
-        {74, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
-        {81, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
-        {86, sizeof(::infra_service::v1::AddDNSRecordData)},
-        {97, sizeof(::infra_service::v1::AddDNSRecordDataAck)},
-        {102, sizeof(::infra_service::v1::DeleteDNSRecordData)},
-        {113, sizeof(::infra_service::v1::DeleteDNSRecordDataAck)},
-        {118, sizeof(::infra_service::v1::Share)},
-        {125, sizeof(::infra_service::v1::GroupMapping)},
-        {132, sizeof(::infra_service::v1::SyncNetlogonScriptData)},
-        {139, sizeof(::infra_service::v1::SyncNetlogonScriptDataAck)},
+        {14, sizeof(::infra_service::v1::AddDomainGroupData)},
+        {19, sizeof(::infra_service::v1::AddDomainGroupDataAck)},
+        {26, sizeof(::infra_service::v1::RemoveDomainUserData)},
+        {31, sizeof(::infra_service::v1::RemoveDomainUserDataAck)},
+        {38, sizeof(::infra_service::v1::CreateSambaFileShareData)},
+        {45, sizeof(::infra_service::v1::CreateSambaFileShareDataAck)},
+        {50, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
+        {55, sizeof(::infra_service::v1::ResetUserPasswordData)},
+        {62, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
+        {67, sizeof(::infra_service::v1::CreateDomainUserWithGroupData)},
+        {76, sizeof(::infra_service::v1::CreateDomainUserWithGroupDataAck)},
+        {89, sizeof(::infra_service::v1::GetUserListDataAck)},
+        {96, sizeof(::infra_service::v1::GetFileShareSizeData)},
+        {101, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
+        {108, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
+        {115, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
+        {120, sizeof(::infra_service::v1::AddDNSRecordData)},
+        {131, sizeof(::infra_service::v1::AddDNSRecordDataAck)},
+        {136, sizeof(::infra_service::v1::DeleteDNSRecordData)},
+        {147, sizeof(::infra_service::v1::DeleteDNSRecordDataAck)},
+        {152, sizeof(::infra_service::v1::Share)},
+        {159, sizeof(::infra_service::v1::GroupMapping)},
+        {166, sizeof(::infra_service::v1::SyncNetlogonScriptData)},
+        {173, sizeof(::infra_service::v1::SyncNetlogonScriptDataAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_AddDomainUserData_default_instance_._instance,
     &::infra_service::v1::_AddDomainUserDataAck_default_instance_._instance,
+    &::infra_service::v1::_AddDomainGroupData_default_instance_._instance,
+    &::infra_service::v1::_AddDomainGroupDataAck_default_instance_._instance,
     &::infra_service::v1::_RemoveDomainUserData_default_instance_._instance,
     &::infra_service::v1::_RemoveDomainUserDataAck_default_instance_._instance,
     &::infra_service::v1::_CreateSambaFileShareData_default_instance_._instance,
@@ -829,6 +994,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::infra_service::v1::_RestartSambaServiceDataAck_default_instance_._instance,
     &::infra_service::v1::_ResetUserPasswordData_default_instance_._instance,
     &::infra_service::v1::_ResetUserPasswordDataAck_default_instance_._instance,
+    &::infra_service::v1::_CreateDomainUserWithGroupData_default_instance_._instance,
+    &::infra_service::v1::_CreateDomainUserWithGroupDataAck_default_instance_._instance,
     &::infra_service::v1::_GetUserListDataAck_default_instance_._instance,
     &::infra_service::v1::_GetFileShareSizeData_default_instance_._instance,
     &::infra_service::v1::_GetFileShareSizeDataAck_default_instance_._instance,
@@ -850,78 +1017,93 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
     "to\"7\n\021AddDomainUserData\022\020\n\010username\030\001 \001("
     "\t\022\020\n\010password\030\002 \001(\t\"P\n\024AddDomainUserData"
     "Ack\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.S"
-    "tatus\022\016\n\006result\030\002 \001(\t\"(\n\024RemoveDomainUse"
-    "rData\022\020\n\010username\030\001 \001(\t\"S\n\027RemoveDomainU"
-    "serDataAck\022(\n\006status\030\001 \001(\0162\030.infra_servi"
-    "ce.v1.Status\022\016\n\006result\030\002 \001(\t\"B\n\030CreateSa"
-    "mbaFileShareData\022\022\n\nshare_name\030\001 \001(\t\022\022\n\n"
-    "share_size\030\002 \001(\t\"G\n\033CreateSambaFileShare"
-    "DataAck\022(\n\006status\030\001 \001(\0162\030.infra_service."
-    "v1.Status\"F\n\032RestartSambaServiceDataAck\022"
-    "(\n\006status\030\001 \001(\0162\030.infra_service.v1.Statu"
-    "s\";\n\025ResetUserPasswordData\022\020\n\010username\030\001"
-    " \001(\t\022\020\n\010password\030\002 \001(\t\"D\n\030ResetUserPassw"
-    "ordDataAck\022(\n\006status\030\001 \001(\0162\030.infra_servi"
-    "ce.v1.Status\"M\n\022GetUserListDataAck\022(\n\006st"
-    "atus\030\001 \001(\0162\030.infra_service.v1.Status\022\r\n\005"
-    "users\030\002 \003(\t\"*\n\024GetFileShareSizeData\022\022\n\ns"
-    "hare_name\030\001 \001(\t\"A\n\027GetFileShareSizeDataA"
-    "ck\022\022\n\ntotal_size\030\001 \001(\005\022\022\n\nusage_size\030\002 \001"
-    "(\005\"A\n\030DeleteSambaFileShareData\022\022\n\nshare_"
-    "name\030\001 \001(\t\022\021\n\twipe_data\030\002 \001(\010\"G\n\033DeleteS"
-    "ambaFileShareDataAck\022(\n\006status\030\001 \001(\0162\030.i"
-    "nfra_service.v1.Status\"P\n\020AddDNSRecordDa"
-    "ta\022\014\n\004zone\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\016\n\006target"
-    "\030\003 \001(\t\022\020\n\010password\030\004 \001(\t\"\?\n\023AddDNSRecord"
-    "DataAck\022(\n\006status\030\001 \001(\0162\030.infra_service."
-    "v1.Status\"S\n\023DeleteDNSRecordData\022\014\n\004zone"
-    "\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010"
-    "password\030\004 \001(\t\"B\n\026DeleteDNSRecordDataAck"
-    "\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.Stat"
-    "us\"1\n\005Share\022\022\n\nshare_path\030\001 \001(\t\022\024\n\014drive"
-    "_letter\030\002 \001(\t\"K\n\014GroupMapping\022\022\n\ngroup_n"
-    "ame\030\001 \001(\t\022\'\n\006shares\030\002 \003(\0132\027.infra_servic"
-    "e.v1.Share\"W\n\026SyncNetlogonScriptData\022\r\n\005"
-    "realm\030\001 \001(\t\022.\n\006groups\030\002 \003(\0132\036.infra_serv"
-    "ice.v1.GroupMapping\"E\n\031SyncNetlogonScrip"
-    "tDataAck\022(\n\006status\030\001 \001(\0162\030.infra_service"
-    ".v1.Status*\300\002\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FA"
-    "ILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USER_NOT_FOUND\020"
-    "\003\022\027\n\023PASSWORD_REQ_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022"
-    "\023\n\017SHARE_NOT_FOUND\020\006\022\024\n\020DNS_RECORD_EXIST"
-    "\020\007\022\030\n\024DNS_RECORD_NOT_EXIST\020\010\022\026\n\022DNS_ZONE"
-    "_NOT_FOUND\020\t\022\r\n\tAUTH_FAIL\020\n\022\013\n\007DD_FAIL\020\013"
-    "\022\r\n\tMKFS_FAIL\020\014\022\016\n\nMOUNT_FAIL\020\r\022\021\n\rNO_SP"
-    "ACE_LEFT\020\016\022\025\n\021PERMISSION_DENIED\020\017\022\022\n\016FIL"
-    "E_NOT_FOUND\020\0202\340\010\n\014InfraService\022k\n\022SyncNe"
-    "tlogonScript\022(.infra_service.v1.SyncNetl"
-    "ogonScriptData\032+.infra_service.v1.SyncNe"
-    "tlogonScriptDataAck\022Y\n\014AddDNSRecord\022\".in"
-    "fra_service.v1.AddDNSRecordData\032%.infra_"
-    "service.v1.AddDNSRecordDataAck\022b\n\017Delete"
-    "DNSRecord\022%.infra_service.v1.DeleteDNSRe"
-    "cordData\032(.infra_service.v1.DeleteDNSRec"
-    "ordDataAck\022K\n\013GetUserList\022\026.google.proto"
-    "buf.Empty\032$.infra_service.v1.GetUserList"
-    "DataAck\022[\n\023RestartSambaService\022\026.google."
-    "protobuf.Empty\032,.infra_service.v1.Restar"
-    "tSambaServiceDataAck\022q\n\024CreateSambaFileS"
-    "hare\022*.infra_service.v1.CreateSambaFileS"
-    "hareData\032-.infra_service.v1.CreateSambaF"
-    "ileShareDataAck\022q\n\024DeleteSambaFileShare\022"
-    "*.infra_service.v1.DeleteSambaFileShareD"
-    "ata\032-.infra_service.v1.DeleteSambaFileSh"
-    "areDataAck\022h\n\021ResetUserPassword\022\'.infra_"
-    "service.v1.ResetUserPasswordData\032*.infra"
-    "_service.v1.ResetUserPasswordDataAck\022\\\n\r"
-    "AddDomainUser\022#.infra_service.v1.AddDoma"
-    "inUserData\032&.infra_service.v1.AddDomainU"
-    "serDataAck\022e\n\020RemoveDomainUser\022&.infra_s"
-    "ervice.v1.RemoveDomainUserData\032).infra_s"
-    "ervice.v1.RemoveDomainUserDataAck\022e\n\020Get"
-    "FileShareSize\022&.infra_service.v1.GetFile"
-    "ShareSizeData\032).infra_service.v1.GetFile"
-    "ShareSizeDataAckb\006proto3"
+    "tatus\022\016\n\006result\030\002 \001(\t\"(\n\022AddDomainGroupD"
+    "ata\022\022\n\ngroup_name\030\001 \001(\t\"Q\n\025AddDomainGrou"
+    "pDataAck\022(\n\006status\030\001 \001(\0162\030.infra_service"
+    ".v1.Status\022\016\n\006result\030\002 \001(\t\"(\n\024RemoveDoma"
+    "inUserData\022\020\n\010username\030\001 \001(\t\"S\n\027RemoveDo"
+    "mainUserDataAck\022(\n\006status\030\001 \001(\0162\030.infra_"
+    "service.v1.Status\022\016\n\006result\030\002 \001(\t\"B\n\030Cre"
+    "ateSambaFileShareData\022\022\n\nshare_name\030\001 \001("
+    "\t\022\022\n\nshare_size\030\002 \001(\t\"G\n\033CreateSambaFile"
+    "ShareDataAck\022(\n\006status\030\001 \001(\0162\030.infra_ser"
+    "vice.v1.Status\"F\n\032RestartSambaServiceDat"
+    "aAck\022(\n\006status\030\001 \001(\0162\030.infra_service.v1."
+    "Status\";\n\025ResetUserPasswordData\022\020\n\010usern"
+    "ame\030\001 \001(\t\022\020\n\010password\030\002 \001(\t\"D\n\030ResetUser"
+    "PasswordDataAck\022(\n\006status\030\001 \001(\0162\030.infra_"
+    "service.v1.Status\"W\n\035CreateDomainUserWit"
+    "hGroupData\022\020\n\010username\030\001 \001(\t\022\020\n\010password"
+    "\030\002 \001(\t\022\022\n\ngroup_name\030\003 \001(\t\"\247\001\n CreateDom"
+    "ainUserWithGroupDataAck\022(\n\006status\030\001 \001(\0162"
+    "\030.infra_service.v1.Status\022\023\n\013user_result"
+    "\030\002 \001(\t\022\024\n\014group_result\030\003 \001(\t\022\023\n\013link_res"
+    "ult\030\004 \001(\t\022\031\n\021membership_result\030\005 \001(\t\"M\n\022"
+    "GetUserListDataAck\022(\n\006status\030\001 \001(\0162\030.inf"
+    "ra_service.v1.Status\022\r\n\005users\030\002 \003(\t\"*\n\024G"
+    "etFileShareSizeData\022\022\n\nshare_name\030\001 \001(\t\""
+    "A\n\027GetFileShareSizeDataAck\022\022\n\ntotal_size"
+    "\030\001 \001(\005\022\022\n\nusage_size\030\002 \001(\005\"A\n\030DeleteSamb"
+    "aFileShareData\022\022\n\nshare_name\030\001 \001(\t\022\021\n\twi"
+    "pe_data\030\002 \001(\010\"G\n\033DeleteSambaFileShareDat"
+    "aAck\022(\n\006status\030\001 \001(\0162\030.infra_service.v1."
+    "Status\"P\n\020AddDNSRecordData\022\014\n\004zone\030\001 \001(\t"
+    "\022\014\n\004name\030\002 \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010passwo"
+    "rd\030\004 \001(\t\"\?\n\023AddDNSRecordDataAck\022(\n\006statu"
+    "s\030\001 \001(\0162\030.infra_service.v1.Status\"S\n\023Del"
+    "eteDNSRecordData\022\014\n\004zone\030\001 \001(\t\022\014\n\004name\030\002"
+    " \001(\t\022\016\n\006target\030\003 \001(\t\022\020\n\010password\030\004 \001(\t\"B"
+    "\n\026DeleteDNSRecordDataAck\022(\n\006status\030\001 \001(\016"
+    "2\030.infra_service.v1.Status\"1\n\005Share\022\022\n\ns"
+    "hare_path\030\001 \001(\t\022\024\n\014drive_letter\030\002 \001(\t\"K\n"
+    "\014GroupMapping\022\022\n\ngroup_name\030\001 \001(\t\022\'\n\006sha"
+    "res\030\002 \003(\0132\027.infra_service.v1.Share\"W\n\026Sy"
+    "ncNetlogonScriptData\022\r\n\005realm\030\001 \001(\t\022.\n\006g"
+    "roups\030\002 \003(\0132\036.infra_service.v1.GroupMapp"
+    "ing\"E\n\031SyncNetlogonScriptDataAck\022(\n\006stat"
+    "us\030\001 \001(\0162\030.infra_service.v1.Status*\300\002\n\006S"
+    "tatus\022\013\n\007SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLIC"
+    "ATE\020\002\022\022\n\016USER_NOT_FOUND\020\003\022\027\n\023PASSWORD_RE"
+    "Q_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022\023\n\017SHARE_NOT_FOU"
+    "ND\020\006\022\024\n\020DNS_RECORD_EXIST\020\007\022\030\n\024DNS_RECORD"
+    "_NOT_EXIST\020\010\022\026\n\022DNS_ZONE_NOT_FOUND\020\t\022\r\n\t"
+    "AUTH_FAIL\020\n\022\013\n\007DD_FAIL\020\013\022\r\n\tMKFS_FAIL\020\014\022"
+    "\016\n\nMOUNT_FAIL\020\r\022\021\n\rNO_SPACE_LEFT\020\016\022\025\n\021PE"
+    "RMISSION_DENIED\020\017\022\022\n\016FILE_NOT_FOUND\020\0202\304\n"
+    "\n\014InfraService\022k\n\022SyncNetlogonScript\022(.i"
+    "nfra_service.v1.SyncNetlogonScriptData\032+"
+    ".infra_service.v1.SyncNetlogonScriptData"
+    "Ack\022Y\n\014AddDNSRecord\022\".infra_service.v1.A"
+    "ddDNSRecordData\032%.infra_service.v1.AddDN"
+    "SRecordDataAck\022b\n\017DeleteDNSRecord\022%.infr"
+    "a_service.v1.DeleteDNSRecordData\032(.infra"
+    "_service.v1.DeleteDNSRecordDataAck\022K\n\013Ge"
+    "tUserList\022\026.google.protobuf.Empty\032$.infr"
+    "a_service.v1.GetUserListDataAck\022[\n\023Resta"
+    "rtSambaService\022\026.google.protobuf.Empty\032,"
+    ".infra_service.v1.RestartSambaServiceDat"
+    "aAck\022q\n\024CreateSambaFileShare\022*.infra_ser"
+    "vice.v1.CreateSambaFileShareData\032-.infra"
+    "_service.v1.CreateSambaFileShareDataAck\022"
+    "q\n\024DeleteSambaFileShare\022*.infra_service."
+    "v1.DeleteSambaFileShareData\032-.infra_serv"
+    "ice.v1.DeleteSambaFileShareDataAck\022_\n\016Ad"
+    "dDomainGroup\022$.infra_service.v1.AddDomai"
+    "nGroupData\032\'.infra_service.v1.AddDomainG"
+    "roupDataAck\022\200\001\n\031CreateDomainUserWithGrou"
+    "p\022/.infra_service.v1.CreateDomainUserWit"
+    "hGroupData\0322.infra_service.v1.CreateDoma"
+    "inUserWithGroupDataAck\022h\n\021ResetUserPassw"
+    "ord\022\'.infra_service.v1.ResetUserPassword"
+    "Data\032*.infra_service.v1.ResetUserPasswor"
+    "dDataAck\022\\\n\rAddDomainUser\022#.infra_servic"
+    "e.v1.AddDomainUserData\032&.infra_service.v"
+    "1.AddDomainUserDataAck\022e\n\020RemoveDomainUs"
+    "er\022&.infra_service.v1.RemoveDomainUserDa"
+    "ta\032).infra_service.v1.RemoveDomainUserDa"
+    "taAck\022e\n\020GetFileShareSize\022&.infra_servic"
+    "e.v1.GetFileShareSizeData\032).infra_servic"
+    "e.v1.GetFileShareSizeDataAckb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
@@ -931,13 +1113,13 @@ static ::absl::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2epr
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
     false,
     false,
-    3064,
+    3676,
     descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto,
     "infra_service/infra_service.proto",
     &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once,
     descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps,
     1,
-    22,
+    26,
     schemas,
     file_default_instances,
     TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
@@ -1553,6 +1735,564 @@ void AddDomainUserDataAck::InternalSwap(AddDomainUserDataAck* PROTOBUF_RESTRICT 
 }
 
 ::google::protobuf::Metadata AddDomainUserDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AddDomainGroupData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AddDomainGroupData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AddDomainGroupData, _impl_._has_bits_);
+};
+
+AddDomainGroupData::AddDomainGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDomainGroupData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddDomainGroupData)
+}
+PROTOBUF_NDEBUG_INLINE AddDomainGroupData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::AddDomainGroupData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        group_name_(arena, from.group_name_) {}
+
+AddDomainGroupData::AddDomainGroupData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AddDomainGroupData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDomainGroupData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AddDomainGroupData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.AddDomainGroupData)
+}
+PROTOBUF_NDEBUG_INLINE AddDomainGroupData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        group_name_(arena) {}
+
+inline void AddDomainGroupData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+AddDomainGroupData::~AddDomainGroupData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddDomainGroupData)
+  SharedDtor(*this);
+}
+inline void AddDomainGroupData::SharedDtor(MessageLite& self) {
+  AddDomainGroupData& this_ = static_cast<AddDomainGroupData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.group_name_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AddDomainGroupData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AddDomainGroupData(arena);
+}
+constexpr auto AddDomainGroupData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AddDomainGroupData),
+                                            alignof(AddDomainGroupData));
+}
+constexpr auto AddDomainGroupData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AddDomainGroupData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AddDomainGroupData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AddDomainGroupData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AddDomainGroupData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AddDomainGroupData>(), &AddDomainGroupData::ByteSizeLong,
+              &AddDomainGroupData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AddDomainGroupData, _impl_._cached_size_),
+          false,
+      },
+      &AddDomainGroupData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AddDomainGroupData_class_data_ =
+        AddDomainGroupData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AddDomainGroupData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AddDomainGroupData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AddDomainGroupData_class_data_.tc_table);
+  return AddDomainGroupData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 54, 2>
+AddDomainGroupData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AddDomainGroupData, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AddDomainGroupData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::AddDomainGroupData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string group_name = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(AddDomainGroupData, _impl_.group_name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string group_name = 1;
+    {PROTOBUF_FIELD_OFFSET(AddDomainGroupData, _impl_.group_name_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\43\12\0\0\0\0\0\0"
+    "infra_service.v1.AddDomainGroupData"
+    "group_name"
+  }},
+};
+PROTOBUF_NOINLINE void AddDomainGroupData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddDomainGroupData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    _impl_.group_name_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AddDomainGroupData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AddDomainGroupData& this_ = static_cast<const AddDomainGroupData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AddDomainGroupData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AddDomainGroupData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddDomainGroupData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string group_name = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_group_name().empty()) {
+      const ::std::string& _s = this_._internal_group_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDomainGroupData.group_name");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddDomainGroupData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AddDomainGroupData::ByteSizeLong(const MessageLite& base) {
+  const AddDomainGroupData& this_ = static_cast<const AddDomainGroupData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AddDomainGroupData::ByteSizeLong() const {
+  const AddDomainGroupData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddDomainGroupData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string group_name = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_group_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_group_name());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AddDomainGroupData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<AddDomainGroupData*>(&to_msg);
+  auto& from = static_cast<const AddDomainGroupData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddDomainGroupData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    if (!from._internal_group_name().empty()) {
+      _this->_internal_set_group_name(from._internal_group_name());
+    } else {
+      if (_this->_impl_.group_name_.IsDefault()) {
+        _this->_internal_set_group_name("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void AddDomainGroupData::CopyFrom(const AddDomainGroupData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddDomainGroupData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AddDomainGroupData::InternalSwap(AddDomainGroupData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.group_name_, &other->_impl_.group_name_, arena);
+}
+
+::google::protobuf::Metadata AddDomainGroupData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AddDomainGroupDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AddDomainGroupDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_._has_bits_);
+};
+
+AddDomainGroupDataAck::AddDomainGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDomainGroupDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddDomainGroupDataAck)
+}
+PROTOBUF_NDEBUG_INLINE AddDomainGroupDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::AddDomainGroupDataAck& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        result_(arena, from.result_) {}
+
+AddDomainGroupDataAck::AddDomainGroupDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AddDomainGroupDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AddDomainGroupDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AddDomainGroupDataAck* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.AddDomainGroupDataAck)
+}
+PROTOBUF_NDEBUG_INLINE AddDomainGroupDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        result_(arena) {}
+
+inline void AddDomainGroupDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+AddDomainGroupDataAck::~AddDomainGroupDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddDomainGroupDataAck)
+  SharedDtor(*this);
+}
+inline void AddDomainGroupDataAck::SharedDtor(MessageLite& self) {
+  AddDomainGroupDataAck& this_ = static_cast<AddDomainGroupDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.result_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AddDomainGroupDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AddDomainGroupDataAck(arena);
+}
+constexpr auto AddDomainGroupDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AddDomainGroupDataAck),
+                                            alignof(AddDomainGroupDataAck));
+}
+constexpr auto AddDomainGroupDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AddDomainGroupDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AddDomainGroupDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AddDomainGroupDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AddDomainGroupDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AddDomainGroupDataAck>(), &AddDomainGroupDataAck::ByteSizeLong,
+              &AddDomainGroupDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_._cached_size_),
+          false,
+      },
+      &AddDomainGroupDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AddDomainGroupDataAck_class_data_ =
+        AddDomainGroupDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AddDomainGroupDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AddDomainGroupDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AddDomainGroupDataAck_class_data_.tc_table);
+  return AddDomainGroupDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 53, 2>
+AddDomainGroupDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AddDomainGroupDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::AddDomainGroupDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string result = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0, PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_.result_)}},
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddDomainGroupDataAck, _impl_.status_), 1>(),
+     {8, 1, 0, PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_.status_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string result = 2;
+    {PROTOBUF_FIELD_OFFSET(AddDomainGroupDataAck, _impl_.result_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\46\0\6\0\0\0\0\0"
+    "infra_service.v1.AddDomainGroupDataAck"
+    "result"
+  }},
+};
+PROTOBUF_NOINLINE void AddDomainGroupDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddDomainGroupDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000001u) != 0) {
+    _impl_.result_.ClearNonDefaultToEmpty();
+  }
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AddDomainGroupDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AddDomainGroupDataAck& this_ = static_cast<const AddDomainGroupDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AddDomainGroupDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AddDomainGroupDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddDomainGroupDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // string result = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_result().empty()) {
+      const ::std::string& _s = this_._internal_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.AddDomainGroupDataAck.result");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddDomainGroupDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AddDomainGroupDataAck::ByteSizeLong(const MessageLite& base) {
+  const AddDomainGroupDataAck& this_ = static_cast<const AddDomainGroupDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AddDomainGroupDataAck::ByteSizeLong() const {
+  const AddDomainGroupDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddDomainGroupDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    // string result = 2;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_result());
+      }
+    }
+    // .infra_service.v1.Status status = 1;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AddDomainGroupDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<AddDomainGroupDataAck*>(&to_msg);
+  auto& from = static_cast<const AddDomainGroupDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddDomainGroupDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000003u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_result().empty()) {
+        _this->_internal_set_result(from._internal_result());
+      } else {
+        if (_this->_impl_.result_.IsDefault()) {
+          _this->_internal_set_result("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void AddDomainGroupDataAck::CopyFrom(const AddDomainGroupDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddDomainGroupDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AddDomainGroupDataAck::InternalSwap(AddDomainGroupDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.result_, &other->_impl_.result_, arena);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata AddDomainGroupDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -3430,6 +4170,775 @@ void ResetUserPasswordDataAck::InternalSwap(ResetUserPasswordDataAck* PROTOBUF_R
 }
 
 ::google::protobuf::Metadata ResetUserPasswordDataAck::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateDomainUserWithGroupData::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateDomainUserWithGroupData>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_._has_bits_);
+};
+
+CreateDomainUserWithGroupData::CreateDomainUserWithGroupData(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateDomainUserWithGroupData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.CreateDomainUserWithGroupData)
+}
+PROTOBUF_NDEBUG_INLINE CreateDomainUserWithGroupData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::CreateDomainUserWithGroupData& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        username_(arena, from.username_),
+        password_(arena, from.password_),
+        group_name_(arena, from.group_name_) {}
+
+CreateDomainUserWithGroupData::CreateDomainUserWithGroupData(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateDomainUserWithGroupData& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateDomainUserWithGroupData_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateDomainUserWithGroupData* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.CreateDomainUserWithGroupData)
+}
+PROTOBUF_NDEBUG_INLINE CreateDomainUserWithGroupData::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        username_(arena),
+        password_(arena),
+        group_name_(arena) {}
+
+inline void CreateDomainUserWithGroupData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+CreateDomainUserWithGroupData::~CreateDomainUserWithGroupData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.CreateDomainUserWithGroupData)
+  SharedDtor(*this);
+}
+inline void CreateDomainUserWithGroupData::SharedDtor(MessageLite& self) {
+  CreateDomainUserWithGroupData& this_ = static_cast<CreateDomainUserWithGroupData&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.username_.Destroy();
+  this_._impl_.password_.Destroy();
+  this_._impl_.group_name_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateDomainUserWithGroupData::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateDomainUserWithGroupData(arena);
+}
+constexpr auto CreateDomainUserWithGroupData::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateDomainUserWithGroupData),
+                                            alignof(CreateDomainUserWithGroupData));
+}
+constexpr auto CreateDomainUserWithGroupData::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateDomainUserWithGroupData_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateDomainUserWithGroupData::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateDomainUserWithGroupData>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateDomainUserWithGroupData::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateDomainUserWithGroupData>(), &CreateDomainUserWithGroupData::ByteSizeLong,
+              &CreateDomainUserWithGroupData::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_._cached_size_),
+          false,
+      },
+      &CreateDomainUserWithGroupData::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupData_class_data_ =
+        CreateDomainUserWithGroupData::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateDomainUserWithGroupData::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateDomainUserWithGroupData_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateDomainUserWithGroupData_class_data_.tc_table);
+  return CreateDomainUserWithGroupData_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 81, 2>
+CreateDomainUserWithGroupData::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateDomainUserWithGroupData_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::CreateDomainUserWithGroupData>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string username = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.username_)}},
+    // string password = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.password_)}},
+    // string group_name = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.group_name_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string username = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.username_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string password = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.password_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string group_name = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupData, _impl_.group_name_), _Internal::kHasBitsOffset + 2, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\56\10\10\12\0\0\0\0"
+    "infra_service.v1.CreateDomainUserWithGroupData"
+    "username"
+    "password"
+    "group_name"
+  }},
+};
+PROTOBUF_NOINLINE void CreateDomainUserWithGroupData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.CreateDomainUserWithGroupData)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000007u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.username_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.password_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      _impl_.group_name_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateDomainUserWithGroupData::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateDomainUserWithGroupData& this_ = static_cast<const CreateDomainUserWithGroupData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateDomainUserWithGroupData::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateDomainUserWithGroupData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.CreateDomainUserWithGroupData)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // string username = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_username().empty()) {
+      const ::std::string& _s = this_._internal_username();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupData.username");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string password = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_password().empty()) {
+      const ::std::string& _s = this_._internal_password();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupData.password");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string group_name = 3;
+  if ((this_._impl_._has_bits_[0] & 0x00000004u) != 0) {
+    if (!this_._internal_group_name().empty()) {
+      const ::std::string& _s = this_._internal_group_name();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupData.group_name");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.CreateDomainUserWithGroupData)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateDomainUserWithGroupData::ByteSizeLong(const MessageLite& base) {
+  const CreateDomainUserWithGroupData& this_ = static_cast<const CreateDomainUserWithGroupData&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateDomainUserWithGroupData::ByteSizeLong() const {
+  const CreateDomainUserWithGroupData& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.CreateDomainUserWithGroupData)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000007u) != 0) {
+    // string username = 1;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_username().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_username());
+      }
+    }
+    // string password = 2;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_password().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_password());
+      }
+    }
+    // string group_name = 3;
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!this_._internal_group_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_group_name());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateDomainUserWithGroupData::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<CreateDomainUserWithGroupData*>(&to_msg);
+  auto& from = static_cast<const CreateDomainUserWithGroupData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.CreateDomainUserWithGroupData)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x00000007u) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_username().empty()) {
+        _this->_internal_set_username(from._internal_username());
+      } else {
+        if (_this->_impl_.username_.IsDefault()) {
+          _this->_internal_set_username("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_password().empty()) {
+        _this->_internal_set_password(from._internal_password());
+      } else {
+        if (_this->_impl_.password_.IsDefault()) {
+          _this->_internal_set_password("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!from._internal_group_name().empty()) {
+        _this->_internal_set_group_name(from._internal_group_name());
+      } else {
+        if (_this->_impl_.group_name_.IsDefault()) {
+          _this->_internal_set_group_name("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void CreateDomainUserWithGroupData::CopyFrom(const CreateDomainUserWithGroupData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.CreateDomainUserWithGroupData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateDomainUserWithGroupData::InternalSwap(CreateDomainUserWithGroupData* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.username_, &other->_impl_.username_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.password_, &other->_impl_.password_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.group_name_, &other->_impl_.group_name_, arena);
+}
+
+::google::protobuf::Metadata CreateDomainUserWithGroupData::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CreateDomainUserWithGroupDataAck::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<CreateDomainUserWithGroupDataAck>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_._has_bits_);
+};
+
+CreateDomainUserWithGroupDataAck::CreateDomainUserWithGroupDataAck(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateDomainUserWithGroupDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.CreateDomainUserWithGroupDataAck)
+}
+PROTOBUF_NDEBUG_INLINE CreateDomainUserWithGroupDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    const ::infra_service::v1::CreateDomainUserWithGroupDataAck& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        user_result_(arena, from.user_result_),
+        group_result_(arena, from.group_result_),
+        link_result_(arena, from.link_result_),
+        membership_result_(arena, from.membership_result_) {}
+
+CreateDomainUserWithGroupDataAck::CreateDomainUserWithGroupDataAck(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CreateDomainUserWithGroupDataAck& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, CreateDomainUserWithGroupDataAck_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CreateDomainUserWithGroupDataAck* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.status_ = from._impl_.status_;
+
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.CreateDomainUserWithGroupDataAck)
+}
+PROTOBUF_NDEBUG_INLINE CreateDomainUserWithGroupDataAck::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        user_result_(arena),
+        group_result_(arena),
+        link_result_(arena),
+        membership_result_(arena) {}
+
+inline void CreateDomainUserWithGroupDataAck::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.status_ = {};
+}
+CreateDomainUserWithGroupDataAck::~CreateDomainUserWithGroupDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  SharedDtor(*this);
+}
+inline void CreateDomainUserWithGroupDataAck::SharedDtor(MessageLite& self) {
+  CreateDomainUserWithGroupDataAck& this_ = static_cast<CreateDomainUserWithGroupDataAck&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.user_result_.Destroy();
+  this_._impl_.group_result_.Destroy();
+  this_._impl_.link_result_.Destroy();
+  this_._impl_.membership_result_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CreateDomainUserWithGroupDataAck(arena);
+}
+constexpr auto CreateDomainUserWithGroupDataAck::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(CreateDomainUserWithGroupDataAck),
+                                            alignof(CreateDomainUserWithGroupDataAck));
+}
+constexpr auto CreateDomainUserWithGroupDataAck::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CreateDomainUserWithGroupDataAck_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CreateDomainUserWithGroupDataAck::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<CreateDomainUserWithGroupDataAck>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CreateDomainUserWithGroupDataAck::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<CreateDomainUserWithGroupDataAck>(), &CreateDomainUserWithGroupDataAck::ByteSizeLong,
+              &CreateDomainUserWithGroupDataAck::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_._cached_size_),
+          false,
+      },
+      &CreateDomainUserWithGroupDataAck::kDescriptorMethods,
+      &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CreateDomainUserWithGroupDataAck_class_data_ =
+        CreateDomainUserWithGroupDataAck::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CreateDomainUserWithGroupDataAck::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CreateDomainUserWithGroupDataAck_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CreateDomainUserWithGroupDataAck_class_data_.tc_table);
+  return CreateDomainUserWithGroupDataAck_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 109, 2>
+CreateDomainUserWithGroupDataAck::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CreateDomainUserWithGroupDataAck_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::infra_service::v1::CreateDomainUserWithGroupDataAck>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .infra_service.v1.Status status = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CreateDomainUserWithGroupDataAck, _impl_.status_), 4>(),
+     {8, 4, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.status_)}},
+    // string user_result = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.user_result_)}},
+    // string group_result = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.group_result_)}},
+    // string link_result = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.link_result_)}},
+    // string membership_result = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0, PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.membership_result_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .infra_service.v1.Status status = 1;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.status_), _Internal::kHasBitsOffset + 4, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string user_result = 2;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.user_result_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string group_result = 3;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.group_result_), _Internal::kHasBitsOffset + 1, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string link_result = 4;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.link_result_), _Internal::kHasBitsOffset + 2, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string membership_result = 5;
+    {PROTOBUF_FIELD_OFFSET(CreateDomainUserWithGroupDataAck, _impl_.membership_result_), _Internal::kHasBitsOffset + 3, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\61\0\13\14\13\21\0\0"
+    "infra_service.v1.CreateDomainUserWithGroupDataAck"
+    "user_result"
+    "group_result"
+    "link_result"
+    "membership_result"
+  }},
+};
+PROTOBUF_NOINLINE void CreateDomainUserWithGroupDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000000fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      _impl_.user_result_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      _impl_.group_result_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      _impl_.link_result_.ClearNonDefaultToEmpty();
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      _impl_.membership_result_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.status_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const CreateDomainUserWithGroupDataAck& this_ = static_cast<const CreateDomainUserWithGroupDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL CreateDomainUserWithGroupDataAck::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const CreateDomainUserWithGroupDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if ((this_._impl_._has_bits_[0] & 0x00000010u) != 0) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_status(), target);
+    }
+  }
+
+  // string user_result = 2;
+  if ((this_._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    if (!this_._internal_user_result().empty()) {
+      const ::std::string& _s = this_._internal_user_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupDataAck.user_result");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string group_result = 3;
+  if ((this_._impl_._has_bits_[0] & 0x00000002u) != 0) {
+    if (!this_._internal_group_result().empty()) {
+      const ::std::string& _s = this_._internal_group_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupDataAck.group_result");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string link_result = 4;
+  if ((this_._impl_._has_bits_[0] & 0x00000004u) != 0) {
+    if (!this_._internal_link_result().empty()) {
+      const ::std::string& _s = this_._internal_link_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupDataAck.link_result");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string membership_result = 5;
+  if ((this_._impl_._has_bits_[0] & 0x00000008u) != 0) {
+    if (!this_._internal_membership_result().empty()) {
+      const ::std::string& _s = this_._internal_membership_result();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "infra_service.v1.CreateDomainUserWithGroupDataAck.membership_result");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t CreateDomainUserWithGroupDataAck::ByteSizeLong(const MessageLite& base) {
+  const CreateDomainUserWithGroupDataAck& this_ = static_cast<const CreateDomainUserWithGroupDataAck&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t CreateDomainUserWithGroupDataAck::ByteSizeLong() const {
+  const CreateDomainUserWithGroupDataAck& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000001fu) != 0) {
+    // string user_result = 2;
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!this_._internal_user_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_user_result());
+      }
+    }
+    // string group_result = 3;
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!this_._internal_group_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_group_result());
+      }
+    }
+    // string link_result = 4;
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!this_._internal_link_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_link_result());
+      }
+    }
+    // string membership_result = 5;
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!this_._internal_membership_result().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_membership_result());
+      }
+    }
+    // .infra_service.v1.Status status = 1;
+    if ((cached_has_bits & 0x00000010u) != 0) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void CreateDomainUserWithGroupDataAck::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<CreateDomainUserWithGroupDataAck*>(&to_msg);
+  auto& from = static_cast<const CreateDomainUserWithGroupDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if ((cached_has_bits & 0x0000001fu) != 0) {
+    if ((cached_has_bits & 0x00000001u) != 0) {
+      if (!from._internal_user_result().empty()) {
+        _this->_internal_set_user_result(from._internal_user_result());
+      } else {
+        if (_this->_impl_.user_result_.IsDefault()) {
+          _this->_internal_set_user_result("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000002u) != 0) {
+      if (!from._internal_group_result().empty()) {
+        _this->_internal_set_group_result(from._internal_group_result());
+      } else {
+        if (_this->_impl_.group_result_.IsDefault()) {
+          _this->_internal_set_group_result("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000004u) != 0) {
+      if (!from._internal_link_result().empty()) {
+        _this->_internal_set_link_result(from._internal_link_result());
+      } else {
+        if (_this->_impl_.link_result_.IsDefault()) {
+          _this->_internal_set_link_result("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000008u) != 0) {
+      if (!from._internal_membership_result().empty()) {
+        _this->_internal_set_membership_result(from._internal_membership_result());
+      } else {
+        if (_this->_impl_.membership_result_.IsDefault()) {
+          _this->_internal_set_membership_result("");
+        }
+      }
+    }
+    if ((cached_has_bits & 0x00000010u) != 0) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void CreateDomainUserWithGroupDataAck::CopyFrom(const CreateDomainUserWithGroupDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.CreateDomainUserWithGroupDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void CreateDomainUserWithGroupDataAck::InternalSwap(CreateDomainUserWithGroupDataAck* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.user_result_, &other->_impl_.user_result_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.group_result_, &other->_impl_.group_result_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.link_result_, &other->_impl_.link_result_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.membership_result_, &other->_impl_.membership_result_, arena);
+  swap(_impl_.status_, other->_impl_.status_);
+}
+
+::google::protobuf::Metadata CreateDomainUserWithGroupDataAck::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

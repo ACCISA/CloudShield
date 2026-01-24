@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import RDPOpenVPNCard from "../RDPOpvenVPN/RDPOpenVPNCard";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5050";
@@ -19,6 +20,19 @@ type WorkstationsResponse = {
   workstations?: Workstation[];
   data?: Workstation[];
 };
+
+type ElectronResult = {
+  success: boolean;
+  pid?: number;
+  message: string;
+};
+
+type RdpDraft = {
+  username?: string;
+  password?: string;
+};
+
+const RDP_DRAFT_STORAGE_KEY = "cloudshield.rdpDraft";
 
 const statusStyles: Record<string, string> = {
   online: "bg-emerald-500/15 text-emerald-200 border-emerald-500/40",
@@ -41,6 +55,24 @@ export default function WorkstationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [rdpUsername, setRdpUsername] = useState("");
+  const [rdpPassword, setRdpPassword] = useState("");
+  const [rdpStatus, setRdpStatus] = useState<string | null>(null);
+  const [rdpTarget, setRdpTarget] = useState<Workstation | null>(null);
+
+  const loadRdpDraft = (): RdpDraft => {
+    const raw = localStorage.getItem(RDP_DRAFT_STORAGE_KEY);
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw) as RdpDraft;
+    } catch {
+      return {};
+    }
+  };
+
+  const saveRdpDraft = (draft: RdpDraft) => {
+    localStorage.setItem(RDP_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  };
 
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
@@ -132,6 +164,53 @@ export default function WorkstationsPage() {
     window.authStore?.clearAuth();
     localStorage.removeItem("cloudshield.auth");
     window.dispatchEvent(new Event("auth-changed"));
+  };
+
+  const handleOpenConnect = (item: Workstation) => {
+    const draft = loadRdpDraft();
+    setRdpTarget(item);
+    setRdpStatus(null);
+    const assignedUser = (item.assigned_user || "").trim();
+    setRdpUsername(assignedUser || draft.username || "");
+    setRdpPassword(draft.password || "");
+  };
+
+  const handleCloseConnect = () => {
+    setRdpTarget(null);
+    setRdpStatus(null);
+  };
+
+  const handleConnect = async () => {
+    if (!rdpTarget) return;
+    if (!window.electronAPI?.runXfreerdp) {
+      setRdpStatus("Error: Electron API not available");
+      return;
+    }
+
+    const ip = (rdpTarget.ip || "").trim();
+    if (!ip) {
+      setRdpStatus("Error: Workstation IP is missing");
+      return;
+    }
+
+    if (!rdpUsername || !rdpPassword) {
+      setRdpStatus("Error: Please provide username and password");
+      return;
+    }
+
+    try {
+      setRdpStatus("Launching RDP client...");
+      const result = (await window.electronAPI.runXfreerdp(
+        rdpUsername,
+        rdpPassword,
+        ip,
+      )) as ElectronResult;
+      setRdpStatus(`Connected! (PID: ${result.pid ?? "-"})`);
+      saveRdpDraft({ username: rdpUsername, password: rdpPassword });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setRdpStatus(`Error: ${message}`);
+    }
   };
 
   const listItems = useMemo(() => {
@@ -339,7 +418,9 @@ export default function WorkstationsPage() {
                       type="button"
                       className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
                       onClick={() => {
-                        console.log("Connect clicked", item);
+                        if (!isBusy) {
+                          handleOpenConnect(item);
+                        }
                       }}
                     >
                       {actionLabel}
@@ -369,7 +450,72 @@ export default function WorkstationsPage() {
             })}
           </div>
         )}
+
+        <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+          <div className="text-sm font-semibold text-white/90">
+            Manual RDP / OpenVPN
+          </div>
+          <p className="mt-1 text-xs text-white/50">
+            Use this to connect with a custom IP, username, and password.
+          </p>
+          <RDPOpenVPNCard />
+        </div>
       </div>
+
+      {rdpTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-white/90">
+                  Connect to {rdpTarget.name || "Workstation"}
+                </div>
+                <div className="text-xs text-white/50">
+                  IP: {rdpTarget.ip || "Unavailable"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseConnect}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <input
+                type="text"
+                placeholder="Username"
+                data-testid="rdp-username-input"
+                value={rdpUsername}
+                onChange={(e) => setRdpUsername(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-[#0b0b0b] px-3 py-2 text-sm text-white/80 placeholder:text-white/30"
+              />
+              <input
+                type="password"
+                data-testid="rdp-password-input"
+                placeholder="Password"
+                value={rdpPassword}
+                onChange={(e) => setRdpPassword(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-[#0b0b0b] px-3 py-2 text-sm text-white/80 placeholder:text-white/30"
+              />
+              <button
+                type="button"
+                onClick={handleConnect}
+                className="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+              >
+                Launch RDP
+              </button>
+              {rdpStatus && (
+                <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                  {rdpStatus}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

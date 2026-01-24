@@ -6,7 +6,7 @@ import warnings
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 import genproto.infra_service_pb2 as infra__service__pb2
 
-GRPC_GENERATED_VERSION = '1.75.1'
+GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -19,7 +19,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in infra_service_pb2_grpc.py depends on'
+        + ' but the generated code in infra_service_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -69,6 +69,16 @@ class InfraServiceStub(object):
                 '/infra_service.v1.InfraService/DeleteSambaFileShare',
                 request_serializer=infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
                 response_deserializer=infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+                _registered_method=True)
+        self.AddDomainGroup = channel.unary_unary(
+                '/infra_service.v1.InfraService/AddDomainGroup',
+                request_serializer=infra__service__pb2.AddDomainGroupData.SerializeToString,
+                response_deserializer=infra__service__pb2.AddDomainGroupDataAck.FromString,
+                _registered_method=True)
+        self.CreateDomainUserWithGroup = channel.unary_unary(
+                '/infra_service.v1.InfraService/CreateDomainUserWithGroup',
+                request_serializer=infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
+                response_deserializer=infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
                 _registered_method=True)
         self.ResetUserPassword = channel.unary_unary(
                 '/infra_service.v1.InfraService/ResetUserPassword',
@@ -137,6 +147,18 @@ class InfraServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def AddDomainGroup(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateDomainUserWithGroup(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ResetUserPassword(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -198,6 +220,16 @@ def add_InfraServiceServicer_to_server(servicer, server):
                     servicer.DeleteSambaFileShare,
                     request_deserializer=infra__service__pb2.DeleteSambaFileShareData.FromString,
                     response_serializer=infra__service__pb2.DeleteSambaFileShareDataAck.SerializeToString,
+            ),
+            'AddDomainGroup': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddDomainGroup,
+                    request_deserializer=infra__service__pb2.AddDomainGroupData.FromString,
+                    response_serializer=infra__service__pb2.AddDomainGroupDataAck.SerializeToString,
+            ),
+            'CreateDomainUserWithGroup': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateDomainUserWithGroup,
+                    request_deserializer=infra__service__pb2.CreateDomainUserWithGroupData.FromString,
+                    response_serializer=infra__service__pb2.CreateDomainUserWithGroupDataAck.SerializeToString,
             ),
             'ResetUserPassword': grpc.unary_unary_rpc_method_handler(
                     servicer.ResetUserPassword,
@@ -409,6 +441,60 @@ class InfraService(object):
             '/infra_service.v1.InfraService/DeleteSambaFileShare',
             infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
             infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AddDomainGroup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/AddDomainGroup',
+            infra__service__pb2.AddDomainGroupData.SerializeToString,
+            infra__service__pb2.AddDomainGroupDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateDomainUserWithGroup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/CreateDomainUserWithGroup',
+            infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
+            infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
             options,
             channel_credentials,
             insecure,

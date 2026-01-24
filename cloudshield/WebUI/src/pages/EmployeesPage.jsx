@@ -1,536 +1,372 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
+
+// UI Components
+import UsersTable from "../components/users/UsersTable.jsx";
+import UserEditModal from "../components/users/UserEditModal.jsx";
+import UserCreateModal from "../components/users/UserCreateModal.jsx";
+import SearchField from "../components/common/SearchField/SearchField.jsx";
+import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
+import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
+import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
+import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { createFilterChangeHandler } from "../utils/filterHelpers.js";
+
+// Backend & Context
 import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
-import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+  listUsers,
+  deleteUser,
+  createUser,
+  updateUser,
+} from "../services/usersApi.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
-import { listUsers, deleteUser, createUser } from '../services/usersApi.js';
-import { useAuth } from '../context/AuthContext.jsx';
+// Toast Notification
+const CustomToast = ({ msg, type, onClose }) => {
+  if (!msg) return null;
 
-function UserTable({ users, onDelete, currentUserId, deletingUserId }) {
-  if (!users.length) {
-    return (
-      <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>
-        <Typography>No users found.</Typography>
-      </Box>
-    );
-  }
+  const styles = {
+    position: "fixed",
+    bottom: "24px",
+    right: "24px",
+    padding: "12px 24px",
+    borderRadius: "12px",
+    backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
+    color: "#fff",
+    fontSize: "1rem",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    animation: "fadeIn 0.3s ease-in-out",
+    cursor: "pointer",
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClose();
+    }
+  };
 
   return (
-    <Table sx={{ minWidth: 650 }} aria-label="Employees table">
-      <TableHead>
-        <TableRow>
-          <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderBottomColor: 'rgba(255,255,255,0.12)' }}>Name</TableCell>
-          <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderBottomColor: 'rgba(255,255,255,0.12)' }}>Email</TableCell>
-          <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderBottomColor: 'rgba(255,255,255,0.12)' }}>Role</TableCell>
-          <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderBottomColor: 'rgba(255,255,255,0.12)' }}>Status</TableCell>
-          <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderBottomColor: 'rgba(255,255,255,0.12)' }} align="right">Actions</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {users.map((user) => {
-          const isCurrentUser = user._id === currentUserId;
-          const isDeleting = user._id === deletingUserId;
-          const tooltipTitle = isCurrentUser ? "Cannot delete yourself" : "Delete user";
-          
-          return (
-            <TableRow key={user._id} hover sx={{ '&:last-of-type td': { borderBottom: 0 } }}>
-              <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                {user.full_name || '—'}
-              </TableCell>
-              <TableCell sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                {user.email || '—'}
-              </TableCell>
-              <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                {user.role || 'employee'}
-              </TableCell>
-              <TableCell sx={{ textTransform: 'capitalize', borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                {user.status || 'active'}
-              </TableCell>
-              <TableCell align="right" sx={{ borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                <Tooltip title={tooltipTitle}>
-                  <span>
-                    <IconButton
-                      aria-label={`Delete user ${user.full_name || user.email}`}
-                      onClick={() => onDelete(user)}
-                      disabled={isCurrentUser || isDeleting}
-                      sx={{
-                        color: (isCurrentUser || isDeleting) ? 'rgba(255,255,255,0.3)' : '#fff',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        '&:hover': { 
-                          backgroundColor: (isCurrentUser || isDeleting) ? 'transparent' : 'rgba(255,255,255,0.08)' 
-                        },
-                        '&.Mui-disabled': {
-                          color: 'rgba(255,255,255,0.3)',
-                          opacity: 0.5,
-                          cursor: 'not-allowed',
-                        },
-                      }}
-                      size="small"
-                    >
-                      {/* Show spinner while deleting this specific user, otherwise show trash icon */}
-                      {isDeleting ? (
-                        <CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.5)' }} />
-                      ) : (
-                        <DeleteOutlineIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div
+      style={styles}
+      onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      aria-label="Close notification"
+    >
+      {msg}
+    </div>
   );
-}
+};
+
+CustomToast.propTypes = {
+  msg: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(["success", "error", "info", "warning"]),
+  onClose: PropTypes.func.isRequired,
+};
+
+CustomToast.defaultProps = {
+  type: "success",
+};
 
 export default function EmployeesPage() {
-  const { currentUser, accessToken, authError, authLoading } = useAuth();
+  const { accessToken, currentUser } = useAuth();
 
+  // UI State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [layout, setLayout] = useState("list");
+
+  const [sortField, setSortField] = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
+
+  // Data State
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [banner, setBanner] = useState(null);
-  const [dialogUser, setDialogUser] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState(null);
-  const [deleteError, setDeleteError] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createError, setCreateError] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [query, setQuery] = useState('');
-  const [form, setForm] = useState({
-    email: '',
-    full_name: '',
-    password: '',
-    role: 'employee',
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const [activeFilters, setActiveFilters] = useState({
+    status: new Set(),
   });
 
-  const DEFAULT_LIMIT = 20;
-  const DEFAULT_OFFSET = 0;
+  const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
-  const sortedUsers = useMemo(() => {
-    return [...users].sort((a, b) => {
-      const nameA = (a.full_name || a.email || '').toLowerCase();
-      const nameB = (b.full_name || b.email || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-  }, [users]);
+  const openToast = (msg, type = "success") => {
+    setToast({ open: true, msg, type });
+    setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
+  };
 
-  const fetchUsers = useCallback(async (signal) => {
-    if (!accessToken) {
-      return;
-    }
+  // Mappers
+  const mapUserToUI = (user) => ({
+    id: user._id,
+    name: user.full_name || user.email,
+    email: user.email,
+    title: user.role || "Employee",
+    workstations: user.workstations || 0,
+    groups: user.groups || 0,
+    files: user.files || 0,
+    status: user.status || "offline",
+    _original: user,
+  });
+
+  // API Actions
+  const fetchUsers = useCallback(async () => {
+    if (!accessToken) return;
+
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await listUsers({
-        signal,
         token: accessToken,
-        search: query,
-        limit: DEFAULT_LIMIT,
-        offset: DEFAULT_OFFSET,
+        search: search,
+        limit: 100,
+        offset: 0,
       });
-      setUsers(data);
-      setBanner(null);
+
+      const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
+      setUsers(mappedUsers);
     } catch (error) {
-      if (error.name === 'AbortError') return;
-      setBanner({ severity: 'error', message: error.message || 'Failed to load users.' });
+      console.error("Failed to fetch users", error);
+      openToast(error.message || "Failed to load users", "error");
     } finally {
       setLoading(false);
     }
-  }, [accessToken, query]);
+  }, [accessToken, search]);
 
   useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
-      return;
-    }
-
-    if (!accessToken) {
-      setUsers([]);
-      setLoading(false);
-      if (authError) {
-        setBanner({ severity: 'error', message: authError });
-      } else {
-        setBanner({ severity: 'warning', message: 'Sign in to view employees.' });
-      }
-      return;
-    }
-
-    const controller = new AbortController();
-    fetchUsers(controller.signal);
-    return () => controller.abort();
-  }, [authLoading, accessToken, authError, fetchUsers]);
-
-  const handleRefresh = () => {
-    if (!accessToken) {
-      setBanner({ severity: 'warning', message: 'Authentication required to refresh users.' });
-      return;
-    }
     fetchUsers();
-  };
+  }, [fetchUsers]);
 
-  const handleSearch = () => {
-    setQuery(searchTerm.trim());
-  };
-
-  const handleSearchKeyDown = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      handleSearch();
-    }
-  };
-
-  const handleOpenCreate = () => {
-    setCreateError('');
-    setForm({ email: '', full_name: '', password: '', role: 'employee' });
-    setCreateOpen(true);
-  };
-
-  const handleCloseCreate = () => {
-    if (isCreating) return;
-    setCreateOpen(false);
-    setCreateError('');
-  };
-
-  const handleOpenDeleteDialog = (user) => {
-    setDeleteError('');
-    setDialogUser(user);
-  };
-
-  const handleCloseDialog = () => {
-    setDeleteError('');
-    setDialogUser(null);
-    setIsDeleting(false);
-    setDeletingUserId(null);
-  };
-
-  const isSelfDelete = dialogUser?._id === currentUser?.id;
-
-  const handleConfirmDelete = async () => {
-    if (!dialogUser) return;
-
-    if (isSelfDelete) {
-      setDeleteError('You cannot delete your own account.');
-      return;
-    }
-
+  const handleCreate = async (payload) => {
     if (!accessToken) {
-      setDeleteError('Missing authentication token. Please sign in again.');
+      openToast("You must be logged in to create a user", "error");
       return;
     }
-
-    setIsDeleting(true);
-    setDeletingUserId(dialogUser._id);
-    try {
-      await deleteUser(dialogUser._id, { token: accessToken });
-      setUsers((prev) => prev.filter((user) => user._id !== dialogUser._id));
-      setBanner({
-        severity: 'success',
-        message: `${dialogUser.full_name || dialogUser.email || 'User'} was deleted successfully.`,
-      });
-      handleCloseDialog();
-    } catch (error) {
-      const message = error.payload?.error || error.message || 'Failed to delete user.';
-      setDeleteError(message);
-      setBanner({ severity: 'error', message });
-      setIsDeleting(false);
-      setDeletingUserId(null);
-    }
-  };
-
-  const handleCreateUser = async (event) => {
-    event.preventDefault();
-    if (!accessToken) {
-      setCreateError('Missing authentication token. Please sign in again.');
-      return;
-    }
-
-    const email = form.email.trim().toLowerCase();
-    const fullName = form.full_name.trim();
-    const password = form.password.trim();
-
-    if (!email || !fullName || !password) {
-      setCreateError('Full name, email, and password are required.');
-      return;
-    }
-
-    setIsCreating(true);
-    setCreateError('');
 
     try {
-      const payload = {
-        email,
-        full_name: fullName,
-        password,
-        role: form.role,
-        org_id: currentUser?.org_id || localStorage.getItem('org_id'),
-      };
-
-      const result = await createUser(payload, { token: accessToken });
-
-      const newUser = {
-        _id: result?.user_id || payload.email,
+      const apiPayload = {
         email: payload.email,
-        full_name: payload.full_name,
-        role: payload.role,
-        status: result?.status ?? result?.user?.status ?? 'active',
+        full_name: `${payload.firstName} ${payload.lastName}`,
+        password: payload.password || "Password123!",
+        role: payload.jobTitle?.toLowerCase().includes("admin")
+          ? "admin"
+          : "employee",
+        org_id: currentUser?.org_id,
       };
 
-      setUsers((prev) => [newUser, ...prev]);
-      setBanner({ severity: 'success', message: `${payload.full_name || payload.email} was created successfully.` });
-      setCreateOpen(false);
-      setForm({ email: '', full_name: '', password: '', role: 'employee' });
+      await createUser(apiPayload, { token: accessToken });
+
+      openToast("User created successfully");
+      setCreateModalOpen(false);
+      fetchUsers();
     } catch (error) {
-      if (error?.status === 409) {
-        setCreateError(error.payload?.error || 'An account with this email already exists.');
-      } else if (error?.status === 403) {
-        setCreateError(error.payload?.error || 'User limit reached for your plan.');
-      } else {
-        setCreateError(error.message || 'Failed to create user.');
-      }
-    } finally {
-      setIsCreating(false);
+      const msg =
+        error.payload?.error || error.message || "Failed to create user";
+      openToast(msg, "error");
     }
+  };
+
+  const handleUpdate = async (id, payload) => {
+    if (!accessToken) return;
+
+    try {
+      const apiPayload = {
+        full_name: `${payload.firstName} ${payload.lastName}`,
+        email: payload.email,
+        role: payload.jobTitle,
+      };
+
+      await updateUser(id, apiPayload, { token: accessToken });
+
+      openToast("User updated successfully");
+      setEditModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      openToast("Update failed: Check API implementation", "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!accessToken) return;
+
+    if (id === currentUser?.id) {
+      openToast("You cannot delete your own account", "error");
+      return;
+    }
+
+    try {
+      await deleteUser(id, { token: accessToken });
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      openToast("User deleted successfully");
+      setEditModalOpen(false);
+    } catch (error) {
+      openToast(error.message || "Failed to delete user", "error");
+    }
+  };
+
+  // Logic: Filter & Sort
+  const filtered = useMemo(() => {
+    let out = [...users];
+
+    const q = search.trim().toLowerCase();
+
+    if (q) {
+      out = out.filter((u) =>
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)),
+      );
+    }
+
+    const statusFilters = activeFilters.status;
+    if (statusFilters.size > 0) {
+      out = out.filter((u) => statusFilters.has(u.status));
+    }
+
+    out.sort((a, b) => {
+      const va = a[sortField] ?? "";
+      const vb = b[sortField] ?? "";
+
+      if (typeof va === "string") {
+        return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      return sortDir === "asc" ? va - vb : vb - va;
+    });
+
+    return out;
+  }, [users, search, activeFilters, sortField, sortDir]);
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const filterGroups = [
+    {
+      id: "status",
+      label: "Status",
+      type: "checkbox",
+      options: [
+        { value: "active", label: "Active" },
+        { value: "offline", label: "Offline" },
+      ],
+    },
+  ];
+
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
+
+  const styles = {
+    container: {
+      display: "flex",
+      flexDirection: "column",
+    },
+    toolbar: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: "12px",
+      flexWrap: "wrap",
+    },
+    leftActions: {
+      display: "flex",
+      gap: "10px",
+      flex: "1 1 auto",
+      flexWrap: "wrap",
+    },
+    rightActions: {
+      display: "flex",
+      gap: "10px",
+    },
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
-            Employees
-          </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.6)', mt: 0.5 }}>
-            Manage organization users and remove access for departed employees.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            onClick={handleOpenCreate}
-            startIcon={<AddOutlinedIcon />}
-            sx={{
-              color: '#fff',
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '10px',
-              textTransform: 'none',
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)' },
+    <div style={styles.container}>
+      {/* Toolbar */}
+      <div style={styles.toolbar}>
+        <div style={styles.leftActions}>
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") fetchUsers();
             }}
-          >
-            Add Employee
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshOutlinedIcon />}
-            onClick={handleRefresh}
-            sx={{
-              color: '#fff',
-              borderColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '10px',
-              textTransform: 'none',
-              '&:hover': { borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(255,255,255,0.08)' },
+            placeholder="Search users"
+            width="420px"
+            showIcon={true}
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              maxWidth: "680px",
             }}
-          >
-            Refresh
-          </Button>
-        </Stack>
-      </Stack>
+          />
 
-      <Stack direction="row" spacing={1.5} sx={{ maxWidth: 560 }}>
-        <TextField
-          fullWidth
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Search employees"
-          variant="outlined"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchOutlinedIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              backgroundColor: '#161616',
-              color: '#fff',
-              borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.18)',
-              '& fieldset': { border: 'none' },
-            },
-          }}
+          <DisplayButton layout={layout} onLayoutChange={setLayout} />
+
+          <FilterButton
+            filterGroups={filterGroups}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+
+        <div style={styles.rightActions}>
+          <RefreshButton onClick={fetchUsers} isLoading={loading} />
+
+          <CreateButton
+            icon={<CreateUserIcon width={16} height={16} color="#fff" />}
+            buttonText="Create"
+            onClick={() => setCreateModalOpen(true)}
+          />
+        </div>
+      </div>
+
+      <UsersTable
+        users={filtered}
+        showTitle={true}
+        showWorkstations={true}
+        showGroups={true}
+        showFiles={true}
+        onSort={toggleSort}
+        sortField={sortField}
+        sortDir={sortDir}
+        onEdit={(u) => {
+          setEditTarget(u);
+          setEditModalOpen(true);
+        }}
+        onDelete={(u) => handleDelete(u.id)}
+      />
+
+      {/* Modals */}
+      {editTarget && (
+        <UserEditModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          data={editTarget}
+          onSubmit={(payload) => handleUpdate(editTarget.id, payload)}
+          onDelete={() => handleDelete(editTarget.id)}
         />
-        <Button
-          variant="contained"
-          onClick={handleSearch}
-          sx={{
-            textTransform: 'none',
-            backgroundColor: '#2471EA',
-            borderRadius: '10px',
-            '&:hover': { backgroundColor: '#1E5FC7' },
-          }}
-        >
-          Search
-        </Button>
-      </Stack>
-
-      {banner && (
-        <Alert
-          severity={banner.severity}
-          onClose={() => setBanner(null)}
-          sx={{ borderRadius: '12px' }}
-        >
-          {banner.message}
-        </Alert>
       )}
 
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '18px',
-          border: '1px solid rgba(255,255,255,0.16)',
-          backgroundColor: '#0F0F0F',
-          minHeight: 280,
-          overflow: 'hidden',
-        }}
-      >
-        {loading || authLoading ? (
-          <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : (
-          <UserTable 
-            users={sortedUsers} 
-            onDelete={handleOpenDeleteDialog} 
-            currentUserId={currentUser?.id}
-            deletingUserId={deletingUserId}
-          />
-        )}
-      </Paper>
+      <UserCreateModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={handleCreate}
+      />
 
-      <Dialog
-        open={Boolean(dialogUser)}
-        onClose={handleCloseDialog}
-        aria-labelledby="confirm-delete-user"
-      >
-        <DialogTitle id="confirm-delete-user">Delete User</DialogTitle>
-        <DialogContent sx={{ minWidth: 360 }}>
-          <Stack spacing={2}>
-            <Typography>
-              Are you sure you want to delete{' '}
-              <strong>{dialogUser?.full_name || dialogUser?.email}</strong>?
-            </Typography>
-            <Typography color="error">This action is permanent.</Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              The user will be removed from the organization and will lose access immediately.
-            </Typography>
-            {(deleteError || isSelfDelete) && (
-              <Alert severity="error">
-                {deleteError || 'You cannot delete your own account.'}
-              </Alert>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="error"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting…' : 'Confirm'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={createOpen} onClose={handleCloseCreate} aria-labelledby="create-user-dialog">
-        <DialogTitle id="create-user-dialog">Add Employee</DialogTitle>
-        <DialogContent sx={{ minWidth: 440 }}>
-          <Stack component="form" id="create-user-form" spacing={2} onSubmit={handleCreateUser}>
-            <TextField
-              label="Full Name"
-              value={form.full_name}
-              onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
-              required
-              autoFocus
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Initial Password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              required
-              fullWidth
-            />
-            <TextField
-              select
-              label="Role"
-              value={form.role}
-              onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-              fullWidth
-            >
-              <MenuItem value="employee">Employee</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-            </TextField>
-            {createError && (
-              <Alert severity="error">{createError}</Alert>
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreate} disabled={isCreating}>
-            Cancel
-          </Button>
-          <Button
-            disabled={isCreating}
-            variant="contained"
-            type="submit"
-            form="create-user-form"
-          >
-            {isCreating ? 'Creating…' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {toast.open && (
+        <CustomToast
+          msg={toast.msg}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, open: false })}
+        />
+      )}
+    </div>
   );
 }

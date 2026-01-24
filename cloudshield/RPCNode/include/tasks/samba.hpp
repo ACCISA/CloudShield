@@ -60,18 +60,27 @@ private:
 	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/{}/scripts/logon.bat";
 	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '{}' > nul\n";
 
+	static constexpr const char* GROUP_ADD_CMD = "samba-tool group add %s";
+	static constexpr const char* GROUP_ADD_TO_DOMAIN_USERS_CMD = "samba-tool group addmembers \"Domain Users\" %s";
+	static constexpr const char* GROUP_ADD_MEMBER_CMD = "samba-tool group addmembers %s %s";
+	static constexpr const char* GROUP_LIST_CMD = "samba-tool group list";
 public:
 	static constexpr const char* SAMBA_SMB_CONF_PATH = "/etc/samba/smb.conf";
 	static constexpr const char* RESTART_SAMBA_CMD = "systemctl restart samba-ad-dc";
 	std::string AddDomainUser(std::string username, std::string password);
 	std::string RemoveDomainUser(std::string username);
 	is::Status CreateSambaFileShare(std::string share_name, std::string share_size);
+	std::string AddDomainGroup(std::string group_name);
+	std::string LinkGroupToDomainUsers(std::string group_name);
+	std::string AddUserToGroup(std::string group_name, std::string username);
 	bool DeleteSambaFileShare(std::string share_name);
 	std::string ResetUserPassword(std::string username, std::string new_password); // unimp
 	std::vector<std::string> GetUserList();
+	std::vector<std::string> GetGroupList();
 	bool IsDomainUser(std::string username);
 	bool AddDNSRecord(AddDNSRecordData& dns_record, std::string& result);
 	bool DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result);
 	bool SyncNetlogonScript(std::string realm, const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups);
 	is::Status RestartSambaService();
+	bool IsDomainGroup(std::string group_name);
 };
