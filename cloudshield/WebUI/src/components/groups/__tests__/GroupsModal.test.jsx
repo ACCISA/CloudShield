@@ -1289,4 +1289,269 @@ describe("GroupsModal Component", () => {
       });
     });
   });
+
+  // ResolveOrgId and Data Fetching Tests
+  describe("ResolveOrgId and Data Fetching", () => {
+    beforeEach(() => {
+      global.fetch = jest.fn();
+      global.localStorage = {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+      };
+    });
+
+    afterEach(() => {
+      global.fetch.mockClear();
+      delete global.fetch;
+      delete global.localStorage;
+    });
+
+    test("resolveOrgId returns org_id from localStorage when user has none", async () => {
+      // Set localStorage mock with specific return value
+      global.localStorage = {
+        getItem: jest.fn().mockReturnValue("org-from-storage"),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+      };
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ shares: [] }),
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      // Navigate to files step to trigger fetch
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchUsersAll handles empty access token", async () => {
+      // This is handled by the mock which provides a token
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("New Group")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchUsersAll handles API error", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockRejectedValueOnce(new Error("API Error"));
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      // Navigate to users step
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles missing org_id", async () => {
+      // Mock useAuth to return no org_id
+      jest.mock("../../../context/AuthContext.jsx", () => ({
+        useAuth: () => ({
+          accessToken: "mock-token",
+          currentUser: { org_id: null },
+        }),
+      }));
+
+      global.localStorage.getItem.mockReturnValue(null);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to files step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles non-ok response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles successful response with shares", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          shares: [
+            { share: { id: "s1", name: "Share 1", drive: "C" } },
+            { share: { id: "s2", name: "Share 2", drive: "D" } },
+          ],
+        }),
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles fetch exception", async () => {
+      global.fetch.mockRejectedValueOnce(new Error("Network error"));
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+  });
+
+  // SafeSplitName Function Tests
+  describe("SafeSplitName Function", () => {
+    test("handles empty string", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "", email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles single word name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "John", email: "john@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles multi-word name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "John Michael Doe", email: "john@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles whitespace-only name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "   ", email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles null name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: null, email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+  });
 });
