@@ -37,9 +37,6 @@ export default function GroupsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
 
-  const openToast = (msg, type = "success") =>
-    setToast({ open: true, msg, type });
-
   // const mockFetchGroups = async () => {
   //   setGroups(MOCK_GROUPS_FULL);
   // };
@@ -59,16 +56,16 @@ export default function GroupsPage() {
     }
 
     // Apply size filters (if needed)
-    const sizeFilters = activeFilters.size;
-    if (sizeFilters.size > 0) {
-      out = out.filter((g) => {
-        if (sizeFilters.has("small") && g.users <= 5) return true;
-        if (sizeFilters.has("medium") && g.users > 5 && g.users <= 20)
-          return true;
-        if (sizeFilters.has("large") && g.users > 20) return true;
-        return false;
-      });
-    }
+    // const sizeFilters = activeFilters.size;
+    // if (sizeFilters.size > 0) {
+    //   out = out.filter((g) => {
+    //     if (sizeFilters.has("small") && g.users <= 5) return true;
+    //     if (sizeFilters.has("medium") && g.users > 5 && g.users <= 20)
+    //       return true;
+    //     if (sizeFilters.has("large") && g.users > 20) return true;
+    //     return false;
+    //   });
+    // }
 
     out.sort((a, b) => {
       const va = a[sortField] ?? "";
