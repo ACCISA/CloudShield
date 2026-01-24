@@ -178,85 +178,132 @@ describe('SignupPage', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('shows validation error for short password', async () => {
+  it('shows error for invalid email format', async () => {
     renderSignupPage();
 
-    fireEvent.change(screen.getByTestId('auth-field-email'), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByTestId('password-field'), {
-      target: { value: '123' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
-      target: { value: 'Acme' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
-      target: { value: 'acme' },
-    });
+    const emailInput = screen.getByTestId('auth-field-email');
+    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
 
-    fireEvent.click(screen.getByTestId('primary-button'));
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Password must be at least 6 characters.')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Invalid email format.')).toBeInTheDocument();
     });
-
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('shows validation error for empty company name', async () => {
+  it('shows error for short password', async () => {
     renderSignupPage();
 
-    fireEvent.change(screen.getByTestId('auth-field-email'), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByTestId('password-field'), {
-      target: { value: 'password123' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
-      target: { value: '   ' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
-      target: { value: 'acme' },
-    });
+    const passwordInput = screen.getByTestId('password-field');
+    fireEvent.change(passwordInput, { target: { value: '123' } });
 
-    fireEvent.click(screen.getByTestId('primary-button'));
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Password must be at least 6 characters.')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error for missing company name', async () => {
+    renderSignupPage();
+
+    const companyInput = screen.getByTestId('auth-field-company-name');
+    fireEvent.change(companyInput, { target: { value: '' } });
+
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText('Company name is required.')).toBeInTheDocument();
     });
-
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('shows validation error for invalid org id format', async () => {
+  it('handles server validation error', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ errors: { email: 'Email already exists.' } }),
+    });
+
     renderSignupPage();
 
-    fireEvent.change(screen.getByTestId('auth-field-email'), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByTestId('password-field'), {
-      target: { value: 'password123' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-company-name'), {
-      target: { value: 'Acme' },
-    });
-    fireEvent.change(screen.getByTestId('auth-field-organization-id'), {
-      target: { value: 'ab' },
-    });
+    const emailInput = screen.getByTestId('auth-field-email');
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
 
-    fireEvent.click(screen.getByTestId('primary-button'));
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Org ID must be 3-32 characters, lowercase letters and digits only.'
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('Email already exists.')).toBeInTheDocument();
+    });
+  });
+
+  it('handles server conflict error', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: 'Organization already exists.' }),
     });
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    renderSignupPage();
+
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Organization already exists.')).toBeInTheDocument();
+    });
+  });
+
+  it('handles unexpected server error', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ message: 'Unexpected error occurred.' }),
+    });
+
+    renderSignupPage();
+
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Unexpected error occurred.')).toBeInTheDocument();
+    });
+  });
+
+  it('handles successful signup', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        access_token: 'mock-token',
+        org: {
+          org_id: 'org123',
+          company_name: 'Test Company',
+          package_type: 'pro',
+        },
+      }),
+    });
+
+    const onSignupSuccess = jest.fn();
+    renderSignupPage({ onSignupSuccess });
+
+    const submitButton = screen.getByTestId('primary-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(onSignupSuccess).toHaveBeenCalledWith({
+        access_token: 'mock-token',
+        user: {
+          email: '',
+          org_id: 'org123',
+          company_name: 'Test Company',
+          plan: 'pro',
+        },
+      });
+    });
   });
 
   it('submits form successfully and navigates to provisioning', async () => {

@@ -449,7 +449,7 @@ def task_provision():
     provisioned = organizations.find_one({"org_id": org_id, "status": "complete"})
     
     if provisioned and not is_testing:
-        logger.warning("Provisioning already completed for org_id: %s", org_id)
+        logger.warning("Provisioning already completed for the requested organization.")
         return jsonify({"error": "Environment already provisioned"}), 400
 
     _seed_workstations(org_id, workstation_count)

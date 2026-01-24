@@ -511,3 +511,72 @@ class TestAuth:
         data = response.get_json()
         assert data["access_token"] == "audit.jwt"
         assert data["org"]["org_id"] == "org_audit"
+
+    def test_signup_success(self, app_with_auth, mock_users_admin, monkeypatch):
+        """Test successful signup scenario"""
+        app, client = app_with_auth
+
+        mock_orgs = unittest.mock.MagicMock()
+        mock_audit = unittest.mock.MagicMock()
+        mock_workstations = unittest.mock.MagicMock()
+        mock_db_admin = {
+            "orgs": mock_orgs,
+            "audit": mock_audit,
+            "workstations": mock_workstations,
+        }
+        monkeypatch.setattr("cloudshield.Server.utils.database.db_admin", mock_db_admin)
+
+        mock_orgs.find_one.return_value = None
+        mock_users_admin.insert_one.return_value.inserted_id = "user123"
+
+        response = client.post('/auth/signup', json={
+            "email": "test@example.com",
+            "password": "password123",
+            "full_name": "Test User",
+            "company_name": "Test Company",
+            "org_id": "org123",
+            "package_type": "pro"
+        })
+
+        assert response.status_code == 201
+        data = response.get_json()
+        assert "access_token" in data
+        assert data["org"] == {
+            "org_id": "org123",
+            "company_name": "Test Company",
+            "package_type": "pro"
+        }
+
+    def test_me_success(self, app_with_auth, mock_jwt_functions):
+        """Test retrieving user info with a valid token"""
+        app, client = app_with_auth
+
+        mock_jwt_functions['verify_token'].return_value = {
+            "sub": "user123",
+            "role": "admin",
+            "org_id": "org123"
+        }
+
+        response = client.get('/auth/me', headers={
+            "Authorization": "Bearer mock_token"
+        })
+
+        assert response.status_code == 200
+        assert response.get_json() == {"claims": {
+            "sub": "user123",
+            "role": "admin",
+            "org_id": "org123"
+        }}
+
+    def test_me_invalid_token(self, app_with_auth, mock_jwt_functions):
+        """Test retrieving user info with an invalid token"""
+        app, client = app_with_auth
+
+        mock_jwt_functions['verify_token'].side_effect = Exception("Invalid token")
+
+        response = client.get('/auth/me', headers={
+            "Authorization": "Bearer invalid_token"
+        })
+
+        assert response.status_code == 401
+        assert response.get_json()["error"] == "Unauthorized"
