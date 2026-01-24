@@ -1184,9 +1184,6 @@ class TestAccessGroupRoutesDirect:
         from cloudshield.Server.models.access_groups import AccessGroupUpdate
         from bson import ObjectId
 
-        # Test the AccessGroupUpdate model directly with various field combinations
-        group_id = ObjectId()
-
         # Test with description update
         patch = AccessGroupUpdate(description="new description")
         assert patch.description == "new description"
