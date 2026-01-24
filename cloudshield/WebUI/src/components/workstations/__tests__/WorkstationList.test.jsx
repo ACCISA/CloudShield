@@ -38,7 +38,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     expect(screen.getByText("Workstation 1")).toBeInTheDocument();
     expect(screen.getByText("Workstation 2")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     expect(screen.getByText("↳ WS-001")).toBeInTheDocument();
     expect(screen.getByText("↳ WS-002")).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     // The component displays "+2" for the extra users (5 total - 3 shown = 2 extra)
     expect(screen.getByText("+ 2")).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     // Users are displayed as avatars with initials, not full names
     // Check for the initials instead
@@ -89,7 +89,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     expect(screen.getByText("2 hours ago")).toBeInTheDocument();
     expect(screen.getByText("1 day ago")).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     const checkboxes = screen.getAllByRole("checkbox");
     expect(checkboxes.length).toBe(mockRows.length);
@@ -113,7 +113,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
 
     // The status chips are clickable via their container Box
@@ -132,7 +132,7 @@ describe("WorkstationList", () => {
         rows={mockRows}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     const editButtons = screen.getAllByLabelText(/edit/i);
     fireEvent.click(editButtons[0]);
@@ -145,7 +145,7 @@ describe("WorkstationList", () => {
         rows={[]}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     const listItems = container.querySelectorAll('[role="checkbox"]');
     expect(listItems.length).toBe(0);
@@ -157,7 +157,7 @@ describe("WorkstationList", () => {
         rows={[mockRows[0]]}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     expect(screen.getByText("Connect")).toBeInTheDocument();
   });
@@ -168,8 +168,90 @@ describe("WorkstationList", () => {
         rows={[mockRows[1]]}
         onEdit={mockOnEdit}
         onToggleStatus={mockOnToggleStatus}
-      />
+      />,
     );
     expect(screen.getByText("Disconnect")).toBeInTheDocument();
+  });
+
+  it("handles column visibility props correctly", () => {
+    const { rerender } = render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onToggleStatus={mockOnToggleStatus}
+        showUsersCol={true}
+        showCurrentCol={true}
+        showLastUsedCol={true}
+      />,
+    );
+
+    // All columns should be visible
+    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
+
+    // Hide columns
+    rerender(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onToggleStatus={mockOnToggleStatus}
+        showUsersCol={false}
+        showCurrentCol={false}
+        showLastUsedCol={false}
+      />,
+    );
+
+    // Columns should still render but component adjusts layout
+    expect(screen.getByText("Workstation 1")).toBeInTheDocument();
+  });
+
+  it("renders workstations with different statuses correctly", () => {
+    const rowsWithStatuses = [
+      { ...mockRows[0], status: "connected" },
+      { ...mockRows[1], status: "busy" },
+      {
+        id: 3,
+        name: "WS3",
+        code: "WS-003",
+        status: "idle",
+        usersCount: 0,
+        currentUser: "",
+        lastUsed: "Never",
+      },
+    ];
+
+    render(
+      <WorkstationList
+        rows={rowsWithStatuses}
+        onEdit={mockOnEdit}
+        onToggleStatus={mockOnToggleStatus}
+      />,
+    );
+
+    expect(screen.getByText("Connect")).toBeInTheDocument();
+    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+  });
+
+  it("handles workstations with zero users", () => {
+    const rowWithNoUsers = [
+      {
+        id: 1,
+        name: "Empty WS",
+        code: "WS-000",
+        usersCount: 0,
+        currentUser: "",
+        lastUsed: "Never",
+        status: "idle",
+      },
+    ];
+
+    render(
+      <WorkstationList
+        rows={rowWithNoUsers}
+        onEdit={mockOnEdit}
+        onToggleStatus={mockOnToggleStatus}
+      />,
+    );
+
+    expect(screen.getByText("Empty WS")).toBeInTheDocument();
   });
 });

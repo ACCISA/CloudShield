@@ -22,6 +22,7 @@ import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
 import StatusButton from "../common/StatusButton/StatusButton.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 
 /* ---------------------------- styles ---------------------------- */
 
@@ -56,6 +57,8 @@ const styles = {
     color: "#fff",
     padding: "12px 8px",
     borderRadius: "12px",
+    position: "relative",
+    zIndex: 1,
   },
   nameSection: {
     display: "flex",
@@ -164,7 +167,7 @@ function UsersPill({ row }) {
   const list =
     Array.isArray(row.users) && row.users.length
       ? row.users
-      : [row.currentUser || "—", "Michael Scott", "Dwight Schrute"];
+      : [row.currentUser || "—"];
 
   const show = list.slice(0, 3);
   const extra = Math.max((row.usersCount ?? list.length) - show.length, 0);
@@ -172,7 +175,30 @@ function UsersPill({ row }) {
   return (
     <div style={styles.usersPill}>
       <div style={styles.avatarsContainer}>
-        {show.map((n, idx) => tinyAvatar(n, idx))}
+        {show.map((user, idx) => {
+          // Handle both string (legacy) and object format
+          const userData =
+            typeof user === "string"
+              ? {
+                  firstName: user.split(" ")[0],
+                  lastName: user.split(" ")[1] || "",
+                }
+              : user;
+
+          return (
+            <div
+              key={`${userData.firstName}-${idx}`}
+              style={{
+                marginLeft: idx === 0 ? 0 : "-8px",
+                zIndex: show.length - idx,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <DisplayIcon type="user" data={userData} size="small" />
+            </div>
+          );
+        })}
       </div>
       {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
     </div>
@@ -202,19 +228,21 @@ function WorkstationRow({
           ...styles.row,
           gridTemplateColumns: cols.join(" "),
         }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "transparent")
-        }
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+          e.currentTarget.style.zIndex = "100";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+          e.currentTarget.style.zIndex = "1";
+        }}
       >
         {/* select */}
         <Checkbox checked={checked} onChange={setChecked} />
 
-        {/* name + code + leading circle */}
+        {/* name + code + DisplayIcon */}
         <div style={styles.nameSection}>
-          <div style={styles.leadingCircle} />
+          <DisplayIcon type="workstation" data={r} size="small" />
           <div style={styles.nameContainer}>
             <span style={styles.name}>{r.name}</span>
             <span style={styles.code}>↳ {r.code}</span>
@@ -224,19 +252,25 @@ function WorkstationRow({
         {/* users */}
         {showUsers && <UsersPill row={r} />}
 
-        {/* current -> ActiveIcon based on user status */}
+        {/* current -> DisplayIcon for current user */}
         {showCurrent && (
           <div style={styles.currentContainer}>
-            <ActiveIcon
-              width={12}
-              height={12}
-              outerColor={
-                r.currentUser && r.currentUser !== "—" ? "#1F381F" : "#381F1F"
-              }
-              innerColor={
-                r.currentUser && r.currentUser !== "—" ? "#04C40A" : "#ff5252"
-              }
-            />
+            {r.currentUser && r.currentUser !== "—" ? (
+              <DisplayIcon
+                type="user"
+                data={
+                  typeof r.currentUser === "string"
+                    ? {
+                        firstName: r.currentUser.split(" ")[0],
+                        lastName: r.currentUser.split(" ")[1] || "",
+                      }
+                    : r.currentUser
+                }
+                size="small"
+              />
+            ) : (
+              <span style={{ opacity: 0.5, fontSize: "0.85rem" }}>—</span>
+            )}
           </div>
         )}
 
