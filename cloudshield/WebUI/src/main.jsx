@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme/theme.js';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { PostHogProvider } from 'posthog-js/react';
 
 if (typeof globalThis !== 'undefined') {
   // Expose Vite env so tests that run under CommonJS can still read settings.
@@ -13,11 +14,21 @@ if (typeof globalThis !== 'undefined') {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
-    </AuthProvider>
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        defaults: '2025-05-24',
+        capture_exceptions: true, // This enables capturing exceptions using Error Tracking, set to false if you don't want this
+        debug: import.meta.env.MODE === "development",
+      }}
+    >
+      <AuthProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </AuthProvider>
+    </PostHogProvider>
   </React.StrictMode>
 );
