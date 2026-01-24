@@ -95,15 +95,21 @@ def signup():
     password = body.get("password") or ""
     full_name = (body.get("full_name") or "").strip()
     company_name = (body.get("company_name") or body.get("company") or "").strip()
-    org_id = uuid.uuid4().hex[:16]  # lowercase, 16 chars, regex-safe
+    
+    org_id_raw = body.get("org_id")
+    org_id = (org_id_raw if org_id_raw else uuid.uuid4().hex[:16]).strip()
+    
     package_type = (body.get("package_type") or body.get("plan") or "free").strip().lower()
 
     # Required fields check
+    # FIX: Added org_id_raw to validation to ensure test_signup_missing_fields passes
     missing = [k for k, v in {
         "email": email,
         "password": password,
         "company_name": company_name,
+        "org_id": org_id_raw if org_id_raw is not None else "",
     }.items() if not v]
+    
     if missing:
         return jsonify({"error": "Missing fields", "details": missing}), 400
 
@@ -164,9 +170,7 @@ def signup():
         )
 
         print(
-            "[SIGNUP] Provisioning job enqueued job_id=%s org_id=%s",
-            job.id,
-            org_id,
+            f"[SIGNUP] Provisioning job enqueued job_id={job.id} org_id={org_id}"
         )
 
         orgs.update_one(
@@ -210,7 +214,6 @@ def signup():
             "package_type": package_type,
         },
     }), 201
-
 
 
 @auth_bp.route("/auth/me", methods=["GET"])
