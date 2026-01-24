@@ -1,8 +1,10 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 import { spawn } from "child_process";
-
+import { list } from "regedit-rs";
+import { OVPNPathResult } from "./models/OVPNPathResult.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
@@ -31,7 +33,10 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs"),
+      preload: path.join(__dirname, "preload.cjs"),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   });
 
@@ -48,53 +53,145 @@ function createWindow() {
   }
 }
 
-// IPC handler for running xfreerdp3 command
-ipcMain.handle("run-openvpn", async () => {
-  return new Promise((resolve, reject) => {
-    try {
-      const child = spawn("openvpn", ["--config", "/etc/openvpn/client.conf"]); //NOSONAR typescript:S4036
-      let error = "";
+const getWinOVPNPath = async (): Promise<OVPNPathResult> => {
+  const res = await list(["HKLM\\SOFTWARE\\OpenVPN"]);
+  if (!res["HKLM\\SOFTWARE\\OpenVPN"].exists) {
+    return { success: false, message: "OpenVPN is not installed.", path: null };
+  }
+  const exePath = res["HKLM\\SOFTWARE\\OpenVPN"].values["exe_path"]
+    .value as string;
+  if (!fs.existsSync(exePath)) {
+    return {
+      success: false,
+      message: "OpenVPN executable not found.",
+      path: null,
+    };
+  }
+  return { success: true, message: "OpenVPN is installed.", path: exePath };
+};
 
-      // Resolve immediately on successful spawn (xfreerdp3 is a UI app)
-      resolve({
-        success: true,
-        pid: child.pid,
-        message: "OpenVPN Connected",
-      });
+ipcMain.handle("get-win-ovpn-path", async (): Promise<OVPNPathResult> => {
+  return getWinOVPNPath();
+});
 
-      child.stdout?.on("data", () => undefined);
+export const getBinPath = (exeName: string) => {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "bin", exeName);
+  }
 
-      child.stderr?.on("data", (data) => {
-        error += data.toString();
-        console.log("[openvpn stderr]:", data.toString());
-      });
+  const platform =
+    process.platform === "win32"
+      ? "win"
+      : process.platform === "darwin"
+        ? "mac"
+        : "linux";
 
-      child.on("close", (code) => {
-        if (code !== 0) {
-          console.log(`[openvpn] Process exited with code ${code}`);
-          if (error) console.log("[openvpn error output]:", error);
+  return path.join(
+    __dirname,
+    "..",
+    "..",
+    "resources",
+    "bin",
+    platform,
+    exeName,
+  );
+};
+
+ipcMain.handle(
+  "run-openvpn",
+  async (
+    _event,
+    params: { ovpnPath: string } = {
+      ovpnPath: "",
+    },
+  ) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!fs.existsSync(params.ovpnPath)) {
+          return reject(
+            new Error(`OpenVPN config not found: ${params.ovpnPath}`),
+          );
         }
-      });
 
-      child.on("error", (err) => {
-        console.error("[openvpn spawn error]:", err);
-      });
-    } catch (err) {
-      reject(err);
-    }
-  });
+        let command: string = "openvpn";
+
+        if (process.platform === "win32") {
+          let winOVPN = await getWinOVPNPath();
+          if (winOVPN.success) {
+            command = winOVPN.path!;
+          } else {
+            return reject(new Error(winOVPN.message));
+          }
+        }
+        const child = spawn(command, [params.ovpnPath], {
+          stdio: "inherit",
+        }); //NOSONAR typescript:S4036
+        let output = "";
+        let error = "";
+
+        resolve({
+          success: true,
+          pid: child.pid,
+          message: `OpenVPN launched with config ${params.ovpnPath}`,
+        });
+
+        child.stdout?.on("data", (data) => {
+          output += data.toString();
+          console.log(output);
+        });
+
+        child.stderr?.on("data", (data) => {
+          error += data.toString();
+          console.log("[openvpn stderr]:", data.toString());
+        });
+
+        child.on("close", (code) => {
+          if (code !== 0) {
+            console.log(`[openvpn] Process exited with code ${code}`);
+            if (error) console.log("[openvpn error output]:", error);
+          }
+        });
+
+        child.on("error", (err) => {
+          console.error("[openvpn spawn error]:", err);
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  },
+);
+
+ipcMain.handle("show-open-dialog", async (_event, options) => {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused) return await dialog.showOpenDialog(focused, options);
+  return await dialog.showOpenDialog(options);
 });
 
 ipcMain.handle(
   "run-xfreerdp",
   async (
     _event,
-    params: { username: string; password: string; ip: string }
+    params: { username: string; password: string; ip: string },
   ) => {
     return new Promise((resolve, reject) => {
       try {
+        const isWin = process.platform === "win32";
+        let exePath: string = "xfreerdp3";
+
+        if (isWin) {
+          // Fallback to Windows built-in RDP client
+          const mstsc = "mstsc.exe";
+          const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
+          return resolve({
+            success: true,
+            pid: child.pid,
+            message: "mstsc launched",
+          });
+        }
+
         //NOSONAR typescript:S4036
-        const child = spawn("xfreerdp3", [
+        const child = spawn(exePath, [
           `/u:${params.username}`,
           `/p:${params.password}`,
           `/v:${params.ip}`,
@@ -102,7 +199,6 @@ ipcMain.handle(
         ]);
         let error = "";
 
-        // Resolve immediately on successful spawn (xfreerdp3 is a UI app)
         resolve({
           success: true,
           pid: child.pid,
@@ -130,7 +226,7 @@ ipcMain.handle(
         reject(err);
       }
     });
-  }
+  },
 );
 
 // Quit when all windows are closed, except on macOS. There, it's common
