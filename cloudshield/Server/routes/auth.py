@@ -1,5 +1,5 @@
 """Authentication endpoints for login and token verification."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from cloudshield.Server.security.passwords import verify_password, hash_password, is_bcrypt_string
 from cloudshield.Server.security.jwt_utils import issue_token, verify_token
 try:
