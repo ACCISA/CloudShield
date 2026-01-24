@@ -1,6 +1,6 @@
 /**
  * filterHelpers.js
- * 
+ *
  * Shared utility functions for filter management across pages
  */
 
