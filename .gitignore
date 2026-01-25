@@ -100,3 +100,4 @@ cloudshield/WebUI/package-lock.json
 cloudshield/WebUI/coverage/
 
 .scannerwork/
+*.iso
