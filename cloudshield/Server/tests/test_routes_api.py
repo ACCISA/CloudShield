@@ -207,7 +207,6 @@ def test_dc_add_user_missing_password(client):
 
 from datetime import datetime, timezone
 import cloudshield.Server.routes.api as api_mod
-from pydantic import ValidationError
 
 def test_share_doc_to_payload():
     """Test the _share_doc_to_payload helper function"""

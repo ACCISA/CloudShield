@@ -526,7 +526,6 @@ class TestAuth:
     def test_signup_provisioning_exception_flow(self, app_with_auth, mock_users_admin, mock_jwt_functions, monkeypatch):
         """Covers the 'except Exception' block when workstation provisioning fails."""
         app, client = app_with_auth
-        import cloudshield.Server.routes.auth as auth_module
 
         mock_orgs, _, mock_workstations = self._setup_signup_db_admin(monkeypatch)
         mock_orgs.find_one.return_value = None
