@@ -1,5 +1,4 @@
 import { Paper, Box } from "@mui/material";
-import Logo from "../../assets/cloudshield_logo_white.png";
 
 export default function SignupCard({ children }) {
   return (
@@ -22,7 +21,7 @@ export default function SignupCard({ children }) {
       <Box sx={{ mb: 2 }}>
         <Box
           component="img"
-          src={Logo}
+          src="/cloudshield_logo_white.png"
           alt="Company Logo"
           sx={{
             width: 60,

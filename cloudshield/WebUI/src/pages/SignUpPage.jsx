@@ -173,7 +173,7 @@ export default function SignupPage({ onSignupSuccess }) {
       // { email, password, role, full_name, org_name?, package }
       // We map "company" input -> full_name and org_name
       // -----------------------------
-      const createUserRes = await fetch("http://localhost:5050/api/signup_admin", {
+      const createUserRes = await fetch("http://localhost:5050/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,10 +181,9 @@ export default function SignupPage({ onSignupSuccess }) {
         body: JSON.stringify({
           email,
           password,
-          role: "admin",
           full_name: company,
-          org_name: company,
-          package: plan,
+          company_name: company,
+          package_type: plan,
         }),
       });
 
@@ -193,35 +192,11 @@ export default function SignupPage({ onSignupSuccess }) {
         createUserData = await createUserRes.json();
       } catch {}
 
+      console.log("Signup response:", createUserData);
+
       const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
-        return;
-      }
-
-      // -----------------------------
-      // 2) Provision org: POST /api/task/provision
-      // Body based on your screenshot:
-      // { org_id }
-      // -----------------------------
-      const provisionRes = await fetch("http://localhost:5050/api/task/provision", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          org_id: createUserData.org_id,
-        }),
-      });
-
-      let provisionData = {};
-      try {
-        provisionData = await provisionRes.json();
-      } catch {}
-
-      const provisionErrors = extractServerErrors(provisionRes, provisionData);
-      if (provisionErrors) {
-        setErrors((prev) => ({ ...prev, ...provisionErrors }));
         return;
       }
 
@@ -229,8 +204,6 @@ export default function SignupPage({ onSignupSuccess }) {
       const token =
         createUserData.token ||
         createUserData.access_token ||
-        provisionData.token ||
-        provisionData.access_token ||
         null;
 
       if (token) {
@@ -242,20 +215,21 @@ export default function SignupPage({ onSignupSuccess }) {
       // Keep callback shape compatible with App.jsx handler (access_token + user.org_id)
       onSignupSuccess?.({
         access_token: token,
-        user: createUserData.user || {
+        user: {
           email,
-          org_id: createUserData.org_id,
-          company_name: company,
-          plan,
+          org_id: createUserData.org?.org_id,
+          company_name: createUserData.org?.company_name,
+          plan: createUserData.org?.package_type,
         },
       });
+
 
       // After signup + provisioning -> go to login
       navigate("/login", { replace: true });
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
-        form: err?.message || "Network error during signup.",
+        form: "Error during signup.",
       }));
     } finally {
       setSubmitting(false);

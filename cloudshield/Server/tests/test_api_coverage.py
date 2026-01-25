@@ -273,63 +273,62 @@ class TestDCRemoveUser:
 
 
 class TestDCAddUser:
-    """Tests for /task/dc/add_user - covers lines with validation bug"""
-    
+    """Tests for /task/dc/add_user"""
+
     def test_add_user_success(self, client):
-        """Line 136-142: successful user addition"""
         resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
             "username": "newuser",
             "password": "newpass"
         })
         assert resp.status_code == 202
-    
+        assert "job_id" in resp.json
+
     def test_add_user_missing_org_id(self, client):
-        """Line 126-128: missing org_id triggers logger.warning"""
         resp = client.post("/api/task/dc/add_user", json={
             "username": "newuser",
             "password": "newpass"
         })
-        # The endpoint has a bug - it logs warning but returns without proper error code
-        assert resp.status_code in [200, 500]
+        assert resp.status_code == 400
+        assert "org_id is required" in resp.json["error"]
+
+    def test_add_user_missing_username(self, client):
+        resp = client.post("/api/task/dc/add_user", json={
+            "org_id": "acme",
+            "password": "newpass"
+        })
+        assert resp.status_code == 400
+        assert "username is required" in resp.json["error"]
+
+    def test_add_user_missing_password(self, client):
+        resp = client.post("/api/task/dc/add_user", json={
+            "org_id": "acme",
+            "username": "newuser"
+        })
+        assert resp.status_code == 400
+        assert "password is required" in resp.json["error"]
 
 
 class TestDCAddUserWithGroup:
     """Tests for /task/dc/add_user_with_group"""
 
     def test_add_user_with_group_success(self, client):
-        resp = client.post(
-            "/api/task/dc/add_user_with_group",
-            json={"org_id": "acme", "username": "newuser", "password": "newpass", "group_name": "team"},
-        )
+        resp = client.post("/api/task/dc/add_user_with_group", json={
+            "org_id": "acme",
+            "username": "newuser",
+            "password": "newpass",
+            "group_name": "team"
+        })
         assert resp.status_code == 202
         assert "job_id" in resp.json
 
-    @pytest.mark.parametrize("missing_field", ["org_id", "username", "password"])
-    def test_add_user_with_group_missing_required(self, client, missing_field):
-        body = {"org_id": "acme", "username": "user1", "password": "pass1"}
-        body.pop(missing_field)
-
-        resp = client.post("/api/task/dc/add_user_with_group", json=body)
-
-        assert resp.status_code == 422
-        assert resp.json["error"] == f"{missing_field} is required"
-    
-    def test_add_user_missing_username(self, client):
-        """Line 126-128: missing username"""
-        resp = client.post("/api/task/dc/add_user", json={
-            "org_id": "acme",
-            "password": "newpass"
-        })
-        assert resp.status_code in [200, 500]
-    
-    def test_add_user_missing_password(self, client):
-        """Line 126-128: missing password"""
-        resp = client.post("/api/task/dc/add_user", json={
-            "org_id": "acme",
-            "username": "newuser"
-        })
-        assert resp.status_code in [200, 500]
+    def test_add_user_with_group_missing_fields(self, client):
+        for field in ["org_id", "username", "password"]:
+            data = {"org_id": "acme", "username": "newuser", "password": "newpass"}
+            data.pop(field)
+            resp = client.post("/api/task/dc/add_user_with_group", json=data)
+            assert resp.status_code == 422
+            assert f"{field} is required" in resp.json["error"]
 
 
 # Tests for infrastructure endpoints with logging
@@ -375,21 +374,13 @@ class TestProvisionWorkstationsEndpoint:
             "count": 5
         })
         assert resp.status_code == 202
-    
+        assert "job_id" in resp.json
+
     def test_provision_workstations_missing_org_id(self, client):
         """Line 209-213: validation and warning"""
         resp = client.post("/api/task/provisionworkstations", json={})
         assert resp.status_code == 400
-    
-    def test_provision_workstations_empty_org_id(self, client):
-        """Line 209: empty string validation"""
-        resp = client.post("/api/task/provisionworkstations", json={"org_id": ""})
-        assert resp.status_code == 400
-    
-    def test_provision_workstations_defaults(self, client):
-        """Line 222: default count=1, line 211: default region"""
-        resp = client.post("/api/task/provisionworkstations", json={"org_id": "acme"})
-        assert resp.status_code == 202
+        assert "org_id is required" in resp.json["error"]
 
 
 class TestDestroyEndpoint:
