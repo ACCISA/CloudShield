@@ -176,7 +176,7 @@ def test_dc_add_user_missing_org_id(client):
         "username": "testuser",
         "password": "SecurePass123!"
     })
-    assert resp.status_code == 200  # Returns error in response body
+    assert resp.status_code == 400  # Returns error in response body
     data = resp.get_json()
     assert "error" in data
 
@@ -188,7 +188,7 @@ def test_dc_add_user_missing_username(client):
         "org_id": "acme",
         "password": "SecurePass123!"
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 400
     data = resp.get_json()
     assert "error" in data
 
@@ -200,6 +200,6 @@ def test_dc_add_user_missing_password(client):
         "org_id": "acme",
         "username": "testuser"
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 400
     data = resp.get_json()
     assert "error" in data
