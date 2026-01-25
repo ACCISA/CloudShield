@@ -1766,7 +1766,7 @@ prepareInstall() {
           echo ""
           echo "Call Domain.MoveHere(LocalAdminADsPath, \"$username\")"
           echo ""
-          echo "Set oLink = WshShell.CreateShortcut(WshShell.ExpandEnvironmentStrings(\"%userprofile%\\Desktop\\Shared.lnk\"))"
+          echo "Set oLink = WshShell.CreateShortcut(WshShell.SpecialFolders(\"Desktop\") & \"\\Shared.lnk\")"
           echo "With oLink"
           echo "  .TargetPath = \"\\\\host.lan\\Data\""
           echo "  .Save"

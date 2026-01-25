@@ -27,9 +27,7 @@ services:
       - 3389:3389/tcp
       - 3389:3389/udp
     volumes:
-      - workstation_data:/storage/tmp/
-      - ./docker/workstation/storage:/storage
-      - ./docker/workstation/shared:/shared
+      - /home/cena/CloudShield/win11x64.iso:/boot.iso
       - ./docker/workstation/oem:/oem
     restart: always
     stop_grace_period: 2m
@@ -145,9 +143,7 @@ services:
     networks: # for a dev env we will pretent that the API has access to the VPC somehow
       - vpc_net
     volumes:
-      - workstation_data:/data/
       - ./logs:/app/logs
-   #   - ./win11x64.iso:/app/docker/workstation/win11x64.iso
       - /var/run/docker.sock:/var/run/docker.sock
 
   elasticsearch:

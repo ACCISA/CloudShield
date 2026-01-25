@@ -23,23 +23,4 @@ else
     exit 1
 fi
 
-docker volume rm $VOLUME_NAME
-
-if ! docker volume inspect "$VOLUME_NAME" >/dev/null 2>&1; then
-    echo "[+] Creating Docker volume: $VOLUME_NAME..."
-    docker volume create "$VOLUME_NAME"
-
-    echo "[+] Creating container to store iso in a docker volume"
-    docker container create --name helper -v workstation_data:/data alpine
-
-    echo "[+] Copying win11x64.iso to container, this may take time"
-    docker cp ./win11x64.iso helper:/data/win11x64.iso
-
-    echo "[+] Removing container"
-    docker rm helper
-
-else
-    echo "[+] Docker volume '$VOLUME_NAME' already exists."
-fi
-
-echo "[+] ISO setup complete"
+echo "[+] ISO installation complete"

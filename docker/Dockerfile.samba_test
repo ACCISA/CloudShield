@@ -31,7 +31,7 @@ RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
 RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
 
 # Copy entrypoint script
-COPY docker/new-samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

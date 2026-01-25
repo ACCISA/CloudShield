@@ -155,7 +155,7 @@ startInstall() {
   fi
 
   TMP="$STORAGE/tmp"
-  #rm -rf "$TMP"
+  rm -rf "$TMP"
 
   skipInstall "$BOOT" && return 1
 
@@ -179,7 +179,6 @@ startInstall() {
   fi
 
   rm -f "$BOOT"
-  echo "asda $BOOT"
 
   find "$STORAGE" -maxdepth 1 -type f -iname 'data.*' -not -iname '*.iso' -delete
   find "$STORAGE" -maxdepth 1 -type f -iname 'windows.*' -not -iname '*.iso' -delete
@@ -288,7 +287,7 @@ finishInstall() {
     writeFile "$ADAPTER" "$file"
   fi
 
-  #rm -rf "$TMP"
+  rm -rf "$TMP"
   return 0
 }
 
@@ -1292,18 +1291,17 @@ if ! startInstall; then
   exit 68
 fi
 
-# Commeting this because we shouldnt need to download the iso everytime
-#if [ ! -s "$ISO" ] || [ ! -f "$ISO" ]; then
-#  if ! downloadImage "$ISO" "$VERSION" "$LANGUAGE"; then
-#    rm -f "$ISO" 2> /dev/null || true
-#    exit 61
-#  fi
-#fi
-ls -la /storage/tmp/
+if [ ! -s "$ISO" ] || [ ! -f "$ISO" ]; then
+  if ! downloadImage "$ISO" "$VERSION" "$LANGUAGE"; then
+    rm -f "$ISO" 2> /dev/null || true
+    exit 61
+  fi
+fi
 
 DIR="$TMP/unpack"
 
 if ! extractImage "$ISO" "$DIR" "$VERSION"; then
+  rm -f "$ISO" 2> /dev/null || true
   exit 62
 fi
 
@@ -1322,9 +1320,9 @@ if ! updateImage "$DIR" "$XML" "$LANGUAGE"; then
   exit 63
 fi
 
-#if ! removeImage "$ISO"; then
-#  exit 64
-#fi
+if ! removeImage "$ISO"; then
+  exit 64
+fi
 
 if ! buildImage "$DIR"; then
   exit 65

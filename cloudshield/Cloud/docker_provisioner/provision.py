@@ -124,30 +124,6 @@ def create_auto_configure_scripts(variables: dict, container_id: str, server_log
             if not copy_file_container(server_logger, container_id, output_path, "/oem/"+filename):
                 return
 
-def download_win11_iso(server_logger):
-    url = "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_x64FRE_en-us.iso"
-
-    command = [
-        "wget",
-        url,
-        "-O", "/app/docker/workstation/storage/win11x64.iso",
-        "--continue",
-        # Removed -q (quiet) so we can actually see the output
-        "--timeout=30",
-        "--no-http-keep-alive",
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0",
-        "--show-progress",
-        "--progress=dot:giga"
-    ]
-
-    try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"\nDownload failed with exit code {e.returncode}", file=sys.stderr)
-    except FileNotFoundError:
-        print("\nError: 'wget' is not installed.", file=sys.stderr)
-
-
 def provision_workstation_docker(org_id, server_logger):
 
     container_ws = docker.compose.run(
@@ -157,18 +133,12 @@ def provision_workstation_docker(org_id, server_logger):
             tty=False
     )
 
-    if not Path("/data/win11x64.iso").exists():
-        server_logger.warning("No win11x64.iso was provided therefore it will be installed in this container.")
-        server_logger.warning("To make the building process faster, please pre-install win11x64.iso and place it in docker/workstation/")
-        server_logger.warning("run install_iso.sh to install win11x64.iso")
-        download_win11_iso(server_logger)
-
     container_id_ws = container_ws.id
 
     server_logger.info("Creating OEM scripts")
     # all variables in docker/workstation/oem need to be set here
     create_auto_configure_scripts({
-        "DOMAIN_NAME":"aniss.local",
+        "DOMAIN_NAME":"samdom.example.com",
         "ADMIN_USER":"Administrator",
         "ADMIN_PASS":"letmein123%",
         "SAMBA_IP":"172.23.0.10"}, container_id_ws, server_logger) 
