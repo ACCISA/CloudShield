@@ -14,12 +14,15 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
+    height: "100vh",
+    overflow: "hidden",
   },
   toolbar: {
     display: "flex",
     justifyContent: "space-between",
     gap: "12px",
     flexWrap: "wrap",
+    flexShrink: 0,
   },
   leftActions: {
     display: "flex",
@@ -30,6 +33,12 @@ const styles = {
   rightActions: {
     display: "flex",
     gap: "10px",
+  },
+  listWrapper: {
+    flex: 1,
+    overflow: "auto",
+    minHeight: 0,
+    overscrollBehavior: "contain",
   },
 };
 /* ----------------------------------- seed ---------------------------------- */
@@ -65,11 +74,14 @@ export default function WorkstationsPage() {
 
     // text search
     if (q) {
-      data = data.filter((r) =>
-        [r.name, r.code, r.currentUser].some((v) =>
+      data = data.filter((r) => {
+        const currentUserName = r.currentUser
+          ? `${r.currentUser.firstName || ""} ${r.currentUser.lastName || ""}`.trim()
+          : "";
+        return [r.name, r.code, currentUserName].some((v) =>
           (v || "").toLowerCase().includes(q),
-        ),
-      );
+        );
+      });
     }
 
     // status filter
@@ -231,18 +243,20 @@ export default function WorkstationsPage() {
       </div>
 
       {/* Workstation List with Headers */}
-      <WorkstationList
-        rows={filtered}
-        onEdit={(row) => {
-          setEditRow(row);
-          setOpenModal(true);
-        }}
-        onDelete={handleDelete}
-        onToggleStatus={handleToggleStatus}
-        showUsers={showUsersCol}
-        showCurrent={showCurrentCol}
-        showLastUsed={showLastUsedCol}
-      />
+      <div style={styles.listWrapper}>
+        <WorkstationList
+          rows={filtered}
+          onEdit={(row) => {
+            setEditRow(row);
+            setOpenModal(true);
+          }}
+          onDelete={handleDelete}
+          onToggleStatus={handleToggleStatus}
+          showUsers={showUsersCol}
+          showCurrent={showCurrentCol}
+          showLastUsed={showLastUsedCol}
+        />
+      </div>
 
       {/* Workstation Modal */}
       {openModal && (

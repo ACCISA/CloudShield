@@ -254,6 +254,8 @@ export default function Sidebar({
       sx={{
         width: collapsed ? 72 : 280,
         minWidth: collapsed ? 72 : 280,
+        height: "100vh",
+        maxHeight: "100vh",
         bgcolor: "#0F0F0F",
         color: "#fff",
         display: "flex",
@@ -262,6 +264,7 @@ export default function Sidebar({
         borderRadius: "0 0 20px 20px",
         padding: collapsed ? "12px 8px" : "16px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* collapse button */}
@@ -412,6 +415,10 @@ export default function Sidebar({
             display: "flex",
             flexDirection: "column",
             gap: "6px",
+            overflowY: "auto",
+            overflowX: "hidden",
+            overscrollBehavior: "contain",
+            minHeight: 0,
           }}
         >
           <NavItem

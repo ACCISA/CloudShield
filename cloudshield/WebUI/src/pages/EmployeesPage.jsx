@@ -274,12 +274,15 @@ export default function EmployeesPage() {
     container: {
       display: "flex",
       flexDirection: "column",
+      height: "100vh",
+      overflow: "hidden",
     },
     toolbar: {
       display: "flex",
       justifyContent: "space-between",
       gap: "12px",
       flexWrap: "wrap",
+      flexShrink: 0,
     },
     leftActions: {
       display: "flex",
@@ -290,6 +293,12 @@ export default function EmployeesPage() {
     rightActions: {
       display: "flex",
       gap: "10px",
+    },
+    listWrapper: {
+      flex: 1,
+      overflow: "auto",
+      minHeight: 0,
+      overscrollBehavior: "contain",
     },
   };
 
@@ -356,21 +365,23 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <UsersTable
-        users={filtered}
-        showTitle={showTitle}
-        showWorkstations={showWorkstations}
-        showGroups={showGroups}
-        showFiles={showFiles}
-        onSort={toggleSort}
-        sortField={sortField}
-        sortDir={sortDir}
-        onEdit={(u) => {
-          setEditTarget(u);
-          setEditModalOpen(true);
-        }}
-        onDelete={(u) => handleDelete(u.id)}
-      />
+      <div style={styles.listWrapper}>
+        <UsersTable
+          users={filtered}
+          showTitle={showTitle}
+          showWorkstations={showWorkstations}
+          showGroups={showGroups}
+          showFiles={showFiles}
+          onSort={toggleSort}
+          sortField={sortField}
+          sortDir={sortDir}
+          onEdit={(u) => {
+            setEditTarget(u);
+            setEditModalOpen(true);
+          }}
+          onDelete={(u) => handleDelete(u.id)}
+        />
+      </div>
 
       {/* Modals */}
       {editTarget && (

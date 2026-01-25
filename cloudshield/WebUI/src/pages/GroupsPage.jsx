@@ -170,6 +170,8 @@ export default function GroupsPage() {
     container: {
       display: "flex",
       flexDirection: "column",
+      height: "100vh",
+      overflow: "hidden",
     },
     toolbar: {
       display: "flex",
@@ -177,6 +179,7 @@ export default function GroupsPage() {
       gap: "12px",
       flexWrap: "wrap",
       marginBottom: "8px",
+      flexShrink: 0,
     },
     leftActions: {
       display: "flex",
@@ -189,6 +192,12 @@ export default function GroupsPage() {
       display: "flex",
       gap: "10px",
       flexWrap: "wrap",
+    },
+    listWrapper: {
+      flex: 1,
+      overflow: "auto",
+      minHeight: 0,
+      overscrollBehavior: "contain",
     },
   };
 
@@ -252,14 +261,16 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      <GroupsList
-        rows={filtered}
-        showUsers={showUsers}
-        showWorkstations={showWorkstations}
-        showFiles={showFiles}
-        onEdit={handleOpenEditModal}
-        // onDelete={(g) => handleMockDelete(g.id)}
-      />
+      <div style={styles.listWrapper}>
+        <GroupsList
+          rows={filtered}
+          showUsers={showUsers}
+          showWorkstations={showWorkstations}
+          showFiles={showFiles}
+          onEdit={handleOpenEditModal}
+          // onDelete={(g) => handleMockDelete(g.id)}
+        />
+      </div>
 
       <GroupsModal
         open={modalOpen}

@@ -31,6 +31,7 @@ const styles = {
     gap: "8px",
     padding: "6px 16px",
     borderRadius: "22px",
+    color: "#fff",
   },
   buttonIconOnly: {
     padding: "8px",
