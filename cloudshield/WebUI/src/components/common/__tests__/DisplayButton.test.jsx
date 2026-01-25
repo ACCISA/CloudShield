@@ -13,7 +13,7 @@ describe("DisplayButton Component", () => {
     test("renders without crashing", () => {
       const onLayoutChange = jest.fn();
       const { container } = render(
-        <DisplayButton onLayoutChange={onLayoutChange} />
+        <DisplayButton onLayoutChange={onLayoutChange} />,
       );
 
       expect(container.firstChild).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("DisplayButton Component", () => {
       const onLayoutChange = jest.fn();
       const customStyle = { margin: "10px" };
       const { container } = render(
-        <DisplayButton onLayoutChange={onLayoutChange} style={customStyle} />
+        <DisplayButton onLayoutChange={onLayoutChange} style={customStyle} />,
       );
 
       expect(container.firstChild).toHaveStyle({ margin: "10px" });
@@ -250,7 +250,7 @@ describe("DisplayButton Component", () => {
     test("handles invalid layout prop", () => {
       const onLayoutChange = jest.fn();
       render(
-        <DisplayButton layout="invalid" onLayoutChange={onLayoutChange} />
+        <DisplayButton layout="invalid" onLayoutChange={onLayoutChange} />,
       );
 
       const button = screen.getByText("Display");
@@ -433,14 +433,14 @@ describe("DisplayButton Component", () => {
 
       fireEvent.mouseEnter(cardsOption);
       expect(cardsOption.style.backgroundColor).toBe(
-        "rgba(255, 255, 255, 0.08)"
+        "rgba(255, 255, 255, 0.08)",
       );
 
       fireEvent.mouseLeave(cardsOption);
       expect(cardsOption.style.backgroundColor).toBe("transparent");
       // Border is cleared by setting it to 'none', but the actual style value might be empty string
       expect(
-        cardsOption.style.border === "none" || cardsOption.style.border === ""
+        cardsOption.style.border === "none" || cardsOption.style.border === "",
       ).toBeTruthy();
     });
 
@@ -470,7 +470,7 @@ describe("DisplayButton Component", () => {
 
       fireEvent.mouseEnter(listOption);
       expect(listOption.style.backgroundColor).toBe(
-        "rgba(255, 255, 255, 0.08)"
+        "rgba(255, 255, 255, 0.08)",
       );
 
       fireEvent.mouseLeave(listOption);
@@ -502,7 +502,7 @@ describe("DisplayButton Component", () => {
 
       fireEvent.mouseEnter(iconsOption);
       expect(iconsOption.style.backgroundColor).toBe(
-        "rgba(255, 255, 255, 0.08)"
+        "rgba(255, 255, 255, 0.08)",
       );
 
       fireEvent.mouseLeave(iconsOption);
@@ -521,6 +521,98 @@ describe("DisplayButton Component", () => {
       const initialBackground = iconsOption.style.backgroundColor;
       fireEvent.mouseEnter(iconsOption);
       expect(iconsOption.style.backgroundColor).toBe(initialBackground);
+    });
+  });
+
+  describe("Column Toggles", () => {
+    test("renders column toggles when provided", () => {
+      const onLayoutChange = jest.fn();
+      const mockOnToggle = jest.fn();
+      const columnToggles = {
+        showUsers: true,
+        showWorkstations: false,
+        showFiles: true,
+        onToggle: mockOnToggle,
+      };
+
+      render(
+        <DisplayButton
+          layout="list"
+          onLayoutChange={onLayoutChange}
+          columnToggles={columnToggles}
+        />,
+      );
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      // Column toggles should be rendered
+      expect(screen.getByText("Users")).toBeInTheDocument();
+      expect(screen.getByText("Workstations")).toBeInTheDocument();
+      expect(screen.getByText("Files")).toBeInTheDocument();
+    });
+
+    test("calls onToggle when column is clicked", () => {
+      const onLayoutChange = jest.fn();
+      const mockOnToggle = jest.fn();
+      const columnToggles = {
+        showUsers: true,
+        showWorkstations: true,
+        showFiles: true,
+        onToggle: mockOnToggle,
+      };
+
+      render(
+        <DisplayButton
+          layout="list"
+          onLayoutChange={onLayoutChange}
+          columnToggles={columnToggles}
+        />,
+      );
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      const usersToggle = screen.getByText("Users").closest('[role="button"]');
+      fireEvent.click(usersToggle);
+
+      expect(mockOnToggle).toHaveBeenCalledWith("showUsers");
+    });
+
+    test("renders separator between layouts and column toggles", () => {
+      const onLayoutChange = jest.fn();
+      const mockOnToggle = jest.fn();
+      const columnToggles = {
+        showUsers: true,
+        onToggle: mockOnToggle,
+      };
+
+      render(
+        <DisplayButton
+          layout="list"
+          onLayoutChange={onLayoutChange}
+          columnToggles={columnToggles}
+        />,
+      );
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      // Separator should be rendered
+      expect(screen.getByText("Columns")).toBeInTheDocument();
+    });
+
+    test("works without column toggles", () => {
+      const onLayoutChange = jest.fn();
+
+      render(<DisplayButton layout="list" onLayoutChange={onLayoutChange} />);
+
+      const button = screen.getByText("Display");
+      fireEvent.click(button);
+
+      // Should only show layout options
+      expect(screen.getByText("List")).toBeInTheDocument();
+      expect(screen.queryByText("Columns")).not.toBeInTheDocument();
     });
   });
 

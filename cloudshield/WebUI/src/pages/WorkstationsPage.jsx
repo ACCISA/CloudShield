@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
 import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -34,48 +35,7 @@ const styles = {
 };
 /* ----------------------------------- seed ---------------------------------- */
 
-const seed = [
-  {
-    id: "ws-1",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-  {
-    id: "ws-2",
-    name: "Marketing",
-    code: "WS-002",
-    usersCount: 2,
-    users: ["Pam Beasly", "Michael Scott"],
-    currentUser: "Pam Beasly",
-    lastUsed: "—",
-    status: "busy",
-  },
-  {
-    id: "ws-3",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Dwight Schrute", "Michael Scott"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-  {
-    id: "ws-4",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-];
+const seed = MOCK_WORKSTATIONS_FULL;
 
 /* ---------------------------------- page ----------------------------------- */
 
@@ -108,8 +68,8 @@ export default function WorkstationsPage() {
     if (q) {
       data = data.filter((r) =>
         [r.name, r.code, r.currentUser].some((v) =>
-          (v || "").toLowerCase().includes(q)
-        )
+          (v || "").toLowerCase().includes(q),
+        ),
       );
     }
 
@@ -160,7 +120,7 @@ export default function WorkstationsPage() {
 
   const handleEditSave = (id, changes) => {
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...changes } : r))
+      prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
     );
   };
 
@@ -174,28 +134,13 @@ export default function WorkstationsPage() {
         if (r.status === "connected") return { ...r, status: "disconnected" };
         if (r.status === "disconnected") return { ...r, status: "connected" };
         return r; // busy unchanged
-      })
+      }),
     );
   };
 
   const handleLayoutChange = (newLayout) => {
     console.log(`Layout changed to: ${newLayout}`);
     setLayout(newLayout);
-  };
-
-  // shared button styles (to match your mock)
-  const pillBtn = {
-    color: "#fff",
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: "12px",
-    textTransform: "none",
-    px: 1.5,
-    height: 40,
-    "& .MuiButton-startIcon": { mr: 1 },
-    "&:hover": {
-      borderColor: "rgba(255,255,255,0.35)",
-      background: "rgba(255,255,255,0.07)",
-    },
   };
 
   return (
