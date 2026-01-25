@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
-// import { MOCK_GROUPS_FULL } from "../data/mockData.js";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -37,13 +36,98 @@ export default function GroupsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
 
-  // const mockFetchGroups = async () => {
-  //   setGroups(MOCK_GROUPS_FULL);
-  // };
+  const openToast = (msg, type = "success") => {
+    setToast({ open: true, msg, type });
+    setTimeout(() => setToast((p) => ({ ...p, open: false })), 2500);
+  };
 
-  // useEffect(() => {
-  //   mockFetchGroups();
-  // }, []);
+  const safeSplitName = (fullName) => {
+    const raw = (fullName || "").trim();
+    if (!raw) return { firstName: "Unknown", lastName: "" };
+    const parts = raw.split(/\s+/);
+    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+    return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+  };
+
+  const mapApiGroupToUi = (g) => {
+    const membersInfo = Array.isArray(g.members_info) ? g.members_info : [];
+    const users = membersInfo.map((u) => {
+      const { firstName, lastName } = safeSplitName(u.full_name || u.name || "");
+      return {
+        id: u._id,
+        _id: u._id,
+        email: u.email,
+        firstName,
+        lastName,
+        title: u.role || "",
+        role: u.role,
+        org_id: u.org_id,
+        status: u.status,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+      };
+    });
+
+    const wsIds = Array.isArray(g.workstations) ? g.workstations : [];
+    const wsObjects = wsIds.map((x) => ({
+      id: x,
+      name: x,
+      online: false,
+      ipAddress: "",
+    }));
+
+    const shareIds = Array.isArray(g.file_shares) ? g.file_shares : [];
+
+    return {
+      id: g.id,
+      name: g.group_name || "",
+      groupName: g.group_name || "",
+      description: g.description || "",
+      image: g.group_image || null,
+
+      users,
+      memberCount: Array.isArray(g.members) ? g.members.length : users.length,
+
+      workstations: wsObjects,
+      workstationIds: wsIds,
+
+      files: shareIds.length,
+      fileShareIds: shareIds,
+
+      type: "Custom",
+      createdDate: g.created_at,
+      updatedDate: g.updated_at,
+      members_missing: g.members_missing || [],
+    };
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to fetch groups");
+      }
+
+      const data = await res.json();
+      const apiGroups = Array.isArray(data.access_groups) ? data.access_groups : [];
+      const uiGroups = apiGroups.map(mapApiGroupToUi);
+
+      setGroups(uiGroups);
+    } catch (e) {
+      console.error(e);
+      openToast(e.message || "Failed to fetch groups", "error");
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
   const filtered = useMemo(() => {
     let out = [...groups];
@@ -51,21 +135,9 @@ export default function GroupsPage() {
 
     if (q) {
       out = out.filter((g) =>
-        [g.name, g.description].some((v) => v.toLowerCase().includes(q)),
+        [g.name, g.description].some((v) => (v || "").toLowerCase().includes(q)),
       );
     }
-
-    // Apply size filters (if needed)
-    // const sizeFilters = activeFilters.size;
-    // if (sizeFilters.size > 0) {
-    //   out = out.filter((g) => {
-    //     if (sizeFilters.has("small") && g.users <= 5) return true;
-    //     if (sizeFilters.has("medium") && g.users > 5 && g.users <= 20)
-    //       return true;
-    //     if (sizeFilters.has("large") && g.users > 20) return true;
-    //     return false;
-    //   });
-    // }
 
     out.sort((a, b) => {
       const va = a[sortField] ?? "";
@@ -105,11 +177,6 @@ export default function GroupsPage() {
 
   const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
-  // const handleMockDelete = (id) => {
-  //   setGroups((p) => p.filter((g) => g.id !== id));
-  //   openToast("Group deleted");
-  // };
-
   const handleOpenCreateModal = () => {
     setEditingGroup(null);
     setModalOpen(true);
@@ -125,46 +192,118 @@ export default function GroupsPage() {
     setEditingGroup(null);
   };
 
-  // const handleSubmitGroup = (groupData) => {
-  //   if (editingGroup) {
-  //     // Edit mode - update existing group
-  //     setGroups((prev) =>
-  //       prev.map((g) =>
-  //         g.id === editingGroup.id
-  //           ? {
-  //               ...g,
-  //               name: groupData.name,
-  //               groupName: groupData.name,
-  //               description: groupData.description,
-  //               image: groupData.image,
-  //               users: groupData.users || [],
-  //               memberCount: groupData.users?.length || 0,
-  //               workstations: groupData.workstations || [],
-  //               files: groupData.files?.length || 0,
-  //             }
-  //           : g,
-  //       ),
-  //     );
-  //     openToast("Group updated successfully");
-  //   } else {
-  //     // Create mode - add new group (temporary UI visualization)
-  //     const newGroup = {
-  //       id: String(Date.now()),
-  //       name: groupData.name,
-  //       groupName: groupData.name,
-  //       description: groupData.description,
-  //       image: groupData.image,
-  //       users: groupData.users || [],
-  //       memberCount: groupData.users?.length || 0,
-  //       workstations: groupData.workstations || [],
-  //       files: groupData.files?.length || 0, // Convert array to count
-  //       type: "Custom",
-  //       createdDate: new Date().toISOString(),
-  //     };
-  //     setGroups((prev) => [...prev, newGroup]);
-  //     openToast("Group created successfully");
-  //   }
-  // };
+  const normalizeMembersFromUsers = (users) => {
+    const list = Array.isArray(users) ? users : [];
+    const out = [];
+    const seen = new Set();
+
+    for (const u of list) {
+      const id = (u && (u._id || u.id)) ? String(u._id || u.id) : "";
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        out.push(id);
+      }
+    }
+    return out;
+  };
+
+  const normalizeIdsFromObjects = (items) => {
+    const list = Array.isArray(items) ? items : [];
+    const out = [];
+    const seen = new Set();
+
+    for (const it of list) {
+      const id = (it && (it.id || it._id)) ? String(it.id || it._id) : "";
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        out.push(id);
+      }
+    }
+    return out;
+  };
+
+  const handleSubmitGroup = async (groupData) => {
+    try {
+      const members = normalizeMembersFromUsers(groupData.users);
+      const workstations = normalizeIdsFromObjects(groupData.workstations);
+      const file_shares = normalizeIdsFromObjects(groupData.files);
+
+      if (editingGroup) {
+        // Update (PATCH)
+        const payload = {
+          group_name: groupData.name,
+          description: groupData.description,
+          group_image: groupData.image || null,
+          members,
+          workstations,
+          file_shares,
+        };
+
+        const res = await fetch(`http://127.0.0.1:5050/api/access-groups/${editingGroup.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || "Failed to update group");
+        }
+
+        openToast("Group updated successfully");
+        await fetchGroups();
+      } else {
+        // Create (POST)
+        const payload = {
+          group_name: groupData.name,
+          description: groupData.description,
+          group_image: groupData.image || null,
+          members,
+          workstations,
+          file_shares,
+        };
+
+        const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || "Failed to create group");
+        }
+
+        openToast("Group created successfully");
+        await fetchGroups();
+      }
+    } catch (e) {
+      console.error(e);
+      openToast(e.message || "Group action failed", "error");
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to delete group");
+      }
+
+      openToast("Group deleted");
+      await fetchGroups();
+    } catch (e) {
+      console.error(e);
+      openToast(e.message || "Delete failed", "error");
+    }
+  };
 
   const styles = {
     container: {
@@ -251,7 +390,7 @@ export default function GroupsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          {/* <RefreshButton onClick={mockFetchGroups} /> */}
+          <RefreshButton onClick={fetchGroups} />
 
           <CreateButton
             icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
@@ -261,22 +400,21 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      <div style={styles.listWrapper}>
-        <GroupsList
-          rows={filtered}
-          showUsers={showUsers}
-          showWorkstations={showWorkstations}
-          showFiles={showFiles}
-          onEdit={handleOpenEditModal}
-          // onDelete={(g) => handleMockDelete(g.id)}
-        />
-      </div>
+      <GroupsList
+        rows={filtered}
+        showUsers={showUsers}
+        showWorkstations={showWorkstations}
+        showFiles={showFiles}
+        onEdit={handleOpenEditModal}
+        onDelete={handleDeleteGroup}
+      />
 
       <GroupsModal
         open={modalOpen}
         onClose={handleCloseModal}
         groupData={editingGroup}
-        // onSubmit={handleSubmitGroup}
+        onSubmit={handleSubmitGroup}
+        onRefresh={fetchGroups}
       />
     </div>
   );
