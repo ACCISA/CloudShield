@@ -280,26 +280,29 @@ class TestAuth:
 
     def _setup_signup_db_admin(self, monkeypatch):
         """
-        Helper to attach a db_admin mock (with orgs + audit collections)
+        Helper to attach a db_admin mock (with orgs + audit + workstations collections)
         to the auth module for /auth/signup tests.
         """
         import cloudshield.Server.routes.auth as auth_module
         mock_db_admin = unittest.mock.MagicMock()
         mock_orgs = unittest.mock.MagicMock()
         mock_audit = unittest.mock.MagicMock()
+        mock_workstations = unittest.mock.MagicMock()
 
         def getitem(name):
             if name == "orgs":
                 return mock_orgs
             if name == "audit":
                 return mock_audit
+            if name == "workstations":
+                return mock_workstations
             raise KeyError(name)
 
         mock_db_admin.__getitem__.side_effect = getitem
         # Patch the module-level db_admin used by signup()
         monkeypatch.setattr(auth_module, "db_admin", mock_db_admin, raising=False)
 
-        return mock_orgs, mock_audit
+        return mock_orgs, mock_audit, mock_workstations
 
     def test_signup_missing_fields(self, app_with_auth):
         """Missing required fields -> 400 + details list."""
@@ -331,7 +334,7 @@ class TestAuth:
     ):
         """Existing org_id OR company_name -> 409 Organization already exists."""
         app, client = app_with_auth
-        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs, mock_audit, _ = self._setup_signup_db_admin(monkeypatch)
 
         # Org already exists
         mock_orgs.find_one.return_value = {"org_id": "org_001"}
@@ -432,7 +435,7 @@ class TestAuth:
         If audit.insert_one fails, signup still succeeds (best-effort audit).
         """
         app, client = app_with_auth
-        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs, mock_audit, _ = self._setup_signup_db_admin(monkeypatch)
 
         mock_orgs.find_one.return_value = None
 
@@ -474,3 +477,76 @@ class TestAuth:
 
         assert response.status_code == 401
         assert response.get_json()["error"] == "Unauthorized"
+
+    # --- NEW TESTS BELOW ---
+
+    def test_signup_provisioning_success(self, app_with_auth, mock_users_admin, mock_jwt_functions, monkeypatch):
+        """Covers workstations.insert_one, service_dispatcher, and success status update."""
+        app, client = app_with_auth
+        import cloudshield.Server.routes.auth as auth_module
+
+        # Setup Mocks
+        mock_orgs, _, mock_workstations = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs.find_one.return_value = None  # No existing org
+        mock_users_admin.insert_one.return_value = unittest.mock.MagicMock(inserted_id="u1")
+        mock_jwt_functions["issue_token"].return_value = "mock.jwt"
+        
+        # Mock the service dispatcher
+        mock_job = unittest.mock.MagicMock()
+        mock_job.id = "job_12345"
+        mock_dispatcher = unittest.mock.MagicMock(return_value=mock_job)
+        monkeypatch.setattr(auth_module, "service_dispatcher", mock_dispatcher, raising=False)
+
+        response = client.post("/auth/signup", json={
+            "email": "provision@test.com",
+            "password": "Password123!",
+            "company_name": "ProvisionCo",
+            "org_id": "org_provision_01"
+        })
+
+        assert response.status_code == 201
+        
+        # Verify workstation was created
+        mock_workstations.insert_one.assert_called_once()
+        
+        # Verify dispatcher was called
+        mock_dispatcher.assert_called_once_with(
+            service_name="provision_network",
+            org_id="org_provision_01",
+            region="ca-central-1",
+            workstation_count=1,
+        )
+        
+        # Verify the org was updated with the job ID and status
+        mock_orgs.update_one.assert_any_call(
+            {"org_id": "org_provision_01"},
+            {"$set": {"provisioning_status": "in_progress", "provisioning_job_id": "job_12345"}}
+        )
+
+    def test_signup_provisioning_exception_flow(self, app_with_auth, mock_users_admin, mock_jwt_functions, monkeypatch):
+        """Covers the 'except Exception' block when workstation provisioning fails."""
+        app, client = app_with_auth
+        import cloudshield.Server.routes.auth as auth_module
+
+        mock_orgs, _, mock_workstations = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs.find_one.return_value = None
+        mock_users_admin.insert_one.return_value = unittest.mock.MagicMock(inserted_id="u1")
+        mock_jwt_functions["issue_token"].return_value = "mock.jwt"
+        
+        # Trigger an error during the workstation creation to hit the 'except Exception'
+        mock_workstations.insert_one.side_effect = Exception("Workstation Cluster Failure")
+
+        response = client.post("/auth/signup", json={
+            "email": "fail_ws@test.com",
+            "password": "Password123!",
+            "company_name": "FailCo",
+            "org_id": "org_fail_ws"
+        })
+
+        assert response.status_code == 201
+
+        # Check that the status was updated to "failed" in the catch block
+        mock_orgs.update_one.assert_called_with(
+            {"org_id": "org_fail_ws"},
+            {"$set": {"provisioning_status": "failed"}}
+        )

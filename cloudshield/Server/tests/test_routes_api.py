@@ -203,3 +203,260 @@ def test_dc_add_user_missing_password(client):
     assert resp.status_code == 400
     data = resp.get_json()
     assert "error" in data
+
+
+from datetime import datetime, timezone
+import cloudshield.Server.routes.api as api_mod
+from pydantic import ValidationError
+
+def test_share_doc_to_payload():
+    """Test the _share_doc_to_payload helper function"""
+    now = datetime.now(timezone.utc)
+    doc = {
+        "_id": "507f1f77bcf86cd799439011",
+        "org_id": "acme",
+        "name": "HR_Share",
+        "groups": ["hr"],
+        "drive": "Z",
+        "created_at": now
+    }
+    result = api_mod._share_doc_to_payload(doc)
+    assert result["id"] == "507f1f77bcf86cd799439011"
+    assert result["name"] == "HR_Share"
+    assert result["groups"] == ["hr"]
+    assert result["created_at"] == now.isoformat()
+
+# --- File Share Endpoints ---
+
+def test_task_delete_file_share(client):
+    # Success path
+    resp = client.post("/api/task/dc/delete_file_share", json={"org_id": "acme", "share_name": "Finance"})
+    assert resp.status_code == 202
+    
+    # Missing org_id
+    resp = client.post("/api/task/dc/delete_file_share", json={"share_name": "Finance"})
+    assert resp.status_code == 422
+    
+    # Missing share_name
+    resp = client.post("/api/task/dc/delete_file_share", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_task_create_file_share(client):
+    # Success path
+    resp = client.post("/api/task/dc/create_file_share", json={"org_id": "acme", "share_name": "Finance"})
+    assert resp.status_code == 202
+    
+    # Missing org_id
+    resp = client.post("/api/task/dc/create_file_share", json={"share_name": "Finance"})
+    assert resp.status_code == 422
+    
+    # Missing share_name
+    resp = client.post("/api/task/dc/create_file_share", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+@patch("cloudshield.Server.routes.api.list_shares")
+def test_list_file_shares(mock_list_shares, client):
+    mock_list_shares.return_value = [{"name": "Finance", "drive": "Z"}]
+    
+    # Success path
+    resp = client.get("/api/file_shares?org_id=acme")
+    assert resp.status_code == 200
+    assert len(resp.json["shares"]) == 1
+    
+    # Missing org_id
+    resp = client.get("/api/file_shares")
+    assert resp.status_code == 422
+
+@patch("cloudshield.Server.routes.api.list_groups_with_shares")
+def test_list_file_share_groups(mock_list_groups, client):
+    mock_list_groups.return_value = [{"group": {"name": "engineering", "shares": ["Dev"]}}]
+    
+    # Success path
+    resp = client.get("/api/file_share_groups?org_id=acme")
+    assert resp.status_code == 200
+    assert len(resp.json["groups"]) == 1
+    
+    # Missing org_id
+    resp = client.get("/api/file_share_groups")
+    assert resp.status_code == 422
+
+@patch("cloudshield.Server.routes.api.update_share")
+def test_update_file_share(mock_update_share, client):
+    mock_update_share.return_value = True
+    
+    # Success path
+    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    assert resp.status_code == 200
+    assert resp.json["status"] == "SUCCESS"
+    
+    # Missing org_id
+    resp = client.patch("/api/file_shares/Finance", json={"description": "New description"})
+    assert resp.status_code == 422
+    
+    # No update fields provided
+    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme"})
+    assert resp.status_code == 400
+    
+    # Share not found failure
+    mock_update_share.return_value = False
+    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    assert resp.status_code == 404
+
+# --- DC Task Endpoints ---
+
+def test_task_dc_set_password(client):
+    # Success path
+    resp = client.post("/api/task/dc/set_password", json={"org_id": "acme", "username": "user1", "new_password": "newpass"})
+    assert resp.status_code == 202
+    
+    # Missing inputs
+    assert client.post("/api/task/dc/set_password", json={"username": "user1", "new_password": "p"}).status_code == 422
+    assert client.post("/api/task/dc/set_password", json={"org_id": "acme", "new_password": "p"}).status_code == 422
+    assert client.post("/api/task/dc/set_password", json={"org_id": "acme", "username": "user1"}).status_code == 422
+
+def test_task_dc_user_list(client):
+    # Success
+    resp = client.post("/api/task/dc/user_list", json={"org_id": "acme"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/user_list", json={})
+    assert resp.status_code == 422
+
+def test_task_dc_restart_samba(client):
+    # Success
+    resp = client.post("/api/task/dc/restart_samba", json={"org_id": "acme"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/restart_samba", json={})
+    assert resp.status_code == 422
+
+def test_task_dc_remove_user(client):
+    # Success
+    resp = client.post("/api/task/dc/remove_user", json={"org_id": "acme", "username": "user1"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/remove_user", json={"username": "user1"})
+    assert resp.status_code == 422
+    # Missing username
+    resp = client.post("/api/task/dc/remove_user", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_dc_add_user_with_group(client):
+    # Success
+    resp = client.post("/api/task/dc/add_user_with_group", json={"org_id": "acme", "username": "user1", "password": "pass", "group_name": "devs"})
+    assert resp.status_code == 202
+    # Missing fields
+    resp = client.post("/api/task/dc/add_user_with_group", json={"username": "user1", "password": "pass"})
+    assert resp.status_code == 422
+
+# --- Signup Admin Endpoints ---
+
+@patch("cloudshield.Server.routes.api.create_user")
+def test_signup_admin_success(mock_create_user, client):
+    mock_create_user.return_value = "new_user_123"
+    
+    # Success Path (using user data compatible with your schema)
+    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    assert resp.status_code == 201
+    assert "user_id" in resp.json
+
+@patch("cloudshield.Server.routes.api.create_user")
+def test_signup_admin_validation_error(mock_create_user, client):
+    # Forcing a generic ValueError which hits the 409 block
+    mock_create_user.side_effect = ValueError("User already exists")
+    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    assert resp.status_code == 409
+
+@patch("cloudshield.Server.routes.api.create_user")
+def test_signup_admin_permission_error(mock_create_user, client):
+    # Testing the 403 block
+    mock_create_user.side_effect = PermissionError("Unauthorized")
+    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    assert resp.status_code == 403
+
+@patch("cloudshield.Server.routes.api.create_user")
+def test_signup_admin_internal_error(mock_create_user, client):
+    # Testing the 500 catch-all Exception block
+    mock_create_user.side_effect = Exception("DB Down")
+    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    assert resp.status_code == 500
+
+# ==========================================
+# PROVISIONING LOGIC COVERAGE TESTS
+# ==========================================
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_provision_invalid_count_type(mock_orgs, client):
+    """Hits the 'workstation_count must be an integer' 400 error"""
+    mock_orgs.find_one.return_value = None
+    resp = client.post("/api/task/provision", json={
+        "org_id": "acme",
+        "workstation_count": "invalid_string"
+    })
+    assert resp.status_code == 400
+    assert "must be an integer" in resp.get_json()["error"]
+
+@patch("cloudshield.Server.routes.api.service_dispatcher")
+@patch("cloudshield.Server.routes.api.organizations")
+def test_provision_exceeds_limit(mock_orgs, mock_dispatcher, client):
+    """Hits the limit capping logic (workstation_count = org_limit)"""
+    # Org limit is 5, requested count is 10
+    mock_orgs.find_one.return_value = {"workstation_limit": 5, "status": "pending"}
+    
+    # Mock dispatcher to return a job
+    mock_dispatcher.return_value = MagicMock(id="job_cap")
+
+    resp = client.post("/api/task/provision", json={
+        "org_id": "acme",
+        "workstation_count": 10
+    })
+    assert resp.status_code == 202
+    
+    # Verify dispatcher was called with the capped limit (5), not 10
+    mock_dispatcher.assert_called_once_with(
+        service_name="provision_network",
+        org_id="acme",
+        region="ca-central-1",
+        ubuntu_ami=None,
+        workstation_ami=None,
+        workstation_count=5
+    )
+
+@patch("cloudshield.Server.routes.api.service_dispatcher")
+@patch("cloudshield.Server.routes.api.organizations")
+def test_provision_negative_or_zero_count(mock_orgs, mock_dispatcher, client):
+    """Hits the 'if workstation_count <= 0: workstation_count = 1' line"""
+    mock_orgs.find_one.return_value = None
+    mock_dispatcher.return_value = MagicMock(id="job_neg")
+
+    # Requesting 0 workstations should default to 1
+    resp = client.post("/api/task/provision", json={
+        "org_id": "acme",
+        "workstation_count": 0
+    })
+    assert resp.status_code == 202
+    
+    # Verify dispatcher was called with count 1
+    mock_dispatcher.assert_called_once_with(
+        service_name="provision_network",
+        org_id="acme",
+        region="ca-central-1",
+        ubuntu_ami=None,
+        workstation_ami=None,
+        workstation_count=1
+    )
+
+@patch("os.environ.get")
+@patch("cloudshield.Server.routes.api.organizations")
+def test_provision_already_completed(mock_orgs, mock_env, client):
+    """Hits the 'Environment already provisioned' 400 error"""
+    # Pretend we are NOT in pytest so the bypass doesn't trigger
+    mock_env.return_value = None 
+    
+    # Return a document indicating status is already complete
+    mock_orgs.find_one.return_value = {"org_id": "acme", "status": "complete"}
+
+    resp = client.post("/api/task/provision", json={"org_id": "acme"})
+    
+    assert resp.status_code == 400
+    assert "already provisioned" in resp.get_json()["error"]
