@@ -1,16 +1,29 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
-// import {
-//   MOCK_USERS,
-//   MOCK_WORKSTATIONS,
-//   MOCK_FILES,
-//   findUserByEmail,
-//   findWorkstationByName,
-// } from "../../data/mockData.js";
 import "./GroupsModal.css";
 
+// Use the same Users API logic as EmployeesPage
+import { listUsers } from "../../services/usersApi.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+
 const STEPS = ["Basic Info", "Users", "Workstations", "Files"];
+
+// Minimal mock until workstations API is ready
+const MOCK_WORKSTATIONS_MIN = [
+  {
+    id: "ws-1",
+    name: "Workstation Alpha",
+    online: true,
+    ipAddress: "10",
+  },
+  {
+    id: "ws-2",
+    name: "Workstation Beta",
+    online: false,
+    ipAddress: "10",
+  },
+];
 
 /**
  * GroupsModal - Multi-step wizard for creating/editing groups
@@ -20,9 +33,13 @@ export default function GroupsModal({
   onClose,
   groupData = null,
   onSubmit,
+  onRefresh,
 }) {
+  const { accessToken, currentUser } = useAuth();
+
   const isEditMode = Boolean(groupData);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -41,22 +58,149 @@ export default function GroupsModal({
     files: "",
   });
 
-  // Initialize form data
+  // Available options (fetched)
+  const [allUsers, setAllUsers] = useState([]);
+  const [allWorkstations, setAllWorkstations] = useState([]);
+  const [allFiles, setAllFiles] = useState([]); // file shares
+
+  const openToast = (msg) => {
+    console.warn(msg);
+  };
+
+  const resolveOrgId = async () => {
+    const fromUser = currentUser?.org_id;
+    if (fromUser) return fromUser;
+
+    const fromStorage = localStorage.getItem("org_id");
+    if (fromStorage) return fromStorage;
+
+    return null;
+  };
+
+  const safeSplitName = (fullName) => {
+    const raw = (fullName || "").trim();
+    if (!raw) return { firstName: "Unknown", lastName: "" };
+    const parts = raw.split(/\s+/);
+    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+    return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+  };
+
+  // --- USERS (use the same logic/pattern as EmployeesPage) ---
+  const fetchUsersAll = async () => {
+    if (!accessToken) {
+      setAllUsers([]);
+      return;
+    }
+
+    try {
+      const data = await listUsers({
+        token: accessToken,
+        search: "",
+        limit: 200,
+        offset: 0,
+      });
+
+      const normalized = (Array.isArray(data) ? data : []).map((u) => {
+        const id = String(u._id || u.id || "");
+        const { firstName, lastName } = safeSplitName(
+          u.full_name || u.name || "",
+        );
+        return {
+          id,
+          _id: id,
+          email: u.email,
+          firstName,
+          lastName,
+          title: u.role || u.title || "",
+          role: u.role,
+        };
+      });
+
+      setAllUsers(normalized.filter((u) => u.id));
+    } catch (e) {
+      setAllUsers([]);
+      openToast(e?.message || "Failed to load users");
+    }
+  };
+
+  // --- FILE SHARES ---
+  const fetchFileSharesAll = async () => {
+    try {
+      const orgId = await resolveOrgId();
+      if (!orgId) {
+        setAllFiles([]);
+        openToast("Missing org_id for file_shares fetch");
+        return;
+      }
+
+      const res = await fetch(
+        `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      if (!res.ok) {
+        setAllFiles([]);
+        return;
+      }
+
+      const data = await res.json();
+      const shares = Array.isArray(data.shares) ? data.shares : [];
+
+      const normalized = shares
+        .map((x) => x?.share)
+        .filter(Boolean)
+        .map((s) => ({
+          id: String(s.id || ""),
+          name: s.name || "Untitled Share",
+          type: "document",
+          size: s.drive ? `Drive ${s.drive}` : "",
+          drive: s.drive,
+          description: s.description || "",
+          owner: s.owner,
+          groups: s.groups || [],
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+        }))
+        .filter((s) => s.id);
+
+      setAllFiles(normalized);
+    } catch (e) {
+      setAllFiles([]);
+    }
+  };
+
+  // --- WORKSTATIONS (mock for now) ---
+  const fetchWorkstationsAll = async () => {
+    setAllWorkstations(MOCK_WORKSTATIONS_MIN);
+  };
+
+  // Initialize form data + fetch all options when modal opens
   useEffect(() => {
     if (!open) return;
 
     if (isEditMode && groupData) {
-      // const matchedUsers = (groupData.users || [])
-      //   .map((user) => findUserByEmail(user.email))
-      //   .filter(Boolean);
+      const seedFiles =
+        Array.isArray(groupData.fileShareIds) &&
+        groupData.fileShareIds.length > 0
+          ? groupData.fileShareIds.map((id) => ({
+              id,
+              name: id,
+              type: "document",
+              size: "",
+            }))
+          : [];
 
       setFormData({
         groupName: groupData.name || "",
         description: groupData.description || "",
         groupImage: groupData.image || null,
-        selectedUsers: groupData.users || [], // matchedUsers,
+        selectedUsers: groupData.users || [],
         selectedWorkstations: groupData.workstations || [],
-        selectedFiles: [],
+        selectedFiles: seedFiles,
       });
     } else {
       setFormData({
@@ -71,37 +215,42 @@ export default function GroupsModal({
 
     setCurrentStep(0);
     setSearchTerms({ users: "", workstations: "", files: "" });
-  }, [open, groupData, isEditMode]);
+
+    fetchUsersAll();
+    fetchWorkstationsAll();
+    fetchFileSharesAll();
+  }, [open, groupData, isEditMode, accessToken]);
 
   // Filter lists
-  // const filteredUsers = useMemo(
-  //   () =>
-  //     MOCK_USERS.filter((user) =>
-  //       `${user.firstName} ${user.lastName}`
-  //         .toLowerCase()
-  //         .includes(searchTerms.users.toLowerCase()),
-  //     ),
-  //   [searchTerms.users],
-  // );
-  const filteredUsers = [];
+  const filteredUsers = useMemo(() => {
+    const q = searchTerms.users.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter((u) =>
+      [`${u.firstName} ${u.lastName}`, u.email, u.title]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [allUsers, searchTerms.users]);
 
-  // const filteredWorkstations = useMemo(
-  //   () =>
-  //     MOCK_WORKSTATIONS.filter((ws) =>
-  //       ws.name.toLowerCase().includes(searchTerms.workstations.toLowerCase()),
-  //     ),
-  //   [searchTerms.workstations],
-  // );
-  const filteredWorkstations = [];
+  const filteredWorkstations = useMemo(() => {
+    const q = searchTerms.workstations.trim().toLowerCase();
+    if (!q) return allWorkstations;
+    return allWorkstations.filter((ws) =>
+      [ws.name, ws.ipAddress]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [allWorkstations, searchTerms.workstations]);
 
-  // const filteredFiles = useMemo(
-  //   () =>
-  //     MOCK_FILES.filter((file) =>
-  //       file.name.toLowerCase().includes(searchTerms.files.toLowerCase()),
-  //     ),
-  //   [searchTerms.files],
-  // );
-  const filteredFiles = [];
+  const filteredFiles = useMemo(() => {
+    const q = searchTerms.files.trim().toLowerCase();
+    if (!q) return allFiles;
+    return allFiles.filter((f) =>
+      [f.name, f.description, f.drive, f.owner]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [allFiles, searchTerms.files]);
 
   // Handlers
   const handleNavigate = (direction) => {
@@ -110,16 +259,26 @@ export default function GroupsModal({
     );
   };
 
-  const handleSubmit = () => {
-    onSubmit?.({
-      name: formData.groupName,
-      description: formData.description,
-      image: formData.groupImage,
-      users: formData.selectedUsers,
-      workstations: formData.selectedWorkstations,
-      files: formData.selectedFiles,
-    });
-    onClose();
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit?.({
+        name: formData.groupName,
+        description: formData.description,
+        image: formData.groupImage,
+        users: formData.selectedUsers,
+        workstations: formData.selectedWorkstations,
+        files: formData.selectedFiles,
+      });
+      onRefresh?.();
+      onClose();
+    } catch (error) {
+      console.error("Failed to submit group:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -298,8 +457,9 @@ export default function GroupsModal({
               <button
                 className="groups-modal-btn groups-modal-btn-primary"
                 onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                {isEditMode ? "Save Changes" : "Create Group"}
+                {isSubmitting ? "Saving..." : isEditMode ? "Save Changes" : "Create Group"}
               </button>
             )}
           </div>
@@ -426,6 +586,8 @@ function SelectionStep({
     },
   }[type];
 
+  const items = Array.isArray(filteredItems) ? filteredItems : [];
+
   return (
     <div className="groups-modal-step">
       <div className="groups-modal-search-section">
@@ -438,9 +600,17 @@ function SelectionStep({
           placeholder={config.placeholder}
         />
 
-        {filteredItems.length > 0 && (
-          <div className="groups-modal-dropdown">
-            {filteredItems.map((item) => {
+        {/* Always render selectable list */}
+        <div className="groups-modal-dropdown">
+          {items.length === 0 ? (
+            <div
+              className="groups-modal-dropdown-item"
+              style={{ opacity: 0.7, cursor: "default" }}
+            >
+              No results
+            </div>
+          ) : (
+            items.map((item) => {
               const isSelected = selectedItems.some((i) => i.id === item.id);
               const rendered = config.renderItem(item);
 
@@ -464,9 +634,9 @@ function SelectionStep({
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
 
       {selectedItems.length > 0 && (

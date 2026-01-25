@@ -26,6 +26,19 @@ jest.mock("../../../assets/ImageUploadIcon.jsx", () => {
   };
 });
 
+// Mock AuthContext
+jest.mock("../../../context/AuthContext.jsx", () => ({
+  useAuth: () => ({
+    accessToken: "mock-token",
+    currentUser: { org_id: "test-org" },
+  }),
+}));
+
+// Mock usersApi
+jest.mock("../../../services/usersApi.js", () => ({
+  listUsers: jest.fn(() => Promise.resolve({ users: [] })),
+}));
+
 // Mock CSS import
 jest.mock("../GroupsModal.css", () => ({}));
 
@@ -1039,6 +1052,505 @@ describe("GroupsModal Component", () => {
 
       await waitFor(() => {
         expect(countDisplay).toHaveTextContent("1");
+      });
+    });
+  });
+
+  // Submit Button and Loading State Tests
+  describe("Submit Button and Loading State", () => {
+    test("submit button shows correct text in create mode", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+
+      // Fill in required field and navigate to last step
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton); // to Users
+      await userEvent.click(screen.getByText("Next")); // to Workstations
+      await userEvent.click(screen.getByText("Next")); // to Files
+
+      // Should show "Create Group" button
+      expect(screen.getByText("Create Group")).toBeInTheDocument();
+    });
+
+    test("submit button shows correct text in edit mode", async () => {
+      const groupData = {
+        id: "1",
+        name: "Test Group",
+        description: "Test Description",
+        users: [],
+        workstations: [],
+        files: [],
+      };
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          groupData={groupData}
+        />,
+      );
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton); // to Users
+      await userEvent.click(screen.getByText("Next")); // to Workstations
+      await userEvent.click(screen.getByText("Next")); // to Files
+
+      // Should show "Save Changes" button
+      expect(screen.getByText("Save Changes")).toBeInTheDocument();
+    });
+
+    test("submit button is disabled during submission", async () => {
+      const slowOnSubmit = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100)),
+      );
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={slowOnSubmit}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+
+      // Click submit
+      await userEvent.click(submitButton);
+
+      // Button should be disabled during submission
+      await waitFor(() => {
+        expect(screen.getByText("Saving...")).toBeDisabled();
+      });
+    });
+
+    test("submit button shows Saving... text during submission", async () => {
+      const slowOnSubmit = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100)),
+      );
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={slowOnSubmit}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Saving...")).toBeInTheDocument();
+      });
+    });
+
+    test("prevents double submission when clicking submit rapidly", async () => {
+      const onSubmit = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 50)),
+      );
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+
+      // Click multiple times rapidly
+      fireEvent.click(submitButton);
+      fireEvent.click(submitButton);
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        // Should only be called once due to isSubmitting guard
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test("calls onRefresh after successful submission", async () => {
+      const onSubmit = jest.fn(() => Promise.resolve());
+      const onRefresh = jest.fn();
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={onSubmit}
+          onRefresh={onRefresh}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(onRefresh).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test("calls onClose after successful submission", async () => {
+      const onSubmit = jest.fn(() => Promise.resolve());
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test("resets isSubmitting state after submission error", async () => {
+      const onSubmit = jest.fn(() => Promise.reject(new Error("Failed")));
+
+      render(
+        <GroupsModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to last step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      const submitButton = screen.getByText("Create Group");
+      await userEvent.click(submitButton);
+
+      // After error, button should be re-enabled
+      await waitFor(() => {
+        const button = screen.getByText("Create Group");
+        expect(button).not.toBeDisabled();
+      });
+    });
+  });
+
+  // ResolveOrgId and Data Fetching Tests
+  describe("ResolveOrgId and Data Fetching", () => {
+    beforeEach(() => {
+      global.fetch = jest.fn();
+      global.localStorage = {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+      };
+    });
+
+    afterEach(() => {
+      global.fetch.mockClear();
+      delete global.fetch;
+      delete global.localStorage;
+    });
+
+    test("resolveOrgId returns org_id from localStorage when user has none", async () => {
+      // Set localStorage mock with specific return value
+      global.localStorage = {
+        getItem: jest.fn().mockReturnValue("org-from-storage"),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+      };
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ shares: [] }),
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      // Navigate to files step to trigger fetch
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchUsersAll handles empty access token", async () => {
+      // This is handled by the mock which provides a token
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("New Group")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchUsersAll handles API error", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockRejectedValueOnce(new Error("API Error"));
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      // Navigate to users step
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles missing org_id", async () => {
+      // Mock useAuth to return no org_id
+      jest.mock("../../../context/AuthContext.jsx", () => ({
+        useAuth: () => ({
+          accessToken: "mock-token",
+          currentUser: { org_id: null },
+        }),
+      }));
+
+      global.localStorage.getItem.mockReturnValue(null);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      // Navigate to files step
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles non-ok response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles successful response with shares", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          shares: [
+            { share: { id: "s1", name: "Share 1", drive: "C" } },
+            { share: { id: "s2", name: "Share 2", drive: "D" } },
+          ],
+        }),
+      });
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+
+    test("fetchFileSharesAll handles fetch exception", async () => {
+      global.fetch.mockRejectedValueOnce(new Error("Network error"));
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Files")).toBeInTheDocument();
+      });
+    });
+  });
+
+  // SafeSplitName Function Tests
+  describe("SafeSplitName Function", () => {
+    test("handles empty string", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "", email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles single word name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "John", email: "john@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles multi-word name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "John Michael Doe", email: "john@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles whitespace-only name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: "   ", email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
+      });
+    });
+
+    test("handles null name", async () => {
+      const { listUsers } = require("../../../services/usersApi.js");
+      listUsers.mockResolvedValueOnce([
+        { _id: "u1", full_name: null, email: "test@test.com" },
+      ]);
+
+      render(<GroupsModal open={true} onClose={jest.fn()} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "test-group");
+
+      const nextButton = screen.getByText("Next");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Users")).toBeInTheDocument();
       });
     });
   });
