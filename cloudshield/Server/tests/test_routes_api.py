@@ -350,12 +350,20 @@ def test_dc_add_user_with_group(client):
 
 # --- Signup Admin Endpoints ---
 
+# A valid payload that satisfies the UserCreate Pydantic model
+VALID_SIGNUP_PAYLOAD = {
+    "email": "admin@example.com", 
+    "password": "Password123!",
+    "full_name": "Test Admin",
+    "company_name": "Acme Corp"
+}
+
 @patch("cloudshield.Server.routes.api.create_user")
 def test_signup_admin_success(mock_create_user, client):
     mock_create_user.return_value = "new_user_123"
     
-    # Success Path (using user data compatible with your schema)
-    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    # Success Path 
+    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 201
     assert "user_id" in resp.json
 
@@ -363,21 +371,21 @@ def test_signup_admin_success(mock_create_user, client):
 def test_signup_admin_validation_error(mock_create_user, client):
     # Forcing a generic ValueError which hits the 409 block
     mock_create_user.side_effect = ValueError("User already exists")
-    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 409
 
 @patch("cloudshield.Server.routes.api.create_user")
 def test_signup_admin_permission_error(mock_create_user, client):
     # Testing the 403 block
     mock_create_user.side_effect = PermissionError("Unauthorized")
-    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 403
 
 @patch("cloudshield.Server.routes.api.create_user")
 def test_signup_admin_internal_error(mock_create_user, client):
     # Testing the 500 catch-all Exception block
     mock_create_user.side_effect = Exception("DB Down")
-    resp = client.post("/api/signup_admin", json={"email": "admin@example.com", "password": "Password123!"})
+    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 500
 
 # ==========================================
