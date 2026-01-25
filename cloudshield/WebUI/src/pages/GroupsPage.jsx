@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
+import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 // import { MOCK_GROUPS_FULL } from "../data/mockData.js";
 
 // Import dynamic components
@@ -36,9 +37,6 @@ export default function GroupsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
 
-  const openToast = (msg, type = "success") =>
-    setToast({ open: true, msg, type });
-
   // const mockFetchGroups = async () => {
   //   setGroups(MOCK_GROUPS_FULL);
   // };
@@ -58,16 +56,16 @@ export default function GroupsPage() {
     }
 
     // Apply size filters (if needed)
-    const sizeFilters = activeFilters.size;
-    if (sizeFilters.size > 0) {
-      out = out.filter((g) => {
-        if (sizeFilters.has("small") && g.users <= 5) return true;
-        if (sizeFilters.has("medium") && g.users > 5 && g.users <= 20)
-          return true;
-        if (sizeFilters.has("large") && g.users > 20) return true;
-        return false;
-      });
-    }
+    // const sizeFilters = activeFilters.size;
+    // if (sizeFilters.size > 0) {
+    //   out = out.filter((g) => {
+    //     if (sizeFilters.has("small") && g.users <= 5) return true;
+    //     if (sizeFilters.has("medium") && g.users > 5 && g.users <= 20)
+    //       return true;
+    //     if (sizeFilters.has("large") && g.users > 20) return true;
+    //     return false;
+    //   });
+    // }
 
     out.sort((a, b) => {
       const va = a[sortField] ?? "";
@@ -105,21 +103,7 @@ export default function GroupsPage() {
     },
   ];
 
-  const handleFilterChange = (groupId, value, isActive) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      const currentSet = new Set(newFilters[groupId] || []);
-
-      if (isActive) {
-        currentSet.add(value);
-      } else {
-        currentSet.delete(value);
-      }
-
-      newFilters[groupId] = currentSet;
-      return newFilters;
-    });
-  };
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
   // const handleMockDelete = (id) => {
   //   setGroups((p) => p.filter((g) => g.id !== id));

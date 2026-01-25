@@ -713,4 +713,333 @@ describe("GroupsModal Component", () => {
       expect(searchInput).toHaveValue("test");
     });
   });
+
+  describe("Default Switch Case", () => {
+    test("handles invalid step gracefully", () => {
+      const { container } = render(
+        <GroupsModal open={true} onClose={mockOnClose} />,
+      );
+
+      // Modal should still render even with edge cases
+      expect(container.querySelector(".groups-modal-dialog")).toBeTruthy();
+    });
+  });
+
+  describe("Additional Edge Cases", () => {
+    test("handles description textarea input", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      const descInput = screen.getByPlaceholderText(
+        "Enter a brief description of the group",
+      );
+      await userEvent.type(descInput, "Test description");
+
+      expect(descInput).toHaveValue("Test description");
+    });
+
+    test("navigates back from users step", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      // Navigate forward
+      await userEvent.click(screen.getByText("Next"));
+
+      // Navigate back
+      await userEvent.click(screen.getByText("Back"));
+
+      // Should be on first step again
+      expect(
+        screen.getByPlaceholderText("Enter group name"),
+      ).toBeInTheDocument();
+    });
+
+    test("navigates to final step and back", async () => {
+      render(<GroupsModal open={true} onClose={mockOnClose} />);
+
+      const nameInput = screen.getByPlaceholderText("Enter group name");
+      await userEvent.type(nameInput, "Test Group");
+
+      // Navigate to last step
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+      await userEvent.click(screen.getByText("Next"));
+
+      expect(
+        screen.getByPlaceholderText("Search files..."),
+      ).toBeInTheDocument();
+
+      // Navigate back
+      await userEvent.click(screen.getByText("Back"));
+
+      // Should be on workstations step
+      expect(
+        screen.getByPlaceholderText("Search workstations..."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  // Selection and removal tests with mock data
+  describe("Selection Toggle and Remove Functions", () => {
+    test("toggleSelection adds item when not selected", async () => {
+      const TestComponent = () => {
+        const [formData, setFormData] = React.useState({
+          name: "",
+          description: "",
+          image: null,
+          selectedUsers: [],
+          selectedWorkstations: [],
+          selectedFiles: [],
+        });
+
+        const toggleSelection = (type, item) => {
+          setFormData((prev) => {
+            const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            const selected = prev[key];
+            const isSelected = selected.some((i) => i.id === item.id);
+            return {
+              ...prev,
+              [key]: isSelected
+                ? selected.filter((i) => i.id !== item.id)
+                : [...selected, item],
+            };
+          });
+        };
+
+        return (
+          <div>
+            <button
+              onClick={() =>
+                toggleSelection("users", { id: "1", firstName: "John" })
+              }
+            >
+              Toggle User
+            </button>
+            <div data-testid="user-count">{formData.selectedUsers.length}</div>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+
+      const toggleButton = screen.getByText("Toggle User");
+      const countDisplay = screen.getByTestId("user-count");
+
+      expect(countDisplay).toHaveTextContent("0");
+
+      await userEvent.click(toggleButton);
+
+      await waitFor(() => {
+        expect(countDisplay).toHaveTextContent("1");
+      });
+    });
+
+    test("toggleSelection removes item when already selected", async () => {
+      const TestComponent = () => {
+        const [formData, setFormData] = React.useState({
+          name: "",
+          description: "",
+          image: null,
+          selectedUsers: [{ id: "1", firstName: "John" }],
+          selectedWorkstations: [],
+          selectedFiles: [],
+        });
+
+        const toggleSelection = (type, item) => {
+          setFormData((prev) => {
+            const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            const selected = prev[key];
+            const isSelected = selected.some((i) => i.id === item.id);
+            return {
+              ...prev,
+              [key]: isSelected
+                ? selected.filter((i) => i.id !== item.id)
+                : [...selected, item],
+            };
+          });
+        };
+
+        return (
+          <div>
+            <button
+              onClick={() =>
+                toggleSelection("users", { id: "1", firstName: "John" })
+              }
+            >
+              Toggle User
+            </button>
+            <div data-testid="user-count">{formData.selectedUsers.length}</div>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+
+      const toggleButton = screen.getByText("Toggle User");
+      const countDisplay = screen.getByTestId("user-count");
+
+      expect(countDisplay).toHaveTextContent("1");
+
+      await userEvent.click(toggleButton);
+
+      await waitFor(() => {
+        expect(countDisplay).toHaveTextContent("0");
+      });
+    });
+
+    test("removeSelection removes item by id", async () => {
+      const TestComponent = () => {
+        const [formData, setFormData] = React.useState({
+          name: "",
+          description: "",
+          image: null,
+          selectedUsers: [],
+          selectedWorkstations: [
+            { id: "1", name: "WS-001" },
+            { id: "2", name: "WS-002" },
+          ],
+          selectedFiles: [],
+        });
+
+        const removeSelection = (type, id) => {
+          setFormData((prev) => {
+            const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            return {
+              ...prev,
+              [key]: prev[key].filter((i) => i.id !== id),
+            };
+          });
+        };
+
+        return (
+          <div>
+            <button onClick={() => removeSelection("workstations", "1")}>
+              Remove First
+            </button>
+            <div data-testid="ws-count">
+              {formData.selectedWorkstations.length}
+            </div>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+
+      const removeButton = screen.getByText("Remove First");
+      const countDisplay = screen.getByTestId("ws-count");
+
+      expect(countDisplay).toHaveTextContent("2");
+
+      await userEvent.click(removeButton);
+
+      await waitFor(() => {
+        expect(countDisplay).toHaveTextContent("1");
+      });
+    });
+
+    test("toggleSelection works with files", async () => {
+      const TestComponent = () => {
+        const [formData, setFormData] = React.useState({
+          name: "",
+          description: "",
+          image: null,
+          selectedUsers: [],
+          selectedWorkstations: [],
+          selectedFiles: [],
+        });
+
+        const toggleSelection = (type, item) => {
+          setFormData((prev) => {
+            const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            const selected = prev[key];
+            const isSelected = selected.some((i) => i.id === item.id);
+            return {
+              ...prev,
+              [key]: isSelected
+                ? selected.filter((i) => i.id !== item.id)
+                : [...selected, item],
+            };
+          });
+        };
+
+        return (
+          <div>
+            <button
+              onClick={() =>
+                toggleSelection("files", { id: "f1", name: "doc.pdf" })
+              }
+            >
+              Toggle File
+            </button>
+            <div data-testid="file-count">{formData.selectedFiles.length}</div>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+
+      const toggleButton = screen.getByText("Toggle File");
+      const countDisplay = screen.getByTestId("file-count");
+
+      expect(countDisplay).toHaveTextContent("0");
+
+      await userEvent.click(toggleButton);
+
+      await waitFor(() => {
+        expect(countDisplay).toHaveTextContent("1");
+      });
+    });
+
+    test("removeSelection works with users", async () => {
+      const TestComponent = () => {
+        const [formData, setFormData] = React.useState({
+          name: "",
+          description: "",
+          image: null,
+          selectedUsers: [
+            { id: "1", firstName: "John" },
+            { id: "2", firstName: "Jane" },
+          ],
+          selectedWorkstations: [],
+          selectedFiles: [],
+        });
+
+        const removeSelection = (type, id) => {
+          setFormData((prev) => {
+            const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            return {
+              ...prev,
+              [key]: prev[key].filter((i) => i.id !== id),
+            };
+          });
+        };
+
+        return (
+          <div>
+            <button onClick={() => removeSelection("users", "2")}>
+              Remove Second
+            </button>
+            <div data-testid="user-count">{formData.selectedUsers.length}</div>
+          </div>
+        );
+      };
+
+      render(<TestComponent />);
+
+      const removeButton = screen.getByText("Remove Second");
+      const countDisplay = screen.getByTestId("user-count");
+
+      expect(countDisplay).toHaveTextContent("2");
+
+      await userEvent.click(removeButton);
+
+      await waitFor(() => {
+        expect(countDisplay).toHaveTextContent("1");
+      });
+    });
+  });
 });

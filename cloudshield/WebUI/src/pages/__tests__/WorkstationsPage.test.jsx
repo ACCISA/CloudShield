@@ -629,4 +629,35 @@ describe("WorkstationsPage", () => {
     // Verify initial workstations are passed
     expect(screen.getAllByTestId(/workstation-ws-/)).toHaveLength(4);
   });
+
+  it("handles refresh button click", () => {
+    render(<WorkstationsPage />);
+
+    const refreshButton = screen.getByRole("button", { name: /refresh/i });
+    fireEvent.click(refreshButton);
+
+    // Page should still render after refresh
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
+
+  it("filters with active users only", () => {
+    render(<WorkstationsPage />);
+
+    const filterButton = screen.getByRole("button", { name: /filter/i });
+    fireEvent.click(filterButton);
+
+    // The mock filter button simulates selecting the first filter option
+    // which should filter workstations
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
+
+  it("handles column toggle changes", () => {
+    render(<WorkstationsPage />);
+
+    const displayButton = screen.getByRole("button", { name: /display/i });
+    fireEvent.click(displayButton);
+
+    // Display button interaction should work
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
 });

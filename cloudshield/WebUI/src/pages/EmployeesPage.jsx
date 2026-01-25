@@ -12,6 +12,7 @@ import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import UserEditModal from "../components/users/UserEditModal.jsx";
 import UserCreateModal from "../components/users/UserCreateModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 
 // Backend & Context
 import {
@@ -267,21 +268,7 @@ export default function EmployeesPage() {
     },
   ];
 
-  const handleFilterChange = (groupId, value, isActive) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      const currentSet = new Set(newFilters[groupId] || []);
-
-      if (isActive) {
-        currentSet.add(value);
-      } else {
-        currentSet.delete(value);
-      }
-
-      newFilters[groupId] = currentSet;
-      return newFilters;
-    });
-  };
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
   const styles = {
     container: {
