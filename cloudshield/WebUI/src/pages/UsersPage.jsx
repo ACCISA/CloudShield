@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Box, Snackbar, Alert } from "@mui/material";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 import UsersTable from "../components/users/UsersTable.jsx";
 
@@ -13,6 +15,12 @@ import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { MOCK_USERS_FULL } from "../data/mockData.js";
 
 export default function UsersPage() {
+  const withClickLog = useClickLogger({ page: "users" });
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const [editTarget, setEditTarget] = useState(null);
+
   const [users, setUsers] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -74,12 +82,15 @@ export default function UsersPage() {
   }, [users, search, activeFilters, sortField, sortDir]);
 
   const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
+    const nextDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    setSortField(field);
+    setSortDir(nextDir);
+    trackButton("users/table/sort", {
+      page: "users",
+      field,
+      direction: nextDir,
+      control: "table_header",
+    });
   };
 
   // Filter configuration for FilterButton
@@ -96,6 +107,13 @@ export default function UsersPage() {
   ];
 
   const handleFilterChange = (groupId, value, isActive) => {
+    trackButton("users/filter/change", {
+      page: "users",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
+    });
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
       const currentSet = new Set(newFilters[groupId] || []);
@@ -114,6 +132,11 @@ export default function UsersPage() {
   const handleMockDelete = (id) => {
     setUsers((p) => p.filter((u) => u.id !== id));
     openToast("User deleted");
+  };
+
+  const handleLayoutChange = (value) => {
+    trackButton("users/display/toggle", { page: "users", layout: value, control: "display_button" });
+    setLayout(value);
   };
 
   const styles = {
@@ -158,7 +181,7 @@ export default function UsersPage() {
             }}
           />
 
-          <DisplayButton layout={layout} onLayoutChange={setLayout} />
+          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
 
           <FilterButton
             filterGroups={filterGroups}
@@ -169,12 +192,17 @@ export default function UsersPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          <RefreshButton onClick={mockFetchUsers} />
+          <RefreshButton
+            onClick={withClickLog({ name: "users/toolbar/refresh", control: "refresh_button" })(mockFetchUsers)}
+          />
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={() => {}}
+            onClick={withClickLog({
+              name: "users/toolbar/open-create",
+              control: "create_button",
+            })(() => setCreateModalOpen(true))}
           />
         </div>
       </div>

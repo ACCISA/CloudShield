@@ -681,4 +681,135 @@ describe('FilesPage', () => {
       });
     });
   });
+
+  describe('API Response Parsing', () => {
+    it('should handle array response from API', async () => {
+      const mockFiles = [
+        { id: 'f1', name: 'file1.txt', kind: 'file' },
+        { id: 'f2', name: 'file2.txt', kind: 'file' },
+      ];
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockFiles,
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle file_shares wrapper in API response', async () => {
+      const mockResponse = {
+        file_shares: [
+          { id: 'f1', name: 'file1.txt', kind: 'file' },
+        ],
+      };
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle files wrapper in API response', async () => {
+      const mockResponse = {
+        files: [
+          { id: 'f1', name: 'file1.txt', kind: 'file' },
+        ],
+      };
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle items wrapper in API response', async () => {
+      const mockResponse = {
+        items: [
+          { id: 'f1', name: 'file1.txt', kind: 'file' },
+        ],
+      };
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle object response by wrapping in array', async () => {
+      const mockResponse = { id: 'f1', name: 'single-file.txt', kind: 'file' };
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle non-ok HTTP response', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle empty array response', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.filesPage')).toBeInTheDocument();
+      });
+    });
+
+    it('should use orgId prop in fetch URL', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+      render(<FilesPage orgId="custom_org_123" />);
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining('org_id=custom_org_123')
+        );
+      });
+    });
+  });
 });

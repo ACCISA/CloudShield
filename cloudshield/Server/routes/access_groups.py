@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from models.access_groups import (
     AccessGroupCreate,
     AccessGroupAddMembers,
+    AccessGroupUpdate,
     create_access_group_doc,
     access_group_to_json,
 )
@@ -48,33 +49,6 @@ def list_access_groups():
     Fetch all access groups and include enriched member user info.
 
     GET /api/access-groups
-
-    Response:
-    {
-      "access_groups": [
-        {
-          "id": "...",
-          "group_name": "marketing",
-          "description": "...",
-          "members": ["<user_id>", ...],
-          "members_info": [
-            {
-              "_id": "<user_id>",
-              "email": "...",
-              "full_name": "...",
-              "role": "...",
-              "org_id": "...",
-              "status": "...",
-              "created_at": "...",
-              "updated_at": "..."
-            }
-          ],
-          "members_missing": ["<user_id_not_found>", ...],
-          "created_at": "...",
-          "updated_at": "..."
-        }
-      ]
-    }
     """
     try:
         coll = _get_access_groups_collection()
@@ -150,7 +124,10 @@ def create_access_group():
     {
         "group_name": "marketing",
         "description": "access group for members of the marketing team",
-        "members": ["<user_id1>", "<user_id2>"]
+        "group_image": "data:image/png;base64,...",
+        "members": ["<user_id1>", "<user_id2>"],
+        "workstations": ["<ws_id1>", "<ws_id2>"],
+        "file_shares": ["<share_id1>", "<share_id2>"]
     }
     """
     try:
@@ -173,6 +150,99 @@ def create_access_group():
 
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+    except Exception as e:
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+@access_groups_bp.route("/access-groups/<group_id>", methods=["PATCH"])
+def update_access_group(group_id: str):
+    """
+    Update an existing access group.
+
+    PATCH /api/access-groups/<group_id>
+    Body (any subset):
+    {
+        "group_name": "marketing",
+        "description": "...",
+        "group_image": "data:image/png;base64,...",
+        "members": ["..."],
+        "workstations": ["..."],
+        "file_shares": ["..."]
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        patch = AccessGroupUpdate(**data)
+
+        coll = _get_access_groups_collection()
+        gid = ObjectId(group_id)
+
+        existing = coll.find_one({"_id": gid})
+        if not existing:
+            return jsonify({"error": "access group not found"}), 404
+
+        now = datetime.now(timezone.utc)
+        set_doc = {}
+
+        # group_name (unique)
+        if patch.group_name is not None:
+            dup = coll.find_one({"name": patch.group_name, "_id": {"$ne": gid}}, {"_id": 1})
+            if dup:
+                return jsonify({"error": "access group already exists"}), 409
+            set_doc["name"] = patch.group_name
+
+        if patch.description is not None:
+            set_doc["description"] = patch.description
+
+        if patch.group_image is not None:
+            set_doc["group_image"] = patch.group_image
+
+        if patch.members is not None:
+            set_doc["members"] = [ObjectId(m) for m in patch.members]
+
+        if patch.workstations is not None:
+            set_doc["workstations"] = patch.workstations
+
+        if patch.file_shares is not None:
+            set_doc["file_shares"] = patch.file_shares
+
+        if not set_doc:
+            current = coll.find_one({"_id": gid})
+            return jsonify({"access_group": access_group_to_json(current)}), 200
+
+        set_doc["updated_at"] = now
+        coll.update_one({"_id": gid}, {"$set": set_doc})
+        updated = coll.find_one({"_id": gid})
+
+        #TODO rpc_sync_access_group(updated)
+
+        return jsonify({"access_group": access_group_to_json(updated)}), 200
+
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+    except Exception as e:
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+@access_groups_bp.route("/access-groups/<group_id>", methods=["DELETE"])
+def delete_access_group(group_id: str):
+    """
+    Delete an access group.
+
+    DELETE /api/access-groups/<group_id>
+    """
+    try:
+        coll = _get_access_groups_collection()
+        gid = ObjectId(group_id)
+
+        res = coll.delete_one({"_id": gid})
+        if res.deleted_count == 0:
+            return jsonify({"error": "access group not found"}), 404
+
+        #TODO rpc_sync_access_group_deleted(group_id)
+
+        return jsonify({"status": "deleted", "id": group_id}), 200
+
     except Exception as e:
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
