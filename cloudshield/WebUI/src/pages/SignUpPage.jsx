@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
+import { trackButton } from "../lib/analytics";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
 import PlanCard from "../components/signup/PlanCard.jsx";
@@ -105,6 +106,11 @@ export default function SignupPage({ onSignupSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  const handlePlanSelect = (id) => {
+    trackButton("signup/plan/select", { page: "signup", plan: id });
+    setPlan(id);
+  };
+
   const validate = () => {
     const next = {};
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -157,6 +163,8 @@ export default function SignupPage({ onSignupSuccess }) {
 
     setSubmitting(true);
     setErrors((prev) => ({ ...prev, form: undefined }));
+
+    trackButton("signup/submit", { page: "signup", plan });
 
     try {
       // -----------------------------
@@ -353,7 +361,10 @@ export default function SignupPage({ onSignupSuccess }) {
             </PrimaryButton>
 
             <Typography
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                trackButton("signup/nav/login", { page: "signup" });
+                navigate("/login");
+              }}
               sx={{ cursor: "pointer", mt: 1.5, textAlign: "center" }}
             >
               Already have an account? Log in
@@ -387,7 +398,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 key={p.id}
                 plan={p}
                 selected={plan === p.id}
-                onSelect={setPlan}
+                onSelect={handlePlanSelect}
               />
             ))}
           </Box>
