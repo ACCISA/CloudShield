@@ -25,7 +25,7 @@ RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
 
 COPY cloudshield/__init__.py /app/cloudshield/
 COPY cloudshield/Server /app/cloudshield/Server/
-
+COPY .env /app/
 RUN mkdir -p /app/cloudshield/RPCNode/build/
 # Instead of the terraform provisioner module we wrote, we will import the docker provisioner.
 # Docker provisioner allows us to test our api without using aws to save money and time.

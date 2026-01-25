@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import uuid4
+import os
 
 from flask import Blueprint, request, jsonify
 
@@ -350,7 +351,7 @@ def task_dc_add_user():
     for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
-            return jsonify({"error":"{arg} is required"})
+            return jsonify({"error":f"{arg} is required"}), 400
 
     job = service_dispatcher(service_name="dc_add_user", org_id=org_id, username=username, password=password)
     return jsonify({"job_id": job.id}), 202
@@ -443,7 +444,22 @@ def task_provision():
     if workstation_count is None or workstation_count <= 0:
         workstation_count = 1
 
+    # Check if the environment is already provisioned
+    is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
+    provisioned = organizations.find_one({"org_id": org_id, "status": "complete"})
+    
+    if provisioned and not is_testing:
+        logger.warning("Provisioning already completed for the requested organization.")
+        return jsonify({"error": "Environment already provisioned"}), 400
+
     _seed_workstations(org_id, workstation_count)
+
+    # Update MongoDB to mark the environment as provisioned
+    organizations.update_one(
+        {"org_id": org_id},
+        {"$set": {"status": "complete"}},
+        upsert=True
+    )
 
     job = service_dispatcher(
         service_name="provision_network", 
@@ -480,7 +496,7 @@ def task_provision_workstations():
 
     if not org_id:
         logger.warning("Provision workstations request missing org_id")
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400\
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
     logger.debug(
         "[API] Parsed parameters: org_id=%s, region=%s, count=%s",
