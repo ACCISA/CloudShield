@@ -336,6 +336,7 @@ def task_dc_add_user():
         - org_id (str, required): Organization identifier.
         - username (str, required): Username to be created in DC.
         - password (str, required): Initial password for the DC account.
+        - email (str, required): Email for the DC account.
 
     Behaviour:
         - Validates required fields.
@@ -346,13 +347,20 @@ def task_dc_add_user():
     org_id = data.get("org_id")
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email")
     
     for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
             return jsonify({"error":"{arg} is required"})
 
-    job = service_dispatcher(service_name="dc_add_user", org_id=org_id, username=username, password=password)
+    job = service_dispatcher(
+        service_name="dc_add_user",
+        org_id=org_id,
+        username=username,
+        password=password,
+        email=email,
+    )
     return jsonify({"job_id": job.id}), 202
 
 

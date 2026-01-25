@@ -23,6 +23,7 @@ export default function AddUserPage() {
   const [orgId, setOrgId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const { jobId, status, message, progress, result, executeTask, reset } =
     useAsyncTask();
 
@@ -30,7 +31,7 @@ export default function AddUserPage() {
     const res = await fetch("http://localhost:5050/task/dc/add_user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ org_id: orgId, username, password }),
+      body: JSON.stringify({ org_id: orgId, username, password, email }),
     });
     if (!res.ok && res.status !== 202) {
       const text = await res.text().catch(() => "");
@@ -75,6 +76,15 @@ export default function AddUserPage() {
         size="small"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        sx={{ maxWidth: 300 }}
+      />
+
+      <TextField
+        label="Email"
+        variant="outlined"
+        size="small"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         sx={{ maxWidth: 300 }}
       />
 
@@ -144,8 +154,8 @@ export default function AddUserPage() {
             {typeof progress === "number"
               ? `Adding user… ${progress}%`
               : typeof progress === "string"
-              ? progress
-              : "Adding user…"}
+                ? progress
+                : "Adding user…"}
           </Typography>
         </Box>
       )}
