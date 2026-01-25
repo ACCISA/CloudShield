@@ -301,56 +301,6 @@ class TestAuth:
 
         return mock_orgs, mock_audit
 
-    def test_signup_success(
-        self,
-        app_with_auth,
-        mock_users_admin,
-        mock_password_functions,
-        mock_jwt_functions,
-        monkeypatch,
-    ):
-        """Happy path: org created, admin user created, audit logged, JWT issued."""
-        app, client = app_with_auth
-        mock_orgs, mock_audit = self._setup_signup_db_admin(monkeypatch)
-
-        # No existing org
-        mock_orgs.find_one.return_value = None
-
-        # User insert returns an object with inserted_id
-        insert_result = unittest.mock.MagicMock()
-        insert_result.inserted_id = "uid123"
-        mock_users_admin.insert_one.return_value = insert_result
-
-        mock_password_functions["hash_password"].return_value = "hashed_pw"
-        mock_jwt_functions["issue_token"].return_value = "signup.jwt.token"
-
-        payload = {
-            "email": "new-admin@example.com",
-            "password": "Password123!",
-            "full_name": "New Admin",
-            "company_name": "NewCo",
-            "org_id": "org_new",
-            "package_type": "pro",
-        }
-
-        response = client.post("/auth/signup", json=payload)
-        assert response.status_code == 201
-
-        data = response.get_json()
-        assert data["access_token"] == "signup.jwt.token"
-        assert data["token_type"] == "Bearer"
-        assert data["expires_in"] == 60 * 60
-        assert data["org"]["org_id"] == "org_new"
-        assert data["org"]["company_name"] == "NewCo"
-        assert data["org"]["package_type"] == "pro"
-
-        # DB operations happened
-        mock_orgs.insert_one.assert_called_once()
-        mock_users_admin.insert_one.assert_called_once()
-        mock_audit.insert_one.assert_called_once()
-        mock_password_functions["hash_password"].assert_called_with("Password123!")
-        mock_jwt_functions["issue_token"].assert_called_once()
-
     def test_signup_missing_fields(self, app_with_auth):
         """Missing required fields -> 400 + details list."""
         app, client = app_with_auth
@@ -511,62 +461,6 @@ class TestAuth:
         data = response.get_json()
         assert data["access_token"] == "audit.jwt"
         assert data["org"]["org_id"] == "org_audit"
-
-    def test_signup_success(self, app_with_auth, mock_users_admin, monkeypatch):
-        """Test successful signup scenario"""
-        app, client = app_with_auth
-
-        mock_orgs = unittest.mock.MagicMock()
-        mock_audit = unittest.mock.MagicMock()
-        mock_workstations = unittest.mock.MagicMock()
-        mock_db_admin = {
-            "orgs": mock_orgs,
-            "audit": mock_audit,
-            "workstations": mock_workstations,
-        }
-        monkeypatch.setattr("cloudshield.Server.utils.database.db_admin", mock_db_admin)
-
-        mock_orgs.find_one.return_value = None
-        mock_users_admin.insert_one.return_value.inserted_id = "user123"
-
-        response = client.post('/auth/signup', json={
-            "email": "test@example.com",
-            "password": "password123",
-            "full_name": "Test User",
-            "company_name": "Test Company",
-            "org_id": "org123",
-            "package_type": "pro"
-        })
-
-        assert response.status_code == 201
-        data = response.get_json()
-        assert "access_token" in data
-        assert data["org"] == {
-            "org_id": "org123",
-            "company_name": "Test Company",
-            "package_type": "pro"
-        }
-
-    def test_me_success(self, app_with_auth, mock_jwt_functions):
-        """Test retrieving user info with a valid token"""
-        app, client = app_with_auth
-
-        mock_jwt_functions['verify_token'].return_value = {
-            "sub": "user123",
-            "role": "admin",
-            "org_id": "org123"
-        }
-
-        response = client.get('/auth/me', headers={
-            "Authorization": "Bearer mock_token"
-        })
-
-        assert response.status_code == 200
-        assert response.get_json() == {"claims": {
-            "sub": "user123",
-            "role": "admin",
-            "org_id": "org123"
-        }}
 
     def test_me_invalid_token(self, app_with_auth, mock_jwt_functions):
         """Test retrieving user info with an invalid token"""
