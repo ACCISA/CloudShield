@@ -835,7 +835,9 @@ describe("SignupPage", () => {
         },
       });
       // final navigation after signup + provisioning
-      expect(mockNavigate).toHaveBeenCalledWith("/dashboard", { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith("/dashboard", {
+        replace: true,
+      });
     });
   });
 
