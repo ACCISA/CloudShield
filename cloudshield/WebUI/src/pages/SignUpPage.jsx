@@ -208,19 +208,18 @@ export default function SignupPage({ onSignupSuccess }) {
 
       // Store in localStorage so the browser "remembers" the login
       localStorage.setItem("user", JSON.stringify(userData));
-      if (createUserData.token) {
-        localStorage.setItem("jwt", createUserData.token);
+      if (createUserData.access_token) {
+        localStorage.setItem("jwt", createUserData.access_token);
       }
 
       // Update global state in App.jsx
       onSignupSuccess?.({
-        access_token: createUserData.token || null,
+        access_token: createUserData.access_token || null,
         user: userData,
       });
 
       // --- REDIRECT TO DASHBOARD ---
       console.log("Signup successful, navigating to dashboard...");
-      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Signup error:", err);
       setErrors((prev) => ({

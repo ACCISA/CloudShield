@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_cors import CORS  # <--- 1. Add this import
 from pydantic import ValidationError
 from bson import ObjectId # <-- Added to convert string ID for DB queries
+from security.jwt_utils import issue_token
 
 # Import models/services used by this route
 from models import UserCreate
@@ -44,6 +45,14 @@ def signup():
         # user_service auto-generates the MongoDB ID and attaches it to user_model.org_id
         user_id = create_user(user_model, current_user=None, reason="public_signup")
         org_id = user_model.org_id 
+
+        # Generate token for the new user
+        token = issue_token(
+            sub=user_id,
+            role="admin",      # first user is org admin
+            org_id=org_id
+        )
+
     except PermissionError as exc:
         logger.info("Signup permission error: %s", exc)
         return jsonify({'error': str(exc)}), 403
@@ -89,5 +98,6 @@ def signup():
         'message': 'User created successfully and provisioning started', 
         'user_id': user_id,
         'job_id': job.id,
-        'org_id': org_id # Return the actual Mongo ID to the UI
+        'org_id': org_id, # Return the actual Mongo ID to the UI
+        "access_token": token,
     }), 201
