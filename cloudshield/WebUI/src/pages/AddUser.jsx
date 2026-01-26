@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import ProvisioningControls from "../components/provisioning/ProvisioningControls.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
+import { trackButton } from "../lib/analytics";
 
 export default function AddUserPage() {
   const [orgId, setOrgId] = useState("");
@@ -41,7 +42,10 @@ export default function AddUserPage() {
     return json.job_id;
   }
 
-  const handleStart = () => executeTask(apiStartAddUser);
+  const handleStart = () => {
+    trackButton("adduser/start", { page: "add_user" });
+    executeTask(apiStartAddUser);
+  };
 
   return (
     <Box
@@ -109,7 +113,10 @@ export default function AddUserPage() {
         {status !== "idle" && (
           <Button
             variant="outlined"
-            onClick={reset}
+            onClick={() => {
+              trackButton("adduser/reset", { page: "add_user" });
+              reset();
+            }}
             sx={{
               textTransform: "none",
               borderRadius: "10px",
