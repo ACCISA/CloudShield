@@ -59,7 +59,14 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
-def dc_create_file_share(org_id: str, share_name: str):
+def dc_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -89,7 +96,14 @@ def dc_create_file_share(org_id: str, share_name: str):
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
         try:
-            create_share(org_id=org_id, name=share_name)
+            create_share(
+                org_id=org_id,
+                name=share_name,
+                users=users or [],
+                groups=groups or [],
+                description=description,
+                max_size=max_size
+            )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
             return {

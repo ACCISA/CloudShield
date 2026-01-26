@@ -953,6 +953,8 @@ class TestListAccessGroupsRoute:
         # Verify users collection was not queried since there are no members
         mock_users_coll.find.assert_not_called()
 
+    # Summary-mode coverage is exercised in TestAccessGroupRoutesDirect to avoid DB imports.
+
     def test_list_access_groups_multiple_groups_dedup_members(self, client, monkeypatch):
         """Test that member ObjectIds are deduplicated across groups"""
         test_client, mock_collection = client
@@ -1260,6 +1262,49 @@ class TestAccessGroupRoutesDirect:
             set_doc["file_shares"] = patch.file_shares
 
         assert set_doc == {"workstations": ["ws-new-1", "ws-new-2"]}
+
+    def test_list_access_groups_summary_returns_member_count(self):
+        """Test list_access_groups summary returns member_count without enrichment"""
+        from flask import Flask
+        import cloudshield.Server.routes.access_groups as routes_module
+
+        app = Flask(__name__)
+        now = datetime.now(timezone.utc)
+        member_oid1 = ObjectId()
+        member_oid2 = ObjectId()
+        group_oid = ObjectId()
+
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [
+            {
+                "_id": group_oid,
+                "name": "design-team",
+                "description": "Design team",
+                "members": [member_oid1, member_oid2],
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+        mock_collection.find.return_value = mock_cursor
+
+        original = routes_module.access_groups
+        routes_module.access_groups = mock_collection
+        try:
+            with app.test_request_context("/api/access-groups?summary=1"):
+                response, status_code = routes_module.list_access_groups()
+        finally:
+            routes_module.access_groups = original
+
+        assert status_code == 200
+        data = response.get_json()
+        assert len(data["access_groups"]) == 1
+
+        group = data["access_groups"][0]
+        assert group["group_name"] == "design-team"
+        assert group["member_count"] == 2
+        assert group["members"] == [str(member_oid1), str(member_oid2)]
+        assert "members_info" not in group
 
     def test_update_access_group_members_conversion(self):
         """Test members are converted to ObjectIds in update"""
@@ -1819,4 +1864,3 @@ class TestAccessGroupRoutesWithFlask:
         assert response.status_code == 200
         data = response.get_json()
         assert data["access_group"]["group_image"] == "data:image/png;base64,newimage"
-

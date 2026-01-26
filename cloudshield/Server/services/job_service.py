@@ -228,11 +228,22 @@ def enqueue_dc_set_password(org_id: str, username: str, new_password: str):
     logger.info("Enqueued dc_set_password job")
     return job
 
-def enqueue_create_file_share(org_id: str, share_name: str):
+def enqueue_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = task_queue.enqueue(
             dc_create_file_share,
             org_id,
-            share_name
+            share_name,
+            users or [],
+            groups or [],
+            description,
+            max_size
     )
     logger.info("Enqueued dc_create_file_share")
     return job

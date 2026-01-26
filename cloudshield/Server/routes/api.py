@@ -64,10 +64,14 @@ def _share_doc_to_payload(doc: dict) -> dict:
         - id: String representation of MongoDB _id
         - org_id: Organization identifier
         - name: Share name
+        - kind: Type of share ("folder" or "file")
         - groups: List of group names (empty list if None)
+        - users: List of usernames (empty list if None)
         - drive: Allocated drive letter (e.g., "Z")
         - description: Optional description
         - owner: Optional owner email/username
+        - current_size: Current storage usage in bytes
+        - max_size: Maximum storage quota in GB (None means unlimited)
         - created_at: ISO 8601 timestamp string
         - updated_at: ISO 8601 timestamp string
     """
@@ -75,10 +79,14 @@ def _share_doc_to_payload(doc: dict) -> dict:
         "id": str(doc.get("_id")) if doc.get("_id") else None,
         "org_id": doc.get("org_id"),
         "name": doc.get("name"),
+        "kind": doc.get("kind"),
         "groups": doc.get("groups") or [],
+        "users": doc.get("users") or [],
         "drive": doc.get("drive"),
         "description": doc.get("description"),
         "owner": doc.get("owner"),
+        "current_size": doc.get("current_size", 0),
+        "max_size": doc.get("max_size"),
         "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
         "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
     }
@@ -106,13 +114,25 @@ def task_create_file_share():
 
     org_id = data.get("org_id")
     share_name = data.get("share_name")
+    users = data.get("users", [])
+    groups = data.get("groups", [])
+    description = data.get("description")
+    max_size = data.get("max_size")
 
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
         return jsonify({"error":"share_name is required"}), 422
 
-    job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
+    job = service_dispatcher(
+        service_name="dc_create_file_share",
+        org_id=org_id,
+        share_name=share_name,
+        users=users,
+        groups=groups,
+        description=description,
+        max_size=max_size
+    )
 
     return jsonify({"job_id":job.id}), 202
 
@@ -202,25 +222,29 @@ def list_file_share_groups():
     payload = list_groups_with_shares(org_id)
     return jsonify({"groups": payload}), 200
 
-@api_bp.route("/file_shares/<share_name>", methods=["PATCH"])
-def update_file_share(share_name):
+@api_bp.route("/file_shares/<org_id>/<share_name>", methods=["PATCH"])
+def update_file_share(org_id, share_name):
     """
-    Update file share metadata (groups, description, owner).
+    Update file share metadata (kind, groups, users, description, owner, sizes).
     
     Allows modification of share access and metadata without recreating
     the share or changing the allocated drive letter.
     
     Endpoint:
-        PATCH /api/file_shares/<share_name>
+        PATCH /api/file_shares/<org_id>/<share_name>
     
     Path Parameters:
+        - org_id (str): Organization identifier
         - share_name (str): Name of the share to update
     
-    Request JSON:
-        - org_id (str, required): Organization identifier
+    Request JSON (all optional):
+        - kind (str, optional): Type of share (flexible string, e.g., "folder", "file", etc.)
         - groups (list[str], optional): List of group names with access
+        - users (list[str], optional): List of usernames with access
         - description (str, optional): Human-readable description
         - owner (str, optional): Owner email or username
+        - current_size (int, optional): Current storage usage in bytes
+        - max_size (int, optional): Maximum storage quota in GB (None for unlimited)
     
     Returns:
         200: JSON with structure:
@@ -230,28 +254,36 @@ def update_file_share(share_name):
             }
         400: No fields provided to update
         404: Share not found
-        422: Missing org_id in request body
     
     Notes:
         - At least one optional field must be provided
         - updated_at timestamp is automatically set
         - Cannot modify org_id, name, or drive letter
+        - max_size of None means unlimited quota
+    
+    Example:
+        curl -X PATCH "http://localhost:5050/api/file_shares/test123/Documents" \\
+          -H "Content-Type: application/json" \\
+          -d '{"kind": "shared_folder", "groups": ["engineering"], "users": ["alice", "bob"], "max_size": 50}'
     """
     data = request.get_json() or {}
     
-    org_id = data.get("org_id")
-    
-    if org_id is None:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
-    
     # Build update fields from request
     update_fields = {}
+    if "kind" in data:
+        update_fields["kind"] = data["kind"]
     if "groups" in data:
         update_fields["groups"] = data["groups"]
+    if "users" in data:
+        update_fields["users"] = data["users"]
     if "description" in data:
         update_fields["description"] = data["description"]
     if "owner" in data:
         update_fields["owner"] = data["owner"]
+    if "current_size" in data:
+        update_fields["current_size"] = data["current_size"]
+    if "max_size" in data:
+        update_fields["max_size"] = data["max_size"]
     
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400

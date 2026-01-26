@@ -238,3 +238,85 @@ class TestUsersRead:
             assert status_code == 404
             assert response.get_json()['error'] == 'Not found'
 
+    def test_list_users_by_org_summary_uses_projection_and_len(self, setup_mocks, app, admin_user):
+        """Test list_users_by_org summary mode uses minimal projection and len(items)"""
+        mocks = setup_mocks
+
+        sample_users = [
+            {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "john@example.com"},
+            {"_id": ObjectId("507f1f77bcf86cd799439012"), "email": "jane@example.com"},
+        ]
+
+        mock_cursor = MagicMock()
+        mocks['users_admin'].find.return_value = mock_cursor
+        mock_cursor.skip.return_value = mock_cursor
+        mock_cursor.limit.return_value = sample_users
+
+        with app.test_request_context('/organizations/org_001/users?summary=1&limit=10&offset=0'):
+            g.user = admin_user
+
+            from cloudshield.Server.routes.users_read import list_users_by_org
+            response, status_code = list_users_by_org("org_001")
+
+            assert status_code == 200
+            data = response.get_json()
+            assert data['total'] == 2
+            assert len(data['items']) == 2
+            assert data['items'][0]['_id'] == '507f1f77bcf86cd799439011'
+
+            call_args = mocks['users_admin'].find.call_args[0]
+            assert call_args[0] == {"org_id": "org_001"}
+            assert call_args[1] == {
+                "_id": 1,
+                "email": 1,
+                "username": 1,
+                "role": 1,
+                "org_id": 1,
+                "full_name": 1,
+                "active": 1,
+            }
+            mocks['users_admin'].count_documents.assert_not_called()
+
+    def test_list_users_by_org_full_uses_count_documents(self, setup_mocks, app, admin_user):
+        """Test list_users_by_org full mode uses count_documents for totals"""
+        mocks = setup_mocks
+
+        sample_users = [
+            {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "john@example.com"},
+        ]
+
+        mocks['users_admin'].count_documents.return_value = 5
+        mock_cursor = MagicMock()
+        mocks['users_admin'].find.return_value = mock_cursor
+        mock_cursor.skip.return_value = mock_cursor
+        mock_cursor.limit.return_value = sample_users
+
+        with app.test_request_context('/organizations/org_001/users?limit=10&offset=0'):
+            g.user = admin_user
+
+            from cloudshield.Server.routes.users_read import list_users_by_org
+            response, status_code = list_users_by_org("org_001")
+
+            assert status_code == 200
+            data = response.get_json()
+            assert data['total'] == 5
+            assert len(data['items']) == 1
+
+            call_args = mocks['users_admin'].find.call_args[0]
+            assert call_args[0] == {"org_id": "org_001"}
+            assert call_args[1] == {"password": 0}
+            mocks['users_admin'].count_documents.assert_called_once_with({"org_id": "org_001"})
+
+    def test_list_users_by_org_employee_forbidden(self, setup_mocks, app, employee_user):
+        """Test list_users_by_org forbids employees accessing other orgs"""
+        mocks = setup_mocks
+
+        with app.test_request_context('/organizations/org_other/users'):
+            g.user = employee_user
+
+            from cloudshield.Server.routes.users_read import list_users_by_org
+            response, status_code = list_users_by_org("org_other")
+
+            assert status_code == 403
+            assert response.get_json()['error'] == 'Forbidden'
+            mocks['users_admin'].find.assert_not_called()
