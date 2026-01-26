@@ -91,7 +91,8 @@ def signup():
             {"$set": {"provisioning_status": "failed"}},
         )
         # We can set job to None so the response doesn't break
-        class MockJob: id = None
+        class MockJob: 
+            id = None
         job = MockJob()
 
     return jsonify({

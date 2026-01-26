@@ -7,9 +7,6 @@ import os
 
 from flask import Blueprint, request, jsonify
 
-from pydantic import ValidationError
-from models import UserCreate
-from services import create_user
 
 from services import (
     service_dispatcher,
