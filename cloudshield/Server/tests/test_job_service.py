@@ -117,10 +117,10 @@ def _make_queue_stub(recorded):
 def test_enqueue_dc_add_user(monkeypatch):
     recorded = {}
     monkeypatch.setattr(job_service, "task_queue", _make_queue_stub(recorded))
-    job = job_service.enqueue_dc_add_user("org", "user", "pw")
+    job = job_service.enqueue_dc_add_user("org", "user", "pw", "email")
     assert job.id == "jobX"
     assert recorded["func"] == job_service.dc_add_user
-    assert recorded["args"][:3] == ("org", "user", "pw")
+    assert recorded["args"][:4] == ("org", "user", "pw", "email")
 
 
 def test_enqueue_dc_create_user_with_group(monkeypatch):

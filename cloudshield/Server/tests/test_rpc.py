@@ -51,7 +51,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
 
     # Assert persist_domain_user was called with correct args
     mock_persist.assert_called_once()
@@ -60,4 +60,4 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     assert called_args[0][0] == "test_org"
     assert called_args[0][1]== "testuser"
     assert called_args[0][2] == "Password123!"
-    assert "@gmail.com" in called_args[0][3]
+    assert "@mail.com" in called_args[0][3]
