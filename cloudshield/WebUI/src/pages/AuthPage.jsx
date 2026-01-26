@@ -6,6 +6,7 @@
  */
 import React, { useState } from 'react';
 import { Box, Alert, CircularProgress } from '@mui/material';
+import { trackButton } from '../lib/analytics';
 
 import AuthCard from '../components/auth/AuthCard.jsx';
 import AuthTextField from '../components/auth/AuthTextField.jsx';
@@ -35,6 +36,8 @@ export default function AuthPage({ onLoginSuccess }) {
       setError("Please enter both email and password.");
       return;
     }
+
+    trackButton('auth/login/submit', { page: 'auth' });
 
     setIsLoading(true);
     setError('');

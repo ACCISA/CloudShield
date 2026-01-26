@@ -5,6 +5,8 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton";
 import CreateButton from "../components/common/CreateButton/CreateButton";
 import Checkbox from "../components/common/Checkbox/Checkbox";
 import EditButton from "../components/common/EditButton/EditButton";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 import UploadFileModal from "../components/files/UploadFileModal";
 import EditFileModal from "../components/files/EditFileModal";
@@ -71,6 +73,7 @@ function StoragePill({ usedGB = 62, totalGB = 100 }) {
 }
 
 export default function FilesPage({ orgId = "test_drive_allocation" }) {
+  const withClickLog = useClickLogger({ page: "files" });
   const [layout, setLayout] = useState("list");
   
   // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
@@ -182,11 +185,13 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   };
 
   const toggleSelectAllVisible = () => {
+    trackButton("files/list/select-all", { page: "files", layout });
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     setSelectedIds((prev) => toggleSelectAllInView({ ids, selectedIds: prev }));
   };
 
   const toggleExpand = (id) => {
+    trackButton("files/list/toggle-folder", { page: "files", id });
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -196,14 +201,21 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   };
 
   const openFolder = (id) => {
+    trackButton("files/nav/open-folder", { page: "files", id });
     const node = index.get(id);
     if (!node || node.kind !== NODE_KIND.FOLDER) return;
     setCwdStack((s) => [...s, id]);
     setSelectedIds(new Set());
   };
 
-  const goUp = () => setCwdStack((s) => s.slice(0, -1));
-  const goToCrumb = (idx) => setCwdStack((s) => s.slice(0, idx + 1));
+  const goUp = () => {
+    trackButton("files/nav/up", { page: "files" });
+    setCwdStack((s) => s.slice(0, -1));
+  };
+  const goToCrumb = (idx) => {
+    trackButton("files/nav/crumb", { page: "files", idx });
+    setCwdStack((s) => s.slice(0, idx + 1));
+  };
 
   const openEdit = (node) => setEditTarget(node);
 
@@ -211,8 +223,15 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     e.preventDefault();
     const { ok, stack } = resolveFolderByPath(tree, pathValue);
     if (!ok) return;
+    trackButton("files/nav/path-go", { page: "files" });
     setCwdStack(stack);
     setPathMode(false);
+  };
+
+  const handleLayoutChange = (next) => {
+    const resolved = next === "cards" ? "list" : next;
+    trackButton("files/display/toggle", { page: "files", layout: resolved, control: "display_button" });
+    setLayout(resolved);
   };
 
 
@@ -318,11 +337,27 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
               placeholder="Type a path like /sales_docs/policies"
             />
             <button className="pathGo" type="submit">Go</button>
-            <button className="pathCancel" type="button" onClick={() => setPathMode(false)}>Cancel</button>
+            <button
+              className="pathCancel"
+              type="button"
+              onClick={() => {
+                trackButton("files/nav/path-cancel", { page: "files" });
+                setPathMode(false);
+              }}
+            >
+              Cancel
+            </button>
           </form>
         )}
 
-        <button className="pathShortcut" onClick={() => setPathMode(true)} title="Quick jump (Cmd/Ctrl+L)">
+        <button
+          className="pathShortcut"
+          onClick={() => {
+            trackButton("files/nav/path-mode", { page: "files" });
+            setPathMode(true);
+          }}
+          title="Quick jump (Cmd/Ctrl+L)"
+        >
           Path
         </button>
       </div>
@@ -388,14 +423,21 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
           <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search files" />
           <DisplayButton
             layout={layout}
-            onLayoutChange={(next) => setLayout(next === "cards" ? "list" : next)} // prevent cards
+            onLayoutChange={handleLayoutChange}
             style={{ minWidth: 120 }}
           />
         </div>
 
         <div className="rightTools">
-          <RefreshButton onClick={fetchTree} />
-          <CreateButton buttonText="Upload" onClick={() => setUploadOpen(true)} />
+          <RefreshButton
+            onClick={withClickLog({ name: "files/toolbar/refresh", control: "refresh_button" })(fetchTree)}
+          />
+          <CreateButton
+            buttonText="Upload"
+            onClick={withClickLog({ name: "files/toolbar/open-upload", control: "upload_button" })(() =>
+              setUploadOpen(true)
+            )}
+          />
         </div>
       </div>
 
