@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
+    "build:win": "npm run build && electron-builder --win --config",
+    "build:mac": "npm run build && electron-builder --mac --config",
+    "build:linux": "npm run build && electron-builder --linux --config",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
@@ -13,9 +16,11 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "electron-store": "^11.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-ui-animate": "^5.2.0",
+    "regedit-rs": "^1.0.4",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
@@ -34,6 +39,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "happy-dom": "^20.3.1",
     "jsdom": "^27.4.0",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",

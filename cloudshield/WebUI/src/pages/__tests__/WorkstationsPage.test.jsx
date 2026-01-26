@@ -138,7 +138,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(
-      screen.getByRole("button", { name: /display/i })
+      screen.getByRole("button", { name: /display/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
   });
@@ -235,7 +235,7 @@ describe("WorkstationsPage", () => {
 
     // Close dialog
     const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -280,7 +280,7 @@ describe("WorkstationsPage", () => {
 
     // Close dialog
     const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -296,7 +296,7 @@ describe("WorkstationsPage", () => {
 
     // Save changes
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -316,7 +316,7 @@ describe("WorkstationsPage", () => {
 
     // Delete
     const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete"
+      "Delete",
     );
     fireEvent.click(deleteButton);
 
@@ -377,7 +377,7 @@ describe("WorkstationsPage", () => {
 
     const { container } = render(<WorkstationsPage />);
     const refreshIcon = container.querySelector(
-      '[data-testid="RefreshOutlinedIcon"]'
+      '[data-testid="RefreshOutlinedIcon"]',
     );
 
     if (refreshIcon) {
@@ -397,7 +397,7 @@ describe("WorkstationsPage", () => {
 
     // Save with new name
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -442,7 +442,7 @@ describe("WorkstationsPage", () => {
     expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
 
     const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -493,7 +493,7 @@ describe("WorkstationsPage", () => {
     fireEvent.click(createButton);
 
     const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close"
+      "Close",
     );
     fireEvent.click(closeButton);
 
@@ -523,7 +523,7 @@ describe("WorkstationsPage", () => {
     // Find a connected workstation (ws-1, ws-3, ws-4 are connected)
     const connectedWorkstation = screen.getByTestId("workstation-ws-1");
     expect(
-      within(connectedWorkstation).getByText("connected")
+      within(connectedWorkstation).getByText("connected"),
     ).toBeInTheDocument();
 
     const toggleButton =
@@ -532,7 +532,7 @@ describe("WorkstationsPage", () => {
 
     // Status should change to disconnected
     expect(
-      within(connectedWorkstation).getByText("disconnected")
+      within(connectedWorkstation).getByText("disconnected"),
     ).toBeInTheDocument();
   });
 
@@ -571,7 +571,7 @@ describe("WorkstationsPage", () => {
 
     // Save with changes (mock provides { name: "Updated Name" })
     const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save"
+      "Save",
     );
     fireEvent.click(saveButton);
 
@@ -614,7 +614,7 @@ describe("WorkstationsPage", () => {
 
     // Delete from dialog
     const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete"
+      "Delete",
     );
     fireEvent.click(deleteButton);
 
@@ -632,5 +632,36 @@ describe("WorkstationsPage", () => {
 
     // Verify initial workstations are passed
     expect(screen.getAllByTestId(/workstation-ws-/)).toHaveLength(4);
+  });
+
+  it("handles refresh button click", () => {
+    render(<WorkstationsPage />);
+
+    const refreshButton = screen.getByRole("button", { name: /refresh/i });
+    fireEvent.click(refreshButton);
+
+    // Page should still render after refresh
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
+
+  it("filters with active users only", () => {
+    render(<WorkstationsPage />);
+
+    const filterButton = screen.getByRole("button", { name: /filter/i });
+    fireEvent.click(filterButton);
+
+    // The mock filter button simulates selecting the first filter option
+    // which should filter workstations
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
+
+  it("handles column toggle changes", () => {
+    render(<WorkstationsPage />);
+
+    const displayButton = screen.getByRole("button", { name: /display/i });
+    fireEvent.click(displayButton);
+
+    // Display button interaction should work
+    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
   });
 });

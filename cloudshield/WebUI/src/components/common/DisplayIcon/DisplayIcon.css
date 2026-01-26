@@ -1,0 +1,184 @@
+/* Display Icon Wrapper */
+.display-icon-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.display-icon-wrapper:hover {
+  z-index: 1000;
+}
+
+/* Display Icon Sizes */
+.display-icon {
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.display-icon:hover {
+  transform: scale(1.05);
+}
+
+.display-icon-small {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.display-icon-medium {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.display-icon-large {
+  width: 64px;
+  height: 64px;
+  font-size: 20px;
+}
+
+/* Display Icon Image */
+.display-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Display Icon Initials */
+.display-icon-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  user-select: none;
+}
+
+/* Hover Card */
+.display-icon-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+  min-width: 280px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.hover-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Hover Card Header */
+.hover-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.hover-card-icon {
+  flex-shrink: 0;
+}
+
+.hover-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.hover-card-title h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Hover Card Details */
+.hover-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detail-label {
+  color: #6b7280;
+  font-weight: 500;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #111827;
+  word-break: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .display-icon-card {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+
+  .hover-card {
+    min-width: 240px;
+  }
+}

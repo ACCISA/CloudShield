@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
 import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -9,6 +10,8 @@ import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
 import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 const styles = {
   container: {
@@ -34,52 +37,12 @@ const styles = {
 };
 /* ----------------------------------- seed ---------------------------------- */
 
-const seed = [
-  {
-    id: "ws-1",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-  {
-    id: "ws-2",
-    name: "Marketing",
-    code: "WS-002",
-    usersCount: 2,
-    users: ["Pam Beasly", "Michael Scott"],
-    currentUser: "Pam Beasly",
-    lastUsed: "—",
-    status: "busy",
-  },
-  {
-    id: "ws-3",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Dwight Schrute", "Michael Scott"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-  {
-    id: "ws-4",
-    name: "Development",
-    code: "WS-001",
-    usersCount: 3,
-    users: ["Jim Halpert", "Pam Beasly", "Dwight Schrute"],
-    currentUser: "Jim Halpert",
-    lastUsed: "03/11/2025",
-    status: "connected",
-  },
-];
+const seed = MOCK_WORKSTATIONS_FULL;
 
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
+  const withClickLog = useClickLogger({ page: "workstations" });
   const [rows, setRows] = useState(seed);
   const [search, setSearch] = useState("");
 
@@ -108,8 +71,8 @@ export default function WorkstationsPage() {
     if (q) {
       data = data.filter((r) =>
         [r.name, r.code, r.currentUser].some((v) =>
-          (v || "").toLowerCase().includes(q)
-        )
+          (v || "").toLowerCase().includes(q),
+        ),
       );
     }
 
@@ -129,6 +92,13 @@ export default function WorkstationsPage() {
   }, [rows, search, activeFilters]);
 
   const handleFilterChange = (groupId, value, isActive) => {
+    trackButton("workstations/filter/change", {
+      page: "workstations",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
+    });
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
       const groupFilters = new Set(prev[groupId] || new Set());
@@ -145,6 +115,7 @@ export default function WorkstationsPage() {
   };
 
   const handleCreate = (payload) => {
+    trackButton("workstations/create/save", { page: "workstations", control: "create_dialog" });
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
@@ -159,43 +130,32 @@ export default function WorkstationsPage() {
   };
 
   const handleEditSave = (id, changes) => {
+    trackButton("workstations/edit/save", { page: "workstations", id, control: "edit_dialog" });
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...changes } : r))
+      prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
     );
   };
 
-  const handleDelete = (id) =>
+  const handleDelete = (id) => {
+    trackButton("workstations/edit/delete", { page: "workstations", id, control: "edit_dialog" });
     setRows((prev) => prev.filter((r) => r.id !== id));
+  };
 
   const handleToggleStatus = (id) => {
+    trackButton("workstations/row/toggle-status", { page: "workstations", id, control: "row_toggle" });
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         if (r.status === "connected") return { ...r, status: "disconnected" };
         if (r.status === "disconnected") return { ...r, status: "connected" };
         return r; // busy unchanged
-      })
+      }),
     );
   };
 
   const handleLayoutChange = (newLayout) => {
-    console.log(`Layout changed to: ${newLayout}`);
+    trackButton("workstations/display/toggle", { page: "workstations", layout: newLayout, control: "display_button" });
     setLayout(newLayout);
-  };
-
-  // shared button styles (to match your mock)
-  const pillBtn = {
-    color: "#fff",
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: "12px",
-    textTransform: "none",
-    px: 1.5,
-    height: 40,
-    "& .MuiButton-startIcon": { mr: 1 },
-    "&:hover": {
-      borderColor: "rgba(255,255,255,0.35)",
-      background: "rgba(255,255,255,0.07)",
-    },
   };
 
   return (
@@ -230,12 +190,20 @@ export default function WorkstationsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          <RefreshButton onClick={() => console.log("refresh")} />
+            <RefreshButton
+              onClick={withClickLog({
+                name: "workstations/toolbar/refresh",
+                control: "refresh_button",
+              })(() => console.log("refresh"))}
+            />
 
           <CreateButton
             icon={<CreateWorkstationIcon />}
             buttonText="Create"
-            onClick={() => setOpenCreate(true)}
+            onClick={withClickLog({
+              name: "workstations/toolbar/open-create",
+              control: "create_button",
+            })(() => setOpenCreate(true))}
           />
         </div>
       </div>

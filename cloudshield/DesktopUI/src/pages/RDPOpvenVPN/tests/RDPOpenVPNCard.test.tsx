@@ -7,11 +7,15 @@ describe("LoginCard Component", () => {
   const consoleErrorMock = vi
     .spyOn(console, "error")
     .mockImplementation(() => {});
+  const runOpenVPNMock = vi.fn<ElectronAPI["runOpenVPN"]>();
+  const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
   beforeEach(() => {
     global.fetch = vi.fn();
+    global.window.alert = vi.fn();
     global.window.electronAPI = {
-      runOpenVPN: vi.fn(),
-      runXfreerdp: vi.fn(),
+      runOpenVPN: runOpenVPNMock,
+      runXfreerdp: runXfreerdpMock,
+      showOpenDialog: vi.fn(),
     };
   });
 
@@ -33,7 +37,7 @@ describe("LoginCard Component", () => {
   });
 
   it("handles OpenVPN launch", async () => {
-    (window.electronAPI!.runOpenVPN as any).mockResolvedValueOnce({
+    runOpenVPNMock.mockResolvedValueOnce({
       success: true,
       pid: 12345,
       message: "OpenVPN started successfully",
@@ -54,7 +58,7 @@ describe("LoginCard Component", () => {
   });
 
   it("handles RDP launch", async () => {
-    (window.electronAPI!.runXfreerdp as any).mockResolvedValueOnce({
+    runXfreerdpMock.mockResolvedValueOnce({
       success: true,
       pid: 12345,
       message: "xfreerdp3 launched",
@@ -86,7 +90,7 @@ describe("LoginCard Component", () => {
   });
 
   it("shows an error if electron isn't available", async () => {
-    (window.electronAPI as any) = undefined;
+    delete window.electronAPI;
     render(<RDPOpenVPNCard />);
     expect(screen.queryByText("Error: Electron API not available")).toBeNull();
 
@@ -98,6 +102,69 @@ describe("LoginCard Component", () => {
       ).not.toBeNull();
     });
   });
+
+    it("shows an error if openvpn isn't available", async () => {
+      delete window.electronAPI;
+      render(<RDPOpenVPNCard />);
+
+      const openVPNButton = screen.getByText("Connect OpenVPN");
+      fireEvent.click(openVPNButton);
+      await waitFor(() => {
+        expect(consoleErrorMock).toHaveBeenLastCalledWith(
+          "runOpenVPN not available",
+        );
+      });
+    });
+
+    it("shows an error if showOpenDialog isn't available", async () => {
+      delete window.electronAPI;
+      render(<RDPOpenVPNCard />);
+
+      const openVPNButton = screen.getByText("Select OVPN File");
+      fireEvent.click(openVPNButton);
+      await waitFor(() => {
+        expect(consoleErrorMock).toHaveBeenLastCalledWith(
+          "showOpenDialog not available",
+        );
+      });
+    });
+
+    it("successfully selects an OVPN file", async () => {
+      const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
+      (window.electronAPI as any).showOpenDialog = showOpenDialogMock;
+      showOpenDialogMock.mockResolvedValueOnce({
+        canceled: false,
+        filePaths: ["/path/to/file.ovpn"],
+      });
+
+      render(<RDPOpenVPNCard />);
+      const openVPNButton = screen.getByText("Select OVPN File");
+
+      fireEvent.click(openVPNButton);
+
+      await waitFor(() => {
+        expect(showOpenDialogMock).toHaveBeenCalled();
+        expect(consoleLogMock).toHaveBeenLastCalledWith(
+          "Selected OVPN file:",
+          "/path/to/file.ovpn",
+        );
+      });
+    });
+
+    it("shows an alert if OpenVPN fails to launch", async () => {
+      runOpenVPNMock.mockRejectedValueOnce(new Error("OpenVPN failed"));
+      render(<RDPOpenVPNCard />);
+
+      const openVpnButton = screen.getByText("Connect OpenVPN");
+      fireEvent.click(openVpnButton);
+
+      await waitFor(() => {
+        expect(global.window.alert).toHaveBeenLastCalledWith(
+          "Failed to launch OpenVPN: OpenVPN failed",
+        );
+      });
+    });
+
 
   it("rejects empty fields", async () => {
     render(<RDPOpenVPNCard />);

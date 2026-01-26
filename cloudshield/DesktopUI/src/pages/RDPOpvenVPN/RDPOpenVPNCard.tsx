@@ -1,35 +1,60 @@
 import { useState } from "react";
-declare global {
-  interface Window {
-    electronAPI?: {
-      runXfreerdp: (
-        username: string,
-        password: string,
-        ip: string
-      ) => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-      runOpenVPN: () => Promise<{
-        success: boolean;
-        pid?: number;
-        message: string;
-      }>;
-    };
-  }
-}
+
+type ElectronResult = {
+  success: boolean;
+  pid?: number;
+  message: string;
+};
 
 export default function RDPOpenVPNCard() {
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
   const [rdpUsername, setRdpUsername] = useState("");
   const [rdpPassword, setRdpPassword] = useState("");
   const [rdpIp, setRdpIp] = useState("");
+  const [ovpnFilePath, setOvpnFilePath] = useState("");
 
   async function openvpn() {
-    const result = await window.electronAPI?.runOpenVPN();
-    console.log("OpenVPN launched:", result);
+    const api = window.electronAPI;
+    if (!api || !api.runOpenVPN) {
+      console.error("runOpenVPN not available");
+      return;
+    }
+    try {
+      const result = await api.runOpenVPN(ovpnFilePath || undefined) as ElectronResult | undefined;
+      console.log("OpenVPN launched:", result);
+    } catch (e) {
+      alert(
+        "Failed to launch OpenVPN: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
   }
+
+  function selectOvpnFile() {
+    (async () => {
+      try {
+        const api = window.electronAPI;
+        if (!api || !api.showOpenDialog) {
+          console.error("showOpenDialog not available");
+          return;
+        }
+
+        const result = await api.showOpenDialog({
+          title: "Select OVPN File",
+          filters: [{ name: "OVPN Files", extensions: ["ovpn"] }],
+          properties: ["openFile"],
+        });
+
+        if (result && !result.canceled && result.filePaths.length > 0) {
+          setOvpnFilePath(result.filePaths[0]);
+          console.log("Selected OVPN file:", result.filePaths[0]);
+        }
+      } catch (err) {
+        console.error("Error selecting OVPN file:", err);
+      }
+    })();
+  }
+
   async function handleRdpConnect() {
     if (!window.electronAPI) {
       setRdpStatus("Error: Electron API not available");
@@ -43,11 +68,11 @@ export default function RDPOpenVPNCard() {
 
     try {
       setRdpStatus("Launching xfreerdp3...");
-      const result = await window.electronAPI.runXfreerdp(
+      const result = (await window.electronAPI.runXfreerdp(
         rdpUsername,
         rdpPassword,
         rdpIp
-      );
+      )) as ElectronResult;
       setRdpStatus(`Connected! (PID: ${result.pid})`);
       console.log("RDP launched:", result);
     } catch (error) {
@@ -89,6 +114,15 @@ export default function RDPOpenVPNCard() {
       >
         Connect RDP
       </button>
+      <button
+        className="bg-blue-600 text-white py-2 mt-4 w-full px-4 rounded-2xl hover:bg-blue-700"
+        onClick={selectOvpnFile}
+      >
+        Select OVPN File
+      </button>
+      {ovpnFilePath && (
+        <p className="text-sm mt-2 text-faint-grey">Selected: {ovpnFilePath}</p>
+      )}
       <button
         onClick={openvpn}
         className="bg-blue-600 text-white py-2 mt-4 w-full px-4 rounded-2xl hover:bg-blue-700"

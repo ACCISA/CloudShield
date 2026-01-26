@@ -7,6 +7,7 @@
  */
 import React from "react";
 import { Box } from "@mui/material";
+import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
@@ -25,23 +26,19 @@ export default function DashboardPage() {
 
   // Handler for add button clicks
   const handleAddUser = () => {
-    console.log("Add user clicked");
-    // TODO: Implement add user functionality
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "users" });
   };
 
   const handleAddWorkstation = () => {
-    console.log("Add workstation clicked");
-    // TODO: Implement add workstation functionality
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "workstations" });
   };
 
   const handleAddGroup = () => {
-    console.log("Add group clicked");
-    // TODO: Implement add group functionality
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "groups" });
   };
 
   const handleAddFile = () => {
-    console.log("Add file clicked");
-    // TODO: Implement add file functionality
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "files" });
   };
 
   return (

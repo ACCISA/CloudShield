@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Box, Snackbar, Alert } from "@mui/material";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 import UsersTable from "../components/users/UsersTable.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -12,8 +12,10 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import { MOCK_USERS_FULL } from "../data/mockData.js";
 
 export default function UsersPage() {
+  const withClickLog = useClickLogger({ page: "users" });
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -43,29 +45,7 @@ export default function UsersPage() {
     setToast({ open: true, msg, type });
 
   const mockFetchUsers = async () => {
-    const mock = [
-      {
-        id: "1",
-        name: "aniss tralala",
-        email: "aniss@tralala.com",
-        title: "Regional Manager",
-        workstations: 3,
-        groups: 3,
-        files: 3,
-        status: "online",
-      },
-      {
-        id: "2",
-        name: "john tralala",
-        email: "john@cloudshield.com",
-        title: "Cuisinier",
-        workstations: 2,
-        groups: 2,
-        files: 1,
-        status: "offline",
-      },
-    ];
-    setUsers(mock);
+    setUsers(MOCK_USERS_FULL);
   };
 
   useEffect(() => {
@@ -78,7 +58,7 @@ export default function UsersPage() {
 
     if (q) {
       out = out.filter((u) =>
-        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q))
+        [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)),
       );
     }
 
@@ -102,12 +82,15 @@ export default function UsersPage() {
   }, [users, search, activeFilters, sortField, sortDir]);
 
   const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
+    const nextDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    setSortField(field);
+    setSortDir(nextDir);
+    trackButton("users/table/sort", {
+      page: "users",
+      field,
+      direction: nextDir,
+      control: "table_header",
+    });
   };
 
   // Filter configuration for FilterButton
@@ -124,6 +107,13 @@ export default function UsersPage() {
   ];
 
   const handleFilterChange = (groupId, value, isActive) => {
+    trackButton("users/filter/change", {
+      page: "users",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
+    });
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
       const currentSet = new Set(newFilters[groupId] || []);
@@ -139,40 +129,14 @@ export default function UsersPage() {
     });
   };
 
-  const handleMockCreate = (payload) => {
-    const newUser = {
-      id: String(Date.now()),
-      name: `${payload.firstName} ${payload.lastName}`,
-      email: payload.email,
-      title: payload.jobTitle,
-      workstations: 1,
-      groups: 1,
-      files: 1,
-      status: "offline",
-    };
-    setUsers((p) => [...p, newUser]);
-    openToast("User created successfully");
-  };
-
-  const handleMockUpdate = (id, payload) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? {
-              ...u,
-              name: `${payload.firstName} ${payload.lastName}`,
-              email: payload.email,
-              title: payload.jobTitle,
-            }
-          : u
-      )
-    );
-    openToast("User updated successfully");
-  };
-
   const handleMockDelete = (id) => {
     setUsers((p) => p.filter((u) => u.id !== id));
     openToast("User deleted");
+  };
+
+  const handleLayoutChange = (value) => {
+    trackButton("users/display/toggle", { page: "users", layout: value, control: "display_button" });
+    setLayout(value);
   };
 
   const styles = {
@@ -217,7 +181,7 @@ export default function UsersPage() {
             }}
           />
 
-          <DisplayButton layout={layout} onLayoutChange={setLayout} />
+          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
 
           <FilterButton
             filterGroups={filterGroups}
@@ -228,12 +192,17 @@ export default function UsersPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          <RefreshButton onClick={mockFetchUsers} />
+          <RefreshButton
+            onClick={withClickLog({ name: "users/toolbar/refresh", control: "refresh_button" })(mockFetchUsers)}
+          />
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={() => setCreateModalOpen(true)}
+            onClick={withClickLog({
+              name: "users/toolbar/open-create",
+              control: "create_button",
+            })(() => setCreateModalOpen(true))}
           />
         </div>
       </div>
@@ -247,25 +216,8 @@ export default function UsersPage() {
         onSort={toggleSort}
         sortField={sortField}
         sortDir={sortDir}
-        onEdit={(u) => {
-          setEditTarget(u);
-          setEditModalOpen(true);
-        }}
+        onEdit={(u) => {}}
         onDelete={(u) => handleMockDelete(u.id)}
-      />
-
-      <UserEditModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        data={editTarget}
-        onSubmit={(payload) => handleMockUpdate(editTarget.id, payload)}
-        onDelete={() => handleMockDelete(editTarget.id)}
-      />
-
-      <UserCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSubmit={handleMockCreate}
       />
 
       <Snackbar
