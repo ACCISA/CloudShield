@@ -101,6 +101,14 @@ export default function GroupSelectionPanel({
                   key={getGroupId(group)}
                   className={`group-selection-dropdown-item ${selected ? "selected" : ""}`}
                   onClick={() => handleToggle(group)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleToggle(group);
+                    }
+                  }}
                 >
                   <DisplayIcon type="group" data={normalized} size="small" showHoverCard={true} />
                   <div className="group-selection-dropdown-item-info">

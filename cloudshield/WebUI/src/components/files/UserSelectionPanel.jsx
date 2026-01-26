@@ -106,6 +106,14 @@ export default function UserSelectionPanel({
                   key={getUserId(user)}
                   className={`user-selection-dropdown-item ${selected ? "selected" : ""}`}
                   onClick={() => handleToggle(user)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleToggle(user);
+                    }
+                  }}
                 >
                   <DisplayIcon type="user" data={normalized} size="small" showHoverCard={true} />
                   <div className="user-selection-dropdown-item-info">
