@@ -11,13 +11,15 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
 
-import UploadFileModal from "../components/files/UploadFileModal";
-import EditFileModal from "../components/files/EditFileModal";
+import FileShareWizardModal from "../components/files/FileShareWizardModal";
+import AvatarPill from "../components/files/AvatarPill";
 
 import {
   createFileShare,
   updateFileShare,
   deleteFileShare,
+  fetchUsers,
+  fetchGroups,
 } from "../api/filesApi";
 
 import {
@@ -112,6 +114,10 @@ export default function FilesPage() {
   // If HARD_CODED_TREE causes issues, initialize as []
   const [tree, setTree] = useState(HARD_CODED_TREE || []);
   
+  // Lookup maps for enriching hover cards
+  const [userLookup, setUserLookup] = useState(new Map());
+  const [groupLookup, setGroupLookup] = useState(new Map());
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
@@ -124,6 +130,67 @@ export default function FilesPage() {
   const [editTarget, setEditTarget] = useState(null);
   const [deletingShares, setDeletingShares] = useState(new Set()); // Track which shares are being deleted
   const [creatingShares, setCreatingShares] = useState(new Set()); // Track which shares are being created
+
+  // Fetch user data for enriching hover cards
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await fetchUsers(orgId);
+        const lookup = new Map();
+        usersData.forEach(user => {
+          const normalized = {
+            id: String(user._id || user.id || ""),
+            username: user.username || user.email?.split("@")[0] || "",
+            email: user.email,
+            full_name: user.full_name || user.name || "",
+            role: user.role,
+            active: user.active !== undefined ? user.active : true,
+          };
+          // Map by username for lookup
+          if (normalized.username) {
+            lookup.set(normalized.username, normalized);
+          }
+        });
+        setUserLookup(lookup);
+      } catch (err) {
+        console.error("Failed to load users for hover cards:", err);
+      }
+    };
+    loadUsers();
+  }, [orgId]);
+
+  // Fetch group data for enriching hover cards
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groupsData = await fetchGroups(orgId);
+        const lookup = new Map();
+        groupsData.forEach(group => {
+          const groupName = group.group_name || group.name || "";
+          const normalized = {
+            id: String(group._id || group.id || ""),
+            name: groupName,
+            group_name: groupName,
+            description: group.description,
+            group_image: group.group_image,
+            member_count: (group.members_info || group.members || []).length,
+            members: group.members || [],
+            workstations: group.workstations || [],
+            file_shares: group.file_shares || [],
+            created_at: group.created_at,
+          };
+          // Map by name for lookup
+          if (normalized.name) {
+            lookup.set(normalized.name, normalized);
+          }
+        });
+        setGroupLookup(lookup);
+      } catch (err) {
+        console.error("Failed to load groups for hover cards:", err);
+      }
+    };
+    loadGroups();
+  }, [orgId]);
 
   // Safe-guard index building: ensure tree is an array if buildIndex expects one
   const index = useMemo(() => {
@@ -495,61 +562,23 @@ export default function FilesPage() {
             <div className="meta">{formatDateTime(node.updated_at)}</div>
             
             <div className="groups">
-              {(() => {
-                const users = ensureArray(node.users);
-                return users.length === 0 ? (
-                  <span style={{ color: '#999' }}>—</span>
-                ) : (
-                  <>
-                    {users.slice(0, 3).map((u) => (
-                      <span key={u}>{u}</span>
-                    ))}
-                    {users.length > 3 ? (
-                      <Tooltip 
-                        title={
-                          <div style={{ padding: '4px' }}>
-                            {users.slice(3).map((u) => (
-                              <div key={u} style={{ padding: '2px 0' }}>{u}</div>
-                            ))}
-                          </div>
-                        }
-                        arrow
-                        placement="top"
-                      >
-                        <span style={{ cursor: 'help' }}>+{users.length - 3}</span>
-                      </Tooltip>
-                    ) : null}
-                  </>
-                );
-              })()}
+              <AvatarPill 
+                items={ensureArray(node.users).map(username => 
+                  userLookup.get(username) || { username, id: username }
+                )} 
+                type="user" 
+                maxVisible={3} 
+              />
             </div>
 
             <div className="groups">
-              {(() => {
-                const groups = ensureArray(node.groups);
-                return (
-                  <>
-                    {groups.slice(0, 3).map((g) => (
-                      <span key={g}>{g}</span>
-                    ))}
-                    {groups.length > 3 ? (
-                      <Tooltip 
-                        title={
-                          <div style={{ padding: '4px' }}>
-                            {groups.slice(3).map((g) => (
-                              <div key={g} style={{ padding: '2px 0' }}>{g}</div>
-                            ))}
-                          </div>
-                        }
-                        arrow
-                        placement="top"
-                      >
-                        <span style={{ cursor: 'help' }}>+{groups.length - 3}</span>
-                      </Tooltip>
-                    ) : null}
-                  </>
-                );
-              })()}
+              <AvatarPill 
+                items={ensureArray(node.groups).map(groupName => 
+                  groupLookup.get(groupName) || { name: groupName, id: groupName }
+                )} 
+                type="group" 
+                maxVisible={3} 
+              />
             </div>
 
             <EditButton
@@ -714,17 +743,19 @@ export default function FilesPage() {
       {layout === "list" && renderList()}
       {layout === "icons" && renderIcons()}
 
-      <UploadFileModal
+      {/* New Wizard Modal for Create */}
+      <FileShareWizardModal
         isOpen={isUploadOpen}
         onClose={() => setUploadOpen(false)}
-        onUpload={handleCreateShare}
+        onSubmit={handleCreateShare}
       />
 
-      <EditFileModal
+      {/* New Wizard Modal for Edit */}
+      <FileShareWizardModal
         isOpen={!!editTarget}
         file={editTarget}
         onClose={() => setEditTarget(null)}
-        onSave={handleEditShare}
+        onSubmit={handleEditShare}
         onDelete={handleDeleteShare}
       />
 
