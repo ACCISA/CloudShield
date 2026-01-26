@@ -331,7 +331,17 @@ export default function SignupPage({ onSignupSuccess }) {
 
             <Typography
               onClick={() => navigate("/login")}
-              sx={{ cursor: "pointer", mt: 1.5, textAlign: "center" }}
+              sx={{
+                cursor: "pointer",
+                mt: 1.5,
+                textAlign: "center",
+                color: "#ffffffff",
+                fontSize: "0.9rem",
+                "&:hover": {
+                  textDecoration: "underline",
+                  color: "#93c5fd",
+                },
+              }}
             >
               Already have an account? Log in
             </Typography>
