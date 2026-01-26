@@ -122,9 +122,11 @@ def _ensure_json_on_writes():
     g.start_time = time()
     _request_id()
 
-    # 1. ALWAYS ignore OPTIONS requests so CORS preflight can pass
+    # 1. ALWAYS respond to OPTIONS requests so CORS preflight can pass with a valid status
     if request.method == "OPTIONS":
-        return 
+        # Return empty 200 so browser preflight sees an OK response; CORS headers will be
+        # added by the CORS extension in after_request.
+        return "", 200
 
     # 2. Enforce JSON for write methods
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:

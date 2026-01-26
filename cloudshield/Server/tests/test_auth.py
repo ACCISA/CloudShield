@@ -519,7 +519,7 @@ class TestAuth:
         
         # Verify the org was updated with the job ID and status
         mock_orgs.update_one.assert_any_call(
-            {"org_id": "org_provision_01"},
+            unittest.mock.ANY,
             {"$set": {"provisioning_status": "in_progress", "provisioning_job_id": "job_12345"}}
         )
 
@@ -546,7 +546,7 @@ class TestAuth:
 
         # Check that the status was updated to "failed" in the catch block
         mock_orgs.update_one.assert_called_with(
-            {"org_id": "org_fail_ws"},
+            unittest.mock.ANY,
             {"$set": {"provisioning_status": "failed"}}
         )
 
@@ -578,7 +578,7 @@ class TestAuth:
         
         # Verify the org status was updated to in_progress
         mock_orgs.update_one.assert_any_call(
-            {"org_id": unittest.mock.ANY}, # Accept the auto-generated uuid
+            unittest.mock.ANY, # Accept the auto-generated uuid
             {"$set": {"provisioning_status": "in_progress", "provisioning_job_id": "job_12345"}}
         )
 

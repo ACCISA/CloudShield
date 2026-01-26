@@ -20,6 +20,7 @@ from utils import (
     run_stream,
     get_workstation_count,
     organizations,
+    org_filter,
 )
 from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
@@ -94,7 +95,7 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
         update["provisioning_job_id"] = job_id
 
     try:
-        organizations.update_one({"org_id": org_id}, {"$set": update})
+        organizations.update_one(org_filter(org_id), {"$set": update})
     except Exception as exc:  # pragma: no cover - status update should not break task
         if logger:
             logger.warning("Failed to update provisioning status for org %s: %s", org_id, exc)
@@ -171,9 +172,9 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s",
         org_id, region, ubuntu_ami, workstation_ami,
     )
-    set_progress("starting")
+    set_progress("starting", 0)
 
-    org_doc = organizations.find_one({"org_id": org_id}) or {}
+    org_doc = organizations.find_one(org_filter(org_id)) or {}
 
     org_limit = _coerce_int(org_doc.get("workstation_limit"), default=None)
     desired_workstations = workstation_count if workstation_count not in (None, 0) else org_limit or 1
@@ -193,7 +194,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
     # Begin provisioning
     try:
-        set_progress("provisioning infrastructure")
+        set_progress("provisioning infrastructure", 50)
         logger.info("Calling provision_network_terraform for org %s", org_id)
 
         metadata = provision_network_terraform(
@@ -205,11 +206,10 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 server_logger=logger
         )
 
-
         if metadata is None:
             # Early return with explicit failure details, still sets progress.
             details = "Provisioning failed since the generated directory already exists"
-            set_progress("failed")
+            set_progress("failed", 0)
             _update_org_provisioning_status(org_id, "failed", job_id, logger)
             job = get_current_job()
             if job:
@@ -217,32 +217,23 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 job.save_meta()
             logger.error(details)
             return {"message": "Provisioning failed", "details": details}
-        
-        # Keeps orchestration clean, makes mapping/DB writes available to other tasks.
-        set_progress("completed")
-        _update_org_provisioning_status(org_id, "completed", job_id, logger)
 
+        # Keeps orchestration clean, makes mapping/DB writes available to other tasks.
+        set_progress("finalizing", 90)
 
         logger.info("Metadata from provisioner: %s", metadata)
         assets = map_metadata_to_ec2_instances(metadata)
-
 
         # Centralized persistence via repository helper (insert_inventory)
         res = insert_inventory(db=db, org_id=org_id, assets=assets)
         logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
 
+        _update_org_provisioning_status(org_id, "completed", job_id, logger)
+        set_progress("completed", 100)
+
         logger.info("Provisioning complete for org %s", org_id)
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
-        
-
-        return {
-            "message": "Provisioning complete",
-            "org_id": org_id,
-            "region": region,
-            "work_dir": str(generated_dir),
-            "metadata": metadata
-        }
     except Exception as e:
         logger.exception("Provisioning failed for org %s: %s", org_id, e)
         set_progress(f"failed: {e}")

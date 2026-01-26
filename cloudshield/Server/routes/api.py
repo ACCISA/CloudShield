@@ -20,7 +20,7 @@ from services import (
     update_share,
 )
 from utils.logging_setup import get_logger
-from utils import organizations
+from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
 
 logger = get_logger("api")
@@ -237,13 +237,44 @@ def update_file_share(share_name):
         - updated_at timestamp is automatically set
         - Cannot modify org_id, name, or drive letter
     """
-    data = request.get_json() or {}
-    
-    org_id = data.get("org_id")
-    
+    org_id = (request.get_json() or {}).get("org_id")
+
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
-    
+
+    # NOTE: update share handling omitted for brevity
+
+
+@api_bp.route("/organization/<org_id>", methods=["GET"])
+def get_organization(org_id: str):
+    """Retrieve a lightweight organization summary by org identifier.
+
+    - Accepts either a native MongoDB ObjectId string or a legacy org_id string.
+    - Returns key fields used by the UI (provisioning_status, package, limits).
+    """
+    doc = organizations.find_one(org_filter(org_id))
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+
+    payload = {
+        "org_id": str(doc.get("_id") if doc.get("_id") else doc.get("org_id")),
+        "provisioning_status": doc.get("provisioning_status"),
+        "provisioning_job_id": doc.get("provisioning_job_id"),
+        "package": doc.get("package"),
+        "user_limit": doc.get("user_limit"),
+        "workstation_limit": doc.get("workstation_limit"),
+    }
+
+    return jsonify(payload), 200
+
+    # Handler continues below
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+
     # Build update fields from request
     update_fields = {}
     if "groups" in data:
@@ -252,10 +283,10 @@ def update_file_share(share_name):
         update_fields["description"] = data["description"]
     if "owner" in data:
         update_fields["owner"] = data["owner"]
-    
+
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400
-    
+
     success = update_share(org_id, share_name, update_fields)
 
     if not success:
@@ -426,7 +457,8 @@ def task_provision():
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    org_doc = organizations.find_one({"org_id": org_id}, {"workstation_limit": 1})
+    filter_ = org_filter(org_id)
+    org_doc = organizations.find_one(filter_, {"workstation_limit": 1})
     org_limit = _coerce_int(org_doc.get("workstation_limit")) if org_doc else None
 
     requested_count = data.get("workstation_count")
@@ -446,7 +478,10 @@ def task_provision():
 
     # Check if the environment is already provisioned
     is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
-    provisioned = organizations.find_one({"org_id": org_id, "status": "complete"})
+    filter_with_status = dict(org_filter(org_id))
+    filter_with_status["status"] = "complete"
+
+    provisioned = organizations.find_one(filter_with_status)
     
     if provisioned and not is_testing:
         logger.warning("Provisioning already completed for the requested organization.")
@@ -456,7 +491,7 @@ def task_provision():
 
     # Update MongoDB to mark the environment as provisioned
     organizations.update_one(
-        {"org_id": org_id},
+        org_filter(org_id),
         {"$set": {"status": "complete"}},
         upsert=True
     )

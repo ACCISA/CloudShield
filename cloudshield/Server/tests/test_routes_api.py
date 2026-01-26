@@ -83,6 +83,21 @@ def test_status_ok(client):
     assert resp.status_code in [200, 404]
 
 
+def test_job_status_returns_progress(client, monkeypatch):
+    """GET /api/status/<job_id> should forward progress fields"""
+    import cloudshield.Server.services as services
+    import cloudshield.Server.routes.api as api_mod
+
+    monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "in_progress", "progress": 42, "progress_text": "Halfway"}, 200))
+    monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+
+    resp = client.get("/api/status/job_1")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("progress") == 42
+    assert data.get("progress_text") == "Halfway"
+
+
 def test_health_ok(client):
     # Added /api prefix
     resp = client.get("/api/health")
@@ -224,6 +239,28 @@ def test_share_doc_to_payload():
     assert result["name"] == "HR_Share"
     assert result["groups"] == ["hr"]
     assert result["created_at"] == now.isoformat()
+
+
+def test_get_organization_includes_job_id(client, monkeypatch):
+    """GET /api/organization should include provisioning_job_id when set"""
+    # Arrange: mock organizations.find_one to return an org doc with provisioning_job_id
+    fake_doc = {
+        "_id": "507f1f77bcf86cd799439011",
+        "provisioning_status": "in_progress",
+        "provisioning_job_id": "job_123",
+        "package": "basic",
+        "user_limit": 10,
+        "workstation_limit": 5,
+    }
+    monkeypatch.setattr(api_mod, "organizations", MagicMock(find_one=lambda _filter: fake_doc))
+
+    # Act
+    resp = client.get("/api/organization/507f1f77bcf86cd799439011")
+
+    # Assert
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("provisioning_job_id") == "job_123"
 
 # --- File Share Endpoints ---
 
