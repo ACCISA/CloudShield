@@ -1,13 +1,22 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton";
 import CreateButton from "../components/common/CreateButton/CreateButton";
 import Checkbox from "../components/common/Checkbox/Checkbox";
 import EditButton from "../components/common/EditButton/EditButton";
+import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
 
 import UploadFileModal from "../components/files/UploadFileModal";
 import EditFileModal from "../components/files/EditFileModal";
+
+import {
+  createFileShare,
+  updateFileShare,
+  deleteFileShare,
+} from "../api/filesApi";
 
 import {
   HARD_CODED_TREE,
@@ -70,7 +79,35 @@ function StoragePill({ usedGB = 62, totalGB = 100 }) {
   );
 }
 
-export default function FilesPage({ orgId = "test_drive_allocation" }) {
+/**
+ * Main file shares management page for viewing, creating, editing, and deleting organization file shares.
+ * Displays shares in list or icon view with search, selection, and real-time operation tracking.
+ * Implements non-blocking async operations with polling for create/delete completion.
+ */
+export default function FilesPage() {
+  const { currentUser } = useAuth();
+  
+  // Get orgId from currentUser or localStorage
+  const orgId = useMemo(() => {
+    console.log("=== FilesPage orgId Calculation ===");
+    console.log("currentUser:", currentUser);
+    console.log("currentUser?.org_id:", currentUser?.org_id);
+    
+    try {
+      const stored = localStorage.getItem("org_id");
+      console.log("localStorage org_id:", stored);
+      if (stored) return stored;
+    } catch (e) {
+      console.error("Error reading localStorage:", e);
+    }
+    
+    const finalOrgId = currentUser?.org_id || "default-org";
+    console.log("Final orgId:", finalOrgId);
+    console.log("===================================");
+    
+    return finalOrgId;
+  }, [currentUser]);
+  
   const [layout, setLayout] = useState("list");
   
   // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
@@ -87,6 +124,8 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [deletingShares, setDeletingShares] = useState(new Set()); // Track which shares are being deleted
+  const [creatingShares, setCreatingShares] = useState(new Set()); // Track which shares are being created
 
   // Safe-guard index building: ensure tree is an array if buildIndex expects one
   const index = useMemo(() => {
@@ -96,9 +135,17 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     // Assuming buildIndex iterates over the input:
     return buildIndex(tree);
   }, [tree]);
+  // Helper function to ensure value is always an array
+  const ensureArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
 
   // --- CORRECTED FETCH LOGIC ---
   const fetchTree = useCallback(async () => {
+    console.log("fetchTree - Starting fetch with orgId:", orgId);
     try {
       const res = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`);
       
@@ -108,28 +155,130 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
       
       const data = await res.json();
       
-      // FIX: Check if data is an array or an object wrapper (e.g., { file_shares: [...] })
+      // Backend returns: { shares: [{ share: {...} }] }
       let nodes = [];
-      if (Array.isArray(data)) {
+      if (data && Array.isArray(data.shares)) {
+        // Extract the share object from each item
+        nodes = data.shares.map(item => item.share);
+        console.log("fetchTree - Extracted shares:", nodes);
+      } else if (Array.isArray(data)) {
         nodes = data;
-      } else if (data && Array.isArray(data.file_shares)) {
-        nodes = data.file_shares;
-      } else if (data && Array.isArray(data.files)) {
-        nodes = data.files;
-      } else if (data && Array.isArray(data.items)) {
-         nodes = data.items;
       } else {
-        // Fallback: if data is a single object, wrap it in array if your helper expects array
-        console.warn("API returned object, wrapping in array:", data);
-        nodes = [data]; 
+        console.warn("fetchTree - Unexpected API format:", data);
+        nodes = [];
       }
       
       setTree(nodes);
 
     } catch (e) {
-      console.error("Failed to fetch files:", e);
+      console.error("fetchTree - Failed to fetch files:", e);
     }
   }, [orgId]);
+
+  // Handle creating a new file share
+  const handleCreateShare = useCallback(async (data) => {
+    try {
+      // Add to creating state
+      setCreatingShares(prev => new Set(prev).add(data.shareName));
+      
+      // Send create request
+      const result = await createFileShare({
+        orgId,
+        name: data.shareName,
+        users: data.users,
+        groups: data.groups,
+        description: data.description,
+        maxSize: data.maxSize,
+      });
+      console.log("Create job queued:", result);
+      
+      // Close modal immediately so user can continue working
+      setUploadOpen(false);
+      
+      // Poll for the new share to appear - check every 2 seconds for up to 30 seconds
+      let attempts = 0;
+      const maxAttempts = 15;
+      
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        // Fetch current shares to check if new one exists
+        const currentShares = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`).then(r => r.json());
+        const shareExists = currentShares.shares?.some(s => s.share.name === data.shareName);
+        
+        if (shareExists) {
+          // Share created successfully - refresh UI
+          clearInterval(pollInterval);
+          setCreatingShares(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.shareName);
+            return newSet;
+          });
+          await fetchTree();
+          console.log(`File share "${data.shareName}" created successfully!`);
+        } else if (attempts >= maxAttempts) {
+          // Timeout - give up polling but still refresh
+          clearInterval(pollInterval);
+          setCreatingShares(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.shareName);
+            return newSet;
+          });
+          await fetchTree();
+          alert(`File share "${data.shareName}" is taking longer than expected to create. Please refresh if it doesn't appear.`);
+        }
+      }, 2000);
+      
+    } catch (err) {
+      console.error("Failed to create share:", err);
+      setCreatingShares(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(data.shareName);
+        return newSet;
+      });
+      alert(`Failed to create share: ${err.message}`);
+    }
+  }, [orgId, fetchTree]);
+
+  // Handle editing a file share
+  const handleEditShare = useCallback(async (data) => {
+    try {
+      await updateFileShare(orgId, editTarget.name, {
+        users: data.users,
+        groups: data.groups,
+        description: data.description,
+        max_size: data.maxSize ? parseInt(data.maxSize, 10) : undefined, // Store as GB
+      });
+      console.log("Share updated");
+      setEditTarget(null);
+      // Refresh the list
+      fetchTree();
+      alert("File share updated successfully!");
+    } catch (err) {
+      console.error("Failed to update share:", err);
+      alert(`Failed to update share: ${err.message}`);
+    }
+  }, [orgId, editTarget, fetchTree]);
+
+  // Handle deleting a file share
+  const handleDeleteShare = useCallback(async () => {
+    if (!editTarget) return;
+    
+    const confirmed = window.confirm(`Are you sure you want to delete "${editTarget.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteFileShare(orgId, editTarget.name);
+      console.log("Share deleted");
+      setEditTarget(null);
+      // Refresh the list
+      fetchTree();
+      alert("File share deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete share:", err);
+      alert(`Failed to delete share: ${err.message}`);
+    }
+  }, [orgId, editTarget, fetchTree]);
 
   // Trigger fetch on mount
   useEffect(() => {
@@ -138,7 +287,9 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
   const listFilteredTree = useMemo(() => {
     if (layout !== "list") return tree;
-    return filterTreeByQuery(tree, searchQuery);
+    const filtered = filterTreeByQuery(tree, searchQuery);
+    console.log("listFilteredTree - filtered:", filtered);
+    return filtered;
   }, [tree, searchQuery, layout]);
 
   const effectiveExpanded = useMemo(() => {
@@ -151,7 +302,10 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
   const listVisibleRows = useMemo(() => {
     if (layout !== "list") return [];
-    return flattenVisibleTree(listFilteredTree, effectiveExpanded);
+    const rows = flattenVisibleTree(listFilteredTree, effectiveExpanded);
+    console.log("listVisibleRows - rows:", rows);
+    console.log("listVisibleRows - rows.length:", rows?.length);
+    return rows;
   }, [listFilteredTree, effectiveExpanded, layout]);
 
   const listVisibleIds = useMemo(() => listVisibleRows.map((r) => r.node.id), [listVisibleRows]);
@@ -207,6 +361,63 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
   const openEdit = (node) => setEditTarget(node);
 
+  // Direct delete without opening edit modal
+  const handleDirectDelete = useCallback(async (node) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${node.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      // Mark this share as being deleted (shows spinner)
+      setDeletingShares(prev => new Set(prev).add(node.name));
+      
+      // Send delete request and get job ID
+      const result = await deleteFileShare(orgId, node.name);
+      console.log("Delete job queued:", result);
+      
+      // Poll for completion - check every 2 seconds for up to 30 seconds
+      let attempts = 0;
+      const maxAttempts = 15;
+      
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        // Refresh to check if share is gone
+        const currentShares = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`).then(r => r.json());
+        const shareStillExists = currentShares.shares?.some(s => s.share.name === node.name);
+        
+        if (!shareStillExists) {
+          // Share is deleted - refresh UI and remove from deleting state
+          clearInterval(pollInterval);
+          setDeletingShares(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(node.name);
+            return newSet;
+          });
+          await fetchTree();
+        } else if (attempts >= maxAttempts) {
+          // Timeout - give up polling but still refresh
+          clearInterval(pollInterval);
+          setDeletingShares(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(node.name);
+            return newSet;
+          });
+          await fetchTree();
+          alert("Delete is taking longer than expected. Please refresh if the share is still visible.");
+        }
+      }, 2000);
+      
+    } catch (err) {
+      console.error("Failed to delete share:", err);
+      setDeletingShares(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(node.name);
+        return newSet;
+      });
+      alert(`Failed to delete share: ${err.message}`);
+    }
+  }, [orgId, fetchTree]);
+
   const submitPath = (e) => {
     e.preventDefault();
     const { ok, stack } = resolveFolderByPath(tree, pathValue);
@@ -222,7 +433,6 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         <Checkbox checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
         <div>Name</div>
         <div>Date Modified</div>
-        <div>Kind</div>
         <div>Users</div>
         <div>Groups</div>
         <div />
@@ -233,7 +443,11 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         const isOpen = effectiveExpanded.has(node.id);
 
         return (
-          <div className="row" key={node.id}>
+          <div 
+            className="row" 
+            key={node.id}
+            style={deletingShares.has(node.name) ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+          >
             <Checkbox checked={selectedIds.has(node.id)} onChange={() => toggleSelect(node.id)} />
 
             <div className="nameCell">
@@ -265,20 +479,69 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
             </div>
 
             <div className="meta">{formatDateTime(node.updated_at)}</div>
-            <div className="meta">{node.kind}</div>
-            <div className="meta">{node.users ?? "—"}</div>
+            
+            <div className="groups">
+              {(() => {
+                const users = ensureArray(node.users);
+                return users.length === 0 ? (
+                  <span style={{ color: '#999' }}>—</span>
+                ) : (
+                  <>
+                    {users.slice(0, 3).map((u) => (
+                      <span key={u}>{u}</span>
+                    ))}
+                    {users.length > 3 ? (
+                      <Tooltip 
+                        title={
+                          <div style={{ padding: '4px' }}>
+                            {users.slice(3).map((u) => (
+                              <div key={u} style={{ padding: '2px 0' }}>{u}</div>
+                            ))}
+                          </div>
+                        }
+                        arrow
+                        placement="top"
+                      >
+                        <span style={{ cursor: 'help' }}>+{users.length - 3}</span>
+                      </Tooltip>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </div>
 
             <div className="groups">
-              {(node.groups || []).slice(0, 3).map((g) => (
-                <span key={g}>{g}</span>
-              ))}
-              {(node.groups || []).length > 3 ? <span>+{node.groups.length - 3}</span> : null}
+              {(() => {
+                const groups = ensureArray(node.groups);
+                return (
+                  <>
+                    {groups.slice(0, 3).map((g) => (
+                      <span key={g}>{g}</span>
+                    ))}
+                    {groups.length > 3 ? (
+                      <Tooltip 
+                        title={
+                          <div style={{ padding: '4px' }}>
+                            {groups.slice(3).map((g) => (
+                              <div key={g} style={{ padding: '2px 0' }}>{g}</div>
+                            ))}
+                          </div>
+                        }
+                        arrow
+                        placement="top"
+                      >
+                        <span style={{ cursor: 'help' }}>+{groups.length - 3}</span>
+                      </Tooltip>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
 
             <EditButton
               menuItems={[
                 { label: isFolder ? "Edit folder" : "Edit file", onClick: () => openEdit(node) },
-                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => openEdit(node) },
+                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
               ]}
             />
           </div>
@@ -395,9 +658,21 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
         <div className="rightTools">
           <RefreshButton onClick={fetchTree} />
-          <CreateButton buttonText="Upload" onClick={() => setUploadOpen(true)} />
+          <CreateButton buttonText="New File Share" onClick={() => setUploadOpen(true)} />
         </div>
       </div>
+
+      {/* Subtle notification banner for operations in progress */}
+      {(creatingShares.size > 0 || deletingShares.size > 0) && (
+        <div className="operationBanner">
+          <CircularProgress size={14} style={{ color: '#4f8cff' }} />
+          <span>
+            {creatingShares.size > 0 && `Creating ${Array.from(creatingShares).join(', ')}...`}
+            {creatingShares.size > 0 && deletingShares.size > 0 && ' • '}
+            {deletingShares.size > 0 && `Deleting ${Array.from(deletingShares).join(', ')}...`}
+          </span>
+        </div>
+      )}
 
       {layout === "list" && renderList()}
       {layout === "icons" && renderIcons()}
@@ -405,15 +680,15 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
       <UploadFileModal
         isOpen={isUploadOpen}
         onClose={() => setUploadOpen(false)}
-        onUpload={() => setUploadOpen(false)}
+        onUpload={handleCreateShare}
       />
 
       <EditFileModal
         isOpen={!!editTarget}
         file={editTarget}
         onClose={() => setEditTarget(null)}
-        onSave={() => setEditTarget(null)}
-        onDelete={() => setEditTarget(null)}
+        onSave={handleEditShare}
+        onDelete={handleDeleteShare}
       />
 
       <style>{`
@@ -462,6 +737,20 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
           flex-wrap: wrap;
         }
 
+        /* Operation banner - subtle notification */
+        .operationBanner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          margin-bottom: 12px;
+          background: rgba(79, 140, 255, 0.08);
+          border: 1px solid rgba(79, 140, 255, 0.15);
+          border-radius: 8px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.85);
+        }
+
         /* LIST (Tree) */
         .table {
           border: 1px solid rgba(255,255,255,0.08);
@@ -471,7 +760,7 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         }
         .header, .row {
           display: grid;
-          grid-template-columns: 40px 2.2fr 1.4fr 0.8fr 0.7fr 1.2fr 44px;
+          grid-template-columns: 40px 2.2fr 1.4fr 0.7fr 1.2fr 44px;
           padding: 12px 12px;
           align-items: center;
           column-gap: 10px;
@@ -655,6 +944,29 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         @media (max-width: 1100px) {
           .iconsGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
+        
+        /* Delete spinner - subtle, in place of edit button */
+        .deleteSpinner {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+        }
+        
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          border-top-color: rgba(255, 255, 255, 0.8);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 820px) {
           .topBar { flex-direction: column; align-items: stretch; }
           .storagePill { width: 100%; }

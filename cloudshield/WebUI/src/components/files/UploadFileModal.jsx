@@ -1,41 +1,88 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { modalStyles } from "./modalStyles.jsx";
 import AssignmentSection from "./AssignmentSection.jsx";
+import { fetchUsers, fetchGroups } from "../../api/filesApi.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
-const mockUsers = [
-  "Michael Scott",
-  "Jim Halpert",
-  "Pam Beesly",
-  "Dwight Schrute",
-];
-
-const mockGroups = ["Sales", "Finance", "Corporate", "Warehouse"];
-
+/**
+ * Modal for creating a new file share with name, description, size limit, and user/group assignments.
+ * Fetches available users and groups from the organization when opened.
+ * 
+ * @param {boolean} isOpen - Whether modal is visible
+ * @param {function} onClose - Callback to close modal
+ * @param {function} onUpload - Callback to create the share with form data
+ */
 export default function UploadFileModal({
   isOpen,
   onClose,
   onUpload,
 }) {
-  const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState("");
-  const [dragActive, setDragActive] = useState(false);
+  const { currentUser } = useAuth();
+  const [shareName, setShareName] = useState("");
+  const [description, setDescription] = useState("");
+  const [maxSize, setMaxSize] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleFile = (f) => {
-    setFile(f);
-    setFileName(f.name);
-  };
-
-  const onDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragActive(false);
-    if (e.dataTransfer.files?.[0]) {
-      handleFile(e.dataTransfer.files[0]);
+  // Fetch users and groups when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadData = async () => {
+        try {
+          // Get org_id from localStorage (set during login)
+          const orgId = localStorage.getItem("org_id") || "default-org";
+          console.log("UploadFileModal - Loading users/groups for org_id:", orgId);
+          
+          const [users, groups] = await Promise.all([
+            fetchUsers(orgId),
+            fetchGroups(orgId)
+          ]);
+          console.log("UploadFileModal - Fetched users:", users);
+          console.log("UploadFileModal - Fetched groups:", groups);
+          
+          // Extract usernames and remove duplicates
+          const usernames = [...new Set(users.map(u => u.username || u.email || u.name).filter(Boolean))];
+          const groupNames = [...new Set(groups.map(g => g.group_name).filter(Boolean))];
+          
+          console.log("UploadFileModal - Processed usernames:", usernames);
+          console.log("UploadFileModal - Processed group names:", groupNames);
+          
+          setAvailableUsers(usernames);
+          setAvailableGroups(groupNames);
+        } catch (err) {
+          console.error("Failed to load users/groups:", err);
+        }
+      };
+      loadData();
     }
-  }, []);
+  }, [isOpen, currentUser]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShareName("");
+      setDescription("");
+      setMaxSize("");
+      setSelectedUsers([]);
+      setSelectedGroups([]);
+    }
+  }, [isOpen]);
+
+  const handleCreate = async () => {
+    setLoading(true);
+    try {
+      await onUpload?.({
+        shareName,
+        description,
+        maxSize,
+        users: selectedUsers,
+        groups: selectedGroups,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,59 +94,61 @@ export default function UploadFileModal({
         <header className="modalHeader">
           <span>Files</span>
           <span className="sep">›</span>
-          <span>New file</span>
+          <span>New File Share</span>
           <button onClick={onClose}>✕</button>
         </header>
 
-        <div
-          className={`dropZone ${dragActive ? "active" : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={onDrop}
-          role="button"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          aria-label="Drag and drop area for file upload"
-        >
-          <div className="uploadIcon">⬆</div>
-          <div>Drag and drop files here, or</div>
-          <label className="browseBtn">
-            Browse
-            <input
-              type="file"
-              hidden
-              onChange={(e) => handleFile(e.target.files[0])}
-            />
-          </label>
+        <div className="field">
+          <label>Share Name *</label>
+          <input
+            value={shareName}
+            placeholder="e.g., TeamDocs, Projects, SharedData"
+            onChange={(e) => setShareName(e.target.value)}
+          />
         </div>
 
         <div className="field">
-          <label>File Name</label>
+          <label>Description (optional)</label>
           <input
-            value={fileName}
-            placeholder="file name"
-            onChange={(e) => setFileName(e.target.value)}
+            value={description}
+            placeholder="Brief description of this file share"
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label>Max Size in GB (optional)</label>
+          <input
+            type="text"
+            value={maxSize}
+            placeholder="e.g., 100"
+            onChange={(e) => setMaxSize(e.target.value)}
           />
         </div>
 
         <AssignmentSection
           title="Assign users"
-          items={mockUsers}
+          items={availableUsers}
           placeholder="Search for users"
+          selectedItems={selectedUsers}
+          onSelectionChange={setSelectedUsers}
         />
 
         <AssignmentSection
           title="Assign groups"
-          items={mockGroups}
+          items={availableGroups}
           placeholder="Search for groups"
+          selectedItems={selectedGroups}
+          onSelectionChange={setSelectedGroups}
         />
 
         <footer className="modalFooter">
-          <button className="primary" onClick={() => onUpload?.({ file, fileName })}>
-            Upload
+          <button 
+            className="primary" 
+            onClick={handleCreate}
+            disabled={!shareName.trim() || loading}
+          >
+            {loading ? "Creating..." : "Create Share"}
           </button>
         </footer>
       </div>
