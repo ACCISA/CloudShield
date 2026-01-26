@@ -205,6 +205,25 @@ describe('FilesPage', () => {
       const { container } = render(<FilesPage />);
       expect(container.querySelector('.toolbar')).toBeInTheDocument();
     });
+
+    it('falls back to currentUser org_id when localStorage throws', async () => {
+      mockAuthContext.currentUser = { org_id: 'fallback-org' };
+      Storage.prototype.getItem = jest.fn(() => {
+        throw new Error('no access');
+      });
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledWith(
+          expect.stringContaining('org_id=fallback-org')
+        );
+      });
+      expect(console.error).toHaveBeenCalledWith(
+        'Error reading localStorage:',
+        expect.any(Error)
+      );
+    });
   });
 
   describe('List Rendering and Actions', () => {
@@ -253,6 +272,35 @@ describe('FilesPage', () => {
 
       expect(resolveFolderByPath).toHaveBeenCalled();
     });
+
+    it('handles comma-separated users and groups', async () => {
+      const shares = [
+        {
+          share: {
+            id: 'share-1',
+            name: 'Sales Share',
+            kind: 'folder',
+            users: 'alice, bob',
+            groups: 'sales, ops',
+            updated_at: '2026-01-01T10:00:00Z',
+          },
+        },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ shares }),
+        })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(getByText('Sales Share')).toBeInTheDocument();
+      });
+      expect(getByTestId('avatar-pill-user')).toHaveTextContent('2 user(s)');
+      expect(getByTestId('avatar-pill-group')).toHaveTextContent('2 group(s)');
+    });
   });
 
   describe('Hover Card Lookups', () => {
@@ -297,6 +345,8 @@ describe('FilesPage', () => {
         const userCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'user');
         expect(userCalls.length).toBeGreaterThan(0);
         expect(userCalls[0][0].items[0].email).toBe('alice@example.com');
+        expect(userCalls[0][0].items[0].full_name).toBe('Alice A');
+        expect(userCalls[0][0].items[0].active).toBe(true);
       });
     });
 
@@ -341,6 +391,77 @@ describe('FilesPage', () => {
         const groupCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'group');
         expect(groupCalls.length).toBeGreaterThan(0);
         expect(groupCalls[0][0].items[0].name).toBe('engineering');
+      });
+    });
+
+    it('uses members_info to derive group member_count', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      const AvatarPill = require('../../components/files/AvatarPill').default;
+
+      fetchUsers.mockResolvedValue([]);
+      fetchGroups.mockResolvedValue([
+        {
+          _id: 'g1',
+          group_name: 'design',
+          members_info: [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }],
+        },
+      ]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'Design Share',
+                    kind: 'folder',
+                    users: [],
+                    groups: ['design'],
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        const groupCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'group');
+        expect(groupCalls.length).toBeGreaterThan(0);
+        expect(groupCalls[0][0].items[0].member_count).toBe(3);
+      });
+    });
+
+    it('logs errors when user/group lookups fail', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      const errorSpy = jest.spyOn(console, 'error');
+
+      fetchUsers.mockRejectedValueOnce(new Error('users failed'));
+      fetchGroups.mockRejectedValueOnce(new Error('groups failed'));
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ shares: [] }),
+        })
+      );
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(errorSpy).toHaveBeenCalledWith(
+          'Failed to load users for hover cards:',
+          expect.any(Error)
+        );
+        expect(errorSpy).toHaveBeenCalledWith(
+          'Failed to load groups for hover cards:',
+          expect.any(Error)
+        );
       });
     });
   });
@@ -390,6 +511,56 @@ describe('FilesPage', () => {
       });
     });
 
+    it('handleCreateShare times out when share never appears', async () => {
+      const intervalSpy = jest.spyOn(global, 'setInterval').mockImplementation((cb) => {
+        (async () => {
+          for (let i = 0; i < 15; i += 1) {
+            await cb();
+          }
+        })();
+        return 1;
+      });
+      const clearSpy = jest.spyOn(global, 'clearInterval').mockImplementation(() => {});
+
+      fetch
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve({ shares: [] }) })
+        )
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve({ shares: [] }) })
+        );
+
+      const { getByTestId } = render(<FilesPage />);
+      fireEvent.click(getByTestId('create-button'));
+      fireEvent.click(getByTestId('wizard-submit'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(
+          'File share "share" is taking longer than expected to create. Please refresh if it doesn\'t appear.'
+        );
+      });
+
+      intervalSpy.mockRestore();
+      clearSpy.mockRestore();
+    });
+
+    it('handleCreateShare shows alert on failure', async () => {
+      const { createFileShare } = require('../../api/filesApi');
+      createFileShare.mockRejectedValueOnce(new Error('create failed'));
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares: [] }) })
+      );
+
+      const { getByTestId } = render(<FilesPage />);
+      fireEvent.click(getByTestId('create-button'));
+      fireEvent.click(getByTestId('wizard-submit'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to create share: create failed');
+      });
+    });
+
     it('handleEditShare updates share from edit modal', async () => {
       const shares = [
         { share: { id: 'share-1', name: 'Specs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
@@ -407,6 +578,28 @@ describe('FilesPage', () => {
       await waitFor(() => {
         const { updateFileShare } = require('../../api/filesApi');
         expect(updateFileShare).toHaveBeenCalled();
+      });
+    });
+
+    it('handleEditShare shows alert on failure', async () => {
+      const { updateFileShare } = require('../../api/filesApi');
+      updateFileShare.mockRejectedValueOnce(new Error('update failed'));
+
+      const shares = [
+        { share: { id: 'share-1', name: 'Specs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Specs')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-0'));
+      fireEvent.click(getByTestId('wizard-submit'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to update share: update failed');
       });
     });
 
@@ -430,15 +623,41 @@ describe('FilesPage', () => {
       });
     });
 
+    it('handleDeleteShare shows alert on failure', async () => {
+      const { deleteFileShare } = require('../../api/filesApi');
+      deleteFileShare.mockRejectedValueOnce(new Error('delete failed'));
+
+      const shares = [
+        { share: { id: 'share-1', name: 'Specs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Specs')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-0'));
+      fireEvent.click(getByTestId('wizard-delete'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to delete share: delete failed');
+      });
+    });
+
     it('handleDirectDelete polls until share removed', async () => {
       const sharesInitial = {
         shares: [{ share: { id: 'share-1', name: 'Archive', kind: 'folder', updated_at: '2026-01-01T10:00:00Z' } }],
       };
       const sharesAfter = { shares: [] };
+      const intervalSpy = jest.spyOn(global, 'setInterval').mockImplementation((cb) => {
+        (async () => {
+          await cb();
+        })();
+        return 1;
+      });
+      const clearSpy = jest.spyOn(global, 'clearInterval').mockImplementation(() => {});
       fetch
-        .mockImplementationOnce(() =>
-          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
-        )
         .mockImplementationOnce(() =>
           Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
         )
@@ -456,6 +675,8 @@ describe('FilesPage', () => {
         const { deleteFileShare } = require('../../api/filesApi');
         expect(deleteFileShare).toHaveBeenCalled();
       });
+      intervalSpy.mockRestore();
+      clearSpy.mockRestore();
     });
 
     it('handleDirectDelete exits when confirmation is canceled', async () => {
@@ -496,6 +717,164 @@ describe('FilesPage', () => {
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith('Failed to delete share: delete failed');
       });
+    });
+
+    it('handleDirectDelete times out after max attempts', async () => {
+      const sharesInitial = {
+        shares: [{ share: { id: 'share-1', name: 'Archive', kind: 'folder', updated_at: '2026-01-01T10:00:00Z' } }],
+      };
+
+      const intervalSpy = jest.spyOn(global, 'setInterval').mockImplementation((cb) => {
+        (async () => {
+          for (let i = 0; i < 15; i += 1) {
+            await cb();
+          }
+        })();
+        return 1;
+      });
+      const clearSpy = jest.spyOn(global, 'clearInterval').mockImplementation(() => {});
+
+      fetch
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+        )
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+        );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Archive')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-1'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(
+          'Delete is taking longer than expected. Please refresh if the share is still visible.'
+        );
+      });
+
+      intervalSpy.mockRestore();
+      clearSpy.mockRestore();
+    });
+  });
+
+  describe('Selection and Navigation Controls', () => {
+    it('toggles row selection from icons view', async () => {
+      const shares = [
+        { share: { id: 'share-1', name: 'Docs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByLabelText } = render(<FilesPage />);
+      fireEvent.click(getByTestId('display-button'));
+
+      const tile = await waitFor(() => getByLabelText('Docs file'));
+      expect(tile.className).not.toContain('selected');
+
+      fireEvent.click(tile);
+      expect(tile.className).toContain('selected');
+    });
+
+    it('selects all visible rows from header checkbox', async () => {
+      const shares = [
+        { share: { id: 'share-1', name: 'Docs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getAllByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Docs')).toBeInTheDocument());
+
+      const checkboxes = getAllByTestId('checkbox');
+      fireEvent.click(checkboxes[0]);
+
+      await waitFor(() => {
+        expect(checkboxes[1]).toBeChecked();
+      });
+    });
+
+    it('expands folders and shows children in list view', async () => {
+      const shares = [
+        {
+          share: {
+            id: 'folder-1',
+            name: 'Projects',
+            kind: 'folder',
+            children: [
+              { id: 'file-1', name: 'Roadmap', kind: 'file', updated_at: '2026-01-01T10:00:00Z' },
+            ],
+            updated_at: '2026-01-01T10:00:00Z',
+          },
+        },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByLabelText, queryByText, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Projects')).toBeInTheDocument());
+      expect(queryByText('Roadmap')).not.toBeInTheDocument();
+
+      fireEvent.click(getByLabelText('Expand folder'));
+
+      await waitFor(() => {
+        expect(getByText('Roadmap')).toBeInTheDocument();
+      });
+    });
+
+    it('navigates folders in icons view and uses breadcrumbs', async () => {
+      const shares = [
+        {
+          share: {
+            id: 'folder-1',
+            name: 'Projects',
+            kind: 'folder',
+            children: [
+              { id: 'file-1', name: 'Roadmap', kind: 'file', updated_at: '2026-01-01T10:00:00Z' },
+            ],
+            updated_at: '2026-01-01T10:00:00Z',
+          },
+        },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByLabelText, getByText, container } = render(<FilesPage />);
+      fireEvent.click(getByTestId('display-button'));
+
+      const folderTile = await waitFor(() => getByLabelText('Projects folder'));
+      fireEvent.doubleClick(folderTile);
+
+      await waitFor(() => {
+        const activeCrumb = container.querySelector('.crumb.active');
+        expect(activeCrumb).toBeInTheDocument();
+        expect(activeCrumb).toHaveTextContent('Projects');
+      });
+      fireEvent.click(getByText('Root'));
+      await waitFor(() => expect(container.querySelector('.crumb.active')).toHaveTextContent('Root'));
+    });
+
+    it('cancels path mode in icons view', async () => {
+      const shares = [
+        { share: { id: 'share-1', name: 'Docs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByText, queryByPlaceholderText } = render(<FilesPage />);
+      fireEvent.click(getByTestId('display-button'));
+
+      const pathButton = await waitFor(() => getByText('Path'));
+      fireEvent.click(pathButton);
+
+      expect(queryByPlaceholderText('Type a path like /sales_docs/policies')).toBeInTheDocument();
+      fireEvent.click(getByText('Cancel'));
+      expect(queryByPlaceholderText('Type a path like /sales_docs/policies')).not.toBeInTheDocument();
     });
   });
 
