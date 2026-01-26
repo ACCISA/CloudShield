@@ -282,6 +282,7 @@ export default function EmployeesPage() {
       justifyContent: "space-between",
       gap: "12px",
       flexWrap: "wrap",
+      marginBottom: "8px",
       flexShrink: 0,
     },
     leftActions: {
@@ -289,10 +290,12 @@ export default function EmployeesPage() {
       gap: "10px",
       flex: "1 1 auto",
       flexWrap: "wrap",
+      minWidth: "0",
     },
     rightActions: {
       display: "flex",
       gap: "10px",
+      flexWrap: "wrap",
     },
     listWrapper: {
       flex: 1,
@@ -314,12 +317,12 @@ export default function EmployeesPage() {
               if (e.key === "Enter") fetchUsers();
             }}
             placeholder="Search users"
-            width="420px"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
+              flex: "1 1 200px",
+              minWidth: "200px",
               maxWidth: "680px",
+              width: "100%",
             }}
           />
 

@@ -195,6 +195,10 @@ function ItemsPill({ items, type, totalCount, getKey }) {
   const count = totalCount || itemsList.length;
   const extra = Math.max(count - show.length, 0);
 
+  if (count === 0) {
+    return <span style={{ opacity: 0.5 }}>—</span>;
+  }
+
   if (show.length === 0) {
     return (
       <div style={styles.countBadge}>

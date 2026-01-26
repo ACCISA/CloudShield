@@ -549,11 +549,6 @@
   transition: all 0.2s ease;
 }
 
-.workstation-modal-selected-card:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-1px);
-}
-
 .workstation-modal-selected-card-icon {
   font-size: 28px;
   flex-shrink: 0;
@@ -633,11 +628,6 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.workstation-modal-software-card:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-1px);
 }
 
 .workstation-modal-software-card.selected {

@@ -48,7 +48,7 @@ const styles = {
     backgroundColor: "#0F0F0F",
     boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
     padding: "16px",
-    overflow: "hidden",
+    overflow: "auto",
   },
   container: {
     display: "flex",
@@ -71,12 +71,15 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
+    minWidth: 0,
+    overflow: "hidden",
   },
   leadingCircle: {
     width: "28px",
     height: "28px",
     borderRadius: "50%",
     backgroundColor: "#2A2A2A",
+    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
@@ -102,6 +105,7 @@ const styles = {
   usersPill: {
     display: "flex",
     alignItems: "center",
+    minWidth: 0,
   },
   avatarsContainer: {
     display: "flex",
@@ -122,13 +126,16 @@ const styles = {
     marginLeft: "8px",
     fontSize: "0.9rem",
     opacity: 0.85,
+    whiteSpace: "nowrap",
   },
   currentContainer: {
     display: "flex",
     alignItems: "center",
+    minWidth: 0,
   },
   lastUsed: {
     opacity: 0.9,
+    minWidth: 0,
   },
   statusButtonContainer: {
     display: "flex",
@@ -258,6 +265,10 @@ function UsersPill({ row }) {
 
   const show = list.slice(0, 3);
   const extra = Math.max(list.length - show.length, 0);
+
+  if (list.length === 0) {
+    return <span style={{ opacity: 0.5 }}>—</span>;
+  }
 
   return (
     <div style={styles.usersPill}>
@@ -443,11 +454,11 @@ export default function WorkstationList({
   // Build grid template dynamically based on which columns are visible.
   const cols = [
     !isMobile ? "28px" : null, // checkbox - hidden on mobile
-    isMobile ? "1fr" : "minmax(180px, 1.2fr)", // name/code with icon - min width to prevent over-shrinking
-    showUsersColumn ? (isMobile ? "0.8fr" : "0.9fr") : null,
-    showCurrentColumn ? "0.6fr" : null,
-    showLastUsedColumn ? "0.8fr" : null,
-    isMobile ? "40px" : "120px", // status button - wider on desktop for text
+    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)", // name/code with icon - reduced min width
+    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
+    showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
+    showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
+    isMobile ? "40px" : "100px", // status button - reduced width
     "28px", // status light - moved next to edit
     "40px", // edit - fixed width, always visible
   ].filter(Boolean);

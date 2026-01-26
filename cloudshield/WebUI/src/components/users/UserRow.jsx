@@ -20,25 +20,35 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
+    minWidth: 0,
   },
   leadingCircle: {
     width: "28px",
     height: "28px",
     borderRadius: "50%",
     backgroundColor: "#2A2A2A",
+    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
     flexDirection: "column",
+    minWidth: 0,
+    overflow: "hidden",
   },
   name: {
     fontWeight: 600,
     lineHeight: 1.15,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   email: {
     fontSize: "0.85rem",
     opacity: 0.85,
     marginTop: "2px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   textCell: {
     opacity: 0.9,
@@ -83,9 +93,55 @@ const styles = {
   },
 };
 
+// Responsive breakpoints
+const getResponsiveStyles = () => {
+  const width = window.innerWidth;
+
+  // Mobile (< 768px)
+  if (width < 768) {
+    return {
+      row: {
+        ...styles.row,
+        gap: "8px",
+        padding: "10px 6px",
+      },
+      nameSection: {
+        ...styles.nameSection,
+        gap: "8px",
+      },
+      name: {
+        ...styles.name,
+        fontSize: "0.95rem",
+      },
+      email: {
+        ...styles.email,
+        fontSize: "0.8rem",
+      },
+    };
+  }
+
+  // Tablet (768px - 1024px)
+  if (width < 1024) {
+    return {
+      row: {
+        ...styles.row,
+        gap: "10px",
+        padding: "11px 7px",
+      },
+    };
+  }
+
+  // Desktop - return original styles
+  return styles;
+};
+
 /* ---------------------------- helpers ---------------------------- */
 
 function renderBubbles(count) {
+  if (count === 0) {
+    return <span style={{ opacity: 0.5 }}>—</span>;
+  }
+
   const bubbles = Math.min(count, 3);
   return (
     <div style={styles.bubblesPill}>
@@ -117,15 +173,18 @@ export default function UserRow({
   onDelete,
   isLast,
   cols,
+  isMobile,
+  isTablet,
 }) {
   const [checked, setChecked] = useState(false);
+  const responsiveStyles = getResponsiveStyles();
 
   return (
     <>
       {/* Row */}
       <div
         style={{
-          ...styles.row,
+          ...responsiveStyles.row,
           gridTemplateColumns: cols.join(" "),
         }}
         onMouseEnter={(e) =>
@@ -135,15 +194,15 @@ export default function UserRow({
           (e.currentTarget.style.backgroundColor = "transparent")
         }
       >
-        {/* select */}
-        <Checkbox checked={checked} onChange={setChecked} />
+        {/* select - hide on mobile */}
+        {!isMobile && <Checkbox checked={checked} onChange={setChecked} />}
 
         {/* name + email + leading circle */}
-        <div style={styles.nameSection}>
+        <div style={responsiveStyles.nameSection}>
           <div style={styles.leadingCircle} />
           <div style={styles.nameContainer}>
-            <span style={styles.name}>{data.name}</span>
-            <span style={styles.email}>↳ {data.email}</span>
+            <span style={responsiveStyles.name}>{data.name}</span>
+            <span style={responsiveStyles.email}>↳ {data.email}</span>
           </div>
         </div>
 

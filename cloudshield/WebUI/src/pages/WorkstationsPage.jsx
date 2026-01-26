@@ -29,10 +29,12 @@ const styles = {
     gap: "10px",
     flex: "1 1 auto",
     flexWrap: "wrap",
+    minWidth: "0",
   },
   rightActions: {
     display: "flex",
     gap: "10px",
+    flexWrap: "wrap",
   },
   listWrapper: {
     flex: 1,
@@ -182,12 +184,12 @@ export default function WorkstationsPage() {
             value={search}
             onChange={(value) => setSearch(value)}
             placeholder="Search workstations"
-            width="420px"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
+              flex: "1 1 200px",
+              minWidth: "200px",
               maxWidth: "680px",
+              width: "100%",
             }}
           />
 
