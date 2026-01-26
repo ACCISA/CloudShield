@@ -70,7 +70,7 @@ def _share_doc_to_payload(doc: dict) -> dict:
         - description: Optional description
         - owner: Optional owner email/username
         - current_size: Current storage usage in bytes
-        - max_size: Maximum storage quota in bytes (None means unlimited)
+        - max_size: Maximum storage quota in GB (None means unlimited)
         - created_at: ISO 8601 timestamp string
         - updated_at: ISO 8601 timestamp string
     """
@@ -113,13 +113,25 @@ def task_create_file_share():
 
     org_id = data.get("org_id")
     share_name = data.get("share_name")
+    users = data.get("users", [])
+    groups = data.get("groups", [])
+    description = data.get("description")
+    max_size = data.get("max_size")
 
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
         return jsonify({"error":"share_name is required"}), 422
 
-    job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
+    job = service_dispatcher(
+        service_name="dc_create_file_share",
+        org_id=org_id,
+        share_name=share_name,
+        users=users,
+        groups=groups,
+        description=description,
+        max_size=max_size
+    )
 
     return jsonify({"job_id":job.id}), 202
 
@@ -231,7 +243,7 @@ def update_file_share(org_id, share_name):
         - description (str, optional): Human-readable description
         - owner (str, optional): Owner email or username
         - current_size (int, optional): Current storage usage in bytes
-        - max_size (int, optional): Maximum storage quota in bytes (None for unlimited)
+        - max_size (int, optional): Maximum storage quota in GB (None for unlimited)
     
     Returns:
         200: JSON with structure:
@@ -251,7 +263,7 @@ def update_file_share(org_id, share_name):
     Example:
         curl -X PATCH "http://localhost:5050/api/file_shares/test123/Documents" \\
           -H "Content-Type: application/json" \\
-          -d '{"kind": "shared_folder", "groups": ["engineering"], "users": ["alice", "bob"], "max_size": 10737418240}'
+          -d '{"kind": "shared_folder", "groups": ["engineering"], "users": ["alice", "bob"], "max_size": 50}'
     """
     data = request.get_json() or {}
     

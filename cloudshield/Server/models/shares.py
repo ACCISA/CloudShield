@@ -24,7 +24,7 @@ class FileShare(BaseModel):
         groups: List of group names that have access to this share
         users: List of usernames that have access to this share
         current_size: Current storage usage in bytes (optional, defaults to 0)
-        max_size: Maximum storage quota in bytes (optional, None means unlimited)
+        max_size: Maximum storage quota in GB (optional, None means unlimited)
     """
     org_id: str
     name: str
@@ -55,13 +55,13 @@ class FileShareCreate(BaseModel):
         description: description
         owner: Owner info
         current_size: Current storage usage in bytes (defaults to 0)
-        max_size: Maximum storage quota in bytes (None means unlimited)
+        max_size: Maximum storage quota in GB (None means unlimited)
     
     Notes:
         - Drive letter is typically allocated by allocate_drive_letter() service
         - created_at and updated_at timestamps are added by create_fileshare_doc()
         - current_size starts at 0 and is updated as files are added
-        - max_size is optional quota limit in bytes
+        - max_size is optional quota limit in GB (not enforced by Samba, display only)
         - kind is optional and can be any string value
     """
     org_id: str
