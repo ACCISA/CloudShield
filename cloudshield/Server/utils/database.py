@@ -103,7 +103,7 @@ try:
     try:
         # Create a non-unique index on `org_id`. The unique constraint was removed to allow
         # multiple documents to reference the same org_id during migrations and dev work.
-        organizations.create_index("org_id")
+        organizations.create_index("org_id", unique=True)
     except Exception as e:
         print(f"[database.py] Note: organizations index creation skipped: {e}")
 

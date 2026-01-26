@@ -16,6 +16,7 @@ from services import (
     list_groups_with_shares,
     update_share,
 )
+from services.user_service import create_user
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
