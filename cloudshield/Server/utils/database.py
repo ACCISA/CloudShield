@@ -59,7 +59,6 @@ try:
     audit = db_admin["audit"]    
 
     try:
-        orgs.create_index("org_id", unique=True)
         orgs.create_index("company_name", unique=True)
     except Exception as e:
         print(f"[database.py] Note: orgs index creation skipped: {e}")
@@ -98,8 +97,14 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
-    # Organizations: unique org_id and quick lookups by package/status
-    organizations.create_index("org_id", unique=True)
+    # Organizations: index on org_id for quick lookups plus package/status indexes
+    try:
+        # Create a non-unique index on `org_id`. The unique constraint was removed to allow
+        # multiple documents to reference the same org_id during migrations and dev work.
+        organizations.create_index("org_id")
+    except Exception as e:
+        print(f"[database.py] Note: organizations index creation skipped: {e}")
+
     organizations.create_index("package")
     organizations.create_index("provisioning_status")
 

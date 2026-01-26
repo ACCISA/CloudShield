@@ -549,3 +549,62 @@ class TestAuth:
             {"org_id": "org_fail_ws"},
             {"$set": {"provisioning_status": "failed"}}
         )
+
+    def test_signup_provisioning_success(self, app_with_auth, mock_users_admin, mock_jwt_functions, monkeypatch):
+        """Covers the new inline provisioning dispatch on signup success."""
+        app, client = app_with_auth
+        import cloudshield.Server.routes.auth as auth_module
+
+        mock_orgs, _, mock_workstations = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs.find_one.return_value = None  # No existing org
+        mock_users_admin.insert_one.return_value = unittest.mock.MagicMock(inserted_id="u1")
+        
+        # Mock the service dispatcher
+        mock_job = unittest.mock.MagicMock()
+        mock_job.id = "job_12345"
+        mock_dispatcher = unittest.mock.MagicMock(return_value=mock_job)
+        monkeypatch.setattr(auth_module, "service_dispatcher", mock_dispatcher, raising=False)
+
+        response = client.post("/auth/signup", json={
+            "email": "provision@test.com",
+            "password": "Password123!",
+            "company_name": "ProvisionCo",
+        })
+
+        assert response.status_code == 201
+        
+        # Verify dispatcher was called
+        mock_dispatcher.assert_called_once()
+        
+        # Verify the org status was updated to in_progress
+        mock_orgs.update_one.assert_any_call(
+            {"org_id": unittest.mock.ANY}, # Accept the auto-generated uuid
+            {"$set": {"provisioning_status": "in_progress", "provisioning_job_id": "job_12345"}}
+        )
+
+    def test_signup_provisioning_exception_flow(self, app_with_auth, mock_users_admin, monkeypatch):
+        """Covers the 'except Exception' block when service_dispatcher fails."""
+        app, client = app_with_auth
+        import cloudshield.Server.routes.auth as auth_module
+
+        mock_orgs, _, _ = self._setup_signup_db_admin(monkeypatch)
+        mock_orgs.find_one.return_value = None
+        mock_users_admin.insert_one.return_value = unittest.mock.MagicMock(inserted_id="u1")
+        
+        # Trigger an error during the dispatcher call to hit the 'except Exception'
+        mock_dispatcher = unittest.mock.MagicMock(side_effect=Exception("Redis Queue Down"))
+        monkeypatch.setattr(auth_module, "service_dispatcher", mock_dispatcher, raising=False)
+
+        response = client.post("/auth/signup", json={
+            "email": "fail_ws@test.com",
+            "password": "Password123!",
+            "company_name": "FailCo",
+        })
+
+        assert response.status_code == 201
+
+        # Check that the status was updated to "failed" in the catch block
+        mock_orgs.update_one.assert_called_with(
+            {"org_id": unittest.mock.ANY},
+            {"$set": {"provisioning_status": "failed"}}
+        )

@@ -61,9 +61,9 @@ const PLAN_OPTIONS = [
 // ------------------------------
 const EMAIL_MAX_LENGTH = 254; // typical upper bound
 
-const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MIN_LENGTH = 12; // Match the backend requirement
 const PASSWORD_REQUIREMENTS_MESSAGE =
-  `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+  "Password must be 12+ characters and include uppercase, lowercase, numbers, and symbols.";
 
 // Simple structural email validation without regex
 function isEmailValid(raw) {
@@ -107,13 +107,16 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const validate = () => {
     const next = {};
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
+
+    // Complexity regex to match your Python PASSWORD_RX
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$/;
 
     if (!isEmailValid(email)) {
       next.email = "Invalid email format.";
     }
 
-    if (password.length < PASSWORD_MIN_LENGTH) {
+    if (!passwordRegex.test(password)) {
       next.password = PASSWORD_REQUIREMENTS_MESSAGE;
     }
 
@@ -145,7 +148,8 @@ export default function SignupPage({ onSignupSuccess }) {
 
     if (!res.ok) {
       return {
-        form: data.message || "Unexpected error during signup. Please try again.",
+        form:
+          data.message || "Unexpected error during signup. Please try again.",
       };
     }
 
@@ -159,75 +163,74 @@ export default function SignupPage({ onSignupSuccess }) {
     setErrors((prev) => ({ ...prev, form: undefined }));
 
     try {
-      // -----------------------------
-      // 1) Create user: POST /api/signup_admin
-      // Body based on your screenshot:
-      // { email, password, role, full_name, org_name?, package }
-      // We map "company" input -> full_name and org_name
-      // -----------------------------
-      const createUserRes = await fetch("http://localhost:5050/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const createUserRes = await fetch(
+        "http://localhost:5050/api/auth/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            full_name: company,
+            company_name: company,
+            package_type: plan,
+          }),
         },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: company,
-          company_name: company,
-          package_type: plan,
-        }),
-      });
+      );
 
       let createUserData = {};
       try {
         createUserData = await createUserRes.json();
-      } catch {}
+      } catch (err) {
+        console.error("Could not parse JSON response", err);
+      }
 
-      console.log("Signup response:", createUserData);
-
-      const createUserErrors = extractServerErrors(createUserRes, createUserData);
+      const createUserErrors = extractServerErrors(
+        createUserRes,
+        createUserData,
+      );
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
       }
 
-      // If backend returns a token from either call, store it (optional)
-      const token =
-        createUserData.token ||
-        createUserData.access_token ||
-        null;
+      // --- CRITICAL: SAVE SESSION DATA ---
+      const userData = {
+        email: email,
+        user_id: createUserData.user_id,
+        org_id: createUserData.org_id,
+        company_name: company,
+        plan: plan,
+        job_id: createUserData.job_id,
+      };
 
-      if (token) {
-        try {
-          localStorage.setItem("jwt", token);
-        } catch {}
+      // Store in localStorage so the browser "remembers" the login
+      localStorage.setItem("user", JSON.stringify(userData));
+      if (createUserData.token) {
+        localStorage.setItem("jwt", createUserData.token);
       }
 
-      // Keep callback shape compatible with App.jsx handler (access_token + user.org_id)
+      // Update global state in App.jsx
       onSignupSuccess?.({
-        access_token: token,
-        user: {
-          email,
-          org_id: createUserData.org?.org_id,
-          company_name: createUserData.org?.company_name,
-          plan: createUserData.org?.package_type,
-        },
+        access_token: createUserData.token || null,
+        user: userData,
       });
 
-
-      // After signup + provisioning -> go to login
-      navigate("/login", { replace: true });
+      // --- REDIRECT TO DASHBOARD ---
+      console.log("Signup successful, navigating to dashboard...");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
+      console.error("Signup error:", err);
       setErrors((prev) => ({
         ...prev,
-        form: "Error during signup.",
+        form: "Error during signup. Is the server running?",
       }));
     } finally {
       setSubmitting(false);
     }
   };
-
   return (
     <Box
       sx={{
