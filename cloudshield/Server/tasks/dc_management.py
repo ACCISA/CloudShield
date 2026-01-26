@@ -1,6 +1,8 @@
 import re
 import uuid
 import base64
+from cloudshield.Server.models.user import UserCreate
+from cloudshield.Server.services import user_service
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
@@ -59,7 +61,14 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
-def dc_create_file_share(org_id: str, share_name: str):
+def dc_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -89,7 +98,14 @@ def dc_create_file_share(org_id: str, share_name: str):
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
         try:
-            create_share(org_id=org_id, name=share_name)
+            create_share(
+                org_id=org_id,
+                name=share_name,
+                users=users or [],
+                groups=groups or [],
+                description=description,
+                max_size=max_size
+            )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
             return {
@@ -315,7 +331,7 @@ def dc_add_group(org_id: str, group_name: str):
     return {"status": "UNKNOWN", "message": "Unexpected response"}
 
 
-def dc_add_user(org_id: str, username: str, password: str):
+def dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
     """
@@ -365,7 +381,22 @@ def dc_add_user(org_id: str, username: str, password: str):
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
-        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        try:
+            user_service.create_user(
+                user_data=UserCreate(
+                    email=email,
+                    password=password,
+                    username=username,
+                    role="employee",
+                    full_name=username,
+                    org_id=org_id,
+                ),
+                current_user={"id": "system", "role": "admin", "org_id": org_id},
+                reason="Domain controller add user",
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to create user in service layer: {exc}")
+        persist_domain_user(org_id, username, password, email)
         return {"status": "SUCCESS", "message":"Successfully added user"}
 
     if status == infra_pb2.FAILED:

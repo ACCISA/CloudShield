@@ -196,3 +196,84 @@ def test_delete_share(monkeypatch):
 
     assert shares_services.delete_share("org1", "Share1") is True
     assert shares_services.delete_share("org1", "Share1") is False
+
+
+class FakeUpdateResult:
+    def __init__(self, matched_count):
+        self.matched_count = matched_count
+
+
+class FakeUpdateCollection(FakeCollection):
+    def __init__(self, docs=None, should_match=True):
+        super().__init__(docs)
+        self._should_match = should_match
+
+    def update_one(self, flt, update):
+        matched = 0
+        for doc in self._docs:
+            if self._match(doc, flt):
+                matched += 1
+                if "$set" in update:
+                    doc.update(update["$set"])
+        return FakeUpdateResult(matched if self._should_match else 0)
+
+
+def test_update_share_current_size_success(monkeypatch):
+    """Test update_share_current_size returns True when share exists"""
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeUpdateCollection([
+        {"org_id": "org1", "name": "TestShare", "current_size": 0}
+    ], should_match=True)
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.update_share_current_size("org1", "TestShare", 5368709120)
+    assert result is True
+
+
+def test_update_share_current_size_not_found(monkeypatch):
+    """Test update_share_current_size returns False when share doesn't exist"""
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeUpdateCollection([], should_match=False)
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.update_share_current_size("org1", "NonExistent", 1024)
+    assert result is False
+
+
+def test_update_share_max_size_success(monkeypatch):
+    """Test update_share_max_size returns True when share exists"""
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeUpdateCollection([
+        {"org_id": "org1", "name": "TestShare", "max_size": None}
+    ], should_match=True)
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.update_share_max_size("org1", "TestShare", 10737418240)
+    assert result is True
+
+
+def test_update_share_max_size_not_found(monkeypatch):
+    """Test update_share_max_size returns False when share doesn't exist"""
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeUpdateCollection([], should_match=False)
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.update_share_max_size("org1", "NonExistent", 10737418240)
+    assert result is False
+
+
+def test_update_share_max_size_remove_limit(monkeypatch):
+    """Test update_share_max_size with None (unlimited) returns True"""
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeUpdateCollection([
+        {"org_id": "org1", "name": "TestShare", "max_size": 10737418240}
+    ], should_match=True)
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.update_share_max_size("org1", "TestShare", None)
+    assert result is True

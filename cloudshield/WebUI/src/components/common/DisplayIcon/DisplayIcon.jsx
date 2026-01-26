@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import "./DisplayIcon.css";
 
 /**
@@ -9,9 +10,54 @@ import "./DisplayIcon.css";
  * @param {string} props.type - Type of item: 'workstation', 'user', or 'group'
  * @param {Object} props.data - Data object from backend containing item details
  * @param {string} props.size - Size of icon: 'small' (32px), 'medium' (48px), 'large' (64px)
+ * @param {boolean} props.showHoverCard - Whether to show the detailed hover card (default: true)
  */
-function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
+function DisplayIcon({ type = "user", data = {}, size = "medium", showHoverCard = true }) {
   const [showCard, setShowCard] = useState(false);
+  const [cardPosition, setCardPosition] = useState({ top: 0, left: 0 });
+  const wrapperRef = useRef(null);
+  const hideTimeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    // Clear any pending hide timeout
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+
+    if (showHoverCard && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const cardWidth = 280;
+      const cardHeight = 200; // approximate
+      const spacing = 8;
+
+      // Calculate horizontal position (try to center, but adjust if too close to edges)
+      let left = rect.left + rect.width / 2 - cardWidth / 2;
+      if (left < 10) left = 10; // Min 10px from left edge
+      if (left + cardWidth > window.innerWidth - 10) {
+        left = window.innerWidth - cardWidth - 10; // Max 10px from right edge
+      }
+
+      // Calculate vertical position (below icon, or above if not enough space)
+      let top = rect.bottom + spacing;
+      if (top + cardHeight > window.innerHeight - 10) {
+        // Not enough space below, show above
+        top = rect.top - cardHeight - spacing;
+      }
+
+      setCardPosition({ top, left });
+      setShowCard(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // Delay hiding to allow moving to the card
+    if (showHoverCard) {
+      hideTimeoutRef.current = setTimeout(() => {
+        setShowCard(false);
+      }, 100);
+    }
+  };
 
   // Extract name based on type
   const getName = () => {
@@ -55,6 +101,7 @@ function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
       data.profilePicture ||
       data.avatar ||
       data.image ||
+      data.group_image ||
       null
     );
   };
@@ -76,57 +123,70 @@ function DisplayIcon({ type = "user", data = {}, size = "medium" }) {
   const initials = getInitials();
   const name = getName();
 
-  return (
-    <div
-      className="display-icon-wrapper"
-      onMouseEnter={() => setShowCard(true)}
-      onMouseLeave={() => setShowCard(false)}
+  const hoverCard = showHoverCard && showCard && (
+    <div 
+      className="display-icon-card"
+      style={{
+        top: `${cardPosition.top}px`,
+        left: `${cardPosition.left}px`,
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <div className={`display-icon display-icon-${size}`}>
-        {profileImage ? (
-          <img src={profileImage} alt={name} className="display-icon-image" />
-        ) : (
-          <div
-            className="display-icon-initials"
-            style={{ backgroundColor: getBackgroundColor() }}
-          >
-            {initials}
-          </div>
-        )}
-      </div>
-
-      {showCard && (
-        <div className="display-icon-card">
-          {type === "user" && (
-            <UserCard
-              data={data}
-              name={name}
-              profileImage={profileImage}
-              initials={initials}
-              getBackgroundColor={getBackgroundColor}
-            />
-          )}
-          {type === "workstation" && (
-            <WorkstationCard
-              data={data}
-              name={name}
-              profileImage={profileImage}
-              initials={initials}
-              getBackgroundColor={getBackgroundColor}
-            />
-          )}
-          {type === "group" && (
-            <GroupCard
-              data={data}
-              name={name}
-              profileImage={profileImage}
-              initials={initials}
-              getBackgroundColor={getBackgroundColor}
-            />
-          )}
-        </div>
+      {type === "user" && (
+        <UserCard
+          data={data}
+          name={name}
+          profileImage={profileImage}
+          initials={initials}
+          getBackgroundColor={getBackgroundColor}
+        />
+      )}
+      {type === "workstation" && (
+        <WorkstationCard
+          data={data}
+          name={name}
+          profileImage={profileImage}
+          initials={initials}
+          getBackgroundColor={getBackgroundColor}
+        />
+      )}
+      {type === "group" && (
+        <GroupCard
+          data={data}
+          name={name}
+          profileImage={profileImage}
+          initials={initials}
+          getBackgroundColor={getBackgroundColor}
+        />
       )}
     </div>
+  );
+
+  return (
+    <>
+      <div
+        ref={wrapperRef}
+        className="display-icon-wrapper"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className={`display-icon display-icon-${size}`}>
+          {profileImage ? (
+            <img src={profileImage} alt={name} className="display-icon-image" />
+          ) : (
+            <div
+              className="display-icon-initials"
+              style={{ backgroundColor: getBackgroundColor() }}
+            >
+              {initials}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {hoverCard && createPortal(hoverCard, document.body)}
+    </>
   );
 }
 
@@ -162,22 +222,16 @@ function UserCard({ data, name, profileImage, initials, getBackgroundColor }) {
         </div>
       </div>
       <div className="hover-card-details">
-        {data.title && (
+        {(data.role || data.title) && (
           <div className="detail-row">
-            <span className="detail-label">Title:</span>
-            <span className="detail-value">{data.title}</span>
+            <span className="detail-label">Role:</span>
+            <span className="detail-value">{data.role || data.title}</span>
           </div>
         )}
         {data.email && (
           <div className="detail-row">
             <span className="detail-label">Email:</span>
             <span className="detail-value">{data.email}</span>
-          </div>
-        )}
-        {data.department && (
-          <div className="detail-row">
-            <span className="detail-label">Department:</span>
-            <span className="detail-value">{data.department}</span>
           </div>
         )}
         {data.username && (
@@ -288,29 +342,25 @@ function GroupCard({ data, name, profileImage, initials, getBackgroundColor }) {
         </div>
       </div>
       <div className="hover-card-details">
+        {(data.member_count !== undefined || data.memberCount !== undefined) && (
+          <div className="detail-row">
+            <span className="detail-label">Members:</span>
+            <span className="detail-value">
+              {data.member_count !== undefined ? data.member_count : data.memberCount}
+            </span>
+          </div>
+        )}
         {data.description && (
           <div className="detail-row">
             <span className="detail-label">Description:</span>
             <span className="detail-value">{data.description}</span>
           </div>
         )}
-        {data.memberCount !== undefined && (
-          <div className="detail-row">
-            <span className="detail-label">Members:</span>
-            <span className="detail-value">{data.memberCount}</span>
-          </div>
-        )}
-        {data.type && (
-          <div className="detail-row">
-            <span className="detail-label">Type:</span>
-            <span className="detail-value">{data.type}</span>
-          </div>
-        )}
-        {data.createdDate && (
+        {(data.created_at || data.createdDate) && (
           <div className="detail-row">
             <span className="detail-label">Created:</span>
             <span className="detail-value">
-              {new Date(data.createdDate).toLocaleDateString()}
+              {new Date(data.created_at || data.createdDate).toLocaleDateString()}
             </span>
           </div>
         )}

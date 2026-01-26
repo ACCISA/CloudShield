@@ -163,7 +163,7 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     logger.info("Enqueued destroy job")
     return job
 
-def enqueue_dc_add_user(org_id: str, username: str, password: str):
+def enqueue_dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Enqueue an Active Directory (Domain Controller) "add user" task.
 
@@ -171,6 +171,7 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
         org_id (str): Organization ID that owns the domain.
         username (str): Username to be created in the domain.
         password (str): Initial password for the new DC user.
+        email (str): Email for the new DC user.
 
     Returns:
         Job: RQ Job instance representing the queued DC user creation job.
@@ -180,10 +181,11 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
         - Allows async integration with on-premise or cloud-hosted AD controllers.
     """
     job = task_queue.enqueue(
-            dc_add_user,
-            org_id,
-            username,
-            password
+        dc_add_user,
+        org_id,
+        username,
+        password,
+        email,
     )
     logger.info("Enqueued dc_add_user job")
     return job
@@ -228,11 +230,22 @@ def enqueue_dc_set_password(org_id: str, username: str, new_password: str):
     logger.info("Enqueued dc_set_password job")
     return job
 
-def enqueue_create_file_share(org_id: str, share_name: str):
+def enqueue_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = task_queue.enqueue(
             dc_create_file_share,
             org_id,
-            share_name
+            share_name,
+            users or [],
+            groups or [],
+            description,
+            max_size
     )
     logger.info("Enqueued dc_create_file_share")
     return job

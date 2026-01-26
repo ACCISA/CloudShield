@@ -320,22 +320,18 @@ def test_list_file_share_groups(mock_list_groups, client):
 def test_update_file_share(mock_update_share, client):
     mock_update_share.return_value = True
     
-    # Success path
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    # Success path - org_id is now in the URL path
+    resp = client.patch("/api/file_shares/acme/Finance", json={"description": "New description"})
     assert resp.status_code == 200
     assert resp.json["status"] == "SUCCESS"
     
-    # Missing org_id
-    resp = client.patch("/api/file_shares/Finance", json={"description": "New description"})
-    assert resp.status_code == 422
-    
     # No update fields provided
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme"})
+    resp = client.patch("/api/file_shares/acme/Finance", json={})
     assert resp.status_code == 400
     
     # Share not found failure
     mock_update_share.return_value = False
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    resp = client.patch("/api/file_shares/acme/Finance", json={"description": "New description"})
     assert resp.status_code == 404
 
 # --- DC Task Endpoints ---
