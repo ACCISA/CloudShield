@@ -10,6 +10,8 @@ import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
 import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 const styles = {
   container: {
@@ -40,6 +42,7 @@ const seed = MOCK_WORKSTATIONS_FULL;
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
+  const withClickLog = useClickLogger({ page: "workstations" });
   const [rows, setRows] = useState(seed);
   const [search, setSearch] = useState("");
 
@@ -89,6 +92,13 @@ export default function WorkstationsPage() {
   }, [rows, search, activeFilters]);
 
   const handleFilterChange = (groupId, value, isActive) => {
+    trackButton("workstations/filter/change", {
+      page: "workstations",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
+    });
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
       const groupFilters = new Set(prev[groupId] || new Set());
@@ -105,6 +115,7 @@ export default function WorkstationsPage() {
   };
 
   const handleCreate = (payload) => {
+    trackButton("workstations/create/save", { page: "workstations", control: "create_dialog" });
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
@@ -119,15 +130,19 @@ export default function WorkstationsPage() {
   };
 
   const handleEditSave = (id, changes) => {
+    trackButton("workstations/edit/save", { page: "workstations", id, control: "edit_dialog" });
     setRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
     );
   };
 
-  const handleDelete = (id) =>
+  const handleDelete = (id) => {
+    trackButton("workstations/edit/delete", { page: "workstations", id, control: "edit_dialog" });
     setRows((prev) => prev.filter((r) => r.id !== id));
+  };
 
   const handleToggleStatus = (id) => {
+    trackButton("workstations/row/toggle-status", { page: "workstations", id, control: "row_toggle" });
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -139,7 +154,7 @@ export default function WorkstationsPage() {
   };
 
   const handleLayoutChange = (newLayout) => {
-    console.log(`Layout changed to: ${newLayout}`);
+    trackButton("workstations/display/toggle", { page: "workstations", layout: newLayout, control: "display_button" });
     setLayout(newLayout);
   };
 
@@ -175,12 +190,20 @@ export default function WorkstationsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-          <RefreshButton onClick={() => console.log("refresh")} />
+            <RefreshButton
+              onClick={withClickLog({
+                name: "workstations/toolbar/refresh",
+                control: "refresh_button",
+              })(() => console.log("refresh"))}
+            />
 
           <CreateButton
             icon={<CreateWorkstationIcon />}
             buttonText="Create"
-            onClick={() => setOpenCreate(true)}
+            onClick={withClickLog({
+              name: "workstations/toolbar/open-create",
+              control: "create_button",
+            })(() => setOpenCreate(true))}
           />
         </div>
       </div>

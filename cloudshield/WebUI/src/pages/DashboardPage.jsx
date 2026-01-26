@@ -5,9 +5,10 @@
  * Dashboard page assembling StatCard(s) and the ActivityPanel.
  * Includes data fetching logic and state management for backend integration.
  */
-import React, { useState, useEffect } from "react";
-import { Box, Typography, LinearProgress, Paper } from "@mui/material";
-//import { trackButton } from "../lib/analytics.js";
+import React from "react";
+import { Box } from "@mui/material";
+import { trackButton } from "../lib/analytics";
+
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
@@ -57,31 +58,19 @@ export default function DashboardPage() {
 
   // Handler for add button clicks
   const handleAddUser = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "users",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "users" });
   };
 
   const handleAddWorkstation = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "workstations",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "workstations" });
   };
 
   const handleAddGroup = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "groups",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "groups" });
   };
 
   const handleAddFile = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "files",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "files" });
   };
 
   return (
