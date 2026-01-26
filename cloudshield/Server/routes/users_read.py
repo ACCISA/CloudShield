@@ -194,3 +194,62 @@ def get_user(user_id: str):
 
     doc["_id"] = str(doc["_id"])
     return jsonify(doc), 200
+
+
+@users_read_bp.route("/organizations/<org_id>/users", methods=["GET"])
+def list_users_by_org(org_id):
+    """
+    List users for a specific organization.
+    
+    Endpoint: 'GET /api/organizations/<org_id>/users'
+    
+    Query Parameters:
+        - limit (int, optional): Maximum number of users to return. Default 100.
+        - offset (int, optional): Number of users to skip for pagination. Default 0.
+        - summary (str, optional): If "1", returns only essential fields for better performance.
+          Use for dropdowns and selection lists.
+    
+    Access Control:
+        - Admins can query any organization
+        - Employees can only query their own organization
+    
+    Returns user objects with all fields by default, or only essential fields if summary=1.
+    """
+    auth_response = _ensure_authenticated_response()
+    if auth_response is not None:
+        return auth_response
+    
+    # Check authorization: employees can only access their own org
+    if g.user["role"] != "admin" and g.user["org_id"] != org_id:
+        return jsonify({"error": "Forbidden"}), 403
+    
+    summary = (request.args.get("summary") or "").strip() in {"1", "true", "yes"}
+
+    limit = max(1, min(_int_param("limit", 100), 100))
+    offset = max(0, _int_param("offset", 0))
+    
+    # Use admin collection (has all orgs) with explicit org_id filter
+    coll = users_admin
+    if summary:
+        projection = {
+            "_id": 1,
+            "email": 1,
+            "username": 1,
+            "role": 1,
+            "org_id": 1,
+            "full_name": 1,
+            "active": 1,
+        }
+    else:
+        projection = {"password": 0}
+    flt = {"org_id": org_id}
+    
+    cursor = coll.find(flt, projection).skip(offset).limit(limit)
+    items = []
+    for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        items.append(doc)
+    
+    total = len(items) if summary else coll.count_documents(flt)
+    
+    return jsonify({"total": total, "items": items}), 200
