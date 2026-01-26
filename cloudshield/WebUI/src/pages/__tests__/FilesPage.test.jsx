@@ -83,9 +83,18 @@ jest.mock('../../components/common/Checkbox/Checkbox', () => ({
 jest.mock('../../components/common/EditButton/EditButton', () => ({
   __esModule: true,
   default: ({ menuItems }) => (
-    <button data-testid="edit-button">
-      {menuItems && menuItems.length > 0 ? 'Edit' : 'Menu'}
-    </button>
+    <div data-testid="edit-button">
+      {menuItems?.map((item, index) => (
+        <button
+          key={item.label}
+          type="button"
+          data-testid={`edit-menu-${index}`}
+          onClick={item.onClick}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -94,10 +103,20 @@ jest.mock('../../lib/analytics', () => ({
   trackButton: jest.fn(),
 }));
 
+jest.mock('../../components/files/FileHelper', () => {
+  const actual = jest.requireActual('../../components/files/FileHelper');
+  return {
+    __esModule: true,
+    ...actual,
+    resolveFolderByPath: jest.fn(),
+    formatDateTime: jest.fn((iso) => `formatted:${iso}`),
+  };
+});
+
 jest.mock('../../api/filesApi', () => ({
   __esModule: true,
-  fetchUsers: jest.fn(() => Promise.resolve([])),
-  fetchGroups: jest.fn(() => Promise.resolve([])),
+  fetchUsers: jest.fn(() => new Promise(() => {})),
+  fetchGroups: jest.fn(() => new Promise(() => {})),
   createFileShare: jest.fn(() => Promise.resolve({ job_id: 'test-job' })),
   updateFileShare: jest.fn(() => Promise.resolve({})),
   deleteFileShare: jest.fn(() => Promise.resolve({})),
@@ -129,7 +148,10 @@ jest.mock('../../components/files/FileShareWizardModal', () => ({
 describe('FilesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    fetch.mockClear();
+    fetch.mockReset();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     
     // Mock localStorage
     Storage.prototype.getItem = jest.fn((key) => {
@@ -144,6 +166,12 @@ describe('FilesPage', () => {
         json: () => Promise.resolve({ shares: [] }),
       })
     );
+  });
+
+  afterEach(() => {
+    if (console.log.mockRestore) console.log.mockRestore();
+    if (console.error.mockRestore) console.error.mockRestore();
+    if (console.warn.mockRestore) console.warn.mockRestore();
   });
 
   describe('Component Rendering', () => {
@@ -172,6 +200,168 @@ describe('FilesPage', () => {
     it('should render toolbar section', () => {
       const { container } = render(<FilesPage />);
       expect(container.querySelector('.toolbar')).toBeInTheDocument();
+    });
+  });
+
+  describe('List Rendering and Actions', () => {
+    it('renders list rows with users and groups', async () => {
+      const shares = [
+        {
+          share: {
+            id: 'share-1',
+            name: 'Engineering Share',
+            kind: 'folder',
+            users: ['alice'],
+            groups: ['engineering'],
+            updated_at: '2026-01-01T10:00:00Z',
+          },
+        },
+      ];
+      fetch.mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ shares }),
+        })
+      );
+
+      const { getByText, getByTestId } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(getByText('Engineering Share')).toBeInTheDocument();
+      });
+      expect(getByTestId('avatar-pill-user')).toHaveTextContent('1 user(s)');
+      expect(getByTestId('avatar-pill-group')).toHaveTextContent('1 group(s)');
+    });
+
+    it('submitPath switches cwd when path resolves', async () => {
+      const { resolveFolderByPath } = require('../../components/files/FileHelper');
+      resolveFolderByPath.mockReturnValue({ ok: true, stack: ['f-sales'] });
+
+      const { getByTestId, getByPlaceholderText } = render(<FilesPage />);
+      fireEvent.click(getByTestId('display-button'));
+
+      const pathButton = await waitFor(() => document.querySelector('.pathShortcut'));
+      fireEvent.click(pathButton);
+
+      const input = getByPlaceholderText('Type a path like /sales_docs/policies');
+      fireEvent.change(input, { target: { value: '/sales_docs' } });
+      fireEvent.submit(input.closest('form'));
+
+      expect(resolveFolderByPath).toHaveBeenCalled();
+    });
+  });
+
+  describe('Create/Edit/Delete Flows', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.spyOn(window, 'confirm').mockImplementation(() => true);
+      jest.spyOn(window, 'alert').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      window.confirm.mockRestore();
+      window.alert.mockRestore();
+    });
+
+    it('handleCreateShare enqueues job and polls for share', async () => {
+      const sharesBefore = { shares: [] };
+      const sharesAfter = {
+        shares: [{ share: { id: 'share-1', name: 'share' } }],
+      };
+      fetch
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve({ shares: [] }) })
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesBefore) })
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesAfter) })
+        );
+
+      const { getByTestId, queryByTestId } = render(<FilesPage />);
+      fireEvent.click(getByTestId('create-button'));
+      fireEvent.click(getByTestId('wizard-submit'));
+
+      await waitFor(() => {
+        expect(queryByTestId('wizard-modal')).not.toBeInTheDocument();
+      });
+
+      jest.advanceTimersByTime(2000);
+      await waitFor(() => {
+        const { createFileShare } = require('../../api/filesApi');
+        expect(createFileShare).toHaveBeenCalled();
+      });
+    });
+
+    it('handleEditShare updates share from edit modal', async () => {
+      const shares = [
+        { share: { id: 'share-1', name: 'Specs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementation(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Specs')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-0'));
+      fireEvent.click(getByTestId('wizard-submit'));
+
+      await waitFor(() => {
+        const { updateFileShare } = require('../../api/filesApi');
+        expect(updateFileShare).toHaveBeenCalled();
+      });
+    });
+
+    it('handleDeleteShare deletes share from edit modal', async () => {
+      const shares = [
+        { share: { id: 'share-1', name: 'Specs', kind: 'file', updated_at: '2026-01-01T10:00:00Z' } },
+      ];
+      fetch.mockImplementation(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ shares }) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Specs')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-0'));
+      fireEvent.click(getByTestId('wizard-delete'));
+
+      await waitFor(() => {
+        const { deleteFileShare } = require('../../api/filesApi');
+        expect(deleteFileShare).toHaveBeenCalled();
+      });
+    });
+
+    it('handleDirectDelete polls until share removed', async () => {
+      const sharesInitial = {
+        shares: [{ share: { id: 'share-1', name: 'Archive', kind: 'folder', updated_at: '2026-01-01T10:00:00Z' } }],
+      };
+      const sharesAfter = { shares: [] };
+      fetch
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve(sharesAfter) })
+        );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Archive')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-1'));
+
+      jest.advanceTimersByTime(2000);
+      await waitFor(() => {
+        const { deleteFileShare } = require('../../api/filesApi');
+        expect(deleteFileShare).toHaveBeenCalled();
+      });
     });
   });
 
