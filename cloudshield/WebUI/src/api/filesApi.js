@@ -72,10 +72,15 @@ export async function deleteFileShare(orgId, shareName) {
 
 /**
  * Fetch all users for an organization
+ * @param {string} orgId - Organization ID
+ * @param {boolean} summary - If true, returns only essential fields (for dropdowns/selection)
  */
-export async function fetchUsers(orgId) {
+export async function fetchUsers(orgId, summary = true) {
   const token = localStorage.getItem("jwt");
-  const res = await fetch(`${API_BASE}/organizations/${orgId}/users`, {
+  const url = summary 
+    ? `${API_BASE}/organizations/${orgId}/users?summary=1`
+    : `${API_BASE}/organizations/${orgId}/users`;
+  const res = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${token}`,
     },
@@ -87,10 +92,15 @@ export async function fetchUsers(orgId) {
 
 /**
  * Fetch access groups (security groups) for assigning to file shares
+ * @param {string} orgId - Organization ID (not currently used by backend, but kept for consistency)
+ * @param {boolean} summary - If true, returns member_count instead of full members_info
  */
-export async function fetchGroups(orgId) {
+export async function fetchGroups(orgId, summary = true) {
   const token = localStorage.getItem("jwt");
-  const res = await fetch(`${API_BASE}/access-groups`, {
+  const url = summary
+    ? `${API_BASE}/access-groups?summary=1`
+    : `${API_BASE}/access-groups`;
+  const res = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${token}`,
     },
