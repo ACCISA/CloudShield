@@ -122,14 +122,18 @@ jest.mock('../../api/filesApi', () => ({
   deleteFileShare: jest.fn(() => Promise.resolve({})),
 }));
 
-jest.mock('../../components/files/AvatarPill', () => ({
-  __esModule: true,
-  default: ({ items, type }) => (
+jest.mock('../../components/files/AvatarPill', () => {
+  const React = require('react');
+  const AvatarPill = jest.fn(({ items, type }) => (
     <div data-testid={`avatar-pill-${type}`}>
       {items?.length || 0} {type}(s)
     </div>
-  ),
-}));
+  ));
+  return {
+    __esModule: true,
+    default: AvatarPill,
+  };
+});
 
 jest.mock('../../components/files/FileShareWizardModal', () => ({
   __esModule: true,
@@ -251,6 +255,96 @@ describe('FilesPage', () => {
     });
   });
 
+  describe('Hover Card Lookups', () => {
+    it('loads users and maps usernames from email', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      const AvatarPill = require('../../components/files/AvatarPill').default;
+
+      fetchUsers.mockResolvedValue([
+        {
+          _id: 'u1',
+          email: 'alice@example.com',
+          full_name: 'Alice A',
+          role: 'employee',
+        },
+      ]);
+      fetchGroups.mockResolvedValue([]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'Engineering Share',
+                    kind: 'folder',
+                    users: ['alice'],
+                    groups: [],
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        const userCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'user');
+        expect(userCalls.length).toBeGreaterThan(0);
+        expect(userCalls[0][0].items[0].email).toBe('alice@example.com');
+      });
+    });
+
+    it('loads groups and maps group names', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      const AvatarPill = require('../../components/files/AvatarPill').default;
+
+      fetchUsers.mockResolvedValue([]);
+      fetchGroups.mockResolvedValue([
+        {
+          _id: 'g1',
+          name: 'engineering',
+          description: 'Engineering team',
+          members: ['u1', 'u2'],
+        },
+      ]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'Engineering Share',
+                    kind: 'folder',
+                    users: [],
+                    groups: ['engineering'],
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        const groupCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'group');
+        expect(groupCalls.length).toBeGreaterThan(0);
+        expect(groupCalls[0][0].items[0].name).toBe('engineering');
+      });
+    });
+  });
+
   describe('Create/Edit/Delete Flows', () => {
     beforeEach(() => {
       jest.useFakeTimers();
@@ -361,6 +455,46 @@ describe('FilesPage', () => {
       await waitFor(() => {
         const { deleteFileShare } = require('../../api/filesApi');
         expect(deleteFileShare).toHaveBeenCalled();
+      });
+    });
+
+    it('handleDirectDelete exits when confirmation is canceled', async () => {
+      const { deleteFileShare } = require('../../api/filesApi');
+      window.confirm.mockImplementationOnce(() => false);
+
+      const sharesInitial = {
+        shares: [{ share: { id: 'share-1', name: 'Archive', kind: 'folder', updated_at: '2026-01-01T10:00:00Z' } }],
+      };
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Archive')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-1'));
+
+      expect(deleteFileShare).not.toHaveBeenCalled();
+    });
+
+    it('handleDirectDelete shows alert on failure', async () => {
+      const { deleteFileShare } = require('../../api/filesApi');
+      deleteFileShare.mockRejectedValueOnce(new Error('delete failed'));
+
+      const sharesInitial = {
+        shares: [{ share: { id: 'share-1', name: 'Archive', kind: 'folder', updated_at: '2026-01-01T10:00:00Z' } }],
+      };
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve(sharesInitial) })
+      );
+
+      const { getByTestId, getByText } = render(<FilesPage />);
+      await waitFor(() => expect(getByText('Archive')).toBeInTheDocument());
+
+      fireEvent.click(getByTestId('edit-menu-1'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to delete share: delete failed');
       });
     });
   });
