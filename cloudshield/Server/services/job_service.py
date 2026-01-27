@@ -34,6 +34,12 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
     return _task(org_id, username, password, group_name)
 
 
+def dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    from cloudshield.Server.tasks import dc_add_user_to_group as _task  # type: ignore
+
+    return _task(org_id, username, group_name)
+
+
 def dc_restart_samba_service(org_id: str):
     from cloudshield.Server.tasks import dc_restart_samba_service as _task  # type: ignore
 
