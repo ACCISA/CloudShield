@@ -393,12 +393,17 @@ VALID_SIGNUP_PAYLOAD = {
 
 def test_signup_admin_success(client, monkeypatch):
     import cloudshield.Server.routes.users as users_mod
+    import cloudshield.Server.services as services_mod
+    import cloudshield.Server.services.user_service as user_service_mod
     
     def mock_create_user(user_data, current_user=None, reason=None):
         user_data.org_id = "org_123"
         return "new_user_123"
     
+    # Patch at all levels to ensure mock takes effect
     monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
     
     # Success Path 
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
@@ -407,33 +412,45 @@ def test_signup_admin_success(client, monkeypatch):
 
 def test_signup_admin_validation_error(client, monkeypatch):
     import cloudshield.Server.routes.users as users_mod
+    import cloudshield.Server.services as services_mod
+    import cloudshield.Server.services.user_service as user_service_mod
     
     def mock_create_user(*args, **kwargs):
         raise ValueError("User already exists")
     
     monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 409
 
 def test_signup_admin_permission_error(client, monkeypatch):
     import cloudshield.Server.routes.users as users_mod
+    import cloudshield.Server.services as services_mod
+    import cloudshield.Server.services.user_service as user_service_mod
     
     def mock_create_user(*args, **kwargs):
         raise PermissionError("Unauthorized")
     
     monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 403
 
 def test_signup_admin_internal_error(client, monkeypatch):
     import cloudshield.Server.routes.users as users_mod
+    import cloudshield.Server.services as services_mod
+    import cloudshield.Server.services.user_service as user_service_mod
     
     def mock_create_user(*args, **kwargs):
         raise Exception("DB Down")
     
     monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 500
