@@ -28,7 +28,8 @@ PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
-
+UNEXPECTED_RESPONSE="Unexpected response"
+USER_ALREADY_EXISTS="User already exists"
 def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
@@ -59,7 +60,14 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
-def dc_create_file_share(org_id: str, share_name: str):
+def dc_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -89,7 +97,14 @@ def dc_create_file_share(org_id: str, share_name: str):
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
         try:
-            create_share(org_id=org_id, name=share_name)
+            create_share(
+                org_id=org_id,
+                name=share_name,
+                users=users or [],
+                groups=groups or [],
+                description=description,
+                max_size=max_size
+            )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
             return {
@@ -312,10 +327,10 @@ def dc_add_group(org_id: str, group_name: str):
         return {"status": "FAILED", "message": "Failed to create group"}
 
     logger.error("Unexpected response when creating group")
-    return {"status": "UNKNOWN", "message": "Unexpected response"}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
 
 
-def dc_add_user(org_id: str, username: str, password: str):
+def dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
     """
@@ -365,7 +380,7 @@ def dc_add_user(org_id: str, username: str, password: str):
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
-        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        persist_domain_user(org_id, username, password, email)
         return {"status": "SUCCESS", "message":"Successfully added user"}
 
     if status == infra_pb2.FAILED:
@@ -374,9 +389,9 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     if status == infra_pb2.DUPLICATE:
         logger.error("Duplicate user found")
-        return {"status": "DUPLICATE", "message":"User already exists"}
+        return {"status": "DUPLICATE", "message":USER_ALREADY_EXISTS}
     logger.error("Failed to add user for unexpected reason")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}
 
 
 def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
@@ -451,15 +466,15 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
         return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
 
     if status == infra_pb2.DUPLICATE:
-        logger.warning("User already exists")
-        return {"status": "DUPLICATE", "message": "User already exists", "result": result_payload}
+        logger.warning(USER_ALREADY_EXISTS)
+        return {"status": "DUPLICATE", "message": USER_ALREADY_EXISTS, "result": result_payload}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to create user with group")
         return {"status": "FAILED", "message": "Failed to create user with group", "result": result_payload}
 
     logger.error("Unexpected response when creating user with group")
-    return {"status": "UNKNOWN", "message": "Unexpected response", "result": result_payload}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE, "result": result_payload}
 
 
 
@@ -514,4 +529,4 @@ def dc_remove_user(org_id: str, username: str):
         return {"status": "USER_NOT_FOUND", "message":"User not found"}
     
     logger.error("unknown error when removing user")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}

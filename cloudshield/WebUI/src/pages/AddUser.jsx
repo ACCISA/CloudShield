@@ -18,11 +18,13 @@ import {
 } from "@mui/material";
 import ProvisioningControls from "../components/provisioning/ProvisioningControls.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
+import { trackButton } from "../lib/analytics";
 
 export default function AddUserPage() {
   const [orgId, setOrgId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const { jobId, status, message, progress, result, executeTask, reset } =
     useAsyncTask();
 
@@ -30,7 +32,7 @@ export default function AddUserPage() {
     const res = await fetch("http://localhost:5050/task/dc/add_user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ org_id: orgId, username, password }),
+      body: JSON.stringify({ org_id: orgId, username, password, email }),
     });
     if (!res.ok && res.status !== 202) {
       const text = await res.text().catch(() => "");
@@ -41,7 +43,10 @@ export default function AddUserPage() {
     return json.job_id;
   }
 
-  const handleStart = () => executeTask(apiStartAddUser);
+  const handleStart = () => {
+    trackButton("adduser/start", { page: "add_user" });
+    executeTask(apiStartAddUser);
+  };
 
   return (
     <Box
@@ -79,6 +84,15 @@ export default function AddUserPage() {
       />
 
       <TextField
+        label="Email"
+        variant="outlined"
+        size="small"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        sx={{ maxWidth: 300 }}
+      />
+
+      <TextField
         label="Password"
         type="password"
         variant="outlined"
@@ -109,7 +123,10 @@ export default function AddUserPage() {
         {status !== "idle" && (
           <Button
             variant="outlined"
-            onClick={reset}
+            onClick={() => {
+              trackButton("adduser/reset", { page: "add_user" });
+              reset();
+            }}
             sx={{
               textTransform: "none",
               borderRadius: "10px",
@@ -144,8 +161,8 @@ export default function AddUserPage() {
             {typeof progress === "number"
               ? `Adding user… ${progress}%`
               : typeof progress === "string"
-              ? progress
-              : "Adding user…"}
+                ? progress
+                : "Adding user…"}
           </Typography>
         </Box>
       )}

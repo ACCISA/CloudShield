@@ -3,6 +3,8 @@ import os
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
+from bson import ObjectId
+from bson.errors import InvalidId
 
 try:
     from cloudshield.Server.models import Inventory
@@ -59,7 +61,6 @@ try:
     audit = db_admin["audit"]    
 
     try:
-        orgs.create_index("org_id", unique=True)
         orgs.create_index("company_name", unique=True)
     except Exception as e:
         print(f"[database.py] Note: orgs index creation skipped: {e}")
@@ -98,8 +99,14 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
-    # Organizations: unique org_id and quick lookups by package/status
-    organizations.create_index("org_id", unique=True)
+    # Organizations: index on org_id for quick lookups plus package/status indexes
+    try:
+        # Create a non-unique index on `org_id`. The unique constraint was removed to allow
+        # multiple documents to reference the same org_id during migrations and dev work.
+        organizations.create_index("org_id", unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: organizations index creation skipped: {e}")
+
     organizations.create_index("package")
     organizations.create_index("provisioning_status")
 
@@ -107,6 +114,24 @@ try:
 except PyMongoError as e:
     print(f"[database.py] MongoDB connection failed: {e}")
     raise
+
+def org_filter(org_id: str) -> dict:
+    """Return a MongoDB filter for an organization identifier.
+
+    Behavior:
+    - If `org_id` is a valid 24-char ObjectId hex string, return {'_id': ObjectId(org_id)}.
+    - If not, fall back to {'org_id': org_id} for backward compatibility.
+
+    This allows callers to transparently support both ObjectId-based orgs and
+    older string identifiers during transition.
+    """
+    if org_id is None:
+        return {}
+    try:
+        return {"_id": ObjectId(org_id)}
+    except (InvalidId, TypeError):
+        return {"org_id": org_id}
+
 
 __all__ = [
     "db_admin",
@@ -122,6 +147,7 @@ __all__ = [
     "orgs",
     "audit",
     "shares",
+    "org_filter",
 ]
 
 

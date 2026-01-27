@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import ProvisioningControls from "../components/provisioning/ProvisioningControls.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
+import { trackButton } from "../lib/analytics";
 
 export default function ProvisioningPage({ onProvisioned }) {
   const { currentUser } = useAuth();
@@ -89,7 +90,10 @@ export default function ProvisioningPage({ onProvisioned }) {
     return json.job_id;
   }
 
-  const handleStart = () => executeTask(apiStartProvision);
+  const handleStart = () => {
+    trackButton("provisioning/start", { page: "provisioning" });
+    executeTask(apiStartProvision);
+  };
 
   // Auto-start provisioning as soon as we land on this page
   useEffect(() => {
@@ -141,7 +145,10 @@ export default function ProvisioningPage({ onProvisioned }) {
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <Button
             variant="outlined"
-            onClick={reset}
+            onClick={() => {
+              trackButton("provisioning/reset", { page: "provisioning" });
+              reset();
+            }}
             sx={{
               textTransform: "none",
               borderRadius: "10px",

@@ -13,13 +13,15 @@ class TestUserCreate:
     
     def test_valid_user_creation_and_email_normalization(self):
         """Test creating valid users and email normalization"""
-        # Test normal valid user
+        # Test normal valid user with new fields (company_name, package_type)
         user_data = {
             "email": "john.doe@example.com",
             "password": "StrongPass123!",
             "role": "employee",
             "full_name": "John Doe",
-            "org_id": "acme-corp",
+            "company_name": "Acme Corp",
+            "package_type": "pro",
+            "org_id": "507f1f77bcf86cd799439011", # Valid ObjectId string
             "file_shares":["aa"]
         }
         
@@ -28,7 +30,9 @@ class TestUserCreate:
         assert user.password == "StrongPass123!"
         assert user.role == "employee"
         assert user.full_name == "John Doe"
-        assert user.org_id == "acme-corp"
+        assert user.company_name == "Acme Corp"
+        assert user.package_type == "pro"
+        assert user.org_id == "507f1f77bcf86cd799439011"
         
         # Test email normalization
         user_data_normalized = {
@@ -36,7 +40,8 @@ class TestUserCreate:
             "password": "StrongPass123!",
             "role": "admin",
             "full_name": "John Doe",
-            "org_id": "acme-corp",
+            "company_name": "Acme Corp",
+            "org_id": "507f1f77bcf86cd799439011",
             "file_shares":["aa"]
         }
         
@@ -50,7 +55,8 @@ class TestUserCreate:
             "email": "john@example.com",
             "role": "employee",
             "full_name": "John Doe",
-            "org_id": "acme-corp",
+            "company_name": "Acme Corp",
+            "org_id": "507f1f77bcf86cd799439011",
             "file_shares":["aa"]
         }
         
@@ -78,35 +84,26 @@ class TestUserCreate:
         
         print("Password validation works comprehensively")
     
-    def test_invalid_org_id_formats(self):
-        """Test org_id validation: invalid non-empty values raise; empty is allowed (auto-generated)."""
-        base_data = {
-            "email": "john@example.com",
+    def test_optional_org_id_for_signup(self):
+        """Test that org_id is optional for public signup flow and defaults work."""
+        user_data = {
+            "email": "signup@example.com",
             "password": "StrongPass123!",
-            "role": "employee",
-            "full_name": "John Doe",
-            "file_shares":["aa"]
+            "full_name": "Jane Doe",
+            "company_name": "Startup Inc",
+            "package_type": "enterprise",
+            # org_id purposefully omitted to test public signup flow
         }
         
-        invalid_org_ids = [
-            "AB",  # Too short
-            "ACME-CORP",  # Uppercase not allowed
-            "acme corp",  # Spaces not allowed
-        ]
-
-        for org_id in invalid_org_ids:
-            user_data = {**base_data, "org_id": org_id}
-
-            with pytest.raises(ValidationError) as exc_info:
-                UserCreate(**user_data)
-
-            assert "org_id" in str(exc_info.value)
-
-        # Empty / omitted org_id is allowed (public signup auto-generates)
-        user = UserCreate(**base_data)
-        assert user.org_id is None
+        user = UserCreate(**user_data)
         
-        print("Invalid org_id validation works")
+        # Should default to None so service layer can generate the Mongo ID
+        assert user.org_id is None 
+        # Role should default to admin for new signups
+        assert user.role == "admin"
+        assert user.company_name == "Startup Inc"
+        
+        print("Optional org_id validation works for signup")
 
 class TestUserUpdate:
     """Test the UserUpdate model validation - adapting to existing behavior"""

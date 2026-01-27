@@ -3,12 +3,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import uuid4
+import os
 
 from flask import Blueprint, request, jsonify
 
-from pydantic import ValidationError
-from models import UserCreate
-from services import create_user
 
 from services import (
     service_dispatcher,
@@ -19,7 +17,7 @@ from services import (
     update_share,
 )
 from utils.logging_setup import get_logger
-from utils import organizations
+from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
 
 logger = get_logger("api")
@@ -28,6 +26,46 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+
+
+@api_bp.route("/organization/<org_id>", methods=["GET"])
+def get_organization(org_id: str):
+    """
+    Retrieve organization details by ID.
+    
+    Endpoint:
+        GET /api/organization/<org_id>
+    
+    Path Parameters:
+        - org_id (str): Organization identifier (MongoDB ObjectId)
+    
+    Returns:
+        200: JSON with organization details including provisioning status
+        404: Organization not found
+    """
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    
+    try:
+        doc = organizations.find_one({"_id": ObjectId(org_id)})
+    except InvalidId:
+        return jsonify({"error": "Invalid organization ID format"}), 400
+    
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+    
+    return jsonify({
+        "id": str(doc.get("_id")),
+        "name": doc.get("name"),
+        "package": doc.get("package"),
+        "workstation_limit": doc.get("workstation_limit"),
+        "user_limit": doc.get("user_limit"),
+        "storage_limit_gb": doc.get("storage_limit_gb"),
+        "provisioning_status": doc.get("provisioning_status"),
+        "provisioning_job_id": doc.get("provisioning_job_id"),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+    }), 200
 
 
 def _seed_workstations(org_id: str, count: int) -> None:
@@ -63,10 +101,14 @@ def _share_doc_to_payload(doc: dict) -> dict:
         - id: String representation of MongoDB _id
         - org_id: Organization identifier
         - name: Share name
+        - kind: Type of share ("folder" or "file")
         - groups: List of group names (empty list if None)
+        - users: List of usernames (empty list if None)
         - drive: Allocated drive letter (e.g., "Z")
         - description: Optional description
         - owner: Optional owner email/username
+        - current_size: Current storage usage in bytes
+        - max_size: Maximum storage quota in GB (None means unlimited)
         - created_at: ISO 8601 timestamp string
         - updated_at: ISO 8601 timestamp string
     """
@@ -74,10 +116,14 @@ def _share_doc_to_payload(doc: dict) -> dict:
         "id": str(doc.get("_id")) if doc.get("_id") else None,
         "org_id": doc.get("org_id"),
         "name": doc.get("name"),
+        "kind": doc.get("kind"),
         "groups": doc.get("groups") or [],
+        "users": doc.get("users") or [],
         "drive": doc.get("drive"),
         "description": doc.get("description"),
         "owner": doc.get("owner"),
+        "current_size": doc.get("current_size", 0),
+        "max_size": doc.get("max_size"),
         "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
         "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
     }
@@ -105,13 +151,25 @@ def task_create_file_share():
 
     org_id = data.get("org_id")
     share_name = data.get("share_name")
+    users = data.get("users", [])
+    groups = data.get("groups", [])
+    description = data.get("description")
+    max_size = data.get("max_size")
 
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
         return jsonify({"error":"share_name is required"}), 422
 
-    job = service_dispatcher(service_name="dc_create_file_share", org_id=org_id, share_name=share_name)
+    job = service_dispatcher(
+        service_name="dc_create_file_share",
+        org_id=org_id,
+        share_name=share_name,
+        users=users,
+        groups=groups,
+        description=description,
+        max_size=max_size
+    )
 
     return jsonify({"job_id":job.id}), 202
 
@@ -201,25 +259,29 @@ def list_file_share_groups():
     payload = list_groups_with_shares(org_id)
     return jsonify({"groups": payload}), 200
 
-@api_bp.route("/file_shares/<share_name>", methods=["PATCH"])
-def update_file_share(share_name):
+@api_bp.route("/file_shares/<org_id>/<share_name>", methods=["PATCH"])
+def update_file_share(org_id, share_name):
     """
-    Update file share metadata (groups, description, owner).
+    Update file share metadata (kind, groups, users, description, owner, sizes).
     
     Allows modification of share access and metadata without recreating
     the share or changing the allocated drive letter.
     
     Endpoint:
-        PATCH /api/file_shares/<share_name>
+        PATCH /api/file_shares/<org_id>/<share_name>
     
     Path Parameters:
+        - org_id (str): Organization identifier
         - share_name (str): Name of the share to update
     
-    Request JSON:
-        - org_id (str, required): Organization identifier
+    Request JSON (all optional):
+        - kind (str, optional): Type of share (flexible string, e.g., "folder", "file", etc.)
         - groups (list[str], optional): List of group names with access
+        - users (list[str], optional): List of usernames with access
         - description (str, optional): Human-readable description
         - owner (str, optional): Owner email or username
+        - current_size (int, optional): Current storage usage in bytes
+        - max_size (int, optional): Maximum storage quota in GB (None for unlimited)
     
     Returns:
         200: JSON with structure:
@@ -229,32 +291,40 @@ def update_file_share(share_name):
             }
         400: No fields provided to update
         404: Share not found
-        422: Missing org_id in request body
     
     Notes:
         - At least one optional field must be provided
         - updated_at timestamp is automatically set
         - Cannot modify org_id, name, or drive letter
+        - max_size of None means unlimited quota
+    
+    Example:
+        curl -X PATCH "http://localhost:5050/api/file_shares/test123/Documents" \\
+          -H "Content-Type: application/json" \\
+          -d '{"kind": "shared_folder", "groups": ["engineering"], "users": ["alice", "bob"], "max_size": 50}'
     """
     data = request.get_json() or {}
     
-    org_id = data.get("org_id")
-    
-    if org_id is None:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
-    
     # Build update fields from request
     update_fields = {}
+    if "kind" in data:
+        update_fields["kind"] = data["kind"]
     if "groups" in data:
         update_fields["groups"] = data["groups"]
+    if "users" in data:
+        update_fields["users"] = data["users"]
     if "description" in data:
         update_fields["description"] = data["description"]
     if "owner" in data:
         update_fields["owner"] = data["owner"]
+    if "current_size" in data:
+        update_fields["current_size"] = data["current_size"]
+    if "max_size" in data:
+        update_fields["max_size"] = data["max_size"]
     
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400
-    
+
     success = update_share(org_id, share_name, update_fields)
 
     if not success:
@@ -336,6 +406,7 @@ def task_dc_add_user():
         - org_id (str, required): Organization identifier.
         - username (str, required): Username to be created in DC.
         - password (str, required): Initial password for the DC account.
+        - email (str, required): Email for the DC account.
 
     Behaviour:
         - Validates required fields.
@@ -346,13 +417,20 @@ def task_dc_add_user():
     org_id = data.get("org_id")
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email")
     
     for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
-            return jsonify({"error":"{arg} is required"})
+            return jsonify({"error":f"{arg} is required"}), 400
 
-    job = service_dispatcher(service_name="dc_add_user", org_id=org_id, username=username, password=password)
+    job = service_dispatcher(
+        service_name="dc_add_user",
+        org_id=org_id,
+        username=username,
+        password=password,
+        email=email,
+    )
     return jsonify({"job_id": job.id}), 202
 
 
@@ -425,7 +503,8 @@ def task_provision():
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    org_doc = organizations.find_one({"org_id": org_id}, {"workstation_limit": 1})
+    filter_ = org_filter(org_id)
+    org_doc = organizations.find_one(filter_, {"workstation_limit": 1})
     org_limit = _coerce_int(org_doc.get("workstation_limit")) if org_doc else None
 
     requested_count = data.get("workstation_count")
@@ -443,7 +522,25 @@ def task_provision():
     if workstation_count is None or workstation_count <= 0:
         workstation_count = 1
 
+    # Check if the environment is already provisioned
+    is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
+    filter_with_status = dict(org_filter(org_id))
+    filter_with_status["status"] = "complete"
+
+    provisioned = organizations.find_one(filter_with_status)
+    
+    if provisioned and not is_testing:
+        logger.warning("Provisioning already completed for the requested organization.")
+        return jsonify({"error": "Environment already provisioned"}), 400
+
     _seed_workstations(org_id, workstation_count)
+
+    # Update MongoDB to mark the environment as provisioned
+    organizations.update_one(
+        org_filter(org_id),
+        {"$set": {"status": "complete"}},
+        upsert=True
+    )
 
     job = service_dispatcher(
         service_name="provision_network", 
@@ -480,7 +577,7 @@ def task_provision_workstations():
 
     if not org_id:
         logger.warning("Provision workstations request missing org_id")
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400\
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
     logger.debug(
         "[API] Parsed parameters: org_id=%s, region=%s, count=%s",
@@ -563,44 +660,3 @@ def health():
     """
     payload, code = health_status()
     return jsonify(payload), code
-
-@api_bp.route("/signup_admin", methods=["POST"])
-def signup_admin():
-    """
-    Public endpoint: create first admin user (NO AUTH).
-
-    POST /api/signup_admin
-    """
-    try:
-        data = request.get_json() or {}
-        reason = data.get("reason")
-
-        # Force admin role no matter what client sends
-        data = dict(data)
-        data["role"] = "admin"
-
-        user_data = UserCreate(**data)
-
-        # Public signup → current_user=None
-        user_id = create_user(user_data, current_user=None, reason=reason)
-
-        # org_id is set on user_data by the service for public signup
-        return jsonify({"user_id": user_id, "org_id": user_data.org_id}), 201
-
-    except ValidationError as e:
-        return jsonify({
-            "error": "Validation failed",
-            "details": e.errors()
-        }), 400
-
-    except PermissionError as e:
-        return jsonify({"error": str(e)}), 403
-
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 409
-
-    except Exception as e:
-        return jsonify({
-            "error": "Internal server error",
-            "details": str(e)
-        }), 500

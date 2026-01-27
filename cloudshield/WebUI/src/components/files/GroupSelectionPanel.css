@@ -1,0 +1,210 @@
+/* Two-Panel Layout */
+.group-selection-panel {
+  display: flex;
+  gap: 24px;
+  min-height: 300px;
+  max-height: 400px;
+}
+
+/* Left Panel: Search Section */
+.group-selection-search-section {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.group-selection-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.group-selection-search {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.group-selection-search:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.group-selection-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.group-selection-dropdown {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background-color: #0a0a0a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.group-selection-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 0.2s ease;
+}
+
+.group-selection-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.group-selection-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.group-selection-dropdown-item.selected {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-left: 2px solid #ffffff;
+}
+
+.group-selection-dropdown-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.group-selection-dropdown-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-selection-checkmark {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* Right Panel: Selected Groups */
+.group-selection-selected-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.group-selection-selected-header {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, sans-serif;
+  flex-shrink: 0;
+}
+
+.group-selection-selected-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+  min-height: 0;
+  align-content: start;
+}
+
+.group-selection-selected-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.group-selection-selected-card:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.group-selection-card-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.group-selection-selected-card:hover .group-selection-card-remove-btn {
+  opacity: 1;
+}
+
+.group-selection-card-remove-btn:hover {
+  background-color: rgba(255, 0, 0, 1);
+  transform: scale(1.1);
+}
+
+.group-selection-selected-card-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .group-selection-panel {
+    flex-direction: column;
+    max-height: none;
+  }
+
+  .group-selection-search-section {
+    max-height: 250px;
+  }
+
+  .group-selection-selected-cards {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}

@@ -37,10 +37,16 @@ function AppWithAuth() {
       localStorage.setItem("jwt", data.access_token);
 
       setIsAuthed(true);
-    }
-
-    // If the backend returns org_id or user info, store it safely
-    if (data?.user?.org_id) {
+      
+      // Decode JWT to extract org_id
+      try {
+        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+        if (payload.org_id) {
+          localStorage.setItem("org_id", payload.org_id);
+        }
+      } catch (err) {
+        console.error("Failed to decode JWT:", err);
+      }
     }
   };
 

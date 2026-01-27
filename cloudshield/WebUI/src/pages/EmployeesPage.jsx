@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
+import { useClickLogger } from "../hooks/useClickLogger";
+import { trackButton } from "../lib/analytics";
 
 // UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
@@ -78,6 +80,7 @@ CustomToast.defaultProps = {
 
 export default function EmployeesPage() {
   const { accessToken, currentUser } = useAuth();
+  const withClickLog = useClickLogger({ page: "employees" });
 
   // UI State
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -159,6 +162,7 @@ export default function EmployeesPage() {
     }
 
     try {
+      trackButton("employees/create/submit", { page: "employees", control: "create_dialog" });
       const apiPayload = {
         email: payload.email,
         full_name: `${payload.firstName} ${payload.lastName}`,
@@ -185,6 +189,7 @@ export default function EmployeesPage() {
     if (!accessToken) return;
 
     try {
+      trackButton("employees/edit/submit", { page: "employees", id, control: "edit_dialog" });
       const apiPayload = {
         full_name: `${payload.firstName} ${payload.lastName}`,
         email: payload.email,
@@ -211,6 +216,7 @@ export default function EmployeesPage() {
     }
 
     try {
+      trackButton("employees/edit/delete", { page: "employees", id, control: "edit_dialog" });
       await deleteUser(id, { token: accessToken });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       openToast("User deleted successfully");
@@ -218,6 +224,11 @@ export default function EmployeesPage() {
     } catch (error) {
       openToast(error.message || "Failed to delete user", "error");
     }
+  };
+
+  const handleLayoutChange = (value) => {
+    trackButton("employees/display/toggle", { page: "employees", layout: value });
+    setLayout(value);
   };
 
   // Logic: Filter & Sort
@@ -278,12 +289,10 @@ export default function EmployeesPage() {
   };
 
   const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
+    const nextDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    setSortField(field);
+    setSortDir(nextDir);
+    trackButton("employees/table/sort", { page: "employees", field, direction: nextDir });
   };
 
   const filterGroups = [
@@ -298,7 +307,17 @@ export default function EmployeesPage() {
     },
   ];
 
-  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
+  const handleFilterChange = (groupId, value, isActive) => {
+    trackButton("employees/filter/change", {
+      page: "employees",
+      groupId,
+      value,
+      active: isActive,
+      control: "filter_button",
+    });
+    const applyFilter = createFilterChangeHandler(setActiveFilters);
+    applyFilter(groupId, value, isActive);
+  };
 
   const styles = {
     container: {
@@ -358,7 +377,7 @@ export default function EmployeesPage() {
 
           <DisplayButton
             layout={layout}
-            onLayoutChange={setLayout}
+            onLayoutChange={handleLayoutChange}
             columnToggles={{
               columns: [
                 { key: "showTitle", label: "Title", checked: showTitle },
@@ -388,12 +407,17 @@ export default function EmployeesPage() {
         </div>
 
         <div style={styles.rightActions}>
-          <RefreshButton onClick={fetchUsers} isLoading={loading} />
+          <RefreshButton
+            onClick={withClickLog({ name: "employees/toolbar/refresh", control: "refresh_button" })(fetchUsers)}
+            isLoading={loading}
+          />
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={() => setCreateModalOpen(true)}
+            onClick={withClickLog({ name: "employees/toolbar/open-create", control: "create_button" })(() =>
+              setCreateModalOpen(true)
+            )}
           />
         </div>
       </div>
@@ -413,6 +437,7 @@ export default function EmployeesPage() {
           sortField={sortField}
           sortDir={sortDir}
           onEdit={(u) => {
+            trackButton("employees/table/open-edit", { page: "employees", id: u.id });
             setEditTarget(u);
             setEditModalOpen(true);
           }}
