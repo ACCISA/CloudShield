@@ -391,7 +391,7 @@ VALID_SIGNUP_PAYLOAD = {
     "company_name": "Acme Corp"
 }
 
-@patch("cloudshield.Server.routes.api.create_user")
+@patch("cloudshield.Server.routes.users.create_user")
 def test_signup_admin_success(mock_create_user, client):
     mock_create_user.return_value = "new_user_123"
     
@@ -400,21 +400,21 @@ def test_signup_admin_success(mock_create_user, client):
     assert resp.status_code == 201
     assert "user_id" in resp.json
 
-@patch("cloudshield.Server.routes.api.create_user")
+@patch("cloudshield.Server.routes.users.create_user")
 def test_signup_admin_validation_error(mock_create_user, client):
     # Forcing a generic ValueError which hits the 409 block
     mock_create_user.side_effect = ValueError("User already exists")
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 409
 
-@patch("cloudshield.Server.routes.api.create_user")
+@patch("cloudshield.Server.routes.users.create_user")
 def test_signup_admin_permission_error(mock_create_user, client):
     # Testing the 403 block
     mock_create_user.side_effect = PermissionError("Unauthorized")
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 403
 
-@patch("cloudshield.Server.routes.api.create_user")
+@patch("cloudshield.Server.routes.users.create_user")
 def test_signup_admin_internal_error(mock_create_user, client):
     # Testing the 500 catch-all Exception block
     mock_create_user.side_effect = Exception("DB Down")

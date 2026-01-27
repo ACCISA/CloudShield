@@ -28,6 +28,46 @@ api_bp = Blueprint("api", __name__)
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 
 
+@api_bp.route("/organization/<org_id>", methods=["GET"])
+def get_organization(org_id: str):
+    """
+    Retrieve organization details by ID.
+    
+    Endpoint:
+        GET /api/organization/<org_id>
+    
+    Path Parameters:
+        - org_id (str): Organization identifier (MongoDB ObjectId)
+    
+    Returns:
+        200: JSON with organization details including provisioning status
+        404: Organization not found
+    """
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    
+    try:
+        doc = organizations.find_one({"_id": ObjectId(org_id)})
+    except InvalidId:
+        return jsonify({"error": "Invalid organization ID format"}), 400
+    
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+    
+    return jsonify({
+        "id": str(doc.get("_id")),
+        "name": doc.get("name"),
+        "package": doc.get("package"),
+        "workstation_limit": doc.get("workstation_limit"),
+        "user_limit": doc.get("user_limit"),
+        "storage_limit_gb": doc.get("storage_limit_gb"),
+        "provisioning_status": doc.get("provisioning_status"),
+        "provisioning_job_id": doc.get("provisioning_job_id"),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+    }), 200
+
+
 def _seed_workstations(org_id: str, count: int) -> None:
     if count <= 0:
         return

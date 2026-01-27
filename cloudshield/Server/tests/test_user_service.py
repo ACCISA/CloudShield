@@ -162,48 +162,56 @@ class TestUserService:
 
     # ✅ New tests for public-signup permission rules in create_user()
 
-    def test_create_user_public_signup_denied_when_org_already_has_user(self, setup_mocks, user_data):
+    def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data, monkeypatch):
         """
         Covers:
           - current_user is None (public signup)
-          - users_admin.count_documents({"org_id": ...}) > 0 -> PermissionError
-        """
-        mocks = setup_mocks
-        from cloudshield.Server.services.user_service import create_user
-
-        # Make public signup attempt look like org already has users/admins
-        mocks["users_admin"].count_documents.return_value = 1
-
-        # Ensure we don't trip other branches before this check
-        user_data.role = "admin"  # would pass the role gate, but should fail on existing count first
-
-        with pytest.raises(
-            PermissionError,
-            match=r"Public signup is disabled for this organization \(admin already exists\)\."
-        ):
-            create_user(user_data, current_user=None, reason="bootstrap")
-
-        # Ensure we didn't proceed to email uniqueness/insert
-        mocks["users_admin"].find_one.assert_not_called()
-        mocks["users_admin"].insert_one.assert_not_called()
-
-    def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data):
-        """
-        Covers:
-          - current_user is None (public signup)
-          - org has 0 users
           - role != admin -> PermissionError("Public signup can only create an admin user.")
         """
         mocks = setup_mocks
+        import cloudshield.Server.services.user_service as user_service_module
         from cloudshield.Server.services.user_service import create_user
 
-        mocks["users_admin"].count_documents.return_value = 0
+        # Mock organizations collection for org creation
+        mock_orgs = unittest.mock.MagicMock()
+        mock_insert_result = unittest.mock.MagicMock()
+        mock_insert_result.inserted_id = ObjectId()
+        mock_orgs.insert_one.return_value = mock_insert_result
+        monkeypatch.setattr(user_service_module, "organizations", mock_orgs)
+
         user_data.role = "employee"  # should be rejected
 
         with pytest.raises(PermissionError, match="Public signup can only create an admin user."):
             create_user(user_data, current_user=None, reason="bootstrap")
 
         mocks["users_admin"].find_one.assert_not_called()
+        mocks["users_admin"].insert_one.assert_not_called()
+
+    def test_create_user_public_signup_email_already_exists(self, setup_mocks, user_data, monkeypatch):
+        """
+        Covers:
+          - current_user is None (public signup)
+          - role is admin (passes role check)
+          - email already exists -> ValueError
+        """
+        mocks = setup_mocks
+        import cloudshield.Server.services.user_service as user_service_module
+        from cloudshield.Server.services.user_service import create_user
+
+        # Mock organizations collection for org creation
+        mock_orgs = unittest.mock.MagicMock()
+        mock_insert_result = unittest.mock.MagicMock()
+        mock_insert_result.inserted_id = ObjectId()
+        mock_orgs.insert_one.return_value = mock_insert_result
+        monkeypatch.setattr(user_service_module, "organizations", mock_orgs)
+
+        # Make email check return existing user
+        mocks["users_admin"].find_one.return_value = {"_id": "existing_user"}
+        user_data.role = "admin"
+
+        with pytest.raises(ValueError, match="already exists"):
+            create_user(user_data, current_user=None, reason="bootstrap")
+
         mocks["users_admin"].insert_one.assert_not_called()
 
     def test_create_user_public_signup_creates_org_and_sets_org_id(self, setup_mocks, user_data, monkeypatch):

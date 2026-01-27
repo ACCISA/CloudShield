@@ -78,9 +78,9 @@ class TestAuth:
         for module_name in modules_to_clear:
             monkeypatch.delitem(sys.modules, module_name, raising=False)
         
-        # Import and register the auth blueprint
+        # Import and register the auth blueprint with the correct URL prefix (matching server.py)
         from cloudshield.Server.routes.auth import auth_bp
-        app.register_blueprint(auth_bp)
+        app.register_blueprint(auth_bp, url_prefix="/auth")
         
         with app.test_client() as client:
             yield app, client
