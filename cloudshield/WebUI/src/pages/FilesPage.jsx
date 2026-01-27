@@ -83,6 +83,32 @@ function StoragePill({ usedGB = 62, totalGB = 100 }) {
   );
 }
 
+function StorageCell({ currentSize, maxSize }) {
+  const max = typeof maxSize === "number" ? maxSize : null;
+  const current = Math.max(0, Number(currentSize || 0));
+
+  if (!max || max <= 0) {
+    return (
+      <div className="storageCell" aria-label="Storage usage">
+        <div className="storageMiniLabel">-</div>
+      </div>
+    );
+  }
+
+  const pct = Math.min(100, Math.max(0, (current / max) * 100));
+
+  return (
+    <div className="storageCell" aria-label={`Storage usage ${current} of ${max} GB`}>
+      <div className="storageMiniValue">
+        {current} / {max} GB
+      </div>
+      <div className="storageMiniBar">
+        <div className="storageMiniFill" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 /**
  * Main file shares management page for viewing, creating, editing, and deleting organization file shares.
  * Displays shares in list or icon view with search, selection, and real-time operation tracking.
@@ -513,9 +539,10 @@ export default function FilesPage() {
       <div className="header">
         <Checkbox checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
         <div>Name</div>
-        <div>Date Modified</div>
-        <div>Users</div>
-        <div>Groups</div>
+        <div className="metaHeader">Date Modified</div>
+        <div className="storageHeader">Storage</div>
+        <div className="usersHeader">Users</div>
+        <div className="groupsHeader">Groups</div>
         <div />
       </div>
 
@@ -560,7 +587,9 @@ export default function FilesPage() {
             </div>
 
             <div className="meta">{formatDateTime(node.updated_at)}</div>
-            
+
+            <StorageCell currentSize={node.current_size} maxSize={node.max_size} />
+
             <div className="groups">
               <AvatarPill 
                 items={ensureArray(node.users).map(username => 
@@ -702,7 +731,8 @@ export default function FilesPage() {
           <div className="title">Files</div>
           <div className="subtitle">Browse and manage your organization files</div>
         </div>
-        <StoragePill usedGB={62} totalGB={100} />
+        {/* StoragePill temporarily hidden until global storage is defined */}
+        {/* <StoragePill usedGB={62} totalGB={100} /> */}
       </div>
 
       <div className="toolbar">
@@ -828,7 +858,7 @@ export default function FilesPage() {
         }
         .header, .row {
           display: grid;
-          grid-template-columns: 40px 2.2fr 1.4fr 0.7fr 1.2fr 44px;
+          grid-template-columns: 40px 2.1fr 1.2fr 1.3fr 0.7fr 1.2fr 44px;
           padding: 12px 12px;
           align-items: center;
           column-gap: 10px;
@@ -840,6 +870,32 @@ export default function FilesPage() {
         }
         .row { border-bottom: 1px solid rgba(255,255,255,0.06); }
         .row:last-child { border-bottom: none; }
+
+        .storageHeader { opacity: 0.75; }
+        .storageCell {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .storageMiniValue,
+        .storageMiniLabel {
+          font-size: 11px;
+          opacity: 0.8;
+          white-space: nowrap;
+        }
+        .storageMiniBar {
+          height: 4px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 999px;
+          overflow: hidden;
+          max-width: 140px;
+        }
+        .storageMiniFill {
+          height: 100%;
+          background: #4f8cff;
+          border-radius: 999px;
+        }
 
         .nameCell { min-width: 0; }
         .nameInner {
@@ -1041,14 +1097,13 @@ export default function FilesPage() {
           .iconsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
           /* List: hide columns on mobile */
-          .header div:nth-child(3),
-          .header div:nth-child(4),
-          .header div:nth-child(5),
-          .header div:nth-child(6),
-          .row .meta:nth-of-type(1),
-          .row .meta:nth-of-type(2),
-          .row .meta:nth-of-type(3),
-          .row .groups { display: none; }
+          .row .meta,
+          .row .groups,
+          .storageCell,
+          .storageHeader,
+          .metaHeader,
+          .usersHeader,
+          .groupsHeader { display: none; }
 
           .header, .row { grid-template-columns: 40px 1fr 44px; }
         }

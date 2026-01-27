@@ -98,13 +98,17 @@ def dc_create_file_share(
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully created new samba file share")
         try:
+            # TODO: Replace mock size defaults once real usage/quota logic is implemented.
+            effective_max_size = max_size if max_size is not None else 50
+            mock_current_size = 7
             create_share(
                 org_id=org_id,
                 name=share_name,
                 users=users or [],
                 groups=groups or [],
                 description=description,
-                max_size=max_size
+                current_size=mock_current_size,
+                max_size=effective_max_size,
             )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
