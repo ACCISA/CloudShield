@@ -1,6 +1,5 @@
 import unittest.mock
 import sys
-import types
 import pytest
 from flask import Flask
 
