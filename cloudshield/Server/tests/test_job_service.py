@@ -1,3 +1,4 @@
+import sys
 import types
 import pytest
 from cloudshield.Server.services import job_service
@@ -13,6 +14,42 @@ class DummyJob:
 
     def get_status(self):
         return self._status
+
+
+@pytest.fixture
+def fake_tasks_module(monkeypatch):
+    mod = types.ModuleType("cloudshield.Server.tasks")
+
+    def maker(name):
+        def _impl(*args, **kwargs):
+            return {"name": name, "args": args, "kwargs": kwargs}
+        _impl.__name__ = name
+        return _impl
+
+    mod.dc_add_user = maker("dc_add_user")
+    mod.dc_add_user_to_group = maker("dc_add_user_to_group")
+    mod.dc_remove_user = maker("dc_remove_user")
+    mod.dc_restart_samba_service = maker("dc_restart_samba_service")
+    mod.dc_user_list = maker("dc_user_list")
+    mod.dc_set_password = maker("dc_set_password")
+    mod.dc_create_user_with_group = maker("dc_create_user_with_group")
+    mod.dc_create_file_share = maker("dc_create_file_share")
+    mod.dc_delete_file_share = maker("dc_delete_file_share")
+
+    monkeypatch.setitem(sys.modules, "cloudshield.Server.tasks", mod)
+    return mod
+
+
+def test_task_wrappers_execute_underlying_tasks(fake_tasks_module):
+    assert job_service.dc_add_user("org", "user", "pwd", "email")["name"] == "dc_add_user"
+    assert job_service.dc_add_user_to_group("org", "user", "grp")["name"] == "dc_add_user_to_group"
+    assert job_service.dc_remove_user("org", "user")["name"] == "dc_remove_user"
+    assert job_service.dc_restart_samba_service("org")["name"] == "dc_restart_samba_service"
+    assert job_service.dc_user_list("org")["name"] == "dc_user_list"
+    assert job_service.dc_set_password("org", "user", "npwd")["name"] == "dc_set_password"
+    assert job_service.dc_create_user_with_group("org", "user", "pwd", "grp")["name"] == "dc_create_user_with_group"
+    assert job_service.dc_create_file_share("org", "share")["name"] == "dc_create_file_share"
+    assert job_service.dc_delete_file_share("org", "share")["name"] == "dc_delete_file_share"
 
 
 def test_enqueue_provision(monkeypatch):
