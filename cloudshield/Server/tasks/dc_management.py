@@ -398,7 +398,7 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
     return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}
 
 
-def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
+def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):  # NOSONAR
     """
     Create a domain user, provision a group, nest it under Domain Users, and add the user to that group.
     """

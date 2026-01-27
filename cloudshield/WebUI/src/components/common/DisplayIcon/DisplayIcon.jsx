@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import "./DisplayIcon.css";
 
@@ -192,6 +193,55 @@ function DisplayIcon({ type = "user", data = {}, size = "medium", showHoverCard 
   );
 }
 
+const iconDataShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  full_name: PropTypes.string,
+  firstName: PropTypes.string,
+  lastName: PropTypes.string,
+  username: PropTypes.string,
+  email: PropTypes.string,
+  role: PropTypes.string,
+  title: PropTypes.string,
+  active: PropTypes.bool,
+  isActive: PropTypes.bool,
+  color: PropTypes.string,
+  profileImage: PropTypes.string,
+  profilePicture: PropTypes.string,
+  avatar: PropTypes.string,
+  image: PropTypes.string,
+  group_image: PropTypes.string,
+  workstationName: PropTypes.string,
+  hostname: PropTypes.string,
+  online: PropTypes.bool,
+  isOnline: PropTypes.bool,
+  status: PropTypes.string,
+  ipAddress: PropTypes.string,
+  operatingSystem: PropTypes.string,
+  assignedUser: PropTypes.string,
+  lastSeen: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+  member_count: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  memberCount: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  description: PropTypes.string,
+  created_at: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+  createdDate: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+});
+
+DisplayIcon.propTypes = {
+  type: PropTypes.oneOf(["workstation", "user", "group"]),
+  data: iconDataShape,
+  size: PropTypes.oneOf(["small", "medium", "large"]),
+  showHoverCard: PropTypes.bool,
+};
+
+DisplayIcon.defaultProps = {
+  type: "user",
+  data: {},
+  size: "medium",
+  showHoverCard: true,
+};
+
 // User hover card component
 function UserCard({ data, name, profileImage, initials, getBackgroundColor }) {
   const isActive =
@@ -246,6 +296,22 @@ function UserCard({ data, name, profileImage, initials, getBackgroundColor }) {
     </div>
   );
 }
+
+UserCard.propTypes = {
+  data: iconDataShape,
+  name: PropTypes.string,
+  profileImage: PropTypes.string,
+  initials: PropTypes.string,
+  getBackgroundColor: PropTypes.func,
+};
+
+UserCard.defaultProps = {
+  data: {},
+  name: "",
+  profileImage: null,
+  initials: "",
+  getBackgroundColor: () => "#7B68EE",
+};
 
 // Workstation hover card component
 function WorkstationCard({
@@ -322,6 +388,22 @@ function WorkstationCard({
   );
 }
 
+WorkstationCard.propTypes = {
+  data: iconDataShape,
+  name: PropTypes.string,
+  profileImage: PropTypes.string,
+  initials: PropTypes.string,
+  getBackgroundColor: PropTypes.func,
+};
+
+WorkstationCard.defaultProps = {
+  data: {},
+  name: "",
+  profileImage: null,
+  initials: "",
+  getBackgroundColor: () => "#4A90E2",
+};
+
 // Group hover card component
 function GroupCard({ data, name, profileImage, initials, getBackgroundColor }) {
   return (
@@ -370,5 +452,21 @@ function GroupCard({ data, name, profileImage, initials, getBackgroundColor }) {
     </div>
   );
 }
+
+GroupCard.propTypes = {
+  data: iconDataShape,
+  name: PropTypes.string,
+  profileImage: PropTypes.string,
+  initials: PropTypes.string,
+  getBackgroundColor: PropTypes.func,
+};
+
+GroupCard.defaultProps = {
+  data: {},
+  name: "",
+  profileImage: null,
+  initials: "",
+  getBackgroundColor: () => "#50C878",
+};
 
 export default DisplayIcon;

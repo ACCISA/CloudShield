@@ -75,22 +75,22 @@ const FileIcon = () => (
   </svg>
 );
 
-function StoragePill({ usedGB = 62, totalGB = 100 }) {
-  const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
-  return (
-    <div className="storagePill" aria-label="Storage usage">
-      <div className="storageText">
-        <span className="storageLabel">Storage</span>
-        <span className="storageValue">
-          {usedGB}GB / {totalGB}GB
-        </span>
-      </div>
-      <div className="storageBar">
-        <div className="storageFill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
+// function StoragePill({ usedGB = 62, totalGB = 100 }) {
+//   const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
+//   return (
+//     <div className="storagePill" aria-label="Storage usage">
+//       <div className="storageText">
+//         <span className="storageLabel">Storage</span>
+//         <span className="storageValue">
+//           {usedGB}GB / {totalGB}GB
+//         </span>
+//       </div>
+//       <div className="storageBar">
+//         <div className="storageFill" style={{ width: `${pct}%` }} />
+//       </div>
+//     </div>
+//   );
+// }
 
 function StorageCell({ currentSize, maxSize }) {
   const max = typeof maxSize === "number" ? maxSize : null;
