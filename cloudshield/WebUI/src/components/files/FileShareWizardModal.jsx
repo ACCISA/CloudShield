@@ -42,101 +42,99 @@ export default function FileShareWizardModal({
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableGroups, setAvailableGroups] = useState([]);
 
+  const resolveOrgId = () => localStorage.getItem("org_id") || "default-org";
+
+  const normalizeUsers = (usersData) =>
+    (Array.isArray(usersData) ? usersData : []).map((u) => {
+      const id = String(u._id || u.id || "");
+      const fullName = u.full_name || u.name || "";
+      const parts = fullName.trim().split(/\s+/);
+      const email = u.email || "";
+      return {
+        id,
+        _id: id,
+        // Use full_name as the display label; use email as the stable identifier.
+        username: fullName || email,
+        email,
+        full_name: fullName,
+        firstName: parts[0] || "",
+        lastName: parts.slice(1).join(" ") || "",
+        title: u.role || u.title || "",
+        role: u.role,
+        active: u.active !== undefined ? u.active : true,
+      };
+    });
+
+  const dedupeUsersById = (users) =>
+    Array.from(new Map(users.filter((u) => u.id).map((u) => [u.id, u])).values());
+
+  const normalizeGroups = (groups) =>
+    groups.map((g) => {
+      const groupName = g.group_name || g.name || "";
+      return {
+        ...g,
+        id: g._id || g.id,
+        name: groupName,
+        groupName: groupName,
+        group_name: groupName,
+        member_count: (g.members_info || g.members || []).length,
+      };
+    });
+
+  const mapSelectedUsers = (selected, normalizedUsers) => {
+    const userObjectsRaw = (selected || []).map((username) => {
+      const found = normalizedUsers.find(
+        (u) =>
+          u.username === username ||
+          u.email === username ||
+          (u.email && u.email.split("@")[0] === username)
+      );
+      return found || { username, id: username };
+    });
+    return Array.from(
+      new Map(userObjectsRaw.map((u) => [String(u.id || u.username || u.email), u])).values()
+    );
+  };
+
+  const mapSelectedGroups = (selected, normalizedGroups) =>
+    (selected || []).map((groupName) => {
+      const found = normalizedGroups.find(
+        (g) => g.name === groupName || g.group_name === groupName
+      );
+      return found || { name: groupName, id: groupName, group_name: groupName };
+    });
+
   // Fetch users and groups when modal opens
   useEffect(() => {
-    if (isOpen) {
-      const loadData = async () => {
-        try {
-          const orgId = localStorage.getItem("org_id") || "default-org";
-          
-          // Fetch users and groups
-          const [usersData, groups] = await Promise.all([
-            fetchUsers(orgId),
-            fetchGroups(orgId)
-          ]);
+    if (!isOpen) return;
 
-          // Normalize user data
-          const normalizedUsers = (Array.isArray(usersData) ? usersData : []).map((u) => {
-            const id = String(u._id || u.id || "");
-            const fullName = u.full_name || u.name || "";
-            const parts = fullName.trim().split(/\s+/);
-            const email = u.email || "";
-            return {
-              id,
-              _id: id,
-              // Use full_name as the display label; use email as the stable identifier.
-              username: fullName || email,
-              email,
-              full_name: fullName,
-              firstName: parts[0] || "",
-              lastName: parts.slice(1).join(" ") || "",
-              title: u.role || u.title || "",
-              role: u.role,
-              active: u.active !== undefined ? u.active : true,
-            };
-          });
-          
-          // Deduplicate by id only. Email/username may legitimately collide across orgs.
-          const uniqueUsers = Array.from(
-            new Map(normalizedUsers.filter((u) => u.id).map((u) => [u.id, u])).values()
-          );
-          
-          // Normalize group data - keep it simple, just use what the API returns
-          const normalizedGroups = groups.map(g => {
-            const groupName = g.group_name || g.name || "";
-            return {
-              ...g,
-              id: g._id || g.id,
-              name: groupName,
-              groupName: groupName,
-              group_name: groupName,
-              member_count: (g.members_info || g.members || []).length,
-            };
-          });
-          
-          setAvailableUsers(uniqueUsers);
-          setAvailableGroups(normalizedGroups);
+    const loadData = async () => {
+      try {
+        const orgId = resolveOrgId();
+        const [usersData, groups] = await Promise.all([fetchUsers(orgId), fetchGroups(orgId)]);
 
-          // If editing, populate form with existing data
-          if (isEditMode && file) {
-            // Convert string arrays to user objects by matching usernames
-            const userObjectsRaw = (file.users || []).map(username => {
-              const found = normalizedUsers.find(u => 
-                u.username === username ||
-                u.email === username ||
-                (u.email && u.email.split("@")[0] === username)
-              );
-              return found || { username, id: username };
-            });
-            // De-duplicate selected users by id to avoid double cards.
-            const userObjects = Array.from(
-              new Map(
-                userObjectsRaw.map((u) => [String(u.id || u.username || u.email), u])
-              ).values()
-            );
+        const normalizedUsers = normalizeUsers(usersData);
+        const uniqueUsers = dedupeUsersById(normalizedUsers);
+        const normalizedGroups = normalizeGroups(groups);
 
-            // Convert group name strings to full group objects
-            const groupObjects = (file.groups || []).map(groupName => {
-              const found = normalizedGroups.find(g => 
-                g.name === groupName || g.group_name === groupName
-              );
-              return found || { name: groupName, id: groupName, group_name: groupName };
-            });
+        setAvailableUsers(uniqueUsers);
+        setAvailableGroups(normalizedGroups);
 
-            setFormData({
-              shareName: file.name || "",
-              description: file.description || "",
-              maxSize: file.max_size_gb || "",
-              selectedUsers: userObjects,
-              selectedGroups: groupObjects,
-            });
-          }
-        } catch (err) {
-          console.error("Failed to load users/groups:", err);
-        }
-      };
-      loadData();
-    }
+        if (!isEditMode || !file) return;
+
+        setFormData({
+          shareName: file.name || "",
+          description: file.description || "",
+          maxSize: file.max_size_gb || "",
+          selectedUsers: mapSelectedUsers(file.users, normalizedUsers),
+          selectedGroups: mapSelectedGroups(file.groups, normalizedGroups),
+        });
+      } catch (err) {
+        console.error("Failed to load users/groups:", err);
+      }
+    };
+
+    loadData();
   }, [isOpen, isEditMode, file]);
 
   // Reset form when modal closes

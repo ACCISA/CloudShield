@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { useAuth } from "../context/AuthContext";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
@@ -54,6 +55,14 @@ const Chevron = ({ open }) => (
   </svg>
 );
 
+Chevron.propTypes = {
+  open: PropTypes.bool,
+};
+
+Chevron.defaultProps = {
+  open: false,
+};
+
 const FolderIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="#E8EAED">
     <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
@@ -108,6 +117,16 @@ function StorageCell({ currentSize, maxSize }) {
     </div>
   );
 }
+
+StorageCell.propTypes = {
+  currentSize: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  maxSize: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+};
+
+StorageCell.defaultProps = {
+  currentSize: 0,
+  maxSize: null,
+};
 
 /**
  * Main file shares management page for viewing, creating, editing, and deleting organization file shares.
