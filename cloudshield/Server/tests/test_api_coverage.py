@@ -300,7 +300,6 @@ class TestDCAddUser:
         assert resp.status_code == 400
         assert "username is required" in resp.json["error"]
 
-        assert resp.status_code in [200, 500]
 
 
 class TestDCAddUserToGroup:
