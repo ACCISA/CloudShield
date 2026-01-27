@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 
 // UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
@@ -92,6 +93,8 @@ export default function EmployeesPage() {
   const [showWorkstations, setShowWorkstations] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
   const [showFiles, setShowFiles] = useState(true);
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Data State
   const [users, setUsers] = useState([]);
@@ -247,6 +250,33 @@ export default function EmployeesPage() {
     return out;
   }, [users, search, activeFilters, sortField, sortDir]);
 
+  const allVisibleSelected = useMemo(() => {
+    return filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+  }, [filtered, selectedIds]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((u) => next.delete(u.id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        filtered.forEach((u) => next.add(u.id));
+        return next;
+      }
+    });
+  };
+
   const toggleSort = (field) => {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -338,7 +368,7 @@ export default function EmployeesPage() {
                   checked: showWorkstations,
                 },
                 { key: "showGroups", label: "Groups", checked: showGroups },
-                { key: "showFiles", label: "Files", checked: showFiles },
+                { key: "showFiles", label: "Shares", checked: showFiles },
               ],
               onToggle: (column) => {
                 if (column === "showTitle") setShowTitle((prev) => !prev);
@@ -375,6 +405,10 @@ export default function EmployeesPage() {
           showWorkstations={showWorkstations}
           showGroups={showGroups}
           showFiles={showFiles}
+          selectedIds={selectedIds}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
           onSort={toggleSort}
           sortField={sortField}
           sortDir={sortDir}

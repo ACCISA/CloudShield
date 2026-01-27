@@ -49,13 +49,13 @@ export const GROUP_EDIT_MENU = [
 export const FILE_EDIT_MENU = [
   {
     icon: <EditIcon width={15} height={16} color="#fff" />,
-    label: "edit file",
+    label: "edit share",
     color: "#fff",
     onClick: null,
   },
   {
     icon: <TrashIcon width={12} height={14} color="#D51616" />,
-    label: "delete file",
+    label: "delete share",
     color: "#D51616",
     onClick: null,
   },

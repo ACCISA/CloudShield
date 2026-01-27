@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
 import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -59,6 +60,8 @@ export default function WorkstationsPage() {
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
 
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   // Filter state
   const [activeFilters, setActiveFilters] = useState({
     status: new Set(),
@@ -100,6 +103,33 @@ export default function WorkstationsPage() {
 
     return data;
   }, [rows, search, activeFilters]);
+
+  const allVisibleSelected = useMemo(() => {
+    return filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+  }, [filtered, selectedIds]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((w) => next.delete(w.id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        filtered.forEach((w) => next.add(w.id));
+        return next;
+      }
+    });
+  };
 
   const handleFilterChange = (groupId, value, isActive) => {
     setActiveFilters((prev) => {
@@ -254,6 +284,10 @@ export default function WorkstationsPage() {
           }}
           onDelete={handleDelete}
           onToggleStatus={handleToggleStatus}
+          selectedIds={selectedIds}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
           showUsers={showUsersCol}
           showCurrent={showCurrentCol}
           showLastUsed={showLastUsedCol}

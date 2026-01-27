@@ -1,4 +1,10 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton";
@@ -72,11 +78,11 @@ function StoragePill({ usedGB = 62, totalGB = 100 }) {
 
 export default function FilesPage({ orgId = "test_drive_allocation" }) {
   const [layout, setLayout] = useState("list");
-  
+
   // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
   // If HARD_CODED_TREE causes issues, initialize as []
   const [tree, setTree] = useState(HARD_CODED_TREE || []);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
@@ -100,14 +106,16 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   // --- CORRECTED FETCH LOGIC ---
   const fetchTree = useCallback(async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`);
-      
+      const res = await fetch(
+        `http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`,
+      );
+
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-      
+
       const data = await res.json();
-      
+
       // FIX: Check if data is an array or an object wrapper (e.g., { file_shares: [...] })
       let nodes = [];
       if (Array.isArray(data)) {
@@ -117,15 +125,14 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
       } else if (data && Array.isArray(data.files)) {
         nodes = data.files;
       } else if (data && Array.isArray(data.items)) {
-         nodes = data.items;
+        nodes = data.items;
       } else {
         // Fallback: if data is a single object, wrap it in array if your helper expects array
         console.warn("API returned object, wrapping in array:", data);
-        nodes = [data]; 
+        nodes = [data];
       }
-      
-      setTree(nodes);
 
+      setTree(nodes);
     } catch (e) {
       console.error("Failed to fetch files:", e);
     }
@@ -154,12 +161,19 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     return flattenVisibleTree(listFilteredTree, effectiveExpanded);
   }, [listFilteredTree, effectiveExpanded, layout]);
 
-  const listVisibleIds = useMemo(() => listVisibleRows.map((r) => r.node.id), [listVisibleRows]);
+  const listVisibleIds = useMemo(
+    () => listVisibleRows.map((r) => r.node.id),
+    [listVisibleRows],
+  );
 
-  const breadcrumb = useMemo(() => getBreadcrumbNodes(index, cwdStack), [index, cwdStack]);
+  const breadcrumb = useMemo(
+    () => getBreadcrumbNodes(index, cwdStack),
+    [index, cwdStack],
+  );
   const cwdItems = useMemo(
-    () => (layout === "icons" ? getFolderChildrenByStack(tree, index, cwdStack) : []),
-    [tree, index, cwdStack, layout]
+    () =>
+      layout === "icons" ? getFolderChildrenByStack(tree, index, cwdStack) : [],
+    [tree, index, cwdStack, layout],
   );
 
   const iconItems = useMemo(() => {
@@ -176,9 +190,10 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     return ids.length > 0 && ids.every((id) => selectedIds.has(id));
   }, [layout, listVisibleIds, iconVisibleIds, selectedIds]);
 
-
   const toggleSelect = (id) => {
-    setSelectedIds((prev) => toggleSelectCascade({ id, index, selectedIds: prev }));
+    setSelectedIds((prev) =>
+      toggleSelectCascade({ id, index, selectedIds: prev }),
+    );
   };
 
   const toggleSelectAllVisible = () => {
@@ -215,11 +230,13 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     setPathMode(false);
   };
 
-
   const renderList = () => (
     <div className="table">
       <div className="header">
-        <Checkbox checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
+        <Checkbox
+          checked={allVisibleSelected}
+          onChange={toggleSelectAllVisible}
+        />
         <div>Name</div>
         <div>Date Modified</div>
         <div>Kind</div>
@@ -234,7 +251,10 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
         return (
           <div className="row" key={node.id}>
-            <Checkbox checked={selectedIds.has(node.id)} onChange={() => toggleSelect(node.id)} />
+            <Checkbox
+              checked={selectedIds.has(node.id)}
+              onChange={() => toggleSelect(node.id)}
+            />
 
             <div className="nameCell">
               <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
@@ -251,7 +271,9 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
                   <span className="chevSpacer" />
                 )}
 
-                <span className="iconWrap">{isFolder ? <FolderIcon /> : <FileIcon />}</span>
+                <span className="iconWrap">
+                  {isFolder ? <FolderIcon /> : <FileIcon />}
+                </span>
 
                 <div className="nameTextWrap">
                   <div className="nameLine">
@@ -272,13 +294,22 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
               {(node.groups || []).slice(0, 3).map((g) => (
                 <span key={g}>{g}</span>
               ))}
-              {(node.groups || []).length > 3 ? <span>+{node.groups.length - 3}</span> : null}
+              {(node.groups || []).length > 3 ? (
+                <span>+{node.groups.length - 3}</span>
+              ) : null}
             </div>
 
             <EditButton
               menuItems={[
-                { label: isFolder ? "Edit folder" : "Edit file", onClick: () => openEdit(node) },
-                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => openEdit(node) },
+                {
+                  label: isFolder ? "Edit folder" : "Edit share",
+                  onClick: () => openEdit(node),
+                },
+                {
+                  label: isFolder ? "Delete folder" : "Delete share",
+                  color: "#ff3b30",
+                  onClick: () => openEdit(node),
+                },
               ]}
             />
           </div>
@@ -290,19 +321,28 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
   const renderIcons = () => (
     <>
       <div className="pathBar">
-        <button className={`navBtn ${cwdStack.length === 0 ? "disabled" : ""}`} onClick={goUp}>
+        <button
+          className={`navBtn ${cwdStack.length === 0 ? "disabled" : ""}`}
+          onClick={goUp}
+        >
           ←
         </button>
 
         {!pathMode ? (
           <div className="crumbs">
-            <button className={`crumb ${cwdStack.length === 0 ? "active" : ""}`} onClick={() => setCwdStack([])}>
+            <button
+              className={`crumb ${cwdStack.length === 0 ? "active" : ""}`}
+              onClick={() => setCwdStack([])}
+            >
               Root
             </button>
             {breadcrumb.map((c, i) => (
               <React.Fragment key={c.id}>
                 <span className="crumbSep">›</span>
-                <button className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`} onClick={() => goToCrumb(i)}>
+                <button
+                  className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`}
+                  onClick={() => goToCrumb(i)}
+                >
                   {c.name}
                 </button>
               </React.Fragment>
@@ -317,12 +357,24 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
               onChange={(e) => setPathValue(e.target.value)}
               placeholder="Type a path like /sales_docs/policies"
             />
-            <button className="pathGo" type="submit">Go</button>
-            <button className="pathCancel" type="button" onClick={() => setPathMode(false)}>Cancel</button>
+            <button className="pathGo" type="submit">
+              Go
+            </button>
+            <button
+              className="pathCancel"
+              type="button"
+              onClick={() => setPathMode(false)}
+            >
+              Cancel
+            </button>
           </form>
         )}
 
-        <button className="pathShortcut" onClick={() => setPathMode(true)} title="Quick jump (Cmd/Ctrl+L)">
+        <button
+          className="pathShortcut"
+          onClick={() => setPathMode(true)}
+          title="Quick jump (Cmd/Ctrl+L)"
+        >
           Path
         </button>
       </div>
@@ -344,27 +396,43 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
               key={node.id}
               className={`iconTile ${isSelected ? "selected" : ""}`}
               onClick={() => toggleSelect(node.id)}
-              onDoubleClick={() => (isFolder ? openFolder(node.id) : openEdit(node))}
+              onDoubleClick={() =>
+                isFolder ? openFolder(node.id) : openEdit(node)
+              }
               onKeyDown={handleKeyDown}
               role="button"
               tabIndex={0}
-              aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
+              aria-label={`${node.name} ${isFolder ? "folder" : "share"}`}
             >
               <div className={`tileCheck ${isSelected ? "show" : ""}`}>
-                <Checkbox checked={isSelected} onChange={() => toggleSelect(node.id)} />
+                <Checkbox
+                  checked={isSelected}
+                  onChange={() => toggleSelect(node.id)}
+                />
               </div>
 
-              <div className="iconBig">{isFolder ? <FolderIcon /> : <FileIcon />}</div>
+              <div className="iconBig">
+                {isFolder ? <FolderIcon /> : <FileIcon />}
+              </div>
 
-              <div className="iconName" title={node.name}>{node.name}</div>
+              <div className="iconName" title={node.name}>
+                {node.name}
+              </div>
 
               <div className="iconSub">
-                {node.kind === NODE_KIND.FILE && node.size ? node.size : node.kind}
+                {node.kind === NODE_KIND.FILE && node.size
+                  ? node.size
+                  : node.kind}
               </div>
 
               {/* Show directory path ONLY in icons view, when not in root */}
-              <div className="iconPath" title={breadcrumb.map((b) => b.name).join(" / ")}>
-                {breadcrumb.length === 0 ? "Root" : breadcrumb.map((b) => b.name).join(" / ")}
+              <div
+                className="iconPath"
+                title={breadcrumb.map((b) => b.name).join(" / ")}
+              >
+                {breadcrumb.length === 0
+                  ? "Root"
+                  : breadcrumb.map((b) => b.name).join(" / ")}
               </div>
             </div>
           );
@@ -377,25 +445,36 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
     <div className="filesPage">
       <div className="topBar">
         <div className="titleBlock">
-          <div className="title">Files</div>
-          <div className="subtitle">Browse and manage your organization files</div>
+          <div className="title">Shares</div>
+          <div className="subtitle">
+            Browse and manage your organization shares
+          </div>
         </div>
         <StoragePill usedGB={62} totalGB={100} />
       </div>
 
       <div className="toolbar">
         <div className="leftTools">
-          <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search files" />
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search shares"
+          />
           <DisplayButton
             layout={layout}
-            onLayoutChange={(next) => setLayout(next === "cards" ? "list" : next)} // prevent cards
+            onLayoutChange={(next) =>
+              setLayout(next === "cards" ? "list" : next)
+            } // prevent cards
             style={{ minWidth: 120 }}
           />
         </div>
 
         <div className="rightTools">
           <RefreshButton onClick={fetchTree} />
-          <CreateButton buttonText="Upload" onClick={() => setUploadOpen(true)} />
+          <CreateButton
+            buttonText="Upload"
+            onClick={() => setUploadOpen(true)}
+          />
         </div>
       </div>
 

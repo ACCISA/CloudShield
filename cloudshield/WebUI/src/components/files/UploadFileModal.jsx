@@ -11,11 +11,7 @@ const mockUsers = [
 
 const mockGroups = ["Sales", "Finance", "Corporate", "Warehouse"];
 
-export default function UploadFileModal({
-  isOpen,
-  onClose,
-  onUpload,
-}) {
+export default function UploadFileModal({ isOpen, onClose, onUpload }) {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -45,9 +41,9 @@ export default function UploadFileModal({
     <div className="modalOverlay">
       <div className="modal">
         <header className="modalHeader">
-          <span>Files</span>
+          <span>Shares</span>
           <span className="sep">›</span>
-          <span>New file</span>
+          <span>New share</span>
           <button onClick={onClose}>✕</button>
         </header>
 
@@ -65,7 +61,7 @@ export default function UploadFileModal({
           aria-label="Drag and drop area for file upload"
         >
           <div className="uploadIcon">⬆</div>
-          <div>Drag and drop files here, or</div>
+          <div>Drag and drop shares here, or</div>
           <label className="browseBtn">
             Browse
             <input
@@ -77,10 +73,10 @@ export default function UploadFileModal({
         </div>
 
         <div className="field">
-          <label>File Name</label>
+          <label>Share Name</label>
           <input
             value={fileName}
-            placeholder="file name"
+            placeholder="share name"
             onChange={(e) => setFileName(e.target.value)}
           />
         </div>
@@ -98,7 +94,10 @@ export default function UploadFileModal({
         />
 
         <footer className="modalFooter">
-          <button className="primary" onClick={() => onUpload?.({ file, fileName })}>
+          <button
+            className="primary"
+            onClick={() => onUpload?.({ file, fileName })}
+          >
             Upload
           </button>
         </footer>

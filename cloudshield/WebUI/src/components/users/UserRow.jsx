@@ -175,8 +175,9 @@ export default function UserRow({
   cols,
   isMobile,
   isTablet,
+  isSelected,
+  onToggleSelect,
 }) {
-  const [checked, setChecked] = useState(false);
   const responsiveStyles = getResponsiveStyles();
 
   return (
@@ -195,7 +196,9 @@ export default function UserRow({
         }
       >
         {/* select - hide on mobile */}
-        {!isMobile && <Checkbox checked={checked} onChange={setChecked} />}
+        {!isMobile && (
+          <Checkbox checked={isSelected} onChange={onToggleSelect} />
+        )}
 
         {/* name + email + leading circle */}
         <div style={responsiveStyles.nameSection}>

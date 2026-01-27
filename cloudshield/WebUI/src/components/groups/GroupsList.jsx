@@ -261,8 +261,9 @@ function GroupRow({
   isLast,
   isMobile,
   isTablet,
+  isSelected,
+  onToggleSelect,
 }) {
-  const [checked, setChecked] = useState(false);
   const responsiveStyles = getResponsiveStyles();
 
   return (
@@ -283,7 +284,9 @@ function GroupRow({
         }}
       >
         {/* Checkbox - hide on mobile */}
-        {!isMobile && <Checkbox checked={checked} onChange={setChecked} />}
+        {!isMobile && (
+          <Checkbox checked={isSelected} onChange={onToggleSelect} />
+        )}
 
         {/* name + description + DisplayIcon */}
         <div style={responsiveStyles.nameSection}>
@@ -326,6 +329,10 @@ export default function GroupsList({
   showUsers = true,
   showWorkstations = true,
   showFiles = true,
+  selectedIds = new Set(),
+  allVisibleSelected = false,
+  onToggleSelect = () => {},
+  onToggleSelectAll = () => {},
 }) {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -374,13 +381,13 @@ export default function GroupsList({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <div />
+          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
           <span style={styles.headerLabel}>Name/Description</span>
           {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
           {showWorkstationsColumn && (
             <span style={styles.headerLabel}>Workstations</span>
           )}
-          {showFilesColumn && <span style={styles.headerLabel}>Files</span>}
+          {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
           <div />
         </div>
       )}
@@ -406,6 +413,8 @@ export default function GroupsList({
                 isLast={idx === rows.length - 1}
                 isMobile={isMobile}
                 isTablet={isTablet}
+                isSelected={selectedIds.has(r._id)}
+                onToggleSelect={() => onToggleSelect(r._id)}
               />
             ))}
           </div>

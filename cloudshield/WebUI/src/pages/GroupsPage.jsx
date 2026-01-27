@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -26,6 +27,8 @@ export default function GroupsPage() {
   const [showUsers, setShowUsers] = useState(true);
   const [showWorkstations, setShowWorkstations] = useState(true);
   const [showFiles, setShowFiles] = useState(true);
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
@@ -52,7 +55,9 @@ export default function GroupsPage() {
   const mapApiGroupToUi = (g) => {
     const membersInfo = Array.isArray(g.members_info) ? g.members_info : [];
     const users = membersInfo.map((u) => {
-      const { firstName, lastName } = safeSplitName(u.full_name || u.name || "");
+      const { firstName, lastName } = safeSplitName(
+        u.full_name || u.name || "",
+      );
       return {
         id: u._id,
         _id: u._id,
@@ -115,7 +120,9 @@ export default function GroupsPage() {
       }
 
       const data = await res.json();
-      const apiGroups = Array.isArray(data.access_groups) ? data.access_groups : [];
+      const apiGroups = Array.isArray(data.access_groups)
+        ? data.access_groups
+        : [];
       const uiGroups = apiGroups.map(mapApiGroupToUi);
 
       setGroups(uiGroups);
@@ -135,7 +142,9 @@ export default function GroupsPage() {
 
     if (q) {
       out = out.filter((g) =>
-        [g.name, g.description].some((v) => (v || "").toLowerCase().includes(q)),
+        [g.name, g.description].some((v) =>
+          (v || "").toLowerCase().includes(q),
+        ),
       );
     }
 
@@ -151,6 +160,33 @@ export default function GroupsPage() {
 
     return out;
   }, [groups, search, activeFilters, sortField, sortDir]);
+
+  const allVisibleSelected = useMemo(() => {
+    return filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+  }, [filtered, selectedIds]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((g) => next.delete(g._id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        filtered.forEach((g) => next.add(g._id));
+        return next;
+      }
+    });
+  };
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -198,7 +234,7 @@ export default function GroupsPage() {
     const seen = new Set();
 
     for (const u of list) {
-      const id = (u && (u._id || u.id)) ? String(u._id || u.id) : "";
+      const id = u && (u._id || u.id) ? String(u._id || u.id) : "";
       if (id && !seen.has(id)) {
         seen.add(id);
         out.push(id);
@@ -213,7 +249,7 @@ export default function GroupsPage() {
     const seen = new Set();
 
     for (const it of list) {
-      const id = (it && (it.id || it._id)) ? String(it.id || it._id) : "";
+      const id = it && (it.id || it._id) ? String(it.id || it._id) : "";
       if (id && !seen.has(id)) {
         seen.add(id);
         out.push(id);
@@ -239,12 +275,15 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch(`http://127.0.0.1:5050/api/access-groups/${editingGroup.id}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const res = await fetch(
+          `http://127.0.0.1:5050/api/access-groups/${editingGroup.id}`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -287,10 +326,13 @@ export default function GroupsPage() {
 
   const handleDeleteGroup = async (groupId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `http://127.0.0.1:5050/api/access-groups/${groupId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -370,7 +412,7 @@ export default function GroupsPage() {
                   label: "Workstations",
                   checked: showWorkstations,
                 },
-                { key: "showFiles", label: "Files", checked: showFiles },
+                { key: "showFiles", label: "Shares", checked: showFiles },
               ],
               onToggle: (column) => {
                 if (column === "showUsers") setShowUsers((prev) => !prev);
@@ -405,6 +447,10 @@ export default function GroupsPage() {
         showUsers={showUsers}
         showWorkstations={showWorkstations}
         showFiles={showFiles}
+        selectedIds={selectedIds}
+        allVisibleSelected={allVisibleSelected}
+        onToggleSelect={toggleSelect}
+        onToggleSelectAll={toggleSelectAllVisible}
         onEdit={handleOpenEditModal}
         onDelete={handleDeleteGroup}
       />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import UserRow from "./UserRow.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 
 const styles = {
   tableHeaders: {
@@ -68,6 +69,10 @@ export default function UsersTable({
   showWorkstations,
   showGroups,
   showFiles,
+  selectedIds = new Set(),
+  allVisibleSelected = false,
+  onToggleSelect = () => {},
+  onToggleSelectAll = () => {},
   onSort,
   sortField,
   sortDir,
@@ -124,14 +129,14 @@ export default function UsersTable({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <div />
+          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
           <span style={styles.headerLabel}>Name/Email</span>
           {showTitleColumn && <span style={styles.headerLabel}>Title</span>}
           {showWorkstationsColumn && (
             <span style={styles.headerLabel}>Workstations</span>
           )}
           {showGroupsColumn && <span style={styles.headerLabel}>Groups</span>}
-          {showFilesColumn && <span style={styles.headerLabel}>Files</span>}
+          {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
           <div />
           <div />
         </div>
@@ -158,6 +163,8 @@ export default function UsersTable({
               cols={cols}
               isMobile={isMobile}
               isTablet={isTablet}
+              isSelected={selectedIds.has(u.id)}
+              onToggleSelect={() => onToggleSelect(u.id)}
             />
           ))}
         </div>

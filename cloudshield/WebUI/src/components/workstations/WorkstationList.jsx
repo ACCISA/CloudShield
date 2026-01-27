@@ -145,6 +145,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: "-60px",
   },
   editContainer: {
     display: "flex",
@@ -317,8 +318,9 @@ function WorkstationRow({
   isLast,
   isMobile,
   isTablet,
+  isSelected,
+  onToggleSelect,
 }) {
-  const [checked, setChecked] = useState(false);
   const responsiveStyles = getResponsiveStyles();
 
   return (
@@ -339,7 +341,9 @@ function WorkstationRow({
         }}
       >
         {/* select - hide on mobile */}
-        {!isMobile && <Checkbox checked={checked} onChange={setChecked} />}
+        {!isMobile && (
+          <Checkbox checked={isSelected} onChange={onToggleSelect} />
+        )}
 
         {/* name + code + DisplayIcon */}
         <div style={responsiveStyles.nameSection}>
@@ -430,6 +434,10 @@ export default function WorkstationList({
   onEdit,
   onDelete,
   onToggleStatus,
+  selectedIds = new Set(),
+  allVisibleSelected = false,
+  onToggleSelect = () => {},
+  onToggleSelectAll = () => {},
   showUsers = true,
   showCurrent = true,
   showLastUsed = true,
@@ -483,7 +491,7 @@ export default function WorkstationList({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <div />
+          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
           <span style={styles.headerLabel}>Name/Number</span>
           {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
           {showCurrentColumn && <span style={styles.headerLabel}>Current</span>}
@@ -523,6 +531,8 @@ export default function WorkstationList({
                 isLast={idx === rows.length - 1}
                 isMobile={isMobile}
                 isTablet={isTablet}
+                isSelected={selectedIds.has(r.id)}
+                onToggleSelect={() => onToggleSelect(r.id)}
               />
             ))}
           </div>

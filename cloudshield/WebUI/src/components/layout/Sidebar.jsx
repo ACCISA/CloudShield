@@ -461,7 +461,13 @@ export default function Sidebar({
           />
           <NavItem
             collapsed={collapsed}
-            icon={<GroupsIcon width={20} height={20} />}
+            icon={
+              <GroupsIcon
+                width={20}
+                height={20}
+                selected={isActive("/groups")}
+              />
+            }
             label="Groups"
             to="/groups"
             active={isActive("/groups")}
@@ -474,7 +480,7 @@ export default function Sidebar({
           <NavItem
             collapsed={collapsed}
             icon={<FilesIcon width={20} height={20} />}
-            label="Files"
+            label="Shares"
             to="/files"
             active={isActive("/files")}
             expanded={open.files}
