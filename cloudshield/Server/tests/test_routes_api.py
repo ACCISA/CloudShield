@@ -391,66 +391,101 @@ VALID_SIGNUP_PAYLOAD = {
     "role": "admin",
 }
 
-def test_signup_admin_success(client, monkeypatch):
-    import cloudshield.Server.routes.users as users_mod
-    import cloudshield.Server.services as services_mod
-    import cloudshield.Server.services.user_service as user_service_mod
+
+@pytest.fixture()
+def signup_admin_client(monkeypatch):
+    """
+    Dedicated fixture for signup_admin tests that patches create_user
+    BEFORE the Flask app is created.
+    """
+    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+        mock_redis_instance = MagicMock()
+        mock_redis_cls.return_value = mock_redis_instance
+        mock_redis_instance.ping.return_value = True
+        mock_redis_instance.get.return_value = b"some_value"
+        mock_redis_instance.set.return_value = True
+
+        class DummyJob:
+            def __init__(self, job_id):
+                self.id = job_id
+
+        # Import modules BEFORE create_app so we can patch them
+        import cloudshield.Server.routes.users as users_mod
+        import cloudshield.Server.services as services_mod
+        import cloudshield.Server.services.user_service as user_service_mod
+
+        # Create a configurable mock that tests can modify
+        mock_create_user = MagicMock()
+        
+        def default_create_user(user_data, current_user=None, reason=None):
+            user_data.org_id = "org_123"
+            return "new_user_123"
+        
+        mock_create_user.side_effect = default_create_user
+        
+        # Patch at all levels BEFORE app creation
+        monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+
+        monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        
+        from cloudshield.Server.server import create_app
+        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.services as services
+
+        monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
+        monkeypatch.setattr(services, "health_status", lambda: ({"status": "ok", "redis": True}, 200))
+        monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+        monkeypatch.setattr(api_mod, "health_status", services.health_status)
+
+        app = create_app()
+        app.testing = True
+        yield app.test_client(), mock_create_user
+
+
+def test_signup_admin_success(signup_admin_client):
+    client, mock_create_user = signup_admin_client
     
-    def mock_create_user(user_data, current_user=None, reason=None):
+    def success_create_user(user_data, current_user=None, reason=None):
         user_data.org_id = "org_123"
         return "new_user_123"
     
-    # Patch at all levels to ensure mock takes effect
-    monkeypatch.setattr(users_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+    mock_create_user.side_effect = success_create_user
     
-    # Success Path 
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 201
     assert "user_id" in resp.json
 
-def test_signup_admin_validation_error(client, monkeypatch):
-    import cloudshield.Server.routes.users as users_mod
-    import cloudshield.Server.services as services_mod
-    import cloudshield.Server.services.user_service as user_service_mod
+def test_signup_admin_validation_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
     
-    def mock_create_user(*args, **kwargs):
+    def raise_value_error(*args, **kwargs):
         raise ValueError("User already exists")
     
-    monkeypatch.setattr(users_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+    mock_create_user.side_effect = raise_value_error
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 409
 
-def test_signup_admin_permission_error(client, monkeypatch):
-    import cloudshield.Server.routes.users as users_mod
-    import cloudshield.Server.services as services_mod
-    import cloudshield.Server.services.user_service as user_service_mod
+def test_signup_admin_permission_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
     
-    def mock_create_user(*args, **kwargs):
+    def raise_permission_error(*args, **kwargs):
         raise PermissionError("Unauthorized")
     
-    monkeypatch.setattr(users_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+    mock_create_user.side_effect = raise_permission_error
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 403
 
-def test_signup_admin_internal_error(client, monkeypatch):
-    import cloudshield.Server.routes.users as users_mod
-    import cloudshield.Server.services as services_mod
-    import cloudshield.Server.services.user_service as user_service_mod
+def test_signup_admin_internal_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
     
-    def mock_create_user(*args, **kwargs):
+    def raise_exception(*args, **kwargs):
         raise Exception("DB Down")
     
-    monkeypatch.setattr(users_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(services_mod, "create_user", mock_create_user)
-    monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+    mock_create_user.side_effect = raise_exception
     
     resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
     assert resp.status_code == 500
