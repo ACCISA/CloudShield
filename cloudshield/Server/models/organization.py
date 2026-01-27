@@ -44,6 +44,9 @@ class OrganizationBase(BaseModel):
 
 class OrganizationCreate(OrganizationBase):
     org_id: str
+    domain_name: str
+    dc_admin_password: str
+    realm_name: str
 
     @field_validator("org_id")
     @classmethod

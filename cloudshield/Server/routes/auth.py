@@ -16,6 +16,10 @@ from cloudshield.Server.services.job_service import service_dispatcher
 
 auth_bp = Blueprint("auth", __name__)
 
+def sanitize_string(text):
+    clean_text = re.sub(r'\W+', '_', text)
+    return clean_text.strip('_').lower()
+
 
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
@@ -84,12 +88,9 @@ def login():
 def signup():
     if request.method == "OPTIONS":
         return make_response("", 204)
-    print(">>> THIS SIGNUP ROUTE HIT <<<")
 
     body = request.get_json(silent=True) or {}
 
-    print("SIGNUP RAW BODY:", request.data)
-    print("SIGNUP PARSED JSON:", body)
     # Inputs (with fallbacks to support UI naming)
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
@@ -125,6 +126,9 @@ def signup():
     # 1) Create organization
     org_doc = {
         "org_id": org_id,
+        "realm_name": "SAMDOM",
+        "domain_name": "SAMDOM."+sanitize_string(company_name).upper()+".LOCAL",
+        "dc_admin_password": "letmein123%",
         "company_name": company_name,
         "package_type": package_type,
         "created_at": now,
