@@ -7,9 +7,6 @@ import os
 
 from flask import Blueprint, request, jsonify
 
-from pydantic import ValidationError
-from models import UserCreate
-from services import create_user
 
 from services import (
     service_dispatcher,
@@ -20,7 +17,7 @@ from services import (
     update_share,
 )
 from utils.logging_setup import get_logger
-from utils import organizations
+from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
 
 logger = get_logger("api")
@@ -29,6 +26,46 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+
+
+@api_bp.route("/organization/<org_id>", methods=["GET"])
+def get_organization(org_id: str):
+    """
+    Retrieve organization details by ID.
+    
+    Endpoint:
+        GET /api/organization/<org_id>
+    
+    Path Parameters:
+        - org_id (str): Organization identifier (MongoDB ObjectId)
+    
+    Returns:
+        200: JSON with organization details including provisioning status
+        404: Organization not found
+    """
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    
+    try:
+        doc = organizations.find_one({"_id": ObjectId(org_id)})
+    except InvalidId:
+        return jsonify({"error": "Invalid organization ID format"}), 400
+    
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+    
+    return jsonify({
+        "id": str(doc.get("_id")),
+        "name": doc.get("name"),
+        "package": doc.get("package"),
+        "workstation_limit": doc.get("workstation_limit"),
+        "user_limit": doc.get("user_limit"),
+        "storage_limit_gb": doc.get("storage_limit_gb"),
+        "provisioning_status": doc.get("provisioning_status"),
+        "provisioning_job_id": doc.get("provisioning_job_id"),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+    }), 200
 
 
 def _seed_workstations(org_id: str, count: int) -> None:
@@ -287,7 +324,7 @@ def update_file_share(org_id, share_name):
     
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400
-    
+
     success = update_share(org_id, share_name, update_fields)
 
     if not success:
@@ -466,7 +503,8 @@ def task_provision():
         logger.warning("Provision request missing org_id")
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    org_doc = organizations.find_one({"org_id": org_id}, {"workstation_limit": 1})
+    filter_ = org_filter(org_id)
+    org_doc = organizations.find_one(filter_, {"workstation_limit": 1})
     org_limit = _coerce_int(org_doc.get("workstation_limit")) if org_doc else None
 
     requested_count = data.get("workstation_count")
@@ -486,7 +524,10 @@ def task_provision():
 
     # Check if the environment is already provisioned
     is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
-    provisioned = organizations.find_one({"org_id": org_id, "status": "complete"})
+    filter_with_status = dict(org_filter(org_id))
+    filter_with_status["status"] = "complete"
+
+    provisioned = organizations.find_one(filter_with_status)
     
     if provisioned and not is_testing:
         logger.warning("Provisioning already completed for the requested organization.")
@@ -496,7 +537,7 @@ def task_provision():
 
     # Update MongoDB to mark the environment as provisioned
     organizations.update_one(
-        {"org_id": org_id},
+        org_filter(org_id),
         {"$set": {"status": "complete"}},
         upsert=True
     )
@@ -619,44 +660,3 @@ def health():
     """
     payload, code = health_status()
     return jsonify(payload), code
-
-@api_bp.route("/signup_admin", methods=["POST"])
-def signup_admin():
-    """
-    Public endpoint: create first admin user (NO AUTH).
-
-    POST /api/signup_admin
-    """
-    try:
-        data = request.get_json() or {}
-        reason = data.get("reason")
-
-        # Force admin role no matter what client sends
-        data = dict(data)
-        data["role"] = "admin"
-
-        user_data = UserCreate(**data)
-
-        # Public signup → current_user=None
-        user_id = create_user(user_data, current_user=None, reason=reason)
-
-        # org_id is set on user_data by the service for public signup
-        return jsonify({"user_id": user_id, "org_id": user_data.org_id}), 201
-
-    except ValidationError as e:
-        return jsonify({
-            "error": "Validation failed",
-            "details": e.errors()
-        }), 400
-
-    except PermissionError as e:
-        return jsonify({"error": str(e)}), 403
-
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 409
-
-    except Exception as e:
-        return jsonify({
-            "error": "Internal server error",
-            "details": str(e)
-        }), 500

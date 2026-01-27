@@ -25,6 +25,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "db_admin": (".database", "db_admin"),
     "db": (".database", "db"),
     "get_inventory_from_org_id": (".database", "get_inventory_from_org_id"),
+    "org_filter": (".database", "org_filter"),
 
     # Audit
     "log_audit": (".audit", "log_audit"),

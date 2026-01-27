@@ -417,7 +417,7 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
         """Covers: success path, role forced to admin, org_id returned for provisioning"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         captured = {}
 
@@ -430,7 +430,7 @@ class TestSignupAdminEndpoint:
             user_data.org_id = "org-auto-1"
             return "new_user_id_123"
 
-        monkeypatch.setattr(api_mod, "create_user", _fake_create_user, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _fake_create_user, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -450,7 +450,7 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_validation_error_returns_400(self, client, monkeypatch):
         """Covers: ValidationError -> 400 with 'Validation failed' payload"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         called = {"count": 0}
 
@@ -458,7 +458,7 @@ class TestSignupAdminEndpoint:
             called["count"] += 1
             return "should_not_happen"
 
-        monkeypatch.setattr(api_mod, "create_user", _fake_create_user, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _fake_create_user, raising=True)
 
         # Missing required fields should fail pydantic validation
         resp = client.post("/api/signup_admin", json={})
@@ -470,12 +470,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_permission_error_returns_403(self, client, monkeypatch):
         """Covers: PermissionError -> 403"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_perm(*a, **k):
             raise PermissionError("nope")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_perm, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_perm, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -488,12 +488,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_value_error_returns_409(self, client, monkeypatch):
         """Covers: ValueError -> 409"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_val(*a, **k):
             raise ValueError("duplicate")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_val, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_val, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -506,12 +506,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_unexpected_error_returns_500_with_details(self, client, monkeypatch):
         """Covers: generic Exception -> 500 with details"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_generic(*a, **k):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_generic, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_generic, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",

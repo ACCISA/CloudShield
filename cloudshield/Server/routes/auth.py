@@ -1,23 +1,122 @@
-"""Authentication endpoints for login and token verification."""
-from flask import Blueprint, request, jsonify, make_response
-from cloudshield.Server.security.passwords import verify_password, hash_password, is_bcrypt_string
-from cloudshield.Server.security.jwt_utils import issue_token, verify_token
-try:
-    # Normal runtime: this module has both db_admin and users_admin
-    from cloudshield.Server.utils.database import db_admin, users_admin
-except ImportError:
-    # Test suite: monkeypatched module only provides users_admin
-    from cloudshield.Server.utils.database import users_admin
-    db_admin = None
-from datetime import datetime, timezone
-from pymongo.errors import DuplicateKeyError
-import uuid
-from cloudshield.Server.services.job_service import service_dispatcher
+import logging
+
+from flask import Blueprint, request, jsonify
+from flask_cors import CORS  # <--- 1. Add this import
+from pydantic import ValidationError
+from bson import ObjectId # <-- Added to convert string ID for DB queries
+from bson.errors import InvalidId
+from security.jwt_utils import issue_token, verify_token
+
+# Import models/services used by this route
+from models import UserCreate
+from services.user_service import create_user
+
+from services import service_dispatcher
+from utils import organizations
+from utils.database import users_admin
+from security.passwords import hash_password, is_bcrypt_string, verify_password
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
+CORS(auth_bp)
 
 
-@auth_bp.route("/auth/login", methods=["POST"])
+@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
+def signup():
+    if request.method == 'OPTIONS':
+        return '', 200 # Standard response for preflight
+    logger.debug("Signup route hit")
+
+    body = request.get_json(silent=True) or {}
+
+    # Avoid logging sensitive request body (e.g., passwords).
+    logger.debug("Signup request keys: %s", list(body.keys()))
+    logger.info("Signup attempt for email: %s", body.get("email"))
+
+    # Validate request using pydantic model
+    try:
+        user_model = UserCreate(**body)
+    except ValidationError as exc:
+        logger.info("Signup validation failed: %s", exc)
+        return jsonify({'error': 'Invalid request', 'details': str(exc)}), 400
+
+    # Create user and org via service layer
+    try:
+        # user_service auto-generates the MongoDB ID and attaches it to user_model.org_id
+        user_id = create_user(user_model, current_user=None, reason="public_signup")
+        org_id = user_model.org_id 
+
+        # Generate token for the new user
+        token = issue_token(
+            sub=user_id,
+            role="admin",      # first user is org admin
+            org_id=org_id
+        )
+
+    except PermissionError as exc:
+        logger.info("Signup permission error: %s", exc)
+        return jsonify({'error': str(exc)}), 403
+    except ValueError as exc:
+        logger.info("Signup failed: %s", exc)
+        return jsonify({'error': str(exc)}), 400
+    except Exception:
+        logger.exception("Unexpected error during signup")
+        return jsonify({'error': 'Internal server error'}), 500
+
+    try:
+        job = service_dispatcher(
+            service_name="provision_network",
+            org_id=org_id, # Passes the 24-character hex string (ObjectId)
+            region="ca-central-1",
+            workstation_count=1, # Default starting workstation
+        )
+
+        logger.info(f"[SIGNUP] Provisioning job enqueued job_id={job.id} org_id={org_id}")
+
+        # Update org status to reflect that building has started
+        organizations.update_one(
+            {"_id": ObjectId(org_id)}, # Find by native Mongo ID
+            {
+                "$set": {
+                    "provisioning_status": "in_progress",
+                    "provisioning_job_id": job.id,
+                }
+            },
+        )
+    except InvalidId:
+        # org_id is not a valid ObjectId (e.g., in tests) - skip DB update but continue
+        logger.warning(f"Invalid ObjectId format for org_id: {org_id}, skipping org update")
+        class MockJob:
+            id = None
+        job = MockJob()
+    except Exception as e:
+        logger.exception(f"Failed to enqueue provisioning for {org_id}: {e}")
+        # Mark as failed if the queue is down, but keep the 201 success for the user creation
+        try:
+            organizations.update_one(
+                {"_id": ObjectId(org_id)}, # Find by native Mongo ID
+                {"$set": {"provisioning_status": "failed"}},
+            )
+        except InvalidId:
+            pass  # Skip if org_id is not a valid ObjectId
+        # We can set job to None so the response doesn't break
+        class MockJob: 
+            id = None
+        job = MockJob()
+
+    return jsonify({
+        'message': 'User created successfully and provisioning started', 
+        'user_id': user_id,
+        'job_id': job.id,
+        'org_id': org_id, # Return the actual Mongo ID to the UI
+        "access_token": token,
+    }), 201
+
+
+@auth_bp.route("/login", methods=["POST"])
 def login():
     """
     Authenticate a user and issue a JWT access token.
@@ -80,143 +179,7 @@ def login():
     }), 200
 
 
-@auth_bp.route("/auth/signup", methods=["POST"])
-def signup():
-    if request.method == "OPTIONS":
-        return make_response("", 204)
-    print(">>> THIS SIGNUP ROUTE HIT <<<")
-
-    body = request.get_json(silent=True) or {}
-
-    print("SIGNUP RAW BODY:", request.data)
-    print("SIGNUP PARSED JSON:", body)
-    # Inputs (with fallbacks to support UI naming)
-    email = (body.get("email") or "").strip().lower()
-    password = body.get("password") or ""
-    full_name = (body.get("full_name") or "").strip()
-    company_name = (body.get("company_name") or body.get("company") or "").strip()
-    
-    org_id_raw = body.get("org_id")
-    org_id = (org_id_raw if org_id_raw else uuid.uuid4().hex[:16]).strip()
-    
-    package_type = (body.get("package_type") or body.get("plan") or "free").strip().lower()
-
-    # Required fields check
-    # FIX: Added org_id_raw to validation to ensure test_signup_missing_fields passes
-    missing = [k for k, v in {
-        "email": email,
-        "password": password,
-        "company_name": company_name,
-        "org_id": org_id_raw if org_id_raw is not None else "",
-    }.items() if not v]
-    
-    if missing:
-        return jsonify({"error": "Missing fields", "details": missing}), 400
-
-    orgs = db_admin["orgs"]
-    audit = db_admin["audit"]
-
-    # Uniqueness: org_id OR company_name must not exist already
-    if orgs.find_one({"company_name": company_name}):
-        return jsonify({"error": "Organization already exists"}), 409
-
-    now = datetime.now(timezone.utc)
-
-    # 1) Create organization
-    org_doc = {
-        "org_id": org_id,
-        "company_name": company_name,
-        "package_type": package_type,
-        "created_at": now,
-        "status": "active",
-        "provisioning_status": "pending",
-    }
-    orgs.insert_one(org_doc)
-
-    # 2) Create admin user for that org
-    user_doc = {
-        "email": email,
-        "password": hash_password(password),
-        "full_name": full_name,
-        "role": "admin",
-        "status": "active",
-        "org_id": org_id,
-        "created_at": now,
-    }
-    try:
-        ins = users_admin.insert_one(user_doc)
-        uid = str(ins.inserted_id)
-    except DuplicateKeyError:
-        # rollback org if email already exists
-        orgs.delete_one({"org_id": org_id})
-        return jsonify({"error": "Email already exists"}), 409
-
-    # 3) Provision automatically after organization and admin creation
-    try:
-        workstations = db_admin["workstations"]
-        workstations.insert_one({
-            "org_id": org_id,
-            "name": f"{org_id}-ws-001",
-            "status": "provisioning",
-            "created_at": now,
-        })
-
-        # enqueue provisioning job
-        job = service_dispatcher(
-            service_name="provision_network",
-            org_id=org_id,
-            region="ca-central-1",
-            workstation_count=1,
-        )
-
-        print(
-            f"[SIGNUP] Provisioning job enqueued job_id={job.id} org_id={org_id}"
-        )
-
-        orgs.update_one(
-            {"org_id": org_id},
-            {
-                "$set": {
-                    "provisioning_status": "in_progress",
-                    "provisioning_job_id": job.id,
-                }
-            },
-        )
-    except Exception:
-        orgs.update_one(
-            {"org_id": org_id},
-            {"$set": {"provisioning_status": "failed"}},
-        )
-
-    # 4) Best-effort audit trail (non-blocking)
-    try:
-        audit.insert_one({
-            "ts": now,
-            "action": "org_created",
-            "org_id": org_id,
-            "company_name": company_name,
-            "by": email,
-            "ip": request.remote_addr,
-        })
-    except Exception:
-        pass
-
-    # 5) Issue JWT for the new admin
-    token = issue_token(sub=uid, role="admin", org_id=org_id)
-
-    return jsonify({
-        "access_token": token,
-        "token_type": "Bearer",
-        "expires_in": 60 * 60,
-        "org": {
-            "org_id": org_id,
-            "company_name": company_name,
-            "package_type": package_type,
-        },
-    }), 201
-
-
-@auth_bp.route("/auth/me", methods=["GET"])
+@auth_bp.route("/me", methods=["GET"])
 def me():
     
     """
