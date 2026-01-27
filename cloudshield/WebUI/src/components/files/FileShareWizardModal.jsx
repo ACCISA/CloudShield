@@ -60,11 +60,13 @@ export default function FileShareWizardModal({
             const id = String(u._id || u.id || "");
             const fullName = u.full_name || u.name || "";
             const parts = fullName.trim().split(/\s+/);
+            const email = u.email || "";
             return {
               id,
               _id: id,
-              username: u.username || u.email?.split("@")[0] || "",
-              email: u.email,
+              // Use full_name as the display label; use email as the stable identifier.
+              username: fullName || email,
+              email,
               full_name: fullName,
               firstName: parts[0] || "",
               lastName: parts.slice(1).join(" ") || "",
@@ -74,18 +76,10 @@ export default function FileShareWizardModal({
             };
           });
           
-          // Deduplicate by id, username, and email to avoid showing the same user multiple times
-          const uniqueUsers = normalizedUsers.filter((u) => u.id).reduce((acc, user) => {
-            const isDuplicate = acc.find(existing => 
-              existing.id === user.id || 
-              (user.email && existing.email === user.email) ||
-              (user.username && existing.username === user.username)
-            );
-            if (!isDuplicate) {
-              acc.push(user);
-            }
-            return acc;
-          }, []);
+          // Deduplicate by id only. Email/username may legitimately collide across orgs.
+          const uniqueUsers = Array.from(
+            new Map(normalizedUsers.filter((u) => u.id).map((u) => [u.id, u])).values()
+          );
           
           // Normalize group data - keep it simple, just use what the API returns
           const normalizedGroups = groups.map(g => {
@@ -106,12 +100,20 @@ export default function FileShareWizardModal({
           // If editing, populate form with existing data
           if (isEditMode && file) {
             // Convert string arrays to user objects by matching usernames
-            const userObjects = (file.users || []).map(username => {
+            const userObjectsRaw = (file.users || []).map(username => {
               const found = normalizedUsers.find(u => 
-                u.username === username || u.email === username
+                u.username === username ||
+                u.email === username ||
+                (u.email && u.email.split("@")[0] === username)
               );
               return found || { username, id: username };
             });
+            // De-duplicate selected users by id to avoid double cards.
+            const userObjects = Array.from(
+              new Map(
+                userObjectsRaw.map((u) => [String(u.id || u.username || u.email), u])
+              ).values()
+            );
 
             // Convert group name strings to full group objects
             const groupObjects = (file.groups || []).map(groupName => {
@@ -159,9 +161,14 @@ export default function FileShareWizardModal({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Extract usernames and group names
-      const usernames = formData.selectedUsers.map(u => 
-        typeof u === 'string' ? u : (u.username || u.email || u)
+      // Prefer stable identifiers (email) and de-duplicate.
+      const userIds = Array.from(
+        new Set(
+          formData.selectedUsers.map((u) => {
+            if (typeof u === "string") return u;
+            return u.email || u.username || u.id || "";
+          }).filter(Boolean)
+        )
       );
       const groupNames = formData.selectedGroups.map(g => 
         typeof g === 'string' ? g : (g.name || g.groupName)
@@ -171,7 +178,7 @@ export default function FileShareWizardModal({
         shareName: formData.shareName,
         description: formData.description,
         maxSize: formData.maxSize,
-        users: usernames,
+        users: userIds,
         groups: groupNames,
       });
     } finally {

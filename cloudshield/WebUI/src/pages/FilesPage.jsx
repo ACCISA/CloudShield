@@ -164,18 +164,23 @@ export default function FilesPage() {
         const usersData = await fetchUsers(orgId);
         const lookup = new Map();
         usersData.forEach(user => {
+          const email = user.email || "";
+          const emailPrefix = email.includes("@") ? email.split("@")[0] : "";
+          const fullName = user.full_name || user.name || "";
           const normalized = {
             id: String(user._id || user.id || ""),
-            username: user.username || user.email?.split("@")[0] || "",
-            email: user.email,
-            full_name: user.full_name || user.name || "",
+            username: fullName || email,
+            email,
+            full_name: fullName,
             role: user.role,
             active: user.active !== undefined ? user.active : true,
           };
-          // Map by username for lookup
-          if (normalized.username) {
-            lookup.set(normalized.username, normalized);
-          }
+          // Keep lookups simple and aligned with the DB shape.
+          if (normalized.username) lookup.set(normalized.username, normalized);
+          if (email) lookup.set(email, normalized);
+          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
+          // Legacy fallback: some shares store email prefixes like "samir".
+          if (emailPrefix) lookup.set(emailPrefix, normalized);
         });
         setUserLookup(lookup);
       } catch (err) {
@@ -592,7 +597,7 @@ export default function FilesPage() {
 
             <div className="groups">
               <AvatarPill 
-                items={ensureArray(node.users).map(username => 
+                items={Array.from(new Set(ensureArray(node.users))).map(username => 
                   userLookup.get(username) || { username, id: username }
                 )} 
                 type="user" 

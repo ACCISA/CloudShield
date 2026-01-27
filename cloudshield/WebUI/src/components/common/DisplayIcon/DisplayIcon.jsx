@@ -71,8 +71,10 @@ function DisplayIcon({ type = "user", data = {}, size = "medium", showHoverCard 
     } else if (type === "user") {
       return (
         `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+        data.full_name ||
         data.name ||
         data.username ||
+        data.email ||
         "Unknown User"
       );
     } else if (type === "group") {
