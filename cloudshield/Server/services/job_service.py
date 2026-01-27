@@ -8,8 +8,6 @@ from typing import Tuple, Dict, Any
 import rq
 from redis_client import task_queue, redis_conn
 from utils import get_logger
-from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_create_user_with_group, dc_restart_samba_service, dc_user_list, dc_set_password
-from tasks import dc_create_file_share, dc_delete_file_share, dc_remove_user, dc_add_user_to_group
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
