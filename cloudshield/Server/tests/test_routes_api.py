@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest.mock
+import uuid
 # create a reusable mock client and a fake redis module that returns it
 _mock_redis_client = unittest.mock.MagicMock()
 _mock_redis_client.get.return_value = None
@@ -81,6 +82,21 @@ def test_status_ok(client):
     resp = client.get("/api/status/unknown-job-id")
     # With real service, unknown jobs return 404 or error status
     assert resp.status_code in [200, 404]
+
+
+def test_job_status_returns_progress(client, monkeypatch):
+    """GET /api/status/<job_id> should forward progress fields"""
+    import cloudshield.Server.services as services
+    import cloudshield.Server.routes.api as api_mod
+
+    monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "in_progress", "progress": 42, "progress_text": "Halfway"}, 200))
+    monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+
+    resp = client.get("/api/status/job_1")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("progress") == 42
+    assert data.get("progress_text") == "Halfway"
 
 
 def test_health_ok(client):
@@ -225,6 +241,28 @@ def test_share_doc_to_payload():
     assert result["groups"] == ["hr"]
     assert result["created_at"] == now.isoformat()
 
+
+def test_get_organization_includes_job_id(client, monkeypatch):
+    """GET /api/organization should include provisioning_job_id when set"""
+    # Arrange: mock organizations.find_one to return an org doc with provisioning_job_id
+    fake_doc = {
+        "_id": "507f1f77bcf86cd799439011",
+        "provisioning_status": "in_progress",
+        "provisioning_job_id": "job_123",
+        "package": "basic",
+        "user_limit": 10,
+        "workstation_limit": 5,
+    }
+    monkeypatch.setattr(api_mod, "organizations", MagicMock(find_one=lambda _filter: fake_doc))
+
+    # Act
+    resp = client.get("/api/organization/507f1f77bcf86cd799439011")
+
+    # Assert
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("provisioning_job_id") == "job_123"
+
 # --- File Share Endpoints ---
 
 def test_task_delete_file_share(client):
@@ -283,22 +321,18 @@ def test_list_file_share_groups(mock_list_groups, client):
 def test_update_file_share(mock_update_share, client):
     mock_update_share.return_value = True
     
-    # Success path
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    # Success path - org_id is now in the URL path
+    resp = client.patch("/api/file_shares/acme/Finance", json={"description": "New description"})
     assert resp.status_code == 200
     assert resp.json["status"] == "SUCCESS"
     
-    # Missing org_id
-    resp = client.patch("/api/file_shares/Finance", json={"description": "New description"})
-    assert resp.status_code == 422
-    
     # No update fields provided
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme"})
+    resp = client.patch("/api/file_shares/acme/Finance", json={})
     assert resp.status_code == 400
     
     # Share not found failure
     mock_update_share.return_value = False
-    resp = client.patch("/api/file_shares/Finance", json={"org_id": "acme", "description": "New description"})
+    resp = client.patch("/api/file_shares/acme/Finance", json={"description": "New description"})
     assert resp.status_code == 404
 
 # --- DC Task Endpoints ---
@@ -355,37 +389,158 @@ VALID_SIGNUP_PAYLOAD = {
     "email": "admin@example.com", 
     "password": "Password123!",
     "full_name": "Test Admin",
-    "company_name": "Acme Corp"
+    "role": "admin",
 }
 
-@patch("cloudshield.Server.routes.api.create_user")
-def test_signup_admin_success(mock_create_user, client):
-    mock_create_user.return_value = "new_user_123"
+
+def _unique_signup_payload():
+    payload = dict(VALID_SIGNUP_PAYLOAD)
+    payload["email"] = f"admin_{uuid.uuid4().hex}@example.com"
+    return payload
+
+
+@pytest.fixture()
+def signup_admin_client(monkeypatch):
+    """
+    Dedicated fixture for signup_admin tests that patches create_user
+    BEFORE the Flask app is created.
+    """
+    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+        mock_redis_instance = MagicMock()
+        mock_redis_cls.return_value = mock_redis_instance
+        mock_redis_instance.ping.return_value = True
+        mock_redis_instance.get.return_value = b"some_value"
+        mock_redis_instance.set.return_value = True
+
+        class DummyJob:
+            def __init__(self, job_id):
+                self.id = job_id
+
+        # Import modules BEFORE create_app so we can patch them.
+        # NOTE: depending on PYTHONPATH, the app may import either
+        # `cloudshield.Server.routes.*` OR the top-level `routes.*` package.
+        import cloudshield.Server.routes.users as users_mod
+        import cloudshield.Server.services as services_mod
+        import cloudshield.Server.services.user_service as user_service_mod
+
+        # Create a configurable mock that tests can modify
+        mock_create_user = MagicMock()
+        
+        def default_create_user(user_data, current_user=None, reason=None):
+            user_data.org_id = "org_123"
+            return "new_user_123"
+        
+        mock_create_user.side_effect = default_create_user
+        
+        # Patch at all levels BEFORE app creation
+        monkeypatch.setattr(users_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(services_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+
+        # Also patch alternative import paths used by `cloudshield/Server/server.py`
+        # when it falls back to `from routes import ...`.
+        try:
+            import routes.users as users_mod_alt  # type: ignore
+            monkeypatch.setattr(users_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
+        try:
+            import services as services_mod_alt  # type: ignore
+            monkeypatch.setattr(services_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
+        try:
+            import services.user_service as user_service_mod_alt  # type: ignore
+            monkeypatch.setattr(user_service_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
+        monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        try:
+            monkeypatch.setattr("routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        except Exception:
+            pass
+        
+        from cloudshield.Server.server import create_app
+        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.services as services
+
+        monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
+        monkeypatch.setattr(services, "health_status", lambda: ({"status": "ok", "redis": True}, 200))
+        monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+        monkeypatch.setattr(api_mod, "health_status", services.health_status)
+
+        app = create_app()
+        app.testing = True
+
+        # Ensure the *actual* registered view function uses our mock regardless
+        # of which module path (`cloudshield.Server.routes.*` vs `routes.*`) was
+        # used when creating the Flask app.
+        for view_func in app.view_functions.values():
+            if getattr(view_func, "__name__", None) == "signup_admin_endpoint":
+                view_func.__globals__["create_user"] = mock_create_user
+                break
+        yield app.test_client(), mock_create_user
+
+
+def test_signup_admin_success(signup_admin_client):
+    client, mock_create_user = signup_admin_client
     
-    # Success Path 
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+    def success_create_user(user_data, current_user=None, reason=None):
+        user_data.org_id = "org_123"
+        return "new_user_123"
+    
+    mock_create_user.side_effect = success_create_user
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 201
     assert "user_id" in resp.json
 
-@patch("cloudshield.Server.routes.api.create_user")
-def test_signup_admin_validation_error(mock_create_user, client):
-    # Forcing a generic ValueError which hits the 409 block
-    mock_create_user.side_effect = ValueError("User already exists")
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+def test_signup_admin_validation_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
+    
+    def raise_value_error(*args, **kwargs):
+        raise ValueError("User already exists")
+    
+    mock_create_user.side_effect = raise_value_error
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 409
 
-@patch("cloudshield.Server.routes.api.create_user")
-def test_signup_admin_permission_error(mock_create_user, client):
-    # Testing the 403 block
-    mock_create_user.side_effect = PermissionError("Unauthorized")
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+def test_signup_admin_permission_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
+    
+    def raise_permission_error(*args, **kwargs):
+        raise PermissionError("Unauthorized")
+    
+    mock_create_user.side_effect = raise_permission_error
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 403
 
-@patch("cloudshield.Server.routes.api.create_user")
-def test_signup_admin_internal_error(mock_create_user, client):
-    # Testing the 500 catch-all Exception block
-    mock_create_user.side_effect = Exception("DB Down")
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+def test_signup_admin_internal_error(signup_admin_client):
+    client, mock_create_user = signup_admin_client
+    
+    def raise_exception(*args, **kwargs):
+        raise Exception("DB Down")
+    
+    mock_create_user.side_effect = raise_exception
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 500
 
 # ==========================================

@@ -103,7 +103,7 @@ def test_dc_add_user_invalid_username(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
     
-    result = dc_add_user("test_org", "invalid user!", "Password123!")
+    result = dc_add_user("test_org", "invalid user!", "Password123!","invalid@mail.com")
     
     assert "invalid" in result["message"].lower()
     assert mock_job.meta["progress"] == "invalid username"
@@ -129,7 +129,7 @@ def test_dc_add_user_invalid_password(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
     
-    result = dc_add_user("test_org", "validuser", "short")
+    result = dc_add_user("test_org", "validuser", "short","valid@mail.com")
     
     assert "invalid" in result["message"].lower()
     assert mock_job.meta["progress"] == "invalid password"
@@ -159,7 +159,7 @@ def test_dc_add_user_without_job(monkeypatch):
     )
     
     # Should not raise an error
-    dc_add_user("test_org", "validuser", "Password123!")
+    dc_add_user("test_org", "validuser", "Password123!","valid@mail.com")
 
 
 def test_dc_add_user_persists_on_success(monkeypatch):
@@ -207,7 +207,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
 
     # Assert persist_domain_user was called with correct args
     mock_persist.assert_called_once()
@@ -216,7 +216,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     assert called_args[0][0] == "test_org"
     assert called_args[0][1]== "testuser"
     assert called_args[0][2] == "Password123!"
-    assert "@gmail.com" in called_args[0][3]
+    assert "@mail.com" in called_args[0][3]
 
 
 def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
@@ -247,7 +247,7 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
     
     # Assert persist_domain_user was not called
     mock_persist.assert_not_called()

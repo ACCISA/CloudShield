@@ -74,7 +74,6 @@ class TestUserService:
         mock_get_workstation_count.return_value = 5
 
         # Import the service module to get access to its globals
-        # Need to import after mocking dependencies
         import cloudshield.Server.services.user_service as user_service_module
         
         # Patch the imported variables directly in the service module
@@ -90,33 +89,39 @@ class TestUserService:
             "get_workstation_count": mock_get_workstation_count
         }
 
+    # Dummy ObjectIds for testing
+    TEST_ORG_ID = "507f1f77bcf86cd799439012"
+    TEST_USER_ID = "507f1f77bcf86cd799439011"
+
     @pytest.fixture
     def admin_user(self):
-        """Mock admin user"""
+        """Mock admin user with valid ObjectId string"""
         return {
-            "id": "admin123",
+            "id": self.TEST_USER_ID,
             "role": "admin",
-            "org_id": "org_001"
+            "org_id": self.TEST_ORG_ID
         }
 
     @pytest.fixture
     def employee_user(self):
-        """Mock employee user"""
+        """Mock employee user with valid ObjectId string"""
         return {
-            "id": "emp123",
+            "id": "507f1f77bcf86cd799439099",
             "role": "employee",
-            "org_id": "org_001"
+            "org_id": self.TEST_ORG_ID
         }
 
     @pytest.fixture
     def user_data(self):
-        """Mock user creation data"""
+        """Mock user creation data matching the updated Pydantic model"""
         mock_data = unittest.mock.MagicMock()
         mock_data.email = "john@example.com"
         mock_data.password = "password123"
-        mock_data.org_id = "org_001"
+        mock_data.org_id = self.TEST_ORG_ID
         mock_data.role = "employee"
         mock_data.full_name = "John Doe"
+        mock_data.company_name = None 
+        mock_data.package_type = "basic"
         return mock_data
 
     ## CREATE USER TESTS
@@ -134,63 +139,46 @@ class TestUserService:
         mocks['users_admin'].find_one.return_value = {"_id": ObjectId(), "email": "john@example.com"}
         with pytest.raises(ValueError, match="User with email john@example.com already exists"):
             create_user(user_data, admin_user)
+
         # Test workstation count exceeded
         mocks['users_admin'].find_one.return_value = None
         mocks['users_admin'].count_documents.return_value = 4
         mocks['get_workstation_count'].return_value = 0
         with pytest.raises(ValueError, match="User limit reached for this organization"):
             create_user(user_data, admin_user)
+
         # Test successful creation
         mocks['get_workstation_count'].return_value = 5
         mock_result = unittest.mock.MagicMock()
-        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mock_result.inserted_id = ObjectId(self.TEST_USER_ID)
         mocks['users_admin'].insert_one.return_value = mock_result
         
         result = create_user(user_data, admin_user, "Test reason")
         
-        assert result == "507f1f77bcf86cd799439011"
+        assert result == self.TEST_USER_ID
         mocks['users_admin'].insert_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
 
     # ✅ New tests for public-signup permission rules in create_user()
 
-    def test_create_user_public_signup_denied_when_org_already_has_user(self, setup_mocks, user_data):
+    def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data, monkeypatch):
         """
         Covers:
           - current_user is None (public signup)
-          - users_admin.count_documents({"org_id": ...}) > 0 -> PermissionError
-        """
-        mocks = setup_mocks
-        from cloudshield.Server.services.user_service import create_user
-
-        # Make public signup attempt look like org already has users/admins
-        mocks["users_admin"].count_documents.return_value = 1
-
-        # Ensure we don't trip other branches before this check
-        user_data.role = "admin"  # would pass the role gate, but should fail on existing count first
-
-        with pytest.raises(
-            PermissionError,
-            match=r"Public signup is disabled for this organization \(admin already exists\)\."
-        ):
-            create_user(user_data, current_user=None, reason="bootstrap")
-
-        # Ensure we didn't proceed to email uniqueness/insert
-        mocks["users_admin"].find_one.assert_not_called()
-        mocks["users_admin"].insert_one.assert_not_called()
-
-    def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data):
-        """
-        Covers:
-          - current_user is None (public signup)
-          - org has 0 users
           - role != admin -> PermissionError("Public signup can only create an admin user.")
         """
         mocks = setup_mocks
+        import cloudshield.Server.services.user_service as user_service_module
         from cloudshield.Server.services.user_service import create_user
 
-        mocks["users_admin"].count_documents.return_value = 0
+        # Mock organizations collection for org creation
+        mock_orgs = unittest.mock.MagicMock()
+        mock_insert_result = unittest.mock.MagicMock()
+        mock_insert_result.inserted_id = ObjectId()
+        mock_orgs.insert_one.return_value = mock_insert_result
+        monkeypatch.setattr(user_service_module, "organizations", mock_orgs)
+
         user_data.role = "employee"  # should be rejected
 
         with pytest.raises(PermissionError, match="Public signup can only create an admin user."):
@@ -199,12 +187,39 @@ class TestUserService:
         mocks["users_admin"].find_one.assert_not_called()
         mocks["users_admin"].insert_one.assert_not_called()
 
+    def test_create_user_public_signup_email_already_exists(self, setup_mocks, user_data, monkeypatch):
+        """
+        Covers:
+          - current_user is None (public signup)
+          - role is admin (passes role check)
+          - email already exists -> ValueError
+        """
+        mocks = setup_mocks
+        import cloudshield.Server.services.user_service as user_service_module
+        from cloudshield.Server.services.user_service import create_user
+
+        # Mock organizations collection for org creation
+        mock_orgs = unittest.mock.MagicMock()
+        mock_insert_result = unittest.mock.MagicMock()
+        mock_insert_result.inserted_id = ObjectId()
+        mock_orgs.insert_one.return_value = mock_insert_result
+        monkeypatch.setattr(user_service_module, "organizations", mock_orgs)
+
+        # Make email check return existing user
+        mocks["users_admin"].find_one.return_value = {"_id": "existing_user"}
+        user_data.role = "admin"
+
+        with pytest.raises(ValueError, match="already exists"):
+            create_user(user_data, current_user=None, reason="bootstrap")
+
+        mocks["users_admin"].insert_one.assert_not_called()
+
     def test_create_user_public_signup_creates_org_and_sets_org_id(self, setup_mocks, user_data, monkeypatch):
         """
         Covers:
             - current_user is None (public signup)
-            - org auto-created when missing
-            - package and org_name flow through to org creation
+            - org auto-created with Mongo ObjectId
+            - package_type and company_name flow through to org creation
             - org_id is set back on user_data for caller use
         """
         mocks = setup_mocks
@@ -218,7 +233,7 @@ class TestUserService:
         def _fake_insert_one(doc):
             inserted.update(doc)
             m = unittest.mock.MagicMock()
-            m.inserted_id = "org-doc-id"
+            m.inserted_id = ObjectId(self.TEST_ORG_ID) # Mongo generates this
             return m
 
         fake_orgs.insert_one.side_effect = _fake_insert_one
@@ -228,15 +243,15 @@ class TestUserService:
         mocks["users_admin"].count_documents.return_value = 0
         user_data.role = "admin"
         user_data.org_id = None
-        user_data.org_name = "Acme Corp"
-        user_data.package = "pro"
+        user_data.company_name = "Acme Corp" # Updated field name
+        user_data.package_type = "pro"       # Updated field name
 
         # Pass uniqueness + limit checks
         mocks["users_admin"].find_one.return_value = None
         mocks["get_workstation_count"].return_value = 5
 
         mock_result = unittest.mock.MagicMock()
-        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mock_result.inserted_id = ObjectId(self.TEST_USER_ID)
         mocks["users_admin"].insert_one.return_value = mock_result
 
         mocks["users_admin"].insert_one.reset_mock()
@@ -244,37 +259,21 @@ class TestUserService:
 
         new_id = create_user(user_data, current_user=None, reason="bootstrap")
 
-        assert new_id == "507f1f77bcf86cd799439011"
+        assert new_id == self.TEST_USER_ID
         mocks["users_admin"].insert_one.assert_called_once()
         mocks["log_audit"].assert_called_once()
 
         # org_id should be generated and set back on user_data
-        assert getattr(user_data, "org_id", None)
+        assert user_data.org_id == self.TEST_ORG_ID
 
         # Org insert was called with package-derived limits applied via create_organization_doc
-        assert inserted.get("org_id") == getattr(user_data, "org_id")
+        # NOTE: the model sets "package" inside the doc using "package_type"
         assert inserted.get("package") == "pro"
-
-        # Pass uniqueness + limit checks
-        mocks["users_admin"].find_one.return_value = None
-        mocks["get_workstation_count"].return_value = 5
-
-        mock_result = unittest.mock.MagicMock()
-        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
-        mocks["users_admin"].insert_one.return_value = mock_result
-
-        mocks["users_admin"].insert_one.reset_mock()
-        mocks["log_audit"].reset_mock()
-
-        new_id = create_user(user_data, current_user=None, reason="bootstrap")
-
-        assert new_id == "507f1f77bcf86cd799439011"
-        mocks["users_admin"].insert_one.assert_called_once()
-        mocks["log_audit"].assert_called_once()
 
         # Optional: ensure the inserted doc keeps the role admin (service-layer hardening)
         inserted_doc = mocks["users_admin"].insert_one.call_args[0][0]
         assert inserted_doc["role"] == "admin"
+        assert inserted_doc["org_id"] == self.TEST_ORG_ID
 
     ## UPDATE USER TESTS
 
@@ -283,38 +282,35 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
         
-        user_id = "507f1f77bcf86cd799439011"
-        
         # Test non-admin permission denied
         update_data = unittest.mock.MagicMock()
         with pytest.raises(PermissionError, match="admin_only"):
-            update_user(user_id, update_data, employee_user)
+            update_user(self.TEST_USER_ID, update_data, employee_user)
         
         # Test user not found - clear any previous side_effect
         mocks['users_admin'].find_one.side_effect = None
         mocks['users_admin'].find_one.return_value = None
-        with pytest.raises(ValueError, match=f"User {user_id} not found"):
-            update_user(user_id, update_data, admin_user)
+        with pytest.raises(ValueError, match=f"User {self.TEST_USER_ID} not found"):
+            update_user(self.TEST_USER_ID, update_data, admin_user)
         
         # Test no fields to update - clear side_effect and set return_value
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
+        existing_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com"}
         mocks['users_admin'].find_one.side_effect = None
         mocks['users_admin'].find_one.return_value = existing_user
         update_data.dict = unittest.mock.MagicMock(return_value={})
         with pytest.raises(ValueError, match="No fields to update"):
-            update_user(user_id, update_data, admin_user)
+            update_user(self.TEST_USER_ID, update_data, admin_user)
 
     def test_update_user_success(self, setup_mocks, admin_user):
         """Test successful update_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
         
-        user_id = "507f1f77bcf86cd799439011"
         update_data = unittest.mock.MagicMock()
         update_data.dict.return_value = {"password": "newpass", "full_name": "Jane Doe"}
         
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com"}
-        updated_user = {"_id": ObjectId(user_id), "email": "john@example.com", "full_name": "Jane Doe"}
+        existing_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com"}
+        updated_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com", "full_name": "Jane Doe"}
         
         # Clear any previous return_value and set side_effect for multiple calls
         mocks['users_admin'].find_one.return_value = None
@@ -325,7 +321,7 @@ class TestUserService:
         mocks['log_audit'].reset_mock()
         mocks['hash_password'].reset_mock()
         
-        result = update_user(user_id, update_data, admin_user, "Test reason")
+        result = update_user(self.TEST_USER_ID, update_data, admin_user, "Test reason")
         
         assert result is True
         mocks['users_admin'].update_one.assert_called_once()
@@ -339,25 +335,22 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import deactivate_user
         
-        user_id = "507f1f77bcf86cd799439011"
-        
         # Test non-admin permission denied
         with pytest.raises(PermissionError, match="admin_only"):
-            deactivate_user(user_id, employee_user)
+            deactivate_user(self.TEST_USER_ID, employee_user)
         
         # Test user not found
         mocks['users_admin'].find_one.return_value = None
-        with pytest.raises(ValueError, match=f"User {user_id} not found"):
-            deactivate_user(user_id, admin_user)
+        with pytest.raises(ValueError, match=f"User {self.TEST_USER_ID} not found"):
+            deactivate_user(self.TEST_USER_ID, admin_user)
 
     def test_deactivate_user_success(self, setup_mocks, admin_user):
         """Test successful deactivate_user operation"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import deactivate_user
         
-        user_id = "507f1f77bcf86cd799439011"
-        before_user = {"_id": ObjectId(user_id), "email": "john@example.com", "status": "active"}
-        after_user = {"_id": ObjectId(user_id), "email": "john@example.com", "status": "inactive"}
+        before_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com", "status": "active"}
+        after_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com", "status": "inactive"}
         
         # Clear any previous return_value and set side_effect
         mocks['users_admin'].find_one.return_value = None
@@ -367,7 +360,7 @@ class TestUserService:
         mocks['users_admin'].update_one.reset_mock()
         mocks['log_audit'].reset_mock()
         
-        result = deactivate_user(user_id, admin_user, "Test reason")
+        result = deactivate_user(self.TEST_USER_ID, admin_user, "Test reason")
         
         assert result is True
         mocks['users_admin'].update_one.assert_called_once()
@@ -379,11 +372,9 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        user_id = "507f1f77bcf86cd799439011"
-
         # --- non-admin is rejected ---
         with pytest.raises(PermissionError, match="admin_only"):
-            delete_user(user_id, employee_user)
+            delete_user(self.TEST_USER_ID, employee_user)
 
         # --- invalid ObjectId format ---
         with pytest.raises(ValueError, match="User invalid_id not found"):
@@ -393,17 +384,16 @@ class TestUserService:
         mocks["users_admin"].find_one.side_effect = None
         mocks["users_admin"].find_one.return_value = None
 
-        with pytest.raises(ValueError, match=f"User {user_id} not found"):
-            delete_user(user_id, admin_user)
+        with pytest.raises(ValueError, match=f"User {self.TEST_USER_ID} not found"):
+            delete_user(self.TEST_USER_ID, admin_user)
 
     def test_delete_user_self_delete_forbidden(self, setup_mocks, admin_user):
         """Admin cannot delete themselves (self-delete guard)"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        # Use a valid ObjectId string for the admin's id for this test
-        self_id = "507f1f77bcf86cd799439011"
-        admin_user["id"] = self_id  # mutate the fixture dict for this test
+        # Use the exact ID of the admin running the delete
+        self_id = admin_user["id"] 
 
         existing_user = {
             "_id": ObjectId(self_id),
@@ -425,10 +415,7 @@ class TestUserService:
         from cloudshield.Server.services.user_service import delete_user
 
         # Ensure target user is NOT the same as current admin (avoid self-delete path)
-        target_id = "507f1f77bcf86cd799439011"
-        if target_id == admin_user["id"]:
-            # tweak last digit to stay a valid ObjectId-like string but different from admin id
-            target_id = "507f1f77bcf86cd799439012"
+        target_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(target_id),
@@ -451,10 +438,8 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        # Use a target ID that is different from the current admin (avoid self-delete).
-        user_id = "507f1f77bcf86cd799439011"
-        if user_id == admin_user["id"]:
-            user_id = "507f1f77bcf86cd799439012"
+        # Use a target ID that is different from the current admin
+        user_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(user_id),
@@ -493,9 +478,7 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        user_id = "507f1f77bcf86cd799439011"
-        if user_id == admin_user["id"]:
-            user_id = "507f1f77bcf86cd799439012"
+        user_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(user_id),
@@ -530,9 +513,7 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        user_id = "507f1f77bcf86cd799439011"
-        if user_id == admin_user["id"]:
-            user_id = "507f1f77bcf86cd799439012"
+        user_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(user_id),
@@ -557,22 +538,18 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        user_id = "507f1f77bcf86cd799439011"
         # Make sure we pass admin check and reach the find_one call
         mocks["users_admin"].find_one.side_effect = PyMongoError("boom")
 
         with pytest.raises(ValueError, match="Database error while fetching user"):
-            delete_user(user_id, admin_user)
+            delete_user(self.TEST_USER_ID, admin_user)
 
     def test_delete_user_db_error_on_admin_quorum_check(self, setup_mocks, admin_user):
         """delete_user: DB error while checking remaining admins should raise clean ValueError"""
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        # Use a target ID different from the current admin to avoid self-delete guard
-        target_id = "507f1f77bcf86cd799439011"
-        if target_id == admin_user["id"]:
-            target_id = "507f1f77bcf86cd799439012"
+        target_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(target_id),
@@ -595,9 +572,7 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import delete_user
 
-        user_id = "507f1f77bcf86cd799439011"
-        if user_id == admin_user["id"]:
-            user_id = "507f1f77bcf86cd799439012"
+        user_id = "507f1f77bcf86cd799439088"
 
         existing_user = {
             "_id": ObjectId(user_id),
@@ -648,21 +623,21 @@ class TestUserService:
         
         # Mock insert result
         mock_result = unittest.mock.MagicMock()
-        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mock_result.inserted_id = ObjectId(self.TEST_USER_ID)
         mocks['users_admin'].insert_one.return_value = mock_result
         
         # Execute
-        result = persist_domain_user("org_123", "domain_user", "SecurePass123!", "temp@email")
+        result = persist_domain_user(self.TEST_ORG_ID, "domain_user", "SecurePass123!", "temp@email")
         
         # Assert
-        assert result == "507f1f77bcf86cd799439011"
+        assert result == self.TEST_USER_ID
         
         # Check insert_one was called
         mocks['users_admin'].insert_one.assert_called_once()
         call_args = mocks['users_admin'].insert_one.call_args[0][0]
         
         # Verify document structure
-        assert call_args["org_id"] == "org_123"
+        assert call_args["org_id"] == self.TEST_ORG_ID
         assert call_args["username"] == "domain_user"
         assert call_args["password"] == "hashed::SecurePass123!"  # mocked hash
         assert call_args["role"] == "employee"
@@ -678,17 +653,16 @@ class TestUserService:
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
 
-        user_id = "507f1f77bcf86cd799439011"
         update_data = unittest.mock.MagicMock()
         update_data.dict.return_value = {"full_name": "No Password"}
 
-        existing_user = {"_id": ObjectId(user_id), "email": "john@example.com", "full_name": "Old"}
+        existing_user = {"_id": ObjectId(self.TEST_USER_ID), "email": "john@example.com", "full_name": "Old"}
         updated_user = existing_user | {"full_name": "No Password"}
 
         mocks['users_admin'].find_one.side_effect = [existing_user, updated_user]
         mocks['hash_password'].reset_mock()
 
-        result = update_user(user_id, update_data, admin_user)
+        result = update_user(self.TEST_USER_ID, update_data, admin_user)
 
         assert result is True
         mocks['hash_password'].assert_not_called()
@@ -710,7 +684,7 @@ class TestUserService:
         created = datetime(2025, 1, 1, tzinfo=timezone.utc)
         updated = datetime(2025, 1, 2, tzinfo=timezone.utc)
         doc = {
-            "_id": ObjectId("507f1f77bcf86cd799439011"),
+            "_id": ObjectId(self.TEST_USER_ID),
             "email": "john@example.com",
             "created_at": created,
             "updated_at": updated,
@@ -720,7 +694,7 @@ class TestUserService:
 
         users = list_users(admin_user)
 
-        assert users[0]["_id"] == "507f1f77bcf86cd799439011"
+        assert users[0]["_id"] == self.TEST_USER_ID
         assert users[0]["created_at"] == created.isoformat()
         assert users[0]["updated_at"] == updated.isoformat()
 
@@ -731,9 +705,9 @@ class TestUserService:
         
         # Mock find_one_and_delete to return deleted user
         deleted_user = {
-            "_id": ObjectId("507f1f77bcf86cd799439011"),
+            "_id": ObjectId(self.TEST_USER_ID),
             "username": "testuser",
-            "org_id": "org_123",
+            "org_id": self.TEST_ORG_ID,
             "email": "test@example.com",
             "role": "employee",
             "status": "active"
@@ -742,7 +716,7 @@ class TestUserService:
         
         # Execute
         result = remove_domain_user_from_db(
-            org_id="org_123",
+            org_id=self.TEST_ORG_ID,
             username="testuser",
             job_id="job-456"
         )
@@ -750,7 +724,7 @@ class TestUserService:
         # Assert
         assert result is True
         mocks['users_admin'].find_one_and_delete.assert_called_once_with({
-            "org_id": "org_123",
+            "org_id": self.TEST_ORG_ID,
             "username": "testuser"
         })
 
@@ -764,14 +738,14 @@ class TestUserService:
         
         # Execute
         result = remove_domain_user_from_db(
-            org_id="org_123",
+            org_id=self.TEST_ORG_ID,
             username="nonexistent"
         )
         
         # Assert
         assert result is False
         mocks['users_admin'].find_one_and_delete.assert_called_once_with({
-            "org_id": "org_123",
+            "org_id": self.TEST_ORG_ID,
             "username": "nonexistent"
         })
 
@@ -787,7 +761,7 @@ class TestUserService:
             "email": "test@example.com",
             "role": "employee",
             "status": "active",
-            "org_id": "org_123"
+            "org_id": self.TEST_ORG_ID
         }
         
         # Mock find_one_and_delete to return a user (successful deletion)
@@ -798,7 +772,7 @@ class TestUserService:
         
         # Execute - should still succeed despite audit failure
         result = remove_domain_user_from_db(
-            org_id="org_123",
+            org_id=self.TEST_ORG_ID,
             username="testuser",
             job_id="job_456"
         )
@@ -806,7 +780,7 @@ class TestUserService:
         # Assert
         assert result is True  # Deletion succeeds even if audit fails
         mocks['users_admin'].find_one_and_delete.assert_called_once_with({
-            "org_id": "org_123",
+            "org_id": self.TEST_ORG_ID,
             "username": "testuser"
         })
         mocks['log_audit'].assert_called_once()  # Audit was attempted

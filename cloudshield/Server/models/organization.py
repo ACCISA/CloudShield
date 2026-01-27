@@ -1,14 +1,11 @@
 """Organization models and helpers for package-based resource limits."""
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
 from typing import Dict, Literal, Optional
 
 from pydantic import BaseModel, field_validator
 from pydantic_core import PydanticCustomError
-
-ORG_RX = re.compile(r"^[a-z0-9_-]{3,32}$")
 
 PACKAGE_LIMITS: Dict[str, Dict[str, int | None]] = {
     "basic": {"workstation_limit": 5, "user_limit": 10, "storage_limit_gb": None},
@@ -43,21 +40,8 @@ class OrganizationBase(BaseModel):
 
 
 class OrganizationCreate(OrganizationBase):
-    org_id: str
-
-    @field_validator("org_id")
-    @classmethod
-    def valid_org(cls, v: str) -> str:
-        v2 = v.strip()
-        if not v2:
-            raise PydanticCustomError("org_id_required", "org_id is required", {})
-        if not ORG_RX.match(v2):
-            raise PydanticCustomError(
-                "org_id_format",
-                "org_id must be 3-32 chars: a-z, 0-9, _ or -",
-                {},
-            )
-        return v2
+    """Schema for creating a new organization. ID is handled by MongoDB."""
+    pass
 
 
 class OrganizationUpdate(BaseModel):
@@ -78,13 +62,14 @@ class OrganizationUpdate(BaseModel):
 
 
 class Organization(OrganizationCreate):
+    """Schema representing an existing organization fetched from the DB."""
     id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 
 def create_organization_doc(org: OrganizationCreate) -> dict:
-    """Create a MongoDB-ready organization document with derived limits."""
+    """Create a MongoDB-ready organization document with derived limits (No _id, handled by DB)."""
     limits = get_package_limits(org.package)
 
     workstation_limit = org.workstation_limit if org.workstation_limit is not None else limits["workstation_limit"]
@@ -93,7 +78,6 @@ def create_organization_doc(org: OrganizationCreate) -> dict:
 
     now = datetime.now(timezone.utc)
     return {
-        "org_id": org.org_id,
         "name": org.name,
         "package": org.package,
         "workstation_limit": workstation_limit,

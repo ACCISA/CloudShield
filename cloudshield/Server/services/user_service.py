@@ -1,12 +1,10 @@
 """User management service layer with audit logging."""
-import re
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
 from utils import users_admin, users_public, log_audit, organizations
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
-from models.organization import ORG_RX
 from security import hash_password
 from pymongo.errors import PyMongoError
 from bson.errors import InvalidId
@@ -21,43 +19,17 @@ def _coerce_int(val) -> int | None:
     return None
 
 
-def _slugify_org_id(seed: str) -> str:
-    """Generate a slug that matches ORG_RX from an arbitrary seed."""
-    candidate = re.sub(r"[^a-z0-9_-]+", "-", seed.strip().lower())
-    candidate = re.sub(r"-+", "-", candidate).strip("-")
-    if not candidate:
-        candidate = "org"
-    if len(candidate) < 3:
-        candidate = (candidate + "-org")[:32]
-    return candidate[:32]
-
-
-def _generate_unique_org_id(seed: str) -> str:
-    """Generate a unique org_id that satisfies ORG_RX, adding numeric suffixes if needed."""
-    base = _slugify_org_id(seed)
-    if not ORG_RX.match(base):
-        base = "org"
-    candidate = base
-    suffix = 1
-    while organizations.find_one({"org_id": candidate}):
-        suffix_str = f"-{suffix}"
-        candidate = f"{base[:32 - len(suffix_str)]}{suffix_str}"
-        suffix += 1
-    return candidate
-
-
-def _create_org_if_needed_for_signup(org_id: Optional[str], org_name: Optional[str], package: str) -> tuple[str, dict]:
-    """Ensure an organization exists for public signup; create it with package limits if missing."""
-    resolved_org_id = org_id or _generate_unique_org_id(org_name or "org")
-
-    existing = organizations.find_one({"org_id": resolved_org_id})
-    if existing:
-        return resolved_org_id, existing
-
-    org_model = OrganizationCreate(org_id=resolved_org_id, name=org_name, package=package)
+def _create_org_for_signup(org_name: Optional[str], package: str) -> tuple[str, dict]:
+    """Create an organization and return its auto-generated MongoDB ObjectId string."""
+    org_model = OrganizationCreate(name=org_name, package=package)
     org_doc = create_organization_doc(org_model)
-    organizations.insert_one(org_doc)
-    return resolved_org_id, org_doc
+    
+    # MongoDB automatically generates and injects the '_id' field
+    res = organizations.insert_one(org_doc)
+    
+    # Return the stringified ObjectId to be used as the org_id for users
+    return str(res.inserted_id), org_doc
+
 
 def _must_admin(current_user: dict | None) -> None:
     """
@@ -68,7 +40,6 @@ def _must_admin(current_user: dict | None) -> None:
 
     Raises:
         PermissionError: If the user is not authenticated or does not have the "admin" role.
-
     Purpose:
         - This internal helper is called at the start of every user-modification service
           to enforce server-side authorization, even if a client bypasses API role guards.
@@ -76,6 +47,7 @@ def _must_admin(current_user: dict | None) -> None:
     """
     if not current_user or current_user.get("role") != "admin":
         raise PermissionError("admin_only")
+
 
 def persist_domain_user(org_id: str, username: str, password: str, email: str) -> str:
     """Persist a domain user to the database and return the user ID."""
@@ -96,15 +68,6 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
 def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = None) -> bool:
     """
     Remove domain user from database with audit logging
-    
-    Args:
-        org_id (str): Organization ID that owns the user.
-        username (str): Username to be removed.
-        job_id (str | None): Optional job ID for audit trail context.
-    
-    Returns:
-        bool: True if user was found and deleted, False otherwise.
-    
     """
     deleted_user = users_admin.find_one_and_delete(
         {"org_id": org_id, "username": username}
@@ -145,8 +108,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     Create a new user account with audit logging.
 
     - Admin flow (dashboard): current_user is a dict and must be admin.
-    - Public signup flow: current_user is None and is only allowed if the org has no users yet.
-
+    - Public signup flow: current_user is None.
+    
     Args:
         user_data: Validated user creation data (email, password, role, org_id)
         current_user: Admin user performing the creation, or None for public signup
@@ -160,9 +123,9 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         ValueError: If email already exists or org user limit is exceeded
     """
 
-    # Determine org + package for this signup
-    package = (user_data.package or "basic").strip() if isinstance(user_data.package, str) else "basic"
-    org_name = (user_data.org_name or "").strip() or None
+    # Determine package for this signup
+    package = (user_data.package_type or "basic").strip() if isinstance(getattr(user_data, "package_type", None), str) else "basic"
+    org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
 
     # -----------------------------
     # Auth / permission rules + org provisioning
@@ -172,18 +135,18 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         _must_admin(current_user)
         if not user_data.org_id:
             raise ValueError("org_id is required when creating users as an admin")
+        
         org_id = user_data.org_id
-        org_doc = organizations.find_one({"org_id": org_id}, {"user_limit": 1}) or {}
+        # Look up by ObjectId
+        try:
+            org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
+        except InvalidId:
+            raise ValueError("Invalid organization ID format")
     else:
-        # Public signup: create org if missing, then allow only FIRST user
-        seed = org_name or user_data.full_name or user_data.email.split("@", 1)[0]
-        org_id, org_doc = _create_org_if_needed_for_signup(user_data.org_id, seed, package)
+        # Public signup: create org using Mongo ObjectId
+        org_id, org_doc = _create_org_for_signup(org_name, package)
 
-        existing_db_count = users_admin.count_documents({"org_id": org_id})
-        if existing_db_count > 0:
-            raise PermissionError("Public signup is disabled for this organization (admin already exists).")
-
-        # Optional hardening: force role admin on public signup (extra safety)
+        # Optional hardening: force role admin on public signup
         if getattr(user_data, "role", None) != "admin":
             raise PermissionError("Public signup can only create an admin user.")
 
@@ -197,7 +160,6 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     existing_db_count = users_admin.count_documents({"org_id": org_id})
     user_limit = _coerce_int(org_doc.get("user_limit"))
     if user_limit is None:
-        # Fall back to workstation count to preserve previous behavior and tests
         user_limit = _coerce_int(get_workstation_count(org_id))
     if user_limit is not None and existing_db_count + 1 > user_limit:
         raise ValueError("User limit reached for this organization")
@@ -208,7 +170,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     user_doc = {
         "email": user_data.email,
         "password": hash_password(user_data.password),
-        "org_id": org_id,
+        "org_id": org_id, # This is now the 24-char ObjectId string
         "role": user_data.role,
         "full_name": user_data.full_name,
         "status": "active",
@@ -218,7 +180,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     res = users_admin.insert_one(user_doc)
 
     # -----------------------------
-    # Audit logging (must not crash when current_user is None)
+    # Audit logging
     # -----------------------------
     if current_user is not None:
         actor = {
@@ -243,9 +205,9 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         after={"role": user_data.role, "status": "active", "org_id": org_id},
     )
 
-    # Expose the resolved org_id on the user_data object for callers that need it (e.g., routes)
+    # Expose the resolved org_id on the user_data object for callers
     try:
-        user_data.org_id = org_id  # type: ignore[attr-defined]
+        user_data.org_id = org_id 
     except Exception:
         pass
 
@@ -253,7 +215,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
 
 
 def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None) -> bool:
-    """
+    """Update user fields with audit logging.
     Update user fields with audit logging.
 
     Args:
@@ -282,6 +244,7 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         - Password updates are re-hashed.
         - Prevents empty updates (requires at least one changed field).
     """
+    
     _must_admin(current_user)
 
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
@@ -311,9 +274,7 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
 
 
 def deactivate_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
-    """
-    Set user status to inactive with audit logging.
-
+    """Set user status to inactive with audit logging.
     Args:
         user_id (str): The target user's MongoDB ObjectId string.
         current_user (dict): The admin performing the deactivation.
@@ -357,9 +318,7 @@ def deactivate_user(user_id: str, current_user: dict, reason: str | None = None)
 
 
 def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
-    """
-    Permanently delete user from database with audit logging.
-
+    """Permanently delete user from database with audit logging.
     Steps:
         1. Ensure the caller is an admin.
         2. Validate ObjectId and load BEFORE snapshot (secret-safe).
@@ -378,17 +337,14 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
         ValueError: Invalid id, missing user, DB failures, or last-admin protection.
 
     Returns:
-        bool: True when deletion is successful.
-    """
+        bool: True when deletion is successful."""
     _must_admin(current_user)
 
-    # Validate ObjectId format
     try:
         oid = ObjectId(user_id)
     except (InvalidId, Exception):
         raise ValueError(f"User {user_id} not found")
 
-    # Fetch BEFORE snapshot safely
     try:
         before = users_admin.find_one({"_id": oid}, {"password": 0})
     except PyMongoError as e:
@@ -397,11 +353,11 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    # Prevent self-delete (common foot-gun)
+    # Prevent self-delete
     if str(oid) == str(current_user.get("id")):
         raise PermissionError("cannot_delete_self")
 
-    # Prevent deleting the last admin in the org (availability / compliance guard)
+    # Prevent deleting the last admin in the org
     if before.get("role") == "admin":
         try:
             remaining_admins = users_admin.count_documents({
@@ -415,26 +371,22 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
         if remaining_admins == 0:
             raise ValueError("Cannot delete the last admin in this organization")
 
-    # Perform deletion and validate the result
     try:
         res = users_admin.delete_one({"_id": oid})
     except PyMongoError as e:
         raise ValueError("Database error while deleting user") from e
     
     if not res.acknowledged or res.deleted_count != 1:
-        # nothing was deleted; treat as not found/race condition
         raise ValueError(f"User {user_id} not found")
 
-    # Best-effort audit; never let it throw
+    # Best-effort audit
     try:
-        # Build a richer "before" while staying secret-safe
         before_safe = {
             k: before.get(k) for k in [
                 "email", "full_name", "role", "status", "org_id",
                 "created_at", "updated_at"
             ] if k in before
         }
-        # Normalize datetimes for readability
         for k in ("created_at", "updated_at"):
             if isinstance(before_safe.get(k), (datetime,)):
                 before_safe[k] = before_safe[k].isoformat()
@@ -454,7 +406,6 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
             severity="info",
         )
     except Exception:
-        # Audit must never prevent a successful deletion
         pass
 
     return True
@@ -462,28 +413,22 @@ def delete_user(user_id: str, current_user: dict, reason: str | None = None) -> 
 
 def list_users(current_user: dict) -> list[dict]:
     """
-    List all users in the organization.
+    List all users belonging to the current user's organization.
 
     Args:
-        current_user (dict): The user performing the request.
+        current_user (dict): The user performing the request. Must be admin.
 
     Returns:
-        list[dict]: List of user documents (excluding passwords).
+        list[dict]: List of user documents (excluding passwords) restricted to the caller's org.
     """
-    # For now, allow any authenticated user to list users, or restrict to admin?
-    # The frontend EmployeesPage seems to be for management, so likely admin-only or similar.
-    # The other functions enforce _must_admin. Let's enforce it here too for consistency with the "admin-only mutations" comment in users.py,
-    # although listing might be allowed for others. The frontend routes say "Employees" manage organization users.
-    # Let's stick to admin for now as per the pattern, or at least authenticated.
-    # The plan didn't specify, but "EmployeesPage" implies management.
-    # Let's check users.py imports again. It uses require_role("admin") for mutations.
-    # I'll enforce admin for now to be safe, or just return all if they are admin.
-    
-    # Actually, let's look at the other functions. They all call _must_admin.
-    # I will add _must_admin(current_user) to be safe.
     _must_admin(current_user)
+    
+    org_id = current_user.get("org_id")
+    if not org_id:
+        return []
 
-    users = list(users_admin.find({}, {"password": 0}))
+    # FILTER BY ORG_ID FOR MULTI-TENANCY
+    users = list(users_admin.find({"org_id": org_id}, {"password": 0}))
     for user in users:
         user["_id"] = str(user["_id"])
         if "created_at" in user:

@@ -63,7 +63,9 @@ def create_app() -> Flask:
     
     # --- 2. INITIALIZE CORS ---
     # This enables Cross-Origin Resource Sharing for all routes
-    CORS(app)
+    CORS(app, 
+         resources={r"/api/*": {"origins": "http://localhost:5173"}},
+         supports_credentials=True)
     
     # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
     # Register Tasks API -> /api/task/...
@@ -71,7 +73,7 @@ def create_app() -> Flask:
     logger.debug("Registered api blueprint: %s", api_bp.name)
 
     # Register Auth (Login/Me) -> /api/auth/...
-    app.register_blueprint(auth_bp, url_prefix="/api") 
+    app.register_blueprint(auth_bp, url_prefix="/api/auth") 
     logger.debug("Registered auth blueprint: %s", auth_bp.name)
 
     # Register Users -> /api/users
@@ -93,7 +95,6 @@ def create_app() -> Flask:
 
 
 app = create_app()
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 
 
 # Helpers
@@ -117,14 +118,24 @@ def _error_json(error: str, code: str, details=None, status: int = 400):
 # Global JSON guard for write methods
 @app.before_request
 def _ensure_json_on_writes():
-    """Enforce JSON content-type for write operations."""
+    """Enforce JSON content-type for write operations and handle CORS preflights."""
     g.start_time = time()
     _request_id()
+
+    # 1. ALWAYS respond to OPTIONS requests so CORS preflight can pass with a valid status
+    if request.method == "OPTIONS":
+        # Return empty 200 so browser preflight sees an OK response; CORS headers will be
+        # added by the CORS extension in after_request.
+        return "", 200
+
+    # 2. Enforce JSON for write methods
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
-        # Allow empty body for certain routes (like DELETE /users/<id>)
         if request.data and not request.is_json:
-            # Allow empty body if needed, but if data exists, it must be JSON
-            pass 
+            # Return a clear error instead of just 'pass'
+            return jsonify({
+                "error": "Content-Type must be application/json",
+                "request_id": g.request_id
+            }), 415
 
 
 @app.after_request

@@ -20,6 +20,7 @@ from utils import (
     run_stream,
     get_workstation_count,
     organizations,
+    org_filter,
 )
 from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
@@ -94,7 +95,7 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
         update["provisioning_job_id"] = job_id
 
     try:
-        organizations.update_one({"org_id": org_id}, {"$set": update})
+        organizations.update_one(org_filter(org_id), {"$set": update})
     except Exception as exc:  # pragma: no cover - status update should not break task
         if logger:
             logger.warning("Failed to update provisioning status for org %s: %s", org_id, exc)
@@ -173,7 +174,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     )
     set_progress("starting")
 
-    org_doc = organizations.find_one({"org_id": org_id}) or {}
+    org_doc = organizations.find_one(org_filter(org_id)) or {}
 
     org_limit = _coerce_int(org_doc.get("workstation_limit"), default=None)
     desired_workstations = workstation_count if workstation_count not in (None, 0) else org_limit or 1

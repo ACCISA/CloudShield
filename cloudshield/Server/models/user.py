@@ -7,12 +7,12 @@ PASSWORD_RX = re.compile(
     r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$"
 )  # ≥12 chars, upper, lower, digit, special
 
-ORG_RX = re.compile(r"^[a-z0-9_-]{3,32}$")  # tweak to your org_id rules
+# ---> REMOVED ORG_RX completely
 
 class UserCreate(BaseModel):
     """
     Pydantic model for validating data when creating a new user.
-
+    
     Fields:
         email (EmailStr): The user's unique email address. Automatically normalized to lowercase.
         password (str): The user's password; must be strong and secure.
@@ -31,11 +31,12 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     username: Optional[str] = None
-    role: Literal["admin", "employee"]
+    role: Optional[Literal["admin", "employee"]] = "admin" # Default to admin for signup
     full_name: str
-    org_id: Optional[str] = None
-    org_name: Optional[str] = None
-    package: Optional[Literal["basic", "pro", "enterprise"]] = "basic"
+    company_name: Optional[str] = None 
+    package_type: Optional[Literal["basic", "pro", "enterprise"]] = "basic"
+    org_id: Optional[str] = None 
+    
     file_shares: Optional[List[str]] = []
 
     # normalize + validate
@@ -88,28 +89,7 @@ class UserCreate(BaseModel):
             )
         return v
 
-    @field_validator("org_id")
-    @classmethod
-    def valid_org(cls, v: Optional[str]) -> Optional[str]:
-        """
-        Validate organization identifier (org_id) when provided.
-
-        - If provided, must match regex pattern allowing lowercase letters, numbers, underscores, or dashes.
-        - Length must be between 3 and 32 characters.
-        - If omitted (None/empty), service layer may generate one for public signup.
-        """
-        if v is None:
-            return v
-        v2 = v.strip()
-        if not v2:
-            return None
-        if not ORG_RX.match(v2):
-            raise PydanticCustomError(
-                "org_id_format",
-                "org_id must be 3–32 chars: a–z, 0–9, _ or -",
-                {},
-            )
-        return v2
+    # ---> REMOVED valid_org validator completely
 
     @field_validator("full_name")
     @classmethod
@@ -162,7 +142,7 @@ class UserUpdate(BaseModel):
 
         - Converts to lowercase.
         - Trims whitespace.
-        """  
+        """         
         return str(v).strip().lower() if v else None
 
     @field_validator("password")

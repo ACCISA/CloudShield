@@ -1,8 +1,17 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import DisplayIcon from "../DisplayIcon";
 
 describe("DisplayIcon Component", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   describe("User Type", () => {
     const userData = {
       firstName: "John",
@@ -45,9 +54,10 @@ describe("DisplayIcon Component", () => {
       expect(screen.getByText("john.doe@example.com")).toBeInTheDocument();
 
       fireEvent.mouseLeave(wrapper);
-      expect(
-        screen.queryByText("john.doe@example.com"),
-      ).not.toBeInTheDocument();
+      act(() => {
+        jest.advanceTimersByTime(150);
+      });
+      expect(screen.queryByText("john.doe@example.com")).not.toBeInTheDocument();
     });
 
     test("displays active status badge", () => {
@@ -152,7 +162,6 @@ describe("DisplayIcon Component", () => {
       name: "Engineering Team",
       description: "All engineering staff",
       memberCount: 25,
-      type: "Department",
       createdDate: "2024-01-01T00:00:00Z",
     };
 
@@ -170,7 +179,6 @@ describe("DisplayIcon Component", () => {
       fireEvent.mouseEnter(wrapper);
       expect(screen.getByText("All engineering staff")).toBeInTheDocument();
       expect(screen.getByText("25")).toBeInTheDocument();
-      expect(screen.getByText("Department")).toBeInTheDocument();
     });
 
     test("uses groupName if name is not available", () => {
