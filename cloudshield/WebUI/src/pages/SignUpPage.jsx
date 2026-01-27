@@ -353,6 +353,8 @@ export default function SignupPage({ onSignupSuccess }) {
                 },
               }}
             >
+              Already have an account? Log in
+            </Typography>
           </SignupCard>
         </Box>
 
