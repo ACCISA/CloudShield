@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import UserSelectionPanel from "./UserSelectionPanel.jsx";
 import GroupSelectionPanel from "./GroupSelectionPanel.jsx";
 import { fetchUsers, fetchGroups } from "../../api/filesApi.js";
@@ -18,7 +19,6 @@ export default function FileShareWizardModal({
   file = null, // If editing
   onDelete = null,
 }) {
-  const { accessToken } = useAuth();
   const isEditMode = Boolean(file);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -184,13 +184,6 @@ export default function FileShareWizardModal({
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${file?.name}"?`)) {
-      return;
-    }
-    await onDelete?.();
-  };
-
   // Filter users/groups based on search
   const filteredUsers = useMemo(() => {
     if (!searchTerms.users.trim()) return availableUsers;
@@ -347,6 +340,37 @@ export default function FileShareWizardModal({
   );
 }
 
+const formDataShape = PropTypes.shape({
+  shareName: PropTypes.string,
+  description: PropTypes.string,
+  maxSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedUsers: PropTypes.array,
+  selectedGroups: PropTypes.array,
+});
+
+const fileShape = PropTypes.shape({
+  name: PropTypes.string,
+  description: PropTypes.string,
+  max_size_gb: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  users: PropTypes.array,
+  groups: PropTypes.array,
+});
+
+FileShareWizardModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func,
+  onSubmit: PropTypes.func,
+  file: fileShape,
+  onDelete: PropTypes.func,
+};
+
+FileShareWizardModal.defaultProps = {
+  onClose: undefined,
+  onSubmit: undefined,
+  file: null,
+  onDelete: null,
+};
+
 // Sub-component: Basic Info Step
 function BasicInfoStep({ formData, setFormData, isEditMode }) {
   return (
@@ -406,3 +430,13 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
     </div>
   );
 }
+
+BasicInfoStep.propTypes = {
+  formData: formDataShape.isRequired,
+  setFormData: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool,
+};
+
+BasicInfoStep.defaultProps = {
+  isEditMode: false,
+};
