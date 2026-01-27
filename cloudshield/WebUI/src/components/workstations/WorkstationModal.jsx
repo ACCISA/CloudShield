@@ -3,6 +3,14 @@ import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import { MOCK_USERS, MOCK_GROUPS, MOCK_SOFTWARE } from "../../data/mockData.js";
+import {
+  CpuIcon,
+  RamIcon,
+  StorageIcon,
+  BasicTierIcon,
+  ProTierIcon,
+  UltimateTierIcon,
+} from "../../assets/workstation";
 import "./WorkstationModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups", "Software"];
@@ -402,6 +410,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
           Workstation Strength *
         </label>
         <div className="workstation-modal-strength-selector">
+          {/* Basic Tier */}
           <button
             type="button"
             className={`workstation-modal-strength-card ${formData.strength === "basic" ? "active" : ""}`}
@@ -410,33 +419,39 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             }
           >
             <div className="workstation-modal-strength-header">
-              <div className="workstation-modal-strength-icon">💻</div>
+              <div className="workstation-modal-strength-icon">
+                <BasicTierIcon
+                  width={28}
+                  height={28}
+                  color="rgba(255,255,255,0.7)"
+                />
+              </div>
               <div className="workstation-modal-strength-title">Basic</div>
             </div>
-            <div className="workstation-modal-strength-stats">
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">🖥️</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">CPU</div>
-                  <div className="workstation-modal-stat-value">2 vCPU</div>
-                </div>
+            <p className="workstation-modal-strength-desc">
+              Light workloads & everyday tasks
+            </p>
+            <div className="workstation-modal-strength-specs">
+              <div className="workstation-modal-spec">
+                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>2 vCPU</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💾</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">RAM</div>
-                  <div className="workstation-modal-stat-value">4 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>4 GB</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💿</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">Storage</div>
-                  <div className="workstation-modal-stat-value">50 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <StorageIcon
+                  width={16}
+                  height={16}
+                  color="rgba(255,255,255,0.4)"
+                />
+                <span>50 GB</span>
               </div>
             </div>
           </button>
+
+          {/* Pro Tier */}
           <button
             type="button"
             className={`workstation-modal-strength-card ${formData.strength === "pro" ? "active" : ""}`}
@@ -445,33 +460,40 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             }
           >
             <div className="workstation-modal-strength-header">
-              <div className="workstation-modal-strength-icon">⚡</div>
+              <div className="workstation-modal-strength-icon">
+                <ProTierIcon
+                  width={28}
+                  height={28}
+                  color="rgba(255,255,255,0.7)"
+                />
+              </div>
               <div className="workstation-modal-strength-title">Pro</div>
+              <span className="workstation-modal-strength-tag">Popular</span>
             </div>
-            <div className="workstation-modal-strength-stats">
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">🖥️</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">CPU</div>
-                  <div className="workstation-modal-stat-value">4 vCPU</div>
-                </div>
+            <p className="workstation-modal-strength-desc">
+              Balanced for most workflows
+            </p>
+            <div className="workstation-modal-strength-specs">
+              <div className="workstation-modal-spec">
+                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>4 vCPU</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💾</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">RAM</div>
-                  <div className="workstation-modal-stat-value">8 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>8 GB</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💿</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">Storage</div>
-                  <div className="workstation-modal-stat-value">100 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <StorageIcon
+                  width={16}
+                  height={16}
+                  color="rgba(255,255,255,0.4)"
+                />
+                <span>100 GB</span>
               </div>
             </div>
           </button>
+
+          {/* Ultimate Tier */}
           <button
             type="button"
             className={`workstation-modal-strength-card ${formData.strength === "ultimate" ? "active" : ""}`}
@@ -480,30 +502,34 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             }
           >
             <div className="workstation-modal-strength-header">
-              <div className="workstation-modal-strength-icon">🚀</div>
+              <div className="workstation-modal-strength-icon">
+                <UltimateTierIcon
+                  width={28}
+                  height={28}
+                  color="rgba(255,255,255,0.7)"
+                />
+              </div>
               <div className="workstation-modal-strength-title">Ultimate</div>
             </div>
-            <div className="workstation-modal-strength-stats">
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">🖥️</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">CPU</div>
-                  <div className="workstation-modal-stat-value">8 vCPU</div>
-                </div>
+            <p className="workstation-modal-strength-desc">
+              Maximum power for demanding tasks
+            </p>
+            <div className="workstation-modal-strength-specs">
+              <div className="workstation-modal-spec">
+                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>8 vCPU</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💾</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">RAM</div>
-                  <div className="workstation-modal-stat-value">16 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <span>16 GB</span>
               </div>
-              <div className="workstation-modal-stat">
-                <span className="workstation-modal-stat-icon">💿</span>
-                <div className="workstation-modal-stat-info">
-                  <div className="workstation-modal-stat-label">Storage</div>
-                  <div className="workstation-modal-stat-value">200 GB</div>
-                </div>
+              <div className="workstation-modal-spec">
+                <StorageIcon
+                  width={16}
+                  height={16}
+                  color="rgba(255,255,255,0.4)"
+                />
+                <span>200 GB</span>
               </div>
             </div>
           </button>

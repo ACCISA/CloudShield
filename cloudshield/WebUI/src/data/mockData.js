@@ -325,6 +325,27 @@ export const MOCK_GROUPS = [
 ];
 
 // ============================================================================
+// SOFTWARE
+// ============================================================================
+export const MOCK_SOFTWARE = [
+  { id: "sw-1", name: "Microsoft Office 365" },
+  { id: "sw-2", name: "Adobe Creative Cloud" },
+  { id: "sw-3", name: "Slack" },
+  { id: "sw-4", name: "Zoom" },
+  { id: "sw-5", name: "Visual Studio Code" },
+  { id: "sw-6", name: "Git" },
+  { id: "sw-7", name: "Docker Desktop" },
+  { id: "sw-8", name: "Node.js" },
+  { id: "sw-9", name: "Python" },
+  { id: "sw-10", name: "Postman" },
+  { id: "sw-11", name: "Chrome" },
+  { id: "sw-12", name: "Firefox" },
+  { id: "sw-13", name: "1Password" },
+  { id: "sw-14", name: "Notion" },
+  { id: "sw-15", name: "Figma" },
+];
+
+// ============================================================================
 // FILES
 // ============================================================================
 export const MOCK_FILES = [
