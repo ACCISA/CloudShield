@@ -10,6 +10,7 @@ WORKDIR /app
 COPY cloudshield/WebUI .
 RUN npm install
 RUN npm install node
+RUN npm install install posthog-js
 # Expose React dev server port
 EXPOSE 3000
 

@@ -300,6 +300,43 @@ class TestDCAddUser:
         assert resp.status_code == 400
         assert "username is required" in resp.json["error"]
 
+
+
+class TestDCAddUserToGroup:
+    """Tests for /task/dc/add_user_to_group"""
+
+    def test_add_user_to_group_success(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "username": "u1", "group_name": "g1"},
+        )
+        assert resp.status_code == 202
+        assert "job_id" in resp.json
+
+    def test_add_user_to_group_missing_org(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"username": "u1", "group_name": "g1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "org_id is required"
+
+    def test_add_user_to_group_missing_username(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "group_name": "g1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "username is required"
+
+    def test_add_user_to_group_missing_group(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "username": "u1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "group_name is required"
+    
     def test_add_user_missing_password(self, client):
         resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",

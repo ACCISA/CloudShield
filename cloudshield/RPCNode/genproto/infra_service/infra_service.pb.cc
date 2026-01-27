@@ -60,6 +60,14 @@ class ResetUserPasswordDataAckDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ResetUserPasswordDataAck> _instance;
 } _ResetUserPasswordDataAck_default_instance_;
+class AddUserToGroupDataDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<AddUserToGroupData> _instance;
+} _AddUserToGroupData_default_instance_;
+class AddUserToGroupDataAckDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<AddUserToGroupDataAck> _instance;
+} _AddUserToGroupDataAck_default_instance_;
 class CreateDomainUserWithGroupDataDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<CreateDomainUserWithGroupData> _instance;
@@ -145,6 +153,34 @@ static void InitDefaultsscc_info_AddDomainUserDataAck_infra_5fservice_2finfra_5f
 
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_AddDomainUserDataAck_infra_5fservice_2finfra_5fservice_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_AddDomainUserDataAck_infra_5fservice_2finfra_5fservice_2eproto}, {}};
+
+static void InitDefaultsscc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::infra_service::v1::_AddUserToGroupData_default_instance_;
+    new (ptr) ::infra_service::v1::AddUserToGroupData();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::infra_service::v1::AddUserToGroupData::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto}, {}};
+
+static void InitDefaultsscc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::infra_service::v1::_AddUserToGroupDataAck_default_instance_;
+    new (ptr) ::infra_service::v1::AddUserToGroupDataAck();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::infra_service::v1::AddUserToGroupDataAck::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto}, {}};
 
 static void InitDefaultsscc_info_CreateDomainUserWithGroupData_infra_5fservice_2finfra_5fservice_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -342,7 +378,7 @@ static void InitDefaultsscc_info_RestartSambaServiceDataAck_infra_5fservice_2fin
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RestartSambaServiceDataAck_infra_5fservice_2finfra_5fservice_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RestartSambaServiceDataAck_infra_5fservice_2finfra_5fservice_2eproto}, {}};
 
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_infra_5fservice_2finfra_5fservice_2eproto[18];
+static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_infra_5fservice_2finfra_5fservice_2eproto[20];
 static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto[1];
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_infra_5fservice_2finfra_5fservice_2eproto = nullptr;
 
@@ -419,6 +455,20 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_infra_5fservice_2finfra_5fserv
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::infra_service::v1::ResetUserPasswordDataAck, status_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupData, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupData, username_),
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupData, group_name_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupDataAck, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupDataAck, status_),
+  PROTOBUF_FIELD_OFFSET(::infra_service::v1::AddUserToGroupDataAck, result_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::infra_service::v1::CreateDomainUserWithGroupData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -482,13 +532,15 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOB
   { 52, -1, sizeof(::infra_service::v1::RestartSambaServiceDataAck)},
   { 58, -1, sizeof(::infra_service::v1::ResetUserPasswordData)},
   { 65, -1, sizeof(::infra_service::v1::ResetUserPasswordDataAck)},
-  { 71, -1, sizeof(::infra_service::v1::CreateDomainUserWithGroupData)},
-  { 79, -1, sizeof(::infra_service::v1::CreateDomainUserWithGroupDataAck)},
-  { 89, -1, sizeof(::infra_service::v1::GetUserListDataAck)},
-  { 96, -1, sizeof(::infra_service::v1::GetFileShareSizeData)},
-  { 102, -1, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
-  { 109, -1, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
-  { 116, -1, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
+  { 71, -1, sizeof(::infra_service::v1::AddUserToGroupData)},
+  { 78, -1, sizeof(::infra_service::v1::AddUserToGroupDataAck)},
+  { 85, -1, sizeof(::infra_service::v1::CreateDomainUserWithGroupData)},
+  { 93, -1, sizeof(::infra_service::v1::CreateDomainUserWithGroupDataAck)},
+  { 103, -1, sizeof(::infra_service::v1::GetUserListDataAck)},
+  { 110, -1, sizeof(::infra_service::v1::GetFileShareSizeData)},
+  { 116, -1, sizeof(::infra_service::v1::GetFileShareSizeDataAck)},
+  { 123, -1, sizeof(::infra_service::v1::DeleteSambaFileShareData)},
+  { 130, -1, sizeof(::infra_service::v1::DeleteSambaFileShareDataAck)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -503,6 +555,8 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_RestartSambaServiceDataAck_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_ResetUserPasswordData_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_ResetUserPasswordDataAck_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_AddUserToGroupData_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_AddUserToGroupDataAck_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_CreateDomainUserWithGroupData_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_CreateDomainUserWithGroupDataAck_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::infra_service::v1::_GetUserListDataAck_default_instance_),
@@ -532,38 +586,44 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
   "2\030.infra_service.v1.Status\";\n\025ResetUserP"
   "asswordData\022\020\n\010username\030\001 \001(\t\022\020\n\010passwor"
   "d\030\002 \001(\t\"D\n\030ResetUserPasswordDataAck\022(\n\006s"
-  "tatus\030\001 \001(\0162\030.infra_service.v1.Status\"W\n"
-  "\035CreateDomainUserWithGroupData\022\020\n\010userna"
-  "me\030\001 \001(\t\022\020\n\010password\030\002 \001(\t\022\022\n\ngroup_name"
-  "\030\003 \001(\t\"\247\001\n CreateDomainUserWithGroupData"
-  "Ack\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.S"
-  "tatus\022\023\n\013user_result\030\002 \001(\t\022\024\n\014group_resu"
-  "lt\030\003 \001(\t\022\023\n\013link_result\030\004 \001(\t\022\031\n\021members"
-  "hip_result\030\005 \001(\t\"M\n\022GetUserListDataAck\022("
-  "\n\006status\030\001 \001(\0162\030.infra_service.v1.Status"
-  "\022\r\n\005users\030\002 \003(\t\"*\n\024GetFileShareSizeData\022"
-  "\022\n\nshare_name\030\001 \001(\t\"A\n\027GetFileShareSizeD"
-  "ataAck\022\022\n\ntotal_size\030\001 \001(\005\022\022\n\nusage_size"
-  "\030\002 \001(\005\"A\n\030DeleteSambaFileShareData\022\022\n\nsh"
-  "are_name\030\001 \001(\t\022\021\n\twipe_data\030\002 \001(\010\"G\n\033Del"
-  "eteSambaFileShareDataAck\022(\n\006status\030\001 \001(\016"
-  "2\030.infra_service.v1.Status*\177\n\006Status\022\013\n\007"
-  "SUCCESS\020\000\022\n\n\006FAILED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016"
-  "USER_NOT_FOUND\020\003\022\027\n\023PASSWORD_REQ_FAILED\020"
-  "\004\022\013\n\007UNKNOWN\020\005\022\023\n\017SHARE_NOT_FOUND\020\0062\230\010\n\014"
-  "InfraService\022K\n\013GetUserList\022\026.google.pro"
-  "tobuf.Empty\032$.infra_service.v1.GetUserLi"
-  "stDataAck\022[\n\023RestartSambaService\022\026.googl"
-  "e.protobuf.Empty\032,.infra_service.v1.Rest"
-  "artSambaServiceDataAck\022q\n\024CreateSambaFil"
-  "eShare\022*.infra_service.v1.CreateSambaFil"
-  "eShareData\032-.infra_service.v1.CreateSamb"
-  "aFileShareDataAck\022q\n\024DeleteSambaFileShar"
-  "e\022*.infra_service.v1.DeleteSambaFileShar"
-  "eData\032-.infra_service.v1.DeleteSambaFile"
-  "ShareDataAck\022_\n\016AddDomainGroup\022$.infra_s"
-  "ervice.v1.AddDomainGroupData\032\'.infra_ser"
-  "vice.v1.AddDomainGroupDataAck\022\200\001\n\031Create"
+  "tatus\030\001 \001(\0162\030.infra_service.v1.Status\":\n"
+  "\022AddUserToGroupData\022\020\n\010username\030\001 \001(\t\022\022\n"
+  "\ngroup_name\030\002 \001(\t\"Q\n\025AddUserToGroupDataA"
+  "ck\022(\n\006status\030\001 \001(\0162\030.infra_service.v1.St"
+  "atus\022\016\n\006result\030\002 \001(\t\"W\n\035CreateDomainUser"
+  "WithGroupData\022\020\n\010username\030\001 \001(\t\022\020\n\010passw"
+  "ord\030\002 \001(\t\022\022\n\ngroup_name\030\003 \001(\t\"\247\001\n Create"
+  "DomainUserWithGroupDataAck\022(\n\006status\030\001 \001"
+  "(\0162\030.infra_service.v1.Status\022\023\n\013user_res"
+  "ult\030\002 \001(\t\022\024\n\014group_result\030\003 \001(\t\022\023\n\013link_"
+  "result\030\004 \001(\t\022\031\n\021membership_result\030\005 \001(\t\""
+  "M\n\022GetUserListDataAck\022(\n\006status\030\001 \001(\0162\030."
+  "infra_service.v1.Status\022\r\n\005users\030\002 \003(\t\"*"
+  "\n\024GetFileShareSizeData\022\022\n\nshare_name\030\001 \001"
+  "(\t\"A\n\027GetFileShareSizeDataAck\022\022\n\ntotal_s"
+  "ize\030\001 \001(\005\022\022\n\nusage_size\030\002 \001(\005\"A\n\030DeleteS"
+  "ambaFileShareData\022\022\n\nshare_name\030\001 \001(\t\022\021\n"
+  "\twipe_data\030\002 \001(\010\"G\n\033DeleteSambaFileShare"
+  "DataAck\022(\n\006status\030\001 \001(\0162\030.infra_service."
+  "v1.Status*\177\n\006Status\022\013\n\007SUCCESS\020\000\022\n\n\006FAIL"
+  "ED\020\001\022\r\n\tDUPLICATE\020\002\022\022\n\016USER_NOT_FOUND\020\003\022"
+  "\027\n\023PASSWORD_REQ_FAILED\020\004\022\013\n\007UNKNOWN\020\005\022\023\n"
+  "\017SHARE_NOT_FOUND\020\0062\371\010\n\014InfraService\022K\n\013G"
+  "etUserList\022\026.google.protobuf.Empty\032$.inf"
+  "ra_service.v1.GetUserListDataAck\022[\n\023Rest"
+  "artSambaService\022\026.google.protobuf.Empty\032"
+  ",.infra_service.v1.RestartSambaServiceDa"
+  "taAck\022q\n\024CreateSambaFileShare\022*.infra_se"
+  "rvice.v1.CreateSambaFileShareData\032-.infr"
+  "a_service.v1.CreateSambaFileShareDataAck"
+  "\022q\n\024DeleteSambaFileShare\022*.infra_service"
+  ".v1.DeleteSambaFileShareData\032-.infra_ser"
+  "vice.v1.DeleteSambaFileShareDataAck\022_\n\016A"
+  "ddDomainGroup\022$.infra_service.v1.AddDoma"
+  "inGroupData\032\'.infra_service.v1.AddDomain"
+  "GroupDataAck\022_\n\016AddUserToGroup\022$.infra_s"
+  "ervice.v1.AddUserToGroupData\032\'.infra_ser"
+  "vice.v1.AddUserToGroupDataAck\022\200\001\n\031Create"
   "DomainUserWithGroup\022/.infra_service.v1.C"
   "reateDomainUserWithGroupData\0322.infra_ser"
   "vice.v1.CreateDomainUserWithGroupDataAck"
@@ -582,11 +642,13 @@ const char descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto[]
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps[1] = {
   &::descriptor_table_google_2fprotobuf_2fempty_2eproto,
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_sccs[18] = {
+static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_sccs[20] = {
   &scc_info_AddDomainGroupData_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_AddDomainGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_AddDomainUserData_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_AddDomainUserDataAck_infra_5fservice_2finfra_5fservice_2eproto.base,
+  &scc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto.base,
+  &scc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_CreateDomainUserWithGroupData_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_CreateDomainUserWithGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto.base,
   &scc_info_CreateSambaFileShareData_infra_5fservice_2finfra_5fservice_2eproto.base,
@@ -604,10 +666,10 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_inf
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_infra_5fservice_2finfra_5fservice_2eproto = {
-  false, false, descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto, "infra_service/infra_service.proto", 2574,
-  &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once, descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_sccs, descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps, 18, 1,
+  false, false, descriptor_table_protodef_infra_5fservice_2finfra_5fservice_2eproto, "infra_service/infra_service.proto", 2814,
+  &descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_once, descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_sccs, descriptor_table_infra_5fservice_2finfra_5fservice_2eproto_deps, 20, 1,
   schemas, file_default_instances, TableStruct_infra_5fservice_2finfra_5fservice_2eproto::offsets,
-  file_level_metadata_infra_5fservice_2finfra_5fservice_2eproto, 18, file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto, file_level_service_descriptors_infra_5fservice_2finfra_5fservice_2eproto,
+  file_level_metadata_infra_5fservice_2finfra_5fservice_2eproto, 20, file_level_enum_descriptors_infra_5fservice_2finfra_5fservice_2eproto, file_level_service_descriptors_infra_5fservice_2finfra_5fservice_2eproto,
 };
 
 // Force running AddDescriptors() at dynamic initialization time.
@@ -3062,6 +3124,490 @@ void ResetUserPasswordDataAck::InternalSwap(ResetUserPasswordDataAck* other) {
 
 // ===================================================================
 
+void AddUserToGroupData::InitAsDefaultInstance() {
+}
+class AddUserToGroupData::_Internal {
+ public:
+};
+
+AddUserToGroupData::AddUserToGroupData(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddUserToGroupData)
+}
+AddUserToGroupData::AddUserToGroupData(const AddUserToGroupData& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  username_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_username().empty()) {
+    username_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_username(),
+      GetArena());
+  }
+  group_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_group_name().empty()) {
+    group_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_group_name(),
+      GetArena());
+  }
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.AddUserToGroupData)
+}
+
+void AddUserToGroupData::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto.base);
+  username_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  group_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+AddUserToGroupData::~AddUserToGroupData() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddUserToGroupData)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void AddUserToGroupData::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+  username_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  group_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void AddUserToGroupData::ArenaDtor(void* object) {
+  AddUserToGroupData* _this = reinterpret_cast< AddUserToGroupData* >(object);
+  (void)_this;
+}
+void AddUserToGroupData::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void AddUserToGroupData::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const AddUserToGroupData& AddUserToGroupData::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_AddUserToGroupData_infra_5fservice_2finfra_5fservice_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void AddUserToGroupData::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddUserToGroupData)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  username_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  group_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* AddUserToGroupData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // string username = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          auto str = _internal_mutable_username();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "infra_service.v1.AddUserToGroupData.username"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // string group_name = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          auto str = _internal_mutable_group_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "infra_service.v1.AddUserToGroupData.group_name"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* AddUserToGroupData::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddUserToGroupData)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string username = 1;
+  if (this->username().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_username().data(), static_cast<int>(this->_internal_username().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "infra_service.v1.AddUserToGroupData.username");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_username(), target);
+  }
+
+  // string group_name = 2;
+  if (this->group_name().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_group_name().data(), static_cast<int>(this->_internal_group_name().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "infra_service.v1.AddUserToGroupData.group_name");
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_group_name(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddUserToGroupData)
+  return target;
+}
+
+size_t AddUserToGroupData::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddUserToGroupData)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string username = 1;
+  if (this->username().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_username());
+  }
+
+  // string group_name = 2;
+  if (this->group_name().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_group_name());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void AddUserToGroupData::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:infra_service.v1.AddUserToGroupData)
+  GOOGLE_DCHECK_NE(&from, this);
+  const AddUserToGroupData* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<AddUserToGroupData>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:infra_service.v1.AddUserToGroupData)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:infra_service.v1.AddUserToGroupData)
+    MergeFrom(*source);
+  }
+}
+
+void AddUserToGroupData::MergeFrom(const AddUserToGroupData& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddUserToGroupData)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.username().size() > 0) {
+    _internal_set_username(from._internal_username());
+  }
+  if (from.group_name().size() > 0) {
+    _internal_set_group_name(from._internal_group_name());
+  }
+}
+
+void AddUserToGroupData::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:infra_service.v1.AddUserToGroupData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void AddUserToGroupData::CopyFrom(const AddUserToGroupData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddUserToGroupData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool AddUserToGroupData::IsInitialized() const {
+  return true;
+}
+
+void AddUserToGroupData::InternalSwap(AddUserToGroupData* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  username_.Swap(&other->username_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  group_name_.Swap(&other->group_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata AddUserToGroupData::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void AddUserToGroupDataAck::InitAsDefaultInstance() {
+}
+class AddUserToGroupDataAck::_Internal {
+ public:
+};
+
+AddUserToGroupDataAck::AddUserToGroupDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:infra_service.v1.AddUserToGroupDataAck)
+}
+AddUserToGroupDataAck::AddUserToGroupDataAck(const AddUserToGroupDataAck& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  result_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  if (!from._internal_result().empty()) {
+    result_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_result(),
+      GetArena());
+  }
+  status_ = from.status_;
+  // @@protoc_insertion_point(copy_constructor:infra_service.v1.AddUserToGroupDataAck)
+}
+
+void AddUserToGroupDataAck::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto.base);
+  result_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  status_ = 0;
+}
+
+AddUserToGroupDataAck::~AddUserToGroupDataAck() {
+  // @@protoc_insertion_point(destructor:infra_service.v1.AddUserToGroupDataAck)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void AddUserToGroupDataAck::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+  result_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void AddUserToGroupDataAck::ArenaDtor(void* object) {
+  AddUserToGroupDataAck* _this = reinterpret_cast< AddUserToGroupDataAck* >(object);
+  (void)_this;
+}
+void AddUserToGroupDataAck::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void AddUserToGroupDataAck::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const AddUserToGroupDataAck& AddUserToGroupDataAck::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_AddUserToGroupDataAck_infra_5fservice_2finfra_5fservice_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void AddUserToGroupDataAck::Clear() {
+// @@protoc_insertion_point(message_clear_start:infra_service.v1.AddUserToGroupDataAck)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  result_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  status_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* AddUserToGroupDataAck::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // .infra_service.v1.Status status = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_status(static_cast<::infra_service::v1::Status>(val));
+        } else goto handle_unusual;
+        continue;
+      // string result = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+          auto str = _internal_mutable_result();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "infra_service.v1.AddUserToGroupDataAck.result"));
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* AddUserToGroupDataAck::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:infra_service.v1.AddUserToGroupDataAck)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .infra_service.v1.Status status = 1;
+  if (this->status() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_status(), target);
+  }
+
+  // string result = 2;
+  if (this->result().size() > 0) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_result().data(), static_cast<int>(this->_internal_result().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "infra_service.v1.AddUserToGroupDataAck.result");
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_result(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:infra_service.v1.AddUserToGroupDataAck)
+  return target;
+}
+
+size_t AddUserToGroupDataAck::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:infra_service.v1.AddUserToGroupDataAck)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string result = 2;
+  if (this->result().size() > 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_result());
+  }
+
+  // .infra_service.v1.Status status = 1;
+  if (this->status() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void AddUserToGroupDataAck::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:infra_service.v1.AddUserToGroupDataAck)
+  GOOGLE_DCHECK_NE(&from, this);
+  const AddUserToGroupDataAck* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<AddUserToGroupDataAck>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:infra_service.v1.AddUserToGroupDataAck)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:infra_service.v1.AddUserToGroupDataAck)
+    MergeFrom(*source);
+  }
+}
+
+void AddUserToGroupDataAck::MergeFrom(const AddUserToGroupDataAck& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:infra_service.v1.AddUserToGroupDataAck)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.result().size() > 0) {
+    _internal_set_result(from._internal_result());
+  }
+  if (from.status() != 0) {
+    _internal_set_status(from._internal_status());
+  }
+}
+
+void AddUserToGroupDataAck::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:infra_service.v1.AddUserToGroupDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void AddUserToGroupDataAck::CopyFrom(const AddUserToGroupDataAck& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:infra_service.v1.AddUserToGroupDataAck)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool AddUserToGroupDataAck::IsInitialized() const {
+  return true;
+}
+
+void AddUserToGroupDataAck::InternalSwap(AddUserToGroupDataAck* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  result_.Swap(&other->result_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  swap(status_, other->status_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata AddUserToGroupDataAck::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
 void CreateDomainUserWithGroupData::InitAsDefaultInstance() {
 }
 class CreateDomainUserWithGroupData::_Internal {
@@ -4840,6 +5386,12 @@ template<> PROTOBUF_NOINLINE ::infra_service::v1::ResetUserPasswordData* Arena::
 }
 template<> PROTOBUF_NOINLINE ::infra_service::v1::ResetUserPasswordDataAck* Arena::CreateMaybeMessage< ::infra_service::v1::ResetUserPasswordDataAck >(Arena* arena) {
   return Arena::CreateMessageInternal< ::infra_service::v1::ResetUserPasswordDataAck >(arena);
+}
+template<> PROTOBUF_NOINLINE ::infra_service::v1::AddUserToGroupData* Arena::CreateMaybeMessage< ::infra_service::v1::AddUserToGroupData >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::infra_service::v1::AddUserToGroupData >(arena);
+}
+template<> PROTOBUF_NOINLINE ::infra_service::v1::AddUserToGroupDataAck* Arena::CreateMaybeMessage< ::infra_service::v1::AddUserToGroupDataAck >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::infra_service::v1::AddUserToGroupDataAck >(arena);
 }
 template<> PROTOBUF_NOINLINE ::infra_service::v1::CreateDomainUserWithGroupData* Arena::CreateMaybeMessage< ::infra_service::v1::CreateDomainUserWithGroupData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::infra_service::v1::CreateDomainUserWithGroupData >(arena);
