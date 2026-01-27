@@ -16,7 +16,7 @@ export function AuthProvider({ children, initialState = {} }) {
     if (typeof globalThis !== 'undefined' && globalThis.__APP_ENV__) {
       return globalThis.__APP_ENV__;
     }
-    return typeof process !== 'undefined' ? process.env : {};
+    return typeof process === "undefined" ? {} : process.env;
   })();
   const bootstrapEmail = initialState.bootstrapEmail ?? env?.VITE_AUTH_EMAIL ?? env?.VITE_API_EMAIL ?? '';
   const bootstrapPassword = initialState.bootstrapPassword ?? env?.VITE_AUTH_PASSWORD ?? env?.VITE_API_PASSWORD ?? '';

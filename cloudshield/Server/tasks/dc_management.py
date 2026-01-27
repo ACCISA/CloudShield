@@ -28,7 +28,8 @@ PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
-
+UNEXPECTED_RESPONSE="Unexpected response"
+USER_ALREADY_EXISTS="User already exists"
 def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
@@ -326,7 +327,7 @@ def dc_add_group(org_id: str, group_name: str):
         return {"status": "FAILED", "message": "Failed to create group"}
 
     logger.error("Unexpected response when creating group")
-    return {"status": "UNKNOWN", "message": "Unexpected response"}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
 
 
 def dc_add_user(org_id: str, username: str, password: str, email: str):
@@ -388,9 +389,9 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
     
     if status == infra_pb2.DUPLICATE:
         logger.error("Duplicate user found")
-        return {"status": "DUPLICATE", "message":"User already exists"}
+        return {"status": "DUPLICATE", "message":USER_ALREADY_EXISTS}
     logger.error("Failed to add user for unexpected reason")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}
 
 
 def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
@@ -465,15 +466,15 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
         return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
 
     if status == infra_pb2.DUPLICATE:
-        logger.warning("User already exists")
-        return {"status": "DUPLICATE", "message": "User already exists", "result": result_payload}
+        logger.warning(USER_ALREADY_EXISTS)
+        return {"status": "DUPLICATE", "message": USER_ALREADY_EXISTS, "result": result_payload}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to create user with group")
         return {"status": "FAILED", "message": "Failed to create user with group", "result": result_payload}
 
     logger.error("Unexpected response when creating user with group")
-    return {"status": "UNKNOWN", "message": "Unexpected response", "result": result_payload}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE, "result": result_payload}
 
 
 
@@ -528,4 +529,4 @@ def dc_remove_user(org_id: str, username: str):
         return {"status": "USER_NOT_FOUND", "message":"User not found"}
     
     logger.error("unknown error when removing user")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}
