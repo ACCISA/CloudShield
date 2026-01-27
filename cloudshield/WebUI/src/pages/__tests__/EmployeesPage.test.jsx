@@ -14,6 +14,15 @@ jest.mock('../../services/usersApi.js', () => ({
   updateUser: jest.fn(),
 }));
 
+// Avoid import.meta usage from analytics during tests.
+jest.mock('../../hooks/useClickLogger', () => ({
+  useClickLogger: () => () => (handler) => handler,
+}));
+
+jest.mock('../../lib/analytics.js', () => ({
+  trackButton: jest.fn(),
+}));
+
 // --- 2. MOCK COMPONENTS ---
 
 // Mock Table: Added 'Force Delete' to test deletion when no users are loaded (token missing)
@@ -88,9 +97,12 @@ jest.mock('../../components/common/DisplayButton/DisplayButton.jsx', () => () =>
 jest.mock('../../assets/CreateUserIcon.jsx', () => () => <span>Icon</span>);
 
 // --- 3. HELPER ---
-const renderPage = ({ accessToken = 'valid-token' } = {}) => {
+const renderPage = ({
+  accessToken = 'valid-token',
+  currentUser = { id: 'admin-1', role: 'admin' },
+} = {}) => {
   return render(
-    <AuthProvider initialState={{ currentUser: { id: 'admin-1', role: 'admin' }, accessToken, disableBootstrap: true }}>
+    <AuthProvider initialState={{ currentUser, accessToken, disableBootstrap: true }}>
       <EmployeesPage />
     </AuthProvider>
   );
@@ -112,6 +124,8 @@ describe('EmployeesPage Integration', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem('org_id', 'org-local');
     usersApi.listUsers.mockResolvedValue([...seedUsers]);
     usersApi.createUser.mockResolvedValue({ user_id: 'new' });
     usersApi.updateUser.mockResolvedValue({ success: true });
@@ -177,6 +191,39 @@ describe('EmployeesPage Integration', () => {
     await userEvent.click(screen.getByTestId('open-create-btn'));
     await userEvent.click(screen.getByText('Confirm Create'));
     expect(await screen.findByText('User created successfully')).toBeInTheDocument();
+  });
+
+  it('uses currentUser.org_id when it is valid', async () => {
+    renderPage({ currentUser: { id: 'admin-1', role: 'admin', org_id: 'org-from-user' } });
+    await userEvent.click(screen.getByTestId('open-create-btn'));
+    await userEvent.click(screen.getByText('Confirm Create'));
+    await waitFor(() =>
+      expect(usersApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ org_id: 'org-from-user' }),
+        expect.any(Object)
+      )
+    );
+  });
+
+  it('falls back to localStorage when currentUser.org_id is default-org', async () => {
+    renderPage({ currentUser: { id: 'admin-1', role: 'admin', org_id: 'default-org' } });
+    await userEvent.click(screen.getByTestId('open-create-btn'));
+    await userEvent.click(screen.getByText('Confirm Create'));
+    await waitFor(() =>
+      expect(usersApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ org_id: 'org-local' }),
+        expect.any(Object)
+      )
+    );
+  });
+
+  it('shows an error and does not create when no org_id is available', async () => {
+    localStorage.removeItem('org_id');
+    renderPage({ currentUser: { id: 'admin-1', role: 'admin', org_id: 'default-org' } });
+    await userEvent.click(screen.getByTestId('open-create-btn'));
+    await userEvent.click(screen.getByText('Confirm Create'));
+    expect(await screen.findByText('Missing org_id for user creation')).toBeInTheDocument();
+    expect(usersApi.createUser).not.toHaveBeenCalled();
   });
 
   it('handles create failure', async () => {

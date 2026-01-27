@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
+import { useAuth } from "../context/AuthContext";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton";
@@ -41,6 +43,14 @@ const Chevron = ({ open }) => (
   </svg>
 );
 
+Chevron.propTypes = {
+  open: PropTypes.bool,
+};
+
+Chevron.defaultProps = {
+  open: false,
+};
+
 const FolderIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="#E8EAED">
     <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
@@ -53,24 +63,84 @@ const FileIcon = () => (
   </svg>
 );
 
-function StoragePill({ usedGB = 62, totalGB = 100 }) {
-  const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
-  return (
-    <div className="storagePill" aria-label="Storage usage">
-      <div className="storageText">
-        <span className="storageLabel">Storage</span>
-        <span className="storageValue">
-          {usedGB}GB / {totalGB}GB
-        </span>
+// function StoragePill({ usedGB = 62, totalGB = 100 }) {
+//   const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
+//   return (
+//     <div className="storagePill" aria-label="Storage usage">
+//       <div className="storageText">
+//         <span className="storageLabel">Storage</span>
+//         <span className="storageValue">
+//           {usedGB}GB / {totalGB}GB
+//         </span>
+//       </div>
+//       <div className="storageBar">
+//         <div className="storageFill" style={{ width: `${pct}%` }} />
+//       </div>
+//     </div>
+//   );
+// }
+
+function StorageCell({ currentSize, maxSize }) {
+  const max = typeof maxSize === "number" ? maxSize : null;
+  const current = Math.max(0, Number(currentSize || 0));
+
+  if (!max || max <= 0) {
+    return (
+      <div className="storageCell" aria-label="Storage usage">
+        <div className="storageMiniLabel">-</div>
       </div>
-      <div className="storageBar">
-        <div className="storageFill" style={{ width: `${pct}%` }} />
+    );
+  }
+
+  const pct = Math.min(100, Math.max(0, (current / max) * 100));
+
+  return (
+    <div className="storageCell" aria-label={`Storage usage ${current} of ${max} GB`}>
+      <div className="storageMiniValue">
+        {current} / {max} GB
+      </div>
+      <div className="storageMiniBar">
+        <div className="storageMiniFill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
 }
 
-export default function FilesPage({ orgId = "test_drive_allocation" }) {
+StorageCell.propTypes = {
+  currentSize: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  maxSize: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+};
+
+StorageCell.defaultProps = {
+  currentSize: 0,
+  maxSize: null,
+};
+
+/**
+ * Main file shares management page for viewing, creating, editing, and deleting organization file shares.
+ * Displays shares in list or icon view with search, selection, and real-time operation tracking.
+ * Implements non-blocking async operations with polling for create/delete completion.
+ */
+export default function FilesPage() {
+  const { currentUser } = useAuth();
+  const withClickLog = useClickLogger({ page: "files" });
+  
+  // Get orgId from currentUser or localStorage
+  const orgId = useMemo(() => {
+    
+    try {
+      const stored = localStorage.getItem("org_id");
+      console.log("localStorage org_id:", stored);
+      if (stored) return stored;
+    } catch (e) {
+      console.error("Error reading localStorage:", e);
+    }
+    
+    const finalOrgId = currentUser?.org_id || "default-org";
+    
+    return finalOrgId;
+  }, [currentUser]);
+  
   const [layout, setLayout] = useState("list");
   
   // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
@@ -87,6 +157,74 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
 
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [deletingShares, setDeletingShares] = useState(new Set()); // Track which shares are being deleted
+  const [creatingShares, setCreatingShares] = useState(new Set()); // Track which shares are being created
+
+  // Fetch user data for enriching hover cards
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await fetchUsers(orgId);
+        const lookup = new Map();
+        usersData.forEach(user => {
+          const email = user.email || "";
+          const emailPrefix = email.includes("@") ? email.split("@")[0] : "";
+          const fullName = user.full_name || user.name || "";
+          const normalized = {
+            id: String(user._id || user.id || ""),
+            username: fullName || email,
+            email,
+            full_name: fullName,
+            role: user.role,
+            active: user.active !== undefined ? user.active : true,
+          };
+          // Keep lookups simple and aligned with the DB shape.
+          if (normalized.username) lookup.set(normalized.username, normalized);
+          if (email) lookup.set(email, normalized);
+          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
+          // Legacy fallback: some shares store email prefixes like "samir".
+          if (emailPrefix) lookup.set(emailPrefix, normalized);
+        });
+        setUserLookup(lookup);
+      } catch (err) {
+        console.error("Failed to load users for hover cards:", err);
+      }
+    };
+    loadUsers();
+  }, [orgId]);
+
+  // Fetch group data for enriching hover cards
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const groupsData = await fetchGroups(orgId);
+        const lookup = new Map();
+        groupsData.forEach(group => {
+          const groupName = group.group_name || group.name || "";
+          const normalized = {
+            id: String(group._id || group.id || ""),
+            name: groupName,
+            group_name: groupName,
+            description: group.description,
+            group_image: group.group_image,
+            member_count: (group.members_info || group.members || []).length,
+            members: group.members || [],
+            workstations: group.workstations || [],
+            file_shares: group.file_shares || [],
+            created_at: group.created_at,
+          };
+          // Map by name for lookup
+          if (normalized.name) {
+            lookup.set(normalized.name, normalized);
+          }
+        });
+        setGroupLookup(lookup);
+      } catch (err) {
+        console.error("Failed to load groups for hover cards:", err);
+      }
+    };
+    loadGroups();
+  }, [orgId]);
 
   // Safe-guard index building: ensure tree is an array if buildIndex expects one
   const index = useMemo(() => {
@@ -221,10 +359,10 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
       <div className="header">
         <Checkbox checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
         <div>Name</div>
-        <div>Date Modified</div>
-        <div>Kind</div>
-        <div>Users</div>
-        <div>Groups</div>
+        <div className="metaHeader">Date Modified</div>
+        <div className="storageHeader">Storage</div>
+        <div className="usersHeader">Users</div>
+        <div className="groupsHeader">Groups</div>
         <div />
       </div>
 
@@ -265,14 +403,27 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
             </div>
 
             <div className="meta">{formatDateTime(node.updated_at)}</div>
-            <div className="meta">{node.kind}</div>
-            <div className="meta">{node.users ?? "—"}</div>
+
+            <StorageCell currentSize={node.current_size} maxSize={node.max_size} />
 
             <div className="groups">
-              {(node.groups || []).slice(0, 3).map((g) => (
-                <span key={g}>{g}</span>
-              ))}
-              {(node.groups || []).length > 3 ? <span>+{node.groups.length - 3}</span> : null}
+              <AvatarPill 
+                items={Array.from(new Set(ensureArray(node.users))).map(username => 
+                  userLookup.get(username) || { username, id: username }
+                )} 
+                type="user" 
+                maxVisible={3} 
+              />
+            </div>
+
+            <div className="groups">
+              <AvatarPill 
+                items={ensureArray(node.groups).map(groupName => 
+                  groupLookup.get(groupName) || { name: groupName, id: groupName }
+                )} 
+                type="group" 
+                maxVisible={3} 
+              />
             </div>
 
             <EditButton
@@ -380,7 +531,8 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
           <div className="title">Files</div>
           <div className="subtitle">Browse and manage your organization files</div>
         </div>
-        <StoragePill usedGB={62} totalGB={100} />
+        {/* StoragePill temporarily hidden until global storage is defined */}
+        {/* <StoragePill usedGB={62} totalGB={100} /> */}
       </div>
 
       <div className="toolbar">
@@ -471,7 +623,7 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         }
         .header, .row {
           display: grid;
-          grid-template-columns: 40px 2.2fr 1.4fr 0.8fr 0.7fr 1.2fr 44px;
+          grid-template-columns: 40px 2.1fr 1.2fr 1.3fr 0.7fr 1.2fr 44px;
           padding: 12px 12px;
           align-items: center;
           column-gap: 10px;
@@ -483,6 +635,32 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
         }
         .row { border-bottom: 1px solid rgba(255,255,255,0.06); }
         .row:last-child { border-bottom: none; }
+
+        .storageHeader { opacity: 0.75; }
+        .storageCell {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .storageMiniValue,
+        .storageMiniLabel {
+          font-size: 11px;
+          opacity: 0.8;
+          white-space: nowrap;
+        }
+        .storageMiniBar {
+          height: 4px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 999px;
+          overflow: hidden;
+          max-width: 140px;
+        }
+        .storageMiniFill {
+          height: 100%;
+          background: #4f8cff;
+          border-radius: 999px;
+        }
 
         .nameCell { min-width: 0; }
         .nameInner {
@@ -661,14 +839,13 @@ export default function FilesPage({ orgId = "test_drive_allocation" }) {
           .iconsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
           /* List: hide columns on mobile */
-          .header div:nth-child(3),
-          .header div:nth-child(4),
-          .header div:nth-child(5),
-          .header div:nth-child(6),
-          .row .meta:nth-of-type(1),
-          .row .meta:nth-of-type(2),
-          .row .meta:nth-of-type(3),
-          .row .groups { display: none; }
+          .row .meta,
+          .row .groups,
+          .storageCell,
+          .storageHeader,
+          .metaHeader,
+          .usersHeader,
+          .groupsHeader { display: none; }
 
           .header, .row { grid-template-columns: 40px 1fr 44px; }
         }

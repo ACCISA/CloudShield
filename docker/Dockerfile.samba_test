@@ -9,6 +9,7 @@ RUN apt-get update \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2\
     iproute2 \
+    build-essential cmake pkg-config protobuf-compiler protobuf-compiler-grpc libprotobuf-dev libgrpc++-dev \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -41,10 +42,17 @@ RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
 
 RUN chmod +x /usr/local/bin/sudo
 
-# copy our rpc server binary and service
-# build binary before starting docker
-COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
+# build rpc server against container libs and install service
+WORKDIR /tmp/rpcnode
+COPY cloudshield/RPCNode /tmp/rpcnode
+RUN cd /tmp/rpcnode && bash scripts/proto-gen.sh
+RUN rm -rf /tmp/rpcnode/build && \
+    cmake -S /tmp/rpcnode -B /tmp/rpcnode/build && \
+    cmake --build /tmp/rpcnode/build --target cs-rpcsrv && \
+    cp /tmp/rpcnode/build/cs-rpcsrv /usr/local/bin/ && \
+    rm -rf /tmp/rpcnode
 COPY docker/cs_samba_rpc.service /etc/systemd/system/cs_rpc.service
+RUN ln -sf /etc/systemd/system/cs_rpc.service /etc/systemd/system/multi-user.target.wants/cs_rpc.service
 
 
 # Expose ports needed by AD DC

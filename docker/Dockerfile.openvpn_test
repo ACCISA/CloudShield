@@ -10,6 +10,7 @@ RUN apt-get update \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2\
     iproute2 \
+    build-essential cmake pkg-config protobuf-compiler protobuf-compiler-grpc libprotobuf-dev libgrpc++-dev \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -37,8 +38,17 @@ COPY docker/openvpn /etc/openvpn
 
 # copy our rpc server binary and service
 # NOTE build binary before running container
-COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/cs-rpcsrv
+# Build cs-rpcsrv against container libs to avoid missing .so versions
+WORKDIR /tmp/rpcnode
+COPY cloudshield/RPCNode /tmp/rpcnode
+RUN cd /tmp/rpcnode && bash scripts/proto-gen.sh
+RUN rm -rf /tmp/rpcnode/build && \
+    cmake -S /tmp/rpcnode -B /tmp/rpcnode/build && \
+    cmake --build /tmp/rpcnode/build --target cs-rpcsrv && \
+    cp /tmp/rpcnode/build/cs-rpcsrv /usr/local/bin/cs-rpcsrv && \
+    rm -rf /tmp/rpcnode
 COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
+RUN ln -sf /etc/systemd/system/cs_rpc.service /etc/systemd/system/multi-user.target.wants/cs_rpc.service
 
 # Copy entrypoint script
 COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

@@ -34,6 +34,12 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
     return _task(org_id, username, password, group_name)
 
 
+def dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    from cloudshield.Server.tasks import dc_add_user_to_group as _task  # type: ignore
+
+    return _task(org_id, username, group_name)
+
+
 def dc_restart_samba_service(org_id: str):
     from cloudshield.Server.tasks import dc_restart_samba_service as _task  # type: ignore
 
@@ -237,6 +243,17 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str, email: str):
     logger.info("Enqueued dc_add_user job")
     return job
 
+
+def enqueue_dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    job = task_queue.enqueue(
+            dc_add_user_to_group,
+            org_id,
+            username,
+            group_name,
+    )
+    logger.info("Enqueued dc_add_user_to_group job")
+    return job
+
 def enqueue_dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str):
     """
     Enqueue a task that creates a user, provisions a group, links it to Domain Users, and adds the user to that group.
@@ -347,6 +364,7 @@ SERVICES = {
     "provision_workstations": enqueue_provision_workstations,
     "destroy": enqueue_destroy,
     "dc_add_user": enqueue_dc_add_user,
+    "dc_add_user_to_group": enqueue_dc_add_user_to_group,
     "dc_create_user_with_group": enqueue_dc_create_user_with_group,
     "dc_remove_user": enqueue_dc_remove_user,
     "dc_restart_samba_service": enqueue_dc_restart_samba_service,

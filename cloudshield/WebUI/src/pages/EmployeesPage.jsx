@@ -82,6 +82,20 @@ export default function EmployeesPage() {
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
 
+  // Resolve org_id with a localStorage fallback; return null when unavailable.
+  const orgId = useMemo(() => {
+    if (currentUser?.org_id && currentUser.org_id !== "default-org") {
+      return currentUser.org_id;
+    }
+    try {
+      const stored = localStorage.getItem("org_id");
+      if (stored) return stored;
+    } catch (e) {
+      console.error("Error reading org_id from localStorage:", e);
+    }
+    return null;
+  }, [currentUser]);
+
   // UI State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -160,6 +174,10 @@ export default function EmployeesPage() {
       openToast("You must be logged in to create a user", "error");
       return;
     }
+    if (!orgId) {
+      openToast("Missing org_id for user creation", "error");
+      return;
+    }
 
     try {
       trackButton("employees/create/submit", {
@@ -173,7 +191,7 @@ export default function EmployeesPage() {
         role: payload.jobTitle?.toLowerCase().includes("admin")
           ? "admin"
           : "employee",
-        org_id: currentUser?.org_id,
+        org_id: orgId,
       };
 
       await createUser(apiPayload, { token: accessToken });
