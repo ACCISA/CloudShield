@@ -1,99 +1,231 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import DashboardPage from '../DashboardPage';
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import DashboardPage from "../DashboardPage";
 
-describe('DashboardPage', () => {
+jest.mock("../../lib/analytics", () => ({
+  trackButton: jest.fn(),
+}));
+
+jest.mock("../../context/AuthContext.jsx", () => ({
+  useAuth: jest.fn(),
+}));
+
+jest.mock("../../components/dashboard/ActivityPanel.jsx", () => {
+  return function MockActivityPanel() {
+    return <div data-testid="activity-panel">Activity</div>;
+  };
+});
+
+jest.mock("../../components/dashboard/StatCard.jsx", () => {
+  return function MockStatCard({ title, value, onAdd }) {
+    return (
+      <div data-testid={`stat-card-${title.toLowerCase()}`}>
+        <div>{title}</div>
+        <div>{String(value)}</div>
+        <button type="button" onClick={onAdd}>
+          Add
+        </button>
+      </div>
+    );
+  };
+});
+
+import { useAuth } from "../../context/AuthContext.jsx";
+import { trackButton } from "../../lib/analytics";
+
+describe("DashboardPage", () => {
+  let mockFetch;
+
   beforeEach(() => {
-    // Mock console.log to avoid cluttering test output
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.clearAllMocks();
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
+    jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
-  it('renders all stat cards', () => {
+  it("renders all stat cards", () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ provisioning_status: "completed" }),
+    });
+
     render(<DashboardPage />);
-    expect(screen.getByText('Users')).toBeInTheDocument();
-    expect(screen.getByText('Workstations')).toBeInTheDocument();
-    expect(screen.getByText('Groups')).toBeInTheDocument();
-    expect(screen.getByText('Files')).toBeInTheDocument();
+    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Workstations")).toBeInTheDocument();
+    expect(screen.getByText("Groups")).toBeInTheDocument();
+    expect(screen.getByText("Files")).toBeInTheDocument();
   });
 
-  it('displays correct stat values', () => {
+  it("displays correct stat values", () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ provisioning_status: "completed" }),
+    });
+
     render(<DashboardPage />);
-    expect(screen.getByText('16')).toBeInTheDocument(); // Users
-    expect(screen.getByText('12')).toBeInTheDocument(); // Workstations
-    expect(screen.getByText('3')).toBeInTheDocument(); // Groups
-    expect(screen.getByText('33')).toBeInTheDocument(); // Files
+    expect(screen.getByText("16")).toBeInTheDocument(); // Users
+    expect(screen.getByText("12")).toBeInTheDocument(); // Workstations
+    expect(screen.getByText("3")).toBeInTheDocument(); // Groups
+    expect(screen.getByText("33")).toBeInTheDocument(); // Files
   });
 
-  it('renders activity panel', () => {
+  it("renders activity panel", () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ provisioning_status: "completed" }),
+    });
+
     render(<DashboardPage />);
-    expect(screen.getByText('Recent activity')).toBeInTheDocument();
+    expect(screen.getByTestId("activity-panel")).toBeInTheDocument();
   });
 
-  it('applies correct layout styles', () => {
+  it("applies correct layout styles", () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ provisioning_status: "completed" }),
+    });
+
     const { container } = render(<DashboardPage />);
     const mainBox = container.firstChild;
-    expect(mainBox).toHaveStyle({ display: 'flex', flexDirection: 'column' });
+    expect(mainBox).toHaveStyle({ display: "flex", flexDirection: "column" });
   });
 
-  it('renders stat cards in a row', () => {
+  it("does not poll provisioning status without org_id", async () => {
+    useAuth.mockReturnValue({ user: null });
+
     render(<DashboardPage />);
-    // Check for StatCard content which indicates the cards rendered
-    expect(screen.getByText('Workstations')).toBeInTheDocument();
-    expect(screen.getByText('Users')).toBeInTheDocument();
+
+    // Give effects a tick.
+    await waitFor(() => {
+      expect(screen.getByText("Users")).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  // Test add button handlers
-  describe('Add Button Handlers', () => {
-    it('calls handleAddUser when add user button is clicked', () => {
-      render(<DashboardPage />);
-      
-      // Find the Users StatCard and its add button
-      const userCard = screen.getByText('Users').closest('div').closest('div');
-      const addButton = userCard.querySelector('button');
-      
-      fireEvent.click(addButton);
-      
-      expect(console.log).toHaveBeenCalledWith('Add user clicked');
+  it("fetches provisioning status immediately and shows progress UI when in_progress", async () => {
+    jest.useFakeTimers();
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ provisioning_status: "in_progress" }),
     });
 
-    it('calls handleAddWorkstation when add workstation button is clicked', () => {
-      render(<DashboardPage />);
-      
-      // Find the Workstations StatCard and its add button
-      const workstationCard = screen.getByText('Workstations').closest('div').closest('div');
-      const addButton = workstationCard.querySelector('button');
-      
-      fireEvent.click(addButton);
-      
-      expect(console.log).toHaveBeenCalledWith('Add workstation clicked');
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
     });
 
-    it('calls handleAddGroup when add group button is clicked', () => {
-      render(<DashboardPage />);
-      
-      // Find the Groups StatCard and its add button
-      const groupCard = screen.getByText('Groups').closest('div').closest('div');
-      const addButton = groupCard.querySelector('button');
-      
-      fireEvent.click(addButton);
-      
-      expect(console.log).toHaveBeenCalledWith('Add group clicked');
+    // Progress panel visible + loading text updated
+    await waitFor(() => {
+      expect(
+        screen.getByText("Cloud Infrastructure Provisioning"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Provisioning cloud infrastructure... This may take a few minutes.",
+        ),
+      ).toBeInTheDocument();
     });
 
-    it('calls handleAddFile when add file button is clicked', () => {
+    // After status flips to in_progress, component should start polling every 10s
+    const initialCalls = mockFetch.mock.calls.length;
+    jest.advanceTimersByTime(10000);
+
+    await waitFor(() => {
+      expect(mockFetch.mock.calls.length).toBeGreaterThan(initialCalls);
+    });
+  });
+
+  it("hides progress UI when provisioning_status is missing (defaults to completed)", async () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
+    });
+
+    expect(
+      screen.queryByText("Cloud Infrastructure Provisioning"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("logs an error if provisioning status fetch fails", async () => {
+    useAuth.mockReturnValue({ user: { org_id: "org123" } });
+    mockFetch.mockRejectedValueOnce(new Error("boom"));
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        "Failed to fetch provisioning status",
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe("Add Button Handlers", () => {
+    beforeEach(() => {
+      useAuth.mockReturnValue({ user: { org_id: "org123" } });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ provisioning_status: "completed" }),
+      });
+    });
+
+    it("tracks add users", () => {
       render(<DashboardPage />);
-      
-      // Find the Files StatCard and its add button
-      const fileCard = screen.getByText('Files').closest('div').closest('div');
-      const addButton = fileCard.querySelector('button');
-      
-      fireEvent.click(addButton);
-      
-      expect(console.log).toHaveBeenCalledWith('Add file clicked');
+      const userCard = screen.getByTestId("stat-card-users");
+      fireEvent.click(userCard.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "users",
+      });
+    });
+
+    it("tracks add workstations", () => {
+      render(<DashboardPage />);
+      const card = screen.getByTestId("stat-card-workstations");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "workstations",
+      });
+    });
+
+    it("tracks add groups", () => {
+      render(<DashboardPage />);
+      const card = screen.getByTestId("stat-card-groups");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "groups",
+      });
+    });
+
+    it("tracks add files", () => {
+      render(<DashboardPage />);
+      const card = screen.getByTestId("stat-card-files");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "files",
+      });
     });
   });
 });

@@ -5,8 +5,8 @@
  * Dashboard page assembling StatCard(s) and the ActivityPanel.
  * Includes data fetching logic and state management for backend integration.
  */
-import React from "react";
-import { Box } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, LinearProgress, Paper, Typography } from "@mui/material";
 import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
