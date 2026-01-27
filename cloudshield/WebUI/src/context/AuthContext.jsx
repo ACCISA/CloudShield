@@ -16,13 +16,17 @@ export function AuthProvider({ children, initialState = {} }) {
     if (typeof globalThis !== 'undefined' && globalThis.__APP_ENV__) {
       return globalThis.__APP_ENV__;
     }
-    return typeof process !== 'undefined' ? process.env : {};
+    return typeof process === "undefined" ? {} : process.env;
   })();
   const bootstrapEmail = initialState.bootstrapEmail ?? env?.VITE_AUTH_EMAIL ?? env?.VITE_API_EMAIL ?? '';
   const bootstrapPassword = initialState.bootstrapPassword ?? env?.VITE_AUTH_PASSWORD ?? env?.VITE_API_PASSWORD ?? '';
   const envAccessToken = env?.VITE_API_ACCESS_TOKEN ?? env?.VITE_AUTH_TOKEN ?? null;
   const initialUser = initialState.currentUser ?? DEFAULT_USER;
-  const initialToken = initialState.accessToken ?? envAccessToken ?? null;
+  const initialToken =
+    initialState.accessToken ??
+    localStorage.getItem("jwt") ??
+    envAccessToken ??
+    null;
   const shouldBootstrap = !disableBootstrap && !initialToken && Boolean(bootstrapEmail && bootstrapPassword);
 
   const [currentUser, setCurrentUser] = useState(initialUser);
