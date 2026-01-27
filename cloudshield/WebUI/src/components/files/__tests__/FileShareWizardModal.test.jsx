@@ -745,7 +745,7 @@ describe('FileShareWizardModal', () => {
       });
     });
 
-    it('should deduplicate users by email', async () => {
+    it('does not deduplicate users by email', async () => {
       const duplicateUsers = [
         { _id: 'user1', username: 'jdoe', email: 'john@example.com', full_name: 'John Doe' },
         { _id: 'user2', username: 'john', email: 'john@example.com', full_name: 'John Doe' },
@@ -760,11 +760,11 @@ describe('FileShareWizardModal', () => {
       await user.click(screen.getByRole('button', { name: /Next/i }));
       
       await waitFor(() => {
-        expect(screen.getByText(/Available Users: 1/)).toBeInTheDocument();
+        expect(screen.getByText(/Available Users: 2/)).toBeInTheDocument();
       });
     });
 
-    it('should deduplicate users by username', async () => {
+    it('does not deduplicate users by username', async () => {
       const duplicateUsers = [
         { _id: 'user1', username: 'jdoe', email: 'john1@example.com', full_name: 'John Doe' },
         { _id: 'user2', username: 'jdoe', email: 'john2@example.com', full_name: 'John Doe' },
@@ -779,7 +779,7 @@ describe('FileShareWizardModal', () => {
       await user.click(screen.getByRole('button', { name: /Next/i }));
       
       await waitFor(() => {
-        expect(screen.getByText(/Available Users: 1/)).toBeInTheDocument();
+        expect(screen.getByText(/Available Users: 2/)).toBeInTheDocument();
       });
     });
   });

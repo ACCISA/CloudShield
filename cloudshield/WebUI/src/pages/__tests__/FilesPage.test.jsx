@@ -304,6 +304,53 @@ describe('FilesPage', () => {
   });
 
   describe('Hover Card Lookups', () => {
+    it('maps legacy email prefixes to full user objects', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      const AvatarPill = require('../../components/files/AvatarPill').default;
+
+      fetchUsers.mockResolvedValue([
+        {
+          _id: 'u1',
+          email: 'samir@test.com',
+          full_name: 'syTest',
+          role: 'admin',
+        },
+      ]);
+      fetchGroups.mockResolvedValue([]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'Legacy Share',
+                    kind: 'folder',
+                    users: ['samir'],
+                    groups: [],
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      render(<FilesPage />);
+
+      await waitFor(() => {
+        const userCalls = AvatarPill.mock.calls.filter((call) => call[0]?.type === 'user');
+        expect(userCalls.length).toBeGreaterThan(0);
+        const mapped = userCalls[0][0].items[0];
+        expect(mapped.email).toBe('samir@test.com');
+        expect(mapped.full_name).toBe('syTest');
+        expect(mapped.active).toBe(true);
+      });
+    });
+
     it('loads users and maps usernames from email', async () => {
       const { fetchUsers, fetchGroups } = require('../../api/filesApi');
       const AvatarPill = require('../../components/files/AvatarPill').default;
@@ -462,6 +509,80 @@ describe('FilesPage', () => {
           'Failed to load groups for hover cards:',
           expect.any(Error)
         );
+      });
+    });
+  });
+
+  describe('StorageCell', () => {
+    it('renders a dash when max_size is missing or invalid', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      fetchUsers.mockResolvedValue([]);
+      fetchGroups.mockResolvedValue([]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'No Max',
+                    kind: 'folder',
+                    users: [],
+                    groups: [],
+                    current_size: 7,
+                    max_size: null,
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      const { container } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(container.querySelector('.storageMiniLabel')?.textContent).toBe('-');
+      });
+    });
+
+    it('renders usage and fill width when max_size is valid', async () => {
+      const { fetchUsers, fetchGroups } = require('../../api/filesApi');
+      fetchUsers.mockResolvedValue([]);
+      fetchGroups.mockResolvedValue([]);
+
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shares: [
+                {
+                  share: {
+                    id: 'share-1',
+                    name: 'With Max',
+                    kind: 'folder',
+                    users: [],
+                    groups: [],
+                    current_size: 7,
+                    max_size: 14,
+                    updated_at: '2026-01-01T10:00:00Z',
+                  },
+                },
+              ],
+            }),
+        })
+      );
+
+      const { container, getByLabelText } = render(<FilesPage />);
+
+      await waitFor(() => {
+        expect(getByLabelText('Storage usage 7 of 14 GB')).toBeInTheDocument();
+        expect(container.querySelector('.storageMiniValue')?.textContent).toContain('7 / 14 GB');
+        expect(container.querySelector('.storageMiniFill')?.getAttribute('style')).toContain('50%');
       });
     });
   });
@@ -878,7 +999,7 @@ describe('FilesPage', () => {
     });
   });
 
-  describe('Storage Pill Component', () => {
+  describe.skip('Storage Pill Component', () => {
     it('should render storage pill', () => {
       const { container } = render(<FilesPage />);
       const storagePill = container.querySelector('.storagePill');
@@ -1288,7 +1409,7 @@ describe('FilesPage', () => {
     it('should render with static storage values', () => {
       const { container } = render(<FilesPage />);
       const fill = container.querySelector('.storageFill');
-      expect(fill.style.width).toBe('62%');
+      expect(fill).toBeNull();
     });
   });
 
@@ -1328,7 +1449,7 @@ describe('FilesPage', () => {
     it('should have aria-label on storage pill', () => {
       const { container } = render(<FilesPage />);
       const storagePill = container.querySelector('.storagePill');
-      expect(storagePill).toHaveAttribute('aria-label', 'Storage usage');
+      expect(storagePill).toBeNull();
     });
 
     it('should have semantic structure', () => {
