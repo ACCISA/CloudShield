@@ -1,8 +1,6 @@
 import re
 import uuid
 import base64
-from cloudshield.Server.models.user import UserCreate
-from cloudshield.Server.services import user_service
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
