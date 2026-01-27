@@ -162,7 +162,10 @@ export default function EmployeesPage() {
     }
 
     try {
-      trackButton("employees/create/submit", { page: "employees", control: "create_dialog" });
+      trackButton("employees/create/submit", {
+        page: "employees",
+        control: "create_dialog",
+      });
       const apiPayload = {
         email: payload.email,
         full_name: `${payload.firstName} ${payload.lastName}`,
@@ -189,7 +192,11 @@ export default function EmployeesPage() {
     if (!accessToken) return;
 
     try {
-      trackButton("employees/edit/submit", { page: "employees", id, control: "edit_dialog" });
+      trackButton("employees/edit/submit", {
+        page: "employees",
+        id,
+        control: "edit_dialog",
+      });
       const apiPayload = {
         full_name: `${payload.firstName} ${payload.lastName}`,
         email: payload.email,
@@ -216,7 +223,11 @@ export default function EmployeesPage() {
     }
 
     try {
-      trackButton("employees/edit/delete", { page: "employees", id, control: "edit_dialog" });
+      trackButton("employees/edit/delete", {
+        page: "employees",
+        id,
+        control: "edit_dialog",
+      });
       await deleteUser(id, { token: accessToken });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       openToast("User deleted successfully");
@@ -227,7 +238,10 @@ export default function EmployeesPage() {
   };
 
   const handleLayoutChange = (value) => {
-    trackButton("employees/display/toggle", { page: "employees", layout: value });
+    trackButton("employees/display/toggle", {
+      page: "employees",
+      layout: value,
+    });
     setLayout(value);
   };
 
@@ -289,10 +303,15 @@ export default function EmployeesPage() {
   };
 
   const toggleSort = (field) => {
-    const nextDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    const nextDir =
+      sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
     setSortField(field);
     setSortDir(nextDir);
-    trackButton("employees/table/sort", { page: "employees", field, direction: nextDir });
+    trackButton("employees/table/sort", {
+      page: "employees",
+      field,
+      direction: nextDir,
+    });
   };
 
   const filterGroups = [
@@ -408,16 +427,20 @@ export default function EmployeesPage() {
 
         <div style={styles.rightActions}>
           <RefreshButton
-            onClick={withClickLog({ name: "employees/toolbar/refresh", control: "refresh_button" })(fetchUsers)}
+            onClick={withClickLog({
+              name: "employees/toolbar/refresh",
+              control: "refresh_button",
+            })(fetchUsers)}
             isLoading={loading}
           />
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={withClickLog({ name: "employees/toolbar/open-create", control: "create_button" })(() =>
-              setCreateModalOpen(true)
-            )}
+            onClick={withClickLog({
+              name: "employees/toolbar/open-create",
+              control: "create_button",
+            })(() => setCreateModalOpen(true))}
           />
         </div>
       </div>
@@ -437,7 +460,10 @@ export default function EmployeesPage() {
           sortField={sortField}
           sortDir={sortDir}
           onEdit={(u) => {
-            trackButton("employees/table/open-edit", { page: "employees", id: u.id });
+            trackButton("employees/table/open-edit", {
+              page: "employees",
+              id: u.id,
+            });
             setEditTarget(u);
             setEditModalOpen(true);
           }}

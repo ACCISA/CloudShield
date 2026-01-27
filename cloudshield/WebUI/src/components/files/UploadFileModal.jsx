@@ -11,7 +11,11 @@ const mockUsers = [
 
 const mockGroups = ["Sales", "Finance", "Corporate", "Warehouse"];
 
-export default function UploadFileModal({ isOpen, onClose, onUpload }) {
+export default function UploadFileModal({
+  isOpen,
+  onClose,
+  onUpload,
+}) {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -41,9 +45,9 @@ export default function UploadFileModal({ isOpen, onClose, onUpload }) {
     <div className="modalOverlay">
       <div className="modal">
         <header className="modalHeader">
-          <span>Shares</span>
+          <span>Files</span>
           <span className="sep">›</span>
-          <span>New share</span>
+          <span>New file</span>
           <button onClick={onClose}>✕</button>
         </header>
 
@@ -61,7 +65,7 @@ export default function UploadFileModal({ isOpen, onClose, onUpload }) {
           aria-label="Drag and drop area for file upload"
         >
           <div className="uploadIcon">⬆</div>
-          <div>Drag and drop shares here, or</div>
+          <div>Drag and drop files here, or</div>
           <label className="browseBtn">
             Browse
             <input
@@ -73,10 +77,10 @@ export default function UploadFileModal({ isOpen, onClose, onUpload }) {
         </div>
 
         <div className="field">
-          <label>Share Name</label>
+          <label>File Name</label>
           <input
             value={fileName}
-            placeholder="share name"
+            placeholder="file name"
             onChange={(e) => setFileName(e.target.value)}
           />
         </div>
@@ -94,10 +98,7 @@ export default function UploadFileModal({ isOpen, onClose, onUpload }) {
         />
 
         <footer className="modalFooter">
-          <button
-            className="primary"
-            onClick={() => onUpload?.({ file, fileName })}
-          >
+          <button className="primary" onClick={() => onUpload?.({ file, fileName })}>
             Upload
           </button>
         </footer>

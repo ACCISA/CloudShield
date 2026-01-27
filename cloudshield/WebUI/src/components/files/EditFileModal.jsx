@@ -26,19 +26,21 @@ export default function EditFileModal({
     <div className="modalOverlay">
       <div className="modal">
         <header className="modalHeader">
-          <span>Shares</span>
+          <span>Files</span>
           <span className="sep">›</span>
-          <span>Edit Share</span>
+          <span>Edit File</span>
           <button onClick={onClose}>✕</button>
         </header>
 
-        <div className="filePreview">📄</div>
+        <div className="filePreview">
+          📄
+        </div>
 
         <div className="field">
-          <label>Share Name</label>
+          <label>File Name</label>
           <input
             value={name}
-            placeholder="share name"
+            placeholder="file name"
             onChange={(e) => setName(e.target.value)}
           />
         </div>

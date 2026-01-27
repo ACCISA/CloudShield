@@ -158,7 +158,10 @@ export default function WorkstationsPage() {
   };
 
   const handleCreate = (payload) => {
-    trackButton("workstations/create/save", { page: "workstations", control: "create_dialog" });
+    trackButton("workstations/create/save", {
+      page: "workstations",
+      control: "create_dialog",
+    });
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
@@ -182,7 +185,11 @@ export default function WorkstationsPage() {
   };
 
   const handleEditSave = (id, changes) => {
-    trackButton("workstations/edit/save", { page: "workstations", id, control: "edit_dialog" });
+    trackButton("workstations/edit/save", {
+      page: "workstations",
+      id,
+      control: "edit_dialog",
+    });
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -198,12 +205,20 @@ export default function WorkstationsPage() {
   };
 
   const handleDelete = (id) => {
-    trackButton("workstations/edit/delete", { page: "workstations", id, control: "edit_dialog" });
+    trackButton("workstations/edit/delete", {
+      page: "workstations",
+      id,
+      control: "edit_dialog",
+    });
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
   const handleToggleStatus = (id) => {
-    trackButton("workstations/row/toggle-status", { page: "workstations", id, control: "row_toggle" });
+    trackButton("workstations/row/toggle-status", {
+      page: "workstations",
+      id,
+      control: "row_toggle",
+    });
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -215,7 +230,11 @@ export default function WorkstationsPage() {
   };
 
   const handleLayoutChange = (newLayout) => {
-    trackButton("workstations/display/toggle", { page: "workstations", layout: newLayout, control: "display_button" });
+    trackButton("workstations/display/toggle", {
+      page: "workstations",
+      layout: newLayout,
+      control: "display_button",
+    });
     setLayout(newLayout);
   };
 
@@ -276,12 +295,12 @@ export default function WorkstationsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-            <RefreshButton
-              onClick={withClickLog({
-                name: "workstations/toolbar/refresh",
-                control: "refresh_button",
-              })(() => console.log("refresh"))}
-            />
+          <RefreshButton
+            onClick={withClickLog({
+              name: "workstations/toolbar/refresh",
+              control: "refresh_button",
+            })(() => console.log("refresh"))}
+          />
 
           <CreateButton
             icon={<CreateWorkstationIcon />}

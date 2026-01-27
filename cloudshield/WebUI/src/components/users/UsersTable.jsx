@@ -146,7 +146,7 @@ export default function UsersTable({
       <div style={responsiveStyles.listPanel}>
         <div
           style={{
-            padding: isMobile ? "0 4px" : isTablet ? "0 8px" : "0 8px",
+            padding: isMobile ? "0 4px" : "0 8px",
           }}
         >
           {users.map((u, idx) => (

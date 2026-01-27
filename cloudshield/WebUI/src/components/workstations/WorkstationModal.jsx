@@ -659,8 +659,17 @@ function GroupsStep({
               return (
                 <div
                   key={group.id}
+                  role="option"
+                  tabIndex={0}
+                  aria-selected={isSelected}
                   className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggleGroup(group)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggleGroup(group);
+                    }
+                  }}
                 >
                   <DisplayIcon type="group" data={group} size="small" />
                   <div className="workstation-modal-dropdown-item-info">
@@ -759,8 +768,17 @@ function UsersStep({
               return (
                 <div
                   key={user.id}
+                  role="option"
+                  tabIndex={0}
+                  aria-selected={isSelected}
                   className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggleUser(user)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggleUser(user);
+                    }
+                  }}
                 >
                   <DisplayIcon type="user" data={user} size="small" />
                   <div className="workstation-modal-dropdown-item-info">
@@ -861,8 +879,17 @@ function SoftwareStep({
               return (
                 <div
                   key={software.id}
+                  role="option"
+                  tabIndex={0}
+                  aria-selected={isSelected}
                   className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggleSoftware(software)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggleSoftware(software);
+                    }
+                  }}
                 >
                   <div className="workstation-modal-dropdown-item-icon">
                     {software.icon}

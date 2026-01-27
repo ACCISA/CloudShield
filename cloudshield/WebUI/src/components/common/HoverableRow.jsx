@@ -1,0 +1,35 @@
+import React from "react";
+
+/**
+ * HoverableRow
+ *
+ * A reusable row wrapper that adds hover background and zIndex effects.
+ * Props:
+ *   - style: object (additional styles to apply)
+ *   - className: string (optional)
+ *   - children: ReactNode
+ *   - ...rest: any other props (e.g., onClick)
+ */
+const HoverableRow = ({ style = {}, className = "", children, ...rest }) => {
+  const handleMouseEnter = (e) => {
+    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+    e.currentTarget.style.zIndex = "100";
+  };
+  const handleMouseLeave = (e) => {
+    e.currentTarget.style.backgroundColor = "transparent";
+    e.currentTarget.style.zIndex = "1";
+  };
+  return (
+    <div
+      className={className}
+      style={style}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+};
+
+export default HoverableRow;

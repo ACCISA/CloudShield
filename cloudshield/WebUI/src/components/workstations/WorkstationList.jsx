@@ -23,6 +23,7 @@ import ActiveIcon from "../../assets/ActiveIcon.jsx";
 import StatusButton from "../common/StatusButton/StatusButton.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import HoverableRow from "../common/HoverableRow.jsx";
 
 /* ---------------------------- styles ---------------------------- */
 
@@ -326,18 +327,10 @@ function WorkstationRow({
   return (
     <>
       {/* Row */}
-      <div
+      <HoverableRow
         style={{
           ...responsiveStyles.row,
           gridTemplateColumns: cols.join(" "),
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
-          e.currentTarget.style.zIndex = "100";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.zIndex = "1";
         }}
       >
         {/* select - hide on mobile */}
@@ -421,7 +414,7 @@ function WorkstationRow({
             ]}
           />
         </div>
-      </div>
+      </HoverableRow>
 
       {/* divider */}
       {!isLast && <div style={styles.divider} />}
@@ -513,7 +506,7 @@ export default function WorkstationList({
       >
         <div
           style={{
-            padding: isMobile ? "0 4px" : isTablet ? "0 8px" : "0 8px",
+            padding: isMobile ? "0 4px" : "0 8px",
           }}
         >
           <div style={styles.container}>
