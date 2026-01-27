@@ -2,6 +2,14 @@ import React from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import WorkstationsPage from "../WorkstationsPage";
 
+jest.mock("../../lib/analytics", () => ({
+  trackButton: jest.fn(),
+}));
+
+jest.mock("../../hooks/useClickLogger", () => ({
+  useClickLogger: () => () => (handler) => handler,
+}));
+
 // Mock child components
 jest.mock("../../components/workstations/WorkstationList", () => {
   return function MockWorkstationList({
@@ -33,15 +41,15 @@ jest.mock("../../components/workstations/WorkstationModal", () => {
     open,
     onClose,
     onSubmit,
-    workstation,
+    workstationData,
     onDelete,
   }) {
     if (!open) return null;
     return (
-      <div data-testid={workstation ? "edit-dialog" : "create-dialog"}>
-        {workstation ? (
+      <div data-testid={workstationData ? "edit-dialog" : "create-dialog"}>
+        {workstationData ? (
           <>
-            <span>Editing: {workstation.name}</span>
+            <span>Editing: {workstationData.name}</span>
             <button onClick={() => onSubmit({ name: "Updated Name" })}>
               Save
             </button>
@@ -148,10 +156,10 @@ describe("WorkstationsPage", () => {
   it("displays initial seed workstations", () => {
     render(<WorkstationsPage />);
 
-    // There are multiple workstations with "Development" name, so use getAllByText
-    const developmentWorkstations = screen.getAllByText("Development");
+    // There are multiple workstations with "Development-WS-001" name, so use getAllByText
+    const developmentWorkstations = screen.getAllByText("Development-WS-001");
     expect(developmentWorkstations.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
   });
 
   it("filters workstations based on search input", () => {
@@ -160,13 +168,13 @@ describe("WorkstationsPage", () => {
     const searchInput = screen.getByPlaceholderText("Search workstations");
 
     // Initial state - should show multiple workstations
-    expect(screen.getAllByText("Development")).toHaveLength(3);
+    expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
 
-    // Search for "Marketing"
-    fireEvent.change(searchInput, { target: { value: "Marketing" } });
+    // Search for "Marketing-WS-002"
+    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
 
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
-    expect(screen.queryByText("Development")).not.toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
+    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
   });
 
   it("filters workstations by code", () => {
@@ -175,8 +183,8 @@ describe("WorkstationsPage", () => {
     const searchInput = screen.getByPlaceholderText("Search workstations");
     fireEvent.change(searchInput, { target: { value: "WS-002" } });
 
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
-    expect(screen.queryByText("Development")).not.toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
+    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
   });
 
   it("filters workstations by current user", () => {
@@ -185,8 +193,8 @@ describe("WorkstationsPage", () => {
     const searchInput = screen.getByPlaceholderText("Search workstations");
     fireEvent.change(searchInput, { target: { value: "Pam" } });
 
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
-    expect(screen.queryByText("Development")).not.toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
+    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
   });
 
   it("search is case insensitive", () => {
@@ -195,7 +203,7 @@ describe("WorkstationsPage", () => {
     const searchInput = screen.getByPlaceholderText("Search workstations");
     fireEvent.change(searchInput, { target: { value: "MARKETING" } });
 
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
   });
 
   it("shows all workstations when search is cleared", () => {
@@ -203,12 +211,12 @@ describe("WorkstationsPage", () => {
 
     const searchInput = screen.getByPlaceholderText("Search workstations");
 
-    fireEvent.change(searchInput, { target: { value: "Marketing" } });
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
+    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
 
     fireEvent.change(searchInput, { target: { value: "" } });
-    expect(screen.getAllByText("Development")).toHaveLength(3);
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
+    expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
   });
 
   it("opens create dialog when create button is clicked", () => {
@@ -241,7 +249,7 @@ describe("WorkstationsPage", () => {
   it("creates new workstation and adds to list", () => {
     render(<WorkstationsPage />);
 
-    const initialWorkstations = screen.getAllByText("Development");
+    const initialWorkstations = screen.getAllByText("Development-WS-001");
     const initialCount = initialWorkstations.length;
 
     // Open and create
@@ -258,18 +266,18 @@ describe("WorkstationsPage", () => {
   it("opens edit dialog when edit button is clicked", () => {
     render(<WorkstationsPage />);
 
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
-    expect(screen.getByText("Editing: Development")).toBeInTheDocument();
+    expect(screen.getByText("Editing: Development-WS-001")).toBeInTheDocument();
   });
 
   it("closes edit dialog when close is clicked", () => {
     render(<WorkstationsPage />);
 
     // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
@@ -287,7 +295,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     // Save changes
@@ -303,11 +311,11 @@ describe("WorkstationsPage", () => {
   it("deletes workstation", () => {
     render(<WorkstationsPage />);
 
-    const initialMarketing = screen.getAllByText("Marketing");
+    const initialMarketing = screen.getAllByText("Marketing-WS-002");
     expect(initialMarketing).toHaveLength(1);
 
-    // Open edit dialog for Marketing
-    const editButton = screen.getByText(/Edit Marketing/i);
+    // Open edit dialog for Marketing-WS-002
+    const editButton = screen.getByText(/Edit Marketing-WS-002/i);
     fireEvent.click(editButton);
 
     // Delete
@@ -316,8 +324,8 @@ describe("WorkstationsPage", () => {
     );
     fireEvent.click(deleteButton);
 
-    // Marketing should be removed
-    expect(screen.queryByText("Marketing")).not.toBeInTheDocument();
+    // Marketing-WS-002 should be removed
+    expect(screen.queryByText("Marketing-WS-002")).not.toBeInTheDocument();
   });
 
   it("toggles workstation status", () => {
@@ -387,8 +395,8 @@ describe("WorkstationsPage", () => {
   it("updates workstation on edit and save", () => {
     render(<WorkstationsPage />);
 
-    // Find first Development workstation
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    // Find first Development-WS-001 workstation
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     // Save with new name
@@ -406,15 +414,15 @@ describe("WorkstationsPage", () => {
 
     const searchInput = screen.getByPlaceholderText("Search workstations");
 
-    fireEvent.change(searchInput, { target: { value: "Development" } });
-    expect(screen.getAllByText("Development")).toHaveLength(3);
+    fireEvent.change(searchInput, { target: { value: "Development-WS-001" } });
+    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
 
-    fireEvent.change(searchInput, { target: { value: "Marketing" } });
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
-    expect(screen.queryByText("Development")).not.toBeInTheDocument();
+    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
+    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
 
     fireEvent.change(searchInput, { target: { value: "WS-001" } });
-    expect(screen.getAllByText("Development")).toHaveLength(3);
+    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
   });
 
   it("handles workstation toggle status for connected workstation", () => {
@@ -432,7 +440,7 @@ describe("WorkstationsPage", () => {
   it("handles edit dialog close without saving", () => {
     render(<WorkstationsPage />);
 
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
@@ -474,16 +482,18 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "  Marketing  " } });
+    fireEvent.change(searchInput, {
+      target: { value: "  Marketing-WS-002  " },
+    });
 
-    expect(screen.getByText("Marketing")).toBeInTheDocument();
+    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
   });
 
   it("preserves search when opening and closing dialogs", () => {
     render(<WorkstationsPage />);
 
     const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "Development" } });
+    fireEvent.change(searchInput, { target: { value: "Development-WS-001" } });
 
     const createButton = screen.getByRole("button", { name: /create/i });
     fireEvent.click(createButton);
@@ -494,8 +504,8 @@ describe("WorkstationsPage", () => {
     fireEvent.click(closeButton);
 
     // Search should still be active
-    expect(searchInput.value).toBe("Development");
-    expect(screen.getAllByText("Development")).toHaveLength(3);
+    expect(searchInput.value).toBe("Development-WS-001");
+    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
   });
 
   it("deletes workstation from list view", () => {
@@ -505,7 +515,7 @@ describe("WorkstationsPage", () => {
     const initialCount = initialWorkstations.length;
 
     // Find and click delete button for first workstation
-    const deleteButtons = screen.getAllByText(/Delete Development/i);
+    const deleteButtons = screen.getAllByText(/Delete Development-WS-001/i);
     fireEvent.click(deleteButtons[0]);
 
     // Verify workstation count decreased
@@ -562,7 +572,7 @@ describe("WorkstationsPage", () => {
   it("edits workstation with partial changes", () => {
     render(<WorkstationsPage />);
 
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     // Save with changes (mock provides { name: "Updated Name" })
@@ -605,7 +615,7 @@ describe("WorkstationsPage", () => {
     const initialCount = screen.getAllByTestId(/workstation-/).length;
 
     // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development/i)[0];
+    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
     fireEvent.click(editButton);
 
     // Delete from dialog
@@ -659,5 +669,21 @@ describe("WorkstationsPage", () => {
 
     // Display button interaction should work
     expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+  });
+
+  it("filters workstations", ()=>{
+  render(<WorkstationsPage />);
+  const searchBar = screen.getByPlaceholderText("Search workstations");
+  fireEvent.change(searchBar, { target: { value: "Development" } });
+  expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
+  expect(screen.queryByText("Marketing-WS-002")).not.toBeInTheDocument();
+  });
+
+  it("handles untrimmed search term", ()=>{
+render(<WorkstationsPage />);
+const searchBar = screen.getByPlaceholderText("Search workstations");
+fireEvent.change(searchBar, { target: { value: "  Marketing-WS-002  " } });
+expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
+expect(searchBar.value).toContain("Marketing-WS-002");
   });
 });
