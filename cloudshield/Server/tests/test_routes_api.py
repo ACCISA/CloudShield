@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest.mock
+import uuid
 # create a reusable mock client and a fake redis module that returns it
 _mock_redis_client = unittest.mock.MagicMock()
 _mock_redis_client.get.return_value = None
@@ -392,6 +393,12 @@ VALID_SIGNUP_PAYLOAD = {
 }
 
 
+def _unique_signup_payload():
+    payload = dict(VALID_SIGNUP_PAYLOAD)
+    payload["email"] = f"admin_{uuid.uuid4().hex}@example.com"
+    return payload
+
+
 @pytest.fixture()
 def signup_admin_client(monkeypatch):
     """
@@ -409,7 +416,9 @@ def signup_admin_client(monkeypatch):
             def __init__(self, job_id):
                 self.id = job_id
 
-        # Import modules BEFORE create_app so we can patch them
+        # Import modules BEFORE create_app so we can patch them.
+        # NOTE: depending on PYTHONPATH, the app may import either
+        # `cloudshield.Server.routes.*` OR the top-level `routes.*` package.
         import cloudshield.Server.routes.users as users_mod
         import cloudshield.Server.services as services_mod
         import cloudshield.Server.services.user_service as user_service_mod
@@ -428,7 +437,31 @@ def signup_admin_client(monkeypatch):
         monkeypatch.setattr(services_mod, "create_user", mock_create_user)
         monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
 
+        # Also patch alternative import paths used by `cloudshield/Server/server.py`
+        # when it falls back to `from routes import ...`.
+        try:
+            import routes.users as users_mod_alt  # type: ignore
+            monkeypatch.setattr(users_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
+        try:
+            import services as services_mod_alt  # type: ignore
+            monkeypatch.setattr(services_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
+        try:
+            import services.user_service as user_service_mod_alt  # type: ignore
+            monkeypatch.setattr(user_service_mod_alt, "create_user", mock_create_user)
+        except Exception:
+            pass
+
         monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        try:
+            monkeypatch.setattr("routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        except Exception:
+            pass
         
         from cloudshield.Server.server import create_app
         import cloudshield.Server.routes.api as api_mod
@@ -441,6 +474,14 @@ def signup_admin_client(monkeypatch):
 
         app = create_app()
         app.testing = True
+
+        # Ensure the *actual* registered view function uses our mock regardless
+        # of which module path (`cloudshield.Server.routes.*` vs `routes.*`) was
+        # used when creating the Flask app.
+        for view_func in app.view_functions.values():
+            if getattr(view_func, "__name__", None) == "signup_admin_endpoint":
+                view_func.__globals__["create_user"] = mock_create_user
+                break
         yield app.test_client(), mock_create_user
 
 
@@ -452,8 +493,11 @@ def test_signup_admin_success(signup_admin_client):
         return "new_user_123"
     
     mock_create_user.side_effect = success_create_user
-    
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 201
     assert "user_id" in resp.json
 
@@ -464,8 +508,11 @@ def test_signup_admin_validation_error(signup_admin_client):
         raise ValueError("User already exists")
     
     mock_create_user.side_effect = raise_value_error
-    
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 409
 
 def test_signup_admin_permission_error(signup_admin_client):
@@ -475,8 +522,11 @@ def test_signup_admin_permission_error(signup_admin_client):
         raise PermissionError("Unauthorized")
     
     mock_create_user.side_effect = raise_permission_error
-    
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 403
 
 def test_signup_admin_internal_error(signup_admin_client):
@@ -486,8 +536,11 @@ def test_signup_admin_internal_error(signup_admin_client):
         raise Exception("DB Down")
     
     mock_create_user.side_effect = raise_exception
-    
-    resp = client.post("/api/signup_admin", json=VALID_SIGNUP_PAYLOAD)
+
+    resp = client.post("/api/signup_admin", json=_unique_signup_payload())
+    assert mock_create_user.call_count == 1, (
+        f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
+    )
     assert resp.status_code == 500
 
 # ==========================================
