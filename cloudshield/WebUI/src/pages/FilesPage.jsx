@@ -75,22 +75,6 @@ const FileIcon = () => (
   </svg>
 );
 
-// function StoragePill({ usedGB = 62, totalGB = 100 }) {
-//   const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
-//   return (
-//     <div className="storagePill" aria-label="Storage usage">
-//       <div className="storageText">
-//         <span className="storageLabel">Storage</span>
-//         <span className="storageValue">
-//           {usedGB}GB / {totalGB}GB
-//         </span>
-//       </div>
-//       <div className="storageBar">
-//         <div className="storageFill" style={{ width: `${pct}%` }} />
-//       </div>
-//     </div>
-//   );
-// }
 
 function StorageCell({ currentSize, maxSize }) {
   const max = typeof maxSize === "number" ? maxSize : null;
@@ -290,7 +274,7 @@ export default function FilesPage() {
     }
   }, [orgId]);
 
-  // Handle creating a new share
+  // Handle creating a new file share
   const handleCreateShare = useCallback(async (data) => {
     try {
       // Add to creating state
@@ -636,8 +620,8 @@ export default function FilesPage() {
 
             <EditButton
               menuItems={[
-                { label: isFolder ? "Edit folder" : "Edit share", onClick: () => openEdit(node) },
-                { label: isFolder ? "Delete folder" : "Delete share", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
+                { label: isFolder ? "Edit folder" : "Edit file", onClick: () => openEdit(node) },
+                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
               ]}
             />
           </div>
@@ -758,7 +742,7 @@ export default function FilesPage() {
           <SearchField
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search shares"
+            placeholder="Search files"
             showIcon={true}
             style={{
               flex: "1 1 260px",

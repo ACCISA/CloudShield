@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import ProfilePictureUpload from "../ProfilePictureUpload";
 import SearchAutocomplete from "../SearchAutocomplete";
 import AssignmentCard from "../AssignmentCard";
@@ -265,3 +266,55 @@ export function FilesStep({
     </div>
   );
 }
+
+const stylesShape = PropTypes.shape({
+  stepContent: PropTypes.object,
+  formGrid: PropTypes.object,
+  formGroup: PropTypes.object,
+  label: PropTypes.object,
+  input: PropTypes.object,
+  assignedSection: PropTypes.object,
+  assignedLabel: PropTypes.object,
+  cardsGrid: PropTypes.object,
+});
+
+BasicInfoStep.propTypes = {
+  firstName: PropTypes.string,
+  setFirstName: PropTypes.func,
+  lastName: PropTypes.string,
+  setLastName: PropTypes.func,
+  email: PropTypes.string,
+  setEmail: PropTypes.func,
+  title: PropTypes.string,
+  setTitle: PropTypes.func,
+  profileImage: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  setProfileImage: PropTypes.func,
+  styles: stylesShape,
+};
+
+WorkstationsStep.propTypes = {
+  selectedWorkstations: PropTypes.array,
+  setSelectedWorkstations: PropTypes.func,
+  allWorkstations: PropTypes.bool,
+  setAllWorkstations: PropTypes.func,
+  suggestedWorkstations: PropTypes.array,
+  styles: stylesShape,
+};
+
+GroupsStep.propTypes = {
+  selectedGroups: PropTypes.array,
+  setSelectedGroups: PropTypes.func,
+  allGroups: PropTypes.bool,
+  setAllGroups: PropTypes.func,
+  suggestedGroups: PropTypes.array,
+  styles: stylesShape,
+};
+
+FilesStep.propTypes = {
+  selectedFiles: PropTypes.array,
+  setSelectedFiles: PropTypes.func,
+  allFiles: PropTypes.bool,
+  setAllFiles: PropTypes.func,
+  suggestedFiles: PropTypes.array,
+  styles: stylesShape,
+};
