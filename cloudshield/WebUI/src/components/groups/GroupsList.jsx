@@ -20,6 +20,7 @@ import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import HoverableRow from "../common/HoverableRow.jsx";
 
 /* ---------------------------- styles ---------------------------- */
 
@@ -29,6 +30,10 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "24px 24px 4px 24px",
+    position: "sticky",
+    top: 0,
+    backgroundColor: "#0D0D0D",
+    zIndex: 10,
   },
   headerLabel: {
     fontSize: "0.85rem",
@@ -191,6 +196,10 @@ function ItemsPill({ items, type, totalCount, getKey }) {
   const count = totalCount || itemsList.length;
   const extra = Math.max(count - show.length, 0);
 
+  if (count === 0) {
+    return <span style={{ opacity: 0.5 }}>—</span>;
+  }
+
   if (show.length === 0) {
     return (
       <div style={styles.countBadge}>
@@ -253,29 +262,24 @@ function GroupRow({
   isLast,
   isMobile,
   isTablet,
+  isSelected,
+  onToggleSelect,
 }) {
-  const [checked, setChecked] = useState(false);
   const responsiveStyles = getResponsiveStyles();
 
   return (
     <>
       {/* Row */}
-      <div
+      <HoverableRow
         style={{
           ...responsiveStyles.row,
           gridTemplateColumns: cols.join(" "),
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
-          e.currentTarget.style.zIndex = "100";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.zIndex = "1";
-        }}
       >
         {/* Checkbox - hide on mobile */}
-        {!isMobile && <Checkbox checked={checked} onChange={setChecked} />}
+        {!isMobile && (
+          <Checkbox checked={isSelected} onChange={onToggleSelect} />
+        )}
 
         {/* name + description + DisplayIcon */}
         <div style={responsiveStyles.nameSection}>
@@ -303,7 +307,7 @@ function GroupRow({
         <div style={styles.editContainer}>
           <EditButton menuItems={getGroupMenuItems(r, onEdit, onDelete)} />
         </div>
-      </div>
+      </HoverableRow>
 
       {/* divider */}
       {!isLast && <div style={styles.divider} />}
@@ -318,6 +322,10 @@ export default function GroupsList({
   showUsers = true,
   showWorkstations = true,
   showFiles = true,
+  selectedIds = new Set(),
+  allVisibleSelected = false,
+  onToggleSelect = () => {},
+  onToggleSelectAll = () => {},
 }) {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -354,24 +362,36 @@ export default function GroupsList({
           style={{
             ...responsiveStyles.tableHeaders,
             gridTemplateColumns: cols.join(" "),
-            paddingLeft: "calc(16px + 8px + 8px)",
-            paddingRight: "calc(16px + 8px + 8px)",
+            paddingLeft: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : isTablet
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
+            paddingRight: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : isTablet
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
           }}
         >
-          <div />
+          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
           <span style={styles.headerLabel}>Name/Description</span>
           {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
           {showWorkstationsColumn && (
             <span style={styles.headerLabel}>Workstations</span>
           )}
-          {showFilesColumn && <span style={styles.headerLabel}>Files</span>}
+          {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
           <div />
         </div>
       )}
 
       {/* List panel */}
       <div style={responsiveStyles.listPanel}>
-        <div style={{ padding: isMobile ? "0 4px" : "0 8px" }}>
+        <div
+          style={{
+            padding: isMobile ? "0 4px" : "0 8px",
+          }}
+        >
           <div style={styles.container}>
             {rows.map((r, idx) => (
               <GroupRow
@@ -386,6 +406,8 @@ export default function GroupsList({
                 isLast={idx === rows.length - 1}
                 isMobile={isMobile}
                 isTablet={isTablet}
+                isSelected={selectedIds.has(r._id)}
+                onToggleSelect={() => onToggleSelect(r._id)}
               />
             ))}
           </div>

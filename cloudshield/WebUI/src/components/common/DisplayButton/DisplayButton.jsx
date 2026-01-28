@@ -16,7 +16,7 @@ export default function DisplayButton({
   layout = "list",
   onLayoutChange,
   style = {},
-  columnToggles = null, // { showUsers, showWorkstations, showFiles, onToggle }
+  columnToggles = null, // { columns: [{ key, label, checked }], onToggle }
 }) {
   const popover = usePopover();
 
@@ -240,21 +240,14 @@ export default function DisplayButton({
                   >
                     Show Columns
                   </div>
-                  <ColumnToggle
-                    label="Users"
-                    checked={columnToggles.showUsers}
-                    onChange={() => columnToggles.onToggle("showUsers")}
-                  />
-                  <ColumnToggle
-                    label="Workstations"
-                    checked={columnToggles.showWorkstations}
-                    onChange={() => columnToggles.onToggle("showWorkstations")}
-                  />
-                  <ColumnToggle
-                    label="Files"
-                    checked={columnToggles.showFiles}
-                    onChange={() => columnToggles.onToggle("showFiles")}
-                  />
+                  {columnToggles.columns?.map((column) => (
+                    <ColumnToggle
+                      key={column.key}
+                      label={column.label}
+                      checked={column.checked}
+                      onChange={() => columnToggles.onToggle(column.key)}
+                    />
+                  ))}
                 </div>
               </>
             )}

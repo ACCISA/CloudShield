@@ -117,12 +117,12 @@ describe("WorkstationList", () => {
     );
 
     // The status chips are clickable via their container Box
-    // Find the "Connect" chip (first workstation has status 'connected')
-    const connectChip = screen.getByText("Connect");
-    expect(connectChip).toBeInTheDocument();
+    // Find the "Disconnect" chip (first workstation has status 'connected', but chip says 'Disconnect')
+    const disconnectChip = screen.getByText("Disconnect");
+    expect(disconnectChip).toBeInTheDocument();
 
     // Click the chip
-    fireEvent.click(connectChip);
+    fireEvent.click(disconnectChip);
     expect(mockOnToggleStatus).toHaveBeenCalledWith(1);
   });
 
@@ -159,7 +159,7 @@ describe("WorkstationList", () => {
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    expect(screen.getByText("Connect")).toBeInTheDocument();
+    expect(screen.getByText("Disconnect")).toBeInTheDocument();
   });
 
   it("displays status chip for busy workstation", () => {
@@ -170,7 +170,7 @@ describe("WorkstationList", () => {
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+    expect(screen.getByText("Connect")).toBeInTheDocument();
   });
 
   it("handles column visibility props correctly", () => {
@@ -227,8 +227,8 @@ describe("WorkstationList", () => {
       />,
     );
 
-    expect(screen.getByText("Connect")).toBeInTheDocument();
     expect(screen.getByText("Disconnect")).toBeInTheDocument();
+    expect(screen.getByText("Connect")).toBeInTheDocument();
   });
 
   it("handles workstations with zero users", () => {

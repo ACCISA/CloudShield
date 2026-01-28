@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
-import WorkstationCreateDialog from "../components/workstations/WorkstationCreateDialog.jsx";
-import WorkstationEditDialog from "../components/workstations/WorkstationEditDialog.jsx";
+import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
 import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -17,22 +17,33 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
+    height: "100vh",
+    overflow: "hidden",
   },
   toolbar: {
     display: "flex",
     justifyContent: "space-between",
     gap: "12px",
     flexWrap: "wrap",
+    flexShrink: 0,
   },
   leftActions: {
     display: "flex",
     gap: "10px",
     flex: "1 1 auto",
     flexWrap: "wrap",
+    minWidth: "0",
   },
   rightActions: {
     display: "flex",
     gap: "10px",
+    flexWrap: "wrap",
+  },
+  listWrapper: {
+    flex: 1,
+    overflow: "auto",
+    minHeight: 0,
+    overscrollBehavior: "contain",
   },
 };
 /* ----------------------------------- seed ---------------------------------- */
@@ -52,6 +63,8 @@ export default function WorkstationsPage() {
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
 
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   // Filter state
   const [activeFilters, setActiveFilters] = useState({
     status: new Set(),
@@ -59,7 +72,7 @@ export default function WorkstationsPage() {
   });
 
   // dialogs
-  const [openCreate, setOpenCreate] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
   const filtered = useMemo(() => {
@@ -69,11 +82,14 @@ export default function WorkstationsPage() {
 
     // text search
     if (q) {
-      data = data.filter((r) =>
-        [r.name, r.code, r.currentUser].some((v) =>
+      data = data.filter((r) => {
+        const currentUserName = r.currentUser
+          ? `${r.currentUser.firstName || ""} ${r.currentUser.lastName || ""}`.trim()
+          : "";
+        return [r.name, r.code, currentUserName].some((v) =>
           (v || "").toLowerCase().includes(q),
-        ),
-      );
+        );
+      });
     }
 
     // status filter
@@ -90,6 +106,33 @@ export default function WorkstationsPage() {
 
     return data;
   }, [rows, search, activeFilters]);
+
+  const allVisibleSelected = useMemo(() => {
+    return filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+  }, [filtered, selectedIds]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((w) => next.delete(w.id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        filtered.forEach((w) => next.add(w.id));
+        return next;
+      }
+    });
+  };
 
   const handleFilterChange = (groupId, value, isActive) => {
     trackButton("workstations/filter/change", {
@@ -115,34 +158,67 @@ export default function WorkstationsPage() {
   };
 
   const handleCreate = (payload) => {
-    trackButton("workstations/create/save", { page: "workstations", control: "create_dialog" });
+    trackButton("workstations/create/save", {
+      page: "workstations",
+      control: "create_dialog",
+    });
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
+      strength: payload.strength || "basic",
       code: payload.code || "WS-NEW",
       usersCount: payload.users?.length || 0,
       users: payload.users || [],
-      currentUser: payload.users?.[0] || "—",
+      currentUser: payload.users?.[0] || null,
       lastUsed: "—",
       status: "disconnected",
+      image: payload.image,
+      desktopBackground: payload.desktopBackground,
+      wallpaper: payload.wallpaper,
+      groups: payload.groups || [],
+      software: payload.software || [],
+      allUsers: payload.allUsers || false,
+      allGroups: payload.allGroups || false,
+      allSoftware: payload.allSoftware || false,
     };
     setRows((prev) => [newRow, ...prev]);
   };
 
   const handleEditSave = (id, changes) => {
-    trackButton("workstations/edit/save", { page: "workstations", id, control: "edit_dialog" });
+    trackButton("workstations/edit/save", {
+      page: "workstations",
+      id,
+      control: "edit_dialog",
+    });
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...changes } : r)),
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const updated = { ...r, ...changes };
+        // Recalculate usersCount if users array changed
+        if (changes.users) {
+          updated.usersCount = changes.users.length;
+          updated.currentUser = changes.users[0] || null;
+        }
+        return updated;
+      }),
     );
   };
 
   const handleDelete = (id) => {
-    trackButton("workstations/edit/delete", { page: "workstations", id, control: "edit_dialog" });
+    trackButton("workstations/edit/delete", {
+      page: "workstations",
+      id,
+      control: "edit_dialog",
+    });
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
   const handleToggleStatus = (id) => {
-    trackButton("workstations/row/toggle-status", { page: "workstations", id, control: "row_toggle" });
+    trackButton("workstations/row/toggle-status", {
+      page: "workstations",
+      id,
+      control: "row_toggle",
+    });
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -154,7 +230,11 @@ export default function WorkstationsPage() {
   };
 
   const handleLayoutChange = (newLayout) => {
-    trackButton("workstations/display/toggle", { page: "workstations", layout: newLayout, control: "display_button" });
+    trackButton("workstations/display/toggle", {
+      page: "workstations",
+      layout: newLayout,
+      control: "display_button",
+    });
     setLayout(newLayout);
   };
 
@@ -168,17 +248,42 @@ export default function WorkstationsPage() {
             value={search}
             onChange={(value) => setSearch(value)}
             placeholder="Search workstations"
-            width="420px"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
+              flex: "1 1 200px",
+              minWidth: "200px",
               maxWidth: "680px",
+              width: "100%",
             }}
           />
 
           {/* Display */}
-          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
+          <DisplayButton
+            layout={layout}
+            onLayoutChange={handleLayoutChange}
+            columnToggles={{
+              columns: [
+                { key: "showUsers", label: "Users", checked: showUsersCol },
+                {
+                  key: "showCurrent",
+                  label: "Current",
+                  checked: showCurrentCol,
+                },
+                {
+                  key: "showLastUsed",
+                  label: "Last Used",
+                  checked: showLastUsedCol,
+                },
+              ],
+              onToggle: (column) => {
+                if (column === "showUsers") setShowUsersCol((prev) => !prev);
+                if (column === "showCurrent")
+                  setShowCurrentCol((prev) => !prev);
+                if (column === "showLastUsed")
+                  setShowLastUsedCol((prev) => !prev);
+              },
+            }}
+          />
 
           {/* Filter */}
           <FilterButton
@@ -190,12 +295,12 @@ export default function WorkstationsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
-            <RefreshButton
-              onClick={withClickLog({
-                name: "workstations/toolbar/refresh",
-                control: "refresh_button",
-              })(() => console.log("refresh"))}
-            />
+          <RefreshButton
+            onClick={withClickLog({
+              name: "workstations/toolbar/refresh",
+              control: "refresh_button",
+            })(() => console.log("refresh"))}
+          />
 
           <CreateButton
             icon={<CreateWorkstationIcon />}
@@ -203,46 +308,61 @@ export default function WorkstationsPage() {
             onClick={withClickLog({
               name: "workstations/toolbar/open-create",
               control: "create_button",
-            })(() => setOpenCreate(true))}
+            })(() => {
+              setEditRow(null);
+              setOpenModal(true);
+            })}
           />
         </div>
       </div>
 
       {/* Workstation List with Headers */}
-      <WorkstationList
-        rows={filtered}
-        onEdit={(row) => setEditRow(row)}
-        onDelete={handleDelete}
-        onToggleStatus={handleToggleStatus}
-        showUsers={showUsersCol}
-        showCurrent={showCurrentCol}
-        showLastUsed={showLastUsedCol}
-      />
+      <div style={styles.listWrapper}>
+        <WorkstationList
+          rows={filtered}
+          onEdit={(row) => {
+            setEditRow(row);
+            setOpenModal(true);
+          }}
+          onDelete={handleDelete}
+          onToggleStatus={handleToggleStatus}
+          selectedIds={selectedIds}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
+          showUsers={showUsersCol}
+          showCurrent={showCurrentCol}
+          showLastUsed={showLastUsedCol}
+        />
+      </div>
 
-      {/* Create dialog */}
-      <WorkstationCreateDialog
-        open={openCreate}
-        onClose={() => setOpenCreate(false)}
-        onCreate={(payload) => {
-          handleCreate(payload);
-          setOpenCreate(false);
-        }}
-      />
-
-      {/* Edit dialog */}
-      {!!editRow && (
-        <WorkstationEditDialog
-          open
-          row={editRow}
-          onClose={() => setEditRow(null)}
-          onSave={(changes) => {
-            handleEditSave(editRow.id, changes);
+      {/* Workstation Modal */}
+      {openModal && (
+        <WorkstationModal
+          open={openModal}
+          onClose={() => {
+            setOpenModal(false);
             setEditRow(null);
           }}
-          onDelete={() => {
-            handleDelete(editRow.id);
+          workstationData={editRow}
+          onSubmit={(payload) => {
+            if (editRow) {
+              handleEditSave(editRow.id, payload);
+            } else {
+              handleCreate(payload);
+            }
+            setOpenModal(false);
             setEditRow(null);
           }}
+          onDelete={
+            editRow
+              ? () => {
+                  handleDelete(editRow.id);
+                  setOpenModal(false);
+                  setEditRow(null);
+                }
+              : undefined
+          }
         />
       )}
     </div>

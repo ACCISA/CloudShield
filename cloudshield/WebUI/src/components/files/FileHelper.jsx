@@ -1,7 +1,44 @@
 export const NODE_KIND = { FOLDER: "folder", FILE: "file" };
 
-// Empty initial tree - will be populated from API
-export const HARD_CODED_TREE = [];
+export const HARD_CODED_TREE = [
+  {
+    id: "f-sales",
+    name: "sales_docs",
+    kind: "folder",
+    updated_at: "2025-06-13T23:25:00Z",
+    users: 4,
+    groups: ["Sales", "Exec"],
+    children: [
+      {
+        id: "f-policies",
+        name: "policies",
+        kind: "folder",
+        updated_at: "2025-06-13T23:25:00Z",
+        users: 2,
+        groups: ["HR"],
+        children: [],
+      },
+      {
+        id: "file-xlsx",
+        name: "sales_numbers.excl",
+        kind: "file",
+        size: "16.5 MB",
+        updated_at: "2025-06-13T23:25:00Z",
+        users: 3,
+        groups: ["Sales"],
+      },
+    ],
+  },
+  {
+    id: "file-docx",
+    name: "sales_docs.docx",
+    kind: "file",
+    size: "16.5 MB",
+    updated_at: "2025-06-13T23:25:00Z",
+    users: 5,
+    groups: ["Sales", "Exec"],
+  },
+];
 
 export function formatDateTime(iso) {
   if (!iso) return "—";

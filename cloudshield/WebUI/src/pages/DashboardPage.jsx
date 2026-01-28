@@ -161,7 +161,7 @@ export default function DashboardPage() {
         />
 
         <StatCard
-          title="Files"
+          title="Shares"
           value={33}
           changePercent={15.2}
           gradientFrom="#c57a1c"

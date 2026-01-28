@@ -11,24 +11,26 @@
  *   - collapsed?: boolean (optional) -> controls sidebar collapse when shown
  *   - onToggleCollapse?: () => void (optional) -> toggles sidebar collapse when shown
  */
-import React from 'react';
-import { Box } from '@mui/material';
-import Sidebar from './Sidebar.jsx';
+import React from "react";
+import { Box } from "@mui/material";
+import Sidebar from "./Sidebar.jsx";
 
 export default function AppLayout({
   children,
   showSidebar = true,
-  sidebarMode = 'full',
+  sidebarMode = "full",
   collapsed = false,
   onToggleCollapse,
 }) {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        bgcolor: '#0A0A0A',
-        color: '#fff',
-        display: 'flex',
+        height: "100vh",
+        maxHeight: "100vh",
+        bgcolor: "#0A0A0A",
+        color: "#fff",
+        display: "flex",
+        overflow: "hidden",
       }}
     >
       {showSidebar && (
@@ -43,7 +45,9 @@ export default function AppLayout({
         sx={{
           flex: 1,
           minWidth: 0,
-          padding: '24px',
+          padding: "24px",
+          height: "100vh",
+          overflow: "hidden",
         }}
       >
         {children}

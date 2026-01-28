@@ -248,8 +248,8 @@ function UserCard({ data, name, profileImage, initials, getBackgroundColor }) {
     data.active !== undefined
       ? data.active
       : data.isActive !== undefined
-      ? data.isActive
-      : true;
+        ? data.isActive
+        : true;
 
   return (
     <div className="hover-card">
@@ -325,8 +325,8 @@ function WorkstationCard({
     data.online !== undefined
       ? data.online
       : data.isOnline !== undefined
-      ? data.isOnline
-      : data.status === "online";
+        ? data.isOnline
+        : data.status === "online";
 
   return (
     <div className="hover-card">

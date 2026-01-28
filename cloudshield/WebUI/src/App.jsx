@@ -7,7 +7,6 @@ import WorkstationsPage from "./pages/WorkstationsPage.jsx";
 import EmployeesPage from "./pages/EmployeesPage.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
-
 import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 
@@ -15,6 +14,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 
 function AppWithAuth() {
   const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (devBypass) {
@@ -35,6 +35,7 @@ function AppWithAuth() {
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
       localStorage.setItem("jwt", data.access_token);
+
       setIsAuthed(true);
       
       // Decode JWT to extract org_id
@@ -53,12 +54,17 @@ function AppWithAuth() {
     return function ProtectedWrapper({ children }) {
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
       return (
-        <AppLayout showSidebar sidebarMode="full">
+        <AppLayout 
+          showSidebar 
+          sidebarMode="full"
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+        >
           {children}
         </AppLayout>
       );
     };
-  }, [devBypass, isAuthed]);
+  }, [devBypass, isAuthed, sidebarCollapsed]);
 
   return (
     <BrowserRouter>
@@ -72,6 +78,8 @@ function AppWithAuth() {
           element={
             isAuthed ? (
               <Navigate to="/dashboard" replace />
+            ) : isAuthed ? (
+              <Navigate to="/dashboard" replace />
             ) : (
               <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
@@ -83,6 +91,8 @@ function AppWithAuth() {
           path="/login"
           element={
             isAuthed ? (
+              <Navigate to="/dashboard" replace />
+            ) : isAuthed ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <AuthPage onLoginSuccess={handleAuthSuccess} />
