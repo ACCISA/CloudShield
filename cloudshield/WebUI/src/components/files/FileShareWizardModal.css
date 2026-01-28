@@ -24,9 +24,10 @@
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
-  width: 700px;
+  width: 650px;
   max-width: 95vw;
-  max-height: 90vh;
+  height: 800px;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);

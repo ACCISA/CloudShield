@@ -750,18 +750,23 @@ export default function FilesPage() {
 
   return (
     <div className="filesPage">
-      <div className="topBar">
-        <div className="titleBlock">
-          <div className="title">Files</div>
-          <div className="subtitle">Browse and manage your organization files</div>
-        </div>
-        {/* StoragePill temporarily hidden until global storage is defined */}
-        {/* <StoragePill usedGB={62} totalGB={100} /> */}
-      </div>
+      {/* StoragePill temporarily hidden until global storage is defined */}
+      {/* <StoragePill usedGB={62} totalGB={100} /> */}
 
       <div className="toolbar">
         <div className="leftTools">
-          <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search files" />
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search files"
+            showIcon={true}
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              maxWidth: "680px",
+              width: "100%",
+            }}
+          />
           <DisplayButton
             layout={layout}
             onLayoutChange={handleLayoutChange}
@@ -814,7 +819,7 @@ export default function FilesPage() {
       />
 
       <style>{`
-        .filesPage { padding: 20px; color: #fff; }
+        .filesPage { padding: 0; color: #fff; }
 
         /* Top bar */
         .topBar {
@@ -857,6 +862,10 @@ export default function FilesPage() {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
+        }
+        .leftTools {
+          flex: 1 1 auto;
+          min-width: 0;
         }
 
         /* Operation banner - subtle notification */

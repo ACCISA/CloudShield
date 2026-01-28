@@ -210,7 +210,8 @@ export default function FileShareWizardModal({
   }, [availableGroups, searchTerms.groups]);
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
-  const isNextDisabled = currentStep === 0 && !formData.shareName.trim();
+  const isNextDisabled =
+    currentStep === 0 && !isEditMode && !formData.shareName.trim();
 
   if (!isOpen) return null;
 
