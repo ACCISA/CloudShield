@@ -14,6 +14,7 @@ import { trackButton } from "../lib/analytics";
 
 import FileShareWizardModal from "../components/files/FileShareWizardModal";
 import AvatarPill from "../components/files/AvatarPill";
+import FolderPlusIcon from "../assets/FolderPlusIcon";
 
 import {
   createFileShare,
@@ -75,22 +76,6 @@ const FileIcon = () => (
   </svg>
 );
 
-// function StoragePill({ usedGB = 62, totalGB = 100 }) {
-//   const pct = Math.min(100, Math.max(0, (usedGB / totalGB) * 100));
-//   return (
-//     <div className="storagePill" aria-label="Storage usage">
-//       <div className="storageText">
-//         <span className="storageLabel">Storage</span>
-//         <span className="storageValue">
-//           {usedGB}GB / {totalGB}GB
-//         </span>
-//       </div>
-//       <div className="storageBar">
-//         <div className="storageFill" style={{ width: `${pct}%` }} />
-//       </div>
-//     </div>
-//   );
-// }
 
 function StorageCell({ currentSize, maxSize }) {
   const max = typeof maxSize === "number" ? maxSize : null;
@@ -750,18 +735,23 @@ export default function FilesPage() {
 
   return (
     <div className="filesPage">
-      <div className="topBar">
-        <div className="titleBlock">
-          <div className="title">Files</div>
-          <div className="subtitle">Browse and manage your organization files</div>
-        </div>
-        {/* StoragePill temporarily hidden until global storage is defined */}
-        {/* <StoragePill usedGB={62} totalGB={100} /> */}
-      </div>
+      {/* StoragePill temporarily hidden until global storage is defined */}
+      {/* <StoragePill usedGB={62} totalGB={100} /> */}
 
       <div className="toolbar">
         <div className="leftTools">
-          <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search files" />
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search files"
+            showIcon={true}
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              maxWidth: "680px",
+              width: "100%",
+            }}
+          />
           <DisplayButton
             layout={layout}
             onLayoutChange={handleLayoutChange}
@@ -774,7 +764,8 @@ export default function FilesPage() {
             onClick={withClickLog({ name: "files/toolbar/refresh", control: "refresh_button" })(fetchTree)}
           />
           <CreateButton
-            buttonText="New File Share"
+            icon={<FolderPlusIcon width={16} height={16} color="#fff" />}
+            buttonText="New Share"
             onClick={withClickLog({ name: "files/toolbar/open-upload", control: "upload_button" })(() =>
               setUploadOpen(true)
             )}
@@ -814,7 +805,7 @@ export default function FilesPage() {
       />
 
       <style>{`
-        .filesPage { padding: 20px; color: #fff; }
+        .filesPage { padding: 0; color: #fff; }
 
         /* Top bar */
         .topBar {
@@ -857,6 +848,10 @@ export default function FilesPage() {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
+        }
+        .leftTools {
+          flex: 1 1 auto;
+          min-width: 0;
         }
 
         /* Operation banner - subtle notification */

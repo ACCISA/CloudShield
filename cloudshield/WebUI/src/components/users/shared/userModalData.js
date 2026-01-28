@@ -24,6 +24,6 @@ export const MOCK_FILES = [
   { id: "f-4", name: "Manager Files", code: "DOC-004" },
 ];
 
-export const STEPS = ["Basic Info", "Workstations", "Groups", "Files"];
+export const STEPS = ["Basic Info", "Workstations", "Groups", "Shares"];
 
 export const getSuggestedItems = (items, count = 3) => items.slice(0, count);
