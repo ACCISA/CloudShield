@@ -9,7 +9,7 @@ import "./FileShareWizardModal.css";
 const STEPS = ["Basic Info", "Users", "Groups"];
 
 /**
- * Multi-step wizard modal for creating/editing file shares
+ * Multi-step wizard modal for creating/editing shares
  * Inspired by GroupsModal with progress bar and navigation
  */
 export default function FileShareWizardModal({
@@ -257,10 +257,10 @@ export default function FileShareWizardModal({
         {/* Header */}
         <header className="file-wizard-header">
           <nav className="file-wizard-breadcrumb">
-            <span className="file-wizard-breadcrumb-item inactive">Files</span>
+            <span className="file-wizard-breadcrumb-item inactive">Shares</span>
             <span className="file-wizard-breadcrumb-separator">›</span>
             <span className="file-wizard-breadcrumb-item active">
-              {isEditMode ? `Edit: ${file?.name || "File Share"}` : "New File Share"}
+              {isEditMode ? `Edit: ${file?.name || "Share"}` : "New Share"}
             </span>
           </nav>
           <button
@@ -411,7 +411,7 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, description: e.target.value }))
           }
-          placeholder="Brief description of this file share"
+          placeholder="Brief description of this share"
           rows={3}
         />
       </div>

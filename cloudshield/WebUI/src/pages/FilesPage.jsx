@@ -290,7 +290,7 @@ export default function FilesPage() {
     }
   }, [orgId]);
 
-  // Handle creating a new file share
+  // Handle creating a new share
   const handleCreateShare = useCallback(async (data) => {
     try {
       // Add to creating state
@@ -636,8 +636,8 @@ export default function FilesPage() {
 
             <EditButton
               menuItems={[
-                { label: isFolder ? "Edit folder" : "Edit file", onClick: () => openEdit(node) },
-                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
+                { label: isFolder ? "Edit folder" : "Edit share", onClick: () => openEdit(node) },
+                { label: isFolder ? "Delete folder" : "Delete share", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
               ]}
             />
           </div>
@@ -758,7 +758,7 @@ export default function FilesPage() {
           <SearchField
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search files"
+            placeholder="Search shares"
             showIcon={true}
             style={{
               flex: "1 1 260px",
@@ -779,7 +779,7 @@ export default function FilesPage() {
             onClick={withClickLog({ name: "files/toolbar/refresh", control: "refresh_button" })(fetchTree)}
           />
           <CreateButton
-            buttonText="New File Share"
+            buttonText="New Share"
             onClick={withClickLog({ name: "files/toolbar/open-upload", control: "upload_button" })(() =>
               setUploadOpen(true)
             )}

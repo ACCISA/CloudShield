@@ -218,8 +218,8 @@ export function FilesStep({
   return (
     <div style={styles.stepContent}>
       <SearchAutocomplete
-        label="Assign Files"
-        placeholder="Search for files"
+        label="Assign Shares"
+        placeholder="Search for shares"
         items={MOCK_FILES}
         suggestedItems={suggestedFiles}
         selectedItems={selectedFiles}
@@ -237,7 +237,7 @@ export function FilesStep({
       {(displayFiles.length > 0 || allFiles) && (
         <div style={styles.assignedSection}>
           <div style={styles.assignedLabel}>
-            {allFiles ? "All Files" : "Assigned Files"}
+            {allFiles ? "All Shares" : "Assigned Shares"}
           </div>
           <div style={styles.cardsGrid}>
             {displayFiles.map((item) => (
