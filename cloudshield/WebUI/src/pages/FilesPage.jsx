@@ -14,6 +14,7 @@ import { trackButton } from "../lib/analytics";
 
 import FileShareWizardModal from "../components/files/FileShareWizardModal";
 import AvatarPill from "../components/files/AvatarPill";
+import FolderPlusIcon from "../assets/FolderPlusIcon";
 
 import {
   createFileShare,
@@ -763,6 +764,7 @@ export default function FilesPage() {
             onClick={withClickLog({ name: "files/toolbar/refresh", control: "refresh_button" })(fetchTree)}
           />
           <CreateButton
+            icon={<FolderPlusIcon width={16} height={16} color="#fff" />}
             buttonText="New Share"
             onClick={withClickLog({ name: "files/toolbar/open-upload", control: "upload_button" })(() =>
               setUploadOpen(true)
