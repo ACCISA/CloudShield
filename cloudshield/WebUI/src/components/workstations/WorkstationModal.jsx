@@ -468,7 +468,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                 />
               </div>
               <div className="workstation-modal-strength-title">Pro</div>
-              <span className="workstation-modal-strength-tag">Popular</span>
+             
             </div>
             <p className="workstation-modal-strength-desc">
               Balanced for most workflows

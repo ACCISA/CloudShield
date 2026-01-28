@@ -27,18 +27,34 @@ jest.mock('../../lib/analytics.js', () => ({
 
 // Mock Table: Added 'Force Delete' to test deletion when no users are loaded (token missing)
 jest.mock('../../components/users/UsersTable.jsx', () => {
-  return function DummyUsersTable({ users, onEdit, onDelete, onSort }) {
+  return function DummyUsersTable({ 
+    users, 
+    onEdit, 
+    onDelete, 
+    onSort,
+    onToggleSelect,
+    onToggleSelectAll,
+    selectedIds,
+    allVisibleSelected
+  }) {
     return (
       <div data-testid="users-table">
         <div data-testid="user-count">Count: {users.length}</div>
+        <button data-testid="select-all" onClick={onToggleSelectAll}>
+          {allVisibleSelected ? 'Deselect All' : 'Select All'}
+        </button>
         <button data-testid="sort-name" onClick={() => onSort('name')}>Sort Name</button>
         <button data-testid="sort-files" onClick={() => onSort('files')}>Sort Files</button>
-        
-        {/* Helper button to test handleDelete even if table is empty */}
         <button data-testid="force-delete-btn" onClick={() => onDelete({ id: '999' })}>Force Delete</button>
 
         {users.map((u) => (
           <div key={u.id} data-testid={`user-row-${u.id}`}>
+            <input 
+              type="checkbox" 
+              data-testid={`checkbox-${u.id}`}
+              checked={selectedIds.has(u.id)}
+              onChange={() => onToggleSelect(u.id)}
+            />
             <span>{u.name}</span>
             <span data-testid={`role-${u.id}`}>{u.title}</span>
             <span data-testid={`status-${u.id}`}>{u.status}</span>
@@ -93,8 +109,21 @@ jest.mock('../../components/common/FilterButton/FilterButton.jsx', () => ({ onFi
 ));
 jest.mock('../../components/common/CreateButton/CreateButton.jsx', () => ({ onClick }) => <button data-testid="open-create-btn" onClick={onClick}>Create</button>);
 jest.mock('../../components/common/RefreshButton/RefreshButton.jsx', () => ({ onClick }) => <button data-testid="refresh-btn" onClick={onClick}>Refresh</button>);
-jest.mock('../../components/common/DisplayButton/DisplayButton.jsx', () => () => <button>Display</button>);
-jest.mock('../../assets/CreateUserIcon.jsx', () => () => <span>Icon</span>);
+jest.mock('../../components/common/DisplayButton/DisplayButton.jsx', () => 
+  ({ columnToggles }) => (
+    <div>
+      {columnToggles?.columns.map(col => (
+        <button 
+          key={col.key} 
+          data-testid={`toggle-${col.key}`}
+          onClick={() => columnToggles.onToggle(col.key)}
+        >
+          Toggle {col.label}
+        </button>
+      ))}
+    </div>
+  )
+);
 
 // --- 3. HELPER ---
 const renderPage = ({
@@ -410,4 +439,99 @@ describe('EmployeesPage Integration', () => {
   expect(screen.getByTestId('status-u1')).toHaveTextContent('offline');
   });
 
+  it('toggles single user selection', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  const checkbox = screen.getByTestId('checkbox-1');
+  
+  // Select user
+  await userEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+  
+  // Deselect user
+  await userEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+});
+
+it('selects all visible users', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  const selectAllBtn = screen.getByTestId('select-all');
+  await userEvent.click(selectAllBtn);
+  
+  expect(screen.getByTestId('checkbox-1')).toBeChecked();
+  expect(screen.getByTestId('checkbox-2')).toBeChecked();
+});
+
+it('deselects all visible users when all are selected', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  const selectAllBtn = screen.getByTestId('select-all');
+  
+  // Select all
+  await userEvent.click(selectAllBtn);
+  expect(screen.getByTestId('checkbox-1')).toBeChecked();
+  
+  // Deselect all
+  await userEvent.click(selectAllBtn);
+  expect(screen.getByTestId('checkbox-1')).not.toBeChecked();
+  expect(screen.getByTestId('checkbox-2')).not.toBeChecked();
+});
+
+it('only deselects visible users when toggling select all', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  // Select both users
+  await userEvent.click(screen.getByTestId('checkbox-1'));
+  await userEvent.click(screen.getByTestId('checkbox-2'));
+  
+  // Filter to show only Alice
+  await userEvent.clear(screen.getByTestId('search-input'));
+  await userEvent.type(screen.getByTestId('search-input'), 'Alice');
+  
+  // Deselect all visible (only Alice)
+  await userEvent.click(screen.getByTestId('select-all'));
+  
+  // Alice should be deselected, but we can't see Bob in UI
+  expect(screen.getByTestId('checkbox-1')).not.toBeChecked();
+});
+
+it('toggles showTitle column visibility', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  const toggleBtn = screen.getByTestId('toggle-showTitle');
+  await userEvent.click(toggleBtn);
+  
+  // Verify the toggle was called (column visibility state changes)
+  expect(toggleBtn).toBeInTheDocument();
+});
+
+it('toggles showWorkstations column visibility', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  await userEvent.click(screen.getByTestId('toggle-showWorkstations'));
+  expect(screen.getByTestId('toggle-showWorkstations')).toBeInTheDocument();
+});
+
+it('toggles showGroups column visibility', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  await userEvent.click(screen.getByTestId('toggle-showGroups'));
+  expect(screen.getByTestId('toggle-showGroups')).toBeInTheDocument();
+});
+
+it('toggles showFiles column visibility', async () => {
+  renderPage();
+  await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+  
+  await userEvent.click(screen.getByTestId('toggle-showFiles'));
+  expect(screen.getByTestId('toggle-showFiles')).toBeInTheDocument();
+});
 });

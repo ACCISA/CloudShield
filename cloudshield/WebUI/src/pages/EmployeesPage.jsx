@@ -78,6 +78,28 @@ CustomToast.defaultProps = {
   type: "success",
 };
 
+const styles = {
+  toolbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    flexWrap: "wrap",
+    flexShrink: 0,
+  },
+  leftActions: {
+    display: "flex",
+    gap: "10px",
+    flex: "1 1 auto",
+    flexWrap: "wrap",
+    minWidth: "0",
+  },
+  rightActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+};
+
 export default function EmployeesPage() {
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
@@ -356,12 +378,11 @@ export default function EmployeesPage() {
     applyFilter(groupId, value, isActive);
   };
 
-
   return (
     <div className="page-layout">
       {/* Toolbar */}
-      <div className="page-toolbar">
-        <div className="page-toolbar__left">
+      <div style={styles.toolbar}>
+        <div style={styles.leftActions}>
           <SearchField
             value={search}
             onChange={setSearch}
@@ -409,7 +430,7 @@ export default function EmployeesPage() {
           />
         </div>
 
-        <div className="page-toolbar__right">
+        <div style={styles.rightActions}>
           <RefreshButton
             onClick={withClickLog({
               name: "employees/toolbar/refresh",

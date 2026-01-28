@@ -13,6 +13,28 @@ import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx"
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
 
+const styles = {
+  toolbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    flexWrap: "wrap",
+    flexShrink: 0,
+  },
+  leftActions: {
+    display: "flex",
+    gap: "10px",
+    flex: "1 1 auto",
+    flexWrap: "wrap",
+    minWidth: "0",
+  },
+  rightActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+};
+
 export default function GroupsPage() {
   const [groups, setGroups] = useState([]);
 
@@ -350,9 +372,9 @@ export default function GroupsPage() {
   return (
     <div className="page-layout">
       {/* Toolbar */}
-      <div className="page-toolbar">
+      <div style={styles.toolbar}>
         {/* Left side: Search and buttons */}
-        <div className="page-toolbar__left">
+        <div style={styles.leftActions}>
           <SearchField
             value={search}
             onChange={setSearch}
@@ -396,7 +418,7 @@ export default function GroupsPage() {
         </div>
 
         {/* Right side: Refresh and Create buttons */}
-        <div className="page-toolbar__right">
+        <div style={styles.rightActions}>
           <RefreshButton onClick={fetchGroups} />
 
           <CreateButton

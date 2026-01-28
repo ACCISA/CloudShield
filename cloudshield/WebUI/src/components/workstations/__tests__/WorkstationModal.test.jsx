@@ -11,7 +11,15 @@ jest.mock("../../../assets/ImageUploadIcon.jsx", () => () => (
 ));
 
 jest.mock("../../common/Checkbox/Checkbox.jsx", () => (props) => (
-  <input type="checkbox" aria-label={props.label} checked={props.checked} />
+  <input 
+    type="checkbox" 
+    checked={props.checked} 
+    onChange={(e) => {
+      if (props.onChange) {
+        props.onChange(e.target.checked);
+      }
+    }}
+  />
 ));
 
 jest.mock("../../../assets/workstation", () => ({
@@ -132,4 +140,153 @@ describe("WorkstationModal", () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("handles image upload with valid file", async () => {
+  const { container } = render(
+    <WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />
+  );
+
+  const file = new File(["image"], "test.png", { type: "image/png" });
+  const input = container.querySelector('input[type="file"]');
+  
+  const mockReader = {
+    readAsDataURL: jest.fn(),
+    onloadend: null,
+    result: "data:image/png;base64,abc123"
+  };
+  
+  global.FileReader = jest.fn(() => mockReader);
+  
+  Object.defineProperty(input, "files", {
+    value: [file],
+    writable: false
+  });
+  
+  fireEvent.change(input);
+  
+  // Trigger onloadend
+  mockReader.onloadend();
+  
+  expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
 });
+
+// Test for search term updates
+it("updates users search term", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const searchInput = screen.getByPlaceholderText("Search users...");
+  fireEvent.change(searchInput, { target: { value: "John" } });
+  
+  expect(searchInput.value).toBe("John");
+});
+
+// Test for groups search term
+it("updates groups search term", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const searchInput = screen.getByPlaceholderText("Search groups...");
+  fireEvent.change(searchInput, { target: { value: "Eng" } });
+  
+  expect(searchInput.value).toBe("Eng");
+});
+
+// Test for software search term
+it("updates software search term", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const searchInput = screen.getByPlaceholderText("Search software...");
+  fireEvent.change(searchInput, { target: { value: "VS" } });
+  
+  expect(searchInput.value).toBe("VS");
+});
+
+// Test for onToggleGroup callback
+it("calls toggleSelection for groups", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  // Click first "Sales" group
+  const salesGroups = screen.getAllByText("Sales");
+  fireEvent.click(salesGroups[0]);
+  
+  expect(screen.getByText(/Selected Groups \(1\)/)).toBeInTheDocument();
+});
+
+it("calls removeSelection for groups", () => {
+  const { container } = render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const salesGroups = screen.getAllByText("Sales");
+  fireEvent.click(salesGroups[0]);
+  
+  // Find the remove button by class name
+  const removeButton = container.querySelector('.workstation-modal-card-remove-btn');
+  fireEvent.click(removeButton);
+  
+  expect(screen.queryByText(/Selected Groups/)).not.toBeInTheDocument();
+});
+
+it("handles allGroups checkbox checked", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const checkbox = screen.getByRole("checkbox");
+  
+  // Simulate checking the checkbox - trigger both click and change
+  fireEvent.click(checkbox);
+  
+  // Wait a moment and check - might need to use getAllByText if duplicates exist
+  const selectedText = screen.queryByText(/Selected Groups \(10\)/);
+  expect(selectedText).toBeInTheDocument();
+});
+
+it("handles allGroups checkbox unchecked", () => {
+  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
+  
+  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+    target: { value: "Test" }
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  
+  const checkbox = screen.getByRole("checkbox");
+  fireEvent.click(checkbox);
+  fireEvent.click(checkbox);
+  
+  expect(screen.queryByText(/Selected Groups/)).not.toBeInTheDocument();
+});
+});
+
