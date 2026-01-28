@@ -7,7 +7,7 @@ import "./GroupsModal.css";
 import { listUsers } from "../../services/usersApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-const STEPS = ["Basic Info", "Users", "Workstations", "Files"];
+const STEPS = ["Basic Info", "Users", "Workstations", "Shares"];
 
 // Minimal mock until workstations API is ready
 const MOCK_WORKSTATIONS_MIN = [
@@ -259,7 +259,6 @@ export default function GroupsModal({
     );
   };
 
-
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -459,7 +458,11 @@ export default function GroupsModal({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Saving..." : isEditMode ? "Save Changes" : "Create Group"}
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Create Group"}
               </button>
             )}
           </div>
@@ -566,8 +569,8 @@ function SelectionStep({
       }),
     },
     files: {
-      label: "Add Files",
-      placeholder: "Search files...",
+      label: "Add Shares",
+      placeholder: "Search shares...",
       renderItem: (item) => {
         const icon =
           {
