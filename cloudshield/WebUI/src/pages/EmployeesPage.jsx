@@ -356,46 +356,12 @@ export default function EmployeesPage() {
     applyFilter(groupId, value, isActive);
   };
 
-  const styles = {
-    container: {
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      overflow: "hidden",
-    },
-    toolbar: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: "12px",
-      flexWrap: "wrap",
-      marginBottom: "8px",
-      flexShrink: 0,
-    },
-    leftActions: {
-      display: "flex",
-      gap: "10px",
-      flex: "1 1 auto",
-      flexWrap: "wrap",
-      minWidth: "0",
-    },
-    rightActions: {
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-    },
-    listWrapper: {
-      flex: 1,
-      overflow: "auto",
-      minHeight: 0,
-      overscrollBehavior: "contain",
-    },
-  };
 
   return (
-    <div style={styles.container}>
+    <div className="container">
       {/* Toolbar */}
-      <div style={styles.toolbar}>
-        <div style={styles.leftActions}>
+      <div className="toolbar">
+        <div className="leftActions">
           <SearchField
             value={search}
             onChange={setSearch}
@@ -443,7 +409,7 @@ export default function EmployeesPage() {
           />
         </div>
 
-        <div style={styles.rightActions}>
+        <div className="rightActions">
           <RefreshButton
             onClick={withClickLog({
               name: "employees/toolbar/refresh",
@@ -463,7 +429,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div style={styles.listWrapper}>
+      <div className="listWrapper">
         <UsersTable
           users={filtered}
           showTitle={showTitle}

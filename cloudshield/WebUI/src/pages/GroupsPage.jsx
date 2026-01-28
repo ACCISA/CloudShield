@@ -347,47 +347,12 @@ export default function GroupsPage() {
     }
   };
 
-  const styles = {
-    container: {
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      overflow: "hidden",
-    },
-    toolbar: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: "12px",
-      flexWrap: "wrap",
-      marginBottom: "8px",
-      flexShrink: 0,
-    },
-    leftActions: {
-      display: "flex",
-      gap: "10px",
-      flex: "1 1 auto",
-      flexWrap: "wrap",
-      minWidth: "0",
-    },
-    rightActions: {
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-    },
-    listWrapper: {
-      flex: 1,
-      overflow: "auto",
-      minHeight: 0,
-      overscrollBehavior: "contain",
-    },
-  };
-
   return (
-    <div style={styles.container}>
+    <div className="container">
       {/* Toolbar */}
-      <div style={styles.toolbar}>
+      <div className="toolbar">
         {/* Left side: Search and buttons */}
-        <div style={styles.leftActions}>
+        <div className="leftActions">
           <SearchField
             value={search}
             onChange={setSearch}
