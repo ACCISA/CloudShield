@@ -34,37 +34,39 @@
   color: #888;
 }
 
- 
-    .container {
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      overflow: "hidden",
-    }
-   .toolbar {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: "12px",
-      flexWrap: "wrap",
-      marginBottom: "8px",
-      flexShrink: 0,
-    }
-   .leftActions {
-      display: "flex",
-      gap: "10px",
-      flex: "1 1 auto",
-      flexWrap: "wrap",
-      minWidth: "0",
-    }
-   .rightActions {
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-    }
-   .listWrapper {
-      flex: 1,
-      overflow: "auto",
-      minHeight: 0,
-      overscrollBehavior: "contain",
-    }
-  
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.leftActions {
+  display: flex;
+  gap: 10px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rightActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.listWrapper {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
