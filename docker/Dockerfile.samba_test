@@ -44,8 +44,12 @@ RUN chmod +x /usr/local/bin/sudo
 
 # build rpc server against container libs and install service
 WORKDIR /tmp/rpcnode
+
 COPY cloudshield/RPCNode /tmp/rpcnode
-RUN cd /tmp/rpcnode && bash scripts/proto-gen.sh
+RUN ls -la /tmp/
+RUN ls -la /tmp/rpcnode
+RUN ls -la /tmp/rpcnode/scripts
+RUN /tmp/rpcnode/scripts/proto-gen.sh
 RUN rm -rf /tmp/rpcnode/build && \
     cmake -S /tmp/rpcnode -B /tmp/rpcnode/build && \
     cmake --build /tmp/rpcnode/build --target cs-rpcsrv && \
