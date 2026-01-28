@@ -34,14 +34,14 @@
   color: #888;
 }
 
-.container {
+.page-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
 
-.toolbar {
+.page-toolbar {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -50,7 +50,7 @@
   flex-shrink: 0;
 }
 
-.leftActions {
+.page-toolbar__left {
   display: flex;
   gap: 10px;
   flex: 1 1 auto;
@@ -58,13 +58,13 @@
   min-width: 0;
 }
 
-.rightActions {
+.page-toolbar__right {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.listWrapper {
+.page-list-wrapper {
   flex: 1;
   overflow: auto;
   min-height: 0;

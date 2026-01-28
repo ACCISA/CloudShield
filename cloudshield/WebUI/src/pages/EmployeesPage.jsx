@@ -358,10 +358,10 @@ export default function EmployeesPage() {
 
 
   return (
-    <div className="container">
+    <div className="page-layout">
       {/* Toolbar */}
-      <div className="toolbar">
-        <div className="leftActions">
+      <div className="page-toolbar">
+        <div className="page-toolbar__left">
           <SearchField
             value={search}
             onChange={setSearch}
@@ -409,7 +409,7 @@ export default function EmployeesPage() {
           />
         </div>
 
-        <div className="rightActions">
+        <div className="page-toolbar__right">
           <RefreshButton
             onClick={withClickLog({
               name: "employees/toolbar/refresh",
@@ -429,7 +429,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="listWrapper">
+      <div className="page-list-wrapper">
         <UsersTable
           users={filtered}
           showTitle={showTitle}

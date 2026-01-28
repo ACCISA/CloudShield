@@ -348,11 +348,11 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="container">
+    <div className="page-layout">
       {/* Toolbar */}
-      <div className="toolbar">
+      <div className="page-toolbar">
         {/* Left side: Search and buttons */}
-        <div className="leftActions">
+        <div className="page-toolbar__left">
           <SearchField
             value={search}
             onChange={setSearch}
@@ -396,7 +396,7 @@ export default function GroupsPage() {
         </div>
 
         {/* Right side: Refresh and Create buttons */}
-        <div style={styles.rightActions}>
+        <div className="page-toolbar__right">
           <RefreshButton onClick={fetchGroups} />
 
           <CreateButton

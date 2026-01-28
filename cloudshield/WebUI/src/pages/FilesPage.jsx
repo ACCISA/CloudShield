@@ -535,7 +535,7 @@ export default function FilesPage() {
         {/* <StoragePill usedGB={62} totalGB={100} /> */}
       </div>
 
-      <div className="toolbar">
+      <div className="files-toolbar">
         <div className="leftTools">
           <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search files" />
           <DisplayButton
@@ -599,7 +599,7 @@ export default function FilesPage() {
         .storageFill { height: 100%; background: #4f8cff; border-radius: 999px; }
 
         /* Toolbar */
-        .toolbar {
+        .files-toolbar {
           display: flex;
           justify-content: space-between;
           align-items: center;
