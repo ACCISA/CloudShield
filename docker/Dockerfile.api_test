@@ -33,7 +33,7 @@ RUN mkdir -p /app/cloudshield/RPCNode/build/
 COPY cloudshield/Cloud/docker_provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
 COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
-COPY cloudshield/RPCNode/ /app/cloudshield/RPCNode/
+#COPY cloudshield/RPCNode/ /app/cloudshield/RPCNode/
 ENV PYTHONPATH=/app
 
 COPY docker/supervisord.conf /app/
