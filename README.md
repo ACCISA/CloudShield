@@ -12,7 +12,7 @@ Planned milestones tied to architecture and deployment deliverables:
 | Deliverable   | Due Date           | Link to Demo Video |
 |---------------|-------------------|--------------------|
 | Release 1     | November 10th, 2025 | [Release 1 Presentation](https://drive.google.com/file/d/1rAsPDtUeL0hQ-TLDfsKU7SzleGgU_tOf/view?usp=sharing)     |
-| Release 2     | January 26th, 2026 | [...]              |
+| Release 2     | January 26th, 2026 | [Release 2 Presentation](https://drive.google.com/file/d/1vD48VnW8qFSvEJJUhmCrJunkLWd8Zhc6/view?usp=sharing)              |
 | Final Release | April 13th, 2026   | [...]              |
 
 ---
