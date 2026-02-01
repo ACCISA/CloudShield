@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
+import TrashIcon from "../../assets/TrashIcon.jsx";
 import "./GroupsModal.css";
 
 // Use the same Users API logic as EmployeesPage
@@ -33,6 +34,7 @@ export default function GroupsModal({
   onClose,
   groupData = null,
   onSubmit,
+  onDelete,
   onRefresh,
 }) {
   const { accessToken, currentUser } = useAuth();
@@ -280,6 +282,14 @@ export default function GroupsModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (!groupData?._id && !groupData?.id) return;
+    if (window.confirm("Are you sure you want to delete this group?")) {
+      await onDelete?.(groupData._id || groupData.id);
+      onClose();
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -430,19 +440,30 @@ export default function GroupsModal({
 
         {/* Footer */}
         <footer className="groups-modal-actions">
-          <button
-            className="groups-modal-btn groups-modal-btn-secondary"
-            onClick={() => handleNavigate(-1)}
-            disabled={currentStep === 0}
-          >
-            Back
-          </button>
-          <div className="groups-modal-actions-right">
+          <div className="groups-modal-actions-left">
             <button
               className="groups-modal-btn groups-modal-btn-cancel"
               onClick={onClose}
             >
               Cancel
+            </button>
+            {isEditMode && currentStep === 0 && (
+              <button
+                className="groups-modal-btn groups-modal-btn-delete"
+                onClick={handleDelete}
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <TrashIcon width={14} height={14} color="#DC2626" /> Delete
+              </button>
+            )}
+          </div>
+          <div className="groups-modal-actions-right">
+            <button
+              className="groups-modal-btn groups-modal-btn-secondary"
+              onClick={() => handleNavigate(-1)}
+              disabled={currentStep === 0}
+            >
+              Back
             </button>
             {currentStep < STEPS.length - 1 ? (
               <button

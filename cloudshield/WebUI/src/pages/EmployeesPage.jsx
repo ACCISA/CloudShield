@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
+import { useLocation } from "react-router-dom";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
 
@@ -12,8 +13,7 @@ import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
+import EmployeesModal from "../components/users/EmployeesModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 
@@ -101,6 +101,7 @@ const styles = {
 };
 
 export default function EmployeesPage() {
+  const location = useLocation();
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
 
@@ -119,9 +120,19 @@ export default function EmployeesPage() {
   }, [currentUser]);
 
   // UI State
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalEmployee, setModalEmployee] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setModalOpen(true);
+      setModalEmployee(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const [layout, setLayout] = useState("list");
 
   const [sortField, setSortField] = useState("name");
@@ -191,7 +202,7 @@ export default function EmployeesPage() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleCreate = async (payload) => {
+  const handleModalSubmit = async (payload) => {
     if (!accessToken) {
       openToast("You must be logged in to create a user", "error");
       return;
@@ -202,62 +213,57 @@ export default function EmployeesPage() {
     }
 
     try {
-      trackButton("employees/create/submit", {
-        page: "employees",
-        control: "create_dialog",
-      });
-      const apiPayload = {
-        email: payload.email,
-        full_name: `${payload.firstName} ${payload.lastName}`,
-        password: payload.password || "Password123!",
-        role: payload.jobTitle?.toLowerCase().includes("admin")
-          ? "admin"
-          : "employee",
-        org_id: orgId,
-      };
+      const isEdit = Boolean(modalEmployee);
 
-      await createUser(apiPayload, { token: accessToken });
+      if (isEdit) {
+        // Edit mode
+        trackButton("employees/edit/submit", {
+          page: "employees",
+          id: modalEmployee.id,
+          control: "edit_dialog",
+        });
+        const apiPayload = {
+          full_name: `${payload.firstName} ${payload.lastName}`,
+          email: payload.email,
+          role: payload.jobTitle,
+        };
 
-      openToast("User created successfully");
-      setCreateModalOpen(false);
+        await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
+        openToast("User updated successfully");
+      } else {
+        // Create mode
+        trackButton("employees/create/submit", {
+          page: "employees",
+          control: "create_dialog",
+        });
+        const apiPayload = {
+          email: payload.email,
+          full_name: `${payload.firstName} ${payload.lastName}`,
+          password: payload.password || "Password123!",
+          role: payload.jobTitle?.toLowerCase().includes("admin")
+            ? "admin"
+            : "employee",
+          org_id: orgId,
+        };
+
+        await createUser(apiPayload, { token: accessToken });
+        openToast("User created successfully");
+      }
+
+      setModalOpen(false);
+      setModalEmployee(null);
       fetchUsers();
     } catch (error) {
       const msg =
-        error.payload?.error || error.message || "Failed to create user";
+        error.payload?.error || error.message || "Failed to save user";
       openToast(msg, "error");
     }
   };
 
-  const handleUpdate = async (id, payload) => {
-    if (!accessToken) return;
+  const handleDelete = async () => {
+    if (!accessToken || !modalEmployee) return;
 
-    try {
-      trackButton("employees/edit/submit", {
-        page: "employees",
-        id,
-        control: "edit_dialog",
-      });
-      const apiPayload = {
-        full_name: `${payload.firstName} ${payload.lastName}`,
-        email: payload.email,
-        role: payload.jobTitle,
-      };
-
-      await updateUser(id, apiPayload, { token: accessToken });
-
-      openToast("User updated successfully");
-      setEditModalOpen(false);
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-      openToast("Update failed: Check API implementation", "error");
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!accessToken) return;
-
-    if (id === currentUser?.id) {
+    if (modalEmployee.id === currentUser?.id) {
       openToast("You cannot delete your own account", "error");
       return;
     }
@@ -265,13 +271,14 @@ export default function EmployeesPage() {
     try {
       trackButton("employees/edit/delete", {
         page: "employees",
-        id,
+        id: modalEmployee.id,
         control: "edit_dialog",
       });
-      await deleteUser(id, { token: accessToken });
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      await deleteUser(modalEmployee.id, { token: accessToken });
+      setUsers((prev) => prev.filter((u) => u.id !== modalEmployee.id));
       openToast("User deleted successfully");
-      setEditModalOpen(false);
+      setModalOpen(false);
+      setModalEmployee(null);
     } catch (error) {
       openToast(error.message || "Failed to delete user", "error");
     }
@@ -445,7 +452,10 @@ export default function EmployeesPage() {
             onClick={withClickLog({
               name: "employees/toolbar/open-create",
               control: "create_button",
-            })(() => setCreateModalOpen(true))}
+            })(() => {
+              setModalEmployee(null);
+              setModalOpen(true);
+            })}
           />
         </div>
       </div>
@@ -469,28 +479,23 @@ export default function EmployeesPage() {
               page: "employees",
               id: u.id,
             });
-            setEditTarget(u);
-            setEditModalOpen(true);
+            setModalEmployee(u);
+            setModalOpen(true);
           }}
           onDelete={(u) => handleDelete(u.id)}
         />
       </div>
 
-      {/* Modals */}
-      {editTarget && (
-        <UserEditModal
-          open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          data={editTarget}
-          onSubmit={(payload) => handleUpdate(editTarget.id, payload)}
-          onDelete={() => handleDelete(editTarget.id)}
-        />
-      )}
-
-      <UserCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSubmit={handleCreate}
+      {/* Modal */}
+      <EmployeesModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setModalEmployee(null);
+        }}
+        employeeData={modalEmployee}
+        onSubmit={handleModalSubmit}
+        onDelete={handleDelete}
       />
 
       {toast.open && (

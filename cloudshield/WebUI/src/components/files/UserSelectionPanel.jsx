@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
-import Tooltip from "@mui/material/Tooltip";
 import "./UserSelectionPanel.css";
 
 /**
- * Two-panel user selection component inspired by GroupsPage
- * Left panel: searchable list with checkmarks
- * Right panel: selected users as cards with remove buttons
+ * User selection component matching GroupsModal styling
+ * Search dropdown on top, selected users displayed as cards below
  */
 export default function UserSelectionPanel({
   availableUsers = [],
@@ -22,9 +20,11 @@ export default function UserSelectionPanel({
     return availableUsers.filter((user) => {
       const username = typeof user === "string" ? user : user.username || "";
       const fullName = typeof user === "object" ? user.full_name || "" : "";
+      const email = typeof user === "object" ? user.email || "" : "";
       return (
         username.toLowerCase().includes(search) ||
-        fullName.toLowerCase().includes(search)
+        fullName.toLowerCase().includes(search) ||
+        email.toLowerCase().includes(search)
       );
     });
   }, [availableUsers, searchTerm]);
@@ -75,63 +75,76 @@ export default function UserSelectionPanel({
   };
 
   return (
-    <div className="user-selection-panel">
-      {/* Left Panel: Search and List */}
+    <div className="user-selection-container">
+      {/* Search Section */}
       <div className="user-selection-search-section">
-        <label className="user-selection-label">Add Users</label>
+        <label className="user-selection-label">Search Users</label>
         <input
           type="text"
           className="user-selection-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search users..."
+          placeholder="Search by name or email..."
         />
 
-        <div className="user-selection-dropdown">
-          {filteredUsers.length === 0 ? (
-            <div
-              className="user-selection-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default" }}
-            >
-              No users found
-            </div>
-          ) : (
-            filteredUsers.map((user) => {
-              const normalized = normalizeUser(user);
-              const selected = isSelected(user);
-              const isActive = normalized.active !== undefined ? normalized.active : true;
+        {searchTerm && (
+          <div className="user-selection-dropdown">
+            {filteredUsers.length === 0 ? (
+              <div
+                className="user-selection-dropdown-item"
+                style={{ opacity: 0.7, cursor: "default" }}
+              >
+                No users found
+              </div>
+            ) : (
+              filteredUsers.map((user) => {
+                const normalized = normalizeUser(user);
+                const selected = isSelected(user);
+                const isActive =
+                  normalized.active !== undefined ? normalized.active : true;
 
-              return (
-                <div
-                  key={getUserId(user)}
-                  className={`user-selection-dropdown-item ${selected ? "selected" : ""}`}
-                  onClick={() => handleToggle(user)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleToggle(user);
-                    }
-                  }}
-                >
-                  <DisplayIcon type="user" data={normalized} size="small" showHoverCard={true} />
-                  <div className="user-selection-dropdown-item-info">
-                    <div className="user-selection-dropdown-item-name">
-                      {getDisplayName(user)}
+                return (
+                  <div
+                    key={getUserId(user)}
+                    className={`user-selection-dropdown-item ${selected ? "selected" : ""}`}
+                    onClick={() => handleToggle(user)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToggle(user);
+                      }
+                    }}
+                  >
+                    <DisplayIcon
+                      type="user"
+                      data={normalized}
+                      size="small"
+                      showHoverCard={true}
+                    />
+                    <div className="user-selection-dropdown-item-info">
+                      <div className="user-selection-dropdown-item-name">
+                        {getDisplayName(user)}
+                      </div>
+                      {normalized.email && (
+                        <div className="user-selection-dropdown-item-detail">
+                          {normalized.email}
+                        </div>
+                      )}
                     </div>
+                    {selected && (
+                      <span className="user-selection-checkmark">✓</span>
+                    )}
                   </div>
-                  {selected && (
-                    <span className="user-selection-checkmark">✓</span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Right Panel: Selected Users */}
+      {/* Selected Users Section */}
       {selectedUsers.length > 0 && (
         <div className="user-selection-selected-section">
           <div className="user-selection-selected-header">
@@ -149,10 +162,16 @@ export default function UserSelectionPanel({
                     type="button"
                     className="user-selection-card-remove-btn"
                     onClick={() => handleRemove(getUserId(user))}
+                    aria-label="Remove user"
                   >
                     ×
                   </button>
-                  <DisplayIcon type="user" data={normalized} size="medium" showHoverCard={true} />
+                  <DisplayIcon
+                    type="user"
+                    data={normalized}
+                    size="medium"
+                    showHoverCard={true}
+                  />
                   <span className="user-selection-selected-card-name">
                     {getDisplayName(user)}
                   </span>

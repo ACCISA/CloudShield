@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
@@ -36,6 +37,7 @@ const styles = {
 };
 
 export default function GroupsPage() {
+  const location = useLocation();
   const [groups, setGroups] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -60,6 +62,16 @@ export default function GroupsPage() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setModalOpen(true);
+      setEditingGroup(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const openToast = (msg, type = "success") => {
     setToast({ open: true, msg, type });
@@ -447,6 +459,7 @@ export default function GroupsPage() {
         onClose={handleCloseModal}
         groupData={editingGroup}
         onSubmit={handleSubmitGroup}
+        onDelete={handleDeleteGroup}
         onRefresh={fetchGroups}
       />
     </div>

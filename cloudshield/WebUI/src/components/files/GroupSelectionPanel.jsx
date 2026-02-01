@@ -3,9 +3,8 @@ import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import "./GroupSelectionPanel.css";
 
 /**
- * Two-panel group selection component similar to UserSelectionPanel
- * Left panel: searchable list with checkmarks
- * Right panel: selected groups as cards with remove buttons
+ * Group selection component matching GroupsModal styling
+ * Search dropdown on top, selected groups displayed as cards below
  */
 export default function GroupSelectionPanel({
   availableGroups = [],
@@ -71,67 +70,69 @@ export default function GroupSelectionPanel({
   };
 
   return (
-    <div className="group-selection-panel">
-      {/* Left Panel: Search and List */}
+    <div className="group-selection-container">
+      {/* Search Section */}
       <div className="group-selection-search-section">
-        <label className="group-selection-label">Add Groups</label>
+        <label className="group-selection-label">Search Groups</label>
         <input
           type="text"
           className="group-selection-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search groups..."
+          placeholder="Search by group name..."
         />
 
-        <div className="group-selection-dropdown">
-          {filteredGroups.length === 0 ? (
-            <div
-              className="group-selection-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default" }}
-            >
-              No groups found
-            </div>
-          ) : (
-            filteredGroups.map((group) => {
-              const normalized = normalizeGroup(group);
-              const selected = isSelected(group);
+        {searchTerm && (
+          <div className="group-selection-dropdown">
+            {filteredGroups.length === 0 ? (
+              <div
+                className="group-selection-dropdown-item"
+                style={{ opacity: 0.7, cursor: "default" }}
+              >
+                No groups found
+              </div>
+            ) : (
+              filteredGroups.map((group) => {
+                const normalized = normalizeGroup(group);
+                const selected = isSelected(group);
 
-              return (
-                <div
-                  key={getGroupId(group)}
-                  className={`group-selection-dropdown-item ${selected ? "selected" : ""}`}
-                  onClick={() => handleToggle(group)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleToggle(group);
-                    }
-                  }}
-                >
-                  <DisplayIcon type="group" data={normalized} size="small" showHoverCard={true} />
-                  <div className="group-selection-dropdown-item-info">
-                    <div className="group-selection-dropdown-item-name">
-                      {getDisplayName(group)}
-                    </div>
-                    {normalized.member_count !== undefined && (
-                      <div className="group-selection-dropdown-item-detail">
-                        {normalized.member_count} {normalized.member_count === 1 ? 'member' : 'members'}
+                return (
+                  <div
+                    key={getGroupId(group)}
+                    className={`group-selection-dropdown-item ${selected ? "selected" : ""}`}
+                    onClick={() => handleToggle(group)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToggle(group);
+                      }
+                    }}
+                  >
+                    <DisplayIcon type="group" data={normalized} size="small" showHoverCard={true} />
+                    <div className="group-selection-dropdown-item-info">
+                      <div className="group-selection-dropdown-item-name">
+                        {getDisplayName(group)}
                       </div>
+                      {normalized.member_count !== undefined && (
+                        <div className="group-selection-dropdown-item-detail">
+                          {normalized.member_count} {normalized.member_count === 1 ? 'member' : 'members'}
+                        </div>
+                      )}
+                    </div>
+                    {selected && (
+                      <span className="group-selection-checkmark">✓</span>
                     )}
                   </div>
-                  {selected && (
-                    <span className="group-selection-checkmark">✓</span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Right Panel: Selected Groups */}
+      {/* Selected Groups Section */}
       {selectedGroups.length > 0 && (
         <div className="group-selection-selected-section">
           <div className="group-selection-selected-header">
@@ -149,6 +150,7 @@ export default function GroupSelectionPanel({
                     type="button"
                     className="group-selection-card-remove-btn"
                     onClick={() => handleRemove(getGroupId(group))}
+                    aria-label="Remove group"
                   >
                     ×
                   </button>

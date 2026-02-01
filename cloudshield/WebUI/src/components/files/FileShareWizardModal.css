@@ -64,7 +64,10 @@
 
 .file-wizard-breadcrumb-item {
   font-size: 1rem;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   line-height: 1.4;
 }
 
@@ -139,7 +142,10 @@
   font-weight: 400;
   color: #9e9e9e;
   transition: color 0.3s ease;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   text-align: center;
   white-space: nowrap;
 }
@@ -156,7 +162,7 @@
 /* Content */
 .file-wizard-content {
   padding: 32px;
-  overflow-y: auto;
+  overflow-y: visible;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -164,37 +170,47 @@
 }
 
 .file-wizard-step {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Form Elements */
 .file-wizard-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 24px;
 }
 
 .file-wizard-label {
+  display: block;
   font-size: 0.9rem;
   font-weight: 500;
+  margin-bottom: 8px;
   color: #ffffff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .file-wizard-input,
 .file-wizard-textarea {
   width: 100%;
   padding: 12px 14px;
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.05);
   color: #ffffff;
-  font-size: 14px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.95rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .file-wizard-input:focus,
@@ -206,129 +222,155 @@
 
 .file-wizard-input::placeholder,
 .file-wizard-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: #9e9e9e;
 }
 
 .file-wizard-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 90px;
 }
 
 /* Footer Actions */
 .file-wizard-actions {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
   padding: 20px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: #0a0a0a;
+  background-color: #111111;
   flex-shrink: 0;
-}
-
-.file-wizard-actions-left {
-  flex: 1;
 }
 
 .file-wizard-actions-right {
   display: flex;
-  align-items: center;
+  gap: 12px;
+}
+
+.file-wizard-actions-left {
+  display: flex;
   gap: 12px;
 }
 
 .file-wizard-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: system-ui, -apple-system, sans-serif;
-  cursor: pointer;
+  padding: 14px 24px;
+  border-radius: 14px;
   border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-transform: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.file-wizard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .file-wizard-btn-primary {
   background-color: #ffffff;
   color: #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .file-wizard-btn-primary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+  background-color: #f5f5f5;
 }
 
-.file-wizard-btn-primary:disabled {
-  background-color: rgba(255, 255, 255, 0.3);
-  color: rgba(0, 0, 0, 0.5);
-  cursor: not-allowed;
+.file-wizard-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .file-wizard-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
 .file-wizard-btn-secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .file-wizard-btn-secondary:disabled {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.3);
-  cursor: not-allowed;
+  opacity: 0.3;
 }
 
 .file-wizard-btn-cancel {
-  background-color: transparent;
-  color: #9e9e9e;
+  background-color: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.file-wizard-btn-cancel:hover {
-  background-color: rgba(255, 255, 255, 0.05);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.file-wizard-btn-danger {
-  background-color: rgba(255, 59, 48, 0.15);
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.3);
+.file-wizard-btn-cancel:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-.file-wizard-btn-danger:hover {
-  background-color: rgba(255, 59, 48, 0.25);
-  border-color: rgba(255, 59, 48, 0.5);
+.file-wizard-btn-delete {
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+.file-wizard-btn-delete:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Scrollbar */
+.file-wizard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.file-wizard-content::-webkit-scrollbar-track {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.file-wizard-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.file-wizard-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .file-wizard-dialog {
     width: 100%;
-    height: 100%;
+    max-width: 100vw;
     max-height: 100vh;
     border-radius: 0;
   }
 
-  .file-wizard-content {
-    padding: 20px;
+  .file-wizard-stepper {
+    padding: 20px 16px;
   }
 
-  .file-wizard-stepper {
-    padding: 16px 20px;
+  .file-wizard-step-label {
+    font-size: 11px;
+  }
+
+  .file-wizard-content {
+    padding: 24px 20px;
   }
 
   .file-wizard-actions {
-    flex-wrap: wrap;
-  }
-
-  .file-wizard-actions-left {
-    flex: 0 0 100%;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .file-wizard-actions-right {
+    width: 100%;
+  }
+
+  .file-wizard-btn {
     flex: 1;
-    justify-content: flex-end;
   }
 }

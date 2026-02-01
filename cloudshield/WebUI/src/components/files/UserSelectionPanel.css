@@ -1,18 +1,17 @@
-/* Two-Panel Layout */
-.user-selection-panel {
-  display: flex;
-  gap: 24px;
-  min-height: 300px;
-  max-height: 400px;
-}
-
-/* Left Panel: Search Section */
-.user-selection-search-section {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+/* Container Layout - Vertical */
+.user-selection-container {
   display: flex;
   flex-direction: column;
+  gap: 28px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Search Section */
+.user-selection-search-section {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .user-selection-label {
@@ -21,20 +20,26 @@
   font-weight: 500;
   margin-bottom: 8px;
   color: #ffffff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .user-selection-search {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.05);
   color: #ffffff;
-  font-size: 14px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.95rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
-  margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .user-selection-search:focus {
@@ -44,15 +49,17 @@
 }
 
 .user-selection-search::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: #9e9e9e;
 }
 
+/* Dropdown */
 .user-selection-dropdown {
-  flex: 1;
+  max-height: 210px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   background-color: #0a0a0a;
+  margin-top: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
@@ -91,45 +98,17 @@
   font-size: 14px;
   font-weight: 500;
   color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.user-status-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-}
-
-.user-status-badge.active {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.user-status-badge.inactive {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
 .user-selection-dropdown-item-detail {
-  font-size: 11px;
+  font-size: 12px;
   color: #9e9e9e;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow: hidden;
-}
-
-.user-selection-dropdown-item-detail span {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-selection-checkmark {
@@ -139,10 +118,10 @@
   flex-shrink: 0;
 }
 
-/* Right Panel: Selected Users */
+/* Selected Users Section */
 .user-selection-selected-section {
   flex: 1;
-  min-width: 0;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -153,7 +132,10 @@
   font-weight: 500;
   margin-bottom: 16px;
   color: #ffffff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   flex-shrink: 0;
 }
 
@@ -173,49 +155,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  gap: 10px;
+  padding: 20px 16px 18px;
+  background-color: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
-  transition: all 0.2s ease;
   cursor: default;
+  transition: all 0.2s ease;
 }
 
 .user-selection-selected-card:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.user-selection-card-remove-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: rgba(255, 0, 0, 0.8);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
-  transition: all 0.2s ease;
-  opacity: 0;
-}
-
-.user-selection-selected-card:hover .user-selection-card-remove-btn {
-  opacity: 1;
-}
-
-.user-selection-card-remove-btn:hover {
-  background-color: rgba(255, 0, 0, 1);
-  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .user-selection-selected-card-name {
@@ -223,23 +174,63 @@
   font-weight: 500;
   color: #ffffff;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  word-break: break-word;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.user-selection-card-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  z-index: 1;
+  transition: background-color 0.2s ease;
+}
+
+.user-selection-card-remove-btn:hover {
+  background-color: #7c1d1d;
+}
+
+/* Scrollbar */
+.user-selection-dropdown::-webkit-scrollbar,
+.user-selection-selected-cards::-webkit-scrollbar {
+  width: 8px;
+}
+
+.user-selection-dropdown::-webkit-scrollbar-track,
+.user-selection-selected-cards::-webkit-scrollbar-track {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.user-selection-dropdown::-webkit-scrollbar-thumb,
+.user-selection-selected-cards::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.user-selection-dropdown::-webkit-scrollbar-thumb:hover,
+.user-selection-selected-cards::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .user-selection-panel {
-    flex-direction: column;
-    max-height: none;
-  }
-
-  .user-selection-search-section {
-    max-height: 250px;
-  }
-
   .user-selection-selected-cards {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }

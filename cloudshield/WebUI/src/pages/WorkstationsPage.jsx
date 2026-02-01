@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
 import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
@@ -53,6 +54,7 @@ const seed = MOCK_WORKSTATIONS_FULL;
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
+  const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
   const [rows, setRows] = useState(seed);
   const [search, setSearch] = useState("");
@@ -74,6 +76,16 @@ export default function WorkstationsPage() {
   // dialogs
   const [openModal, setOpenModal] = useState(false);
   const [editRow, setEditRow] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setOpenModal(true);
+      setEditRow(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

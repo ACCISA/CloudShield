@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
+import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import { MOCK_USERS, MOCK_GROUPS, MOCK_SOFTWARE } from "../../data/mockData.js";
 import {
@@ -340,11 +341,10 @@ export default function WorkstationModal({
         <footer className="workstation-modal-actions">
           <div className="workstation-modal-actions-left">
             <button
-              className="workstation-modal-btn workstation-modal-btn-secondary"
-              onClick={() => handleNavigate(-1)}
-              disabled={currentStep === 0}
+              className="workstation-modal-btn workstation-modal-btn-cancel"
+              onClick={onClose}
             >
-              Back
+              Cancel
             </button>
             {isEditMode && (
               <button
@@ -353,17 +353,19 @@ export default function WorkstationModal({
                   onDelete?.();
                   onClose();
                 }}
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >
-                Delete
+                <TrashIcon width={14} height={14} color="#DC2626" /> Delete
               </button>
             )}
           </div>
           <div className="workstation-modal-actions-right">
             <button
-              className="workstation-modal-btn workstation-modal-btn-cancel"
-              onClick={onClose}
+              className="workstation-modal-btn workstation-modal-btn-secondary"
+              onClick={() => handleNavigate(-1)}
+              disabled={currentStep === 0}
             >
-              Cancel
+              Back
             </button>
             {currentStep < STEPS.length - 1 ? (
               <button
@@ -468,7 +470,6 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                 />
               </div>
               <div className="workstation-modal-strength-title">Pro</div>
-             
             </div>
             <p className="workstation-modal-strength-desc">
               Balanced for most workflows

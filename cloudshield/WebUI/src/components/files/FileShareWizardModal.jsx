@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
+import TrashIcon from "../../assets/TrashIcon.jsx";
 import UserSelectionPanel from "./UserSelectionPanel.jsx";
 import GroupSelectionPanel from "./GroupSelectionPanel.jsx";
 import { fetchUsers, fetchGroups } from "../../api/filesApi.js";
@@ -66,7 +67,9 @@ export default function FileShareWizardModal({
     });
 
   const dedupeUsersById = (users) =>
-    Array.from(new Map(users.filter((u) => u.id).map((u) => [u.id, u])).values());
+    Array.from(
+      new Map(users.filter((u) => u.id).map((u) => [u.id, u])).values(),
+    );
 
   const normalizeGroups = (groups) =>
     groups.map((g) => {
@@ -87,19 +90,21 @@ export default function FileShareWizardModal({
         (u) =>
           u.username === username ||
           u.email === username ||
-          (u.email && u.email.split("@")[0] === username)
+          (u.email && u.email.split("@")[0] === username),
       );
       return found || { username, id: username };
     });
     return Array.from(
-      new Map(userObjectsRaw.map((u) => [String(u.id || u.username || u.email), u])).values()
+      new Map(
+        userObjectsRaw.map((u) => [String(u.id || u.username || u.email), u]),
+      ).values(),
     );
   };
 
   const mapSelectedGroups = (selected, normalizedGroups) =>
     (selected || []).map((groupName) => {
       const found = normalizedGroups.find(
-        (g) => g.name === groupName || g.group_name === groupName
+        (g) => g.name === groupName || g.group_name === groupName,
       );
       return found || { name: groupName, id: groupName, group_name: groupName };
     });
@@ -111,7 +116,10 @@ export default function FileShareWizardModal({
     const loadData = async () => {
       try {
         const orgId = resolveOrgId();
-        const [usersData, groups] = await Promise.all([fetchUsers(orgId), fetchGroups(orgId)]);
+        const [usersData, groups] = await Promise.all([
+          fetchUsers(orgId),
+          fetchGroups(orgId),
+        ]);
 
         const normalizedUsers = normalizeUsers(usersData);
         const uniqueUsers = dedupeUsersById(normalizedUsers);
@@ -153,7 +161,9 @@ export default function FileShareWizardModal({
   }, [isOpen]);
 
   const handleNavigate = (direction) => {
-    setCurrentStep((prev) => Math.max(0, Math.min(prev + direction, STEPS.length - 1)));
+    setCurrentStep((prev) =>
+      Math.max(0, Math.min(prev + direction, STEPS.length - 1)),
+    );
   };
 
   const handleSubmit = async () => {
@@ -162,14 +172,16 @@ export default function FileShareWizardModal({
       // Prefer stable identifiers (email) and de-duplicate.
       const userIds = Array.from(
         new Set(
-          formData.selectedUsers.map((u) => {
-            if (typeof u === "string") return u;
-            return u.email || u.username || u.id || "";
-          }).filter(Boolean)
-        )
+          formData.selectedUsers
+            .map((u) => {
+              if (typeof u === "string") return u;
+              return u.email || u.username || u.id || "";
+            })
+            .filter(Boolean),
+        ),
       );
-      const groupNames = formData.selectedGroups.map(g => 
-        typeof g === 'string' ? g : (g.name || g.groupName)
+      const groupNames = formData.selectedGroups.map((g) =>
+        typeof g === "string" ? g : g.name || g.groupName,
       );
 
       await onSubmit?.({
@@ -181,6 +193,13 @@ export default function FileShareWizardModal({
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this share?")) {
+      await onDelete?.();
+      onClose();
     }
   };
 
@@ -204,7 +223,8 @@ export default function FileShareWizardModal({
     if (!searchTerms.groups.trim()) return availableGroups;
     const search = searchTerms.groups.toLowerCase();
     return availableGroups.filter((group) => {
-      const groupName = typeof group === "string" ? group : group.name || group.groupName || "";
+      const groupName =
+        typeof group === "string" ? group : group.name || group.groupName || "";
       return groupName.toLowerCase().includes(search);
     });
   }, [availableGroups, searchTerms.groups]);
@@ -299,12 +319,22 @@ export default function FileShareWizardModal({
 
         {/* Footer */}
         <footer className="file-wizard-actions">
-          <button
-            className="file-wizard-btn file-wizard-btn-cancel"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
+          <div className="file-wizard-actions-left">
+            <button
+              className="file-wizard-btn file-wizard-btn-cancel"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            {isEditMode && currentStep === 0 && onDelete && (
+              <button
+                className="file-wizard-btn file-wizard-btn-delete"
+                onClick={handleDelete}
+              >
+                <TrashIcon width={14} height={14} color="#DC2626" /> Delete
+              </button>
+            )}
+          </div>
           <div className="file-wizard-actions-right">
             <button
               className="file-wizard-btn file-wizard-btn-secondary"
@@ -380,7 +410,14 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
         <label className="file-wizard-label">
           Share Name *
           {isEditMode && (
-            <span style={{ fontSize: '12px', color: '#9e9e9e', fontWeight: 'normal', marginLeft: '8px' }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "#9e9e9e",
+                fontWeight: "normal",
+                marginLeft: "8px",
+              }}
+            >
               (cannot be changed)
             </span>
           )}
@@ -395,11 +432,15 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
           placeholder="e.g., TeamDocs, Projects, SharedData"
           autoFocus={!isEditMode}
           disabled={isEditMode}
-          style={isEditMode ? {
-            cursor: 'not-allowed',
-            opacity: 0.6,
-            backgroundColor: 'rgba(255, 255, 255, 0.02)'
-          } : {}}
+          style={
+            isEditMode
+              ? {
+                  cursor: "not-allowed",
+                  opacity: 0.6,
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                }
+              : {}
+          }
         />
       </div>
 
