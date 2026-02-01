@@ -355,14 +355,28 @@ export default function EmployeesModal({
             allSelected={formData.allWorkstations}
             onToggle={(item) => toggleSelection("workstations", item)}
             onRemove={(id) => removeSelection("workstations", id)}
+            totalItems={allWorkstations}
             onAllChange={(checked) => {
-              if (checked) {
+              const hasSelected = formData.selectedWorkstations.length > 0;
+              const allAreSelected =
+                formData.selectedWorkstations.length === allWorkstations.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allWorkstations: false,
+                  selectedWorkstations: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
                 setFormData((prev) => ({
                   ...prev,
                   allWorkstations: true,
                   selectedWorkstations: allWorkstations,
                 }));
               } else {
+                // All selected - deselect all
                 setFormData((prev) => ({
                   ...prev,
                   allWorkstations: false,
@@ -385,14 +399,28 @@ export default function EmployeesModal({
             allSelected={formData.allGroups}
             onToggle={(item) => toggleSelection("groups", item)}
             onRemove={(id) => removeSelection("groups", id)}
+            totalItems={allGroups}
             onAllChange={(checked) => {
-              if (checked) {
+              const hasSelected = formData.selectedGroups.length > 0;
+              const allAreSelected =
+                formData.selectedGroups.length === allGroups.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allGroups: false,
+                  selectedGroups: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
                 setFormData((prev) => ({
                   ...prev,
                   allGroups: true,
                   selectedGroups: allGroups,
                 }));
               } else {
+                // All selected - deselect all
                 setFormData((prev) => ({
                   ...prev,
                   allGroups: false,
@@ -415,14 +443,28 @@ export default function EmployeesModal({
             allSelected={formData.allFiles}
             onToggle={(item) => toggleSelection("files", item)}
             onRemove={(id) => removeSelection("files", id)}
+            totalItems={allFiles}
             onAllChange={(checked) => {
-              if (checked) {
+              const hasSelected = formData.selectedFiles.length > 0;
+              const allAreSelected =
+                formData.selectedFiles.length === allFiles.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allFiles: false,
+                  selectedFiles: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
                 setFormData((prev) => ({
                   ...prev,
                   allFiles: true,
                   selectedFiles: allFiles,
                 }));
               } else {
+                // All selected - deselect all
                 setFormData((prev) => ({
                   ...prev,
                   allFiles: false,
@@ -673,6 +715,7 @@ function SelectionStep({
   onToggle,
   onRemove,
   onAllChange,
+  totalItems,
 }) {
   const config = {
     workstations: {
@@ -715,6 +758,10 @@ function SelectionStep({
   }[type];
 
   const items = Array.isArray(filteredItems) ? filteredItems : [];
+  const hasSelected = selectedItems.length > 0;
+  const allAreSelected =
+    selectedItems.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
 
   return (
     <div className="employees-modal-step">
@@ -731,9 +778,15 @@ function SelectionStep({
             {config.label}
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Checkbox checked={allSelected} onChange={onAllChange} />
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllChange}
+            />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              Select All
+              {type === "workstations" && "All Workstations"}
+              {type === "groups" && "All Groups"}
+              {type === "files" && "All Shares"}
             </span>
           </div>
         </div>

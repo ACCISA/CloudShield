@@ -471,9 +471,15 @@ export default function FilesPage() {
 
   const iconVisibleIds = useMemo(() => iconItems.map((n) => n.id), [iconItems]);
 
-  const allVisibleSelected = useMemo(() => {
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
-    return ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const hasSelected = ids.some((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [layout, listVisibleIds, iconVisibleIds, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -485,7 +491,19 @@ export default function FilesPage() {
   const toggleSelectAllVisible = () => {
     trackButton("files/list/select-all", { page: "files", layout });
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
-    setSelectedIds((prev) => toggleSelectAllInView({ ids, selectedIds: prev }));
+    const hasSelected = ids.some((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+
+    if (hasSelected && !allAreSelected) {
+      // Indeterminate state - deselect all
+      setSelectedIds(new Set());
+    } else {
+      // Use existing toggleSelectAllInView for select all / deselect all
+      setSelectedIds((prev) =>
+        toggleSelectAllInView({ ids, selectedIds: prev }),
+      );
+    }
   };
 
   const toggleExpand = (id) => {
@@ -608,6 +626,7 @@ export default function FilesPage() {
       <div className="header">
         <Checkbox
           checked={allVisibleSelected}
+          indeterminate={isIndeterminate}
           onChange={toggleSelectAllVisible}
         />
         <div>Name</div>

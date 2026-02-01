@@ -203,16 +203,31 @@ export default function WorkstationModal({
             availableUsers={filteredUsers}
             selectedUsers={formData.selectedUsers}
             allUsers={formData.allUsers}
+            totalItems={MOCK_USERS}
             onToggleUser={(user) => toggleSelection("users", user)}
             onRemoveUser={(id) => removeSelection("users", id)}
             onAllUsersChange={(checked) => {
-              if (checked) {
+              const hasSelected = formData.selectedUsers.length > 0;
+              const allAreSelected =
+                formData.selectedUsers.length === MOCK_USERS.length &&
+                MOCK_USERS.length > 0;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allUsers: false,
+                  selectedUsers: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
                 setFormData((prev) => ({
                   ...prev,
                   allUsers: true,
                   selectedUsers: MOCK_USERS,
                 }));
               } else {
+                // All selected - deselect all
                 setFormData((prev) => ({
                   ...prev,
                   allUsers: false,
@@ -232,16 +247,31 @@ export default function WorkstationModal({
             availableGroups={filteredGroups}
             selectedGroups={formData.selectedGroups}
             allGroups={formData.allGroups}
+            totalItems={MOCK_GROUPS}
             onToggleGroup={(group) => toggleSelection("groups", group)}
             onRemoveGroup={(id) => removeSelection("groups", id)}
             onAllGroupsChange={(checked) => {
-              if (checked) {
+              const hasSelected = formData.selectedGroups.length > 0;
+              const allAreSelected =
+                formData.selectedGroups.length === MOCK_GROUPS.length &&
+                MOCK_GROUPS.length > 0;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allGroups: false,
+                  selectedGroups: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
                 setFormData((prev) => ({
                   ...prev,
                   allGroups: true,
                   selectedGroups: MOCK_GROUPS,
                 }));
               } else {
+                // All selected - deselect all
                 setFormData((prev) => ({
                   ...prev,
                   allGroups: false,
@@ -616,10 +646,16 @@ function GroupsStep({
   availableGroups,
   selectedGroups,
   allGroups,
+  totalItems,
   onToggleGroup,
   onRemoveGroup,
   onAllGroupsChange,
 }) {
+  const hasSelected = selectedGroups.length > 0;
+  const allAreSelected =
+    selectedGroups.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
+
   return (
     <div className="workstation-modal-step">
       <div className="workstation-modal-search-section">
@@ -638,7 +674,11 @@ function GroupsStep({
             Add Groups
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Checkbox checked={allGroups} onChange={onAllGroupsChange} />
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllGroupsChange}
+            />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
               All Groups
             </span>
@@ -725,10 +765,16 @@ function UsersStep({
   availableUsers,
   selectedUsers,
   allUsers,
+  totalItems,
   onToggleUser,
   onRemoveUser,
   onAllUsersChange,
 }) {
+  const hasSelected = selectedUsers.length > 0;
+  const allAreSelected =
+    selectedUsers.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
+
   return (
     <div className="workstation-modal-step">
       <div className="workstation-modal-search-section">
@@ -747,7 +793,11 @@ function UsersStep({
             Add Users
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Checkbox checked={allUsers} onChange={onAllUsersChange} />
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllUsersChange}
+            />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
               All Users
             </span>

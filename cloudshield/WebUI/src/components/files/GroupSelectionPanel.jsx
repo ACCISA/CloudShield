@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import "./GroupSelectionPanel.css";
 
 /**
@@ -13,12 +14,34 @@ export default function GroupSelectionPanel({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Calculate indeterminate state
+  const hasSelected = selectedGroups.length > 0;
+  const allAreSelected =
+    selectedGroups.length === availableGroups.length &&
+    availableGroups.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
+
+  // Handle Select All
+  const handleSelectAll = () => {
+    if (hasSelected && !allAreSelected) {
+      // Indeterminate state - deselect all
+      onSelectionChange([]);
+    } else if (!hasSelected) {
+      // Nothing selected - select all
+      onSelectionChange(availableGroups);
+    } else {
+      // All selected - deselect all
+      onSelectionChange([]);
+    }
+  };
+
   // Filter groups based on search
   const filteredGroups = useMemo(() => {
     if (!searchTerm.trim()) return availableGroups;
     const search = searchTerm.toLowerCase();
     return availableGroups.filter((group) => {
-      const groupName = typeof group === "string" ? group : group.name || group.groupName || "";
+      const groupName =
+        typeof group === "string" ? group : group.name || group.groupName || "";
       return groupName.toLowerCase().includes(search);
     });
   }, [availableGroups, searchTerm]);
@@ -52,7 +75,9 @@ export default function GroupSelectionPanel({
   const handleToggle = (group) => {
     const groupId = getGroupId(group);
     if (isSelected(group)) {
-      onSelectionChange(selectedGroups.filter((g) => getGroupId(g) !== groupId));
+      onSelectionChange(
+        selectedGroups.filter((g) => getGroupId(g) !== groupId),
+      );
     } else {
       onSelectionChange([...selectedGroups, group]);
     }
@@ -73,7 +98,28 @@ export default function GroupSelectionPanel({
     <div className="group-selection-container">
       {/* Search Section */}
       <div className="group-selection-search-section">
-        <label className="group-selection-label">Search Groups</label>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <label className="group-selection-label" style={{ marginBottom: 0 }}>
+            Search Groups
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={handleSelectAll}
+            />
+            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+              All Groups
+            </span>
+          </div>
+        </div>
         <input
           type="text"
           className="group-selection-search"
@@ -110,14 +156,20 @@ export default function GroupSelectionPanel({
                       }
                     }}
                   >
-                    <DisplayIcon type="group" data={normalized} size="small" showHoverCard={true} />
+                    <DisplayIcon
+                      type="group"
+                      data={normalized}
+                      size="small"
+                      showHoverCard={true}
+                    />
                     <div className="group-selection-dropdown-item-info">
                       <div className="group-selection-dropdown-item-name">
                         {getDisplayName(group)}
                       </div>
                       {normalized.member_count !== undefined && (
                         <div className="group-selection-dropdown-item-detail">
-                          {normalized.member_count} {normalized.member_count === 1 ? 'member' : 'members'}
+                          {normalized.member_count}{" "}
+                          {normalized.member_count === 1 ? "member" : "members"}
                         </div>
                       )}
                     </div>
@@ -154,7 +206,12 @@ export default function GroupSelectionPanel({
                   >
                     ×
                   </button>
-                  <DisplayIcon type="group" data={normalized} size="medium" showHoverCard={true} />
+                  <DisplayIcon
+                    type="group"
+                    data={normalized}
+                    size="medium"
+                    showHoverCard={true}
+                  />
                   <span className="group-selection-selected-card-name">
                     {getDisplayName(group)}
                   </span>

@@ -118,7 +118,8 @@ export default function GroupsPage() {
     const shareIds = Array.isArray(g.file_shares) ? g.file_shares : [];
 
     return {
-      id: g.id,
+      id: g._id || g.id,
+      _id: g._id || g.id,
       name: g.group_name || "",
       groupName: g.group_name || "",
       description: g.description || "",
@@ -195,8 +196,14 @@ export default function GroupsPage() {
     return out;
   }, [groups, search, activeFilters, sortField, sortDir]);
 
-  const allVisibleSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
+    const hasSelected = filtered.some((g) => selectedIds.has(g._id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -209,14 +216,25 @@ export default function GroupsPage() {
   };
 
   const toggleSelectAllVisible = () => {
+    const hasSelected = filtered.some((g) => selectedIds.has(g._id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+
     setSelectedIds((prev) => {
-      if (allVisibleSelected) {
+      if (hasSelected && !allAreSelected) {
+        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((g) => next.delete(g._id));
         return next;
-      } else {
+      } else if (!hasSelected) {
+        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((g) => next.add(g._id));
+        return next;
+      } else {
+        // All selected - deselect all
+        const next = new Set(prev);
+        filtered.forEach((g) => next.delete(g._id));
         return next;
       }
     });
@@ -448,6 +466,7 @@ export default function GroupsPage() {
         showFiles={showFiles}
         selectedIds={selectedIds}
         allVisibleSelected={allVisibleSelected}
+        isIndeterminate={isIndeterminate}
         onToggleSelect={toggleSelect}
         onToggleSelectAll={toggleSelectAllVisible}
         onEdit={handleOpenEditModal}

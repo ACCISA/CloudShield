@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import "./UserSelectionPanel.css";
 
 /**
@@ -12,6 +13,26 @@ export default function UserSelectionPanel({
   onSelectionChange,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Calculate indeterminate state
+  const hasSelected = selectedUsers.length > 0;
+  const allAreSelected =
+    selectedUsers.length === availableUsers.length && availableUsers.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
+
+  // Handle Select All
+  const handleSelectAll = () => {
+    if (hasSelected && !allAreSelected) {
+      // Indeterminate state - deselect all
+      onSelectionChange([]);
+    } else if (!hasSelected) {
+      // Nothing selected - select all
+      onSelectionChange(availableUsers);
+    } else {
+      // All selected - deselect all
+      onSelectionChange([]);
+    }
+  };
 
   // Filter users based on search
   const filteredUsers = useMemo(() => {
@@ -78,7 +99,28 @@ export default function UserSelectionPanel({
     <div className="user-selection-container">
       {/* Search Section */}
       <div className="user-selection-search-section">
-        <label className="user-selection-label">Search Users</label>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <label className="user-selection-label" style={{ marginBottom: 0 }}>
+            Search Users
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={handleSelectAll}
+            />
+            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+              All Users
+            </span>
+          </div>
+        </div>
         <input
           type="text"
           className="user-selection-search"

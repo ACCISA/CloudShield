@@ -322,8 +322,14 @@ export default function EmployeesPage() {
     return out;
   }, [users, search, activeFilters, sortField, sortDir]);
 
-  const allVisibleSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
+    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -336,14 +342,25 @@ export default function EmployeesPage() {
   };
 
   const toggleSelectAllVisible = () => {
+    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+
     setSelectedIds((prev) => {
-      if (allVisibleSelected) {
+      if (hasSelected && !allAreSelected) {
+        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((u) => next.delete(u.id));
         return next;
-      } else {
+      } else if (!hasSelected) {
+        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((u) => next.add(u.id));
+        return next;
+      } else {
+        // All selected - deselect all
+        const next = new Set(prev);
+        filtered.forEach((u) => next.delete(u.id));
         return next;
       }
     });
@@ -469,6 +486,7 @@ export default function EmployeesPage() {
           showFiles={showFiles}
           selectedIds={selectedIds}
           allVisibleSelected={allVisibleSelected}
+          isIndeterminate={isIndeterminate}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAllVisible}
           onSort={toggleSort}

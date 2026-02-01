@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import "./GroupsModal.css";
@@ -51,6 +52,9 @@ export default function GroupsModal({
     selectedUsers: [],
     selectedWorkstations: [],
     selectedFiles: [],
+    allUsers: false,
+    allWorkstations: false,
+    allFiles: false,
   });
 
   // Search State
@@ -351,8 +355,38 @@ export default function GroupsModal({
             }
             filteredItems={filteredUsers}
             selectedItems={formData.selectedUsers}
+            allSelected={formData.allUsers}
             onToggle={(item) => toggleSelection("users", item)}
             onRemove={(id) => removeSelection("users", id)}
+            totalItems={allUsers}
+            onAllChange={(checked) => {
+              const hasSelected = formData.selectedUsers.length > 0;
+              const allAreSelected =
+                formData.selectedUsers.length === allUsers.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allUsers: false,
+                  selectedUsers: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
+                setFormData((prev) => ({
+                  ...prev,
+                  allUsers: true,
+                  selectedUsers: allUsers,
+                }));
+              } else {
+                // All selected - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allUsers: false,
+                  selectedUsers: [],
+                }));
+              }
+            }}
           />
         );
       case 2:
@@ -365,8 +399,38 @@ export default function GroupsModal({
             }
             filteredItems={filteredWorkstations}
             selectedItems={formData.selectedWorkstations}
+            allSelected={formData.allWorkstations}
             onToggle={(item) => toggleSelection("workstations", item)}
             onRemove={(id) => removeSelection("workstations", id)}
+            totalItems={allWorkstations}
+            onAllChange={(checked) => {
+              const hasSelected = formData.selectedWorkstations.length > 0;
+              const allAreSelected =
+                formData.selectedWorkstations.length === allWorkstations.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allWorkstations: false,
+                  selectedWorkstations: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
+                setFormData((prev) => ({
+                  ...prev,
+                  allWorkstations: true,
+                  selectedWorkstations: allWorkstations,
+                }));
+              } else {
+                // All selected - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allWorkstations: false,
+                  selectedWorkstations: [],
+                }));
+              }
+            }}
           />
         );
       case 3:
@@ -379,8 +443,38 @@ export default function GroupsModal({
             }
             filteredItems={filteredFiles}
             selectedItems={formData.selectedFiles}
+            allSelected={formData.allFiles}
             onToggle={(item) => toggleSelection("files", item)}
             onRemove={(id) => removeSelection("files", id)}
+            totalItems={allFiles}
+            onAllChange={(checked) => {
+              const hasSelected = formData.selectedFiles.length > 0;
+              const allAreSelected =
+                formData.selectedFiles.length === allFiles.length;
+
+              if (hasSelected && !allAreSelected) {
+                // Indeterminate state - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allFiles: false,
+                  selectedFiles: [],
+                }));
+              } else if (!hasSelected) {
+                // Nothing selected - select all
+                setFormData((prev) => ({
+                  ...prev,
+                  allFiles: true,
+                  selectedFiles: allFiles,
+                }));
+              } else {
+                // All selected - deselect all
+                setFormData((prev) => ({
+                  ...prev,
+                  allFiles: false,
+                  selectedFiles: [],
+                }));
+              }
+            }}
           />
         );
       default:
@@ -567,8 +661,11 @@ function SelectionStep({
   setSearchTerm,
   filteredItems,
   selectedItems,
+  allSelected,
   onToggle,
   onRemove,
+  onAllChange,
+  totalItems,
 }) {
   const config = {
     users: {
@@ -611,11 +708,38 @@ function SelectionStep({
   }[type];
 
   const items = Array.isArray(filteredItems) ? filteredItems : [];
+  const hasSelected = selectedItems.length > 0;
+  const allAreSelected =
+    selectedItems.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
 
   return (
     <div className="groups-modal-step">
       <div className="groups-modal-search-section">
-        <label className="groups-modal-label">{config.label}</label>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <label className="groups-modal-label" style={{ marginBottom: 0 }}>
+            {config.label}
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllChange}
+            />
+            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+              {type === "users" && "All Users"}
+              {type === "workstations" && "All Workstations"}
+              {type === "files" && "All Shares"}
+            </span>
+          </div>
+        </div>
         <input
           type="text"
           className="groups-modal-search"
