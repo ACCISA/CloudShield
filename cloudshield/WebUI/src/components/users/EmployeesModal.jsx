@@ -7,29 +7,21 @@ import "./EmployeesModal.css";
 
 // Use the same APIs as EmployeesPage
 import { useAuth } from "../../context/AuthContext.jsx";
+import {
+  resolveOrgId,
+  fetchGroups,
+  fetchFileShares,
+  fetchWorkstations,
+  createImageUploadHandler,
+  createToggleSelectionHandler,
+  createRemoveSelectionHandler,
+  createFilteredItems,
+  createNavigationHandler,
+  createDeleteHandler,
+  createSelectAllHandler,
+} from "../../utils/modalHelpers.js";
 
 const STEPS = ["Basic Info", "Workstations", "Groups", "Shares"];
-
-// Mock data until APIs are ready
-const MOCK_WORKSTATIONS = [
-  {
-    id: "ws-1",
-    name: "Workstation Alpha",
-    online: true,
-    ipAddress: "10.0.1.5",
-  },
-  {
-    id: "ws-2",
-    name: "Workstation Beta",
-    online: false,
-    ipAddress: "10.0.1.6",
-  },
-];
-
-const MOCK_GROUPS = [
-  { id: "g-1", name: "Engineering", members: 12 },
-  { id: "g-2", name: "Marketing", members: 8 },
-];
 
 /**
  * EmployeesModal - Multi-step wizard for creating/editing employees
@@ -79,104 +71,22 @@ export default function EmployeesModal({
     console.warn(msg);
   };
 
-  const resolveOrgId = async () => {
-    const fromUser = currentUser?.org_id;
-    if (fromUser && fromUser !== "default-org") return fromUser;
-
-    const fromStorage = localStorage.getItem("org_id");
-    if (fromStorage) return fromStorage;
-
-    return null;
-  };
-
   // --- GROUPS ---
   const fetchGroupsAll = async () => {
-    try {
-      const orgId = await resolveOrgId();
-      if (!orgId) {
-        setAllGroups([]);
-        return;
-      }
-
-      const res = await fetch(
-        `http://127.0.0.1:5050/api/groups?org_id=${encodeURIComponent(orgId)}`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-
-      if (!res.ok) {
-        setAllGroups([]);
-        return;
-      }
-
-      const data = await res.json();
-      const groups = Array.isArray(data.groups) ? data.groups : [];
-
-      const normalized = groups
-        .map((g) => ({
-          id: String(g._id || g.id || ""),
-          name: g.name || "Untitled Group",
-          members: g.users?.length || 0,
-        }))
-        .filter((g) => g.id);
-
-      setAllGroups(normalized);
-    } catch (e) {
-      setAllGroups([]);
-    }
+    const orgId = await resolveOrgId(currentUser);
+    await fetchGroups(orgId, accessToken, setAllGroups, openToast);
   };
 
   // --- FILE SHARES ---
   const fetchFileSharesAll = async () => {
-    try {
-      const orgId = await resolveOrgId();
-      if (!orgId) {
-        setAllFiles([]);
-        return;
-      }
-
-      const res = await fetch(
-        `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-
-      if (!res.ok) {
-        setAllFiles([]);
-        return;
-      }
-
-      const data = await res.json();
-      const shares = Array.isArray(data.shares) ? data.shares : [];
-
-      const normalized = shares
-        .map((x) => x?.share)
-        .filter(Boolean)
-        .map((s) => ({
-          id: String(s.id || ""),
-          name: s.name || "Untitled Share",
-          type: "document",
-          size: s.drive ? `Drive ${s.drive}` : "",
-          drive: s.drive,
-          description: s.description || "",
-        }))
-        .filter((s) => s.id);
-
-      setAllFiles(normalized);
-    } catch (e) {
-      setAllFiles([]);
-    }
+    const orgId = await resolveOrgId(currentUser);
+    await fetchFileShares(orgId, setAllFiles, openToast);
   };
 
-  // --- WORKSTATIONS (mock for now) ---
+  // --- WORKSTATIONS ---
   const fetchWorkstationsAll = async () => {
-    setAllWorkstations(MOCK_WORKSTATIONS);
+    const orgId = await resolveOrgId(currentUser);
+    await fetchWorkstations(orgId, accessToken, setAllWorkstations, openToast);
   };
 
   // Initialize form data + fetch all options when modal opens
@@ -225,40 +135,32 @@ export default function EmployeesModal({
   }, [open, employeeData, isEditMode, accessToken]);
 
   // Filter lists
-  const filteredWorkstations = useMemo(() => {
-    const q = searchTerms.workstations.trim().toLowerCase();
-    if (!q) return allWorkstations;
-    return allWorkstations.filter((ws) =>
-      [ws.name, ws.ipAddress]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allWorkstations, searchTerms.workstations]);
+  const filteredWorkstations = useMemo(
+    () =>
+      createFilteredItems(allWorkstations, searchTerms.workstations, [
+        "name",
+        "ipAddress",
+      ]),
+    [allWorkstations, searchTerms.workstations],
+  );
 
-  const filteredGroups = useMemo(() => {
-    const q = searchTerms.groups.trim().toLowerCase();
-    if (!q) return allGroups;
-    return allGroups.filter((g) =>
-      [g.name].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allGroups, searchTerms.groups]);
+  const filteredGroups = useMemo(
+    () => createFilteredItems(allGroups, searchTerms.groups, ["name"]),
+    [allGroups, searchTerms.groups],
+  );
 
-  const filteredFiles = useMemo(() => {
-    const q = searchTerms.files.trim().toLowerCase();
-    if (!q) return allFiles;
-    return allFiles.filter((f) =>
-      [f.name, f.description, f.drive]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allFiles, searchTerms.files]);
+  const filteredFiles = useMemo(
+    () =>
+      createFilteredItems(allFiles, searchTerms.files, [
+        "name",
+        "description",
+        "drive",
+      ]),
+    [allFiles, searchTerms.files],
+  );
 
   // Handlers
-  const handleNavigate = (direction) => {
-    setCurrentStep((prev) =>
-      Math.max(0, Math.min(STEPS.length - 1, prev + direction)),
-    );
-  };
+  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
@@ -283,48 +185,20 @@ export default function EmployeesModal({
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+  const handleDelete = createDeleteHandler({
+    onDelete: async () => {
       await onDelete?.();
-      onClose();
-    }
-  };
+    },
+    setIsSubmitting,
+    onClose,
+  });
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, profileImage: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const toggleSelection = (type, item) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      const selected = prev[key];
-      const isSelected = selected.some((i) => i.id === item.id);
-
-      return {
-        ...prev,
-        [key]: isSelected
-          ? selected.filter((i) => i.id !== item.id)
-          : [...selected, item],
-      };
-    });
-  };
-
-  const removeSelection = (type, id) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      return {
-        ...prev,
-        [key]: prev[key].filter((i) => i.id !== id),
-      };
-    });
-  };
+  const handleImageUpload = createImageUploadHandler(
+    setFormData,
+    "profileImage",
+  );
+  const toggleSelection = createToggleSelectionHandler(setFormData);
+  const removeSelection = createRemoveSelectionHandler(setFormData);
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
@@ -356,34 +230,12 @@ export default function EmployeesModal({
             onToggle={(item) => toggleSelection("workstations", item)}
             onRemove={(id) => removeSelection("workstations", id)}
             totalItems={allWorkstations}
-            onAllChange={(checked) => {
-              const hasSelected = formData.selectedWorkstations.length > 0;
-              const allAreSelected =
-                formData.selectedWorkstations.length === allWorkstations.length;
-
-              if (hasSelected && !allAreSelected) {
-                // Indeterminate state - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allWorkstations: false,
-                  selectedWorkstations: [],
-                }));
-              } else if (!hasSelected) {
-                // Nothing selected - select all
-                setFormData((prev) => ({
-                  ...prev,
-                  allWorkstations: true,
-                  selectedWorkstations: allWorkstations,
-                }));
-              } else {
-                // All selected - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allWorkstations: false,
-                  selectedWorkstations: [],
-                }));
-              }
-            }}
+            onAllChange={createSelectAllHandler(
+              setFormData,
+              "workstations",
+              allWorkstations,
+              formData.selectedWorkstations,
+            )}
           />
         );
       case 2:
@@ -400,34 +252,12 @@ export default function EmployeesModal({
             onToggle={(item) => toggleSelection("groups", item)}
             onRemove={(id) => removeSelection("groups", id)}
             totalItems={allGroups}
-            onAllChange={(checked) => {
-              const hasSelected = formData.selectedGroups.length > 0;
-              const allAreSelected =
-                formData.selectedGroups.length === allGroups.length;
-
-              if (hasSelected && !allAreSelected) {
-                // Indeterminate state - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: false,
-                  selectedGroups: [],
-                }));
-              } else if (!hasSelected) {
-                // Nothing selected - select all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: true,
-                  selectedGroups: allGroups,
-                }));
-              } else {
-                // All selected - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: false,
-                  selectedGroups: [],
-                }));
-              }
-            }}
+            onAllChange={createSelectAllHandler(
+              setFormData,
+              "groups",
+              allGroups,
+              formData.selectedGroups,
+            )}
           />
         );
       case 3:
@@ -444,34 +274,12 @@ export default function EmployeesModal({
             onToggle={(item) => toggleSelection("files", item)}
             onRemove={(id) => removeSelection("files", id)}
             totalItems={allFiles}
-            onAllChange={(checked) => {
-              const hasSelected = formData.selectedFiles.length > 0;
-              const allAreSelected =
-                formData.selectedFiles.length === allFiles.length;
-
-              if (hasSelected && !allAreSelected) {
-                // Indeterminate state - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allFiles: false,
-                  selectedFiles: [],
-                }));
-              } else if (!hasSelected) {
-                // Nothing selected - select all
-                setFormData((prev) => ({
-                  ...prev,
-                  allFiles: true,
-                  selectedFiles: allFiles,
-                }));
-              } else {
-                // All selected - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allFiles: false,
-                  selectedFiles: [],
-                }));
-              }
-            }}
+            onAllChange={createSelectAllHandler(
+              setFormData,
+              "files",
+              allFiles,
+              formData.selectedFiles,
+            )}
           />
         );
       default:
@@ -545,7 +353,15 @@ export default function EmployeesModal({
             {isEditMode && currentStep === 0 && (
               <button
                 className="employees-modal-btn employees-modal-btn-delete"
-                onClick={handleDelete}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this user? This action cannot be undone.",
+                    )
+                  ) {
+                    handleDelete();
+                  }
+                }}
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >
                 <TrashIcon width={14} height={14} color="#DC2626" /> Delete
@@ -817,6 +633,14 @@ function SelectionStep({
                   key={item.id}
                   className={`employees-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggle(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggle(item);
+                    }
+                  }}
                 >
                   {rendered.icon}
                   <div className="employees-modal-dropdown-item-info">

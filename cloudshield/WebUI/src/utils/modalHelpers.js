@@ -1,0 +1,466 @@
+/**
+ * Shared utilities for modals (Groups, Employees, Workstations, etc.)
+ */
+
+import { listUsers } from "../services/usersApi.js";
+
+/**
+ * Resolves the organization ID from currentUser or localStorage
+ * @param {Object} currentUser - The current user object from AuthContext
+ * @returns {Promise<string|null>} The org_id or null if unavailable
+ */
+export const resolveOrgId = async (currentUser) => {
+  const fromUser = currentUser?.org_id;
+  if (fromUser && fromUser !== "default-org") {
+    return fromUser;
+  }
+
+  try {
+    const fromStorage = localStorage.getItem("org_id");
+    if (fromStorage) return fromStorage;
+  } catch (e) {
+    console.error("Error reading org_id from localStorage:", e);
+  }
+
+  return null;
+};
+
+/**
+ * Fetches file shares for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {Function} setAllFiles - State setter function for file shares
+ * @param {Function} openToast - Optional toast notification function
+ * @returns {Promise<Array>} Array of normalized file shares
+ */
+export const fetchFileShares = async (
+  orgId,
+  setAllFiles = null,
+  openToast = null,
+) => {
+  try {
+    if (!orgId) {
+      if (setAllFiles) setAllFiles([]);
+      if (openToast) openToast("Missing org_id for file_shares fetch");
+      return [];
+    }
+
+    const res = await fetch(
+      `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    if (!res.ok) {
+      if (setAllFiles) setAllFiles([]);
+      return [];
+    }
+
+    const data = await res.json();
+    const shares = Array.isArray(data.shares) ? data.shares : [];
+
+    const normalized = shares
+      .map((x) => x?.share)
+      .filter(Boolean)
+      .map((s) => ({
+        id: String(s.id || ""),
+        name: s.name || "Untitled Share",
+        type: "document",
+        size: s.drive ? `Drive ${s.drive}` : "",
+        drive: s.drive,
+        description: s.description || "",
+        owner: s.owner,
+        groups: s.groups || [],
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+      }))
+      .filter((s) => s.id);
+
+    if (setAllFiles) setAllFiles(normalized);
+    return normalized;
+  } catch (e) {
+    console.error("Error fetching file shares:", e);
+    if (setAllFiles) setAllFiles([]);
+    return [];
+  }
+};
+
+/**
+ * Fetches groups for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {string} accessToken - The auth token
+ * @param {Function} setAllGroups - State setter function for groups
+ * @param {Function} openToast - Optional toast notification function
+ * @returns {Promise<Array>} Array of normalized groups
+ */
+export const fetchGroups = async (
+  orgId,
+  accessToken,
+  setAllGroups = null,
+  openToast = null,
+) => {
+  try {
+    if (!orgId) {
+      if (setAllGroups) setAllGroups([]);
+      if (openToast) openToast("Missing org_id for groups fetch");
+      return [];
+    }
+
+    if (!accessToken) {
+      if (setAllGroups) setAllGroups([]);
+      return [];
+    }
+
+    const res = await fetch(
+      `http://127.0.0.1:5050/api/groups?org_id=${encodeURIComponent(orgId)}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!res.ok) {
+      if (setAllGroups) setAllGroups([]);
+      return [];
+    }
+
+    const data = await res.json();
+    const groups = Array.isArray(data) ? data : data.groups || [];
+
+    const normalized = groups.map((g) => ({
+      id: String(g.id || g._id || ""),
+      _id: String(g._id || g.id || ""),
+      name: g.name || "Untitled Group",
+      members: g.members || 0,
+      users: g.users || [],
+      files: g.files || [],
+      org_id: g.org_id,
+    }));
+
+    if (setAllGroups) setAllGroups(normalized);
+    return normalized;
+  } catch (e) {
+    console.error("Error fetching groups:", e);
+    if (setAllGroups) setAllGroups([]);
+    return [];
+  }
+};
+
+/**
+ * Safely splits a full name into first and last name parts
+ * @param {string} fullName - The full name to split
+ * @returns {Object} Object with firstName and lastName properties
+ */
+export const safeSplitName = (fullName) => {
+  const raw = (fullName || "").trim();
+  if (!raw) return { firstName: "Unknown", lastName: "" };
+  const parts = raw.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+};
+
+/**
+ * Fetches users/employees for a given org
+ * @param {string} accessToken - The auth token
+ * @param {Function} setAllUsers - State setter function for users
+ * @param {Function} openToast - Optional toast notification function
+ * @returns {Promise<Array>} Array of normalized users
+ */
+export const fetchUsers = async (
+  accessToken,
+  setAllUsers = null,
+  openToast = null,
+) => {
+  try {
+    if (!accessToken) {
+      if (setAllUsers) setAllUsers([]);
+      return [];
+    }
+
+    const data = await listUsers({
+      token: accessToken,
+      search: "",
+      limit: 200,
+      offset: 0,
+    });
+
+    const normalized = (Array.isArray(data) ? data : []).map((u) => {
+      const id = String(u._id || u.id || "");
+      const { firstName, lastName } = safeSplitName(
+        u.full_name || u.name || "",
+      );
+      return {
+        id,
+        _id: id,
+        email: u.email,
+        firstName,
+        lastName,
+        title: u.role || u.title || "",
+        role: u.role,
+      };
+    });
+
+    const filtered = normalized.filter((u) => u.id);
+    if (setAllUsers) setAllUsers(filtered);
+    return filtered;
+  } catch (e) {
+    console.error("Error fetching users:", e);
+    if (setAllUsers) setAllUsers([]);
+    if (openToast) openToast(e?.message || "Failed to load users");
+    return [];
+  }
+};
+
+/**
+ * Fetches workstations for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {string} accessToken - The auth token
+ * @param {Function} setAllWorkstations - State setter function for workstations
+ * @param {Function} openToast - Optional toast notification function
+ * @returns {Promise<Array>} Array of normalized workstations
+ */
+export const fetchWorkstations = async (
+  orgId,
+  accessToken,
+  setAllWorkstations = null,
+  openToast = null,
+) => {
+  try {
+    if (!orgId) {
+      if (setAllWorkstations) setAllWorkstations([]);
+      if (openToast) openToast("Missing org_id for workstations fetch");
+      return [];
+    }
+
+    if (!accessToken) {
+      if (setAllWorkstations) setAllWorkstations([]);
+      return [];
+    }
+
+    const res = await fetch(
+      `http://127.0.0.1:5050/api/workstations?org_id=${encodeURIComponent(orgId)}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!res.ok) {
+      if (setAllWorkstations) setAllWorkstations([]);
+      return [];
+    }
+
+    const data = await res.json();
+    const workstations = Array.isArray(data) ? data : data.workstations || [];
+
+    const normalized = workstations.map((w) => ({
+      id: String(w.id || w._id || ""),
+      _id: String(w._id || w.id || ""),
+      name: w.name || "Untitled Workstation",
+      online: w.online || w.status === "online" || false,
+      ipAddress: w.ip_address || w.ipAddress || "",
+      org_id: w.org_id,
+    }));
+
+    if (setAllWorkstations) setAllWorkstations(normalized);
+    return normalized;
+  } catch (e) {
+    console.error("Error fetching workstations:", e);
+    if (setAllWorkstations) setAllWorkstations([]);
+    return [];
+  }
+};
+
+// ============================================================================
+// Common Modal Form Handlers
+// ============================================================================
+
+/**
+ * Creates a handler for image upload that reads the file and updates form state
+ * @param {Function} setFormData - State setter for form data
+ * @param {string} fieldName - The field name to update (e.g., 'profileImage', 'groupImage')
+ * @returns {Function} Event handler for file input change
+ */
+export const createImageUploadHandler = (
+  setFormData,
+  fieldName = "profileImage",
+) => {
+  return (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+};
+
+/**
+ * Creates a handler for toggling item selection in modal forms
+ * @param {Function} setFormData - State setter for form data
+ * @returns {Function} Handler function (type, item) => void
+ */
+export const createToggleSelectionHandler = (setFormData) => {
+  return (type, item) => {
+    setFormData((prev) => {
+      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      const selected = prev[key];
+      const isSelected = selected.some((i) => i.id === item.id);
+
+      return {
+        ...prev,
+        [key]: isSelected
+          ? selected.filter((i) => i.id !== item.id)
+          : [...selected, item],
+      };
+    });
+  };
+};
+
+/**
+ * Creates a handler for removing item selection in modal forms
+ * @param {Function} setFormData - State setter for form data
+ * @returns {Function} Handler function (type, id) => void
+ */
+export const createRemoveSelectionHandler = (setFormData) => {
+  return (type, id) => {
+    setFormData((prev) => {
+      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      return {
+        ...prev,
+        [key]: prev[key].filter((i) => i.id !== id),
+      };
+    });
+  };
+};
+
+/**
+ * Creates a generic filter function for modal data lists
+ * Filters items based on search term matching against specified fields
+ * @param {Array} items - Array of items to filter
+ * @param {string} searchTerm - Search term to filter by
+ * @param {Array<string>} searchFields - Array of field names/paths to search in
+ * @returns {Array} Filtered items
+ */
+export const createFilteredItems = (items, searchTerm, searchFields) => {
+  const q = searchTerm.trim().toLowerCase();
+  if (!q) return items;
+
+  return items.filter((item) =>
+    searchFields
+      .map((field) => {
+        // Support nested fields like "user.name"
+        const value = field.split(".").reduce((obj, key) => obj?.[key], item);
+        return value;
+      })
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(q)),
+  );
+};
+
+/**
+ * Creates a step navigation handler for multi-step modals
+ * @param {Function} setCurrentStep - State setter for current step
+ * @param {number} totalSteps - Total number of steps in the wizard
+ * @returns {Function} Handler function (direction: number) => void
+ */
+export const createNavigationHandler = (setCurrentStep, totalSteps) => {
+  return (direction) => {
+    setCurrentStep((prev) =>
+      Math.max(0, Math.min(totalSteps - 1, prev + direction)),
+    );
+  };
+};
+
+/**
+ * Creates a delete handler for modal forms
+ * @param {Object} options - Configuration options
+ * @param {Function} options.onDelete - The delete callback function
+ * @param {Function} options.setIsSubmitting - State setter for submitting state
+ * @param {Function} options.onClose - Modal close callback
+ * @param {Function} options.onSuccess - Optional success callback
+ * @param {Function} options.onError - Optional error callback
+ * @returns {Function} Async delete handler
+ */
+export const createDeleteHandler = ({
+  onDelete,
+  setIsSubmitting,
+  onClose,
+  onSuccess,
+  onError,
+}) => {
+  return async () => {
+    if (!onDelete) return;
+
+    setIsSubmitting(true);
+    try {
+      await onDelete();
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (error) {
+      console.error("Delete failed:", error);
+      if (onError) onError(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+};
+
+/**
+ * Creates a handler for "select all" / "deselect all" toggle in modal selection steps
+ * Handles three states: none selected, some selected (indeterminate), all selected
+ * @param {Function} setFormData - State setter for form data
+ * @param {string} type - The type of items being selected (e.g., 'users', 'groups', 'files')
+ * @param {Array} allItems - Array of all available items
+ * @param {Array} selectedItems - Array of currently selected items
+ * @returns {Function} Handler function for select all checkbox
+ */
+export const createSelectAllHandler = (
+  setFormData,
+  type,
+  allItems,
+  selectedItems,
+) => {
+  return () => {
+    const selectedKey = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    const allKey = `all${type.charAt(0).toUpperCase() + type.slice(1)}`;
+
+    const hasSelected = selectedItems.length > 0;
+    const allAreSelected = selectedItems.length === allItems.length;
+
+    if (hasSelected && !allAreSelected) {
+      // Indeterminate state - deselect all
+      setFormData((prev) => ({
+        ...prev,
+        [allKey]: false,
+        [selectedKey]: [],
+      }));
+    } else if (!hasSelected) {
+      // Nothing selected - select all
+      setFormData((prev) => ({
+        ...prev,
+        [allKey]: true,
+        [selectedKey]: allItems,
+      }));
+    } else {
+      // All selected - deselect all
+      setFormData((prev) => ({
+        ...prev,
+        [allKey]: false,
+        [selectedKey]: [],
+      }));
+    }
+  };
+};

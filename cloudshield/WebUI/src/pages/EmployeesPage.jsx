@@ -260,10 +260,13 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!accessToken || !modalEmployee) return;
+  const handleDelete = async (user) => {
+    // Use provided user or fall back to modalEmployee for modal context
+    const userToDelete = user || modalEmployee;
 
-    if (modalEmployee.id === currentUser?.id) {
+    if (!accessToken || !userToDelete) return;
+
+    if (userToDelete.id === currentUser?.id) {
       openToast("You cannot delete your own account", "error");
       return;
     }
@@ -271,14 +274,18 @@ export default function EmployeesPage() {
     try {
       trackButton("employees/edit/delete", {
         page: "employees",
-        id: modalEmployee.id,
-        control: "edit_dialog",
+        id: userToDelete.id,
+        control: user ? "table_row" : "edit_dialog",
       });
-      await deleteUser(modalEmployee.id, { token: accessToken });
-      setUsers((prev) => prev.filter((u) => u.id !== modalEmployee.id));
+      await deleteUser(userToDelete.id, { token: accessToken });
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
-      setModalOpen(false);
-      setModalEmployee(null);
+
+      // Only close modal if we were deleting from modal context
+      if (!user && modalEmployee) {
+        setModalOpen(false);
+        setModalEmployee(null);
+      }
     } catch (error) {
       openToast(error.message || "Failed to delete user", "error");
     }
@@ -500,7 +507,7 @@ export default function EmployeesPage() {
             setModalEmployee(u);
             setModalOpen(true);
           }}
-          onDelete={(u) => handleDelete(u.id)}
+          onDelete={handleDelete}
         />
       </div>
 

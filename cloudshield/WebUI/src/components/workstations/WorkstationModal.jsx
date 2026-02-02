@@ -3,7 +3,16 @@ import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
-import { MOCK_USERS, MOCK_GROUPS, MOCK_SOFTWARE } from "../../data/mockData.js";
+import { MOCK_GROUPS, MOCK_SOFTWARE } from "../../data/mockData.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import {
+  fetchUsers,
+  createImageUploadHandler,
+  createToggleSelectionHandler,
+  createRemoveSelectionHandler,
+  createFilteredItems,
+  createNavigationHandler,
+} from "../../utils/modalHelpers.js";
 import {
   CpuIcon,
   RamIcon,
@@ -26,8 +35,12 @@ export default function WorkstationModal({
   onSubmit,
   onDelete,
 }) {
+  const { accessToken } = useAuth();
   const isEditMode = Boolean(workstationData);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Available options (fetched)
+  const [allUsers, setAllUsers] = useState([]);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -51,9 +64,16 @@ export default function WorkstationModal({
     software: "",
   });
 
-  // Initialize form data
+  // --- USERS ---
+  const fetchUsersAll = async () => {
+    await fetchUsers(accessToken, setAllUsers);
+  };
+
+  // Initialize form data and fetch users
   useEffect(() => {
     if (!open) return;
+
+    fetchUsersAll();
 
     if (isEditMode && workstationData) {
       setFormData({
@@ -90,40 +110,26 @@ export default function WorkstationModal({
   }, [open, workstationData, isEditMode]);
 
   // Filter lists
-  const filteredUsers = useMemo(
-    () =>
-      MOCK_USERS.filter((user) =>
-        `${user.firstName} ${user.lastName}`
-          .toLowerCase()
-          .includes(searchTerms.users.toLowerCase()),
-      ),
-    [searchTerms.users],
-  );
+  const filteredUsers = useMemo(() => {
+    const q = searchTerms.users.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter((user) =>
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(q),
+    );
+  }, [allUsers, searchTerms.users]);
 
   const filteredGroups = useMemo(
-    () =>
-      MOCK_GROUPS.filter((group) =>
-        group.name.toLowerCase().includes(searchTerms.groups.toLowerCase()),
-      ),
+    () => createFilteredItems(MOCK_GROUPS, searchTerms.groups, ["name"]),
     [searchTerms.groups],
   );
 
   const filteredSoftware = useMemo(
-    () =>
-      MOCK_SOFTWARE.filter((software) =>
-        software.name
-          .toLowerCase()
-          .includes(searchTerms.software.toLowerCase()),
-      ),
+    () => createFilteredItems(MOCK_SOFTWARE, searchTerms.software, ["name"]),
     [searchTerms.software],
   );
 
   // Handlers
-  const handleNavigate = (direction) => {
-    setCurrentStep((prev) =>
-      Math.max(0, Math.min(STEPS.length - 1, prev + direction)),
-    );
-  };
+  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
   const handleSubmit = () => {
     onSubmit?.({
@@ -143,40 +149,11 @@ export default function WorkstationModal({
   };
 
   const handleImageUpload = (e, field) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, [field]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    createImageUploadHandler(setFormData, field)(e);
   };
 
-  const toggleSelection = (type, item) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      const selected = prev[key];
-      const isSelected = selected.some((i) => i.id === item.id);
-
-      return {
-        ...prev,
-        [key]: isSelected
-          ? selected.filter((i) => i.id !== item.id)
-          : [...selected, item],
-      };
-    });
-  };
-
-  const removeSelection = (type, id) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      return {
-        ...prev,
-        [key]: prev[key].filter((i) => i.id !== id),
-      };
-    });
-  };
+  const toggleSelection = createToggleSelectionHandler(setFormData);
+  const removeSelection = createRemoveSelectionHandler(setFormData);
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
@@ -380,8 +357,14 @@ export default function WorkstationModal({
               <button
                 className="workstation-modal-btn workstation-modal-btn-delete"
                 onClick={() => {
-                  onDelete?.();
-                  onClose();
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this workstation? This action cannot be undone.",
+                    )
+                  ) {
+                    onDelete?.();
+                    onClose();
+                  }
                 }}
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >

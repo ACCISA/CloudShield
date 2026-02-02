@@ -5,6 +5,11 @@ import UserSelectionPanel from "./UserSelectionPanel.jsx";
 import GroupSelectionPanel from "./GroupSelectionPanel.jsx";
 import { fetchUsers, fetchGroups } from "../../api/filesApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import {
+  resolveOrgId,
+  createDeleteHandler,
+  createNavigationHandler,
+} from "../../utils/modalHelpers.js";
 import "./FileShareWizardModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups"];
@@ -42,8 +47,7 @@ export default function FileShareWizardModal({
   // Available options (fetched)
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableGroups, setAvailableGroups] = useState([]);
-
-  const resolveOrgId = () => localStorage.getItem("org_id") || "default-org";
+  const { currentUser } = useAuth();
 
   const normalizeUsers = (usersData) =>
     (Array.isArray(usersData) ? usersData : []).map((u) => {
@@ -115,7 +119,7 @@ export default function FileShareWizardModal({
 
     const loadData = async () => {
       try {
-        const orgId = resolveOrgId();
+        const orgId = await resolveOrgId(currentUser);
         const [usersData, groups] = await Promise.all([
           fetchUsers(orgId),
           fetchGroups(orgId),
@@ -160,11 +164,15 @@ export default function FileShareWizardModal({
     }
   }, [isOpen]);
 
-  const handleNavigate = (direction) => {
-    setCurrentStep((prev) =>
-      Math.max(0, Math.min(prev + direction, STEPS.length - 1)),
-    );
-  };
+  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
+
+  const handleDelete = createDeleteHandler({
+    onDelete: async () => {
+      await onDelete?.();
+    },
+    setIsSubmitting,
+    onClose,
+  });
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -193,13 +201,6 @@ export default function FileShareWizardModal({
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this share?")) {
-      await onDelete?.();
-      onClose();
     }
   };
 
@@ -329,7 +330,15 @@ export default function FileShareWizardModal({
             {isEditMode && currentStep === 0 && onDelete && (
               <button
                 className="file-wizard-btn file-wizard-btn-delete"
-                onClick={handleDelete}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this share? This action cannot be undone.",
+                    )
+                  ) {
+                    handleDelete();
+                  }
+                }}
               >
                 <TrashIcon width={14} height={14} color="#DC2626" /> Delete
               </button>

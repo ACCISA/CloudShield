@@ -234,6 +234,14 @@ export default function WorkstationsPage() {
   };
 
   const handleDelete = (id) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this workstation? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
     trackButton("workstations/edit/delete", {
       page: "workstations",
       id,

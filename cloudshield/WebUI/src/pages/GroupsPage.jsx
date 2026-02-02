@@ -377,6 +377,14 @@ export default function GroupsPage() {
   };
 
   const handleDeleteGroup = async (groupId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this group? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
     try {
       const res = await fetch(
         `http://127.0.0.1:5050/api/access-groups/${groupId}`,
