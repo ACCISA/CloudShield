@@ -5,13 +5,15 @@ import { trackButton } from "../lib/analytics";
 
 // UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
+
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import UserEditModal from "../components/users/UserEditModal.jsx";
+import UserCreateModal from "../components/users/UserCreateModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 
@@ -76,9 +78,45 @@ CustomToast.defaultProps = {
   type: "success",
 };
 
+const styles = {
+  toolbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    flexWrap: "wrap",
+    flexShrink: 0,
+  },
+  leftActions: {
+    display: "flex",
+    gap: "10px",
+    flex: "1 1 auto",
+    flexWrap: "wrap",
+    minWidth: "0",
+  },
+  rightActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+};
+
 export default function EmployeesPage() {
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
+
+  // Resolve org_id with a localStorage fallback; return null when unavailable.
+  const orgId = useMemo(() => {
+    if (currentUser?.org_id && currentUser.org_id !== "default-org") {
+      return currentUser.org_id;
+    }
+    try {
+      const stored = localStorage.getItem("org_id");
+      if (stored) return stored;
+    } catch (e) {
+      console.error("Error reading org_id from localStorage:", e);
+    }
+    return null;
+  }, [currentUser]);
 
   // UI State
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -88,6 +126,14 @@ export default function EmployeesPage() {
 
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
+
+  // Column visibility toggles
+  const [showTitle, setShowTitle] = useState(true);
+  const [showWorkstations, setShowWorkstations] = useState(true);
+  const [showGroups, setShowGroups] = useState(true);
+  const [showFiles, setShowFiles] = useState(true);
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Data State
   const [users, setUsers] = useState([]);
@@ -150,9 +196,16 @@ export default function EmployeesPage() {
       openToast("You must be logged in to create a user", "error");
       return;
     }
+    if (!orgId) {
+      openToast("Missing org_id for user creation", "error");
+      return;
+    }
 
     try {
-      trackButton("employees/create/submit", { page: "employees", control: "create_dialog" });
+      trackButton("employees/create/submit", {
+        page: "employees",
+        control: "create_dialog",
+      });
       const apiPayload = {
         email: payload.email,
         full_name: `${payload.firstName} ${payload.lastName}`,
@@ -160,7 +213,7 @@ export default function EmployeesPage() {
         role: payload.jobTitle?.toLowerCase().includes("admin")
           ? "admin"
           : "employee",
-        org_id: currentUser?.org_id,
+        org_id: orgId,
       };
 
       await createUser(apiPayload, { token: accessToken });
@@ -179,7 +232,11 @@ export default function EmployeesPage() {
     if (!accessToken) return;
 
     try {
-      trackButton("employees/edit/submit", { page: "employees", id, control: "edit_dialog" });
+      trackButton("employees/edit/submit", {
+        page: "employees",
+        id,
+        control: "edit_dialog",
+      });
       const apiPayload = {
         full_name: `${payload.firstName} ${payload.lastName}`,
         email: payload.email,
@@ -206,7 +263,11 @@ export default function EmployeesPage() {
     }
 
     try {
-      trackButton("employees/edit/delete", { page: "employees", id, control: "edit_dialog" });
+      trackButton("employees/edit/delete", {
+        page: "employees",
+        id,
+        control: "edit_dialog",
+      });
       await deleteUser(id, { token: accessToken });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       openToast("User deleted successfully");
@@ -217,7 +278,10 @@ export default function EmployeesPage() {
   };
 
   const handleLayoutChange = (value) => {
-    trackButton("employees/display/toggle", { page: "employees", layout: value });
+    trackButton("employees/display/toggle", {
+      page: "employees",
+      layout: value,
+    });
     setLayout(value);
   };
 
@@ -251,11 +315,43 @@ export default function EmployeesPage() {
     return out;
   }, [users, search, activeFilters, sortField, sortDir]);
 
+  const allVisibleSelected = useMemo(() => {
+    return filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+  }, [filtered, selectedIds]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        filtered.forEach((u) => next.delete(u.id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        filtered.forEach((u) => next.add(u.id));
+        return next;
+      }
+    });
+  };
+
   const toggleSort = (field) => {
-    const nextDir = sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    const nextDir =
+      sortField === field ? (sortDir === "asc" ? "desc" : "asc") : "asc";
     setSortField(field);
     setSortDir(nextDir);
-    trackButton("employees/table/sort", { page: "employees", field, direction: nextDir });
+    trackButton("employees/table/sort", {
+      page: "employees",
+      field,
+      direction: nextDir,
+    });
   };
 
   const filterGroups = [
@@ -282,31 +378,8 @@ export default function EmployeesPage() {
     applyFilter(groupId, value, isActive);
   };
 
-  const styles = {
-    container: {
-      display: "flex",
-      flexDirection: "column",
-    },
-    toolbar: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: "12px",
-      flexWrap: "wrap",
-    },
-    leftActions: {
-      display: "flex",
-      gap: "10px",
-      flex: "1 1 auto",
-      flexWrap: "wrap",
-    },
-    rightActions: {
-      display: "flex",
-      gap: "10px",
-    },
-  };
-
   return (
-    <div style={styles.container}>
+    <div className="page-layout">
       {/* Toolbar */}
       <div style={styles.toolbar}>
         <div style={styles.leftActions}>
@@ -317,16 +390,38 @@ export default function EmployeesPage() {
               if (e.key === "Enter") fetchUsers();
             }}
             placeholder="Search users"
-            width="420px"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
+              flex: "1 1 200px",
+              minWidth: "200px",
               maxWidth: "680px",
+              width: "100%",
             }}
           />
 
-          <DisplayButton layout={layout} onLayoutChange={handleLayoutChange} />
+          <DisplayButton
+            layout={layout}
+            onLayoutChange={handleLayoutChange}
+            columnToggles={{
+              columns: [
+                { key: "showTitle", label: "Title", checked: showTitle },
+                {
+                  key: "showWorkstations",
+                  label: "Workstations",
+                  checked: showWorkstations,
+                },
+                { key: "showGroups", label: "Groups", checked: showGroups },
+                { key: "showFiles", label: "Shares", checked: showFiles },
+              ],
+              onToggle: (column) => {
+                if (column === "showTitle") setShowTitle((prev) => !prev);
+                if (column === "showWorkstations")
+                  setShowWorkstations((prev) => !prev);
+                if (column === "showGroups") setShowGroups((prev) => !prev);
+                if (column === "showFiles") setShowFiles((prev) => !prev);
+              },
+            }}
+          />
 
           <FilterButton
             filterGroups={filterGroups}
@@ -337,36 +432,49 @@ export default function EmployeesPage() {
 
         <div style={styles.rightActions}>
           <RefreshButton
-            onClick={withClickLog({ name: "employees/toolbar/refresh", control: "refresh_button" })(fetchUsers)}
+            onClick={withClickLog({
+              name: "employees/toolbar/refresh",
+              control: "refresh_button",
+            })(fetchUsers)}
             isLoading={loading}
           />
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
             buttonText="Create"
-            onClick={withClickLog({ name: "employees/toolbar/open-create", control: "create_button" })(() =>
-              setCreateModalOpen(true)
-            )}
+            onClick={withClickLog({
+              name: "employees/toolbar/open-create",
+              control: "create_button",
+            })(() => setCreateModalOpen(true))}
           />
         </div>
       </div>
 
-      <UsersTable
-        users={filtered}
-        showTitle={true}
-        showWorkstations={true}
-        showGroups={true}
-        showFiles={true}
-        onSort={toggleSort}
-        sortField={sortField}
-        sortDir={sortDir}
-        onEdit={(u) => {
-          trackButton("employees/table/open-edit", { page: "employees", id: u.id });
-          setEditTarget(u);
-          setEditModalOpen(true);
-        }}
-        onDelete={(u) => handleDelete(u.id)}
-      />
+      <div className="page-list-wrapper">
+        <UsersTable
+          users={filtered}
+          showTitle={showTitle}
+          showWorkstations={showWorkstations}
+          showGroups={showGroups}
+          showFiles={showFiles}
+          selectedIds={selectedIds}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
+          onSort={toggleSort}
+          sortField={sortField}
+          sortDir={sortDir}
+          onEdit={(u) => {
+            trackButton("employees/table/open-edit", {
+              page: "employees",
+              id: u.id,
+            });
+            setEditTarget(u);
+            setEditModalOpen(true);
+          }}
+          onDelete={(u) => handleDelete(u.id)}
+        />
+      </div>
 
       {/* Modals */}
       {editTarget && (

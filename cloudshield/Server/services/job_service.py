@@ -9,28 +9,78 @@ import rq
 from redis_client import task_queue, redis_conn
 from utils import get_logger
 
-# NOTE these 2 attempts to import is necessary for the worker to work
-try:
-    from cloudshield.Server.tasks import (
-        provision_network,
-        destroy_environment,
-        provision_workstations,
-        dc_add_user,
-        dc_create_user_with_group,
-        dc_remove_user,
-        dc_restart_samba_service,
-        dc_user_list,
-        dc_set_password,
-        dc_create_file_share,
-        dc_delete_file_share
-    )
-except ImportError:  # pragma: no cover - fallback for legacy PYTHONPATH
-    from tasks import provision_network, destroy_environment, provision_workstations, dc_add_user, dc_create_user_with_group, dc_restart_samba_service, dc_user_list, dc_set_password
-    from tasks import dc_create_file_share, dc_delete_file_share, dc_remove_user
-
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
 logger = get_logger("service")
+
+
+# ---------------------------------------------------------------------------
+# Task wrappers
+# ---------------------------------------------------------------------------
+# Tests assert that enqueue helpers pass specific callables into RQ. We expose
+# these names at module scope, but keep imports lazy to avoid circular imports
+# during module import.
+
+
+def dc_add_user(org_id: str, username: str, password: str, email: str):
+    from cloudshield.Server.tasks import dc_add_user as _task  # type: ignore
+
+    return _task(org_id, username, password, email)
+
+
+def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str):
+    from cloudshield.Server.tasks import dc_create_user_with_group as _task  # type: ignore
+
+    return _task(org_id, username, password, group_name)
+
+
+def dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    from cloudshield.Server.tasks import dc_add_user_to_group as _task  # type: ignore
+
+    return _task(org_id, username, group_name)
+
+
+def dc_restart_samba_service(org_id: str):
+    from cloudshield.Server.tasks import dc_restart_samba_service as _task  # type: ignore
+
+    return _task(org_id)
+
+
+def dc_user_list(org_id: str):
+    from cloudshield.Server.tasks import dc_user_list as _task  # type: ignore
+
+    return _task(org_id)
+
+
+def dc_set_password(org_id: str, username: str, new_password: str):
+    from cloudshield.Server.tasks import dc_set_password as _task  # type: ignore
+
+    return _task(org_id, username, new_password)
+
+
+def dc_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list | None = None,
+    groups: list | None = None,
+    description: str | None = None,
+    max_size: int | None = None,
+):
+    from cloudshield.Server.tasks import dc_create_file_share as _task  # type: ignore
+
+    return _task(org_id, share_name, users or [], groups or [], description, max_size)
+
+
+def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
+    from cloudshield.Server.tasks import dc_delete_file_share as _task  # type: ignore
+
+    return _task(org_id, share_name, wipe_data)
+
+
+def dc_remove_user(org_id: str, username: str):
+    from cloudshield.Server.tasks import dc_remove_user as _task  # type: ignore
+
+    return _task(org_id, username)
 
 def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
     """
@@ -104,6 +154,7 @@ def enqueue_provision(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     )
 
     try:
+        from cloudshield.Server.tasks import provision_network  # type: ignore
         job = task_queue.enqueue(
             provision_network,
             org_id,
@@ -124,6 +175,7 @@ def enqueue_provision_workstations(org_id: str, region: str = "us-west-2", count
     logger.info("[SERVICE] Enqueueing provision_workstations job (org_id=%s, region=%s, count=%s)", org_id, region, count)
     
     try:
+        from cloudshield.Server.tasks import provision_workstations  # type: ignore
         job = task_queue.enqueue(
             provision_workstations,
             org_id,
@@ -153,6 +205,7 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
         - Queues a 'destroy_environment' task.
         - Timeout and error handling are standardized across tasks.
     """
+    from cloudshield.Server.tasks import destroy_environment  # type: ignore
     job = task_queue.enqueue(
         destroy_environment,
         org_id,
@@ -163,7 +216,7 @@ def enqueue_destroy(org_id: str, force: bool = False) -> Job:
     logger.info("Enqueued destroy job")
     return job
 
-def enqueue_dc_add_user(org_id: str, username: str, password: str):
+def enqueue_dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Enqueue an Active Directory (Domain Controller) "add user" task.
 
@@ -171,6 +224,7 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
         org_id (str): Organization ID that owns the domain.
         username (str): Username to be created in the domain.
         password (str): Initial password for the new DC user.
+        email (str): Email for the new DC user.
 
     Returns:
         Job: RQ Job instance representing the queued DC user creation job.
@@ -180,12 +234,24 @@ def enqueue_dc_add_user(org_id: str, username: str, password: str):
         - Allows async integration with on-premise or cloud-hosted AD controllers.
     """
     job = task_queue.enqueue(
-            dc_add_user,
-            org_id,
-            username,
-            password
+        dc_add_user,
+        org_id,
+        username,
+        password,
+        email,
     )
     logger.info("Enqueued dc_add_user job")
+    return job
+
+
+def enqueue_dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    job = task_queue.enqueue(
+            dc_add_user_to_group,
+            org_id,
+            username,
+            group_name,
+    )
+    logger.info("Enqueued dc_add_user_to_group job")
     return job
 
 def enqueue_dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str):
@@ -204,7 +270,7 @@ def enqueue_dc_create_user_with_group(org_id: str, username: str, password: str,
 
 def enqueue_dc_restart_samba_service(org_id: str):
     job = task_queue.enqueue(
-            dc_restart_samba_service,
+        dc_restart_samba_service,
             org_id
     )
     logger.info("Enqueued dc_restart_samba_service job")
@@ -212,7 +278,7 @@ def enqueue_dc_restart_samba_service(org_id: str):
 
 def enqueue_dc_user_list(org_id: str):
     job = task_queue.enqueue(
-            dc_user_list,
+        dc_user_list,
             org_id
     )
     logger.info("Enqueued dc_user_list job")
@@ -220,7 +286,7 @@ def enqueue_dc_user_list(org_id: str):
 
 def enqueue_dc_set_password(org_id: str, username: str, new_password: str):
     job = task_queue.enqueue(
-            dc_set_password,
+        dc_set_password,
             org_id,
             username,
             new_password
@@ -228,18 +294,29 @@ def enqueue_dc_set_password(org_id: str, username: str, new_password: str):
     logger.info("Enqueued dc_set_password job")
     return job
 
-def enqueue_create_file_share(org_id: str, share_name: str):
+def enqueue_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = task_queue.enqueue(
             dc_create_file_share,
             org_id,
-            share_name
+            share_name,
+            users or [],
+            groups or [],
+            description,
+            max_size
     )
     logger.info("Enqueued dc_create_file_share")
     return job
 
 def enqueue_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
     job = task_queue.enqueue(
-            dc_delete_file_share,
+        dc_delete_file_share,
             org_id,
             share_name,
             wipe_data
@@ -287,6 +364,7 @@ SERVICES = {
     "provision_workstations": enqueue_provision_workstations,
     "destroy": enqueue_destroy,
     "dc_add_user": enqueue_dc_add_user,
+    "dc_add_user_to_group": enqueue_dc_add_user_to_group,
     "dc_create_user_with_group": enqueue_dc_create_user_with_group,
     "dc_remove_user": enqueue_dc_remove_user,
     "dc_restart_samba_service": enqueue_dc_restart_samba_service,

@@ -7,7 +7,6 @@ import WorkstationsPage from "./pages/WorkstationsPage.jsx";
 import EmployeesPage from "./pages/EmployeesPage.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
-
 import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 
@@ -15,6 +14,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 
 function AppWithAuth() {
   const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (devBypass) {
@@ -35,11 +35,18 @@ function AppWithAuth() {
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
       localStorage.setItem("jwt", data.access_token);
-      setIsAuthed(true);
-    }
 
-    // If the backend returns org_id or user info, store it safely
-    if (data?.user?.org_id) {
+      setIsAuthed(true);
+      
+      // Decode JWT to extract org_id
+      try {
+        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+        if (payload.org_id) {
+          localStorage.setItem("org_id", payload.org_id);
+        }
+      } catch (err) {
+        console.error("Failed to decode JWT:", err);
+      }
     }
   };
 
@@ -47,12 +54,17 @@ function AppWithAuth() {
     return function ProtectedWrapper({ children }) {
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
       return (
-        <AppLayout showSidebar sidebarMode="full">
+        <AppLayout 
+          showSidebar 
+          sidebarMode="full"
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+        >
           {children}
         </AppLayout>
       );
     };
-  }, [devBypass, isAuthed]);
+  }, [devBypass, isAuthed, sidebarCollapsed]);
 
   return (
     <BrowserRouter>
@@ -66,6 +78,8 @@ function AppWithAuth() {
           element={
             isAuthed ? (
               <Navigate to="/dashboard" replace />
+            ) : isAuthed ? (
+              <Navigate to="/dashboard" replace />
             ) : (
               <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
@@ -77,6 +91,8 @@ function AppWithAuth() {
           path="/login"
           element={
             isAuthed ? (
+              <Navigate to="/dashboard" replace />
+            ) : isAuthed ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <AuthPage onLoginSuccess={handleAuthSuccess} />

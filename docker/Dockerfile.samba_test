@@ -41,8 +41,7 @@ RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
 
 RUN chmod +x /usr/local/bin/sudo
 
-# copy our rpc server binary and service
-# build binary before starting docker
+# build rpc server against container libs and install service
 COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
 COPY docker/cs_samba_rpc.service /etc/systemd/system/cs_rpc.service
 

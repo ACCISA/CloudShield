@@ -300,6 +300,43 @@ class TestDCAddUser:
         assert resp.status_code == 400
         assert "username is required" in resp.json["error"]
 
+
+
+class TestDCAddUserToGroup:
+    """Tests for /task/dc/add_user_to_group"""
+
+    def test_add_user_to_group_success(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "username": "u1", "group_name": "g1"},
+        )
+        assert resp.status_code == 202
+        assert "job_id" in resp.json
+
+    def test_add_user_to_group_missing_org(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"username": "u1", "group_name": "g1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "org_id is required"
+
+    def test_add_user_to_group_missing_username(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "group_name": "g1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "username is required"
+
+    def test_add_user_to_group_missing_group(self, client):
+        resp = client.post(
+            "/api/task/dc/add_user_to_group",
+            json={"org_id": "acme", "username": "u1"},
+        )
+        assert resp.status_code == 422
+        assert resp.json["error"] == "group_name is required"
+    
     def test_add_user_missing_password(self, client):
         resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
@@ -417,7 +454,7 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
         """Covers: success path, role forced to admin, org_id returned for provisioning"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         captured = {}
 
@@ -430,7 +467,7 @@ class TestSignupAdminEndpoint:
             user_data.org_id = "org-auto-1"
             return "new_user_id_123"
 
-        monkeypatch.setattr(api_mod, "create_user", _fake_create_user, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _fake_create_user, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -450,7 +487,7 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_validation_error_returns_400(self, client, monkeypatch):
         """Covers: ValidationError -> 400 with 'Validation failed' payload"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         called = {"count": 0}
 
@@ -458,7 +495,7 @@ class TestSignupAdminEndpoint:
             called["count"] += 1
             return "should_not_happen"
 
-        monkeypatch.setattr(api_mod, "create_user", _fake_create_user, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _fake_create_user, raising=True)
 
         # Missing required fields should fail pydantic validation
         resp = client.post("/api/signup_admin", json={})
@@ -470,12 +507,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_permission_error_returns_403(self, client, monkeypatch):
         """Covers: PermissionError -> 403"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_perm(*a, **k):
             raise PermissionError("nope")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_perm, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_perm, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -488,12 +525,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_value_error_returns_409(self, client, monkeypatch):
         """Covers: ValueError -> 409"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_val(*a, **k):
             raise ValueError("duplicate")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_val, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_val, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -506,12 +543,12 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_unexpected_error_returns_500_with_details(self, client, monkeypatch):
         """Covers: generic Exception -> 500 with details"""
-        import cloudshield.Server.routes.api as api_mod
+        import cloudshield.Server.routes.users as users_mod
 
         def _raise_generic(*a, **k):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(api_mod, "create_user", _raise_generic, raising=True)
+        monkeypatch.setattr(users_mod, "create_user", _raise_generic, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -600,7 +637,7 @@ class TestFileShareListEndpoints:
 
 
 class TestUpdateFileShareEndpoint:
-    """Tests for PATCH /file_shares/<share_name>"""
+    """Tests for PATCH /file_shares/<org_id>/<share_name>"""
 
     def test_update_file_share_success(self, client, monkeypatch):
         """Test successful update with groups"""
@@ -608,8 +645,7 @@ class TestUpdateFileShareEndpoint:
 
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
 
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "org_id": "org1",
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
             "groups": ["groupA", "groupB"]
         })
         assert resp.status_code == 200
@@ -623,8 +659,7 @@ class TestUpdateFileShareEndpoint:
 
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
 
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "org_id": "org1",
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
             "description": "New description"
         })
         assert resp.status_code == 200
@@ -635,9 +670,52 @@ class TestUpdateFileShareEndpoint:
 
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
 
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "org_id": "org1",
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
             "owner": "admin@example.com"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_kind(self, client, monkeypatch):
+        """Test update with kind field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "kind": "folder"
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_users(self, client, monkeypatch):
+        """Test update with users field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "users": ["alice", "bob"]
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_current_size(self, client, monkeypatch):
+        """Test update with current_size field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "current_size": 1024
+        })
+        assert resp.status_code == 200
+
+    def test_update_file_share_with_max_size(self, client, monkeypatch):
+        """Test update with max_size field"""
+        import cloudshield.Server.routes.api as api_mod
+
+        monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
+
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "max_size": 10737418240
         })
         assert resp.status_code == 200
 
@@ -647,27 +725,20 @@ class TestUpdateFileShareEndpoint:
 
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: True)
 
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "org_id": "org1",
+        resp = client.patch("/api/file_shares/org1/TestShare", json={
+            "kind": "file",
             "groups": ["groupA"],
+            "users": ["alice"],
             "description": "Updated description",
-            "owner": "owner@example.com"
+            "owner": "owner@example.com",
+            "current_size": 2048,
+            "max_size": 10737418240
         })
         assert resp.status_code == 200
 
-    def test_update_file_share_missing_org_id(self, client):
-        """Test missing org_id validation"""
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "groups": ["groupA"]
-        })
-        assert resp.status_code == 422
-        assert "org_id is required" in resp.get_json()["error"]
-
     def test_update_file_share_no_fields(self, client):
         """Test error when no update fields provided"""
-        resp = client.patch("/api/file_shares/TestShare", json={
-            "org_id": "org1"
-        })
+        resp = client.patch("/api/file_shares/org1/TestShare", json={})
         assert resp.status_code == 400
         assert "No fields to update" in resp.get_json()["error"]
 
@@ -677,8 +748,7 @@ class TestUpdateFileShareEndpoint:
 
         monkeypatch.setattr(api_mod, "update_share", lambda org_id, name, fields: False)
 
-        resp = client.patch("/api/file_shares/NonExistentShare", json={
-            "org_id": "org1",
+        resp = client.patch("/api/file_shares/org1/NonExistentShare", json={
             "groups": ["groupA"]
         })
         assert resp.status_code == 404

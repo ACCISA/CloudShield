@@ -28,7 +28,8 @@ PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"
 
 # Module-level logger for non-job logging
 _module_logger = get_logger("tasks")
-
+UNEXPECTED_RESPONSE="Unexpected response"
+USER_ALREADY_EXISTS="User already exists"
 def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
@@ -64,12 +65,20 @@ def sync_netlogon_script():
     After editing file shares we must sync the netlogon scripts so that users get the updates shares mapped to a network drive when they login
     """
     #TODO complete makign RPC request to sync netlogon script
-    request = infra_pb2.SyncNetlogonScript(realm=realm)
+    #request = infra_pb2.SyncNetlogonScript(realm=realm)
 
     #TODO call real func to pull all shares
-    shares = get_all_group_shares()
+    #shares = get_all_group_shares()
+    pass
 
-def dc_create_file_share(org_id: str, share_name: str):
+def dc_create_file_share(
+    org_id: str,
+    share_name: str,
+    users: list = None,
+    groups: list = None,
+    description: str = None,
+    max_size: int = None
+):
     job = get_current_job()
     job_id = job.id if job else "unknown"
     logger = get_logger("job", job_id=job_id)
@@ -102,7 +111,18 @@ def dc_create_file_share(org_id: str, share_name: str):
         #sync_netlogon_script(realm)
         logger.info("Successfully created new samba file share")
         try:
-            create_share(org_id=org_id, name=share_name)
+            # NOTE: Replace mock size defaults once real usage/quota logic is implemented.
+            effective_max_size = max_size if max_size is not None else 50
+            mock_current_size = 7
+            create_share(
+                org_id=org_id,
+                name=share_name,
+                users=users or [],
+                groups=groups or [],
+                description=description,
+                current_size=mock_current_size,
+                max_size=effective_max_size,
+            )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
             return {
@@ -325,10 +345,10 @@ def dc_add_group(org_id: str, group_name: str):
         return {"status": "FAILED", "message": "Failed to create group"}
 
     logger.error("Unexpected response when creating group")
-    return {"status": "UNKNOWN", "message": "Unexpected response"}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
 
 
-def dc_add_user(org_id: str, username: str, password: str):
+def dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
     """
@@ -378,7 +398,7 @@ def dc_add_user(org_id: str, username: str, password: str):
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
-        persist_domain_user(org_id, username, password, short_uuid()+"@gmail.com")
+        persist_domain_user(org_id, username, password, email)
         return {"status": "SUCCESS", "message":"Successfully added user"}
 
     if status == infra_pb2.FAILED:
@@ -387,12 +407,67 @@ def dc_add_user(org_id: str, username: str, password: str):
     
     if status == infra_pb2.DUPLICATE:
         logger.error("Duplicate user found")
-        return {"status": "DUPLICATE", "message":"User already exists"}
+        return {"status": "DUPLICATE", "message":USER_ALREADY_EXISTS}
     logger.error("Failed to add user for unexpected reason")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}
 
 
-def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):
+def dc_add_user_to_group(org_id: str, username: str, group_name: str):
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_add_user_to_group"
+        job.save_meta()
+
+    if not validate_username(username, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid username"
+            job.save_meta()
+        return {"message": f"the username is invalid (username={username})"}
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = "invalid group name"
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.AddUserToGroupData(username=username, group_name=group_name)
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.AddUserToGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.AddUserToGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully added user to group")
+        return {"status": "SUCCESS", "message": "Successfully added user to group"}
+
+    if status == infra_pb2.USER_NOT_FOUND:
+        logger.warning("User not found while adding to group")
+        return {"status": "USER_NOT_FOUND", "message": "User not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to add user to group")
+        return {"status": "FAILED", "message": "Failed to add user to group"}
+
+    logger.error("Unexpected response when adding user to group")
+    return {"status": "UNKNOWN", "message": "Unexpected response"}
+
+
+def dc_create_user_with_group(org_id: str, username: str, password: str, group_name: str | None = None):  # NOSONAR
     """
     Create a domain user, provision a group, nest it under Domain Users, and add the user to that group.
     """
@@ -464,15 +539,15 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
         return {"status": "SUCCESS", "message": "User and group created", "result": result_payload}
 
     if status == infra_pb2.DUPLICATE:
-        logger.warning("User already exists")
-        return {"status": "DUPLICATE", "message": "User already exists", "result": result_payload}
+        logger.warning(USER_ALREADY_EXISTS)
+        return {"status": "DUPLICATE", "message": USER_ALREADY_EXISTS, "result": result_payload}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to create user with group")
         return {"status": "FAILED", "message": "Failed to create user with group", "result": result_payload}
 
     logger.error("Unexpected response when creating user with group")
-    return {"status": "UNKNOWN", "message": "Unexpected response", "result": result_payload}
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE, "result": result_payload}
 
 
 
@@ -527,4 +602,4 @@ def dc_remove_user(org_id: str, username: str):
         return {"status": "USER_NOT_FOUND", "message":"User not found"}
     
     logger.error("unknown error when removing user")
-    return {"status":"UNKNOWN", "message":"Unexpected response"}
+    return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}

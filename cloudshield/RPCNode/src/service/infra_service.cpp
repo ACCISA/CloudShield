@@ -91,6 +91,40 @@ Status InfraService::AddDomainGroup(ServerContext* context, const is::AddDomainG
 	return Status(grpc::StatusCode::OK, "Group added and linked successfully");
 }
 
+Status InfraService::AddUserToGroup(ServerContext* context, const is::AddUserToGroupData* request, is::AddUserToGroupDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::string username = request->username();
+	std::string group_name = request->group_name();
+
+	auto samba = std::make_unique<SambaTask>();
+
+	if (!samba->IsDomainGroup(group_name)) {
+		response->set_status(is::Status::FAILED);
+		response->set_result("Group not found");
+		return Status(grpc::StatusCode::OK, "Group not found");
+	}
+
+	if (!samba->IsDomainUser(username)) {
+		response->set_status(is::Status::USER_NOT_FOUND);
+		response->set_result("User not found");
+		return Status(grpc::StatusCode::OK, "User not found");
+	}
+
+	std::string membership_result = samba->AddUserToGroup(group_name, username);
+
+	if (membership_result.find(this->GROUP_ADD_MEMBERS_SUCCESS) == std::string::npos) {
+		response->set_status(is::Status::FAILED);
+		response->set_result(membership_result);
+		return Status(grpc::StatusCode::OK, "Failed to add user to group");
+	}
+
+	response->set_status(is::Status::SUCCESS);
+	response->set_result(membership_result);
+	return Status(grpc::StatusCode::OK, "User added to group successfully");
+}
+
 Status InfraService::CreateDomainUserWithGroup(ServerContext* context, const is::CreateDomainUserWithGroupData* request, is::CreateDomainUserWithGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);

@@ -36,8 +36,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY docker/openvpn /etc/openvpn
 
 # copy our rpc server binary and service
-# NOTE build binary before running container
-COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/cs-rpcsrv
+COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
 COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
 
 # Copy entrypoint script

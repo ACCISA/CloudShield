@@ -1,7 +1,6 @@
 import unittest.mock
 import logging
 import types
-from types import SimpleNamespace
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
 from genproto.vpn_service import vpn_service_pb2
@@ -104,7 +103,7 @@ def test_dc_add_user_invalid_username(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
     
-    result = dc_add_user("test_org", "invalid user!", "Password123!")
+    result = dc_add_user("test_org", "invalid user!", "Password123!","invalid@mail.com")
     
     assert "invalid" in result["message"].lower()
     assert mock_job.meta["progress"] == "invalid username"
@@ -130,7 +129,7 @@ def test_dc_add_user_invalid_password(monkeypatch):
         lambda name, job_id=None: mock_logger
     )
     
-    result = dc_add_user("test_org", "validuser", "short")
+    result = dc_add_user("test_org", "validuser", "short","valid@mail.com")
     
     assert "invalid" in result["message"].lower()
     assert mock_job.meta["progress"] == "invalid password"
@@ -160,7 +159,7 @@ def test_dc_add_user_without_job(monkeypatch):
     )
     
     # Should not raise an error
-    dc_add_user("test_org", "validuser", "Password123!")
+    dc_add_user("test_org", "validuser", "Password123!","valid@mail.com")
 
 
 def test_dc_add_user_persists_on_success(monkeypatch):
@@ -186,7 +185,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.AddDomainUserDataAck(status=infra_pb2.SUCCESS, result="User added successfully").SerializeToString()
@@ -208,7 +207,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
 
     # Assert persist_domain_user was called with correct args
     mock_persist.assert_called_once()
@@ -217,7 +216,7 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     assert called_args[0][0] == "test_org"
     assert called_args[0][1]== "testuser"
     assert called_args[0][2] == "Password123!"
-    assert "@gmail.com" in called_args[0][3]
+    assert "@mail.com" in called_args[0][3]
 
 
 def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
@@ -248,10 +247,75 @@ def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
     )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!")
+    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
     
     # Assert persist_domain_user was not called
     mock_persist.assert_not_called()
+
+
+def test_dc_add_user_to_group_success(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    body = infra_pb2.AddUserToGroupDataAck(status=infra_pb2.SUCCESS).SerializeToString()
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body),
+    )
+
+    result = dc_add_user_to_group("org1", "jane", "admins")
+
+    assert result["status"] == "SUCCESS"
+    assert "job-123" == mock_job.id
+
+
+def test_dc_add_user_to_group_user_not_found(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    body = infra_pb2.AddUserToGroupDataAck(status=infra_pb2.USER_NOT_FOUND).SerializeToString()
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: vpn_service_pb2.RelayDataAck(status=vpn_service_pb2.SUCCESS, response=body),
+    )
+
+    result = dc_add_user_to_group("org1", "missing", "admins")
+
+    assert result["status"] == "USER_NOT_FOUND"
+
+
+def test_dc_add_user_to_group_invalid_inputs(monkeypatch):
+    from tasks.dc_management import dc_add_user_to_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.id = "job-123"
+    mock_job.meta = {}
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+
+    mock_logger = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: mock_logger)
+
+    result_user = dc_add_user_to_group("org1", "bad user", "admins")
+    assert "invalid" in result_user["message"]
+    assert mock_job.meta["progress"] == "invalid username"
+
+    result_group = dc_add_user_to_group("org1", "jane", "bad group")
+    assert "invalid" in result_group["message"]
+    assert mock_job.meta["progress"] == "invalid group name"
 
 
 def test_dc_create_file_share_success_no_job(monkeypatch):
@@ -274,7 +338,7 @@ def test_dc_create_file_share_success_no_job(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -327,7 +391,7 @@ def test_dc_create_file_share_unknown(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
@@ -381,7 +445,7 @@ def test_dc_create_file_share_success(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -691,7 +755,7 @@ def test_dc_create_file_share_failed(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.FAILED).SerializeToString()
@@ -743,7 +807,7 @@ def test_dc_delete_file_share_success(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -797,7 +861,7 @@ def test_dc_delete_file_share_failed(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=infra_pb2.FAILED).SerializeToString()
@@ -847,7 +911,7 @@ def test_dc_delete_file_share_unknown_no_job(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
@@ -900,7 +964,7 @@ def test_dc_delete_file_share_unknown(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.CreateSambaFileShareDataAck(status=100).SerializeToString()
@@ -953,7 +1017,7 @@ def test_dc_restart_samba_service_unknown(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.RestartSambaServiceDataAck(status=100).SerializeToString()
@@ -1004,7 +1068,7 @@ def test_dc_restart_samba_service_failed(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.FAILED).SerializeToString()
@@ -1070,7 +1134,7 @@ def test_dc_restart_samba_service_success(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -1133,7 +1197,7 @@ def test_dc_restart_samba_service_success_no_job(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.RestartSambaServiceDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -1182,7 +1246,7 @@ def test_dc_set_password(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.ResetUserPasswordDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -1305,7 +1369,7 @@ def test_dc_user_list(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.GetUserListDataAck(status=infra_pb2.SUCCESS).SerializeToString()
@@ -1378,7 +1442,7 @@ def test_dc_remove_user(monkeypatch):
         mock_logger
     )
     
-    SimpleNamespace(stdout="User created successfully", stderr="")
+    types.SimpleNamespace(stdout="User created successfully", stderr="")
 
     def mock_proxy_rpc_request(nodes, method_name, request):
         body = infra_pb2.GetUserListDataAck(status=infra_pb2.SUCCESS).SerializeToString()

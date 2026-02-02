@@ -46,20 +46,35 @@ def _get_access_groups_collection():
 @access_groups_bp.route("/access-groups", methods=["GET"])
 def list_access_groups():
     """
-    Fetch all access groups and include enriched member user info.
+    Fetch all access groups with optional member enrichment.
 
     GET /api/access-groups
+    
+    Query Parameters:
+        - summary (str, optional): If "1", returns lightweight data without user enrichment.
+          Faster queries, smaller payloads. Use for dropdowns and selection lists.
+    
+    Returns groups with members_info (full user objects) by default, or with member_count only if summary=1.
     """
     try:
+        summary = (request.args.get("summary") or "").strip() in {"1", "true", "yes"}
         coll = _get_access_groups_collection()
+
+        group_docs = list(coll.find({}).sort("created_at", -1))
+
+        if summary:
+            out = []
+            for gdoc in group_docs:
+                g_json = access_group_to_json(gdoc)
+                g_json["member_count"] = len(gdoc.get("members") or [])
+                out.append(g_json)
+            return jsonify({"access_groups": out}), 200
 
         # Lazily import users collection (admin view; excludes password via projection)
         try:
             from utils.database import users_admin as users_coll
         except Exception:  # pragma: no cover
             from cloudshield.Server.utils.database import users_admin as users_coll  # type: ignore[no-redef]
-
-        group_docs = list(coll.find({}).sort("created_at", -1))
 
         # Collect all member ObjectIds across all groups (dedup)
         member_oids = []

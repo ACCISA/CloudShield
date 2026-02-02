@@ -69,6 +69,7 @@ function NavItem({
           padding: collapsed ? "10px" : "10px 12px",
           display: "flex",
           alignItems: "center",
+          justifyContent: collapsed ? "center" : "flex-start",
           borderRadius: "10px",
           "&:hover": { backgroundColor: "#2a2a2a" },
         }}
@@ -254,6 +255,8 @@ export default function Sidebar({
       sx={{
         width: collapsed ? 72 : 280,
         minWidth: collapsed ? 72 : 280,
+        height: "100vh",
+        maxHeight: "100vh",
         bgcolor: "#0F0F0F",
         color: "#fff",
         display: "flex",
@@ -262,6 +265,7 @@ export default function Sidebar({
         borderRadius: "0 0 20px 20px",
         padding: collapsed ? "12px 8px" : "16px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* collapse button */}
@@ -308,8 +312,9 @@ export default function Sidebar({
         sx={{
           display: "flex",
           alignItems: "flex-start",
+          justifyContent: collapsed ? "center" : "flex-start",
           gap: collapsed ? "0px" : "12px",
-          paddingRight: collapsed ? "32px" : "48px",
+          paddingRight: collapsed ? 0 : "48px",
           paddingTop: "40px",
           paddingBottom: "16px",
           cursor: showNav ? "pointer" : "default",
@@ -412,6 +417,10 @@ export default function Sidebar({
             display: "flex",
             flexDirection: "column",
             gap: "6px",
+            overflowY: "auto",
+            overflowX: "hidden",
+            overscrollBehavior: "contain",
+            minHeight: 0,
           }}
         >
           <NavItem
@@ -428,7 +437,7 @@ export default function Sidebar({
             label="Workstations"
             to="/workstations"
             active={isActive("/workstations")}
-            count={6}
+            count={collapsed ? undefined : 6}
             countColor={workstationPill}
             expanded={open.workstations}
             onToggleExpand={() =>
@@ -442,7 +451,7 @@ export default function Sidebar({
             label="Employees"
             to="/employees"
             active={isActive("/employees") || isActive("/users")}
-            count={6}
+            count={collapsed ? undefined : 6}
             countColor={usersPill}
             expanded={open.employees}
             onToggleExpand={() =>
@@ -452,11 +461,17 @@ export default function Sidebar({
           />
           <NavItem
             collapsed={collapsed}
-            icon={<GroupsIcon width={20} height={20} />}
+            icon={
+              <GroupsIcon
+                width={20}
+                height={20}
+                selected={isActive("/groups")}
+              />
+            }
             label="Groups"
             to="/groups"
             active={isActive("/groups")}
-            count={6}
+            count={collapsed ? undefined : 6}
             countColor={groupsPill}
             expanded={open.groups}
             onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
@@ -465,7 +480,7 @@ export default function Sidebar({
           <NavItem
             collapsed={collapsed}
             icon={<FilesIcon width={20} height={20} />}
-            label="Files"
+            label="Shares"
             to="/files"
             active={isActive("/files")}
             expanded={open.files}
@@ -498,6 +513,7 @@ export default function Sidebar({
             sx={{
               display: "flex",
               alignItems: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
               color: "#fff",
               fontSize: "0.9rem",
               fontWeight: 500,
@@ -538,6 +554,7 @@ export default function Sidebar({
             sx={{
               display: "flex",
               alignItems: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
               color: "#fff",
               fontSize: "0.9rem",
               fontWeight: 500,

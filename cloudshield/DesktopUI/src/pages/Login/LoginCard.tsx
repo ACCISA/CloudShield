@@ -9,7 +9,7 @@ type LoginResponse = {
 };
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5050";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5050";
 const LOGIN_URL = `${API_BASE_URL}/api/auth/login`;
 
 export default function LoginCard() {
@@ -66,7 +66,7 @@ export default function LoginCard() {
 
       if (!response.ok || !data.access_token) {
         throw new Error(
-          data?.error || "Login failed. Please check your credentials."
+          data?.error || "Login failed. Please check your credentials.",
         );
       }
 
@@ -87,7 +87,7 @@ export default function LoginCard() {
             tokenType: data.token_type || "Bearer",
             expiresAt,
             email: sanitizedEmail,
-          })
+          }),
         );
       }
       window.dispatchEvent(new Event("auth-changed"));
