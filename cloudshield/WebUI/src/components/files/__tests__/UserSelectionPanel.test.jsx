@@ -301,6 +301,35 @@ describe('UserSelectionPanel', () => {
     });
   });
 
+  describe('All Users Toggle', () => {
+    it('should select all users when toggled on', async () => {
+      const user = userEvent.setup();
+      const onSelectionChange = jest.fn();
+      render(<UserSelectionPanel {...defaultProps} onSelectionChange={onSelectionChange} />);
+
+      const checkbox = screen.getByRole('checkbox');
+      await user.click(checkbox);
+
+      expect(onSelectionChange).toHaveBeenCalledWith(mockUsers);
+    });
+
+    it('should clear all users when toggled off', async () => {
+      const user = userEvent.setup();
+      const onSelectionChange = jest.fn();
+      const props = {
+        ...defaultProps,
+        selectedUsers: mockUsers,
+        onSelectionChange,
+      };
+      render(<UserSelectionPanel {...props} />);
+
+      const checkbox = screen.getByRole('checkbox');
+      await user.click(checkbox);
+
+      expect(onSelectionChange).toHaveBeenCalledWith([]);
+    });
+  });
+
   describe('Selected Users Panel', () => {
     it('should display selected user cards', () => {
       const props = {
@@ -359,7 +388,7 @@ describe('UserSelectionPanel', () => {
       
       const selectedSection = screen.getByText('Selected Users (1)').parentElement;
       const icons = within(selectedSection).getAllByTestId('display-icon-user');
-      expect(icons[0]).toHaveAttribute('data-size', 'medium');
+      expect(icons[0]).toHaveAttribute('data-size', 'small');
     });
 
     it('should display user names in selected cards', () => {
@@ -459,12 +488,12 @@ describe('UserSelectionPanel', () => {
     });
 
     it('should pass correct size to DisplayIcon in list', () => {
-      render(<UserSelectionPanel {...defaultProps} />);
-      
-      const listSection = screen.getByText('Add Users').parentElement;
+      const { container } = render(<UserSelectionPanel {...defaultProps} />);
+
+      const listSection = container.querySelector('.user-selection-dropdown');
       const listSectionIcons = within(listSection).getAllByTestId('display-icon-user');
-      
-      listSectionIcons.forEach(icon => {
+
+      listSectionIcons.forEach((icon) => {
         expect(icon).toHaveAttribute('data-size', 'small');
       });
     });
