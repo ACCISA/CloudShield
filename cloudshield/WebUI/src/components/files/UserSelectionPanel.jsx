@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import Tooltip from "@mui/material/Tooltip";
 import "./UserSelectionPanel.css";
@@ -74,11 +75,30 @@ export default function UserSelectionPanel({
     return normalized.username || "Unknown";
   };
 
+  const allUsersSelected =
+    availableUsers.length > 0 &&
+    availableUsers.every((user) =>
+      selectedUsers.some((selected) => getUserId(selected) === getUserId(user))
+    );
+
+  const handleAllUsersToggle = (checked) => {
+    if (checked) {
+      onSelectionChange(availableUsers);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
   return (
     <div className="user-selection-panel">
-      {/* Left Panel: Search and List */}
       <div className="user-selection-search-section">
-        <label className="user-selection-label">Add Users</label>
+        <div className="user-selection-label-row">
+          <label className="user-selection-label">Add Users</label>
+          <div className="user-selection-all-toggle">
+            <Checkbox checked={allUsersSelected} onChange={handleAllUsersToggle} />
+            <span>All Users</span>
+          </div>
+        </div>
         <input
           type="text"
           className="user-selection-search"
@@ -131,7 +151,6 @@ export default function UserSelectionPanel({
         </div>
       </div>
 
-      {/* Right Panel: Selected Users */}
       {selectedUsers.length > 0 && (
         <div className="user-selection-selected-section">
           <div className="user-selection-selected-header">
@@ -152,7 +171,7 @@ export default function UserSelectionPanel({
                   >
                     ×
                   </button>
-                  <DisplayIcon type="user" data={normalized} size="medium" showHoverCard={true} />
+                  <DisplayIcon type="user" data={normalized} size="small" showHoverCard={true} />
                   <span className="user-selection-selected-card-name">
                     {getDisplayName(user)}
                   </span>

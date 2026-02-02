@@ -277,6 +277,35 @@ describe('GroupSelectionPanel', () => {
     });
   });
 
+  describe('All Groups Toggle', () => {
+    it('should select all groups when toggled on', async () => {
+      const user = userEvent.setup();
+      const onSelectionChange = jest.fn();
+      render(<GroupSelectionPanel {...defaultProps} onSelectionChange={onSelectionChange} />);
+
+      const checkbox = screen.getByRole('checkbox');
+      await user.click(checkbox);
+
+      expect(onSelectionChange).toHaveBeenCalledWith(mockGroups);
+    });
+
+    it('should clear all groups when toggled off', async () => {
+      const user = userEvent.setup();
+      const onSelectionChange = jest.fn();
+      const props = {
+        ...defaultProps,
+        selectedGroups: mockGroups,
+        onSelectionChange,
+      };
+      render(<GroupSelectionPanel {...props} />);
+
+      const checkbox = screen.getByRole('checkbox');
+      await user.click(checkbox);
+
+      expect(onSelectionChange).toHaveBeenCalledWith([]);
+    });
+  });
+
   describe('Selected Groups Panel', () => {
     it('should display selected group cards', () => {
       const props = {
@@ -336,7 +365,7 @@ describe('GroupSelectionPanel', () => {
       
       const selectedSection = screen.getByText('Selected Groups (1)').parentElement;
       const icons = within(selectedSection).getAllByTestId('display-icon-group');
-      expect(icons[0]).toHaveAttribute('data-size', 'medium');
+      expect(icons[0]).toHaveAttribute('data-size', 'small');
     });
   });
 
@@ -430,14 +459,12 @@ describe('GroupSelectionPanel', () => {
     });
 
     it('should pass correct size to DisplayIcon in list', () => {
-      render(<GroupSelectionPanel {...defaultProps} />);
-      
-      const listIcons = screen.getAllByTestId('display-icon-group');
-      // Filter to only list items (not selected cards)
-      const listSection = screen.getByText('Add Groups').parentElement;
+      const { container } = render(<GroupSelectionPanel {...defaultProps} />);
+
+      const listSection = container.querySelector('.group-selection-dropdown');
       const listSectionIcons = within(listSection).getAllByTestId('display-icon-group');
-      
-      listSectionIcons.forEach(icon => {
+
+      listSectionIcons.forEach((icon) => {
         expect(icon).toHaveAttribute('data-size', 'small');
       });
     });

@@ -1,18 +1,13 @@
-/* Two-Panel Layout */
 .user-selection-panel {
   display: flex;
-  gap: 24px;
-  min-height: 300px;
-  max-height: 400px;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* Left Panel: Search Section */
 .user-selection-search-section {
   position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
 }
 
 .user-selection-label {
@@ -22,6 +17,25 @@
   margin-bottom: 8px;
   color: #ffffff;
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+.user-selection-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.user-selection-label-row .user-selection-label {
+  margin-bottom: 0;
+}
+
+.user-selection-all-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #ffffff;
 }
 
 .user-selection-search {
@@ -48,11 +62,12 @@
 }
 
 .user-selection-dropdown {
-  flex: 1;
+  max-height: 210px;
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   background-color: #0a0a0a;
+  margin-top: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
@@ -142,7 +157,7 @@
 /* Right Panel: Selected Users */
 .user-selection-selected-section {
   flex: 1;
-  min-width: 0;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -163,8 +178,7 @@
   gap: 12px;
   overflow-y: auto;
   padding-right: 4px;
-  flex: 1;
-  min-height: 0;
+  max-height: 300px;
   align-content: start;
 }
 
@@ -173,9 +187,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  gap: 10px;
+  padding: 20px 16px 18px;
+  background-color: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   transition: all 0.2s ease;
@@ -183,21 +197,19 @@
 }
 
 .user-selection-selected-card:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .user-selection-card-remove-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: rgba(255, 0, 0, 0.8);
-  color: white;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
   border: none;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -206,16 +218,15 @@
   line-height: 1;
   padding: 0;
   transition: all 0.2s ease;
-  opacity: 0;
+  z-index: 1;
 }
 
 .user-selection-selected-card:hover .user-selection-card-remove-btn {
-  opacity: 1;
+  background-color: #7c1d1d;
 }
 
 .user-selection-card-remove-btn:hover {
-  background-color: rgba(255, 0, 0, 1);
-  transform: scale(1.1);
+  background-color: #7c1d1d;
 }
 
 .user-selection-selected-card-name {
