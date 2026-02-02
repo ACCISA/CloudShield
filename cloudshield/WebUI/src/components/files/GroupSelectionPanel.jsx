@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import "./GroupSelectionPanel.css";
 
@@ -70,11 +71,30 @@ export default function GroupSelectionPanel({
     return normalized.name || normalized.groupName || "Unknown";
   };
 
+  const allGroupsSelected =
+    availableGroups.length > 0 &&
+    availableGroups.every((group) =>
+      selectedGroups.some((selected) => getGroupId(selected) === getGroupId(group))
+    );
+
+  const handleAllGroupsToggle = (checked) => {
+    if (checked) {
+      onSelectionChange(availableGroups);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
   return (
     <div className="group-selection-panel">
-      {/* Left Panel: Search and List */}
       <div className="group-selection-search-section">
-        <label className="group-selection-label">Add Groups</label>
+        <div className="group-selection-label-row">
+          <label className="group-selection-label">Add Groups</label>
+          <div className="group-selection-all-toggle">
+            <Checkbox checked={allGroupsSelected} onChange={handleAllGroupsToggle} />
+            <span>All Groups</span>
+          </div>
+        </div>
         <input
           type="text"
           className="group-selection-search"
@@ -131,7 +151,6 @@ export default function GroupSelectionPanel({
         </div>
       </div>
 
-      {/* Right Panel: Selected Groups */}
       {selectedGroups.length > 0 && (
         <div className="group-selection-selected-section">
           <div className="group-selection-selected-header">
@@ -152,7 +171,7 @@ export default function GroupSelectionPanel({
                   >
                     ×
                   </button>
-                  <DisplayIcon type="group" data={normalized} size="medium" showHoverCard={true} />
+                  <DisplayIcon type="group" data={normalized} size="small" showHoverCard={true} />
                   <span className="group-selection-selected-card-name">
                     {getDisplayName(group)}
                   </span>
