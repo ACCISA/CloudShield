@@ -27,13 +27,16 @@ services:
       - 3389:3389/tcp
       - 3389:3389/udp
     volumes:
+      - type: bind
+        source: ${WORKSTATIONS_MOUNT_DIR}
+        target: /storage
+      #- workstation_data:/storage
       - /home/cena/CloudShield/win11x64.iso:/boot.iso
       - ./docker/workstation/oem:/oem
     restart: always
     stop_grace_period: 2m
     networks:
       vpc_net:
-        ipv4_address: 172.23.0.14
 
   api:
     build:
@@ -252,5 +255,10 @@ networks:
 
 volumes:
   workstation_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${WORKSTATIONS_MOUNT_DIR}
+      size: "20G"
   ui_node_modules:

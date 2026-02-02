@@ -225,18 +225,24 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
 
         logger.info("Metadata from provisioner: %s", metadata)
+
+
+
+        logger.info("Starting to provision 1 workstation for testing")
+
+        ws_metadata = provision_workstation(org_id, logger)
+
+        metadata.append(ws_metadata)
+
         assets = map_metadata_to_ec2_instances(metadata)
 
-
-        # Centralized persistence via repository helper (insert_inventory)
         res = insert_inventory(db=db, org_id=org_id, assets=assets)
+
         logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
 
         logger.info("Provisioning complete for org %s", org_id)
 
-        logger.info("Starting to provision 1 workstation for testing")
 
-        provision_workstation(org_id, logger)
 
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 

@@ -1,6 +1,8 @@
 # docker_provisioning is not part of code we release in prod. This is just to avoid spendng money on aws therefore we dont need to meet coverage requirements for this code.
 import os
 import sys
+import base64
+import uuid
 from datetime import datetime, timezone
 import subprocess
 from python_on_whales import DockerClient
@@ -18,6 +20,10 @@ print("BUILDING")
 docker.compose.build(
     services=["samba-test", "openvpn-test","workstation"]
 )
+
+
+def short_uuid():
+    return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
 
 # Copy a file to a container
 def copy_file_container(server_logger, container_id, path_in, path_out):
@@ -134,6 +140,10 @@ def provision_workstation_docker(org_id, server_logger):
     )
 
     container_id_ws = container_ws.id
+    container_ws.reload()
+
+    container_ws_ip = container_ws.network_settings.networks["vpc_net"].ip_address
+
 
     server_logger.info("Creating OEM scripts")
     # all variables in docker/workstation/oem need to be set here
@@ -147,7 +157,26 @@ def provision_workstation_docker(org_id, server_logger):
         return
 
     server_logger.info("Windows workstation installation has started, this will take some time")
-
+    return {
+        "port": "NA",
+        "org_id": org_id,
+        "name": org_id+"_"+short_uuid()+"_"+"_workstation",
+        "instance_id": container_id_ws,
+        "vpc_id": "vpc_net_docker",
+        "subnet_id": "subnet_id",
+        "ssh_key": org_id+"_key",
+        "ami_id": "windows_default_ami_id",
+        "os": "windows11",
+        "cpu": "2",
+        "ram_gb":"4",
+        "storage_size_gb":10,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "ports": ["80","169"],
+        "status": "running",
+        "private_ip": container_ws_ip,
+        "public_ip": container_ws_ip,
+    }
 
 
 def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
@@ -184,7 +213,7 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     os.environ["REALM_NAME_LWR"] = "SAMDOM.EXAMPLE.COM".lower()
     
     # We already built our containers so just start them
-    container = docker.compose.run(
+    container_dc = docker.compose.run(
         service="samba-test",
         detach=True,
         tty=False,
@@ -194,7 +223,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "REALM_NAME": "ANISS.LOCAL"
         })
     
-    container_id = container.id
+    container_id = container_dc.id
+    container_dc.reload()
     server_logger.info(f"samba-test container id: {container_id}")
 
     os.environ["OPENVPN_PORT"] = "1194"
@@ -208,6 +238,11 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
     )
 
     container_id_vpn = container_vpn.id
+    container_vpn.reload()
+    
+    container_vpn_ip = container_vpn.network_settings.networks["vpc_net"].ip_address
+    container_dc_ip = container_dc.network_settings.networks["vpc_net"].ip_address
+
     server_logger.info(f"openvpn-test container id: {container_id_vpn}")
 
     if not setup_container(server_logger, container_id):
@@ -254,8 +289,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "ports": ["80","169"],
         "status": "running",
-        "private_ip": "172.23.0.10",
-        "public_ip": "172.23.0.10",
+        "private_ip": container_dc_ip,
+        "public_ip": container_dc_ip,
     },{
         "port":"50055",
         "org_id": org_id,
@@ -273,8 +308,8 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "ports": ["80","169"],
         "status": "running",
-        "private_ip": "172.23.0.12",
-        "public_ip": "172.23.0.12"
+        "private_ip": container_vpn_ip,
+        "public_ip": container_vpn_ip
     }]
  
 

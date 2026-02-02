@@ -418,8 +418,8 @@ def task_dc_add_user():
     username = data.get("username")
     password = data.get("password")
     email = data.get("email")
-    
-    for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
+
+    for arg, val in {"org_id":org_id, "username":username, "password":password,"email":email}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
             return jsonify({"error":f"{arg} is required"}), 400
