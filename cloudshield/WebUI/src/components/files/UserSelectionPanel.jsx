@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import "./UserSelectionPanel.css";
 
 /**
@@ -95,30 +95,32 @@ export default function UserSelectionPanel({
     return normalized.username || "Unknown";
   };
 
+  const allUsersSelected =
+    availableUsers.length > 0 &&
+    availableUsers.every((user) =>
+      selectedUsers.some((selected) => getUserId(selected) === getUserId(user)),
+    );
+
+  const handleAllUsersToggle = (checked) => {
+    if (checked) {
+      onSelectionChange(availableUsers);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
   return (
     <div className="user-selection-container">
-      {/* Search Section */}
       <div className="user-selection-search-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "8px",
-          }}
-        >
-          <label className="user-selection-label" style={{ marginBottom: 0 }}>
-            Search Users
-          </label>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="user-selection-label-row">
+          <label className="user-selection-label">Search Users</label>
+          <div className="user-selection-all-toggle">
             <Checkbox
               checked={allAreSelected}
               indeterminate={isIndeterminate}
               onChange={handleSelectAll}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              All Users
-            </span>
+            <span>All Users</span>
           </div>
         </div>
         <input

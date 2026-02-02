@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import "./GroupSelectionPanel.css";
 
 /**
@@ -94,30 +94,34 @@ export default function GroupSelectionPanel({
     return normalized.name || normalized.groupName || "Unknown";
   };
 
+  const allGroupsSelected =
+    availableGroups.length > 0 &&
+    availableGroups.every((group) =>
+      selectedGroups.some(
+        (selected) => getGroupId(selected) === getGroupId(group),
+      ),
+    );
+
+  const handleAllGroupsToggle = (checked) => {
+    if (checked) {
+      onSelectionChange(availableGroups);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
   return (
     <div className="group-selection-container">
-      {/* Search Section */}
       <div className="group-selection-search-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "8px",
-          }}
-        >
-          <label className="group-selection-label" style={{ marginBottom: 0 }}>
-            Search Groups
-          </label>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="group-selection-label-row">
+          <label className="group-selection-label">Search Groups</label>
+          <div className="group-selection-all-toggle">
             <Checkbox
               checked={allAreSelected}
               indeterminate={isIndeterminate}
               onChange={handleSelectAll}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              All Groups
-            </span>
+            <span>All Groups</span>
           </div>
         </div>
         <input

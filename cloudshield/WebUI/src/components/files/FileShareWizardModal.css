@@ -258,18 +258,7 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  text-transform: none;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
   transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.file-wizard-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .file-wizard-btn-primary {
@@ -282,8 +271,10 @@
   background-color: #f5f5f5;
 }
 
-.file-wizard-btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
+.file-wizard-btn-primary:disabled {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 0, 0, 0.5);
+  cursor: not-allowed;
 }
 
 .file-wizard-btn-secondary {
@@ -297,7 +288,9 @@
 }
 
 .file-wizard-btn-secondary:disabled {
-  opacity: 0.3;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
 }
 
 .file-wizard-btn-cancel {
