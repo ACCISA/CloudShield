@@ -175,6 +175,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     set_progress("starting")
 
     org_doc = organizations.find_one(org_filter(org_id)) or {}
+    org_doc["org_id"] = org_id
 
     org_limit = _coerce_int(org_doc.get("workstation_limit"), default=None)
     desired_workstations = workstation_count if workstation_count not in (None, 0) else org_limit or 1
@@ -198,7 +199,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Calling provision_network_terraform for org %s", org_id)
 
         metadata = provision_network_terraform(
-                org_id=org_id,
+                org_data=org_doc,
                 region=region,
                 templates_dir=templates_dir,
                 generated_dir=generated_dir,

@@ -179,13 +179,18 @@ def provision_workstation_docker(org_id, server_logger):
     }
 
 
-def provision_network_docker(org_id, region, templates_dir, generated_dir, count, server_logger):
+def provision_network_docker(org_data, region, templates_dir, generated_dir, count, server_logger):
 
     server_logger.info("count "+str(count))
     server_logger.info("region "+str(region))
     server_logger.info("gen_dir "+str(generated_dir))
     server_logger.info("tmp_dir "+str(templates_dir))
     
+    org_id = org_data.get("org_id", None)
+    domain_name = org_data.get("domain_name", None)
+    realm_name = org_data.get("realm_name", None)
+    dc_admin_password = org_data.get("dc_admin_password", None)
+
     cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/"+str(org_id))
 
     try:
@@ -207,10 +212,10 @@ def provision_network_docker(org_id, region, templates_dir, generated_dir, count
 
     server_logger.info("Running docker provisioning")
 
-    os.environ["DOMAIN_NAME"] = "SAMDOM"
-    os.environ["DC_ADMIN_PASSWORD"] = "letmein123%"
-    os.environ["REALM_NAME"] = "SAMDOM.EXAMPLE.COM"
-    os.environ["REALM_NAME_LWR"] = "SAMDOM.EXAMPLE.COM".lower()
+    os.environ["DOMAIN_NAME"] = domain_name
+    os.environ["DC_ADMIN_PASSWORD"] = dc_admin_password
+    os.environ["REALM_NAME"] = realm_name
+    os.environ["REALM_NAME_LWR"] = realm_name.lower()
     
     # We already built our containers so just start them
     container_dc = docker.compose.run(
