@@ -237,45 +237,44 @@
 }
 
 .file-wizard-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: none;
+  font-size: 1rem;
   font-weight: 500;
   font-family: system-ui, -apple-system, sans-serif;
   cursor: pointer;
-  border: none;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .file-wizard-btn-primary {
   background-color: #ffffff;
   color: #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .file-wizard-btn-primary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+  background-color: #f5f5f5;
 }
 
 .file-wizard-btn-primary:disabled {
-  background-color: rgba(255, 255, 255, 0.3);
-  color: rgba(0, 0, 0, 0.5);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .file-wizard-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
 .file-wizard-btn-secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .file-wizard-btn-secondary:disabled {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.3);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
