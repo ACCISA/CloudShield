@@ -9,7 +9,7 @@ import {
   resolveOrgId,
   createDeleteHandler,
   createNavigationHandler,
-} from "../../utils/modalHelpers.js";
+} from "../../utils/modalHelpers.jsx";
 import "./FileShareWizardModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups"];

@@ -3,16 +3,20 @@ import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
-import { MOCK_GROUPS, MOCK_SOFTWARE } from "../../data/mockData.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
+  resolveOrgId,
   fetchUsers,
+  fetchGroups,
+  fetchSoftware,
   createImageUploadHandler,
   createToggleSelectionHandler,
   createRemoveSelectionHandler,
   createFilteredItems,
   createNavigationHandler,
-} from "../../utils/modalHelpers.js";
+  createDeleteHandler,
+  createRenderStepContent,
+} from "../../utils/modalHelpers.jsx";
 import {
   CpuIcon,
   RamIcon,
@@ -35,12 +39,15 @@ export default function WorkstationModal({
   onSubmit,
   onDelete,
 }) {
-  const { accessToken } = useAuth();
+  const { accessToken, currentUser } = useAuth();
   const isEditMode = Boolean(workstationData);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Available options (fetched)
   const [allUsers, setAllUsers] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [allSoftware, setAllSoftware] = useState([]); // Replace with fetch if needed
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -64,17 +71,33 @@ export default function WorkstationModal({
     software: "",
   });
 
-  // --- USERS ---
-  const fetchUsersAll = async () => {
-    await fetchUsers(accessToken, setAllUsers);
+  const openToast = (msg) => {
+    console.warn(msg);
   };
 
-  // Initialize form data and fetch users
+  // --- USERS ---
+  const fetchUsersAll = async () => {
+    await fetchUsers(accessToken, setAllUsers, openToast);
+  };
+
+  // --- GROUPS ---
+  const fetchGroupsAll = async () => {
+    const orgId = await resolveOrgId(currentUser);
+    await fetchGroups(orgId, accessToken, setAllGroups, openToast);
+  };
+
+  const fetchSoftwareAll = async () => {
+    const orgId = await resolveOrgId(currentUser);
+    await fetchSoftware(orgId, accessToken, setAllSoftware, openToast);
+  };
+
+  // Initialize form data and fetch users and groups
   useEffect(() => {
     if (!open) return;
 
     fetchUsersAll();
-
+    fetchGroupsAll();
+    fetchSoftwareAll();
     if (isEditMode && workstationData) {
       setFormData({
         name: workstationData.name || "",
@@ -110,48 +133,70 @@ export default function WorkstationModal({
   }, [open, workstationData, isEditMode]);
 
   // Filter lists
-  const filteredUsers = useMemo(() => {
-    const q = searchTerms.users.trim().toLowerCase();
-    if (!q) return allUsers;
-    return allUsers.filter((user) =>
-      `${user.firstName} ${user.lastName}`.toLowerCase().includes(q),
-    );
-  }, [allUsers, searchTerms.users]);
+  const filteredUsers = useMemo(
+    () =>
+      createFilteredItems(allUsers, searchTerms.users, [
+        "firstName",
+        "lastName",
+        "email",
+      ]),
+    [allUsers, searchTerms.users],
+  );
 
   const filteredGroups = useMemo(
-    () => createFilteredItems(MOCK_GROUPS, searchTerms.groups, ["name"]),
-    [searchTerms.groups],
+    () => createFilteredItems(allGroups, searchTerms.groups, ["name"]),
+    [allGroups, searchTerms.groups],
   );
 
   const filteredSoftware = useMemo(
-    () => createFilteredItems(MOCK_SOFTWARE, searchTerms.software, ["name"]),
-    [searchTerms.software],
+    () => createFilteredItems(allSoftware, searchTerms.software, ["name"]),
+    [allSoftware, searchTerms.software],
   );
 
   // Handlers
   const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
-  const handleSubmit = () => {
-    onSubmit?.({
-      name: formData.name,
-      strength: formData.strength,
-      image: formData.workstationImage,
-      desktopBackground: formData.desktopBackground,
-      groups: formData.selectedGroups,
-      users: formData.selectedUsers,
-      allUsers: formData.allUsers,
-      allGroups: formData.allGroups,
-      software: formData.selectedSoftware,
-      allSoftware: formData.allSoftware,
-      wallpaper: formData.wallpaper,
-    });
-    onClose();
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit?.({
+        name: formData.name,
+        strength: formData.strength,
+        image: formData.workstationImage,
+        desktopBackground: formData.desktopBackground,
+        groups: formData.selectedGroups,
+        users: formData.selectedUsers,
+        allUsers: formData.allUsers,
+        allGroups: formData.allGroups,
+        software: formData.selectedSoftware,
+        allSoftware: formData.allSoftware,
+        wallpaper: formData.wallpaper,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to submit workstation:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleImageUpload = (e, field) => {
-    createImageUploadHandler(setFormData, field)(e);
-  };
+  const handleDelete = createDeleteHandler({
+    onDelete: async () => {
+      await onDelete?.();
+    },
+    setIsSubmitting,
+    onClose,
+  });
 
+  const handleWorkstationImageUpload = createImageUploadHandler(
+    setFormData,
+    "workstationImage",
+  );
+  const handleDesktopBackgroundUpload = createImageUploadHandler(
+    setFormData,
+    "desktopBackground",
+  );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
 
@@ -159,140 +204,48 @@ export default function WorkstationModal({
 
   if (!open) return null;
 
-  // Render Step Content
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <BasicInfoStep
-            formData={formData}
-            setFormData={setFormData}
-            handleImageUpload={handleImageUpload}
-          />
-        );
-      case 1:
-        return (
-          <UsersStep
-            searchTerm={searchTerms.users}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, users: val }))
-            }
-            availableUsers={filteredUsers}
-            selectedUsers={formData.selectedUsers}
-            allUsers={formData.allUsers}
-            totalItems={MOCK_USERS}
-            onToggleUser={(user) => toggleSelection("users", user)}
-            onRemoveUser={(id) => removeSelection("users", id)}
-            onAllUsersChange={(checked) => {
-              const hasSelected = formData.selectedUsers.length > 0;
-              const allAreSelected =
-                formData.selectedUsers.length === MOCK_USERS.length &&
-                MOCK_USERS.length > 0;
-
-              if (hasSelected && !allAreSelected) {
-                // Indeterminate state - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allUsers: false,
-                  selectedUsers: [],
-                }));
-              } else if (!hasSelected) {
-                // Nothing selected - select all
-                setFormData((prev) => ({
-                  ...prev,
-                  allUsers: true,
-                  selectedUsers: MOCK_USERS,
-                }));
-              } else {
-                // All selected - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allUsers: false,
-                  selectedUsers: [],
-                }));
-              }
-            }}
-          />
-        );
-      case 2:
-        return (
-          <GroupsStep
-            searchTerm={searchTerms.groups}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, groups: val }))
-            }
-            availableGroups={filteredGroups}
-            selectedGroups={formData.selectedGroups}
-            allGroups={formData.allGroups}
-            totalItems={MOCK_GROUPS}
-            onToggleGroup={(group) => toggleSelection("groups", group)}
-            onRemoveGroup={(id) => removeSelection("groups", id)}
-            onAllGroupsChange={(checked) => {
-              const hasSelected = formData.selectedGroups.length > 0;
-              const allAreSelected =
-                formData.selectedGroups.length === MOCK_GROUPS.length &&
-                MOCK_GROUPS.length > 0;
-
-              if (hasSelected && !allAreSelected) {
-                // Indeterminate state - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: false,
-                  selectedGroups: [],
-                }));
-              } else if (!hasSelected) {
-                // Nothing selected - select all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: true,
-                  selectedGroups: MOCK_GROUPS,
-                }));
-              } else {
-                // All selected - deselect all
-                setFormData((prev) => ({
-                  ...prev,
-                  allGroups: false,
-                  selectedGroups: [],
-                }));
-              }
-            }}
-          />
-        );
-      case 3:
-        return (
-          <SoftwareStep
-            searchTerm={searchTerms.software}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, software: val }))
-            }
-            availableSoftware={filteredSoftware}
-            selectedSoftware={formData.selectedSoftware}
-            allSoftware={formData.allSoftware}
-            onToggleSoftware={(software) =>
-              toggleSelection("software", software)
-            }
-            onRemoveSoftware={(id) => removeSelection("software", id)}
-            onAllSoftwareChange={(checked) => {
-              if (checked) {
-                setFormData((prev) => ({
-                  ...prev,
-                  allSoftware: true,
-                  selectedSoftware: MOCK_SOFTWARE,
-                }));
-              } else {
-                setFormData((prev) => ({
-                  ...prev,
-                  allSoftware: false,
-                  selectedSoftware: [],
-                }));
-              }
-            }}
-          />
-        );
-      default:
-        return null;
+  // Create a generic SelectionStep wrapper for workstation-specific styling
+  const WorkstationSelectionStep = ({ type, ...props }) => {
+    if (type === "software") {
+      return <SoftwareStep {...props} />;
     }
+    return <GenericSelectionStep type={type} {...props} />;
   };
+
+  // Render Step Content using shared factory
+  const renderStepContent = createRenderStepContent({
+    steps: [
+      {
+        handleImageUpload: {
+          workstationImage: handleWorkstationImageUpload,
+          desktopBackground: handleDesktopBackgroundUpload,
+        },
+        isEditMode,
+      },
+      { type: "users" },
+      { type: "groups" },
+      { type: "software" },
+    ],
+    currentStep,
+    formData,
+    setFormData,
+    searchTerms,
+    setSearchTerms,
+    filteredData: {
+      users: filteredUsers,
+      groups: filteredGroups,
+      software: filteredSoftware,
+    },
+    allData: {
+      users: allUsers,
+      groups: allGroups,
+      software: allSoftware,
+    },
+    toggleSelection,
+    removeSelection,
+    BasicInfoStep,
+    SelectionStep: WorkstationSelectionStep,
+  });
 
   const isNextDisabled = currentStep === 0 && !formData.name.trim();
 
@@ -353,7 +306,7 @@ export default function WorkstationModal({
             >
               Cancel
             </button>
-            {isEditMode && (
+            {isEditMode && currentStep === 0 && (
               <button
                 className="workstation-modal-btn workstation-modal-btn-delete"
                 onClick={() => {
@@ -362,8 +315,7 @@ export default function WorkstationModal({
                       "Are you sure you want to delete this workstation? This action cannot be undone.",
                     )
                   ) {
-                    onDelete?.();
-                    onClose();
+                    handleDelete();
                   }
                 }}
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
@@ -392,8 +344,13 @@ export default function WorkstationModal({
               <button
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                {isEditMode ? "Save Changes" : "Create Workstation"}
+                {isSubmitting
+                  ? "Saving..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Create Workstation"}
               </button>
             )}
           </div>
@@ -405,6 +362,16 @@ export default function WorkstationModal({
 
 // Sub-components
 function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
+  // Extract the handlers if it's an object (WorkstationModal case)
+  const workstationImageHandler =
+    typeof handleImageUpload === "object"
+      ? handleImageUpload.workstationImage
+      : handleImageUpload;
+  const desktopBackgroundHandler =
+    typeof handleImageUpload === "object"
+      ? handleImageUpload.desktopBackground
+      : handleImageUpload;
+
   return (
     <div className="workstation-modal-step workstation-modal-step-scrollable">
       <div className="workstation-modal-form-group">
@@ -571,7 +538,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, "workstationImage")}
+                onChange={workstationImageHandler}
                 style={{ display: "none" }}
               />
               <div className="workstation-modal-image-placeholder">
@@ -606,7 +573,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, "desktopBackground")}
+                onChange={desktopBackgroundHandler}
                 style={{ display: "none" }}
               />
               <div className="workstation-modal-image-placeholder">
@@ -623,21 +590,82 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
   );
 }
 
-function GroupsStep({
+// Generic selection step for users/groups (used by createRenderStepContent)
+function GenericSelectionStep({
+  type,
   searchTerm,
   setSearchTerm,
-  availableGroups,
-  selectedGroups,
-  allGroups,
+  filteredItems,
+  selectedItems,
+  allSelected,
+  onToggle,
+  onRemove,
   totalItems,
-  onToggleGroup,
-  onRemoveGroup,
-  onAllGroupsChange,
+  onAllChange,
 }) {
-  const hasSelected = selectedGroups.length > 0;
+  const hasSelected = selectedItems.length > 0;
   const allAreSelected =
-    selectedGroups.length === totalItems.length && totalItems.length > 0;
+    selectedItems.length === totalItems.length && totalItems.length > 0;
   const isIndeterminate = hasSelected && !allAreSelected;
+
+  const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+  const singularType = type.endsWith("s") ? type.slice(0, -1) : type;
+
+  const renderItem = (item) => {
+    if (type === "users") {
+      return (
+        <>
+          <DisplayIcon type="user" data={item} size="small" />
+          <div className="workstation-modal-dropdown-item-info">
+            <div className="workstation-modal-dropdown-item-name">
+              {item.firstName} {item.lastName}
+            </div>
+            <div className="workstation-modal-dropdown-item-detail">
+              {item.title}
+            </div>
+          </div>
+        </>
+      );
+    } else if (type === "groups") {
+      return (
+        <>
+          <DisplayIcon type="group" data={item} size="small" />
+          <div className="workstation-modal-dropdown-item-info">
+            <div className="workstation-modal-dropdown-item-name">
+              {item.name}
+            </div>
+            <div className="workstation-modal-dropdown-item-detail">
+              {item.members || 0} members
+            </div>
+          </div>
+        </>
+      );
+    }
+    return null;
+  };
+
+  const renderSelectedCard = (item) => {
+    if (type === "users") {
+      return (
+        <>
+          <DisplayIcon type="user" data={item} size="small" />
+          <span className="workstation-modal-selected-card-name">
+            {item.firstName} {item.lastName}
+          </span>
+        </>
+      );
+    } else if (type === "groups") {
+      return (
+        <>
+          <DisplayIcon type="group" data={item} size="small" />
+          <span className="workstation-modal-selected-card-name">
+            {item.name}
+          </span>
+        </>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="workstation-modal-step">
@@ -654,16 +682,16 @@ function GroupsStep({
             className="workstation-modal-label"
             style={{ marginBottom: 0 }}
           >
-            Add Groups
+            Add {typeLabel}
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Checkbox
               checked={allAreSelected}
               indeterminate={isIndeterminate}
-              onChange={onAllGroupsChange}
+              onChange={onAllChange}
             />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              All Groups
+              All {typeLabel}
             </span>
           </div>
         </div>
@@ -673,37 +701,29 @@ function GroupsStep({
           className="workstation-modal-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search groups..."
+          placeholder={`Search ${type}...`}
         />
 
-        {availableGroups.length > 0 && (
+        {filteredItems.length > 0 && (
           <div className="workstation-modal-dropdown">
-            {availableGroups.map((group) => {
-              const isSelected = selectedGroups.some((g) => g.id === group.id);
+            {filteredItems.map((item) => {
+              const isSelected = selectedItems.some((i) => i.id === item.id);
               return (
                 <div
-                  key={group.id}
+                  key={item.id}
                   role="option"
                   tabIndex={0}
                   aria-selected={isSelected}
                   className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => onToggleGroup(group)}
+                  onClick={() => onToggle(item)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onToggleGroup(group);
+                      onToggle(item);
                     }
                   }}
                 >
-                  <DisplayIcon type="group" data={group} size="small" />
-                  <div className="workstation-modal-dropdown-item-info">
-                    <div className="workstation-modal-dropdown-item-name">
-                      {group.name}
-                    </div>
-                    <div className="workstation-modal-dropdown-item-detail">
-                      {group.workstationsCount || 0} workstations
-                    </div>
-                  </div>
+                  {renderItem(item)}
                   {isSelected && (
                     <span className="workstation-modal-checkmark">✓</span>
                   )}
@@ -714,144 +734,22 @@ function GroupsStep({
         )}
       </div>
 
-      {selectedGroups.length > 0 && (
+      {selectedItems.length > 0 && (
         <div className="workstation-modal-selected-section">
           <div className="workstation-modal-selected-header">
-            Selected Groups ({selectedGroups.length})
+            Selected {typeLabel} ({selectedItems.length})
           </div>
           <div className="workstation-modal-selected-cards">
-            {selectedGroups.map((group) => (
-              <div key={group.id} className="workstation-modal-selected-card">
+            {selectedItems.map((item) => (
+              <div key={item.id} className="workstation-modal-selected-card">
                 <button
                   type="button"
                   className="workstation-modal-card-remove-btn"
-                  onClick={() => onRemoveGroup(group.id)}
+                  onClick={() => onRemove(item.id)}
                 >
                   ×
                 </button>
-                <DisplayIcon type="group" data={group} size="small" />
-                <span className="workstation-modal-selected-card-name">
-                  {group.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function UsersStep({
-  searchTerm,
-  setSearchTerm,
-  availableUsers,
-  selectedUsers,
-  allUsers,
-  totalItems,
-  onToggleUser,
-  onRemoveUser,
-  onAllUsersChange,
-}) {
-  const hasSelected = selectedUsers.length > 0;
-  const allAreSelected =
-    selectedUsers.length === totalItems.length && totalItems.length > 0;
-  const isIndeterminate = hasSelected && !allAreSelected;
-
-  return (
-    <div className="workstation-modal-step">
-      <div className="workstation-modal-search-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "8px",
-          }}
-        >
-          <label
-            className="workstation-modal-label"
-            style={{ marginBottom: 0 }}
-          >
-            Add Users
-          </label>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Checkbox
-              checked={allAreSelected}
-              indeterminate={isIndeterminate}
-              onChange={onAllUsersChange}
-            />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              All Users
-            </span>
-          </div>
-        </div>
-
-        <input
-          type="text"
-          className="workstation-modal-search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search users..."
-        />
-
-        {availableUsers.length > 0 && (
-          <div className="workstation-modal-dropdown">
-            {availableUsers.map((user) => {
-              const isSelected = selectedUsers.some((u) => u.id === user.id);
-              return (
-                <div
-                  key={user.id}
-                  role="option"
-                  tabIndex={0}
-                  aria-selected={isSelected}
-                  className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => onToggleUser(user)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onToggleUser(user);
-                    }
-                  }}
-                >
-                  <DisplayIcon type="user" data={user} size="small" />
-                  <div className="workstation-modal-dropdown-item-info">
-                    <div className="workstation-modal-dropdown-item-name">
-                      {user.firstName} {user.lastName}
-                    </div>
-                    <div className="workstation-modal-dropdown-item-detail">
-                      {user.title}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <span className="workstation-modal-checkmark">✓</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {selectedUsers.length > 0 && (
-        <div className="workstation-modal-selected-section">
-          <div className="workstation-modal-selected-header">
-            Selected Users ({selectedUsers.length})
-          </div>
-          <div className="workstation-modal-selected-cards">
-            {selectedUsers.map((user) => (
-              <div key={user.id} className="workstation-modal-selected-card">
-                <button
-                  type="button"
-                  className="workstation-modal-card-remove-btn"
-                  onClick={() => onRemoveUser(user.id)}
-                >
-                  ×
-                </button>
-                <DisplayIcon type="user" data={user} size="small" />
-                <span className="workstation-modal-selected-card-name">
-                  {user.firstName} {user.lastName}
-                </span>
+                {renderSelectedCard(item)}
               </div>
             ))}
           </div>
@@ -864,13 +762,19 @@ function UsersStep({
 function SoftwareStep({
   searchTerm,
   setSearchTerm,
-  availableSoftware,
-  selectedSoftware,
-  allSoftware,
-  onToggleSoftware,
-  onRemoveSoftware,
-  onAllSoftwareChange,
+  filteredItems,
+  selectedItems,
+  allSelected,
+  onToggle,
+  onRemove,
+  totalItems,
+  onAllChange,
 }) {
+  const hasSelected = selectedItems.length > 0;
+  const allAreSelected =
+    selectedItems.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
+
   return (
     <div className="workstation-modal-step">
       <div className="workstation-modal-search-section">
@@ -889,7 +793,11 @@ function SoftwareStep({
             Add Software
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Checkbox checked={allSoftware} onChange={onAllSoftwareChange} />
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllChange}
+            />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
               All Software
             </span>
@@ -904,10 +812,10 @@ function SoftwareStep({
           placeholder="Search software..."
         />
 
-        {availableSoftware.length > 0 && (
+        {filteredItems.length > 0 && (
           <div className="workstation-modal-dropdown">
-            {availableSoftware.map((software) => {
-              const isSelected = selectedSoftware.some(
+            {filteredItems.map((software) => {
+              const isSelected = selectedItems.some(
                 (s) => s.id === software.id,
               );
               return (
@@ -917,11 +825,11 @@ function SoftwareStep({
                   tabIndex={0}
                   aria-selected={isSelected}
                   className={`workstation-modal-dropdown-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => onToggleSoftware(software)}
+                  onClick={() => onToggle(software)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onToggleSoftware(software);
+                      onToggle(software);
                     }
                   }}
                 >
@@ -946,13 +854,13 @@ function SoftwareStep({
         )}
       </div>
 
-      {selectedSoftware.length > 0 && (
+      {selectedItems.length > 0 && (
         <div className="workstation-modal-selected-section">
           <div className="workstation-modal-selected-header">
-            Selected Software ({selectedSoftware.length})
+            Selected Software ({selectedItems.length})
           </div>
           <div className="workstation-modal-selected-cards">
-            {selectedSoftware.map((software) => (
+            {selectedItems.map((software) => (
               <div
                 key={software.id}
                 className="workstation-modal-selected-card"
@@ -960,7 +868,7 @@ function SoftwareStep({
                 <button
                   type="button"
                   className="workstation-modal-card-remove-btn"
-                  onClick={() => onRemoveSoftware(software.id)}
+                  onClick={() => onRemove(software.id)}
                 >
                   ×
                 </button>

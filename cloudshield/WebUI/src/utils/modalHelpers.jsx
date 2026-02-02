@@ -281,6 +281,62 @@ export const fetchWorkstations = async (
   }
 };
 
+export const fetchSoftware = async (
+  orgId,
+  accessToken,
+  setAllSoftware = null,
+  openToast = null,
+) => {
+  try {
+    if (!orgId) {
+      if (setAllSoftware) setAllSoftware([]);
+      if (openToast) openToast("Missing org_id for software fetch");
+      return [];
+    }
+
+    if (!accessToken) {
+      if (setAllSoftware) setAllSoftware([]);
+      return [];
+    }
+
+    const res = await fetch(
+      `http://127.0.0.1:5050/api/software?org_id=${encodeURIComponent(orgId)}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!res.ok) {
+      if (setAllSoftware) setAllSoftware([]);
+      return [];
+    }
+
+    const data = await res.json();
+    const software = Array.isArray(data) ? data : data.software || [];
+
+    const normalized = software.map((s) => ({
+      id: String(s.id || s._id || ""),
+      _id: String(s._id || s.id || ""),
+      name: s.name || "Untitled Software",
+      version: s.version || "",
+      vendor: s.vendor || "",
+    }));
+
+    if (setAllSoftware) setAllSoftware(normalized);
+    return normalized;
+  } catch (e) {
+    console.error("Error fetching software:", e);
+    if (setAllSoftware) setAllSoftware([]);
+    if (openToast) openToast(e?.message || "Failed to load software");
+    return [];
+  }
+};
+
 // ============================================================================
 // Common Modal Form Handlers
 // ============================================================================
@@ -462,5 +518,82 @@ export const createSelectAllHandler = (
         [selectedKey]: [],
       }));
     }
+  };
+};
+
+/**
+ * Creates a renderStepContent function for multi-step modals
+ * @param {Object} config - Configuration object
+ * @param {Object} config.steps - Step configuration array defining what to render at each step
+ * @param {number} config.currentStep - Current step index
+ * @param {Object} config.formData - Form data state
+ * @param {Function} config.setFormData - Form data state setter
+ * @param {Object} config.searchTerms - Search terms state object
+ * @param {Function} config.setSearchTerms - Search terms state setter
+ * @param {Object} config.filteredData - Object containing filtered data arrays
+ * @param {Object} config.allData - Object containing all available data arrays
+ * @param {Function} config.toggleSelection - Toggle selection handler
+ * @param {Function} config.removeSelection - Remove selection handler
+ * @param {React.Component} config.BasicInfoStep - Basic info step component
+ * @param {React.Component} config.SelectionStep - Selection step component
+ * @returns {Function} Function that returns the current step content
+ */
+export const createRenderStepContent = ({
+  steps,
+  currentStep,
+  formData,
+  setFormData,
+  searchTerms,
+  setSearchTerms,
+  filteredData,
+  allData,
+  toggleSelection,
+  removeSelection,
+  BasicInfoStep,
+  SelectionStep,
+}) => {
+  return () => {
+    const stepConfig = steps[currentStep];
+    if (!stepConfig) return null;
+
+    // First step is always BasicInfoStep
+    if (currentStep === 0) {
+      return (
+        <BasicInfoStep
+          formData={formData}
+          setFormData={setFormData}
+          handleImageUpload={stepConfig.handleImageUpload}
+          isEditMode={stepConfig.isEditMode}
+        />
+      );
+    }
+
+    // Other steps are SelectionSteps
+    const { type } = stepConfig;
+    const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1);
+    const selectedKey = `selected${capitalizedType}`;
+    const allKey = `all${capitalizedType}`;
+
+    return (
+      <SelectionStep
+        type={type}
+        searchTerm={searchTerms[type]}
+        setSearchTerm={(val) =>
+          setSearchTerms((prev) => ({ ...prev, [type]: val }))
+        }
+        filteredItems={filteredData[type]}
+        selectedItems={formData[selectedKey]}
+        allSelected={formData[allKey]}
+        onToggle={(item) => toggleSelection(type, item)}
+        onRemove={(id) => removeSelection(type, id)}
+        totalItems={allData[type]}
+        onAllChange={createSelectAllHandler(
+          setFormData,
+          type,
+          allData[type],
+          formData[selectedKey],
+        )}
+      />
+    );
   };
 };

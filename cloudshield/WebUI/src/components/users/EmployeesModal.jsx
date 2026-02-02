@@ -18,8 +18,8 @@ import {
   createFilteredItems,
   createNavigationHandler,
   createDeleteHandler,
-  createSelectAllHandler,
-} from "../../utils/modalHelpers.js";
+  createRenderStepContent,
+} from "../../utils/modalHelpers.jsx";
 
 const STEPS = ["Basic Info", "Workstations", "Groups", "Shares"];
 
@@ -204,88 +204,34 @@ export default function EmployeesModal({
 
   if (!open) return null;
 
-  // Render Step Content
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <BasicInfoStep
-            formData={formData}
-            setFormData={setFormData}
-            handleImageUpload={handleImageUpload}
-            isEditMode={isEditMode}
-          />
-        );
-      case 1:
-        return (
-          <SelectionStep
-            type="workstations"
-            searchTerm={searchTerms.workstations}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, workstations: val }))
-            }
-            filteredItems={filteredWorkstations}
-            selectedItems={formData.selectedWorkstations}
-            allSelected={formData.allWorkstations}
-            onToggle={(item) => toggleSelection("workstations", item)}
-            onRemove={(id) => removeSelection("workstations", id)}
-            totalItems={allWorkstations}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "workstations",
-              allWorkstations,
-              formData.selectedWorkstations,
-            )}
-          />
-        );
-      case 2:
-        return (
-          <SelectionStep
-            type="groups"
-            searchTerm={searchTerms.groups}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, groups: val }))
-            }
-            filteredItems={filteredGroups}
-            selectedItems={formData.selectedGroups}
-            allSelected={formData.allGroups}
-            onToggle={(item) => toggleSelection("groups", item)}
-            onRemove={(id) => removeSelection("groups", id)}
-            totalItems={allGroups}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "groups",
-              allGroups,
-              formData.selectedGroups,
-            )}
-          />
-        );
-      case 3:
-        return (
-          <SelectionStep
-            type="files"
-            searchTerm={searchTerms.files}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, files: val }))
-            }
-            filteredItems={filteredFiles}
-            selectedItems={formData.selectedFiles}
-            allSelected={formData.allFiles}
-            onToggle={(item) => toggleSelection("files", item)}
-            onRemove={(id) => removeSelection("files", id)}
-            totalItems={allFiles}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "files",
-              allFiles,
-              formData.selectedFiles,
-            )}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Render Step Content using shared factory
+  const renderStepContent = createRenderStepContent({
+    steps: [
+      { handleImageUpload, isEditMode },
+      { type: "workstations" },
+      { type: "groups" },
+      { type: "files" },
+    ],
+    currentStep,
+    formData,
+    setFormData,
+    searchTerms,
+    setSearchTerms,
+    filteredData: {
+      workstations: filteredWorkstations,
+      groups: filteredGroups,
+      files: filteredFiles,
+    },
+    allData: {
+      workstations: allWorkstations,
+      groups: allGroups,
+      files: allFiles,
+    },
+    toggleSelection,
+    removeSelection,
+    BasicInfoStep,
+    SelectionStep,
+  });
 
   const isNextDisabled =
     currentStep === 0 &&

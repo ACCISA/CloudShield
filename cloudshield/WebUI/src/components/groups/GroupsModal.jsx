@@ -19,26 +19,10 @@ import {
   createFilteredItems,
   createNavigationHandler,
   createDeleteHandler,
-  createSelectAllHandler,
-} from "../../utils/modalHelpers.js";
+  createRenderStepContent,
+} from "../../utils/modalHelpers.jsx";
 
 const STEPS = ["Basic Info", "Users", "Workstations", "Shares"];
-
-// Minimal mock until workstations API is ready
-const MOCK_WORKSTATIONS_MIN = [
-  {
-    id: "ws-1",
-    name: "Workstation Alpha",
-    online: true,
-    ipAddress: "10",
-  },
-  {
-    id: "ws-2",
-    name: "Workstation Beta",
-    online: false,
-    ipAddress: "10",
-  },
-];
 
 /**
  * GroupsModal - Multi-step wizard for creating/editing groups
@@ -218,87 +202,34 @@ export default function GroupsModal({
 
   if (!open) return null;
 
-  // Render Step Content
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <BasicInfoStep
-            formData={formData}
-            setFormData={setFormData}
-            handleImageUpload={handleImageUpload}
-          />
-        );
-      case 1:
-        return (
-          <SelectionStep
-            type="users"
-            searchTerm={searchTerms.users}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, users: val }))
-            }
-            filteredItems={filteredUsers}
-            selectedItems={formData.selectedUsers}
-            allSelected={formData.allUsers}
-            onToggle={(item) => toggleSelection("users", item)}
-            onRemove={(id) => removeSelection("users", id)}
-            totalItems={allUsers}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "users",
-              allUsers,
-              formData.selectedUsers,
-            )}
-          />
-        );
-      case 2:
-        return (
-          <SelectionStep
-            type="workstations"
-            searchTerm={searchTerms.workstations}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, workstations: val }))
-            }
-            filteredItems={filteredWorkstations}
-            selectedItems={formData.selectedWorkstations}
-            allSelected={formData.allWorkstations}
-            onToggle={(item) => toggleSelection("workstations", item)}
-            onRemove={(id) => removeSelection("workstations", id)}
-            totalItems={allWorkstations}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "workstations",
-              allWorkstations,
-              formData.selectedWorkstations,
-            )}
-          />
-        );
-      case 3:
-        return (
-          <SelectionStep
-            type="files"
-            searchTerm={searchTerms.files}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, files: val }))
-            }
-            filteredItems={filteredFiles}
-            selectedItems={formData.selectedFiles}
-            allSelected={formData.allFiles}
-            onToggle={(item) => toggleSelection("files", item)}
-            onRemove={(id) => removeSelection("files", id)}
-            totalItems={allFiles}
-            onAllChange={createSelectAllHandler(
-              setFormData,
-              "files",
-              allFiles,
-              formData.selectedFiles,
-            )}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Render Step Content using shared factory
+  const renderStepContent = createRenderStepContent({
+    steps: [
+      { handleImageUpload, isEditMode },
+      { type: "users" },
+      { type: "workstations" },
+      { type: "files" },
+    ],
+    currentStep,
+    formData,
+    setFormData,
+    searchTerms,
+    setSearchTerms,
+    filteredData: {
+      users: filteredUsers,
+      workstations: filteredWorkstations,
+      files: filteredFiles,
+    },
+    allData: {
+      users: allUsers,
+      workstations: allWorkstations,
+      files: allFiles,
+    },
+    toggleSelection,
+    removeSelection,
+    BasicInfoStep,
+    SelectionStep,
+  });
 
   const isNextDisabled = currentStep === 0 && !formData.groupName.trim();
 
