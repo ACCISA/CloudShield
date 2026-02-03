@@ -30,6 +30,9 @@ PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"
 _module_logger = get_logger("tasks")
 UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
+USER_NOT_FOUND="User not found"
+INVALID_GROUP="invalid group name"
+
 def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
@@ -60,6 +63,17 @@ def validate_password(password:str, logger=None):
         return False
     return True
 
+def sync_netlogon_script():
+    """
+    After editing file shares we must sync the netlogon scripts so that users get the updates shares mapped to a network drive when they login
+    """
+    #we have to complete makign RPC request to sync netlogon script
+    #request = infra_pb2.SyncNetlogonScript(realm=realm)
+
+    #then call real func to pull all shares
+    #shares = get_all_group_shares()
+    pass
+
 def dc_create_file_share(
     org_id: str,
     share_name: str,
@@ -81,7 +95,7 @@ def dc_create_file_share(
     if not nodes:
         logger.error("Inventory is empty for org_id=%s", org_id)
     
-    request = infra_pb2.CreateSambaFileShareData(share_name=share_name)
+    request = infra_pb2.CreateSambaFileShareData(share_name=share_name, share_size="100M")
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
@@ -95,11 +109,14 @@ def dc_create_file_share(
     status = response.status
     
     if status == infra_pb2.SUCCESS:
+        # store new file share in mongodb
+        # sync netlogon share
+        #sync_netlogon_script(realm)
         logger.info("Successfully created new samba file share")
         try:
             # NOTE: Replace mock size defaults once real usage/quota logic is implemented.
-            effective_max_size = max_size if max_size is not None else 50
-            mock_current_size = 7
+            effective_max_size = max_size if max_size is not None else "50G"
+            mock_current_size = "7"
             create_share(
                 org_id=org_id,
                 name=share_name,
@@ -237,7 +254,7 @@ def dc_set_password(org_id: str, username: str, new_password: str):
 
     if status == infra_pb2.USER_NOT_FOUND:
         logger.error(f"User not found (user={username}")
-        return {"status":"USER_NOT_FOUND", "message":"User not found"}
+        return {"status":"USER_NOT_FOUND", "message":USER_NOT_FOUND}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to set password")
@@ -296,7 +313,7 @@ def dc_add_group(org_id: str, group_name: str):
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -415,7 +432,7 @@ def dc_add_user_to_group(org_id: str, username: str, group_name: str):
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -443,7 +460,7 @@ def dc_add_user_to_group(org_id: str, username: str, group_name: str):
 
     if status == infra_pb2.USER_NOT_FOUND:
         logger.warning("User not found while adding to group")
-        return {"status": "USER_NOT_FOUND", "message": "User not found"}
+        return {"status": "USER_NOT_FOUND", "message": USER_NOT_FOUND}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to add user to group")
@@ -483,7 +500,7 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -585,7 +602,7 @@ def dc_remove_user(org_id: str, username: str):
     
     if status == infra_pb2.USER_NOT_FOUND:
         logger.error("Failed to find user")
-        return {"status": "USER_NOT_FOUND", "message":"User not found"}
+        return {"status": "USER_NOT_FOUND", "message":USER_NOT_FOUND}
     
     logger.error("unknown error when removing user")
     return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}

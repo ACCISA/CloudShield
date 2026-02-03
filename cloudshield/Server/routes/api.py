@@ -26,6 +26,7 @@ api_bp = Blueprint("api", __name__)
 
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+ERROR_USER_REQUIRED = "username is required"
 
 
 @api_bp.route("/organization/<org_id>", methods=["GET"])
@@ -343,7 +344,7 @@ def task_set_password():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if username is None:
-        return jsonify({"error":"username is required"}), 422
+        return jsonify({"error":ERROR_USER_REQUIRED}), 422
     if new_password is None:
         return jsonify({"error":"new_password is required"}), 422
 
@@ -387,7 +388,7 @@ def task_dc_remove_user():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if username is None:
-        return jsonify({"error":"username is required"}), 422
+        return jsonify({"error":ERROR_USER_REQUIRED}), 422
 
     job = service_dispatcher(service_name="dc_remove_user", org_id=org_id, username=username)
 
@@ -418,8 +419,8 @@ def task_dc_add_user():
     username = data.get("username")
     password = data.get("password")
     email = data.get("email")
-    
-    for arg, val in {"org_id":org_id, "username":username, "password":password}.items():
+
+    for arg, val in {"org_id":org_id, "username":username, "password":password,"email":email}.items():
         if val is None:
             logger.warning(f"DC add_user request missing {arg}")
             return jsonify({"error":f"{arg} is required"}), 400
@@ -445,7 +446,7 @@ def task_dc_add_user_to_group():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if username is None:
-        return jsonify({"error": "username is required"}), 422
+        return jsonify({"error":ERROR_USER_REQUIRED}), 422
     if group_name is None:
         return jsonify({"error": "group_name is required"}), 422
 

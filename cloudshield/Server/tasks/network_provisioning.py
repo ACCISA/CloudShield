@@ -25,7 +25,7 @@ from utils import (
 from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
-from provisioner import provision_network_terraform, get_target_dir, destroy_infra
+from provisioner import provision_network_terraform, get_target_dir, destroy_infra, provision_workstation
 
 
 """
@@ -42,7 +42,7 @@ _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
 
-def _coerce_int(val, default: int) -> int:
+def _coerce_int(val, default: int | None) -> int:
     """Return int(val) when numeric; otherwise a safe default."""
     if isinstance(val, bool):
         return default
@@ -175,6 +175,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     set_progress("starting")
 
     org_doc = organizations.find_one(org_filter(org_id)) or {}
+    org_doc["org_id"] = org_id
 
     org_limit = _coerce_int(org_doc.get("workstation_limit"), default=None)
     desired_workstations = workstation_count if workstation_count not in (None, 0) else org_limit or 1
@@ -198,7 +199,7 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         logger.info("Calling provision_network_terraform for org %s", org_id)
 
         metadata = provision_network_terraform(
-                org_id=org_id,
+                org_data=org_doc,
                 region=region,
                 templates_dir=templates_dir,
                 generated_dir=generated_dir,
@@ -225,14 +226,25 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
 
         logger.info("Metadata from provisioner: %s", metadata)
+
+
+
+        logger.info("Starting to provision 1 workstation for testing")
+
+        ws_metadata = provision_workstation(org_id, logger)
+
+        metadata.append(ws_metadata)
+
         assets = map_metadata_to_ec2_instances(metadata)
 
-
-        # Centralized persistence via repository helper (insert_inventory)
         res = insert_inventory(db=db, org_id=org_id, assets=assets)
+
         logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
 
         logger.info("Provisioning complete for org %s", org_id)
+
+
+
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
         

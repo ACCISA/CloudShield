@@ -1,0 +1,8 @@
+.git
+__pycache__/
+venv/
+**/venv/**
+*.pyc
+*.log
+docker/workstation/storage/
+win11x64.iso

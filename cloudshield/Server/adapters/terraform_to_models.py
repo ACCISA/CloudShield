@@ -7,6 +7,7 @@ def map_metadata_to_ec2_instances(metadata: Iterable[Dict[str, Any]]) -> List[EC
     Transforms provisioner metadata (dicts) --> domain EC2Instance models.
     Centralizes field mapping for reuse.
     """
+    print(metadata)
     assets: List[EC2Instance] = []
     for asset in metadata:
         assets.append(

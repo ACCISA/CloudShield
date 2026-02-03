@@ -182,6 +182,10 @@ def install_fake_passwords_module():
     mod = types.ModuleType("security.passwords")
     def hash_password(p): return f"hashed::{p}"
     mod.hash_password = hash_password
+    def is_bcrypt_string(s): return isinstance(s, str) and len(s) >= 55 and s.startswith("$2")
+    mod.is_bcrypt_string = is_bcrypt_string
+    from security.passwords import verify_password
+    mod.verify_password = verify_password
     sys.modules["security.passwords"] = mod
 
 

@@ -46,15 +46,22 @@ class TestGroupNameValidation:
             "team123",              # with numbers
             "a-b_c-d-e-1-2-3",      # mixed
             "a" * 64,               # maximum 64 chars
+            "My Group",             # spaces are normalized to hyphens
+            "Eng.Team",             # punctuation normalized to hyphens
         ]
         for name in valid_names:
             group = AccessGroupCreate(group_name=name)
-            assert group.group_name == name.lower().strip()
+            # Stored group_name is a normalized slug
+            assert group.group_name
 
     def test_group_name_normalized_to_lowercase(self):
         """Test group_name is normalized to lowercase"""
         group = AccessGroupCreate(group_name="  MarKeTinG  ")
         assert group.group_name == "marketing"
+
+    def test_group_name_spaces_normalized_to_hyphens(self):
+        group = AccessGroupCreate(group_name="  My Group  ")
+        assert group.group_name == "my-group"
 
     def test_group_name_stripped(self):
         """Test group_name whitespace is stripped"""
@@ -92,13 +99,13 @@ class TestGroupNameValidation:
         assert group.group_name == "marketing"
 
     def test_invalid_group_name_special_chars(self):
-        """Test group_name with invalid special characters raises error"""
+        """Test group_name with only invalid characters (or too short after normalization) raises error"""
         invalid_names = [
-            "group name",           # spaces
-            "group.name",           # dot
-            "group@name",           # at sign
-            "group!name",           # exclamation
-            "group/name",           # slash
+            "--",          # too short
+            "__",          # too short
+            "!!!",         # normalizes to empty
+            "  ",          # empty
+            "a",           # too short
         ]
         for name in invalid_names:
             with pytest.raises(ValidationError) as exc_info:
@@ -406,6 +413,13 @@ def client(monkeypatch, mock_access_groups_collection):
     """Create Flask test client with mocked database"""
     # Mock redis before imports
     with patch("cloudshield.Server.redis_client.redis.Redis"):
+        # Make auth guard always accept a deterministic JWT payload for tests.
+        # NOTE: guards.py imports verify_token at module import time, so patch the symbol there.
+        monkeypatch.setattr(
+            "cloudshield.Server.security.guards.verify_token",
+            lambda _token: {"sub": "test-user", "role": "admin", "org_id": "org123"},
+        )
+
         # We need to mock the access_groups collection before importing the app
         monkeypatch.setattr(
             "cloudshield.Server.utils.database.access_groups",
@@ -420,7 +434,10 @@ def client(monkeypatch, mock_access_groups_collection):
 
         app = create_app()
         app.testing = True
-        return app.test_client(), mock_access_groups_collection
+        test_client = app.test_client()
+        # Apply auth header to all requests by default
+        test_client.environ_base["HTTP_AUTHORIZATION"] = "Bearer test-token"
+        return test_client, mock_access_groups_collection
 
 
 class TestCreateAccessGroupRoute:
@@ -848,7 +865,7 @@ class TestListAccessGroupsRoute:
         test_client.get("/api/access-groups")
 
         # Verify sort was called with created_at descending (-1)
-        mock_collection.find.assert_called_once_with({})
+        mock_collection.find.assert_called_once_with({"org_id": "org123"})
         mock_cursor.sort.assert_called_once_with("created_at", -1)
 
     def test_list_access_groups_db_error(self, client):
@@ -1265,7 +1282,7 @@ class TestAccessGroupRoutesDirect:
 
     def test_list_access_groups_summary_returns_member_count(self):
         """Test list_access_groups summary returns member_count without enrichment"""
-        from flask import Flask
+        from flask import Flask, g
         import cloudshield.Server.routes.access_groups as routes_module
 
         app = Flask(__name__)
@@ -1292,6 +1309,8 @@ class TestAccessGroupRoutesDirect:
         routes_module.access_groups = mock_collection
         try:
             with app.test_request_context("/api/access-groups?summary=1"):
+                # Bypass @require_auth by pre-populating g.user
+                g.user = {"id": "test-user", "role": "admin", "org_id": "org123"}
                 response, status_code = routes_module.list_access_groups()
         finally:
             routes_module.access_groups = original
@@ -1478,11 +1497,17 @@ class TestAccessGroupRoutesWithFlask:
     """
 
     @pytest.fixture
-    def app_client(self):
+    def app_client(self, monkeypatch):
         """Create Flask app with mocked database collection"""
         from flask import Flask
         from cloudshield.Server.routes.access_groups import access_groups_bp
         import cloudshield.Server.routes.access_groups as routes_module
+
+        # Make auth guard accept deterministic payload
+        monkeypatch.setattr(
+            "cloudshield.Server.security.guards.verify_token",
+            lambda _token: {"sub": "test-user", "role": "admin", "org_id": "org123"},
+        )
 
         app = Flask(__name__)
         app.register_blueprint(access_groups_bp, url_prefix="/api")
@@ -1494,7 +1519,9 @@ class TestAccessGroupRoutesWithFlask:
         original = routes_module.access_groups
         routes_module.access_groups = mock_coll
 
-        yield app.test_client(), mock_coll
+        test_client = app.test_client()
+        test_client.environ_base["HTTP_AUTHORIZATION"] = "Bearer test-token"
+        yield test_client, mock_coll
 
         # Restore original
         routes_module.access_groups = original

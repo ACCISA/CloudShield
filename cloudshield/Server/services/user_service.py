@@ -1,4 +1,6 @@
 """User management service layer with audit logging."""
+import secrets
+import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
@@ -19,9 +21,15 @@ def _coerce_int(val) -> int | None:
     return None
 
 
-def _create_org_for_signup(org_name: Optional[str], package: str) -> tuple[str, dict]:
+def _create_org_for_signup(org_name: Optional[str], package: str, domain_name, realm_name, dc_admin_password) -> tuple[str, dict]:
     """Create an organization and return its auto-generated MongoDB ObjectId string."""
-    org_model = OrganizationCreate(name=org_name, package=package)
+    org_model = OrganizationCreate(
+            name=org_name, 
+            package=package, 
+            domain_name=domain_name,
+            realm_name=realm_name,
+            dc_admin_password=dc_admin_password)
+
     org_doc = create_organization_doc(org_model)
     
     # MongoDB automatically generates and injects the '_id' field
@@ -105,7 +113,7 @@ def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = 
 
 def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str | None = None) -> str:
     """
-    Create a new user account with audit logging.
+    Create a new admin user account with audit logging.
 
     - Admin flow (dashboard): current_user is a dict and must be admin.
     - Public signup flow: current_user is None.
@@ -126,6 +134,16 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # Determine package for this signup
     package = (user_data.package_type or "basic").strip() if isinstance(getattr(user_data, "package_type", None), str) else "basic"
     org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
+    domain_name = org_name.replace(" ", "_").upper()
+    realm_name = "SAMDOM."+domain_name+".COM"
+    
+    def gen_password():
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        password = ''.join(secrets.choice(alphabet) for _ in range(16))
+        return password
+
+
+    dc_admin_password = gen_password()
 
     # -----------------------------
     # Auth / permission rules + org provisioning
@@ -144,7 +162,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
             raise ValueError("Invalid organization ID format")
     else:
         # Public signup: create org using Mongo ObjectId
-        org_id, org_doc = _create_org_for_signup(org_name, package)
+        org_id, org_doc = _create_org_for_signup(org_name, package, domain_name, realm_name, dc_admin_password)
 
         # Optional hardening: force role admin on public signup
         if getattr(user_data, "role", None) != "admin":

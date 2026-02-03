@@ -359,9 +359,9 @@ def test_dc_create_file_share_success_no_job(monkeypatch):
         "tasks.dc_management.persist_domain_user",
         mock_persist
     )
-    
+
     # Execute
-    result = dc_create_file_share("test_org", "data")
+    result = dc_create_file_share("test_org", "data", [], [], "description", "20G")
     print(result)
 
     # Assert persist_domain_user was called with correct args
@@ -468,7 +468,7 @@ def test_dc_create_file_share_success(monkeypatch):
     )
     
     # Execute
-    result = dc_create_file_share("test_org", "data")
+    result = dc_create_file_share("test_org", "data", [], [], "description", "20G")
     print(result)
 
     # Assert persist_domain_user was called with correct args

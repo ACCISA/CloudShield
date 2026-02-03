@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 
 from models.access_groups import (
@@ -15,6 +15,8 @@ from models.access_groups import (
     access_group_to_json,
 )
 from utils.logging_setup import get_logger
+
+from cloudshield.Server.security.guards import require_auth
 
 
 # Collection handle. In production this is resolved lazily.
@@ -43,7 +45,16 @@ def _get_access_groups_collection():
     return access_groups
 
 
+def _require_org_id() -> str:
+    org_id = (getattr(g, "user", {}) or {}).get("org_id")
+    org_id = (org_id or "").strip()
+    if not org_id:
+        raise ValueError("Missing org_id for authenticated user")
+    return org_id
+
+
 @access_groups_bp.route("/access-groups", methods=["GET"])
+@require_auth
 def list_access_groups():
     """
     Fetch all access groups with optional member enrichment.
@@ -59,8 +70,9 @@ def list_access_groups():
     try:
         summary = (request.args.get("summary") or "").strip() in {"1", "true", "yes"}
         coll = _get_access_groups_collection()
+        org_id = _require_org_id()
 
-        group_docs = list(coll.find({}).sort("created_at", -1))
+        group_docs = list(coll.find({"org_id": org_id}).sort("created_at", -1))
 
         if summary:
             out = []
@@ -91,7 +103,10 @@ def list_access_groups():
         user_map = {}
         if member_oids:
             projection = {"password": 0}
-            user_docs = list(users_coll.find({"_id": {"$in": member_oids}}, projection))
+            # Enforce org boundary even if a group doc contains foreign member IDs.
+            user_docs = list(
+                users_coll.find({"_id": {"$in": member_oids}, "org_id": org_id}, projection)
+            )
             for u in user_docs:
                 uid = str(u.get("_id"))
                 u["_id"] = uid
@@ -130,6 +145,7 @@ def list_access_groups():
 
 
 @access_groups_bp.route("/access-groups", methods=["POST"])
+@require_auth
 def create_access_group():
     """
     Create a new access group and store it in MongoDB.
@@ -149,13 +165,16 @@ def create_access_group():
         data = request.get_json() or {}
         group_data = AccessGroupCreate(**data)
 
-        # Unique group name (global). If you later want per-org uniqueness, add org_id to doc + query.
+        org_id = _require_org_id()
+
+        # Unique group name within an org.
         coll = _get_access_groups_collection()
-        existing = coll.find_one({"name": group_data.group_name}, {"_id": 1})
+        existing = coll.find_one({"name": group_data.group_name, "org_id": org_id}, {"_id": 1})
         if existing:
             return jsonify({"error": "access group already exists"}), 409
 
         doc = create_access_group_doc(group_data)
+        doc["org_id"] = org_id
         res = coll.insert_one(doc)
         created = coll.find_one({"_id": res.inserted_id})
 
@@ -170,6 +189,7 @@ def create_access_group():
 
 
 @access_groups_bp.route("/access-groups/<group_id>", methods=["PATCH"])
+@require_auth
 def update_access_group(group_id: str):
     """
     Update an existing access group.
@@ -190,9 +210,10 @@ def update_access_group(group_id: str):
         patch = AccessGroupUpdate(**data)
 
         coll = _get_access_groups_collection()
+        org_id = _require_org_id()
         gid = ObjectId(group_id)
 
-        existing = coll.find_one({"_id": gid})
+        existing = coll.find_one({"_id": gid, "org_id": org_id})
         if not existing:
             return jsonify({"error": "access group not found"}), 404
 
@@ -201,7 +222,7 @@ def update_access_group(group_id: str):
 
         # group_name (unique)
         if patch.group_name is not None:
-            dup = coll.find_one({"name": patch.group_name, "_id": {"$ne": gid}}, {"_id": 1})
+            dup = coll.find_one({"name": patch.group_name, "org_id": org_id, "_id": {"$ne": gid}}, {"_id": 1})
             if dup:
                 return jsonify({"error": "access group already exists"}), 409
             set_doc["name"] = patch.group_name
@@ -222,12 +243,12 @@ def update_access_group(group_id: str):
             set_doc["file_shares"] = patch.file_shares
 
         if not set_doc:
-            current = coll.find_one({"_id": gid})
+            current = coll.find_one({"_id": gid, "org_id": org_id})
             return jsonify({"access_group": access_group_to_json(current)}), 200
 
         set_doc["updated_at"] = now
-        coll.update_one({"_id": gid}, {"$set": set_doc})
-        updated = coll.find_one({"_id": gid})
+        coll.update_one({"_id": gid, "org_id": org_id}, {"$set": set_doc})
+        updated = coll.find_one({"_id": gid, "org_id": org_id})
 
         #TODO rpc_sync_access_group(updated)
 
@@ -240,6 +261,7 @@ def update_access_group(group_id: str):
 
 
 @access_groups_bp.route("/access-groups/<group_id>", methods=["DELETE"])
+@require_auth
 def delete_access_group(group_id: str):
     """
     Delete an access group.
@@ -248,9 +270,10 @@ def delete_access_group(group_id: str):
     """
     try:
         coll = _get_access_groups_collection()
+        org_id = _require_org_id()
         gid = ObjectId(group_id)
 
-        res = coll.delete_one({"_id": gid})
+        res = coll.delete_one({"_id": gid, "org_id": org_id})
         if res.deleted_count == 0:
             return jsonify({"error": "access group not found"}), 404
 
@@ -263,6 +286,7 @@ def delete_access_group(group_id: str):
 
 
 @access_groups_bp.route("/access-groups/add-members", methods=["POST"])
+@require_auth
 def add_members_to_access_group():
     """
     Add users to an existing access group.
@@ -279,11 +303,12 @@ def add_members_to_access_group():
         add_req = AccessGroupAddMembers(**data)
 
         coll = _get_access_groups_collection()
+        org_id = _require_org_id()
         member_oids = [ObjectId(m) for m in add_req.members]
         now = datetime.now(timezone.utc)
 
         update_res = coll.update_one(
-            {"name": add_req.group_name},
+            {"name": add_req.group_name, "org_id": org_id},
             {
                 "$addToSet": {"members": {"$each": member_oids}},
                 "$set": {"updated_at": now},
@@ -293,7 +318,7 @@ def add_members_to_access_group():
         if update_res.matched_count == 0:
             return jsonify({"error": "access group not found"}), 404
 
-        updated = coll.find_one({"name": add_req.group_name})
+        updated = coll.find_one({"name": add_req.group_name, "org_id": org_id})
 
         #TODO rpc_sync_access_group(updated)
 
