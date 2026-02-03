@@ -17,7 +17,7 @@ docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 OVPN_VOLUME_NAME = "opvn-data-cloudshield"
 PKI_INPUT = b"\n\n\n"
 print("BUILDING")
-PRGMA_ONCE = False
+PRAGMA_ONCE = False
 if PRAGMA_ONCE is False:
     docker.compose.build(
         services=["samba-test", "openvpn-test","workstation"]
