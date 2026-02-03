@@ -42,7 +42,7 @@ class TestPasswords:
 
     def test_hash_password_long_password(self):
         """Test hashing password at bcrypt limit (72 bytes)"""
-        password = "a" * 73
+        password = "a" * 72 
         hashed = hash_password(password)
         
         assert isinstance(hashed, str)
@@ -52,7 +52,8 @@ class TestPasswords:
         """Test that very long passwords raise ValueError"""
         password = "a" * 1000  
         
-        result = hash_password(password)
+        with pytest.raises(ValueError, match="password cannot be longer than 72 bytes"):
+            hash_password(password)
 
     def test_verify_password_correct_password(self):
         """Test verification with correct password"""
