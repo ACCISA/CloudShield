@@ -23,11 +23,6 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 CORS(auth_bp)
 
-def sanitize_string(text):
-    clean_text = re.sub(r'\W+', '_', text)
-    return clean_text.strip('_').lower()
-
-
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
     if request.method == 'OPTIONS':

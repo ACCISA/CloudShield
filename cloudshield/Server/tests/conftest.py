@@ -57,6 +57,16 @@ sys.modules["redis.exceptions"] = _ex_mod
 # Install the fake redis module
 sys.modules["redis"] = _fake_redis
 
+_fake_flask_cors = types.ModuleType("flask_cors")
+
+class CORS:
+    def __init__(self, *args, **kwargs):
+        pass
+
+_fake_flask_cors.CORS = CORS
+
+sys.modules["flask_cors"] = _fake_flask_cors
+
 @pytest.fixture(autouse=True)
 def redis_mock_fixture():
     """

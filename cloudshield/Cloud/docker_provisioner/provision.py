@@ -17,9 +17,11 @@ docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 OVPN_VOLUME_NAME = "opvn-data-cloudshield"
 PKI_INPUT = b"\n\n\n"
 print("BUILDING")
-docker.compose.build(
-    services=["samba-test", "openvpn-test","workstation"]
-)
+PRGMA_ONCE = False
+if PRAGMA_ONCE is False:
+    docker.compose.build(
+        services=["samba-test", "openvpn-test","workstation"]
+    )
 
 
 def short_uuid():
@@ -131,6 +133,10 @@ def create_auto_configure_scripts(variables: dict, container_id: str, server_log
                 return
 
 def provision_workstation_docker(org_id, server_logger):
+    global PRAGMA_ONCE
+    
+    if PRAGMA_ONCE is False:
+        PRAGMA_ONCE = True
 
     container_ws = docker.compose.run(
             service="workstation",

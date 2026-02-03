@@ -112,8 +112,8 @@ def dc_create_file_share(
         logger.info("Successfully created new samba file share")
         try:
             # NOTE: Replace mock size defaults once real usage/quota logic is implemented.
-            effective_max_size = max_size if max_size is not None else 50
-            mock_current_size = 7
+            effective_max_size = max_size if max_size is not None else "50G"
+            mock_current_size = "7"
             create_share(
                 org_id=org_id,
                 name=share_name,

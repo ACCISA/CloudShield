@@ -13,6 +13,9 @@ BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 logger = logging.getLogger()
 
+def provision_workstation():
+    pass
+
 def get_target_dir(org_id: str, generated_dir: str | None = None) -> str:
     """
     Returns the target directory for the given org_id.

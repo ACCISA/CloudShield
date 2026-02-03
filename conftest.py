@@ -106,6 +106,9 @@ except Exception:
         return _BCRYPT_PREFIX + b64[:_SALT_LEN]
 
     def _hashpw(password: bytes, salt: bytes) -> bytes:
+        print("heeerre")
+        if len(password) > 72:
+            raise ValueError("password cannot be longer than 72 bytes")
         # Produce a stable, bcrypt-shaped hash that depends on both password and salt.
         # Format: <salt>$<digest>
         digest = hashlib.sha256(salt + b"|" + password).digest()
@@ -326,6 +329,26 @@ except Exception:
 def _provision_network_terraform_stub(*args, **kwargs):
     return {"status": "success", "message": "Provisioned (test stub)"}
 
+def _provision_workstation(*args, **kwargs):
+    return {
+        "public_ip": "1.2.3.4",
+        "port":"50055",
+        "private_ip": "10.0.0.1",
+        "vpc_id": "vpc-123",
+        "name": "test-instance",
+        "ssh_key": "test_key",
+        "ami_id": "ami-123",
+        "cpu": 2,
+        "created_at": "2025-01-01",
+        "instance_id": "i-123",
+        "os": "Ubuntu",
+        "ports": ["sg-123"],
+        "ram_gb": "4GB",
+        "status": "running",
+        "storage_size_gb": 50,
+        "subnet_id": "subnet-123",
+        "updated_at": "2025-01-01",
+    }
 
 def _destroy_stub(*args, **kwargs):
     return {"status": "success", "message": "Destroyed (test stub)"}
@@ -341,6 +364,7 @@ _stub_module(
     "provisioner",
     {
         "provision_network_terraform": _provision_network_terraform_stub,
+        "provision_workstation":_provision_workstation,
             "destroy_infra": _destroy_stub,
             "get_target_dir": _get_target_dir_stub,
     },

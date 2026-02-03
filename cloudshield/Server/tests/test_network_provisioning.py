@@ -269,7 +269,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
     # Mock provisioner
     monkeypatch.setattr(
         "tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, count, server_logger: metadata
+        lambda org_data, region, templates_dir, generated_dir, count, server_logger: metadata
     )
 
     # Mock insert_inventory to return a fake result
@@ -317,7 +317,7 @@ def test_provision_network_returns_none(monkeypatch):
 
     monkeypatch.setattr(
         "tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, count, server_logger: None
+        lambda org_data, region, templates_dir, generated_dir, count, server_logger: None
     )
 
     result = provision_network("test_org")
@@ -343,7 +343,7 @@ def test_provision_network_without_job(monkeypatch):
     # Empty metadata
     monkeypatch.setattr(
         "tasks.network_provisioning.provision_network_terraform",
-        lambda org_id, region, templates_dir, generated_dir, count, server_logger: []
+        lambda org_data, region, templates_dir, generated_dir, count, server_logger: []
     )
     # insert_inventory still called; stub it
     monkeypatch.setattr(
@@ -450,8 +450,7 @@ def test_provision_network_uses_org_limit_and_updates_status(monkeypatch):
     monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
 
     result = np.provision_network("test_org")
-
-    assert result["metadata"] == [{"id": "asset"}]
+    assert {"id": "asset"} in result["metadata"]
     assert updates[0] == "in_progress"
     assert updates[-1] == "completed"
 

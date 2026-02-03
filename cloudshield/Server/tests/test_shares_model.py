@@ -218,7 +218,7 @@ class TestFileShareModel:
             "groups": ["groupA"],
             "kind": None,
             "users": [],
-            "current_size": 0,
+            "current_size": "0",
             "max_size": None
         }
         
