@@ -1,4 +1,6 @@
 """User management service layer with audit logging."""
+import secrets
+import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
@@ -134,7 +136,14 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
     domain_name = org_name.replace(" ", "_").upper()
     realm_name = "SAMDOM."+domain_name+".COM"
-    dc_admin_password = "letmein%123"
+    
+    def gen_password():
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        password = ''.join(secrets.choice(alphabet) for _ in range(16))
+        return password
+
+
+    dc_admin_password = gen_password()
 
     # -----------------------------
     # Auth / permission rules + org provisioning

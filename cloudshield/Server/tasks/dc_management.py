@@ -30,6 +30,9 @@ PROXY_FAIL_MESSAGE = {"status":"FAILED", "message":"Failed to proxy rpc request"
 _module_logger = get_logger("tasks")
 UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
+USER_NOT_FOUND="User not found"
+INVALID_GROUP="invalid group name"
+
 def validate_username(username: str, logger=None):
     """
     Validate username to prevent CLI Injections
@@ -64,10 +67,10 @@ def sync_netlogon_script():
     """
     After editing file shares we must sync the netlogon scripts so that users get the updates shares mapped to a network drive when they login
     """
-    #TODO complete makign RPC request to sync netlogon script
+    #we have to complete makign RPC request to sync netlogon script
     #request = infra_pb2.SyncNetlogonScript(realm=realm)
 
-    #TODO call real func to pull all shares
+    #then call real func to pull all shares
     #shares = get_all_group_shares()
     pass
 
@@ -251,7 +254,7 @@ def dc_set_password(org_id: str, username: str, new_password: str):
 
     if status == infra_pb2.USER_NOT_FOUND:
         logger.error(f"User not found (user={username}")
-        return {"status":"USER_NOT_FOUND", "message":"User not found"}
+        return {"status":"USER_NOT_FOUND", "message":USER_NOT_FOUND}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to set password")
@@ -310,7 +313,7 @@ def dc_add_group(org_id: str, group_name: str):
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -429,7 +432,7 @@ def dc_add_user_to_group(org_id: str, username: str, group_name: str):
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -457,7 +460,7 @@ def dc_add_user_to_group(org_id: str, username: str, group_name: str):
 
     if status == infra_pb2.USER_NOT_FOUND:
         logger.warning("User not found while adding to group")
-        return {"status": "USER_NOT_FOUND", "message": "User not found"}
+        return {"status": "USER_NOT_FOUND", "message": USER_NOT_FOUND}
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to add user to group")
@@ -497,7 +500,7 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
 
     if not validate_username(group_name, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid group name"
+            job.meta["progress"] = INVALID_GROUP
             job.save_meta()
         return {"message": f"the group name is invalid (group={group_name})"}
 
@@ -599,7 +602,7 @@ def dc_remove_user(org_id: str, username: str):
     
     if status == infra_pb2.USER_NOT_FOUND:
         logger.error("Failed to find user")
-        return {"status": "USER_NOT_FOUND", "message":"User not found"}
+        return {"status": "USER_NOT_FOUND", "message":USER_NOT_FOUND}
     
     logger.error("unknown error when removing user")
     return {"status":"UNKNOWN", "message":UNEXPECTED_RESPONSE}

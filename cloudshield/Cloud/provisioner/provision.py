@@ -14,6 +14,7 @@ DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 logger = logging.getLogger()
 
 def provision_workstation():
+    # This will be implemented once we start moving to AWS
     pass
 
 def get_target_dir(org_id: str, generated_dir: str | None = None) -> str:

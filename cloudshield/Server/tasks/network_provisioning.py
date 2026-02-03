@@ -42,7 +42,7 @@ _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
 
-def _coerce_int(val, default: int) -> int:
+def _coerce_int(val, default: int | None) -> int:
     """Return int(val) when numeric; otherwise a safe default."""
     if isinstance(val, bool):
         return default
