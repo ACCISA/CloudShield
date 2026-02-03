@@ -57,6 +57,11 @@ export default function GroupsPage() {
 
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -133,7 +138,7 @@ export default function GroupsPage() {
       const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
         method: "GET",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
 
       if (!res.ok) {
@@ -302,7 +307,7 @@ export default function GroupsPage() {
           {
             method: "PATCH",
             credentials: "include",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...getAuthHeader() },
             body: JSON.stringify(payload),
           },
         );
@@ -328,7 +333,7 @@ export default function GroupsPage() {
         const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
           body: JSON.stringify(payload),
         });
 
@@ -353,6 +358,7 @@ export default function GroupsPage() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: { ...getAuthHeader() },
         },
       );
 
