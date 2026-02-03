@@ -114,7 +114,7 @@ export const fetchGroups = async (
     }
 
     const res = await fetch(
-      `http://127.0.0.1:5050/api/groups?org_id=${encodeURIComponent(orgId)}`,
+      `http://127.0.0.1:5050/api/access-groups?org_id=${encodeURIComponent(orgId)}`,
       {
         method: "GET",
         credentials: "include",
@@ -126,6 +126,10 @@ export const fetchGroups = async (
     );
 
     if (!res.ok) {
+      // Silently handle missing endpoints (404/405)
+      if (res.status === 404 || res.status === 405) {
+        console.warn(`Groups API not available (${res.status})`);
+      }
       if (setAllGroups) setAllGroups([]);
       return [];
     }
@@ -256,6 +260,10 @@ export const fetchWorkstations = async (
     );
 
     if (!res.ok) {
+      // Silently handle missing endpoints (404/405)
+      if (res.status === 404 || res.status === 405) {
+        console.warn(`Workstations API not available (${res.status})`);
+      }
       if (setAllWorkstations) setAllWorkstations([]);
       return [];
     }

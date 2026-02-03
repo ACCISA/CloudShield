@@ -189,6 +189,12 @@ export default function EmployeesPage() {
       });
 
       const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
+      if (mappedUsers.length > 0) {
+        console.log(
+          "Sample user org_id format:",
+          mappedUsers[0]._original.org_id,
+        );
+      }
       setUsers(mappedUsers);
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -205,10 +211,6 @@ export default function EmployeesPage() {
   const handleModalSubmit = async (payload) => {
     if (!accessToken) {
       openToast("You must be logged in to create a user", "error");
-      return;
-    }
-    if (!orgId) {
-      openToast("Missing org_id for user creation", "error");
       return;
     }
 
@@ -239,11 +241,11 @@ export default function EmployeesPage() {
         const apiPayload = {
           email: payload.email,
           full_name: `${payload.firstName} ${payload.lastName}`,
-          password: payload.password || "Password123!",
+          password: payload.password || "DefaultPass123!",
           role: payload.jobTitle?.toLowerCase().includes("admin")
             ? "admin"
             : "employee",
-          org_id: orgId,
+          org_id: orgId || "cedric",
         };
 
         await createUser(apiPayload, { token: accessToken });
@@ -254,8 +256,20 @@ export default function EmployeesPage() {
       setModalEmployee(null);
       fetchUsers();
     } catch (error) {
-      const msg =
-        error.payload?.error || error.message || "Failed to save user";
+      // Show detailed validation errors if available
+      let msg = "Failed to save user";
+      if (error.payload?.details && Array.isArray(error.payload.details)) {
+        const passwordError = error.payload.details.find((d) =>
+          d.loc?.includes("password"),
+        );
+        if (passwordError) {
+          msg = passwordError.msg || msg;
+        }
+      } else if (error.payload?.error) {
+        msg = error.payload.error;
+      } else if (error.message) {
+        msg = error.message;
+      }
       openToast(msg, "error");
     }
   };
