@@ -7,14 +7,21 @@ std::string ExecutableTask::RunCommand(std::string &command)
 };
 
 std::string SambaTask::AddDomainUser(std::string username, std::string password)
-{
+{	
+	std::cout << "aaaa" << std::endl;
+	std::cout << this->USER_ADD_CMD << std::endl;
+	std::cout << username.c_str() << std::endl;
+	std::cout << password.c_str() << std::endl;
 	std::string full_cmd = BuildCommand(this->USER_ADD_CMD, username.c_str(), password.c_str());
+	std::cout << "debug" << std::endl;
+	std::cout << full_cmd << std::endl;
 	return this->RunCommand(full_cmd);
 }
 
 std::string SambaTask::RemoveDomainUser(std::string username)
 {
 	if (!this->IsDomainUser(username)) {
+		std::cout << "User not found" << std::endl;
 		return "not_found";
 	}
 
@@ -147,32 +154,35 @@ std::string SambaTask::ResetUserPassword(std::string username, std::string new_p
 	return this->RunCommand(full_cmd);
 }
 
-std::string SambaTask::CreateSambaFileShare(std::string share_name)
+
+is::Status SambaTask::CreateSambaFileShare(std::string share_name, std::string share_size)
 {
 
+	is::Status status;
 
-	std::ofstream out_file;
-	out_file.open(SAMBA_SMB_CONF_PATH, std::ios_base::app);
+	status = _create_sparse_file(share_name, share_size);
 
-	if (out_file.is_open()) {
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to create sparse file" << std::endl;
+		return status;
+	}
+	
+	status = _add_share_conf(share_name);
 
-		out_file << "[" << share_name << "]" << std::endl;
-		out_file << "	path = /srv/samba/shared/" << share_name << std::endl;
-		out_file << "	browseable = yes" << std::endl;
-		out_file << "	read only = no" << std::endl;
-		out_file << "	valid users = @\"Domain Users" << std::endl;
-		out_file << "	create mask = 0660" << std::endl;
-		out_file << "	directory mask = 2770" << std::endl;
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to create new samba share" << std::endl;
+		return status;
+	}
+	
+	status = _restart_samba_service();
 
-		out_file.close();
-
-		this->RestartSambaService();
-
-	} else {
-		return "";
+	if (status != is::Status::SUCCESS) {
+		std::cout << "Failed to restart samba service" << std::endl;
+		return status;
 	}
 
-	return "";
+	return status;
+	
 }
 
 bool SambaTask::DeleteSambaFileShare(std::string share_name)
@@ -226,4 +236,75 @@ bool SambaTask::DeleteSambaFileShare(std::string share_name)
     }
 
     return false;
+}
+
+bool SambaTask::AddDNSRecord(AddDNSRecordData& dns_record, std::string& result)
+{
+	std::string full_cmd = BuildCommand(this->ADD_DNS_CMD,
+			dns_record.zone.c_str(),
+			dns_record.name.c_str(),
+			dns_record.target.c_str(),
+			dns_record.password.c_str());
+	
+	result =  this->RunCommand(full_cmd);
+
+	if (result.find("command not found") != std::string::npos) {
+		return false;
+	}
+
+	return true;
+}
+
+bool SambaTask::DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result)
+{
+	std::string full_cmd = BuildCommand(this->DELETE_DNS_CMD,
+			dns_record.zone.c_str(),
+			dns_record.name.c_str(),
+			dns_record.target.c_str(),
+			dns_record.password.c_str());
+
+	result = this->RunCommand(full_cmd);
+
+	if (result.find("command not found") != std::string::npos) {
+		return false;
+	}
+
+	return true;
+}
+
+bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups)
+{
+	if (groups.empty()) return false;
+
+	std::ofstream out_file(BuildCommand(this->NETLOGON_SCRIPT_PATH, realm));
+
+	out_file << "@echo off\n";
+	out_file << "net use * /delete /y\n";
+
+	if (!out_file.is_open()) return false;
+	
+	for (const auto& group_mapping : groups) {
+		std::string group_name = group_mapping.group_name();
+
+		out_file << "net groups /domain | findstr /i \"" << group_name << "\" > nul\n";
+		out_file << "if %errorlevel% equ 0 (\n";
+
+
+		for (const auto& share : group_mapping.shares()) {
+	    		std::string share_path = share.share_path();
+			std::string drive_letter = share.drive_letter();
+
+			out_file << "	if not exist " << drive_letter << ": net use " << drive_letter << ": " << share_path << "\n";
+		}
+
+		out_file << ")\n";
+		out_file << "\n";
+	}
+	return true;
+}
+
+is::Status SambaTask::RestartSambaService()
+{
+	_restart_samba_service();
+	return is::Status::SUCCESS;
 }

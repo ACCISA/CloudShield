@@ -31,6 +31,10 @@ class OrganizationBase(BaseModel):
     provisioning_status: Literal["pending", "in_progress", "completed", "failed"] = "pending"
     provisioning_job_id: Optional[str] = None
 
+    domain_name: str
+    dc_admin_password: str
+    realm_name: str
+
     @field_validator("workstation_limit", "user_limit")
     @classmethod
     def non_negative_limit(cls, v: Optional[int]) -> Optional[int]:
@@ -80,6 +84,9 @@ def create_organization_doc(org: OrganizationCreate) -> dict:
     return {
         "name": org.name,
         "package": org.package,
+        "domain_name": org.domain_name,
+        "realm_name": org.realm_name,
+        "dc_admin_password": org.dc_admin_password,
         "workstation_limit": workstation_limit,
         "user_limit": user_limit,
         "storage_limit_gb": storage_limit_gb,

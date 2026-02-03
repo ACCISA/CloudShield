@@ -34,8 +34,8 @@ class FileShare(BaseModel):
     drive: str
     groups: List[str] = Field(default_factory=list)
     users: List[str] = Field(default_factory=list)
-    current_size: Optional[int] = 0
-    max_size: Optional[int] = None
+    current_size: Optional[str] = "0"
+    max_size: Optional[str] = None
 
 
 class FileShareCreate(BaseModel):
@@ -72,8 +72,8 @@ class FileShareCreate(BaseModel):
     drive: str
     description: Optional[str] = None
     owner: Optional[str] = None
-    current_size: Optional[int] = 0
-    max_size: Optional[int] = None
+    current_size: Optional[str] = "0"
+    max_size: Optional[str] = None
 
 
 def create_fileshare_doc(share: FileShareCreate) -> dict:
@@ -117,7 +117,7 @@ def create_fileshare_doc(share: FileShareCreate) -> dict:
         "drive": share.drive,
         "description": share.description,
         "owner": share.owner,
-        "current_size": share.current_size or 0,
+        "current_size": share.current_size or "0",
         "max_size": share.max_size,
         "created_at": now,
         "updated_at": now,

@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 CORS(auth_bp)
 
-
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
     if request.method == 'OPTIONS':

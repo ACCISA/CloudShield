@@ -11,6 +11,16 @@ enum Status {
         PASSWORD_REQ_FAILED = 4;
         UNKNOWN = 5;
         SHARE_NOT_FOUND = 6;
+        DNS_RECORD_EXIST = 7;
+        DNS_RECORD_NOT_EXIST = 8;
+        DNS_ZONE_NOT_FOUND = 9;
+        AUTH_FAIL = 10;
+        DD_FAIL = 11;
+        MKFS_FAIL = 12;
+        MOUNT_FAIL = 13;
+        NO_SPACE_LEFT = 14;
+        PERMISSION_DENIED = 15;
+        FILE_NOT_FOUND = 16;
 }
 
 message AddDomainUserData {
@@ -44,6 +54,7 @@ message RemoveDomainUserDataAck {
 
 message CreateSambaFileShareData {
         string share_name = 1;
+        string share_size = 2;
 }
 
 message CreateSambaFileShareDataAck {
@@ -111,7 +122,51 @@ message DeleteSambaFileShareDataAck {
         Status status = 1;
 }
 
+message AddDNSRecordData {
+        string zone = 1;
+        string name = 2;
+        string target = 3;
+        string password = 4;
+}
+
+message AddDNSRecordDataAck {
+        Status status = 1;
+}
+
+message DeleteDNSRecordData {
+        string zone = 1;
+        string name = 2;
+        string target = 3;
+        string password = 4;
+}
+
+message DeleteDNSRecordDataAck {
+        Status status = 1;
+}
+
+message Share {
+        string share_path = 1;
+        string drive_letter = 2;
+}
+
+message GroupMapping {
+        string group_name = 1;
+        repeated Share shares = 2;
+}
+
+message SyncNetlogonScriptData {
+        string realm = 1;
+        repeated GroupMapping groups = 2;
+}
+
+message SyncNetlogonScriptDataAck {
+        Status status = 1;
+}
+
 service InfraService {
+        rpc SyncNetlogonScript(SyncNetlogonScriptData) returns (SyncNetlogonScriptDataAck);
+        rpc AddDNSRecord(AddDNSRecordData) returns (AddDNSRecordDataAck);
+        rpc DeleteDNSRecord(DeleteDNSRecordData) returns (DeleteDNSRecordDataAck);
         rpc GetUserList(google.protobuf.Empty) returns (GetUserListDataAck);
         rpc RestartSambaService(google.protobuf.Empty) returns (RestartSambaServiceDataAck);
         rpc CreateSambaFileShare(CreateSambaFileShareData) returns (CreateSambaFileShareDataAck);
