@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
-import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
-import "./GroupsModal.css";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import "./EmployeesModal.css";
 
-// Use the same Users API logic as EmployeesPage
+// Use the same APIs as EmployeesPage
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   resolveOrgId,
+  fetchGroups,
   fetchFileShares,
-  safeSplitName,
-  fetchUsers,
   fetchWorkstations,
   createImageUploadHandler,
   createToggleSelectionHandler,
@@ -22,57 +21,60 @@ import {
   createRenderStepContent,
 } from "../../utils/modalHelpers.jsx";
 
-const STEPS = ["Basic Info", "Users", "Workstations", "Shares"];
+const STEPS = ["Basic Info", "Workstations", "Groups", "Shares"];
 
 /**
- * GroupsModal - Multi-step wizard for creating/editing groups
+ * EmployeesModal - Multi-step wizard for creating/editing employees
  */
-export default function GroupsModal({
+export default function EmployeesModal({
   open,
   onClose,
-  groupData = null,
+  employeeData = null,
   onSubmit,
   onDelete,
-  onRefresh,
 }) {
   const { accessToken, currentUser } = useAuth();
 
-  const isEditMode = Boolean(groupData);
+  const isEditMode = Boolean(employeeData);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
-    groupName: "",
-    description: "",
-    groupImage: null,
-    selectedUsers: [],
+    firstName: "",
+    lastName: "",
+    email: "",
+    jobTitle: "",
+    password: "",
+    profileImage: null,
     selectedWorkstations: [],
-    selectedFiles: [],
-    allUsers: false,
     allWorkstations: false,
+    selectedGroups: [],
+    allGroups: false,
+    selectedFiles: [],
     allFiles: false,
   });
 
   // Search State
   const [searchTerms, setSearchTerms] = useState({
-    users: "",
     workstations: "",
+    groups: "",
     files: "",
   });
 
   // Available options (fetched)
-  const [allUsers, setAllUsers] = useState([]);
   const [allWorkstations, setAllWorkstations] = useState([]);
-  const [allFiles, setAllFiles] = useState([]); // file shares
+  const [allGroups, setAllGroups] = useState([]);
+  const [allFiles, setAllFiles] = useState([]);
 
   const openToast = (msg) => {
     console.warn(msg);
   };
 
-  // --- USERS (use the same logic/pattern as EmployeesPage) ---
-  const fetchUsersAll = async () => {
-    await fetchUsers(accessToken, setAllUsers, openToast);
+  // --- GROUPS ---
+  const fetchGroupsAll = async () => {
+    const orgId = await resolveOrgId(currentUser);
+    await fetchGroups(orgId, accessToken, setAllGroups, openToast);
   };
 
   // --- FILE SHARES ---
@@ -91,56 +93,48 @@ export default function GroupsModal({
   useEffect(() => {
     if (!open) return;
 
-    if (isEditMode && groupData) {
-      const seedFiles =
-        Array.isArray(groupData.fileShareIds) &&
-        groupData.fileShareIds.length > 0
-          ? groupData.fileShareIds.map((id) => ({
-              id,
-              name: id,
-              type: "document",
-              size: "",
-            }))
-          : [];
-
+    if (isEditMode && employeeData) {
+      const nameParts = employeeData.name ? employeeData.name.split(" ") : [];
       setFormData({
-        groupName: groupData.name || "",
-        description: groupData.description || "",
-        groupImage: groupData.image || null,
-        selectedUsers: groupData.users || [],
-        selectedWorkstations: groupData.workstations || [],
-        selectedFiles: seedFiles,
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+        email: employeeData.email || "",
+        jobTitle: employeeData.title || "",
+        password: "", // Don't populate password in edit mode
+        profileImage: employeeData.profileImage || null,
+        selectedWorkstations: employeeData.workstations || [],
+        allWorkstations: false,
+        selectedGroups: employeeData.groups || [],
+        allGroups: false,
+        selectedFiles: employeeData.files || [],
+        allFiles: false,
       });
     } else {
       setFormData({
-        groupName: "",
-        description: "",
-        groupImage: null,
-        selectedUsers: [],
+        firstName: "",
+        lastName: "",
+        email: "",
+        jobTitle: "",
+        password: "",
+        profileImage: null,
         selectedWorkstations: [],
+        allWorkstations: false,
+        selectedGroups: [],
+        allGroups: false,
         selectedFiles: [],
+        allFiles: false,
       });
     }
 
     setCurrentStep(0);
-    setSearchTerms({ users: "", workstations: "", files: "" });
+    setSearchTerms({ workstations: "", groups: "", files: "" });
 
-    fetchUsersAll();
     fetchWorkstationsAll();
+    fetchGroupsAll();
     fetchFileSharesAll();
-  }, [open, groupData, isEditMode, accessToken]);
+  }, [open, employeeData, isEditMode, accessToken]);
 
   // Filter lists
-  const filteredUsers = useMemo(() => {
-    const q = searchTerms.users.trim().toLowerCase();
-    if (!q) return allUsers;
-    return allUsers.filter((u) =>
-      [`${u.firstName} ${u.lastName}`, u.email, u.title]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allUsers, searchTerms.users]);
-
   const filteredWorkstations = useMemo(
     () =>
       createFilteredItems(allWorkstations, searchTerms.workstations, [
@@ -150,13 +144,17 @@ export default function GroupsModal({
     [allWorkstations, searchTerms.workstations],
   );
 
+  const filteredGroups = useMemo(
+    () => createFilteredItems(allGroups, searchTerms.groups, ["name"]),
+    [allGroups, searchTerms.groups],
+  );
+
   const filteredFiles = useMemo(
     () =>
       createFilteredItems(allFiles, searchTerms.files, [
         "name",
         "description",
         "drive",
-        "owner",
       ]),
     [allFiles, searchTerms.files],
   );
@@ -169,17 +167,19 @@ export default function GroupsModal({
     setIsSubmitting(true);
     try {
       await onSubmit?.({
-        name: formData.groupName,
-        description: formData.description,
-        image: formData.groupImage,
-        users: formData.selectedUsers,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        jobTitle: formData.jobTitle,
+        password: formData.password,
+        profileImage: formData.profileImage,
         workstations: formData.selectedWorkstations,
+        groups: formData.selectedGroups,
         files: formData.selectedFiles,
       });
-      onRefresh?.();
       onClose();
     } catch (error) {
-      console.error("Failed to submit group:", error);
+      console.error("Failed to submit employee:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -187,14 +187,16 @@ export default function GroupsModal({
 
   const handleDelete = createDeleteHandler({
     onDelete: async () => {
-      if (!groupData?._id && !groupData?.id) return;
-      await onDelete?.(groupData._id || groupData.id);
+      await onDelete?.();
     },
     setIsSubmitting,
     onClose,
   });
 
-  const handleImageUpload = createImageUploadHandler(setFormData, "groupImage");
+  const handleImageUpload = createImageUploadHandler(
+    setFormData,
+    "profileImage",
+  );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
 
@@ -206,8 +208,8 @@ export default function GroupsModal({
   const renderStepContent = createRenderStepContent({
     steps: [
       { handleImageUpload, isEditMode },
-      { type: "users" },
       { type: "workstations" },
+      { type: "groups" },
       { type: "files" },
     ],
     currentStep,
@@ -216,13 +218,13 @@ export default function GroupsModal({
     searchTerms,
     setSearchTerms,
     filteredData: {
-      users: filteredUsers,
       workstations: filteredWorkstations,
+      groups: filteredGroups,
       files: filteredFiles,
     },
     allData: {
-      users: allUsers,
       workstations: allWorkstations,
+      groups: allGroups,
       files: allFiles,
     },
     toggleSelection,
@@ -231,24 +233,28 @@ export default function GroupsModal({
     SelectionStep,
   });
 
-  const isNextDisabled = currentStep === 0 && !formData.groupName.trim();
+  const isNextDisabled =
+    currentStep === 0 &&
+    (!formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.email.trim());
 
   return (
-    <div className="groups-modal-overlay">
-      <div className="groups-modal-dialog">
+    <div className="employees-modal-overlay">
+      <div className="employees-modal-dialog">
         {/* Header */}
-        <header className="groups-modal-header">
-          <nav className="groups-modal-breadcrumb">
-            <span className="groups-modal-breadcrumb-item inactive">
-              Groups
+        <header className="employees-modal-header">
+          <nav className="employees-modal-breadcrumb">
+            <span className="employees-modal-breadcrumb-item inactive">
+              Users
             </span>
-            <span className="groups-modal-breadcrumb-separator">›</span>
-            <span className="groups-modal-breadcrumb-item active">
-              {isEditMode ? "Edit Group" : "New Group"}
+            <span className="employees-modal-breadcrumb-separator">›</span>
+            <span className="employees-modal-breadcrumb-item active">
+              {isEditMode ? "Edit User" : "New User"}
             </span>
           </nav>
           <button
-            className="groups-modal-close-btn"
+            className="employees-modal-close-btn"
             onClick={onClose}
             aria-label="Close"
           >
@@ -257,18 +263,18 @@ export default function GroupsModal({
         </header>
 
         {/* Progress Bar */}
-        <div className="groups-modal-stepper">
-          <div className="groups-modal-progress-track">
+        <div className="employees-modal-stepper">
+          <div className="employees-modal-progress-track">
             <div
-              className="groups-modal-progress-fill"
+              className="employees-modal-progress-fill"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <div className="groups-modal-step-labels">
+          <div className="employees-modal-step-labels">
             {STEPS.map((step, index) => (
               <div
                 key={step}
-                className={`groups-modal-step-label ${
+                className={`employees-modal-step-label ${
                   index === currentStep ? "active" : ""
                 } ${index < currentStep ? "completed" : ""}`}
               >
@@ -279,24 +285,24 @@ export default function GroupsModal({
         </div>
 
         {/* Content */}
-        <main className="groups-modal-content">{renderStepContent()}</main>
+        <main className="employees-modal-content">{renderStepContent()}</main>
 
         {/* Footer */}
-        <footer className="groups-modal-actions">
-          <div className="groups-modal-actions-left">
+        <footer className="employees-modal-actions">
+          <div className="employees-modal-actions-left">
             <button
-              className="groups-modal-btn groups-modal-btn-cancel"
+              className="employees-modal-btn employees-modal-btn-cancel"
               onClick={onClose}
             >
               Cancel
             </button>
             {isEditMode && currentStep === 0 && (
               <button
-                className="groups-modal-btn groups-modal-btn-delete"
+                className="employees-modal-btn employees-modal-btn-delete"
                 onClick={() => {
                   if (
                     window.confirm(
-                      "Are you sure you want to delete this group? This action cannot be undone.",
+                      "Are you sure you want to delete this user? This action cannot be undone.",
                     )
                   ) {
                     handleDelete();
@@ -308,17 +314,18 @@ export default function GroupsModal({
               </button>
             )}
           </div>
-          <div className="groups-modal-actions-right">
-            <button
-              className="groups-modal-btn groups-modal-btn-secondary"
-              onClick={() => handleNavigate(-1)}
-              disabled={currentStep === 0}
-            >
-              Back
-            </button>
+          <div className="employees-modal-actions-right">
+            {currentStep > 0 && (
+              <button
+                className="employees-modal-btn employees-modal-btn-secondary"
+                onClick={() => handleNavigate(-1)}
+              >
+                Back
+              </button>
+            )}
             {currentStep < STEPS.length - 1 ? (
               <button
-                className="groups-modal-btn groups-modal-btn-primary"
+                className="employees-modal-btn employees-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
               >
@@ -326,7 +333,7 @@ export default function GroupsModal({
               </button>
             ) : (
               <button
-                className="groups-modal-btn groups-modal-btn-primary"
+                className="employees-modal-btn employees-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
@@ -334,7 +341,7 @@ export default function GroupsModal({
                   ? "Saving..."
                   : isEditMode
                     ? "Save Changes"
-                    : "Create Group"}
+                    : "Create User"}
               </button>
             )}
           </div>
@@ -345,61 +352,94 @@ export default function GroupsModal({
 }
 
 // Sub-components
-function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
+function BasicInfoStep({
+  formData,
+  setFormData,
+  handleImageUpload,
+  isEditMode,
+}) {
   return (
-    <div className="groups-modal-step">
-      <div className="groups-modal-form-group">
-        <label className="groups-modal-label">Group Name *</label>
+    <div className="employees-modal-step">
+      <div className="employees-modal-form-row">
+        <div className="employees-modal-form-group">
+          <label className="employees-modal-label">First Name *</label>
+          <input
+            type="text"
+            className="employees-modal-input"
+            value={formData.firstName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+            }
+            placeholder="John"
+          />
+        </div>
+
+        <div className="employees-modal-form-group">
+          <label className="employees-modal-label">Last Name *</label>
+          <input
+            type="text"
+            className="employees-modal-input"
+            value={formData.lastName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+            }
+            placeholder="Doe"
+          />
+        </div>
+      </div>
+
+      <div className="employees-modal-form-group">
+        <label className="employees-modal-label">Email *</label>
+        <input
+          type="email"
+          className="employees-modal-input"
+          value={formData.email}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, email: e.target.value }))
+          }
+          placeholder="john.doe@example.com"
+        />
+      </div>
+
+      <div className="employees-modal-form-group">
+        <label className="employees-modal-label">Job Title</label>
         <input
           type="text"
-          className="groups-modal-input"
-          value={formData.groupName}
+          className="employees-modal-input"
+          value={formData.jobTitle}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, groupName: e.target.value }))
+            setFormData((prev) => ({ ...prev, jobTitle: e.target.value }))
           }
-          placeholder="Enter group name"
+          placeholder="Software Engineer"
         />
       </div>
 
-      <div className="groups-modal-form-group">
-        <label className="groups-modal-label">Description</label>
-        <textarea
-          className="groups-modal-textarea"
-          value={formData.description}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, description: e.target.value }))
-          }
-          placeholder="Enter a brief description of the group"
-          rows={3}
-        />
-      </div>
-
-      <div className="groups-modal-form-group">
-        <label className="groups-modal-label">Group Icon</label>
-        <div className="groups-modal-image-upload">
-          {formData.groupImage ? (
-            <div className="groups-modal-image-preview">
-              <img src={formData.groupImage} alt="Group icon" />
+      <div className="employees-modal-form-group">
+        <label className="employees-modal-label">Profile Picture</label>
+        <div className="employees-modal-image-upload">
+          {formData.profileImage ? (
+            <div className="employees-modal-image-preview">
+              <img src={formData.profileImage} alt="Profile" />
               <button
                 type="button"
-                className="groups-modal-image-remove"
+                className="employees-modal-image-remove"
                 onClick={() =>
-                  setFormData((prev) => ({ ...prev, groupImage: null }))
+                  setFormData((prev) => ({ ...prev, profileImage: null }))
                 }
               >
                 ×
               </button>
             </div>
           ) : (
-            <label className="groups-modal-image-upload-label">
+            <label className="employees-modal-image-upload-label">
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
                 style={{ display: "none" }}
               />
-              <div className="groups-modal-image-placeholder">
-                <span className="groups-modal-image-icon">
+              <div className="employees-modal-image-placeholder">
+                <span className="employees-modal-image-icon">
                   <UploadIcon width={48} height={48} fill="#9e9e9e" />
                 </span>
                 <span>Upload Image</span>
@@ -408,6 +448,21 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
           )}
         </div>
       </div>
+
+      {!isEditMode && (
+        <div className="employees-modal-form-group">
+          <label className="employees-modal-label">Password</label>
+          <input
+            type="password"
+            className="employees-modal-input"
+            value={formData.password}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, password: e.target.value }))
+            }
+            placeholder="Enter password"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -425,15 +480,6 @@ function SelectionStep({
   totalItems,
 }) {
   const config = {
-    users: {
-      label: "Add Users",
-      placeholder: "Search users...",
-      renderItem: (item) => ({
-        icon: <DisplayIcon type="user" data={item} size="small" />,
-        name: `${item.firstName} ${item.lastName}`,
-        detail: item.title,
-      }),
-    },
     workstations: {
       label: "Add Workstations",
       placeholder: "Search workstations...",
@@ -441,6 +487,15 @@ function SelectionStep({
         icon: <DisplayIcon type="workstation" data={item} size="small" />,
         name: item.name,
         detail: `${item.online ? "🟢 Online" : "🔴 Offline"} • ${item.ipAddress}`,
+      }),
+    },
+    groups: {
+      label: "Add Groups",
+      placeholder: "Search groups...",
+      renderItem: (item) => ({
+        icon: <DisplayIcon type="group" data={item} size="small" />,
+        name: item.name,
+        detail: `${item.members} members`,
       }),
     },
     files: {
@@ -455,7 +510,7 @@ function SelectionStep({
             image: "🖼️",
           }[item.type] || "📁";
         return {
-          icon: <div className="groups-modal-file-icon">{icon}</div>,
+          icon: <div className="employees-modal-file-icon">{icon}</div>,
           name: item.name,
           detail: item.size,
           fileIcon: icon,
@@ -471,8 +526,8 @@ function SelectionStep({
   const isIndeterminate = hasSelected && !allAreSelected;
 
   return (
-    <div className="groups-modal-step">
-      <div className="groups-modal-search-section">
+    <div className="employees-modal-step">
+      <div className="employees-modal-search-section">
         <div
           style={{
             display: "flex",
@@ -481,7 +536,7 @@ function SelectionStep({
             marginBottom: "8px",
           }}
         >
-          <label className="groups-modal-label" style={{ marginBottom: 0 }}>
+          <label className="employees-modal-label" style={{ marginBottom: 0 }}>
             {config.label}
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -491,25 +546,25 @@ function SelectionStep({
               onChange={onAllChange}
             />
             <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
-              {type === "users" && "All Users"}
               {type === "workstations" && "All Workstations"}
+              {type === "groups" && "All Groups"}
               {type === "files" && "All Shares"}
             </span>
           </div>
         </div>
         <input
           type="text"
-          className="groups-modal-search"
+          className="employees-modal-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={config.placeholder}
         />
 
         {/* Always render selectable list */}
-        <div className="groups-modal-dropdown">
+        <div className="employees-modal-dropdown">
           {items.length === 0 ? (
             <div
-              className="groups-modal-dropdown-item"
+              className="employees-modal-dropdown-item"
               style={{ opacity: 0.7, cursor: "default" }}
             >
               No results
@@ -522,20 +577,28 @@ function SelectionStep({
               return (
                 <div
                   key={item.id}
-                  className={`groups-modal-dropdown-item ${isSelected ? "selected" : ""}`}
+                  className={`employees-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggle(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggle(item);
+                    }
+                  }}
                 >
                   {rendered.icon}
-                  <div className="groups-modal-dropdown-item-info">
-                    <div className="groups-modal-dropdown-item-name">
+                  <div className="employees-modal-dropdown-item-info">
+                    <div className="employees-modal-dropdown-item-name">
                       {rendered.name}
                     </div>
-                    <div className="groups-modal-dropdown-item-detail">
+                    <div className="employees-modal-dropdown-item-detail">
                       {rendered.detail}
                     </div>
                   </div>
                   {isSelected && (
-                    <span className="groups-modal-checkmark">✓</span>
+                    <span className="employees-modal-checkmark">✓</span>
                   )}
                 </div>
               );
@@ -545,31 +608,31 @@ function SelectionStep({
       </div>
 
       {selectedItems.length > 0 && (
-        <div className="groups-modal-selected-section">
-          <div className="groups-modal-selected-header">
+        <div className="employees-modal-selected-section">
+          <div className="employees-modal-selected-header">
             Selected {type.charAt(0).toUpperCase() + type.slice(1)} (
             {selectedItems.length})
           </div>
-          <div className="groups-modal-selected-cards">
+          <div className="employees-modal-selected-cards">
             {selectedItems.map((item) => {
               const rendered = config.renderItem(item);
               return (
-                <div key={item.id} className="groups-modal-selected-card">
+                <div key={item.id} className="employees-modal-selected-card">
                   <button
                     type="button"
-                    className="groups-modal-card-remove-btn"
+                    className="employees-modal-card-remove-btn"
                     onClick={() => onRemove(item.id)}
                   >
                     ×
                   </button>
                   {type === "files" ? (
-                    <div className="groups-modal-file-card-icon">
+                    <div className="employees-modal-file-card-icon">
                       {rendered.fileIcon}
                     </div>
                   ) : (
                     rendered.icon
                   )}
-                  <span className="groups-modal-selected-card-name">
+                  <span className="employees-modal-selected-card-name">
                     {rendered.name}
                   </span>
                 </div>
