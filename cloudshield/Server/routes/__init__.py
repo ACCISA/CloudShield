@@ -9,6 +9,7 @@ __all__ = [
 	"auth_bp",
     "access_groups_bp", 
 	"workstations_bp",
+	"activity_bp",
 ]
 
 
@@ -42,5 +43,10 @@ def __getattr__(name: str) -> Any:
 		from .workstations import workstations_bp as _workstations_bp
 
 		return _workstations_bp
+	
+	if name == "activity_bp":
+		from .activity import activity_bp as _activitys_bp
+
+		return _activity_bp
 
 	raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
