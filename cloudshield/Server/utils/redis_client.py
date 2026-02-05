@@ -12,6 +12,9 @@ REDIS_DB = int(os.getenv("CLOUDSHIELD_REDIS_DB", "0"))
 DEFAULT_JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))  # seconds
 
 redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-task_queue = Queue(connection=redis_conn, default_timeout=10000)
+
+task_queue = Queue('api', connection=redis_conn, default_timeout=10000)
+
+workstations_queue = Queue('workstations', connection=redis_conn, default_timeout=10000)
 
 

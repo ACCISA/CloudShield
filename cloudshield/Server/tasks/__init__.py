@@ -12,6 +12,8 @@ from .dc_management import dc_create_user_with_group as dc_create_user_with_grou
 from .dc_management import dc_create_file_share as dc_create_file_share
 from .dc_management import dc_delete_file_share as dc_delete_file_share
 
+from .workstations import ws_create_default as ws_create_default
+
 from .task import get_server_nodes as get_server_nodes
 from .task import proxy_rpc_request as proxy_rpc_request
 from .task import NodeType as NodeType

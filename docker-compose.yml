@@ -146,6 +146,9 @@ services:
     networks: # for a dev env we will pretent that the API has access to the VPC somehow
       - vpc_net
     volumes:
+      - type: bind
+        source: ${WORKSTATIONS_MOUNT_DIR}
+        target: /data
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
 
