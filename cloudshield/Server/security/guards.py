@@ -2,6 +2,7 @@ import functools
 import os
 from flask import request, jsonify, g
 from .jwt_utils import verify_token
+from bson import ObjectId
 
 DEV_BYPASS_TOKEN = os.getenv("CLOUDSHIELD_DEV_TOKEN")
 DEV_BYPASS_USER = {
@@ -70,7 +71,13 @@ def require_auth(fn):
         except Exception as e:
             log_denied(reason="invalid_jwt", path=request.path, method=request.method, meta={"err": str(e)})
             return jsonify({"error":"Unauthorized"}), 401
-        g.user = {"id": payload["sub"], "role": payload["role"], "org_id": payload["org_id"]}
+        g.user = {
+            "id": payload["sub"],
+            "role": payload["role"],
+            "org_id": payload["org_id"],
+            "email": payload.get("email"),
+            "full_name": payload.get("full_name"),
+                }
         return fn(*args, **kwargs)
     return wrapper
 
