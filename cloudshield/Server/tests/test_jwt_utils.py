@@ -16,7 +16,7 @@ def test_issue_token_returns_nonempty_string(monkeypatch):
     # Ensure JWT_SECRET is a valid key for this test
     monkeypatch.setattr(jwt_module, "JWT_SECRET", "test-secret-key", raising=False)
 
-    token = issue_token("123", "user", "org1")
+    token = issue_token("123", "user", "org1", "test@example.com", "Test User")
 
     assert isinstance(token, str)
     assert token != ""
@@ -30,8 +30,8 @@ def test_issue_token_can_be_called_multiple_times(monkeypatch):
     """
     monkeypatch.setattr(jwt_module, "JWT_SECRET", "test-secret-key", raising=False)
 
-    t1 = issue_token("user1", "admin", "org1")
-    t2 = issue_token("user2", "user", "org2")
+    t1 = issue_token("user1", "admin", "org1", "user1@example.com", "User One")
+    t2 = issue_token("user2", "user", "org2", "user2@example.com", "User Two")
 
     assert isinstance(t1, str)
     assert isinstance(t2, str)
@@ -47,7 +47,7 @@ def test_verify_token_accepts_issued_token_without_error():
     Round-trip: token produced by issue_token should be accepted by verify_token
     without raising an exception. We don't assume any particular payload fields.
     """
-    token = issue_token("user123", "admin", "org123")
+    token = issue_token("user123", "admin", "org123", "test@example.com", "Test User")
 
     decoded = verify_token(token)
 
