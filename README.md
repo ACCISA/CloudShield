@@ -4,7 +4,7 @@
 [Product Demo CloudShield](https://www.youtube.com/watch?v=qUKorVDk9l8)
 
 ## Deployed Product
-real.encs.concordia.ca
+[Link to Deployed Product](http://real.encs.concordia.ca)
 
 ## Continuous Integration (CI)
 This project uses **GitHub Actions** for automated CI on all pull requests and pushes to `main`. The pipeline builds both the **React frontend** and **Python backend** using **Docker Compose** to ensure consistent local environments, runs **Jest** and **Pytest** test suites, and performs **SonarCloud** analysis for code quality and coverage. While deployment to AWS is planned for future stages, the current CI ensures stable builds, reproducible tests, and continuous feedback on every code change.
