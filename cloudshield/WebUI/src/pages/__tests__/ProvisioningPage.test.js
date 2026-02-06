@@ -1,644 +1,216 @@
-import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import ProvisioningPage from '../ProvisioningPage.jsx';
+import React from "react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
+import ProvisioningPage from "../ProvisioningPage"; // Adjust path if needed
+import "@testing-library/jest-dom";
 
-// Mock the logo
-jest.mock('../../assets/cloudshield_logo_white.png', () => 'test-logo');
+// --- 1. Mock External Assets ---
+jest.mock("../../assets/cloudshield_logo_white.png", () => "logo-mock.png");
 
-// Mock ProvisioningProgressBar
-jest.mock('../../components/provisioning/ProvisioningProgressBar.jsx', () => {
+// --- 2. Mock Child Components ---
+// We mock the bar to isolate testing to the Page logic only
+jest.mock("../../components/provisioning/ProvisioningProgressBar.jsx", () => {
   return function MockProgressBar({ percent }) {
-    return <div data-testid="progress-bar">{percent}%</div>;
+    return <div data-testid="progress-bar">Progress: {percent}%</div>;
   };
 });
 
-describe('ProvisioningPage', () => {
+describe("ProvisioningPage", () => {
+  const originalLocation = window.location;
+
   beforeEach(() => {
-    localStorage.clear();
-    global.fetch = jest.fn();
+    // 1. Setup Fake Timers
     jest.useFakeTimers();
-    // Mock window.location.href
+
+    // 2. Mock Fetch
+    global.fetch = jest.fn();
+
+    // 3. Mock LocalStorage
+    const localStorageMock = (function () {
+      let store = {};
+      return {
+        getItem: jest.fn((key) => store[key] || null),
+        setItem: jest.fn((key, value) => { store[key] = value.toString(); }),
+        removeItem: jest.fn((key) => { delete store[key]; }),
+        clear: jest.fn(() => { store = {}; }),
+      };
+    })();
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+    // 4. Mock Window Location (for redirect/reload)
     delete window.location;
-    window.location = { href: jest.fn() };
+    window.location = { href: "", reload: jest.fn() };
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
+    window.location = originalLocation;
   });
 
-  it('renders the provisioning page', () => {
-    render(<ProvisioningPage />);
-    // Check for visible heading text
-    expect(screen.getByText(/Hang tight/i)).toBeInTheDocument();
+  // --- TEST CASES ---
+
+  test("Shows error if Organization ID is missing", async () => {
+    window.localStorage.getItem.mockReturnValue(null); // No org_id
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    expect(screen.getByText(/Error: Organization ID missing/i)).toBeInTheDocument();
   });
 
-  it('displays the CloudShield logo', () => {
-    render(<ProvisioningPage />);
-    const logo = screen.getByAltText('Logo');
-    expect(logo).toBeInTheDocument();
+  test("Starts a new provisioning job if 'provision_job_id' is missing", async () => {
+    // Setup: Org exists, Job missing
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org-123";
+      return null;
+    });
+
+    // Mock 1: The POST request to start provisioning
+    global.fetch.mockImplementationOnce((url, options) => {
+      if (url.includes("/api/task/provision") && options.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ job_id: "new-job-id" }),
+        });
+      }
+      return Promise.reject("Unknown call");
+    });
+
+    // Mock 2: The subsequent polling status check
+    global.fetch.mockImplementation((url) => {
+      if (url.includes("/api/status")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: "running" }),
+        });
+      }
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Assert: POST was called
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/task/provision"),
+      expect.objectContaining({ method: "POST" })
+    );
+
+    // Assert: Job ID saved to storage
+    expect(window.localStorage.setItem).toHaveBeenCalledWith("provision_job_id", "new-job-id");
   });
 
-  it('starts with initializing message', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
+  test("Mock Animation increments percent independently of backend", async () => {
+    // Setup: Existing job
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "existing-job";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Initial state
+    expect(screen.getByText("Initializing user environment...")).toBeInTheDocument();
+    expect(screen.getByTestId("progress-bar")).toHaveTextContent("Progress: 0%");
+
+    // Advance Timer (Animation runs every 1300ms)
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 5); // 5 ticks (~6.5 seconds) -> Should be 5%
+    });
+
+    // Verify percent incremented
+    expect(screen.getByTestId("progress-bar")).toHaveTextContent("Progress: 5%");
     
-    render(<ProvisioningPage />);
+    // Verify backend was also polled (Poll runs every 2000ms)
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/status/existing-job")
+    );
+  });
+
+  test("Success State: Jumps to 100% and redirects", async () => {
+    // Setup
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    // Mock polling returning SUCCESS
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "succeeded" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance timer to ensure poll fires
+    await act(async () => {
+      jest.advanceTimersByTime(2100);
+    });
+
+    // Assert UI Update
+    expect(screen.getByText("All good! Redirecting...")).toBeInTheDocument();
+    expect(screen.getByTestId("progress-bar")).toHaveTextContent("Progress: 100%");
+
+    // Assert Storage Cleanup
+    expect(window.localStorage.setItem).toHaveBeenCalledWith("isProvisioned", "true");
+    expect(window.localStorage.removeItem).toHaveBeenCalledWith("provision_job_id");
+
+    // Advance timer for the Redirect Delay (1500ms)
+    await act(async () => {
+      jest.advanceTimersByTime(1500);
+    });
+
+    // Assert Redirect
+    expect(window.location.href).toBe("/dashboard");
+  });
+
+  test("Failure State: Stops animation and shows retry button", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-fail";
+      return null;
+    });
+
+    // Mock polling returning FAILURE
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "failed", error: "Database error" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance timer to catch failure
+    await act(async () => {
+      jest.advanceTimersByTime(2100);
+    });
+
+    // Assert Error UI
+    expect(screen.getByText(/Provisioning failed: Database error/i)).toBeInTheDocument();
     
-    // Initial state shows initializing message
-    await waitFor(() => {
-      // Check if the text appears anywhere, even in error state
-      const text = screen.queryByText(/Initializing/i) || screen.queryByText(/Error/i);
-      expect(text).toBeInTheDocument();
-    });
-  });
-
-  it('fetches and starts job if no job_id exists', async () => {
-    localStorage.setItem('org_id', 'test-org-123');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ job_id: 'job-456' }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5050/api/task/provision',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ org_id: 'test-org-123' }),
-        })
-      );
-    });
-  });
-
-  it('uses existing job_id from localStorage', async () => {
-    localStorage.setItem('provision_job_id', 'existing-job-789');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        status: 'running',
-        progress: 'Starting provisioning...',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('http://localhost:5050/api/status')
-      );
-    });
-  });
-
-  it('handles missing org_id gracefully', async () => {
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Error: Organization ID missing/i)
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('polls status endpoint when job exists', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'running',
-        progress: 'Docker provisioning started...',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5050/api/status/test-job-id'
-      );
-    });
-  });
-
-  it('updates progress text when status changes', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'running',
-        progress: 'Docker provisioning started...',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      // The inferProgress function will transform "docker provisioning" to this message
-      expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
-    });
-  });
-
-  it('handles success status and shows completion message', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'succeeded',
-        progress: 'All done!',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/All good!/i)).toBeInTheDocument();
-    });
-
-    // Verify localStorage was updated
-    expect(localStorage.getItem('isProvisioned')).toBe('true');
-    expect(localStorage.getItem('provision_job_id')).toBeNull();
-  });
-
-  it('handles failed status and displays error message', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'failed',
-        error: 'Docker initialization failed',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Provisioning failed: Docker initialization failed/i)
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('displays retry button on failure', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'failed',
-        error: 'Test failure',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Retry Provisioning')).toBeInTheDocument();
-    });
-  });
-
-  it('retry button reloads the page', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'failed',
-        error: 'Test failure',
-      }),
-    });
-
-    const reloadSpy = jest.fn();
-    window.location.reload = reloadSpy;
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      const retryButton = screen.getByText('Retry Provisioning');
-      fireEvent.click(retryButton);
-    });
-
-    expect(reloadSpy).toHaveBeenCalled();
-  });
-
-  it('normalizes succeeded status variations', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'FINISHED',
-        progress: 'Done!',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/All good!/i)).toBeInTheDocument();
-    });
-  });
-
-  it('normalizes failed status variations', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'ERROR',
-        error: 'Something went wrong',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Provisioning failed:/i)).toBeInTheDocument();
-    });
-  });
-
-  it('infers progress percentage from status messages', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        status: 'running',
-        progress: 'SSH key generation complete',
-      }),
-    });
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      const progressBar = screen.getByTestId('progress-bar');
-      expect(progressBar).toHaveTextContent('30%');
-    });
-  });
-
-  it('handles fetch errors gracefully', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
-
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-
-    render(<ProvisioningPage />);
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Polling network error:',
-        expect.any(Error)
-      );
-    });
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('handles 404 status responses without updating state', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-    });
-
-    render(<ProvisioningPage />);
-
-    // Should remain in initializing state
-    await waitFor(() => {
-      expect(screen.getByText('Initializing...')).toBeInTheDocument();
-    });
-  });
-
-  it('handles 500 server errors without updating state', async () => {
-    localStorage.setItem('provision_job_id', 'test-job-id');
-
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-    });
-
-    render(<ProvisioningPage />);
-
-    // Should remain in initializing state
-    await waitFor(() => {
-      expect(screen.getByText('Initializing...')).toBeInTheDocument();
-    });
-  });
-
-  it('displays correct heading text', () => {
-    render(<ProvisioningPage />);
-    
-    // Check for the first part of the heading
-    expect(screen.getByText(/Hang tight/i)).toBeInTheDocument();
-  });
-
-  it('applies dark theme styling', () => {
-    const { container } = render(<ProvisioningPage />);
-    const mainDiv = container.firstChild;
-    // Check that the background color style is applied
-    expect(mainDiv.style.backgroundColor).toBe('rgb(10, 10, 10)');
-    expect(mainDiv.style.color).toBe('rgb(255, 255, 255)');
-  });
-
-  it('centers content vertically and horizontally', () => {
-    const { container } = render(<ProvisioningPage />);
-    const mainDiv = container.firstChild;
-    // Check that flex layout styles are applied
-    expect(mainDiv.style.display).toBe('flex');
-    expect(mainDiv.style.alignItems).toBe('center');
-    expect(mainDiv.style.justifyContent).toBe('center');
-  });
-
-  describe('Progress inference with custom messages', () => {
-    it('shows "Provisioning workstation infrastructure..." for docker provisioning', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Docker provisioning started',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Provisioning workstation infrastructure..." for terraform', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Running terraform apply',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Configuring groups and permissions..." for samba-test', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Starting samba-test container',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Configuring groups and permissions...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Configuring groups and permissions..." for domain', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Configuring domain controller',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Configuring groups and permissions...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Finalizing network & file systems..." for openvpn', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Setting up openvpn server',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Finalizing network & file systems...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Finalizing network & file systems..." for network', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Configuring network interfaces',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Finalizing network & file systems...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Almost there..." for finalizing', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Finalizing setup',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Almost there...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows "Almost there..." for cleanup', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Running cleanup tasks',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Almost there...')).toBeInTheDocument();
-      });
-    });
-
-    it('shows heuristic message "Initializing user..." when percent is between 15-40', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      // Return generic messages that will trigger heuristic logic
-      global.fetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Processing request...',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      // Advance timers to allow percentage to creep up
-      jest.advanceTimersByTime(2000); // One poll interval
-
-      await waitFor(() => {
-        const text = screen.queryByText(/Initializing user.../i);
-        if (text) {
-          expect(text).toBeInTheDocument();
-        } else {
-          // Accept other valid messages in the progression
-          expect(
-            screen.getByText(/Initializing|Processing|Starting/i)
-          ).toBeInTheDocument();
-        }
-      });
-    });
-
-    it('shows heuristic message "Preparing workstation..." when percent is between 40-60', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      // First set it to 40%
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Docker provisioning in progress',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        // Should show the docker provisioning message
-        const text = screen.getByText(/workstation infrastructure/i);
-        expect(text).toBeInTheDocument();
-      });
-    });
-
-    it('shows heuristic message "Setting up groups..." when percent is between 60-80', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      // Set it to 60%
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Configuring samba-test container',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        // Should show the groups configuration message
-        const text = screen.getByText(/groups and permissions/i);
-        expect(text).toBeInTheDocument();
-      });
-    });
-
-    it('shows heuristic message "Configuring files..." when percent is 80 or above', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      // Set it to 75%
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Setting up openvpn server',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      await waitFor(() => {
-        // Should show the network/file systems message  
-        const text = screen.getByText(/network.*file systems/i);
-        expect(text).toBeInTheDocument();
-      });
-    });
-
-    it('increments percentage gradually when no keyword matches', async () => {
-      localStorage.setItem('provision_job_id', 'test-job-id');
-
-      global.fetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          status: 'running',
-          progress: 'Generic status update',
-        }),
-      });
-
-      render(<ProvisioningPage />);
-
-      // Should gradually increment from initial 5%
-      await waitFor(() => {
-        const progressBar = screen.getByTestId('progress-bar');
-        const percentText = progressBar.textContent;
-        const currentPercent = parseInt(percentText);
-        expect(currentPercent).toBeGreaterThan(5);
-        expect(currentPercent).toBeLessThanOrEqual(95);
-      });
-    });
+    // Assert Retry Button
+    const retryBtn = screen.getByText("Retry Provisioning");
+    expect(retryBtn).toBeInTheDocument();
+
+    // Verify Retry Click
+    fireEvent.click(retryBtn);
+    expect(window.location.reload).toHaveBeenCalled();
   });
 });

@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-// No useNavigate needed for the hard refresh approach
-// import { useNavigate } from "react-router-dom"; 
 import cloudshieldLogo from "../assets/cloudshield_logo_white.png"; 
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
 
+// 1. Backend Poll (Checks for true success/failure) - Every 2 seconds
 const POLL_INTERVAL_MS = 2000;
+
+// 2. Visual Animation (The smooth 1% increment)
+// 1300ms = 1.3 seconds per 1%. 
+// Reaching 95% will take roughly 125 seconds (approx 2 mins).
+const ANIMATION_INTERVAL_MS = 1300; 
+
 const API_BASE = "http://localhost:5050"; 
 
 // --- Helpers ---
@@ -27,65 +32,24 @@ function normalizeJobStatus(apiStatus) {
   return "running";
 }
 
-function inferProgress({ status, progressText, currentPercent }) {
-  const text = (progressText || "").toLowerCase();
-  let newPercent = currentPercent || 5;
-  let displayMessage = progressText || "Initializing...";
-
-  if (status === "failed") {
-    return { percent: currentPercent || 0, message: displayMessage };
-  }
-  if (status === "succeeded") {
-    return { percent: 100, message: "All good! Redirecting..." };
-  }
-
-  // Specific keyword-based inference - check more specific patterns first
-  if (text.includes("generating ssh keys")) {
-    newPercent = 20;
-    displayMessage = "Generating SSH keys...";
-  }
-  else if (text.includes("ssh key generation complete")) {
-    newPercent = 30;
-    displayMessage = "SSH keys ready...";
-  }
-  else if (text.includes("docker provisioning") || text.includes("terraform")) {
-    newPercent = 40;
-    displayMessage = "Provisioning workstation infrastructure...";
-  }
-  else if (text.includes("samba-test") || text.includes("domain")) {
-    newPercent = 60;
-    displayMessage = "Configuring groups and permissions...";
-  }
-  else if (text.includes("openvpn") || text.includes("network")) {
-    newPercent = 75;
-    displayMessage = "Finalizing network & file systems...";
-  }
-  else if (text.includes("finalizing") || text.includes("cleanup")) {
-    newPercent = 90;
-    displayMessage = "Almost there...";
-  }
-  else if (text.includes("enqueued") || text.includes("started")) {
-    newPercent = 10;
-    displayMessage = "Starting provisioning...";
-  }
-  else {
-    // If no keyword matches, keep previous message but creep bar forward
-    newPercent = Math.min(95, (currentPercent || 5) + 0.5);
-    
-    // Heuristic: If we are just waiting, cycle messages based on % range
-    if (newPercent > 15 && newPercent < 40) displayMessage = "Initializing user...";
-    else if (newPercent >= 40 && newPercent < 60) displayMessage = "Preparing workstation...";
-    else if (newPercent >= 60 && newPercent < 80) displayMessage = "Setting up groups...";
-    else if (newPercent >= 80) displayMessage = "Configuring files...";
-  }
-
-  return { percent: newPercent, message: displayMessage };
+/**
+ * MOCK TEXT LOGIC: 
+ * Returns the professional text string based purely on the current percentage.
+ */
+function getMockText(percent) {
+  if (percent < 20) return "Initializing user environment...";
+  if (percent < 40) return "Generating secure credentials...";
+  if (percent < 60) return "Provisioning workstation infrastructure...";
+  if (percent < 80) return "Configuring groups and permissions...";
+  if (percent < 95) return "Finalizing network & file systems...";
+  return "Finishing up...";
 }
 
 // --- Main Page Component ---
 
 export default function ProvisioningPage() {
   const pollTimerRef = useRef(null);
+  const animationTimerRef = useRef(null);
   const successHandled = useRef(false);
 
   const [jobId, setJobId] = useState(() => {
@@ -97,10 +61,10 @@ export default function ProvisioningPage() {
   }, []);
 
   const [status, setStatus] = useState("running");
-  const [progressText, setProgressText] = useState("Initializing...");
-  const [percent, setPercent] = useState(5);
+  const [progressText, setProgressText] = useState("Initializing user environment...");
+  const [percent, setPercent] = useState(0);
 
-  // --- Button Style Handlers (Accessibility Fix) ---
+  // --- Button Style Handlers ---
   const handleHighlight = (e) => {
     e.currentTarget.style.backgroundColor = "#fff";
     e.currentTarget.style.color = "#0A0A0A";
@@ -151,7 +115,31 @@ export default function ProvisioningPage() {
     return () => { mounted = false; };
   }, [jobId, orgId]);
 
-  // 2. Poll Status
+  // 2. Visual Animation Loop (The Mock)
+  useEffect(() => {
+    if (status !== "running") return;
+
+    animationTimerRef.current = setInterval(() => {
+      setPercent((prev) => {
+        // Stop automatically at 95% so we don't show 100% prematurely
+        if (prev >= 95) return 95;
+        
+        // Increment by exactly 1% per tick
+        const next = prev + 1;
+        
+        // Update text based on our new mock position
+        setProgressText(getMockText(next));
+        
+        return next;
+      });
+    }, ANIMATION_INTERVAL_MS);
+
+    return () => {
+      if (animationTimerRef.current) clearInterval(animationTimerRef.current);
+    };
+  }, [status]);
+
+  // 3. Backend Polling Loop (The Truth)
   useEffect(() => {
     if (successHandled.current) return;
     if (!jobId || status === "failed") return;
@@ -165,23 +153,29 @@ export default function ProvisioningPage() {
         if (res.status === 404 || res.status >= 500) return;
 
         const data = await res.json();
-        
         if (successHandled.current) return;
 
         const nextStatus = normalizeJobStatus(data.status);
         const rawMsg = data.progress || data.message || data.error || "";
 
+        // --- FAILURE ---
         if (nextStatus === "failed") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          if (animationTimerRef.current) clearInterval(animationTimerRef.current);
+          
           setStatus("failed");
           setProgressText(rawMsg || "Provisioning failed.");
         } 
+        // --- SUCCESS ---
         else if (nextStatus === "succeeded") {
           successHandled.current = true; 
+          
+          // Stop all loops immediately
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          if (animationTimerRef.current) clearInterval(animationTimerRef.current);
 
           setStatus("succeeded");
-          setPercent(100);
+          setPercent(100); 
           setProgressText("All good! Redirecting...");
 
           localStorage.setItem("isProvisioned", "true");
@@ -191,17 +185,6 @@ export default function ProvisioningPage() {
             window.location.href = "/dashboard";
           }, 1500);
         } 
-        else {
-          setStatus(nextStatus);
-          const result = inferProgress({ 
-            status: nextStatus, 
-            progressText: rawMsg, 
-            currentPercent: percent 
-          });
-          setPercent(result.percent);
-          setProgressText(result.message);
-        }
-
       } catch (err) {
         console.error("Polling network error:", err);
       }
@@ -213,7 +196,7 @@ export default function ProvisioningPage() {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [jobId, status, percent]);
+  }, [jobId, status]); 
 
   return (
     <div
@@ -226,7 +209,7 @@ export default function ProvisioningPage() {
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
-        fontFamily: "sans-serif",
+        fontFamily: "'lfit', sans-serif",
         padding: "20px",
       }}
     >
@@ -306,7 +289,6 @@ export default function ProvisioningPage() {
                    fontSize: "14px",
                    transition: "all 0.2s ease"
                  }}
-                 // FIX: Paired events for accessibility
                  onMouseOver={handleHighlight}
                  onFocus={handleHighlight}
                  onMouseOut={handleReset}
