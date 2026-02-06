@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-// We don't even need useNavigate anymore for the success path
+// No useNavigate needed for the hard refresh approach
 // import { useNavigate } from "react-router-dom"; 
 import cloudshieldLogo from "../assets/cloudshield_logo_white.png"; 
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
@@ -27,31 +27,65 @@ function normalizeJobStatus(apiStatus) {
   return "running";
 }
 
-function inferPercent({ status, progressText, currentPercent }) {
+/**
+ * Calculates percentage and determines the display message based on backend logs.
+ * Cycles through: Started -> Initializing User -> Workstation -> Groups -> File -> Good
+ */
+function inferProgress({ status, progressText, currentPercent }) {
   const text = (progressText || "").toLowerCase();
 
-  if (status === "failed") return currentPercent || 0;
-  if (status === "succeeded") return 100;
+  // Failure/Success states override everything
+  if (status === "failed") return { percent: currentPercent || 0, message: "Provisioning failed." };
+  if (status === "succeeded") return { percent: 100, message: "All good! Redirecting..." };
 
-  if (text.includes("enqueued") || text.includes("started")) return 10;
-  if (text.includes("generating ssh keys")) return 20;
-  if (text.includes("ssh key generation complete")) return 30;
-  if (text.includes("docker provisioning")) return 40;
-  if (text.includes("samba-test container id")) return 60;
-  if (text.includes("openvpn-test container id")) return 80;
-  if (text.includes("finalizing") || text.includes("cleanup")) return 90;
+  let newPercent = currentPercent;
+  let displayMessage = "Provisioning started...";
 
-  const next = (currentPercent || 5) + 0.5;
-  return Math.min(95, next);
+  // 1. Map backend logs to percentage & human-readable milestones
+  if (text.includes("enqueued") || text.includes("started")) {
+    newPercent = 10;
+    displayMessage = "Initializing user environment...";
+  } 
+  else if (text.includes("generating ssh keys") || text.includes("ssh key")) {
+    newPercent = 25;
+    displayMessage = "Setting up secure credentials...";
+  }
+  else if (text.includes("docker provisioning") || text.includes("terraform")) {
+    newPercent = 40;
+    displayMessage = "Provisioning workstation infrastructure...";
+  }
+  else if (text.includes("samba-test") || text.includes("domain")) {
+    newPercent = 60;
+    displayMessage = "Configuring groups and permissions...";
+  }
+  else if (text.includes("openvpn") || text.includes("network")) {
+    newPercent = 75;
+    displayMessage = "Finalizing network & file systems...";
+  }
+  else if (text.includes("finalizing") || text.includes("cleanup")) {
+    newPercent = 90;
+    displayMessage = "Almost there...";
+  }
+  else {
+    // If no keyword matches, keep previous message but creep bar forward
+    newPercent = Math.min(95, (currentPercent || 5) + 0.5);
+    
+    // Heuristic: If we are just waiting, cycle messages based on % range
+    if (newPercent > 15 && newPercent < 40) displayMessage = "Initializing user...";
+    else if (newPercent >= 40 && newPercent < 60) displayMessage = "Preparing workstation...";
+    else if (newPercent >= 60 && newPercent < 80) displayMessage = "Setting up groups...";
+    else if (newPercent >= 80) displayMessage = "Configuring files...";
+  }
+
+  return { percent: newPercent, message: displayMessage };
 }
 
 // --- Main Page Component ---
 
 export default function ProvisioningPage() {
-  // const navigate = useNavigate(); // Removed to prevent soft-nav loops
   const pollTimerRef = useRef(null);
   
-  // CRITICAL FIX: This ref prevents the loop. Once true, we stop everything.
+  // LOCK: Prevents double-redirects
   const successHandled = useRef(false);
 
   const [jobId, setJobId] = useState(() => {
@@ -63,7 +97,7 @@ export default function ProvisioningPage() {
   }, []);
 
   const [status, setStatus] = useState("running");
-  const [progressText, setProgressText] = useState("Initializing...");
+  const [progressText, setProgressText] = useState("Provisioning started...");
   const [percent, setPercent] = useState(5);
 
   // 1. Start Job (Fail-safe)
@@ -106,12 +140,10 @@ export default function ProvisioningPage() {
 
   // 2. Poll Status Loop
   useEffect(() => {
-    // SECURITY CHECK: If we already finished, DO NOT RUN anything.
     if (successHandled.current) return;
     if (!jobId || status === "failed") return;
 
     const fetchStatus = async () => {
-      // Double check inside the async function in case it changed while waiting
       if (successHandled.current) return;
 
       try {
@@ -121,50 +153,47 @@ export default function ProvisioningPage() {
 
         const data = await res.json();
         
-        // Triple check before state updates
         if (successHandled.current) return;
 
         const nextStatus = normalizeJobStatus(data.status);
-        const msg = data.progress || data.message || data.error || "";
+        const rawMsg = data.progress || data.message || data.error || "";
 
-        // --- FAILURE PATH ---
+        // --- FAILURE ---
         if (nextStatus === "failed") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           setStatus("failed");
-          setProgressText(msg || "Provisioning failed.");
+          setProgressText(rawMsg || "Provisioning failed.");
         } 
-        // --- SUCCESS PATH (THE FIX) ---
+        // --- SUCCESS ---
         else if (nextStatus === "succeeded") {
-          // 1. LOCK THE LOGIC. This block can never run again.
-          successHandled.current = true;
-          
-          // 2. Kill the poller immediately
+          successHandled.current = true; // Lock
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
 
-          // 3. Update UI one last time
           setStatus("succeeded");
           setPercent(100);
-          setProgressText("Provisioning complete! Redirecting...");
+          setProgressText("All good! Redirecting...");
 
-          // 4. Update Storage
           localStorage.setItem("isProvisioned", "true");
           localStorage.removeItem("provision_job_id");
 
-          // 5. FORCE HARD RELOAD after 1.5s
-          // We use window.location.href instead of navigate() to force App.jsx to re-mount.
+          // Hard Refresh Redirect
           setTimeout(() => {
             window.location.href = "/dashboard";
           }, 1500);
         } 
-        // --- RUNNING PATH ---
+        // --- RUNNING ---
         else {
           setStatus(nextStatus);
-          if (msg) setProgressText(msg);
-          setPercent((prev) => inferPercent({ 
+          
+          // Calculate dynamic text and percent
+          const result = inferProgress({ 
             status: nextStatus, 
-            progressText: msg, 
-            currentPercent: prev 
-          }));
+            progressText: rawMsg, 
+            currentPercent: percent 
+          });
+          
+          setPercent(result.percent);
+          setProgressText(result.message);
         }
 
       } catch (err) {
@@ -178,7 +207,7 @@ export default function ProvisioningPage() {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [jobId, status]);
+  }, [jobId, status, percent]); // Added percent dependency so inferProgress has latest state
 
   return (
     <div
