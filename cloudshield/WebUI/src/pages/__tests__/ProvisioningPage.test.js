@@ -213,4 +213,217 @@ describe("ProvisioningPage", () => {
     fireEvent.click(retryBtn);
     expect(window.location.reload).toHaveBeenCalled();
   });
+
+  test("getMockText displays correct message for percent < 20", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // At 0%, should show initial message
+    expect(screen.getByText("Initializing user environment...")).toBeInTheDocument();
+  });
+
+  test("getMockText displays correct message for percent < 40", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance to reach 20%+ (4 ticks = 4%, but starts at 0)
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 20); // 20 ticks = 20%
+    });
+
+    expect(screen.getByText("Generating secure credentials...")).toBeInTheDocument();
+  });
+
+  test("getMockText displays correct message for percent < 60", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance to reach 40%+
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 40); // 40 ticks = 40%
+    });
+
+    expect(screen.getByText("Provisioning workstation infrastructure...")).toBeInTheDocument();
+  });
+
+  test("getMockText displays correct message for percent < 80", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance to reach 60%+
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 60); // 60 ticks = 60%
+    });
+
+    expect(screen.getByText("Configuring groups and permissions...")).toBeInTheDocument();
+  });
+
+  test("getMockText displays correct message for percent < 95", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance to reach 80%+
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 80); // 80 ticks = 80%
+    });
+
+    expect(screen.getByText("Finalizing network & file systems...")).toBeInTheDocument();
+  });
+
+  test("getMockText displays correct message for percent >= 95", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-123";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "running" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    // Advance to reach 95%
+    await act(async () => {
+      jest.advanceTimersByTime(1300 * 95); // 95 ticks = 95%
+    });
+
+    expect(screen.getByText("Finishing up...")).toBeInTheDocument();
+  });
+
+  test("Retry button hover effects: handleHighlight applies styles", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-fail";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "failed", error: "Test error" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(2100);
+    });
+
+    const retryBtn = screen.getByText("Retry Provisioning");
+
+    // Trigger mouseEnter (calls handleHighlight)
+    fireEvent.mouseEnter(retryBtn);
+
+    // Verify styles were applied (browser may return hex or rgb)
+    expect(retryBtn.style.backgroundColor).toMatch(/(rgb\(255, 255, 255\)|#fff)/i);
+    expect(retryBtn.style.color).toMatch(/(rgb\(10, 10, 10\)|#0A0A0A)/i);
+    expect(retryBtn.style.borderColor).toMatch(/(rgb\(255, 255, 255\)|#fff)/i);
+  });
+
+  test("Retry button hover effects: handleReset resets styles", async () => {
+    window.localStorage.getItem.mockImplementation((key) => {
+      if (key === "org_id") return "test-org";
+      if (key === "provision_job_id") return "job-fail";
+      return null;
+    });
+
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "failed", error: "Test error" }),
+    });
+
+    await act(async () => {
+      render(<ProvisioningPage />);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(2100);
+    });
+
+    const retryBtn = screen.getByText("Retry Provisioning");
+
+    // First highlight the button
+    fireEvent.mouseEnter(retryBtn);
+
+    // Then reset (calls handleReset)
+    fireEvent.mouseLeave(retryBtn);
+
+    // Verify styles were reset (browser may return hex or rgb)
+    expect(retryBtn.style.backgroundColor).toBe("transparent");
+    expect(retryBtn.style.color).toMatch(/(rgb\(255, 255, 255\)|#fff)/i);
+    expect(retryBtn.style.borderColor).toBe("rgba(255, 255, 255, 0.3)");
+  });
 });
