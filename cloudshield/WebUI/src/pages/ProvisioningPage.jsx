@@ -27,28 +27,26 @@ function normalizeJobStatus(apiStatus) {
   return "running";
 }
 
-/**
- * Calculates percentage and determines the display message based on backend logs.
- * Cycles through: Started -> Initializing User -> Workstation -> Groups -> File -> Good
- */
 function inferProgress({ status, progressText, currentPercent }) {
   const text = (progressText || "").toLowerCase();
+  let newPercent = currentPercent || 5;
+  let displayMessage = progressText || "Initializing...";
 
-  // Failure/Success states override everything
-  if (status === "failed") return { percent: currentPercent || 0, message: "Provisioning failed." };
-  if (status === "succeeded") return { percent: 100, message: "All good! Redirecting..." };
+  if (status === "failed") {
+    return { percent: currentPercent || 0, message: displayMessage };
+  }
+  if (status === "succeeded") {
+    return { percent: 100, message: "All good! Redirecting..." };
+  }
 
-  let newPercent = currentPercent;
-  let displayMessage = "Provisioning started...";
-
-  // 1. Map backend logs to percentage & human-readable milestones
-  if (text.includes("enqueued") || text.includes("started")) {
-    newPercent = 10;
-    displayMessage = "Initializing user environment...";
-  } 
-  else if (text.includes("generating ssh keys") || text.includes("ssh key")) {
-    newPercent = 25;
-    displayMessage = "Setting up secure credentials...";
+  // Specific keyword-based inference - check more specific patterns first
+  if (text.includes("generating ssh keys")) {
+    newPercent = 20;
+    displayMessage = "Generating SSH keys...";
+  }
+  else if (text.includes("ssh key generation complete")) {
+    newPercent = 30;
+    displayMessage = "SSH keys ready...";
   }
   else if (text.includes("docker provisioning") || text.includes("terraform")) {
     newPercent = 40;
@@ -65,6 +63,10 @@ function inferProgress({ status, progressText, currentPercent }) {
   else if (text.includes("finalizing") || text.includes("cleanup")) {
     newPercent = 90;
     displayMessage = "Almost there...";
+  }
+  else if (text.includes("enqueued") || text.includes("started")) {
+    newPercent = 10;
+    displayMessage = "Starting provisioning...";
   }
   else {
     // If no keyword matches, keep previous message but creep bar forward
@@ -84,8 +86,6 @@ function inferProgress({ status, progressText, currentPercent }) {
 
 export default function ProvisioningPage() {
   const pollTimerRef = useRef(null);
-  
-  // LOCK: Prevents double-redirects
   const successHandled = useRef(false);
 
   const [jobId, setJobId] = useState(() => {
@@ -97,10 +97,23 @@ export default function ProvisioningPage() {
   }, []);
 
   const [status, setStatus] = useState("running");
-  const [progressText, setProgressText] = useState("Provisioning started...");
+  const [progressText, setProgressText] = useState("Initializing...");
   const [percent, setPercent] = useState(5);
 
-  // 1. Start Job (Fail-safe)
+  // --- Button Style Handlers (Accessibility Fix) ---
+  const handleHighlight = (e) => {
+    e.currentTarget.style.backgroundColor = "#fff";
+    e.currentTarget.style.color = "#0A0A0A";
+    e.currentTarget.style.borderColor = "#fff";
+  };
+
+  const handleReset = (e) => {
+    e.currentTarget.style.backgroundColor = "transparent";
+    e.currentTarget.style.color = "#fff";
+    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+  };
+
+  // 1. Start Job
   useEffect(() => {
     let mounted = true;
 
@@ -138,7 +151,7 @@ export default function ProvisioningPage() {
     return () => { mounted = false; };
   }, [jobId, orgId]);
 
-  // 2. Poll Status Loop
+  // 2. Poll Status
   useEffect(() => {
     if (successHandled.current) return;
     if (!jobId || status === "failed") return;
@@ -158,15 +171,13 @@ export default function ProvisioningPage() {
         const nextStatus = normalizeJobStatus(data.status);
         const rawMsg = data.progress || data.message || data.error || "";
 
-        // --- FAILURE ---
         if (nextStatus === "failed") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           setStatus("failed");
           setProgressText(rawMsg || "Provisioning failed.");
         } 
-        // --- SUCCESS ---
         else if (nextStatus === "succeeded") {
-          successHandled.current = true; // Lock
+          successHandled.current = true; 
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
 
           setStatus("succeeded");
@@ -176,22 +187,17 @@ export default function ProvisioningPage() {
           localStorage.setItem("isProvisioned", "true");
           localStorage.removeItem("provision_job_id");
 
-          // Hard Refresh Redirect
           setTimeout(() => {
             window.location.href = "/dashboard";
           }, 1500);
         } 
-        // --- RUNNING ---
         else {
           setStatus(nextStatus);
-          
-          // Calculate dynamic text and percent
           const result = inferProgress({ 
             status: nextStatus, 
             progressText: rawMsg, 
             currentPercent: percent 
           });
-          
           setPercent(result.percent);
           setProgressText(result.message);
         }
@@ -207,7 +213,7 @@ export default function ProvisioningPage() {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [jobId, status, percent]); // Added percent dependency so inferProgress has latest state
+  }, [jobId, status, percent]);
 
   return (
     <div
@@ -300,16 +306,11 @@ export default function ProvisioningPage() {
                    fontSize: "14px",
                    transition: "all 0.2s ease"
                  }}
-                 onMouseOver={(e) => {
-                   e.currentTarget.style.backgroundColor = "#fff";
-                   e.currentTarget.style.color = "#0A0A0A";
-                   e.currentTarget.style.borderColor = "#fff";
-                 }}
-                 onMouseOut={(e) => {
-                   e.currentTarget.style.backgroundColor = "transparent";
-                   e.currentTarget.style.color = "#fff";
-                   e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-                 }}
+                 // FIX: Paired events for accessibility
+                 onMouseOver={handleHighlight}
+                 onFocus={handleHighlight}
+                 onMouseOut={handleReset}
+                 onBlur={handleReset}
                >
                  Retry Provisioning
                </button>

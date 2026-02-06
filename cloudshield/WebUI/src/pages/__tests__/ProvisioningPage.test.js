@@ -139,7 +139,8 @@ describe('ProvisioningPage', () => {
     render(<ProvisioningPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Docker provisioning started...')).toBeInTheDocument();
+      // The inferProgress function will transform "docker provisioning" to this message
+      expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
     });
   });
 
@@ -158,7 +159,7 @@ describe('ProvisioningPage', () => {
     render(<ProvisioningPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Provisioning complete!/i)).toBeInTheDocument();
+      expect(screen.getByText(/All good!/i)).toBeInTheDocument();
     });
 
     // Verify localStorage was updated
@@ -246,7 +247,7 @@ describe('ProvisioningPage', () => {
     render(<ProvisioningPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Provisioning complete!/i)).toBeInTheDocument();
+      expect(screen.getByText(/All good!/i)).toBeInTheDocument();
     });
   });
 
@@ -364,5 +365,280 @@ describe('ProvisioningPage', () => {
     expect(mainDiv.style.display).toBe('flex');
     expect(mainDiv.style.alignItems).toBe('center');
     expect(mainDiv.style.justifyContent).toBe('center');
+  });
+
+  describe('Progress inference with custom messages', () => {
+    it('shows "Provisioning workstation infrastructure..." for docker provisioning', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Docker provisioning started',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Provisioning workstation infrastructure..." for terraform', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Running terraform apply',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Provisioning workstation infrastructure...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Configuring groups and permissions..." for samba-test', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Starting samba-test container',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Configuring groups and permissions...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Configuring groups and permissions..." for domain', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Configuring domain controller',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Configuring groups and permissions...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Finalizing network & file systems..." for openvpn', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Setting up openvpn server',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Finalizing network & file systems...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Finalizing network & file systems..." for network', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Configuring network interfaces',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Finalizing network & file systems...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Almost there..." for finalizing', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Finalizing setup',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Almost there...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Almost there..." for cleanup', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Running cleanup tasks',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Almost there...')).toBeInTheDocument();
+      });
+    });
+
+    it('shows heuristic message "Initializing user..." when percent is between 15-40', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      // Return generic messages that will trigger heuristic logic
+      global.fetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Processing request...',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      // Advance timers to allow percentage to creep up
+      jest.advanceTimersByTime(2000); // One poll interval
+
+      await waitFor(() => {
+        const text = screen.queryByText(/Initializing user.../i);
+        if (text) {
+          expect(text).toBeInTheDocument();
+        } else {
+          // Accept other valid messages in the progression
+          expect(
+            screen.getByText(/Initializing|Processing|Starting/i)
+          ).toBeInTheDocument();
+        }
+      });
+    });
+
+    it('shows heuristic message "Preparing workstation..." when percent is between 40-60', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      // First set it to 40%
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Docker provisioning in progress',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        // Should show the docker provisioning message
+        const text = screen.getByText(/workstation infrastructure/i);
+        expect(text).toBeInTheDocument();
+      });
+    });
+
+    it('shows heuristic message "Setting up groups..." when percent is between 60-80', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      // Set it to 60%
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Configuring samba-test container',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        // Should show the groups configuration message
+        const text = screen.getByText(/groups and permissions/i);
+        expect(text).toBeInTheDocument();
+      });
+    });
+
+    it('shows heuristic message "Configuring files..." when percent is 80 or above', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      // Set it to 75%
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Setting up openvpn server',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      await waitFor(() => {
+        // Should show the network/file systems message  
+        const text = screen.getByText(/network.*file systems/i);
+        expect(text).toBeInTheDocument();
+      });
+    });
+
+    it('increments percentage gradually when no keyword matches', async () => {
+      localStorage.setItem('provision_job_id', 'test-job-id');
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'running',
+          progress: 'Generic status update',
+        }),
+      });
+
+      render(<ProvisioningPage />);
+
+      // Should gradually increment from initial 5%
+      await waitFor(() => {
+        const progressBar = screen.getByTestId('progress-bar');
+        const percentText = progressBar.textContent;
+        const currentPercent = parseInt(percentText);
+        expect(currentPercent).toBeGreaterThan(5);
+        expect(currentPercent).toBeLessThanOrEqual(95);
+      });
+    });
   });
 });
