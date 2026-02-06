@@ -25,6 +25,7 @@ logger = get_logger("access_groups")
 workstations_bp = Blueprint("workstations", __name__)
 
 ERROR_ORG_ID_REQUIRED = "org_id is required"
+ERROR_TEMPLATE_ID_REQUIRED = "template_id is required"
 
 @workstations_bp.route("/workstations/create-default", methods=["POST"])
 @require_auth
@@ -49,3 +50,36 @@ def create_default():
             org_id=org_id)
 
     return jsonify({"job_id":job.id}), 202
+
+@workstations_bp.route("/workstations/start", methods=["POST"])
+@require_auth
+def start():
+    """
+    Debug route, this should not be used in our WebUI
+
+    This will create an image of a workstations with no customization
+    """
+    data = request.get_json() or {}
+
+    
+    logger.info("[API] Received /workstations/create-default POST request")
+
+    org_id = data.get("org_id")
+    template_id = data.get("template_id")
+
+    if org_id is None:
+        logger.warning("Workstation default workstation provisioning request missing org_id")
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 400
+    if template_id is None:
+        logger.warning("Workstation default workstation provisioning request missing org_id")
+        return jsonify({"error":ERROR_TEMPLATE_ID_REQUIRED}), 400
+
+
+    job = service_dispatcher(
+            service_name="ws_start",
+            org_id=org_id,
+            template_id=template_id)
+
+    return jsonify({"job_id":job.id}), 202
+
+

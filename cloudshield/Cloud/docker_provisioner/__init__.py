@@ -5,6 +5,7 @@ from .provision import provision_workstation_docker as provision_workstation # n
 
 from .workstations import provision_default_workstation as provision_default_workstation
 from .workstations import provision_custom_workstation as provision_custom_workstation
+from .workstations import provision_workstation_vm as provision_workstation_vm
 
 from .provision import get_target_dir as get_target_dir
 from .keygen import generate_ed25519_ssh_key as generate_ed25519_ssh_key

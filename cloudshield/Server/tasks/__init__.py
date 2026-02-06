@@ -13,6 +13,7 @@ from .dc_management import dc_create_file_share as dc_create_file_share
 from .dc_management import dc_delete_file_share as dc_delete_file_share
 
 from .workstations import ws_create_default as ws_create_default
+from .workstations import ws_start as ws_start
 
 from .task import get_server_nodes as get_server_nodes
 from .task import proxy_rpc_request as proxy_rpc_request
