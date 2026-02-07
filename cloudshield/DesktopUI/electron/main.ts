@@ -169,7 +169,7 @@ ipcMain.handle("show-open-dialog", async (_event, options) => {
 });
 
 ipcMain.handle(
-  "run-xfreerdp",
+  "runXfreerdp",
   async (
     _event,
     params: { username: string; password: string; ip: string },
