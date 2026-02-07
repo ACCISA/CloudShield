@@ -24,7 +24,7 @@ export default function WorkstationsPage() {
   const [selectedWorkstation, setSelectedWorkstation] =
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
-
+const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -104,6 +104,12 @@ export default function WorkstationsPage() {
     window.dispatchEvent(new Event("auth-changed"));
   };
 
+  const killRDP = async () => {
+    if (rdpPID) {
+      await window.electronAPI?.killProcess(rdpPID);
+    }
+  };
+
   const handleConnect = async () => {
     if (!selectedWorkstation) return;
     if (!window.electronAPI?.runXfreerdp) {
@@ -128,6 +134,7 @@ export default function WorkstationsPage() {
         ip,
       )) as ElectronResult;
       setRdpStatus(`Connected! (PID: ${result.pid ?? "-"})`);
+      setRdpPID(result.pid);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setRdpStatus(`Error: ${message}`);
@@ -424,7 +431,11 @@ export default function WorkstationsPage() {
                 Launch RDP
               </button>
               <button
-                onClick={() => setSelectedWorkstation(null)}
+                onClick={() => {
+                  setSelectedWorkstation(null);
+                  setRdpStatus(null);
+                  killRDP();
+                }}
                 className="mt-4 rounded-lg border border-white/10 bg-[#A41010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
               >
                 Disconnect
