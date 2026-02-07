@@ -100,7 +100,7 @@ describe('ProvisioningPage', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://172.18.0.3:5050/task/provision',
+        '/api/task/provision',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -137,7 +137,7 @@ describe('ProvisioningPage', () => {
     });
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/status/job-123');
+      expect(mockFetch).toHaveBeenCalledWith('/api/status/job-123');
     });
   });
 

@@ -226,10 +226,13 @@ services:
       context: .                # path to your UI project (you were in WebUI %)
       dockerfile: docker/Dockerfile.ui
     container_name: cs-ui
+    tty: true
+    stdin_open: true
     environment:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
       - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
+      - VITE_API_PROXY_TARGET=http://api:5050
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.20

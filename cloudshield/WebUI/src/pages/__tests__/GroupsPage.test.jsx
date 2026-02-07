@@ -725,7 +725,7 @@ describe("GroupsPage Component", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://127.0.0.1:5050/api/access-groups",
+          "/api/access-groups",
           expect.objectContaining({
             method: "GET",
             credentials: "include",

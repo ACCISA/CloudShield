@@ -108,7 +108,7 @@ describe('AuthPage', () => {
     fireEvent.click(loginButton);
     
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5050/api/auth/login', {
+      expect(fetch).toHaveBeenCalledWith('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

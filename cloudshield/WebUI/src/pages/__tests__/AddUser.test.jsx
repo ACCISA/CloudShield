@@ -167,7 +167,7 @@ describe("AddUserPage", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          "http://localhost:5050/task/dc/add_user",
+          "/api/task/dc/add_user",
           expect.objectContaining({
             method: "POST",
             headers: { "Content-Type": "application/json" },

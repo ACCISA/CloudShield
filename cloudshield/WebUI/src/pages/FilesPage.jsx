@@ -22,6 +22,8 @@ import {
   deleteFileShare,
   fetchUsers,
   fetchGroups,
+  fetchFileShares,
+  transformSharesToTree,
 } from "../api/filesApi";
 
 import {
@@ -247,29 +249,10 @@ export default function FilesPage() {
   const fetchTree = useCallback(async () => {
     console.log("fetchTree - Starting fetch with orgId:", orgId);
     try {
-      const res = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const data = await res.json();
-      
-      // Backend returns: { shares: [{ share: {...} }] }
-      let nodes = [];
-      if (data && Array.isArray(data.shares)) {
-        // Extract the share object from each item
-        nodes = data.shares.map(item => item.share);
-        console.log("fetchTree - Extracted shares:", nodes);
-      } else if (Array.isArray(data)) {
-        nodes = data;
-      } else {
-        console.warn("fetchTree - Unexpected API format:", data);
-        nodes = [];
-      }
-      
+      const shares = await fetchFileShares(orgId);
+      const nodes = transformSharesToTree(shares);
+      console.log("fetchTree - Extracted shares:", nodes);
       setTree(nodes);
-
     } catch (e) {
       console.error("fetchTree - Failed to fetch files:", e);
     }
@@ -303,8 +286,8 @@ export default function FilesPage() {
         attempts++;
         
         // Fetch current shares to check if new one exists
-        const currentShares = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`).then(r => r.json());
-        const shareExists = currentShares.shares?.some(s => s.share.name === data.shareName);
+        const currentShares = await fetchFileShares(orgId);
+        const shareExists = currentShares?.some(s => s.share?.name === data.shareName);
         
         if (shareExists) {
           // Share created successfully - refresh UI
@@ -491,8 +474,8 @@ export default function FilesPage() {
         attempts++;
         
         // Refresh to check if share is gone
-        const currentShares = await fetch(`http://127.0.0.1:5050/api/file_shares?org_id=${orgId}`).then(r => r.json());
-        const shareStillExists = currentShares.shares?.some(s => s.share.name === node.name);
+        const currentShares = await fetchFileShares(orgId);
+        const shareStillExists = currentShares?.some(s => s.share?.name === node.name);
         
         if (!shareStillExists) {
           // Share is deleted - refresh UI and remove from deleting state

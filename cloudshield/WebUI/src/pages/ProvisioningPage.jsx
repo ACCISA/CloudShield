@@ -76,7 +76,7 @@ export default function ProvisioningPage({ onProvisioned }) {
       throw new Error("Missing organization ID for provisioning.");
     }
 
-    const res = await fetch("https://172.18.0.3:5050/task/provision", {
+    const res = await fetch("/api/task/provision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ org_id: orgId }),

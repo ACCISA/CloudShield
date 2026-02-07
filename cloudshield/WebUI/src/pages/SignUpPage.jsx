@@ -172,7 +172,7 @@ export default function SignupPage({ onSignupSuccess }) {
 
     try {
       const createUserRes = await fetch(
-        "http://localhost:5050/api/auth/signup",
+        "/api/auth/signup",
         {
           method: "POST",
           headers: {

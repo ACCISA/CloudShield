@@ -134,7 +134,7 @@ export default function GroupsModal({
       }
 
       const res = await fetch(
-        `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
+        `/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
         {
           method: "GET",
           credentials: "include",
