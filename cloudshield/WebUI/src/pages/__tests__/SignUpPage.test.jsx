@@ -359,6 +359,9 @@ describe("SignupPage", () => {
       expect.any(String),
     );
     expect(localStorage.setItem).toHaveBeenCalledWith("jwt", "mock-token");
+    expect(localStorage.setItem).toHaveBeenCalledWith("provision_job_id", "job123");
+    expect(localStorage.setItem).toHaveBeenCalledWith("org_id", "org123");
+    expect(mockNavigate).toHaveBeenCalledWith("/provisioning", { replace: true });
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost:5050/api/auth/signup",
