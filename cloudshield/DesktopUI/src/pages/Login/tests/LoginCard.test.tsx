@@ -4,7 +4,7 @@ import LoginCard from "../LoginCard";
 
 const loginMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../services/AuthService", () => ({
+vi.mock("../../../services/AuthService", () => ({
   default: { login: loginMock },
 }));
 
