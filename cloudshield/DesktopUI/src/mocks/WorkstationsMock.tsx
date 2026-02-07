@@ -41,18 +41,18 @@ export const mockWorkstationTemplates: WorkstationTemplate[] = [
 ];
 
 export const mockWorkstations: Workstation[] = [
-    {
-        org_id: "org123",
-        template_id: "template1",
-        mac: "00:1A:2B:3C:4D:5E",
-        ipv4_address: "192.168.1.100",
-        status: WorkstationStatus.Active,
-    },
-    {
-        org_id: "org123",
-        template_id: "template2",
-        mac: "00:1A:2B:3C:4D:5F",
-        ipv4_address: "192.168.1.101", 
-        status: WorkstationStatus.Active,
-    }
-]
+  {
+    org_id: "org123",
+    template_id: "template1",
+    mac: "00:1A:2B:3C:4D:5E",
+    ipv4_address: "192.168.122.106",
+    status: WorkstationStatus.Active,
+  },
+  {
+    org_id: "org123",
+    template_id: "template2",
+    mac: "00:1A:2B:3C:4D:5F",
+    ipv4_address: "192.168.1.101",
+    status: WorkstationStatus.Active,
+  },
+];

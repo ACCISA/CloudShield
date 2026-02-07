@@ -1,16 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import RDPOpenVPNCard from "../RDPOpvenVPN/RDPOpenVPNCard";
-import type { WorkstationTemplate } from "../../models/Workstations";
+import type { ElectronResult } from "../../models/ElectronResult";
+import type {
+  WorkstationTemplate,
+  Workstation,
+} from "../../models/Workstations";
 import WorkstationService from "../../services/WorkstationService";
-
+import SoftwarePopup from "./SoftwarePopup";
+import SearchIcon from "../../assets/icons8-search.svg";
 
 
 export default function WorkstationsPage() {
-  const [items, setItems] = useState<WorkstationTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredSoftwareIndex, setHoveredSoftwareIndex] = useState<
+    number | null
+  >(null);
+  const [isLoadingWorkstations, setIsLoadingWorkstations] =
+    useState<boolean>(false);
+  const [selectedWorkstation, setSelectedWorkstation] =
+    useState<Workstation | null>(null);
+  const [rdpStatus, setRdpStatus] = useState<string | null>(null);
 
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
@@ -42,24 +55,24 @@ export default function WorkstationsPage() {
     const fetchWorkstationTemplates = async () => {
       if (!accessToken) {
         setError("Missing access token. Please sign in.");
-        setIsLoading(false);
+        setIsLoadingTemplates(false);
         return;
       }
 
       if (tokenExpired) {
         setError("Session expired. Please sign in again.");
-        setIsLoading(false);
+        setIsLoadingTemplates(false);
         return;
       }
 
       try {
-        setIsLoading(true);
+        setIsLoadingTemplates(true);
         setError(null);
 
         const response = await WorkstationService.getWorkstationTemplates();
 
         if (isMounted) {
-          setItems(response);
+          setTemplateItems(response);
         }
       } catch (err) {
         if (isMounted) {
@@ -69,7 +82,7 @@ export default function WorkstationsPage() {
         }
       } finally {
         if (isMounted) {
-          setIsLoading(false);
+          setIsLoadingTemplates(false);
         }
       }
     };
@@ -91,16 +104,46 @@ export default function WorkstationsPage() {
     window.dispatchEvent(new Event("auth-changed"));
   };
 
+  const handleConnect = async () => {
+    if (!selectedWorkstation) return;
+    if (!window.electronAPI?.runXfreerdp) {
+      setRdpStatus("Error: Electron API not available");
+      return;
+    }
+
+    const ip = (selectedWorkstation.ipv4_address || "").trim();
+    if (!ip) {
+      setRdpStatus("Error: Workstation IP is missing");
+      return;
+    }
+    //TODO: Get creds from Domain Controller
+    const rdpUsername = "demo";
+    const rdpPassword = "demo";
+
+    try {
+      setRdpStatus("Launching RDP client...");
+      const result = (await window.electronAPI.runXfreerdp(
+        rdpUsername,
+        rdpPassword,
+        ip,
+      )) as ElectronResult;
+      setRdpStatus(`Connected! (PID: ${result.pid ?? "-"})`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setRdpStatus(`Error: ${message}`);
+    }
+  };
+
 
   const listItems = useMemo(() => {
-    return items.map((item) => {
+    return templateItems.map((item) => {
       const key = `${item.org_id || "org"}-${item.name || "template"}`;
       const description = (
         item.description || "(No Description)"
       ).toLowerCase();
       return { ...item, key, description };
     });
-  }, [items]);
+  }, [templateItems]);
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -124,19 +167,7 @@ export default function WorkstationsPage() {
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <div className="relative w-full max-w-sm">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.3-4.3" />
-                </svg>
+                <img src={SearchIcon} alt="Search" className="h-4 w-4" />
               </span>
               <input
                 value={searchQuery}
@@ -216,25 +247,25 @@ export default function WorkstationsPage() {
           </div>
         </div>
 
-        {isLoading && (
+        {isLoadingTemplates && (
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
             Loading workstation templates...
           </div>
         )}
 
-        {!isLoading && error && (
+        {!isLoadingTemplates && error && (
           <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200">
             {error}
           </div>
         )}
 
-        {!isLoading && !error && filteredItems.length === 0 && (
+        {!isLoadingTemplates && !error && filteredItems.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
             No assigned workstation templates found.
           </div>
         )}
 
-        {!isLoading && !error && filteredItems.length > 0 && (
+        {!isLoadingTemplates && !error && filteredItems.length > 0 && (
           <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
             {filteredItems.map((item, index) => {
               const actionClasses = item.is_ready
@@ -246,7 +277,7 @@ export default function WorkstationsPage() {
                 : "bg-amber-500";
               const softwareCount = item.software?.length ?? 0;
               const accessGroupCount = item.access_groups?.length ?? 0;
-              const readyLabel = item.is_ready ? "Ready" : "Provisioning";
+              const readyLabel = item.is_ready ? "Ready" : "Unavailable";
               const templateId = item.org_id || "—";
 
               return (
@@ -277,13 +308,23 @@ export default function WorkstationsPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-6 text-xs text-white/60">
-                      <div>
+                      <div
+                        className="relative"
+                        onMouseEnter={() => setHoveredSoftwareIndex(index)}
+                        onMouseLeave={() => setHoveredSoftwareIndex(null)}
+                      >
                         <div className="text-[11px] uppercase text-white/40">
                           Software
                         </div>
                         <div className="text-sm text-white/80">
                           {softwareCount}
                         </div>
+                        {hoveredSoftwareIndex === index &&
+                          softwareCount > 0 && (
+                            <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-white/10 bg-[#0f0f0f] p-3 text-xs text-white/80 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+                              <SoftwarePopup softwares={item.software} />
+                            </div>
+                          )}
                       </div>
                       <div>
                         <div className="text-[11px] uppercase text-white/40">
@@ -308,33 +349,87 @@ export default function WorkstationsPage() {
                     <button
                       type="button"
                       disabled={!item.is_ready}
+                      onClick={async () => {
+                        setIsLoadingWorkstations(true);
+                        let workstationspool =
+                          await WorkstationService.getWorkstations();
+                        // For demo purposes, we just select the first workstation from the pool
+                        const workstation = workstationspool[0] || null;
+                        setSelectedWorkstation(workstation);
+                        setIsLoadingWorkstations(false);
+                      }}
                       className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
                     >
                       {actionLabel}
                     </button>
                     <span className={`h-2.5 w-2.5 rounded-full ${statusDot}`} />
-                    <button
-                      type="button"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#101010] text-white/60 transition hover:bg-white/10"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
-                      </svg>
-                    </button>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {!isLoadingWorkstations && !selectedWorkstation && (
+          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+            <h1>Not connected to a workstation</h1>
+          </div>
+        )}
+        {isLoadingWorkstations && (
+          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+            <h1>Searching for workstations...</h1>
+            <svg
+              className="mt-4 h-8 w-8 animate-spin text-white/70"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-30"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-90"
+                d="M22 12a10 10 0 0 1-10 10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+            </svg>
+          </div>
+        )}
+
+        {selectedWorkstation && !isLoadingWorkstations && (
+          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+            <h1>Connected to workstation {selectedWorkstation.ipv4_address}</h1>
+            <p className="mt-2 text-sm text-white/70">
+              You are now connected to your workstation. Use the options below
+              to manage your connection or access additional features.
+            </p>
+            {rdpStatus && (
+              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                {rdpStatus}
+              </div>
+            )}
+            <div className="flex gap-5">
+              <button
+                onClick={() => {
+                  handleConnect();
+                }}
+                className="mt-4 rounded-lg border border-white/10 bg-[#101010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
+              >
+                Launch RDP
+              </button>
+              <button
+                onClick={() => setSelectedWorkstation(null)}
+                className="mt-4 rounded-lg border border-white/10 bg-[#A41010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
         )}
 

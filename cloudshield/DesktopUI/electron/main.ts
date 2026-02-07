@@ -183,11 +183,13 @@ ipcMain.handle(
           // Fallback to Windows built-in RDP client
           const mstsc = "mstsc.exe";
           const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
-          return resolve({
-            success: true,
-            pid: child.pid,
-            message: "mstsc launched",
-          });
+          if (child.stdout) {
+            return resolve({
+              success: true,
+              pid: child.pid,
+              message: "mstsc launched",
+            });
+          }
         }
 
         //NOSONAR typescript:S4036
@@ -198,13 +200,13 @@ ipcMain.handle(
           "/cert:tofu",
         ]);
         let error = "";
-
-        resolve({
-          success: true,
-          pid: child.pid,
-          message: "xfreerdp3 launched",
-        });
-
+        if (child.pid) {
+          return resolve({
+            success: true,
+            pid: child.pid,
+            message: "xfreerdp3 launched",
+          });
+        }
         child.stdout?.on("data", () => undefined);
 
         child.stderr?.on("data", (data) => {
