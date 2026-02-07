@@ -40,14 +40,26 @@ def create_default():
     logger.info("[API] Received /workstations/create-default POST request")
 
     org_id = data.get("org_id")
+    name = data.get("name")
+    description = data.get("description")
+    software = data.get("software")
+    access_groups = data.get("access_groups")
 
-    if org_id is None:
-        logger.warning("Workstation default workstation provisioning request missing org_id")
-        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 400
+
+    for arg, val in {"org_id":org_id, "name":name, "description":description, "software":software, "access_groups":access_groups}.items():
+        if val is None:
+            logger.warning(f"WORKSTATIONS create_default request missing {arg}")
+            return jsonify({"error":f"{arg} is required"}), 400
+
+
 
     job = service_dispatcher(
             service_name="ws_create_default",
-            org_id=org_id)
+            org_id=org_id,
+            name=name,
+            description=description,
+            software=software,
+            access_groups=access_groups)
 
     return jsonify({"job_id":job.id}), 202
 

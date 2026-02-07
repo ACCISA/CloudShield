@@ -63,17 +63,17 @@ def wait_for_rdp(ip_address, port=3389, timeout_minutes=30, check_interval=30,lo
     logger.info(f"Timeout reached: Port {port} did not open within {timeout_minutes} minutes.")
     return False
 
-def provision_default_workstation(org_id, job = None, updater = None, logger = None):
+def provision_default_workstation(org_id, template_id, job = None, updater = None, logger = None):
 
     if updater is None:
         updater = lambda *args, **kwargs: None
     
-    default_vm_path = template_vm_path / org_id /"default"
+    default_vm_path = template_vm_path / org_id / template_id
     default_vm_path.mkdir(parents=True, exist_ok=True)
 
     updater(job, "starting workstation service")
 
-    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations/templates/default"
+    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations/templates/"/ org_id / template_id
 
     container_ws = docker.compose.run(
             service="workstation",
@@ -95,6 +95,8 @@ def provision_default_workstation(org_id, job = None, updater = None, logger = N
     docker.container.kill(container_ws_id)
 
     updater(job, "workstation image created")
+
+    return True
 
 def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = None, logger = None):
 
