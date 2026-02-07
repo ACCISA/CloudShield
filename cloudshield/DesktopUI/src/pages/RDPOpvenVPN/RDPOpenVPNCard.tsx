@@ -1,10 +1,5 @@
 import { useState } from "react";
-
-type ElectronResult = {
-  success: boolean;
-  pid?: number;
-  message: string;
-};
+import type { ElectronResult } from "../../models/ElectronResult";
 
 export default function RDPOpenVPNCard() {
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);

@@ -1,16 +1,8 @@
 import { useState, type KeyboardEvent } from "react";
 import Logo from "../../assets/cloudShieldLogo.svg";
+import type { LoginResponse } from "../../models/LoginResponse";
+import AuthService from "../../services/AuthService";
 
-type LoginResponse = {
-  access_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  error?: string;
-};
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5050";
-const LOGIN_URL = `${API_BASE_URL}/api/auth/login`;
 
 export default function LoginCard() {
   const [email, setEmail] = useState("");
@@ -54,17 +46,14 @@ export default function LoginCard() {
         payload.otp = twoFactorCode.trim();
       }
 
-      const response = await fetch(LOGIN_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const data = await AuthService.login(
+        sanitizedEmail,
+        password,
+        useTwoFactor ? twoFactorCode.trim() : null,
+      );
+      
 
-      const data: LoginResponse = await response.json();
-
-      if (!response.ok || !data.access_token) {
+      if (!data.access_token) {
         throw new Error(
           data?.error || "Login failed. Please check your credentials.",
         );

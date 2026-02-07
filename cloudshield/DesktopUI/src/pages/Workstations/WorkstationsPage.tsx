@@ -1,78 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import RDPOpenVPNCard from "../RDPOpvenVPN/RDPOpenVPNCard";
+import type { WorkstationTemplate } from "../../models/Workstations";
+import WorkstationService from "../../services/WorkstationService";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5050";
-const WORKSTATIONS_URL = `${API_BASE_URL}/api/workstations/assigned`;
 
-type Workstation = {
-  id?: string;
-  _id?: string;
-  name?: string;
-  status?: string;
-  ip?: string;
-  last_seen?: string;
-  assigned_user?: string;
-};
-
-type WorkstationsResponse = {
-  items?: Workstation[];
-  workstations?: Workstation[];
-  data?: Workstation[];
-};
-
-type ElectronResult = {
-  success: boolean;
-  pid?: number;
-  message: string;
-};
-
-type RdpDraft = {
-  username?: string;
-  password?: string;
-};
-
-const RDP_DRAFT_STORAGE_KEY = "cloudshield.rdpDraft";
-
-const statusStyles: Record<string, string> = {
-  online: "bg-emerald-500/15 text-emerald-200 border-emerald-500/40",
-  offline: "bg-slate-500/15 text-slate-200 border-slate-400/40",
-  busy: "bg-amber-500/15 text-amber-200 border-amber-500/40",
-};
-
-const resolveItems = (payload: unknown): Workstation[] => {
-  if (Array.isArray(payload)) return payload as Workstation[];
-  if (payload && typeof payload === "object") {
-    const typed = payload as WorkstationsResponse;
-    return typed.items || typed.workstations || typed.data || [];
-  }
-  return [];
-};
 
 export default function WorkstationsPage() {
-  const [items, setItems] = useState<Workstation[]>([]);
+  const [items, setItems] = useState<WorkstationTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [rdpUsername, setRdpUsername] = useState("");
-  const [rdpPassword, setRdpPassword] = useState("");
-  const [rdpStatus, setRdpStatus] = useState<string | null>(null);
-  const [rdpTarget, setRdpTarget] = useState<Workstation | null>(null);
-
-  const loadRdpDraft = (): RdpDraft => {
-    const raw = localStorage.getItem(RDP_DRAFT_STORAGE_KEY);
-    if (!raw) return {};
-    try {
-      return JSON.parse(raw) as RdpDraft;
-    } catch {
-      return {};
-    }
-  };
-
-  const saveRdpDraft = (draft: RdpDraft) => {
-    localStorage.setItem(RDP_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  };
 
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
@@ -93,7 +31,6 @@ export default function WorkstationsPage() {
     }
   })();
 
-  const tokenType = storedAuth?.tokenType || "Bearer";
   const accessToken = storedAuth?.accessToken;
   const tokenExpired = storedAuth?.expiresAt
     ? Date.now() > storedAuth.expiresAt
@@ -102,7 +39,7 @@ export default function WorkstationsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchWorkstations = async () => {
+    const fetchWorkstationTemplates = async () => {
       if (!accessToken) {
         setError("Missing access token. Please sign in.");
         setIsLoading(false);
@@ -119,22 +56,10 @@ export default function WorkstationsPage() {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(WORKSTATIONS_URL, {
-          headers: {
-            Authorization: `${tokenType} ${accessToken}`,
-          },
-        });
+        const response = await WorkstationService.getWorkstationTemplates();
 
-        const payload = await response.json();
-
-        if (!response.ok) {
-          const message = payload?.error || "Failed to load workstations.";
-          throw new Error(message);
-        }
-
-        const rows = resolveItems(payload);
         if (isMounted) {
-          setItems(rows);
+          setItems(response);
         }
       } catch (err) {
         if (isMounted) {
@@ -149,12 +74,12 @@ export default function WorkstationsPage() {
       }
     };
 
-    fetchWorkstations();
+    fetchWorkstationTemplates();
 
     return () => {
       isMounted = false;
     };
-  }, [accessToken, tokenExpired, tokenType, refreshIndex]);
+  }, [accessToken, tokenExpired, refreshIndex]);
 
   const handleRefresh = () => {
     setRefreshIndex((prev) => prev + 1);
@@ -166,59 +91,14 @@ export default function WorkstationsPage() {
     window.dispatchEvent(new Event("auth-changed"));
   };
 
-  const handleOpenConnect = (item: Workstation) => {
-    const draft = loadRdpDraft();
-    setRdpTarget(item);
-    setRdpStatus(null);
-    const assignedUser = (item.assigned_user || "").trim();
-    setRdpUsername(assignedUser || draft.username || "");
-    setRdpPassword(draft.password || "");
-  };
-
-  const handleCloseConnect = () => {
-    setRdpTarget(null);
-    setRdpStatus(null);
-  };
-
-  const handleConnect = async () => {
-    if (!rdpTarget) return;
-    if (!window.electronAPI?.runXfreerdp) {
-      setRdpStatus("Error: Electron API not available");
-      return;
-    }
-
-    const ip = (rdpTarget.ip || "").trim();
-    if (!ip) {
-      setRdpStatus("Error: Workstation IP is missing");
-      return;
-    }
-
-    if (!rdpUsername || !rdpPassword) {
-      setRdpStatus("Error: Please provide username and password");
-      return;
-    }
-
-    try {
-      setRdpStatus("Launching RDP client...");
-      const result = (await window.electronAPI.runXfreerdp(
-        rdpUsername,
-        rdpPassword,
-        ip,
-      )) as ElectronResult;
-      setRdpStatus(`Connected! (PID: ${result.pid ?? "-"})`);
-      saveRdpDraft({ username: rdpUsername, password: rdpPassword });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setRdpStatus(`Error: ${message}`);
-    }
-  };
 
   const listItems = useMemo(() => {
     return items.map((item) => {
-      const key = item.id || item._id || item.name || "workstation";
-      const status = (item.status || "offline").toLowerCase();
-      const badgeClass = statusStyles[status] || statusStyles.offline;
-      return { ...item, key, status, badgeClass };
+      const key = `${item.org_id || "org"}-${item.name || "template"}`;
+      const description = (
+        item.description || "(No Description)"
+      ).toLowerCase();
+      return { ...item, key, description };
     });
   }, [items]);
 
@@ -227,8 +107,13 @@ export default function WorkstationsPage() {
     if (!query) return listItems;
     return listItems.filter((item) => {
       const name = (item.name || "").toLowerCase();
-      const id = (item.id || item._id || "").toLowerCase();
-      return name.includes(query) || id.includes(query);
+      const id = (item.description || "").toLowerCase();
+      const software = (
+        item.software.map((s) => s.name).join(", ") || ""
+      ).toLowerCase();
+      return (
+        name.includes(query) || id.includes(query) || software.includes(query)
+      );
     });
   }, [listItems, searchQuery]);
 
@@ -256,7 +141,7 @@ export default function WorkstationsPage() {
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search workstations"
+                placeholder="Search workstation templates"
                 className="w-full rounded-xl border border-white/10 bg-[#0f0f0f] py-2 pl-9 pr-3 text-sm text-white/80 placeholder:text-white/40 focus:border-white/30 focus:outline-none"
               />
             </div>
@@ -333,7 +218,7 @@ export default function WorkstationsPage() {
 
         {isLoading && (
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
-            Loading workstations...
+            Loading workstation templates...
           </div>
         )}
 
@@ -345,23 +230,24 @@ export default function WorkstationsPage() {
 
         {!isLoading && !error && filteredItems.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
-            No assigned workstations found.
+            No assigned workstation templates found.
           </div>
         )}
 
         {!isLoading && !error && filteredItems.length > 0 && (
           <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
             {filteredItems.map((item, index) => {
-              const isBusy = item.status === "busy";
-              const actionClasses = isBusy
-                ? "border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20"
-                : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20";
-              const actionLabel = isBusy ? "Disconnect" : "Connect";
-              const statusDot = isBusy ? "bg-red-500" : "bg-emerald-500";
-              const usersCount = (item as { users_count?: number }).users_count;
-              const currentUser = item.assigned_user || "—";
-              const lastUsed = item.last_seen || "—";
-              const workstationId = item.id || item._id || "—";
+              const actionClasses = item.is_ready
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-100";
+              const actionLabel = item.is_ready ? "Use" : "Not Ready";
+              const statusDot = item.is_ready
+                ? "bg-emerald-500"
+                : "bg-amber-500";
+              const softwareCount = item.software?.length ?? 0;
+              const accessGroupCount = item.access_groups?.length ?? 0;
+              const readyLabel = item.is_ready ? "Ready" : "Provisioning";
+              const templateId = item.org_id || "—";
 
               return (
                 <div
@@ -382,7 +268,10 @@ export default function WorkstationsPage() {
                           {item.name || "Workstation"}
                         </div>
                         <div className="text-xs text-white/50">
-                          ↳ {workstationId}
+                          ↳ {templateId}
+                        </div>
+                        <div className="text-xs text-white/40">
+                          {item.description || "No description"}
                         </div>
                       </div>
                     </div>
@@ -390,25 +279,27 @@ export default function WorkstationsPage() {
                     <div className="flex flex-wrap gap-6 text-xs text-white/60">
                       <div>
                         <div className="text-[11px] uppercase text-white/40">
-                          Users
+                          Software
                         </div>
                         <div className="text-sm text-white/80">
-                          {typeof usersCount === "number" ? usersCount : "—"}
+                          {softwareCount}
                         </div>
                       </div>
                       <div>
                         <div className="text-[11px] uppercase text-white/40">
-                          Current
+                          Access groups
                         </div>
                         <div className="text-sm text-white/80">
-                          {currentUser}
+                          {accessGroupCount}
                         </div>
                       </div>
                       <div>
                         <div className="text-[11px] uppercase text-white/40">
-                          Last used
+                          Status
                         </div>
-                        <div className="text-sm text-white/80">{lastUsed}</div>
+                        <div className="text-sm text-white/80">
+                          {readyLabel}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -416,12 +307,8 @@ export default function WorkstationsPage() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
+                      disabled={!item.is_ready}
                       className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
-                      onClick={() => {
-                        if (!isBusy) {
-                          handleOpenConnect(item);
-                        }
-                      }}
                     >
                       {actionLabel}
                     </button>
@@ -461,61 +348,6 @@ export default function WorkstationsPage() {
           <RDPOpenVPNCard />
         </div>
       </div>
-
-      {rdpTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-white/90">
-                  Connect to {rdpTarget.name || "Workstation"}
-                </div>
-                <div className="text-xs text-white/50">
-                  IP: {rdpTarget.ip || "Unavailable"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleCloseConnect}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <input
-                type="text"
-                placeholder="Username"
-                data-testid="rdp-username-input"
-                value={rdpUsername}
-                onChange={(e) => setRdpUsername(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-[#0b0b0b] px-3 py-2 text-sm text-white/80 placeholder:text-white/30"
-              />
-              <input
-                type="password"
-                data-testid="rdp-password-input"
-                placeholder="Password"
-                value={rdpPassword}
-                onChange={(e) => setRdpPassword(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-[#0b0b0b] px-3 py-2 text-sm text-white/80 placeholder:text-white/30"
-              />
-              <button
-                type="button"
-                onClick={handleConnect}
-                className="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
-              >
-                Launch RDP
-              </button>
-              {rdpStatus && (
-                <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-                  {rdpStatus}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
