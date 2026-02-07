@@ -443,16 +443,6 @@ const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
             </div>
           </div>
         )}
-
-        <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
-          <div className="text-sm font-semibold text-white/90">
-            Manual RDP / OpenVPN
-          </div>
-          <p className="mt-1 text-xs text-white/50">
-            Use this to connect with a custom IP, username, and password.
-          </p>
-          <RDPOpenVPNCard />
-        </div>
       </div>
     </div>
   );
