@@ -226,8 +226,8 @@ services:
       context: .                # path to your UI project (you were in WebUI %)
       dockerfile: docker/Dockerfile.ui
     container_name: cs-ui
-    tty: true
-    stdin_open: true
+    #tty: true
+    #stdin_open: true
     environment:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
