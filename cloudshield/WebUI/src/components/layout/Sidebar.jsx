@@ -16,7 +16,7 @@
  *   - Uses react-router hooks (useNavigate/useLocation) for navigation; keep routing logic
  *     minimal here and handle heavier logic in pages or containers.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -187,6 +187,39 @@ function AccordionGrid({ items }) {
   );
 }
 
+const API_BASE =
+  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+
+function getToken() {
+  // CloudShield stores the JWT under "jwt"
+  return localStorage.getItem("jwt");
+}
+
+async function apiGet(path) {
+  const token = getToken();
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      msg = data?.error || data?.details || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  return res.json();
+}
+
+
+
 export default function Sidebar({
   mode = "full",
   collapsed,
@@ -205,6 +238,37 @@ export default function Sidebar({
     groups: false,
     files: false,
   });
+
+  const [me, setMe] = useState(null);            // { id, email, org_id, role }
+  const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
+  const [meErr, setMeErr] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const meRes = await apiGet("/users/me"); // expects { user: {...} }
+        if (!mounted) return;
+        setMe(meRes.user);
+
+        // Only call org endpoint after we know we're authenticated
+        // expects { organization: {...} }
+        const orgRes = await apiGet("/organizations/me");
+        if (!mounted) return;
+        setMyOrg(orgRes.organization);
+      } catch (e) {
+        if (!mounted) return;
+        setMeErr(e.message || "Failed to load user");
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
 
   // colors for the little count pills (matching dashboard StatCard gradients)
   const usersPill = "#6a4fcf";
@@ -337,7 +401,7 @@ export default function Sidebar({
                     lineHeight: 1.3,
                   }}
                 >
-                  Company Inc.
+                  {myOrg?.name || "Company Inc."}
                 </Typography>
                 <Typography
                   sx={{
@@ -347,7 +411,7 @@ export default function Sidebar({
                     wordBreak: "break-all",
                   }}
                 >
-                  admin@company.com
+                  {me?.email || "admin@company.com"}
                 </Typography>
               </Box>
             </Box>

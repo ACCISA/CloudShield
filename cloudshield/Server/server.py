@@ -62,10 +62,23 @@ def create_app() -> Flask:
     app = Flask(__name__)
     
     # --- 2. INITIALIZE CORS ---
-    # This enables Cross-Origin Resource Sharing for all routes
-    CORS(app, 
-         resources={r"/api/*": {"origins": "http://localhost:5173"}},
-         supports_credentials=True)
+    # This enables Cross-Origin Resource Sharing for all routes    
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": [
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                ]
+            }
+        },
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    )
+
+
     
     # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
     # Register Tasks API -> /api/task/...
