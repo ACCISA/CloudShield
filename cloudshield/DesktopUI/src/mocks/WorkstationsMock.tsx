@@ -1,43 +1,48 @@
-import { Workstation, WorkstationTemplate, Software, WorkstationStatus } from "../models/Workstations";
+import {
+  Workstation,
+  WorkstationTemplate,
+  WorkstationStatus,
+} from "../models/Workstations";
 
 export const mockWorkstationTemplates: WorkstationTemplate[] = [
-    {
-        name: "Windows 10 Pro",
-        org_id: "org123",
-        description: "A workstation template with Windows 10 Pro installed.",
-        software: [
-            {
-                name: "Microsoft Office",
-                description: "Office suite including Word, Excel, and PowerPoint.",
-                path: "C:\\Program Files\\Microsoft Office\\Office16\\WINWORD.EXE",
-            },
-            {
-                name: "Google Chrome", 
-                description: "Google's web browser.", 
-                path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-            }
-        ],
-        is_ready: true,
-        access_groups: ["group1", "group2"],
-    },
-    { name: "Windows 11 Pro", 
-        org_id: "org123",
-        description: "A workstation template with Windows 11 Pro installed.",
-        software: [
-            {
-                name: "Microsoft Edge",
-                description: "Microsoft's web browser.", 
-                path: "C:\\path\\to\\edge.exe",
-            },
-            {
-                name: "Visual Studio Code", 
-                description: "Source code editor developed by Microsoft.", 
-                path: "C:\\path\\to\\vscode.exe",
-            },
-        ],
-        is_ready: false,
-        access_groups: ["group1"],
-    },
+  {
+    name: "Windows 10 Pro",
+    org_id: "org123",
+    description: "A workstation template with Windows 10 Pro installed.",
+    software: [
+      {
+        name: "Microsoft Office",
+        description: "Office suite including Word, Excel, and PowerPoint.",
+        path: "C:\\Program Files\\Microsoft Office\\Office16\\WINWORD.EXE",
+      },
+      {
+        name: "Google Chrome",
+        description: "Google's web browser.",
+        path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      },
+    ],
+    is_ready: true,
+    access_groups: ["group1", "group2"],
+  },
+  {
+    name: "Windows 11 Pro",
+    org_id: "org123",
+    description: "A workstation template with Windows 11 Pro installed.",
+    software: [
+      {
+        name: "Microsoft Edge",
+        description: "Microsoft's web browser.",
+        path: "C:\\path\\to\\edge.exe",
+      },
+      {
+        name: "Visual Studio Code",
+        description: "Source code editor developed by Microsoft.",
+        path: "C:\\path\\to\\vscode.exe",
+      },
+    ],
+    is_ready: false,
+    access_groups: ["group1"],
+  },
 ];
 
 export const mockWorkstations: Workstation[] = [

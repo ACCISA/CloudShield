@@ -1,5 +1,9 @@
-import APIService from "../utils/APIService";
-import { mapWorkstationTemplate, Workstation, WorkstationTemplate } from "../models/Workstations";
+// import APIService from "../utils/APIService";
+import {
+  // mapWorkstationTemplate,
+  Workstation,
+  WorkstationTemplate,
+} from "../models/Workstations";
 import {
   mockWorkstations,
   mockWorkstationTemplates,

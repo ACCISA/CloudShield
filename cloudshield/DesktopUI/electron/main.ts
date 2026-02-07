@@ -181,7 +181,7 @@ ipcMain.handle(
     return new Promise((resolve, reject) => {
       try {
         const isWin = process.platform === "win32";
-        let exePath: string = "xfreerdp3";
+        const exePath: string = "xfreerdp3";
         let settled = false;
 
         if (isWin) {

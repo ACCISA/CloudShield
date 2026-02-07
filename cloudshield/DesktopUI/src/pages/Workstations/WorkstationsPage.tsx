@@ -358,7 +358,7 @@ const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
                       disabled={!item.is_ready}
                       onClick={async () => {
                         setIsLoadingWorkstations(true);
-                        let workstationspool =
+                        const workstationspool =
                           await WorkstationService.getWorkstations();
                         // For demo purposes, we just select the first workstation from the pool
                         const workstation = workstationspool[0] || null;
