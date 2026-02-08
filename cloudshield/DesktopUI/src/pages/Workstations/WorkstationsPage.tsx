@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import RDPOpenVPNCard from "../RDPOpvenVPN/RDPOpenVPNCard";
 import type { ElectronResult } from "../../models/ElectronResult";
 import type {
   WorkstationTemplate,
@@ -8,7 +7,6 @@ import type {
 import WorkstationService from "../../services/WorkstationService";
 import SoftwarePopup from "./SoftwarePopup";
 import SearchIcon from "../../assets/icons8-search.svg";
-
 
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
@@ -24,7 +22,7 @@ export default function WorkstationsPage() {
   const [selectedWorkstation, setSelectedWorkstation] =
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
-const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
+  const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -140,7 +138,6 @@ const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
       setRdpStatus(`Error: ${message}`);
     }
   };
-
 
   const listItems = useMemo(() => {
     return templateItems.map((item) => {
