@@ -218,8 +218,6 @@ async function apiGet(path) {
   return res.json();
 }
 
-
-
 export default function Sidebar({
   mode = "full",
   collapsed,
@@ -269,6 +267,43 @@ export default function Sidebar({
     };
   }, []);
 
+  const [stats, setStats] = useState({
+    users: null,
+    workstations: null,
+    access_groups: null,
+    shares: null,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStats() {
+      try {
+        setStatsLoading(true);
+
+        // Call stats endpoint for counts to show in pills
+        const data = await apiGet("/organizations/me/stats"); // expects { stats: { users, workstations, access_groups, shares } }
+        if (!cancelled) setStats(data.stats);
+      } catch (e) {
+        if (!cancelled) {
+          setStats({
+            users: null,
+            workstations: null,
+            access_groups: null,
+            shares: null,
+          });
+        }
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    }
+
+    loadStats();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // colors for the little count pills (matching dashboard StatCard gradients)
   const usersPill = "#6a4fcf";
@@ -449,7 +484,8 @@ export default function Sidebar({
             label="Workstations"
             to="/workstations"
             active={isActive("/workstations")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.workstations ?? (statsLoading ? "…" : 0))}
             countColor={workstationPill}
             expanded={open.workstations}
             onToggleExpand={() =>
@@ -463,7 +499,8 @@ export default function Sidebar({
             label="Employees"
             to="/employees"
             active={isActive("/employees") || isActive("/users")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.users ?? (statsLoading ? "…" : 0))}
             countColor={usersPill}
             expanded={open.employees}
             onToggleExpand={() =>
@@ -483,7 +520,8 @@ export default function Sidebar({
             label="Groups"
             to="/groups"
             active={isActive("/groups")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.access_groups ?? (statsLoading ? "…" : 0))}
             countColor={groupsPill}
             expanded={open.groups}
             onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
@@ -495,7 +533,8 @@ export default function Sidebar({
             label="Shares"
             to="/files"
             active={isActive("/files")}
-            count={collapsed ? undefined : 33}
+            //count={collapsed ? undefined : 33}
+            count={collapsed ? undefined : (stats.shares ?? (statsLoading ? "…" : 0))}
             countColor={sharesPill}
             expanded={open.files}
             onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
