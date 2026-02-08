@@ -24,6 +24,45 @@ export default function DashboardPage() {
     "Initializing infrastructure...",
   );
 
+  const API_BASE =
+  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+
+  function getToken() {
+    // CloudShield stores the JWT under "jwt"
+    return localStorage.getItem("jwt");
+  }
+
+  async function apiGet(path) {
+    const token = getToken();
+
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try {
+        const data = await res.json();
+        msg = data?.error || data?.details || msg;
+      } catch {}
+      throw new Error(msg);
+    }
+
+    return res.json();
+  }
+
+  const [stats, setStats] = useState({
+    users: null,
+    workstations: null,
+    groups: null,
+    shares: null,
+  });
+const [statsLoading, setStatsLoading] = useState(true);
+
   // Polling logic to check provisioning status
   useEffect(() => {
     if (!user?.org_id) return;
@@ -57,6 +96,41 @@ export default function DashboardPage() {
 
     return () => clearInterval(intervalId);
   }, [user?.org_id, provisioningStatus]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadStats() {
+      try {
+        setStatsLoading(true);
+        const res = await apiGet("/organizations/me/stats"); // { stats: {...} }
+
+        if (!mounted) return;
+
+        setStats({
+          users: res.stats.users,
+          workstations: res.stats.workstations,
+          groups: res.stats.access_groups, // important mapping
+          shares: res.stats.shares,
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setStats({
+          users: 0,
+          workstations: 0,
+          groups: 0,
+          shares: 0,
+        });
+      } finally {
+        if (mounted) setStatsLoading(false);
+      }
+    }
+
+    loadStats();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Handler for add button clicks
   const handleAddUser = () => {
@@ -153,7 +227,7 @@ export default function DashboardPage() {
       >
         <StatCard
           title="Users"
-          value={16}
+          value={stats.users ?? (statsLoading ? "…" : 0)}
           gradientFrom="#6a4fcf"
           gradientTo="#ad8bff"
           onAdd={handleAddUser}
@@ -161,7 +235,7 @@ export default function DashboardPage() {
 
         <StatCard
           title="Workstations"
-          value={12}
+          value={stats.workstations ?? (statsLoading ? "…" : 0)}
           gradientFrom="#c94b4b"
           gradientTo="#de6f6f"
           onAdd={handleAddWorkstation}
@@ -169,7 +243,7 @@ export default function DashboardPage() {
 
         <StatCard
           title="Groups"
-          value={3}
+          value={stats.groups ?? (statsLoading ? "…" : 0)}
           gradientFrom="#2656d8"
           gradientTo="#4d7fff"
           onAdd={handleAddGroup}
@@ -177,7 +251,7 @@ export default function DashboardPage() {
 
         <StatCard
           title="Shares"
-          value={33}
+          value={stats.shares ?? (statsLoading ? "…" : 0)}
           gradientFrom="#c57a1c"
           gradientTo="#f0a24f"
           onAdd={handleAddFile}
