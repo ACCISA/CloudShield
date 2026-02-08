@@ -1,6 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
 import Logo from "../../assets/cloudShieldLogo.svg";
-import type { LoginResponse } from "../../models/LoginResponse";
 import AuthService from "../../services/AuthService";
 
 
