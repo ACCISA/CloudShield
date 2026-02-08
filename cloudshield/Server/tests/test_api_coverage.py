@@ -279,7 +279,8 @@ class TestDCAddUser:
         resp = client.post("/api/task/dc/add_user", json={
             "org_id": "acme",
             "username": "newuser",
-            "password": "newpass"
+            "password": "newpass",
+            "email": "newemail@gmail.com"
         })
         assert resp.status_code == 202
         assert "job_id" in resp.json

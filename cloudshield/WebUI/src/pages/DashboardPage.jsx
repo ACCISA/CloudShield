@@ -7,6 +7,7 @@
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { Box, LinearProgress, Paper, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
@@ -15,7 +16,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth(); // Get current logged-in user data
 
   const [provisioningStatus, setProvisioningStatus] = useState("pending");
   const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
@@ -96,19 +98,35 @@ export default function DashboardPage() {
 
 
   const handleAddUser = () => {
-    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "users" });
+    trackButton("dashboard/statcard/add", {
+      page: "dashboard",
+      entity: "users",
+    });
+    navigate("/employees", { state: { openModal: true } });
   };
 
   const handleAddWorkstation = () => {
-    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "workstations" });
+    trackButton("dashboard/statcard/add", {
+      page: "dashboard",
+      entity: "workstations",
+    });
+    navigate("/workstations", { state: { openModal: true } });
   };
 
   const handleAddGroup = () => {
-    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "groups" });
+    trackButton("dashboard/statcard/add", {
+      page: "dashboard",
+      entity: "groups",
+    });
+    navigate("/groups", { state: { openModal: true } });
   };
 
   const handleAddFile = () => {
-    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "files" });
+    trackButton("dashboard/statcard/add", {
+      page: "dashboard",
+      entity: "files",
+    });
+    navigate("/files", { state: { openModal: true } });
   };
 
   return (
@@ -162,7 +180,6 @@ export default function DashboardPage() {
         <StatCard
           title="Users"
           value={16}
-          changePercent={15.2}
           gradientFrom="#6a4fcf"
           gradientTo="#ad8bff"
           onAdd={handleAddUser}
@@ -170,7 +187,6 @@ export default function DashboardPage() {
         <StatCard
           title="Workstations"
           value={12}
-          changePercent={15.2}
           gradientFrom="#c94b4b"
           gradientTo="#de6f6f"
           onAdd={handleAddWorkstation}
@@ -178,7 +194,6 @@ export default function DashboardPage() {
         <StatCard
           title="Groups"
           value={3}
-          changePercent={15.2}
           gradientFrom="#2656d8"
           gradientTo="#4d7fff"
           onAdd={handleAddGroup}
@@ -186,7 +201,6 @@ export default function DashboardPage() {
         <StatCard
           title="Shares"
           value={33}
-          changePercent={15.2}
           gradientFrom="#c57a1c"
           gradientTo="#f0a24f"
           onAdd={handleAddFile}

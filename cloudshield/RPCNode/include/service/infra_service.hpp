@@ -23,7 +23,7 @@ class InfraService final : public is::InfraService::Service
 public:
 	InfraService();
 
-	
+	Status SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response) override;
   	Status AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response) override;
   	Status ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response) override;
   	Status GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response) override;
@@ -34,6 +34,9 @@ public:
 	Status CreateDomainUserWithGroup(ServerContext* context, const is::CreateDomainUserWithGroupData* request, is::CreateDomainUserWithGroupDataAck* response) override;
 	Status RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response) override;
 	Status DeleteSambaFileShare(ServerContext* context, const is::DeleteSambaFileShareData* request, is::DeleteSambaFileShareDataAck* response) override;
+	Status AddDNSRecord(ServerContext* context, const is::AddDNSRecordData* request, is::AddDNSRecordDataAck* response) override;
+	Status DeleteDNSRecord(ServerContext* context, const is::DeleteDNSRecordData* request, is::DeleteDNSRecordDataAck* response) override;
+
 private:
 	static constexpr const char* USER_EXISTS = "already exists";
 	static constexpr const char* USER_ADD_FAILED = "Failed to add user";

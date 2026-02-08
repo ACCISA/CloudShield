@@ -295,12 +295,20 @@ Status InfraService::GetUserList(ServerContext* context, const google::protobuf:
 Status InfraService::CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	is::Status status;
 
 	std::string share_name = request->share_name().c_str();
+	std::string share_size = request->share_size().c_str();
+
+	std::cout << "Creating new file share" << std::endl;
+	std::cout << "share_name: " << share_name << std::endl;
+	std::cout << "share_size: " << share_size << std::endl;
 
 	auto samba = std::make_unique<SambaTask>();
 
-	std::string result = samba->CreateSambaFileShare(share_name);
+	status = samba->CreateSambaFileShare(share_name, share_size);
+
+	response->set_status(status);
 
 	return Status(grpc::StatusCode::OK, "New File share added successfully");
 }
@@ -308,14 +316,15 @@ Status InfraService::CreateSambaFileShare(ServerContext* context, const is::Crea
 Status InfraService::RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	is::Status status;
 	
 	auto samba = std::make_unique<SambaTask>();
 
-	std::string result = samba->RestartSambaService();
+	status = samba->RestartSambaService();
 
 	std::cout << "Restarted samba service" << std::endl;
 
-	response->set_status(is::Status::SUCCESS);
+	response->set_status(status);
 		
 	return Status(grpc::StatusCode::OK, "Restared samba-ad-dc service");
 }
@@ -343,3 +352,103 @@ Status InfraService::DeleteSambaFileShare(ServerContext* context, const is::Dele
 
 	return Status(grpc::StatusCode::OK, "Deleted samba file share");
 }
+
+Status InfraService::AddDNSRecord(ServerContext* context, const is::AddDNSRecordData* request, is::AddDNSRecordDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+	std::string result;
+
+	AddDNSRecordData dns_record = {
+		request->zone().c_str(),
+		request->name().c_str(),
+		request->target().c_str(),
+		request->password().c_str()
+	};
+
+	auto samba = std::make_unique<SambaTask>();
+
+	bool status = samba->AddDNSRecord(dns_record, result);
+
+	if (!status) {
+		std::cout << "Failed to add dns record" << std::endl;
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	if (result.find(AddDNSRecordH::RECORD_EXIST) != std::string::npos) {
+		response->set_status(is::Status::DNS_RECORD_EXIST);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	if (result.find(AddDNSRecordH::NAME_NOT_EXIST) != std::string::npos) {
+		response->set_status(is::Status::DNS_ZONE_NOT_FOUND);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	if (result.find(AddDNSRecordH::AUTH_FAIL) != std::string::npos) {
+		response->set_status(is::Status::AUTH_FAIL);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	if (result.find(AddDNSRecordH::SUCCESS) != std::string::npos) {
+		response->set_status(is::Status::SUCCESS);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	return Status(grpc::StatusCode::OK, "Added DNS entry");
+}
+
+Status InfraService::DeleteDNSRecord(ServerContext* context, const is::DeleteDNSRecordData* request, is::DeleteDNSRecordDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+	std::string result;
+	
+	AddDNSRecordData dns_record = {
+		request->zone().c_str(),
+		request->name().c_str(),
+		request->target().c_str(),
+		request->password().c_str()
+	};
+
+	auto samba = std::make_unique<SambaTask>();
+
+	bool status = samba->DeleteDNSRecord(dns_record, result);
+	
+	if (!status) {
+		std::cout << "Failed to delete dns record" << std::endl;
+		return Status(grpc::StatusCode::OK, "Failed to delete dns entry");
+	}	
+
+	if (result.find(DeleteDNSRecordH::SUCCESS) != std::string::npos) {
+		return Status(grpc::StatusCode::OK, "Failed to delete dns entry");
+	}
+
+	if (result.find(DeleteDNSRecordH::NAME_NOT_EXIST) != std::string::npos) {
+		return Status(grpc::StatusCode::OK, "Failed to delete dns entry");
+	}
+
+	if (result.find(DeleteDNSRecordH::RECORD_NOT_EXIST) != std::string::npos) {
+		response->set_status(is::Status::DNS_RECORD_NOT_EXIST);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+	if (result.find(AddDNSRecordH::AUTH_FAIL) != std::string::npos) {
+		response->set_status(is::Status::AUTH_FAIL);
+		return Status(grpc::StatusCode::OK, "Failed to add DNS entry");
+	}
+
+
+	return Status(grpc::StatusCode::OK, "Deleted DNS entry");
+}
+
+Status InfraService::SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+	std::string realm = request->realm().c_str();
+	
+	auto samba = std::make_unique<SambaTask>();
+
+	bool status = samba->SyncNetlogonScript(realm, request->groups());
+
+	return Status(grpc::StatusCode::OK, "Netlogon scripts synced");	
+}
+  	

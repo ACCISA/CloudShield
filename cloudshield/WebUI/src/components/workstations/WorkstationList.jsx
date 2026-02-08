@@ -429,6 +429,7 @@ export default function WorkstationList({
   onToggleStatus,
   selectedIds = new Set(),
   allVisibleSelected = false,
+  isIndeterminate = false,
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
   showUsers = true,
@@ -484,7 +485,11 @@ export default function WorkstationList({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
+          <Checkbox
+            checked={allVisibleSelected}
+            indeterminate={isIndeterminate}
+            onChange={onToggleSelectAll}
+          />
           <span style={styles.headerLabel}>Name/Number</span>
           {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
           {showCurrentColumn && <span style={styles.headerLabel}>Current</span>}

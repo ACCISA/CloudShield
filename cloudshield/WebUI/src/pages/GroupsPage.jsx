@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
@@ -36,6 +37,7 @@ const styles = {
 };
 
 export default function GroupsPage() {
+  const location = useLocation();
   const [groups, setGroups] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -57,9 +59,24 @@ export default function GroupsPage() {
 
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setModalOpen(true);
+      setEditingGroup(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const openToast = (msg, type = "success") => {
     setToast({ open: true, msg, type });
@@ -106,7 +123,8 @@ export default function GroupsPage() {
     const shareIds = Array.isArray(g.file_shares) ? g.file_shares : [];
 
     return {
-      id: g.id,
+      id: g._id || g.id,
+      _id: g._id || g.id,
       name: g.group_name || "",
       groupName: g.group_name || "",
       description: g.description || "",
@@ -133,7 +151,7 @@ export default function GroupsPage() {
       const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
         method: "GET",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
 
       if (!res.ok) {
@@ -183,8 +201,14 @@ export default function GroupsPage() {
     return out;
   }, [groups, search, activeFilters, sortField, sortDir]);
 
-  const allVisibleSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
+    const hasSelected = filtered.some((g) => selectedIds.has(g._id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -197,14 +221,25 @@ export default function GroupsPage() {
   };
 
   const toggleSelectAllVisible = () => {
+    const hasSelected = filtered.some((g) => selectedIds.has(g._id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+
     setSelectedIds((prev) => {
-      if (allVisibleSelected) {
+      if (hasSelected && !allAreSelected) {
+        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((g) => next.delete(g._id));
         return next;
-      } else {
+      } else if (!hasSelected) {
+        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((g) => next.add(g._id));
+        return next;
+      } else {
+        // All selected - deselect all
+        const next = new Set(prev);
+        filtered.forEach((g) => next.delete(g._id));
         return next;
       }
     });
@@ -302,7 +337,7 @@ export default function GroupsPage() {
           {
             method: "PATCH",
             credentials: "include",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...getAuthHeader() },
             body: JSON.stringify(payload),
           },
         );
@@ -328,7 +363,7 @@ export default function GroupsPage() {
         const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
           body: JSON.stringify(payload),
         });
 
@@ -347,12 +382,21 @@ export default function GroupsPage() {
   };
 
   const handleDeleteGroup = async (groupId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this group? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
     try {
       const res = await fetch(
         `http://127.0.0.1:5050/api/access-groups/${groupId}`,
         {
           method: "DELETE",
           credentials: "include",
+          headers: { ...getAuthHeader() },
         },
       );
 
@@ -436,6 +480,7 @@ export default function GroupsPage() {
         showFiles={showFiles}
         selectedIds={selectedIds}
         allVisibleSelected={allVisibleSelected}
+        isIndeterminate={isIndeterminate}
         onToggleSelect={toggleSelect}
         onToggleSelectAll={toggleSelectAllVisible}
         onEdit={handleOpenEditModal}
@@ -447,6 +492,7 @@ export default function GroupsPage() {
         onClose={handleCloseModal}
         groupData={editingGroup}
         onSubmit={handleSubmitGroup}
+        onDelete={handleDeleteGroup}
         onRefresh={fetchGroups}
       />
     </div>

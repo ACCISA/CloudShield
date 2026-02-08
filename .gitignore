@@ -92,7 +92,7 @@ cloudshield/Server/.env
 cloudshield/Cloud/terraform/generated/**
 cloudshield/Agent/build
 **.exe
-**.xml
+coverage.xml
 .coverage
 chatmodes
 cloudshield/WebUI/package-lock.json
@@ -100,3 +100,4 @@ cloudshield/WebUI/package-lock.json
 cloudshield/WebUI/coverage/
 
 .scannerwork/
+*.iso

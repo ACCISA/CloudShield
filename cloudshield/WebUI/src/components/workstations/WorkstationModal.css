@@ -832,12 +832,13 @@
 }
 
 .workstation-modal-btn-delete {
-  background-color: #7c1d1d;
-  color: #ffffff;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
 }
 
 .workstation-modal-btn-delete:hover:not(:disabled) {
-  background-color: #a02626;
+  background-color: rgba(220, 38, 38, 0.2);
 }
 
 /* Scrollbar */

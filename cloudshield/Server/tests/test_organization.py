@@ -9,7 +9,7 @@ from cloudshield.Server.models.organization import (
 
 
 def test_create_organization_doc_applies_package_defaults():
-    org = OrganizationCreate(name="Acme", package="pro")
+    org = OrganizationCreate(name="Acme", package="pro", domain_name="test", dc_admin_password="aa", realm_name="samdom.test.com")
 
     doc = create_organization_doc(org)
 
@@ -28,6 +28,9 @@ def test_create_organization_doc_respects_overrides():
         package="basic",
         workstation_limit=1,
         user_limit=2,
+        domain_name="test",
+        dc_admin_password="aa",
+        realm_name="samdom.test.com"
     )
 
     doc = create_organization_doc(org)
@@ -39,4 +42,4 @@ def test_create_organization_doc_respects_overrides():
 def test_organization_validation_rejects_negative_limits():
     """Test that negative limits raise a ValidationError"""
     with pytest.raises(ValidationError):
-        OrganizationCreate(name="Bad", workstation_limit=-1)
+        OrganizationCreate(name="Bad", workstation_limit=-1, domain_name="test", dc_admin_password="aa", realm_name="samdom.test.com")

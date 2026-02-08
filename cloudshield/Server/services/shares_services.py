@@ -74,8 +74,8 @@ def create_share(
     users: List[str] | None = None,
     description: str | None = None,
     owner: str | None = None,
-    current_size: int | None = None,
-    max_size: int | None = None,
+    current_size: str | None = None,
+    max_size: str | None = None,
 ) -> dict:
     """
     Create a new file share record with auto-allocated drive letter.
@@ -121,7 +121,7 @@ def create_share(
         drive=drive,
         description=description,
         owner=owner,
-        current_size=current_size or 0,
+        current_size=current_size or "0",
         max_size=max_size,
     )
     logger.info("Validated file share model: %s", share_model)

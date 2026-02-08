@@ -177,7 +177,8 @@ def test_dc_add_user_success(client):
     resp = client.post("/api/task/dc/add_user", json={
         "org_id": "acme",
         "username": "testuser",
-        "password": "SecurePass123!"
+        "password": "SecurePass123!",
+        "email":"magg@gmail.com"
     })
     assert resp.status_code == 202
     job_id = resp.get_json()["job_id"]
@@ -190,7 +191,8 @@ def test_dc_add_user_missing_org_id(client):
     # Added /api prefix
     resp = client.post("/api/task/dc/add_user", json={
         "username": "testuser",
-        "password": "SecurePass123!"
+        "password": "SecurePass123!",
+        "email":"am@gmail.com"
     })
     assert resp.status_code == 400  # Returns error in response body
     data = resp.get_json()

@@ -22,6 +22,18 @@ def _normalize_group_name(v: str) -> str:
     v2 = (v or "").strip().lower()
     if not v2:
         raise PydanticCustomError("group_name_required", "group_name is required", {})
+
+    # Be user-friendly: allow spaces and common separators in UI, but store a safe slug.
+    # Examples:
+    #   "My Group" -> "my-group"
+    #   "Eng.Team" -> "eng-team"
+    #   "R&D"      -> "r-d"
+    v2 = re.sub(r"\s+", "-", v2)
+    v2 = re.sub(r"[^a-z0-9_-]", "-", v2)
+    v2 = re.sub(r"-+", "-", v2).strip("-_")
+    if not v2:
+        raise PydanticCustomError("group_name_required", "group_name is required", {})
+
     if not GROUP_RX.match(v2):
         raise PydanticCustomError(
             "group_name_format",

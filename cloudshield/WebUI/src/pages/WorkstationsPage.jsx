@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
 import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
@@ -53,6 +54,7 @@ const seed = MOCK_WORKSTATIONS_FULL;
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
+  const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
   const [rows, setRows] = useState(seed);
   const [search, setSearch] = useState("");
@@ -74,6 +76,16 @@ export default function WorkstationsPage() {
   // dialogs
   const [openModal, setOpenModal] = useState(false);
   const [editRow, setEditRow] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setOpenModal(true);
+      setEditRow(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -107,8 +119,14 @@ export default function WorkstationsPage() {
     return data;
   }, [rows, search, activeFilters]);
 
-  const allVisibleSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
+    const hasSelected = filtered.some((w) => selectedIds.has(w.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -121,14 +139,25 @@ export default function WorkstationsPage() {
   };
 
   const toggleSelectAllVisible = () => {
+    const hasSelected = filtered.some((w) => selectedIds.has(w.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+
     setSelectedIds((prev) => {
-      if (allVisibleSelected) {
+      if (hasSelected && !allAreSelected) {
+        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((w) => next.delete(w.id));
         return next;
-      } else {
+      } else if (!hasSelected) {
+        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((w) => next.add(w.id));
+        return next;
+      } else {
+        // All selected - deselect all
+        const next = new Set(prev);
+        filtered.forEach((w) => next.delete(w.id));
         return next;
       }
     });
@@ -205,6 +234,14 @@ export default function WorkstationsPage() {
   };
 
   const handleDelete = (id) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this workstation? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
     trackButton("workstations/edit/delete", {
       page: "workstations",
       id,
@@ -328,6 +365,7 @@ export default function WorkstationsPage() {
           onToggleStatus={handleToggleStatus}
           selectedIds={selectedIds}
           allVisibleSelected={allVisibleSelected}
+          isIndeterminate={isIndeterminate}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAllVisible}
           showUsers={showUsersCol}

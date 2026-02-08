@@ -264,6 +264,7 @@ function GroupRow({
   isTablet,
   isSelected,
   onToggleSelect,
+  rowId,
 }) {
   const responsiveStyles = getResponsiveStyles();
 
@@ -278,7 +279,10 @@ function GroupRow({
       >
         {/* Checkbox - hide on mobile */}
         {!isMobile && (
-          <Checkbox checked={isSelected} onChange={onToggleSelect} />
+          <Checkbox
+            checked={isSelected}
+            onChange={() => onToggleSelect(rowId)}
+          />
         )}
 
         {/* name + description + DisplayIcon */}
@@ -324,6 +328,7 @@ export default function GroupsList({
   showFiles = true,
   selectedIds = new Set(),
   allVisibleSelected = false,
+  isIndeterminate = false,
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
 }) {
@@ -374,7 +379,11 @@ export default function GroupsList({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
+          <Checkbox
+            checked={allVisibleSelected}
+            indeterminate={isIndeterminate}
+            onChange={onToggleSelectAll}
+          />
           <span style={styles.headerLabel}>Name/Description</span>
           {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
           {showWorkstationsColumn && (
@@ -407,7 +416,8 @@ export default function GroupsList({
                 isMobile={isMobile}
                 isTablet={isTablet}
                 isSelected={selectedIds.has(r._id)}
-                onToggleSelect={() => onToggleSelect(r._id)}
+                onToggleSelect={onToggleSelect}
+                rowId={r._id}
               />
             ))}
           </div>

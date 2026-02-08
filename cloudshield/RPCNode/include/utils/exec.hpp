@@ -7,9 +7,10 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <format>
 
 std::string ExecuteBinary(const std::string& command);
-
+/*
 template<typename... Args>
 std::string BuildCommand(const std::string& format, Args... args) {
 
@@ -25,4 +26,10 @@ std::string BuildCommand(const std::string& format, Args... args) {
     std::snprintf(buf.get(), size, format.c_str(), args...);
 
     return std::string(buf.get(), buf.get() + size - 1);
+}*/
+
+
+template<typename... Args>
+std::string BuildCommand(const std::string& format_str, Args... args) {
+    return std::vformat(format_str, std::make_format_args(args...));
 }
