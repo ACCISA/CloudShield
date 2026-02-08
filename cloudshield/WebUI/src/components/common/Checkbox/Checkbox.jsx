@@ -31,6 +31,7 @@ const styles = {
 
 export default function Checkbox({
   checked = false,
+  indeterminate = false,
   onChange,
   disabled = false,
   style = {},
@@ -56,7 +57,7 @@ export default function Checkbox({
 
   const checkboxStyle = {
     ...styles.checkbox,
-    ...(checked ? styles.checkboxChecked : {}),
+    ...(checked || indeterminate ? styles.checkboxChecked : {}),
     ...style,
   };
 
@@ -66,12 +67,12 @@ export default function Checkbox({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       role="checkbox"
-      aria-checked={checked}
+      aria-checked={indeterminate ? "mixed" : checked}
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : 0}
     >
       <div style={checkboxStyle}>
-        {checked && (
+        {checked && !indeterminate && (
           <svg style={styles.checkmark} viewBox="0 0 16 16" fill="none">
             <path
               d="M13.3333 4L6 11.3333L2.66666 8"
@@ -79,6 +80,16 @@ export default function Checkbox({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+            />
+          </svg>
+        )}
+        {indeterminate && (
+          <svg style={styles.checkmark} viewBox="0 0 16 16" fill="none">
+            <path
+              d="M4 8H12"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
             />
           </svg>
         )}

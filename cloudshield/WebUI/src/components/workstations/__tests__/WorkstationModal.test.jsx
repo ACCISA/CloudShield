@@ -1,26 +1,41 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import WorkstationModal from "../WorkstationModal";
+import * as modalHelpers from "../../../utils/modalHelpers";
 
-jest.mock("../../common/DisplayIcon/DisplayIcon.jsx", () => () => (
-  <div data-testid="display-icon" />
-));
+// Mock dependencies
+jest.mock("../../common/DisplayIcon/DisplayIcon.jsx", () => ({
+  __esModule: true,
+  default: ({ type, data }) => (
+    <div data-testid={`display-icon-${type}`}>
+      {type === "user" && `${data.firstName} ${data.lastName}`}
+      {type === "group" && data.name}
+    </div>
+  ),
+}));
 
-jest.mock("../../../assets/ImageUploadIcon.jsx", () => () => (
-  <div data-testid="upload-icon" />
-));
+jest.mock("../../../assets/ImageUploadIcon.jsx", () => ({
+  __esModule: true,
+  default: () => <div data-testid="upload-icon" />,
+}));
 
-jest.mock("../../common/Checkbox/Checkbox.jsx", () => (props) => (
-  <input 
-    type="checkbox" 
-    checked={props.checked} 
-    onChange={(e) => {
-      if (props.onChange) {
-        props.onChange(e.target.checked);
-      }
-    }}
-  />
-));
+jest.mock("../../../assets/TrashIcon.jsx", () => ({
+  __esModule: true,
+  default: () => <div data-testid="trash-icon" />,
+}));
+
+jest.mock("../../common/Checkbox/Checkbox.jsx", () => ({
+  __esModule: true,
+  default: ({ checked, indeterminate, onChange }) => (
+    <input
+      type="checkbox"
+      checked={checked}
+      data-indeterminate={indeterminate}
+      onChange={(e) => onChange && onChange(e.target.checked)}
+    />
+  ),
+}));
 
 jest.mock("../../../assets/workstation", () => ({
   CpuIcon: () => <div data-testid="cpu-icon" />,
@@ -31,262 +46,1367 @@ jest.mock("../../../assets/workstation", () => ({
   UltimateTierIcon: () => <div data-testid="ultimate-tier-icon" />,
 }));
 
+// Mock modalHelpers
+jest.mock("../../../utils/modalHelpers", () => {
+  const originalModule = jest.requireActual("../../../utils/modalHelpers");
+  return {
+    ...originalModule,
+    resolveOrgId: jest.fn(() => Promise.resolve("org-123")),
+    fetchUsers: jest.fn(),
+    fetchGroups: jest.fn(),
+    fetchSoftware: jest.fn(),
+  };
+});
+
+// Mock AuthContext
+jest.mock("../../../context/AuthContext.jsx", () => ({
+  useAuth: () => ({
+    accessToken: "mock-token",
+    currentUser: { org_id: "org-123" },
+  }),
+}));
+
 describe("WorkstationModal", () => {
-  it("does not render when closed", () => {
-    render(
-      <WorkstationModal
-        open={false}
-        onClose={jest.fn()}
-        onSubmit={jest.fn()}
-      />
-    );
+  const mockUsers = [
+    { id: "1", firstName: "John", lastName: "Doe", title: "Engineer" },
+    { id: "2", firstName: "Jane", lastName: "Smith", title: "Designer" },
+    { id: "3", firstName: "Bob", lastName: "Johnson", title: "Manager" },
+  ];
 
-    expect(screen.queryByText("New Workstation")).not.toBeInTheDocument();
+  const mockGroups = [
+    { id: "g1", name: "Engineering", members: 15 },
+    { id: "g2", name: "Design", members: 8 },
+    { id: "g3", name: "Sales", members: 12 },
+  ];
+
+  const mockSoftware = [
+    { id: "s1", name: "VS Code", category: "Development", icon: "📝" },
+    { id: "s2", name: "Slack", category: "Communication", icon: "💬" },
+    { id: "s3", name: "Figma", category: "Design", icon: "🎨" },
+  ];
+
+  const defaultProps = {
+    open: true,
+    onClose: jest.fn(),
+    onSubmit: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    modalHelpers.fetchUsers.mockImplementation(
+      async (accessToken, setAllUsers) => {
+        setAllUsers(mockUsers);
+      },
+    );
+    modalHelpers.fetchGroups.mockImplementation(
+      async (orgId, accessToken, setAllGroups) => {
+        setAllGroups(mockGroups);
+      },
+    );
+    modalHelpers.fetchSoftware.mockImplementation(
+      async (orgId, accessToken, setAllSoftware) => {
+        setAllSoftware(mockSoftware);
+      },
+    );
+    global.window.confirm = jest.fn(() => true);
   });
 
-  it("renders in create mode and blocks Next when name is empty", () => {
-    render(
-      <WorkstationModal
-        open={true}
-        onClose={jest.fn()}
-        onSubmit={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-    const nextButton = screen.getByRole("button", { name: "Next" });
-    expect(nextButton).toBeDisabled();
-  });
-
-  it("enables Next after name is set and navigates to users step", () => {
-    render(
-      <WorkstationModal
-        open={true}
-        onClose={jest.fn()}
-        onSubmit={jest.fn()}
-      />
-    );
-
-    const nameInput = screen.getByPlaceholderText("Enter workstation name");
-    fireEvent.change(nameInput, { target: { value: "Dev WS" } });
-
-    const nextButton = screen.getByRole("button", { name: "Next" });
-    expect(nextButton).not.toBeDisabled();
-    fireEvent.click(nextButton);
-
-    expect(
-      screen.getByPlaceholderText("Search users...")
-    ).toBeInTheDocument();
-  });
-
-  it("submits data on final step and closes", () => {
-    const onClose = jest.fn();
-    const onSubmit = jest.fn();
-
-    render(
-      <WorkstationModal open={true} onClose={onClose} onSubmit={onSubmit} />
-    );
-
-    fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-      target: { value: "Dev WS" },
+  // ===========================================
+  // Modal Rendering Tests
+  // ===========================================
+  describe("Modal Rendering", () => {
+    it("should not render when closed", () => {
+      render(<WorkstationModal {...defaultProps} open={false} />);
+      expect(screen.queryByText("New Workstation")).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    it("should render modal when open", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("New Workstation")).toBeInTheDocument();
+    });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Create Workstation" })
-    );
+    it("should render in create mode by default", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("New Workstation")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /delete/i }),
+      ).not.toBeInTheDocument();
+    });
 
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "Dev WS",
+    it("should render in edit mode with workstation data", () => {
+      const workstationData = {
+        name: "My Workstation",
+        strength: "pro",
+        selectedUsers: [],
+        selectedGroups: [],
+        selectedSoftware: [],
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+      expect(screen.getByText("Edit Workstation")).toBeInTheDocument();
+    });
+
+    it("should render all four wizard steps", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("Basic Info")).toBeInTheDocument();
+      expect(screen.getByText("Users")).toBeInTheDocument();
+      expect(screen.getByText("Groups")).toBeInTheDocument();
+      expect(screen.getByText("Software")).toBeInTheDocument();
+    });
+
+    it("should show progress bar", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const progressBar = container.querySelector(
+        ".workstation-modal-progress-fill",
+      );
+      expect(progressBar).toBeInTheDocument();
+    });
+
+    it("should display correct progress on step 1", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const progressBar = container.querySelector(
+        ".workstation-modal-progress-fill",
+      );
+      expect(progressBar).toHaveStyle("width: 25%");
+    });
+  });
+
+  // ===========================================
+  // Basic Info Step Tests
+  // ===========================================
+  describe("Basic Info Step", () => {
+    it("should render workstation name input", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(
+        screen.getByPlaceholderText("Enter workstation name"),
+      ).toBeInTheDocument();
+    });
+
+    it("should update workstation name on input", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const nameInput = screen.getByPlaceholderText("Enter workstation name");
+      fireEvent.change(nameInput, { target: { value: "Dev Workstation" } });
+      expect(nameInput.value).toBe("Dev Workstation");
+    });
+
+    it("should render all three strength tiers", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("Basic")).toBeInTheDocument();
+      expect(screen.getByText("Pro")).toBeInTheDocument();
+      expect(screen.getByText("Ultimate")).toBeInTheDocument();
+    });
+
+    it("should select basic strength by default", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const basicCard = container.querySelector(
+        ".workstation-modal-strength-card.active",
+      );
+      expect(basicCard).toBeInTheDocument();
+      expect(basicCard.textContent).toContain("Basic");
+    });
+
+    it("should change strength to pro when clicked", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const proButton = screen.getByText("Pro").closest("button");
+      fireEvent.click(proButton);
+      expect(proButton).toHaveClass("active");
+    });
+
+    it("should change strength to ultimate when clicked", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const ultimateButton = screen.getByText("Ultimate").closest("button");
+      fireEvent.click(ultimateButton);
+      expect(ultimateButton).toHaveClass("active");
+    });
+
+    it("should render workstation icon upload section", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("Workstation Icon")).toBeInTheDocument();
+      expect(screen.getByText("Upload Image")).toBeInTheDocument();
+    });
+
+    it("should render desktop background upload section", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("Desktop Background")).toBeInTheDocument();
+      expect(screen.getAllByText("Upload Background")).toHaveLength(1);
+    });
+
+    it("should show strength tier specifications", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(screen.getByText("2 vCPU")).toBeInTheDocument();
+      expect(screen.getByText("4 GB")).toBeInTheDocument();
+      expect(screen.getByText("50 GB")).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================
+  // Image Upload Tests
+  // ===========================================
+  describe("Image Upload", () => {
+    it("should handle workstation image upload", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const file = new File(["image"], "workstation.png", {
+        type: "image/png",
+      });
+      const inputs = container.querySelectorAll('input[type="file"]');
+      const workstationInput = inputs[0];
+
+      const mockReader = {
+        readAsDataURL: jest.fn(),
+        onloadend: null,
+        result: "data:image/png;base64,workstation123",
+      };
+      global.FileReader = jest.fn(() => mockReader);
+
+      Object.defineProperty(workstationInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(workstationInput);
+      mockReader.onloadend();
+
+      await waitFor(() => {
+        expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
+      });
+    });
+
+    it("should handle desktop background upload", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const file = new File(["bg"], "background.png", { type: "image/png" });
+      const inputs = container.querySelectorAll('input[type="file"]');
+      const backgroundInput = inputs[1];
+
+      const mockReader = {
+        readAsDataURL: jest.fn(),
+        onloadend: null,
+        result: "data:image/png;base64,bg123",
+      };
+      global.FileReader = jest.fn(() => mockReader);
+
+      Object.defineProperty(backgroundInput, "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(backgroundInput);
+      mockReader.onloadend();
+
+      await waitFor(() => {
+        expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
+      });
+    });
+
+    it("should show image preview after workstation image upload", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const file = new File(["image"], "test.png", { type: "image/png" });
+      const inputs = container.querySelectorAll('input[type="file"]');
+
+      const mockReader = {
+        readAsDataURL: jest.fn(),
+        onloadend: null,
+        result: "data:image/png;base64,abc123",
+      };
+      global.FileReader = jest.fn(() => mockReader);
+
+      Object.defineProperty(inputs[0], "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(inputs[0]);
+      mockReader.onloadend();
+
+      await waitFor(() => {
+        const preview = container.querySelector(
+          ".workstation-modal-image-preview img",
+        );
+        expect(preview).toBeInTheDocument();
+      });
+    });
+
+    it("should remove workstation image when remove button clicked", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const file = new File(["image"], "test.png", { type: "image/png" });
+      const inputs = container.querySelectorAll('input[type="file"]');
+
+      const mockReader = {
+        readAsDataURL: jest.fn(),
+        onloadend: null,
+        result: "data:image/png;base64,abc123",
+      };
+      global.FileReader = jest.fn(() => mockReader);
+
+      Object.defineProperty(inputs[0], "files", {
+        value: [file],
+        writable: false,
+      });
+
+      fireEvent.change(inputs[0]);
+      mockReader.onloadend();
+
+      await waitFor(() => {
+        const removeBtn = container.querySelector(
+          ".workstation-modal-image-remove",
+        );
+        expect(removeBtn).toBeInTheDocument();
+        fireEvent.click(removeBtn);
+      });
+
+      expect(screen.getByText("Upload Image")).toBeInTheDocument();
+    });
+  });
+
+  // ===========================================
+  // Navigation Tests
+  // ===========================================
+  describe("Navigation", () => {
+    it("should disable Next button when name is empty", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const nextButton = screen.getByRole("button", { name: "Next" });
+      expect(nextButton).toBeDisabled();
+    });
+
+    it("should enable Next button after entering name", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const nameInput = screen.getByPlaceholderText("Enter workstation name");
+      fireEvent.change(nameInput, { target: { value: "Test WS" } });
+      const nextButton = screen.getByRole("button", { name: "Next" });
+      expect(nextButton).not.toBeDisabled();
+    });
+
+    it("should navigate to Users step when Next is clicked", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(
+        screen.getByPlaceholderText("Search users..."),
+      ).toBeInTheDocument();
+    });
+
+    it("should navigate to Groups step from Users step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(
+        screen.getByPlaceholderText("Search groups..."),
+      ).toBeInTheDocument();
+    });
+
+    it("should navigate to Software step from Groups step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(
+        screen.getByPlaceholderText("Search software..."),
+      ).toBeInTheDocument();
+    });
+
+    it("should disable Back button on first step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const backButton = screen.getByRole("button", { name: "Back" });
+      expect(backButton).toBeDisabled();
+    });
+
+    it("should enable Back button after first step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      const backButton = screen.getByRole("button", { name: "Back" });
+      expect(backButton).not.toBeDisabled();
+    });
+
+    it("should navigate back to previous step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      expect(
+        screen.getByPlaceholderText("Enter workstation name"),
+      ).toBeInTheDocument();
+    });
+
+    it("should show Create Workstation button on last step", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      ).toBeInTheDocument();
+    });
+
+    it("should update progress bar as steps change", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      let progressBar = container.querySelector(
+        ".workstation-modal-progress-fill",
+      );
+      expect(progressBar).toHaveStyle("width: 50%");
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      progressBar = container.querySelector(".workstation-modal-progress-fill");
+      expect(progressBar).toHaveStyle("width: 75%");
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      progressBar = container.querySelector(".workstation-modal-progress-fill");
+      expect(progressBar).toHaveStyle("width: 100%");
+    });
+  });
+
+  // ===========================================
+  // Users Selection Tests
+  // ===========================================
+  describe("Users Selection", () => {
+    it("should render users search input", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search users..."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should fetch and display users on Users step", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchUsers).toHaveBeenCalled();
+        expect(screen.getAllByText("John Doe")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Jane Smith")[0]).toBeInTheDocument();
+      });
+    });
+
+    it("should filter users based on search term", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getAllByText("John Doe")[0]).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByPlaceholderText("Search users...");
+      fireEvent.change(searchInput, { target: { value: "Jane" } });
+
+      expect(searchInput.value).toBe("Jane");
+    });
+
+    it("should select a user when clicked", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should deselect a user when clicked again", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+
+      const userElements = screen.getAllByText("John Doe");
+      const userItem = userElements[0].closest('[role="option"]');
+      fireEvent.click(userItem);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Selected Users/)).not.toBeInTheDocument();
+      });
+    });
+
+    it("should remove selected user with remove button", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        const removeBtn = container.querySelector(
+          ".workstation-modal-card-remove-btn",
+        );
+        fireEvent.click(removeBtn);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Selected Users/)).not.toBeInTheDocument();
+      });
+    });
+
+    it("should render All Users checkbox", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("All Users")).toBeInTheDocument();
+      });
+    });
+
+    it("should select all users when All Users checkbox is checked", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const checkbox = screen.getByRole("checkbox");
+        fireEvent.click(checkbox);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(3\)/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ===========================================
+  // Groups Selection Tests
+  // ===========================================
+  describe("Groups Selection", () => {
+    it("should render groups search input", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search groups..."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should fetch and display groups on Groups step", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchGroups).toHaveBeenCalled();
+        expect(screen.getAllByText("Engineering")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Design")[0]).toBeInTheDocument();
+      });
+    });
+
+    it("should display group member count", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("15 members")).toBeInTheDocument();
+        expect(screen.getByText("8 members")).toBeInTheDocument();
+      });
+    });
+
+    it("should select a group when clicked", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const groupItem = screen.getAllByText("Engineering")[0].closest("div");
+        fireEvent.click(groupItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Groups \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should remove selected group with remove button", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const groupItem = screen.getAllByText("Engineering")[0].closest("div");
+        fireEvent.click(groupItem);
+      });
+
+      await waitFor(() => {
+        const removeBtn = container.querySelector(
+          ".workstation-modal-card-remove-btn",
+        );
+        fireEvent.click(removeBtn);
+      });
+
+      expect(screen.queryByText(/Selected Groups/)).not.toBeInTheDocument();
+    });
+
+    it("should show checkmark for selected group", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const groupItem = screen.getAllByText("Engineering")[0].closest("div");
+        fireEvent.click(groupItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("✓")).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ===========================================
+  // Software Selection Tests
+  // ===========================================
+  describe("Software Selection", () => {
+    it("should render software search input", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search software..."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should fetch and display software on Software step", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchSoftware).toHaveBeenCalled();
+        expect(screen.getAllByText("VS Code")[0]).toBeInTheDocument();
+        expect(screen.getAllByText("Slack")[0]).toBeInTheDocument();
+      });
+    });
+
+    it("should display software category", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Development")).toBeInTheDocument();
+        expect(screen.getByText("Communication")).toBeInTheDocument();
+      });
+    });
+
+    it("should select a software when clicked", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const softwareItem = screen.getByText("VS Code").closest("div");
+        fireEvent.click(softwareItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Software \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should remove selected software with remove button", async () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const softwareItem = screen.getByText("VS Code").closest("div");
+        fireEvent.click(softwareItem);
+      });
+
+      await waitFor(() => {
+        const removeBtn = container.querySelector(
+          ".workstation-modal-card-remove-btn",
+        );
+        fireEvent.click(removeBtn);
+      });
+
+      expect(screen.queryByText(/Selected Software/)).not.toBeInTheDocument();
+    });
+
+    it("should filter software based on search term", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const searchInput = screen.getByPlaceholderText("Search software...");
+        fireEvent.change(searchInput, { target: { value: "VS" } });
+        expect(searchInput.value).toBe("VS");
+      });
+    });
+  });
+
+  // ===========================================
+  // Form Submission Tests
+  // ===========================================
+  describe("Form Submission", () => {
+    it("should call onSubmit with correct data in create mode", async () => {
+      const onSubmit = jest.fn();
+      render(<WorkstationModal {...defaultProps} onSubmit={onSubmit} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "New Workstation" },
+      });
+
+      // Navigate to last step
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: "New Workstation",
+            strength: "basic",
+          }),
+        );
+      });
+    });
+
+    it("should call onClose after successful submission", async () => {
+      const onClose = jest.fn();
+      render(<WorkstationModal {...defaultProps} onClose={onClose} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it("should show Save Changes button in edit mode", () => {
+      const workstationData = {
+        name: "Existing",
+        strength: "pro",
+        selectedUsers: [],
+        selectedGroups: [],
+        selectedSoftware: [],
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      expect(
+        screen.getByRole("button", { name: "Save Changes" }),
+      ).toBeInTheDocument();
+    });
+
+    it("should show Saving... when submission is in progress", async () => {
+      const onSubmit = jest.fn(() => new Promise(() => {})); // Never resolves
+      render(<WorkstationModal {...defaultProps} onSubmit={onSubmit} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: "Saving..." }),
+        ).toBeDisabled();
+      });
+    });
+
+    it("should include selected users in submission data", async () => {
+      const onSubmit = jest.fn();
+      render(<WorkstationModal {...defaultProps} onSubmit={onSubmit} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            users: expect.arrayContaining([
+              expect.objectContaining({ id: "1" }),
+            ]),
+          }),
+        );
+      });
+    });
+  });
+
+  // ===========================================
+  // Delete Functionality Tests
+  // ===========================================
+  describe("Delete Functionality", () => {
+    it("should show Delete button only in edit mode on first step", () => {
+      const workstationData = {
+        name: "Existing",
+        strength: "pro",
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+          onDelete={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", { name: /delete/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("should not show Delete button in create mode", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      expect(
+        screen.queryByRole("button", { name: /delete/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should confirm before deleting", () => {
+      const onDelete = jest.fn();
+      const workstationData = {
+        name: "Existing",
+        strength: "pro",
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+          onDelete={onDelete}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+      expect(window.confirm).toHaveBeenCalled();
+    });
+
+    it("should call onDelete when confirmed", () => {
+      const onDelete = jest.fn();
+      const workstationData = {
+        name: "Existing",
+        strength: "pro",
+      };
+      window.confirm = jest.fn(() => true);
+
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+          onDelete={onDelete}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+      expect(onDelete).toHaveBeenCalled();
+    });
+
+    it("should not delete when cancelled", () => {
+      const onDelete = jest.fn();
+      const workstationData = {
+        name: "Existing",
+        strength: "pro",
+      };
+      window.confirm = jest.fn(() => false);
+
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+          onDelete={onDelete}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================
+  // Edit Mode Tests
+  // ===========================================
+  describe("Edit Mode", () => {
+    it("should pre-populate name in edit mode", () => {
+      const workstationData = {
+        name: "Production WS",
+        strength: "ultimate",
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      const nameInput = screen.getByPlaceholderText("Enter workstation name");
+      expect(nameInput.value).toBe("Production WS");
+    });
+
+    it("should pre-select strength in edit mode", () => {
+      const workstationData = {
+        name: "Test",
+        strength: "ultimate",
+      };
+      const { container } = render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      const ultimateCard = screen.getByText("Ultimate").closest("button");
+      expect(ultimateCard).toHaveClass("active");
+    });
+
+    it("should pre-select users in edit mode", async () => {
+      const workstationData = {
+        name: "Test",
         strength: "basic",
-        users: [],
-        groups: [],
-        software: [],
-      })
-    );
-    expect(onClose).toHaveBeenCalledTimes(1);
+        users: [mockUsers[0]],
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should pre-select groups in edit mode", async () => {
+      const workstationData = {
+        name: "Test",
+        strength: "basic",
+        groups: [mockGroups[0]],
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Groups \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should pre-select software in edit mode", async () => {
+      const workstationData = {
+        name: "Test",
+        strength: "basic",
+        software: [mockSoftware[0]],
+      };
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          workstationData={workstationData}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Software \(1\)/)).toBeInTheDocument();
+      });
+    });
   });
 
-  it("renders edit mode actions and handles delete", () => {
-    const onClose = jest.fn();
-    const onDelete = jest.fn();
+  // ===========================================
+  // Edge Cases and Error Handling
+  // ===========================================
+  describe("Edge Cases", () => {
+    it("should handle empty users list", async () => {
+      modalHelpers.fetchUsers.mockImplementation(
+        async (accessToken, setAllUsers) => {
+          setAllUsers([]);
+        },
+      );
+      render(<WorkstationModal {...defaultProps} />);
 
-    render(
-      <WorkstationModal
-        open={true}
-        onClose={onClose}
-        onSubmit={jest.fn()}
-        onDelete={onDelete}
-        workstationData={{ name: "Existing WS", strength: "pro" }}
-      />
-    );
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
-    expect(screen.getByText("Edit Workstation")).toBeInTheDocument();
-    const nextButton = screen.getByText("Next");
-    expect(nextButton).not.toBeDisabled();
-    fireEvent.click(nextButton);
-    fireEvent.click(screen.getByText("Next"));
-    fireEvent.click(screen.getByText("Next"));
-    expect(
-      screen.getByRole("button", { name: "Save Changes" })
-    ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search users..."),
+        ).toBeInTheDocument();
+      });
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    it("should handle empty groups list", async () => {
+      modalHelpers.fetchGroups.mockImplementation(
+        async (orgId, accessToken, setAllGroups) => {
+          setAllGroups([]);
+        },
+      );
+      render(<WorkstationModal {...defaultProps} />);
 
-    expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(onClose).toHaveBeenCalledTimes(1);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search groups..."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should handle empty software list", async () => {
+      modalHelpers.fetchSoftware.mockImplementation(
+        async (orgId, accessToken, setAllSoftware) => {
+          setAllSoftware([]);
+        },
+      );
+      render(<WorkstationModal {...defaultProps} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText("Search software..."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should handle Cancel button click", () => {
+      const onClose = jest.fn();
+      render(<WorkstationModal {...defaultProps} onClose={onClose} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it("should handle modal close during submission", async () => {
+      const onClose = jest.fn();
+      const onSubmit = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100)),
+      );
+      render(
+        <WorkstationModal
+          {...defaultProps}
+          onClose={onClose}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalled();
+      });
+    });
+
+    it("should allow submission with no selections", async () => {
+      const onSubmit = jest.fn();
+      render(<WorkstationModal {...defaultProps} onSubmit={onSubmit} />);
+
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Create Workstation" }),
+      );
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            users: [],
+            groups: [],
+            software: [],
+          }),
+        );
+      });
+    });
+
+    it("should handle keyboard navigation on dropdown items", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.keyDown(userItem, { key: "Enter" });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should handle space key on dropdown items", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.keyDown(userItem, { key: " " });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+    });
+
+    it("should maintain selections when navigating between steps", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Selected Users \(1\)/)).toBeInTheDocument();
+      });
+    });
   });
 
-  it("handles image upload with valid file", async () => {
-  const { container } = render(
-    <WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />
-  );
+  // ===========================================
+  // Accessibility Tests
+  // ===========================================
+  describe("Accessibility", () => {
+    it("should have proper ARIA roles on dropdown items", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
-  const file = new File(["image"], "test.png", { type: "image/png" });
-  const input = container.querySelector('input[type="file"]');
-  
-  const mockReader = {
-    readAsDataURL: jest.fn(),
-    onloadend: null,
-    result: "data:image/png;base64,abc123"
-  };
-  
-  global.FileReader = jest.fn(() => mockReader);
-  
-  Object.defineProperty(input, "files", {
-    value: [file],
-    writable: false
+      await waitFor(() => {
+        const options = screen.getAllByRole("option");
+        expect(options.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should set aria-selected on selected items", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const userItem = userElements[0].closest('[role="option"]');
+        fireEvent.click(userItem);
+      });
+
+      await waitFor(() => {
+        const userElements = screen.getAllByText("John Doe");
+        const selectedItem = userElements[0].closest("div[role='option']");
+        expect(selectedItem).toHaveAttribute("aria-selected", "true");
+      });
+    });
+
+    it("should have keyboard-accessible dropdown items", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
+        target: { value: "Test" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await waitFor(() => {
+        const options = screen.getAllByRole("option");
+        expect(options[0]).toHaveAttribute("tabindex", "0");
+      });
+    });
   });
-  
-  fireEvent.change(input);
-  
-  // Trigger onloadend
-  mockReader.onloadend();
-  
-  expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
 });
-
-// Test for search term updates
-it("updates users search term", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const searchInput = screen.getByPlaceholderText("Search users...");
-  fireEvent.change(searchInput, { target: { value: "John" } });
-  
-  expect(searchInput.value).toBe("John");
-});
-
-// Test for groups search term
-it("updates groups search term", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const searchInput = screen.getByPlaceholderText("Search groups...");
-  fireEvent.change(searchInput, { target: { value: "Eng" } });
-  
-  expect(searchInput.value).toBe("Eng");
-});
-
-// Test for software search term
-it("updates software search term", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const searchInput = screen.getByPlaceholderText("Search software...");
-  fireEvent.change(searchInput, { target: { value: "VS" } });
-  
-  expect(searchInput.value).toBe("VS");
-});
-
-// Test for onToggleGroup callback
-it("calls toggleSelection for groups", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  // Click first "Sales" group
-  const salesGroups = screen.getAllByText("Sales");
-  fireEvent.click(salesGroups[0]);
-  
-  expect(screen.getByText(/Selected Groups \(1\)/)).toBeInTheDocument();
-});
-
-it("calls removeSelection for groups", () => {
-  const { container } = render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const salesGroups = screen.getAllByText("Sales");
-  fireEvent.click(salesGroups[0]);
-  
-  // Find the remove button by class name
-  const removeButton = container.querySelector('.workstation-modal-card-remove-btn');
-  fireEvent.click(removeButton);
-  
-  expect(screen.queryByText(/Selected Groups/)).not.toBeInTheDocument();
-});
-
-it("handles allGroups checkbox checked", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const checkbox = screen.getByRole("checkbox");
-  
-  // Simulate checking the checkbox - trigger both click and change
-  fireEvent.click(checkbox);
-  
-  // Wait a moment and check - might need to use getAllByText if duplicates exist
-  const selectedText = screen.queryByText(/Selected Groups \(10\)/);
-  expect(selectedText).toBeInTheDocument();
-});
-
-it("handles allGroups checkbox unchecked", () => {
-  render(<WorkstationModal open={true} onClose={jest.fn()} onSubmit={jest.fn()} />);
-  
-  fireEvent.change(screen.getByPlaceholderText("Enter workstation name"), {
-    target: { value: "Test" }
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  
-  const checkbox = screen.getByRole("checkbox");
-  fireEvent.click(checkbox);
-  fireEvent.click(checkbox);
-  
-  expect(screen.queryByText(/Selected Groups/)).not.toBeInTheDocument();
-});
-});
-

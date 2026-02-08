@@ -71,6 +71,7 @@ export default function UsersTable({
   showFiles,
   selectedIds = new Set(),
   allVisibleSelected = false,
+  isIndeterminate = false,
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
   onSort,
@@ -129,7 +130,11 @@ export default function UsersTable({
                 : "calc(16px + 8px + 8px)",
           }}
         >
-          <Checkbox checked={allVisibleSelected} onChange={onToggleSelectAll} />
+          <Checkbox
+            checked={allVisibleSelected}
+            indeterminate={isIndeterminate}
+            onChange={onToggleSelectAll}
+          />
           <span style={styles.headerLabel}>Name/Email</span>
           {showTitleColumn && <span style={styles.headerLabel}>Title</span>}
           {showWorkstationsColumn && (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
+import { useLocation } from "react-router-dom";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
 
@@ -12,8 +13,7 @@ import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
-import UserEditModal from "../components/users/UserEditModal.jsx";
-import UserCreateModal from "../components/users/UserCreateModal.jsx";
+import EmployeesModal from "../components/users/EmployeesModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 
@@ -101,6 +101,7 @@ const styles = {
 };
 
 export default function EmployeesPage() {
+  const location = useLocation();
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
 
@@ -119,9 +120,19 @@ export default function EmployeesPage() {
   }, [currentUser]);
 
   // UI State
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalEmployee, setModalEmployee] = useState(null);
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setModalOpen(true);
+      setModalEmployee(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const [layout, setLayout] = useState("list");
 
   const [sortField, setSortField] = useState("name");
@@ -178,6 +189,12 @@ export default function EmployeesPage() {
       });
 
       const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
+      if (mappedUsers.length > 0) {
+        console.log(
+          "Sample user org_id format:",
+          mappedUsers[0]._original.org_id,
+        );
+      }
       setUsers(mappedUsers);
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -191,73 +208,79 @@ export default function EmployeesPage() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleCreate = async (payload) => {
+  const handleModalSubmit = async (payload) => {
     if (!accessToken) {
       openToast("You must be logged in to create a user", "error");
       return;
     }
-    if (!orgId) {
-      openToast("Missing org_id for user creation", "error");
-      return;
-    }
 
     try {
-      trackButton("employees/create/submit", {
-        page: "employees",
-        control: "create_dialog",
-      });
-      const apiPayload = {
-        email: payload.email,
-        full_name: `${payload.firstName} ${payload.lastName}`,
-        password: payload.password || "Password123!",
-        role: payload.jobTitle?.toLowerCase().includes("admin")
-          ? "admin"
-          : "employee",
-        org_id: orgId,
-      };
+      const isEdit = Boolean(modalEmployee);
 
-      await createUser(apiPayload, { token: accessToken });
+      if (isEdit) {
+        // Edit mode
+        trackButton("employees/edit/submit", {
+          page: "employees",
+          id: modalEmployee.id,
+          control: "edit_dialog",
+        });
+        const apiPayload = {
+          full_name: `${payload.firstName} ${payload.lastName}`,
+          email: payload.email,
+          role: payload.jobTitle,
+        };
 
-      openToast("User created successfully");
-      setCreateModalOpen(false);
+        await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
+        openToast("User updated successfully");
+      } else {
+        // Create mode
+        trackButton("employees/create/submit", {
+          page: "employees",
+          control: "create_dialog",
+        });
+        const apiPayload = {
+          email: payload.email,
+          full_name: `${payload.firstName} ${payload.lastName}`,
+          password: payload.password || "DefaultPass123!",
+          role: payload.jobTitle?.toLowerCase().includes("admin")
+            ? "admin"
+            : "employee",
+          org_id: orgId || "cedric",
+        };
+
+        await createUser(apiPayload, { token: accessToken });
+        openToast("User created successfully");
+      }
+
+      setModalOpen(false);
+      setModalEmployee(null);
       fetchUsers();
     } catch (error) {
-      const msg =
-        error.payload?.error || error.message || "Failed to create user";
+      // Show detailed validation errors if available
+      let msg = "Failed to save user";
+      if (error.payload?.details && Array.isArray(error.payload.details)) {
+        const passwordError = error.payload.details.find((d) =>
+          d.loc?.includes("password"),
+        );
+        if (passwordError) {
+          msg = passwordError.msg || msg;
+        }
+      } else if (error.payload?.error) {
+        msg = error.payload.error;
+      } else if (error.message) {
+        msg = error.message;
+      }
       openToast(msg, "error");
     }
   };
 
-  const handleUpdate = async (id, payload) => {
-    if (!accessToken) return;
+  const handleDelete = async (user) => {
+    // Use provided user or fall back to modalEmployee for modal context
+    const userToDelete = user || modalEmployee;
 
-    try {
-      trackButton("employees/edit/submit", {
-        page: "employees",
-        id,
-        control: "edit_dialog",
-      });
-      const apiPayload = {
-        full_name: `${payload.firstName} ${payload.lastName}`,
-        email: payload.email,
-        role: payload.jobTitle,
-      };
+    if (!accessToken || !userToDelete) return;
 
-      await updateUser(id, apiPayload, { token: accessToken });
-
-      openToast("User updated successfully");
-      setEditModalOpen(false);
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-      openToast("Update failed: Check API implementation", "error");
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!accessToken) return;
-
-    if (id === currentUser?.id) {
+    if (userToDelete.id === currentUser?.id) {
       openToast("You cannot delete your own account", "error");
       return;
     }
@@ -265,13 +288,18 @@ export default function EmployeesPage() {
     try {
       trackButton("employees/edit/delete", {
         page: "employees",
-        id,
-        control: "edit_dialog",
+        id: userToDelete.id,
+        control: user ? "table_row" : "edit_dialog",
       });
-      await deleteUser(id, { token: accessToken });
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      await deleteUser(userToDelete.id, { token: accessToken });
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
-      setEditModalOpen(false);
+
+      // Only close modal if we were deleting from modal context
+      if (!user && modalEmployee) {
+        setModalOpen(false);
+        setModalEmployee(null);
+      }
     } catch (error) {
       openToast(error.message || "Failed to delete user", "error");
     }
@@ -315,8 +343,14 @@ export default function EmployeesPage() {
     return out;
   }, [users, search, activeFilters, sortField, sortDir]);
 
-  const allVisibleSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
+    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
@@ -329,14 +363,25 @@ export default function EmployeesPage() {
   };
 
   const toggleSelectAllVisible = () => {
+    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
+    const allAreSelected =
+      filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+
     setSelectedIds((prev) => {
-      if (allVisibleSelected) {
+      if (hasSelected && !allAreSelected) {
+        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((u) => next.delete(u.id));
         return next;
-      } else {
+      } else if (!hasSelected) {
+        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((u) => next.add(u.id));
+        return next;
+      } else {
+        // All selected - deselect all
+        const next = new Set(prev);
+        filtered.forEach((u) => next.delete(u.id));
         return next;
       }
     });
@@ -445,7 +490,10 @@ export default function EmployeesPage() {
             onClick={withClickLog({
               name: "employees/toolbar/open-create",
               control: "create_button",
-            })(() => setCreateModalOpen(true))}
+            })(() => {
+              setModalEmployee(null);
+              setModalOpen(true);
+            })}
           />
         </div>
       </div>
@@ -459,6 +507,7 @@ export default function EmployeesPage() {
           showFiles={showFiles}
           selectedIds={selectedIds}
           allVisibleSelected={allVisibleSelected}
+          isIndeterminate={isIndeterminate}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAllVisible}
           onSort={toggleSort}
@@ -469,28 +518,23 @@ export default function EmployeesPage() {
               page: "employees",
               id: u.id,
             });
-            setEditTarget(u);
-            setEditModalOpen(true);
+            setModalEmployee(u);
+            setModalOpen(true);
           }}
-          onDelete={(u) => handleDelete(u.id)}
+          onDelete={handleDelete}
         />
       </div>
 
-      {/* Modals */}
-      {editTarget && (
-        <UserEditModal
-          open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          data={editTarget}
-          onSubmit={(payload) => handleUpdate(editTarget.id, payload)}
-          onDelete={() => handleDelete(editTarget.id)}
-        />
-      )}
-
-      <UserCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSubmit={handleCreate}
+      {/* Modal */}
+      <EmployeesModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setModalEmployee(null);
+        }}
+        employeeData={modalEmployee}
+        onSubmit={handleModalSubmit}
+        onDelete={handleDelete}
       />
 
       {toast.open && (
