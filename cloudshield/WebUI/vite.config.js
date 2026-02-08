@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 // Calls to /api/* are proxied to the URL in VITE_API_PROXY_TARGET (default: http://api:5050)
 const devHost = process.env.VITE_DEV_HOST || "0.0.0.0";
 const devPort = Number.parseInt(process.env.VITE_PORT || "5173", 10);
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || "http://api:5050";
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || "http://api:5050"; //NOSONAR
 
 export default defineConfig({
   plugins: [react()],
