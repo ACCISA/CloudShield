@@ -33,6 +33,7 @@ export default function AuthTextField({
   onChange,
   type = 'text',
   endAdornment,
+  onKeyDown,
 }) {
   return (
     <Box sx={{ width: '100%', mb: 2 }}>
@@ -52,6 +53,7 @@ export default function AuthTextField({
         value={value}
         placeholder={placeholder}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         endAdornment={endAdornment}
         sx={{
           width: '100%',

@@ -40,10 +40,11 @@ describe("AddUserPage", () => {
       ).toBeInTheDocument();
     });
 
-    it("should render all three input fields", () => {
+    it("should render all four input fields", () => {
       render(<AddUserPage />);
       expect(screen.getByLabelText("Organization ID")).toBeInTheDocument();
       expect(screen.getByLabelText("Username")).toBeInTheDocument();
+      expect(screen.getByLabelText("Email")).toBeInTheDocument();
       expect(screen.getByLabelText("Password")).toBeInTheDocument();
     });
 
@@ -82,6 +83,13 @@ describe("AddUserPage", () => {
       expect(input).toHaveValue("SecurePassword123");
     });
 
+    it("should update email on input", async () => {
+      render(<AddUserPage />);
+      const input = screen.getByLabelText("Email");
+      await userEvent.type(input, "john@example.com");
+      expect(input).toHaveValue("john@example.com");
+    });
+
     it('should have type="password" for password field', () => {
       render(<AddUserPage />);
       const input = screen.getByLabelText("Password");
@@ -99,6 +107,7 @@ describe("AddUserPage", () => {
     it("should disable Add User button when username is empty", async () => {
       render(<AddUserPage />);
       const orgInput = screen.getByLabelText("Organization ID");
+      const emailInput = screen.getByLabelText("Email");
       const passInput = screen.getByLabelText("Password");
 
       await userEvent.type(orgInput, "org-123");
@@ -128,6 +137,7 @@ describe("AddUserPage", () => {
 
       await userEvent.type(orgInput, "org-123");
       await userEvent.type(userInput, "john");
+      await userEvent.type(emailInput, "john@example.com");
       await userEvent.type(passInput, "pass123");
 
       const button = screen.getByRole("button", { name: /Add User/i });
@@ -174,6 +184,7 @@ describe("AddUserPage", () => {
             body: JSON.stringify({
               org_id: "org-123",
               username: "john",
+              email: "john@example.com",
               password: "pass123",
             }),
           })
