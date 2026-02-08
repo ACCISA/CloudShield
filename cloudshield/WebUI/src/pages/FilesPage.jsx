@@ -1,5 +1,12 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import PropTypes from "prop-types";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
@@ -78,7 +85,6 @@ const FileIcon = () => (
   </svg>
 );
 
-
 function StorageCell({ currentSize, maxSize }) {
   const max = typeof maxSize === "number" ? maxSize : null;
   const current = Math.max(0, Number(currentSize || 0));
@@ -94,7 +100,10 @@ function StorageCell({ currentSize, maxSize }) {
   const pct = Math.min(100, Math.max(0, (current / max) * 100));
 
   return (
-    <div className="storageCell" aria-label={`Storage usage ${current} of ${max} GB`}>
+    <div
+      className="storageCell"
+      aria-label={`Storage usage ${current} of ${max} GB`}
+    >
       <div className="storageMiniValue">
         {current} / {max} GB
       </div>
@@ -123,10 +132,9 @@ StorageCell.defaultProps = {
 export default function FilesPage() {
   const { currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "files" });
-  
+
   // Get orgId from currentUser or localStorage
   const orgId = useMemo(() => {
-    
     try {
       const stored = localStorage.getItem("org_id");
       console.log("localStorage org_id:", stored);
@@ -134,22 +142,22 @@ export default function FilesPage() {
     } catch (e) {
       console.error("Error reading localStorage:", e);
     }
-    
+
     const finalOrgId = currentUser?.org_id || "default-org";
-    
+
     return finalOrgId;
   }, [currentUser]);
-  
+
   const [layout, setLayout] = useState("list");
-  
+
   // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
   // If HARD_CODED_TREE causes issues, initialize as []
   const [tree, setTree] = useState(HARD_CODED_TREE || []);
-  
+
   // Lookup maps for enriching hover cards
   const [userLookup, setUserLookup] = useState(new Map());
   const [groupLookup, setGroupLookup] = useState(new Map());
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
@@ -163,13 +171,25 @@ export default function FilesPage() {
   const [deletingShares, setDeletingShares] = useState(new Set()); // Track which shares are being deleted
   const [creatingShares, setCreatingShares] = useState(new Set()); // Track which shares are being created
 
+  const location = useLocation();
+
+  // Open modal if navigated from dashboard
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setUploadOpen(true);
+      setEditTarget(null);
+      // Clear the state to prevent reopening on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   // Fetch user data for enriching hover cards
   useEffect(() => {
     const loadUsers = async () => {
       try {
         const usersData = await fetchUsers(orgId);
         const lookup = new Map();
-        usersData.forEach(user => {
+        usersData.forEach((user) => {
           const email = user.email || "";
           const emailPrefix = email.includes("@") ? email.split("@")[0] : "";
           const fullName = user.full_name || user.name || "";
@@ -184,7 +204,8 @@ export default function FilesPage() {
           // Keep lookups simple and aligned with the DB shape.
           if (normalized.username) lookup.set(normalized.username, normalized);
           if (email) lookup.set(email, normalized);
-          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
+          if (normalized.full_name)
+            lookup.set(normalized.full_name, normalized);
           // Legacy fallback: some shares store email prefixes like "samir".
           if (emailPrefix) lookup.set(emailPrefix, normalized);
         });
@@ -202,7 +223,7 @@ export default function FilesPage() {
       try {
         const groupsData = await fetchGroups(orgId);
         const lookup = new Map();
-        groupsData.forEach(group => {
+        groupsData.forEach((group) => {
           const groupName = group.group_name || group.name || "";
           const normalized = {
             id: String(group._id || group.id || ""),
@@ -241,7 +262,11 @@ export default function FilesPage() {
   const ensureArray = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value;
-    if (typeof value === 'string') return value.split(',').map(s => s.trim()).filter(Boolean);
+    if (typeof value === "string")
+      return value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     return [];
   };
 
@@ -259,95 +284,106 @@ export default function FilesPage() {
   }, [orgId]);
 
   // Handle creating a new file share
-  const handleCreateShare = useCallback(async (data) => {
-    try {
-      // Add to creating state
-      setCreatingShares(prev => new Set(prev).add(data.shareName));
-      
-      // Send create request
-      const result = await createFileShare({
-        orgId,
-        name: data.shareName,
-        users: data.users,
-        groups: data.groups,
-        description: data.description,
-        maxSize: data.maxSize,
-      });
-      console.log("Create job queued:", result);
-      
-      // Close modal immediately so user can continue working
-      setUploadOpen(false);
-      
-      // Poll for the new share to appear - check every 2 seconds for up to 30 seconds
-      let attempts = 0;
-      const maxAttempts = 15;
-      
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        
-        // Fetch current shares to check if new one exists
-        const currentShares = await fetchFileShares(orgId);
-        const shareExists = currentShares?.some(s => s.share?.name === data.shareName);
-        
-        if (shareExists) {
-          // Share created successfully - refresh UI
-          clearInterval(pollInterval);
-          setCreatingShares(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(data.shareName);
-            return newSet;
-          });
-          await fetchTree();
-          console.log(`File share "${data.shareName}" created successfully!`);
-        } else if (attempts >= maxAttempts) {
-          // Timeout - give up polling but still refresh
-          clearInterval(pollInterval);
-          setCreatingShares(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(data.shareName);
-            return newSet;
-          });
-          await fetchTree();
-          alert(`File share "${data.shareName}" is taking longer than expected to create. Please refresh if it doesn't appear.`);
-        }
-      }, 2000);
-      
-    } catch (err) {
-      console.error("Failed to create share:", err);
-      setCreatingShares(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(data.shareName);
-        return newSet;
-      });
-      alert(`Failed to create share: ${err.message}`);
-    }
-  }, [orgId, fetchTree]);
+  const handleCreateShare = useCallback(
+    async (data) => {
+      try {
+        // Add to creating state
+        setCreatingShares((prev) => new Set(prev).add(data.shareName));
+
+        // Send create request
+        const result = await createFileShare({
+          orgId,
+          name: data.shareName,
+          users: data.users,
+          groups: data.groups,
+          description: data.description,
+          maxSize: data.maxSize,
+        });
+        console.log("Create job queued:", result);
+
+        // Close modal immediately so user can continue working
+        setUploadOpen(false);
+
+        // Poll for the new share to appear - check every 2 seconds for up to 30 seconds
+        let attempts = 0;
+        const maxAttempts = 15;
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+
+          // Fetch current shares to check if new one exists
+          const currentShares = await fetchFileShares(orgId);
+          const shareExists = currentShares?.some(
+            (s) => s.share?.name === data.shareName,
+          );
+
+          if (shareExists) {
+            // Share created successfully - refresh UI
+            clearInterval(pollInterval);
+            setCreatingShares((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(data.shareName);
+              return newSet;
+            });
+            await fetchTree();
+            console.log(`File share "${data.shareName}" created successfully!`);
+          } else if (attempts >= maxAttempts) {
+            // Timeout - give up polling but still refresh
+            clearInterval(pollInterval);
+            setCreatingShares((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(data.shareName);
+              return newSet;
+            });
+            await fetchTree();
+            alert(
+              `File share "${data.shareName}" is taking longer than expected to create. Please refresh if it doesn't appear.`,
+            );
+          }
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to create share:", err);
+        setCreatingShares((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(data.shareName);
+          return newSet;
+        });
+        alert(`Failed to create share: ${err.message}`);
+      }
+    },
+    [orgId, fetchTree],
+  );
 
   // Handle editing a file share
-  const handleEditShare = useCallback(async (data) => {
-    try {
-      await updateFileShare(orgId, editTarget.name, {
-        users: data.users,
-        groups: data.groups,
-        description: data.description,
-        max_size: data.maxSize ? parseInt(data.maxSize, 10) : undefined, // Store as GB
-      });
-      console.log("Share updated");
-      setEditTarget(null);
-      // Refresh the list
-      fetchTree();
-      alert("File share updated successfully!");
-    } catch (err) {
-      console.error("Failed to update share:", err);
-      alert(`Failed to update share: ${err.message}`);
-    }
-  }, [orgId, editTarget, fetchTree]);
+  const handleEditShare = useCallback(
+    async (data) => {
+      try {
+        await updateFileShare(orgId, editTarget.name, {
+          users: data.users,
+          groups: data.groups,
+          description: data.description,
+          max_size: data.maxSize ? parseInt(data.maxSize, 10) : undefined, // Store as GB
+        });
+        console.log("Share updated");
+        setEditTarget(null);
+        // Refresh the list
+        fetchTree();
+        alert("File share updated successfully!");
+      } catch (err) {
+        console.error("Failed to update share:", err);
+        alert(`Failed to update share: ${err.message}`);
+      }
+    },
+    [orgId, editTarget, fetchTree],
+  );
 
   // Handle deleting a file share
   const handleDeleteShare = useCallback(async () => {
     if (!editTarget) return;
-    
-    const confirmed = window.confirm(`Are you sure you want to delete "${editTarget.name}"? This action cannot be undone.`);
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${editTarget.name}"? This action cannot be undone.`,
+    );
     if (!confirmed) return;
 
     try {
@@ -391,12 +427,19 @@ export default function FilesPage() {
     return rows;
   }, [listFilteredTree, effectiveExpanded, layout]);
 
-  const listVisibleIds = useMemo(() => listVisibleRows.map((r) => r.node.id), [listVisibleRows]);
+  const listVisibleIds = useMemo(
+    () => listVisibleRows.map((r) => r.node.id),
+    [listVisibleRows],
+  );
 
-  const breadcrumb = useMemo(() => getBreadcrumbNodes(index, cwdStack), [index, cwdStack]);
+  const breadcrumb = useMemo(
+    () => getBreadcrumbNodes(index, cwdStack),
+    [index, cwdStack],
+  );
   const cwdItems = useMemo(
-    () => (layout === "icons" ? getFolderChildrenByStack(tree, index, cwdStack) : []),
-    [tree, index, cwdStack, layout]
+    () =>
+      layout === "icons" ? getFolderChildrenByStack(tree, index, cwdStack) : [],
+    [tree, index, cwdStack, layout],
   );
 
   const iconItems = useMemo(() => {
@@ -408,20 +451,39 @@ export default function FilesPage() {
 
   const iconVisibleIds = useMemo(() => iconItems.map((n) => n.id), [iconItems]);
 
-  const allVisibleSelected = useMemo(() => {
+  const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
-    return ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const hasSelected = ids.some((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    return {
+      allVisibleSelected: allAreSelected,
+      isIndeterminate: hasSelected && !allAreSelected,
+    };
   }, [layout, listVisibleIds, iconVisibleIds, selectedIds]);
 
-
   const toggleSelect = (id) => {
-    setSelectedIds((prev) => toggleSelectCascade({ id, index, selectedIds: prev }));
+    setSelectedIds((prev) =>
+      toggleSelectCascade({ id, index, selectedIds: prev }),
+    );
   };
 
   const toggleSelectAllVisible = () => {
     trackButton("files/list/select-all", { page: "files", layout });
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
-    setSelectedIds((prev) => toggleSelectAllInView({ ids, selectedIds: prev }));
+    const hasSelected = ids.some((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+
+    if (hasSelected && !allAreSelected) {
+      // Indeterminate state - deselect all
+      setSelectedIds(new Set());
+    } else {
+      // Use existing toggleSelectAllInView for select all / deselect all
+      setSelectedIds((prev) =>
+        toggleSelectAllInView({ ids, selectedIds: prev }),
+      );
+    }
   };
 
   const toggleExpand = (id) => {
@@ -454,61 +516,69 @@ export default function FilesPage() {
   const openEdit = (node) => setEditTarget(node);
 
   // Direct delete without opening edit modal
-  const handleDirectDelete = useCallback(async (node) => {
-    const confirmed = window.confirm(`Are you sure you want to delete "${node.name}"? This action cannot be undone.`);
-    if (!confirmed) return;
+  const handleDirectDelete = useCallback(
+    async (node) => {
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${node.name}"? This action cannot be undone.`,
+      );
+      if (!confirmed) return;
 
-    try {
-      // Mark this share as being deleted (shows spinner)
-      setDeletingShares(prev => new Set(prev).add(node.name));
-      
-      // Send delete request and get job ID
-      const result = await deleteFileShare(orgId, node.name);
-      console.log("Delete job queued:", result);
-      
-      // Poll for completion - check every 2 seconds for up to 30 seconds
-      let attempts = 0;
-      const maxAttempts = 15;
-      
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        
-        // Refresh to check if share is gone
-        const currentShares = await fetchFileShares(orgId);
-        const shareStillExists = currentShares?.some(s => s.share?.name === node.name);
-        
-        if (!shareStillExists) {
-          // Share is deleted - refresh UI and remove from deleting state
-          clearInterval(pollInterval);
-          setDeletingShares(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(node.name);
-            return newSet;
-          });
-          await fetchTree();
-        } else if (attempts >= maxAttempts) {
-          // Timeout - give up polling but still refresh
-          clearInterval(pollInterval);
-          setDeletingShares(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(node.name);
-            return newSet;
-          });
-          await fetchTree();
-          alert("Delete is taking longer than expected. Please refresh if the share is still visible.");
-        }
-      }, 2000);
-      
-    } catch (err) {
-      console.error("Failed to delete share:", err);
-      setDeletingShares(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(node.name);
-        return newSet;
-      });
-      alert(`Failed to delete share: ${err.message}`);
-    }
-  }, [orgId, fetchTree]);
+      try {
+        // Mark this share as being deleted (shows spinner)
+        setDeletingShares((prev) => new Set(prev).add(node.name));
+
+        // Send delete request and get job ID
+        const result = await deleteFileShare(orgId, node.name);
+        console.log("Delete job queued:", result);
+
+        // Poll for completion - check every 2 seconds for up to 30 seconds
+        let attempts = 0;
+        const maxAttempts = 15;
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+
+          // Refresh to check if share is gone
+          const currentShares = await fetchFileShares(orgId);
+          const shareStillExists = currentShares?.some(
+            (s) => s.share?.name === node.name,
+          );
+
+          if (!shareStillExists) {
+            // Share is deleted - refresh UI and remove from deleting state
+            clearInterval(pollInterval);
+            setDeletingShares((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(node.name);
+              return newSet;
+            });
+            await fetchTree();
+          } else if (attempts >= maxAttempts) {
+            // Timeout - give up polling but still refresh
+            clearInterval(pollInterval);
+            setDeletingShares((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(node.name);
+              return newSet;
+            });
+            await fetchTree();
+            alert(
+              "Delete is taking longer than expected. Please refresh if the share is still visible.",
+            );
+          }
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to delete share:", err);
+        setDeletingShares((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(node.name);
+          return newSet;
+        });
+        alert(`Failed to delete share: ${err.message}`);
+      }
+    },
+    [orgId, fetchTree],
+  );
 
   const submitPath = (e) => {
     e.preventDefault();
@@ -521,15 +591,22 @@ export default function FilesPage() {
 
   const handleLayoutChange = (next) => {
     const resolved = next === "cards" ? "list" : next;
-    trackButton("files/display/toggle", { page: "files", layout: resolved, control: "display_button" });
+    trackButton("files/display/toggle", {
+      page: "files",
+      layout: resolved,
+      control: "display_button",
+    });
     setLayout(resolved);
   };
-
 
   const renderList = () => (
     <div className="table">
       <div className="header">
-        <Checkbox checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
+        <Checkbox
+          checked={allVisibleSelected}
+          indeterminate={isIndeterminate}
+          onChange={toggleSelectAllVisible}
+        />
         <div>Name</div>
         <div className="metaHeader">Date Modified</div>
         <div className="storageHeader">Storage</div>
@@ -543,12 +620,19 @@ export default function FilesPage() {
         const isOpen = effectiveExpanded.has(node.id);
 
         return (
-          <div 
-            className="row" 
+          <div
+            className="row"
             key={node.id}
-            style={deletingShares.has(node.name) ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+            style={
+              deletingShares.has(node.name)
+                ? { opacity: 0.5, pointerEvents: "none" }
+                : {}
+            }
           >
-            <Checkbox checked={selectedIds.has(node.id)} onChange={() => toggleSelect(node.id)} />
+            <Checkbox
+              checked={selectedIds.has(node.id)}
+              onChange={() => toggleSelect(node.id)}
+            />
 
             <div className="nameCell">
               <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
@@ -565,7 +649,9 @@ export default function FilesPage() {
                   <span className="chevSpacer" />
                 )}
 
-                <span className="iconWrap">{isFolder ? <FolderIcon /> : <FileIcon />}</span>
+                <span className="iconWrap">
+                  {isFolder ? <FolderIcon /> : <FileIcon />}
+                </span>
 
                 <div className="nameTextWrap">
                   <div className="nameLine">
@@ -580,32 +666,47 @@ export default function FilesPage() {
 
             <div className="meta">{formatDateTime(node.updated_at)}</div>
 
-            <StorageCell currentSize={node.current_size} maxSize={node.max_size} />
+            <StorageCell
+              currentSize={node.current_size}
+              maxSize={node.max_size}
+            />
 
             <div className="groups">
-              <AvatarPill 
-                items={Array.from(new Set(ensureArray(node.users))).map(username => 
-                  userLookup.get(username) || { username, id: username }
-                )} 
-                type="user" 
-                maxVisible={3} 
+              <AvatarPill
+                items={Array.from(new Set(ensureArray(node.users))).map(
+                  (username) =>
+                    userLookup.get(username) || { username, id: username },
+                )}
+                type="user"
+                maxVisible={3}
               />
             </div>
 
             <div className="groups">
-              <AvatarPill 
-                items={ensureArray(node.groups).map(groupName => 
-                  groupLookup.get(groupName) || { name: groupName, id: groupName }
-                )} 
-                type="group" 
-                maxVisible={3} 
+              <AvatarPill
+                items={ensureArray(node.groups).map(
+                  (groupName) =>
+                    groupLookup.get(groupName) || {
+                      name: groupName,
+                      id: groupName,
+                    },
+                )}
+                type="group"
+                maxVisible={3}
               />
             </div>
 
             <EditButton
               menuItems={[
-                { label: isFolder ? "Edit folder" : "Edit file", onClick: () => openEdit(node) },
-                { label: isFolder ? "Delete folder" : "Delete file", color: "#ff3b30", onClick: () => handleDirectDelete(node) },
+                {
+                  label: isFolder ? "Edit folder" : "Edit file",
+                  onClick: () => openEdit(node),
+                },
+                {
+                  label: isFolder ? "Delete folder" : "Delete file",
+                  color: "#ff3b30",
+                  onClick: () => handleDirectDelete(node),
+                },
               ]}
             />
           </div>
@@ -617,19 +718,28 @@ export default function FilesPage() {
   const renderIcons = () => (
     <>
       <div className="pathBar">
-        <button className={`navBtn ${cwdStack.length === 0 ? "disabled" : ""}`} onClick={goUp}>
+        <button
+          className={`navBtn ${cwdStack.length === 0 ? "disabled" : ""}`}
+          onClick={goUp}
+        >
           ←
         </button>
 
         {!pathMode ? (
           <div className="crumbs">
-            <button className={`crumb ${cwdStack.length === 0 ? "active" : ""}`} onClick={() => setCwdStack([])}>
+            <button
+              className={`crumb ${cwdStack.length === 0 ? "active" : ""}`}
+              onClick={() => setCwdStack([])}
+            >
               Root
             </button>
             {breadcrumb.map((c, i) => (
               <React.Fragment key={c.id}>
                 <span className="crumbSep">›</span>
-                <button className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`} onClick={() => goToCrumb(i)}>
+                <button
+                  className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`}
+                  onClick={() => goToCrumb(i)}
+                >
                   {c.name}
                 </button>
               </React.Fragment>
@@ -644,7 +754,9 @@ export default function FilesPage() {
               onChange={(e) => setPathValue(e.target.value)}
               placeholder="Type a path like /sales_docs/policies"
             />
-            <button className="pathGo" type="submit">Go</button>
+            <button className="pathGo" type="submit">
+              Go
+            </button>
             <button
               className="pathCancel"
               type="button"
@@ -687,27 +799,43 @@ export default function FilesPage() {
               key={node.id}
               className={`iconTile ${isSelected ? "selected" : ""}`}
               onClick={() => toggleSelect(node.id)}
-              onDoubleClick={() => (isFolder ? openFolder(node.id) : openEdit(node))}
+              onDoubleClick={() =>
+                isFolder ? openFolder(node.id) : openEdit(node)
+              }
               onKeyDown={handleKeyDown}
               role="button"
               tabIndex={0}
               aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
             >
               <div className={`tileCheck ${isSelected ? "show" : ""}`}>
-                <Checkbox checked={isSelected} onChange={() => toggleSelect(node.id)} />
+                <Checkbox
+                  checked={isSelected}
+                  onChange={() => toggleSelect(node.id)}
+                />
               </div>
 
-              <div className="iconBig">{isFolder ? <FolderIcon /> : <FileIcon />}</div>
+              <div className="iconBig">
+                {isFolder ? <FolderIcon /> : <FileIcon />}
+              </div>
 
-              <div className="iconName" title={node.name}>{node.name}</div>
+              <div className="iconName" title={node.name}>
+                {node.name}
+              </div>
 
               <div className="iconSub">
-                {node.kind === NODE_KIND.FILE && node.size ? node.size : node.kind}
+                {node.kind === NODE_KIND.FILE && node.size
+                  ? node.size
+                  : node.kind}
               </div>
 
               {/* Show directory path ONLY in icons view, when not in root */}
-              <div className="iconPath" title={breadcrumb.map((b) => b.name).join(" / ")}>
-                {breadcrumb.length === 0 ? "Root" : breadcrumb.map((b) => b.name).join(" / ")}
+              <div
+                className="iconPath"
+                title={breadcrumb.map((b) => b.name).join(" / ")}
+              >
+                {breadcrumb.length === 0
+                  ? "Root"
+                  : breadcrumb.map((b) => b.name).join(" / ")}
               </div>
             </div>
           );
@@ -744,14 +872,18 @@ export default function FilesPage() {
 
         <div className="rightTools">
           <RefreshButton
-            onClick={withClickLog({ name: "files/toolbar/refresh", control: "refresh_button" })(fetchTree)}
+            onClick={withClickLog({
+              name: "files/toolbar/refresh",
+              control: "refresh_button",
+            })(fetchTree)}
           />
           <CreateButton
             icon={<FolderPlusIcon width={16} height={16} color="#fff" />}
             buttonText="New Share"
-            onClick={withClickLog({ name: "files/toolbar/open-upload", control: "upload_button" })(() =>
-              setUploadOpen(true)
-            )}
+            onClick={withClickLog({
+              name: "files/toolbar/open-upload",
+              control: "upload_button",
+            })(() => setUploadOpen(true))}
           />
         </div>
       </div>
@@ -759,11 +891,13 @@ export default function FilesPage() {
       {/* Subtle notification banner for operations in progress */}
       {(creatingShares.size > 0 || deletingShares.size > 0) && (
         <div className="operationBanner">
-          <CircularProgress size={14} style={{ color: '#4f8cff' }} />
+          <CircularProgress size={14} style={{ color: "#4f8cff" }} />
           <span>
-            {creatingShares.size > 0 && `Creating ${Array.from(creatingShares).join(', ')}...`}
-            {creatingShares.size > 0 && deletingShares.size > 0 && ' • '}
-            {deletingShares.size > 0 && `Deleting ${Array.from(deletingShares).join(', ')}...`}
+            {creatingShares.size > 0 &&
+              `Creating ${Array.from(creatingShares).join(", ")}...`}
+            {creatingShares.size > 0 && deletingShares.size > 0 && " • "}
+            {deletingShares.size > 0 &&
+              `Deleting ${Array.from(deletingShares).join(", ")}...`}
           </span>
         </div>
       )}

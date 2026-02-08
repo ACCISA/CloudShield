@@ -20,14 +20,11 @@ import React from "react";
 import {
   Box,
   Typography,
-  Chip,
   IconButton,
   CircularProgress,
   Skeleton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 
 /**
  * Dashboard statistic card showing a metric value with gradient background.
@@ -49,34 +46,12 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 export default function StatCard({
   title,
   value,
-  changePercent,
-  changeText,
-  isPositiveChange = true,
   gradientFrom = "#6a5acd",
   gradientTo = "#9f7aea",
   loading = false,
   error,
   onAdd,
 }) {
-  // Generate change text from changePercent if not provided
-  const displayChangeText = React.useMemo(() => {
-    if (changeText) return changeText;
-    if (changePercent !== undefined && changePercent !== null) {
-      return `${Math.abs(changePercent)}%`;
-    }
-    return "15.2%"; // Default fallback for backward compatibility
-  }, [changeText, changePercent]);
-
-  // Determine if change is positive (for icon and default behavior)
-  const isPositive = React.useMemo(() => {
-    if (changePercent !== undefined && changePercent !== null) {
-      return changePercent >= 0;
-    }
-    return isPositiveChange;
-  }, [changePercent, isPositiveChange]);
-
-  const ChangeIcon = isPositive ? TrendingUpIcon : TrendingDownIcon;
-
   return (
     <Box
       sx={{
@@ -199,40 +174,6 @@ export default function StatCard({
         )}
       </Typography>
 
-      {/* Change chip */}
-      {!error && (
-        <Chip
-          icon={
-            !loading ? (
-              <ChangeIcon sx={{ fontSize: "0.9rem !important" }} />
-            ) : undefined
-          }
-          label={loading ? <Skeleton width={50} /> : displayChangeText}
-          size="small"
-          sx={{
-            alignSelf: "flex-start",
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
-            color: "#000",
-            fontSize: {
-              xs: "0.7rem",
-              sm: "0.75rem",
-            },
-            fontWeight: 600,
-            height: {
-              xs: "26px",
-              sm: "28px",
-            },
-            borderRadius: "8px",
-            "& .MuiChip-icon": {
-              color: isPositive ? "#10b981" : "#ef4444",
-              marginLeft: "6px",
-            },
-            paddingX: "4px",
-          }}
-        />
-      )}
-
-      {/* Error message */}
       {error && (
         <Typography
           sx={{

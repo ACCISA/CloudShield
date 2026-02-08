@@ -1,29 +1,28 @@
 import React, { useState, useEffect, useMemo } from "react";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
+import TrashIcon from "../../assets/TrashIcon.jsx";
 import "./GroupsModal.css";
 
 // Use the same Users API logic as EmployeesPage
-import { listUsers } from "../../services/usersApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import {
+  resolveOrgId,
+  fetchFileShares,
+  safeSplitName,
+  fetchUsers,
+  fetchWorkstations,
+  createImageUploadHandler,
+  createToggleSelectionHandler,
+  createRemoveSelectionHandler,
+  createFilteredItems,
+  createNavigationHandler,
+  createDeleteHandler,
+  createRenderStepContent,
+} from "../../utils/modalHelpers.jsx";
 
 const STEPS = ["Basic Info", "Users", "Workstations", "Shares"];
-
-// Minimal mock until workstations API is ready
-const MOCK_WORKSTATIONS_MIN = [
-  {
-    id: "ws-1",
-    name: "Workstation Alpha",
-    online: true,
-    ipAddress: "10",
-  },
-  {
-    id: "ws-2",
-    name: "Workstation Beta",
-    online: false,
-    ipAddress: "10",
-  },
-];
 
 /**
  * GroupsModal - Multi-step wizard for creating/editing groups
@@ -33,6 +32,7 @@ export default function GroupsModal({
   onClose,
   groupData = null,
   onSubmit,
+  onDelete,
   onRefresh,
 }) {
   const { accessToken, currentUser } = useAuth();
@@ -49,6 +49,9 @@ export default function GroupsModal({
     selectedUsers: [],
     selectedWorkstations: [],
     selectedFiles: [],
+    allUsers: false,
+    allWorkstations: false,
+    allFiles: false,
   });
 
   // Search State
@@ -67,115 +70,21 @@ export default function GroupsModal({
     console.warn(msg);
   };
 
-  const resolveOrgId = async () => {
-    const fromUser = currentUser?.org_id;
-    if (fromUser) return fromUser;
-
-    const fromStorage = localStorage.getItem("org_id");
-    if (fromStorage) return fromStorage;
-
-    return null;
-  };
-
-  const safeSplitName = (fullName) => {
-    const raw = (fullName || "").trim();
-    if (!raw) return { firstName: "Unknown", lastName: "" };
-    const parts = raw.split(/\s+/);
-    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
-    return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
-  };
-
   // --- USERS (use the same logic/pattern as EmployeesPage) ---
   const fetchUsersAll = async () => {
-    if (!accessToken) {
-      setAllUsers([]);
-      return;
-    }
-
-    try {
-      const data = await listUsers({
-        token: accessToken,
-        search: "",
-        limit: 200,
-        offset: 0,
-      });
-
-      const normalized = (Array.isArray(data) ? data : []).map((u) => {
-        const id = String(u._id || u.id || "");
-        const { firstName, lastName } = safeSplitName(
-          u.full_name || u.name || "",
-        );
-        return {
-          id,
-          _id: id,
-          email: u.email,
-          firstName,
-          lastName,
-          title: u.role || u.title || "",
-          role: u.role,
-        };
-      });
-
-      setAllUsers(normalized.filter((u) => u.id));
-    } catch (e) {
-      setAllUsers([]);
-      openToast(e?.message || "Failed to load users");
-    }
+    await fetchUsers(accessToken, setAllUsers, openToast);
   };
 
   // --- FILE SHARES ---
   const fetchFileSharesAll = async () => {
-    try {
-      const orgId = await resolveOrgId();
-      if (!orgId) {
-        setAllFiles([]);
-        openToast("Missing org_id for file_shares fetch");
-        return;
-      }
-
-      const res = await fetch(
-        `/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-
-      if (!res.ok) {
-        setAllFiles([]);
-        return;
-      }
-
-      const data = await res.json();
-      const shares = Array.isArray(data.shares) ? data.shares : [];
-
-      const normalized = shares
-        .map((x) => x?.share)
-        .filter(Boolean)
-        .map((s) => ({
-          id: String(s.id || ""),
-          name: s.name || "Untitled Share",
-          type: "document",
-          size: s.drive ? `Drive ${s.drive}` : "",
-          drive: s.drive,
-          description: s.description || "",
-          owner: s.owner,
-          groups: s.groups || [],
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-        }))
-        .filter((s) => s.id);
-
-      setAllFiles(normalized);
-    } catch (e) {
-      setAllFiles([]);
-    }
+    const orgId = await resolveOrgId(currentUser);
+    await fetchFileShares(orgId, setAllFiles, openToast);
   };
 
-  // --- WORKSTATIONS (mock for now) ---
+  // --- WORKSTATIONS ---
   const fetchWorkstationsAll = async () => {
-    setAllWorkstations(MOCK_WORKSTATIONS_MIN);
+    const orgId = await resolveOrgId(currentUser);
+    await fetchWorkstations(orgId, accessToken, setAllWorkstations, openToast);
   };
 
   // Initialize form data + fetch all options when modal opens
@@ -232,32 +141,28 @@ export default function GroupsModal({
     );
   }, [allUsers, searchTerms.users]);
 
-  const filteredWorkstations = useMemo(() => {
-    const q = searchTerms.workstations.trim().toLowerCase();
-    if (!q) return allWorkstations;
-    return allWorkstations.filter((ws) =>
-      [ws.name, ws.ipAddress]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allWorkstations, searchTerms.workstations]);
+  const filteredWorkstations = useMemo(
+    () =>
+      createFilteredItems(allWorkstations, searchTerms.workstations, [
+        "name",
+        "ipAddress",
+      ]),
+    [allWorkstations, searchTerms.workstations],
+  );
 
-  const filteredFiles = useMemo(() => {
-    const q = searchTerms.files.trim().toLowerCase();
-    if (!q) return allFiles;
-    return allFiles.filter((f) =>
-      [f.name, f.description, f.drive, f.owner]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [allFiles, searchTerms.files]);
+  const filteredFiles = useMemo(
+    () =>
+      createFilteredItems(allFiles, searchTerms.files, [
+        "name",
+        "description",
+        "drive",
+        "owner",
+      ]),
+    [allFiles, searchTerms.files],
+  );
 
   // Handlers
-  const handleNavigate = (direction) => {
-    setCurrentStep((prev) =>
-      Math.max(0, Math.min(STEPS.length - 1, prev + direction)),
-    );
-  };
+  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
@@ -280,103 +185,51 @@ export default function GroupsModal({
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleDelete = createDeleteHandler({
+    onDelete: async () => {
+      if (!groupData?._id && !groupData?.id) return;
+      await onDelete?.(groupData._id || groupData.id);
+    },
+    setIsSubmitting,
+    onClose,
+  });
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, groupImage: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const toggleSelection = (type, item) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      const selected = prev[key];
-      const isSelected = selected.some((i) => i.id === item.id);
-
-      return {
-        ...prev,
-        [key]: isSelected
-          ? selected.filter((i) => i.id !== item.id)
-          : [...selected, item],
-      };
-    });
-  };
-
-  const removeSelection = (type, id) => {
-    setFormData((prev) => {
-      const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      return {
-        ...prev,
-        [key]: prev[key].filter((i) => i.id !== id),
-      };
-    });
-  };
+  const handleImageUpload = createImageUploadHandler(setFormData, "groupImage");
+  const toggleSelection = createToggleSelectionHandler(setFormData);
+  const removeSelection = createRemoveSelectionHandler(setFormData);
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
   if (!open) return null;
 
-  // Render Step Content
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <BasicInfoStep
-            formData={formData}
-            setFormData={setFormData}
-            handleImageUpload={handleImageUpload}
-          />
-        );
-      case 1:
-        return (
-          <SelectionStep
-            type="users"
-            searchTerm={searchTerms.users}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, users: val }))
-            }
-            filteredItems={filteredUsers}
-            selectedItems={formData.selectedUsers}
-            onToggle={(item) => toggleSelection("users", item)}
-            onRemove={(id) => removeSelection("users", id)}
-          />
-        );
-      case 2:
-        return (
-          <SelectionStep
-            type="workstations"
-            searchTerm={searchTerms.workstations}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, workstations: val }))
-            }
-            filteredItems={filteredWorkstations}
-            selectedItems={formData.selectedWorkstations}
-            onToggle={(item) => toggleSelection("workstations", item)}
-            onRemove={(id) => removeSelection("workstations", id)}
-          />
-        );
-      case 3:
-        return (
-          <SelectionStep
-            type="files"
-            searchTerm={searchTerms.files}
-            setSearchTerm={(val) =>
-              setSearchTerms((prev) => ({ ...prev, files: val }))
-            }
-            filteredItems={filteredFiles}
-            selectedItems={formData.selectedFiles}
-            onToggle={(item) => toggleSelection("files", item)}
-            onRemove={(id) => removeSelection("files", id)}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Render Step Content using shared factory
+  const renderStepContent = createRenderStepContent({
+    steps: [
+      { handleImageUpload, isEditMode },
+      { type: "users" },
+      { type: "workstations" },
+      { type: "files" },
+    ],
+    currentStep,
+    formData,
+    setFormData,
+    searchTerms,
+    setSearchTerms,
+    filteredData: {
+      users: filteredUsers,
+      workstations: filteredWorkstations,
+      files: filteredFiles,
+    },
+    allData: {
+      users: allUsers,
+      workstations: allWorkstations,
+      files: allFiles,
+    },
+    toggleSelection,
+    removeSelection,
+    BasicInfoStep,
+    SelectionStep,
+  });
 
   const isNextDisabled = currentStep === 0 && !formData.groupName.trim();
 
@@ -430,19 +283,38 @@ export default function GroupsModal({
 
         {/* Footer */}
         <footer className="groups-modal-actions">
-          <button
-            className="groups-modal-btn groups-modal-btn-secondary"
-            onClick={() => handleNavigate(-1)}
-            disabled={currentStep === 0}
-          >
-            Back
-          </button>
-          <div className="groups-modal-actions-right">
+          <div className="groups-modal-actions-left">
             <button
               className="groups-modal-btn groups-modal-btn-cancel"
               onClick={onClose}
             >
               Cancel
+            </button>
+            {isEditMode && currentStep === 0 && (
+              <button
+                className="groups-modal-btn groups-modal-btn-delete"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to delete this group? This action cannot be undone.",
+                    )
+                  ) {
+                    handleDelete();
+                  }
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <TrashIcon width={14} height={14} color="#DC2626" /> Delete
+              </button>
+            )}
+          </div>
+          <div className="groups-modal-actions-right">
+            <button
+              className="groups-modal-btn groups-modal-btn-secondary"
+              onClick={() => handleNavigate(-1)}
+              disabled={currentStep === 0}
+            >
+              Back
             </button>
             {currentStep < STEPS.length - 1 ? (
               <button
@@ -546,8 +418,11 @@ function SelectionStep({
   setSearchTerm,
   filteredItems,
   selectedItems,
+  allSelected,
   onToggle,
   onRemove,
+  onAllChange,
+  totalItems,
 }) {
   const config = {
     users: {
@@ -590,11 +465,38 @@ function SelectionStep({
   }[type];
 
   const items = Array.isArray(filteredItems) ? filteredItems : [];
+  const hasSelected = selectedItems.length > 0;
+  const allAreSelected =
+    selectedItems.length === totalItems.length && totalItems.length > 0;
+  const isIndeterminate = hasSelected && !allAreSelected;
 
   return (
     <div className="groups-modal-step">
       <div className="groups-modal-search-section">
-        <label className="groups-modal-label">{config.label}</label>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <label className="groups-modal-label" style={{ marginBottom: 0 }}>
+            {config.label}
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Checkbox
+              checked={allAreSelected}
+              indeterminate={isIndeterminate}
+              onChange={onAllChange}
+            />
+            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+              {type === "users" && "All Users"}
+              {type === "workstations" && "All Workstations"}
+              {type === "files" && "All Shares"}
+            </span>
+          </div>
+        </div>
         <input
           type="text"
           className="groups-modal-search"

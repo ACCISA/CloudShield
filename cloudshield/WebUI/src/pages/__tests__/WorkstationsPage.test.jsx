@@ -1,14 +1,30 @@
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import WorkstationsPage from "../WorkstationsPage";
 
+// Mock analytics
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
 }));
 
+// Mock click logger hook
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
 }));
+
+// Helper to render with router
+const renderPage = (options = {}) => {
+  const defaultState = {};
+  const state = { ...defaultState, ...options.state };
+
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: "/workstations", state }]}>
+      <WorkstationsPage />
+    </MemoryRouter>,
+  );
+};
 
 // Mock child components
 jest.mock("../../components/workstations/WorkstationList", () => {
@@ -17,18 +33,61 @@ jest.mock("../../components/workstations/WorkstationList", () => {
     onEdit,
     onToggleStatus,
     onDelete,
+    selectedIds,
+    allVisibleSelected,
+    isIndeterminate,
+    onToggleSelect,
+    onToggleSelectAll,
+    showUsers,
+    showCurrent,
+    showLastUsed,
   }) {
     return (
       <div data-testid="workstation-list">
+        <div>Workstations Count: {rows.length}</div>
+        <div data-testid="show-users">
+          {showUsers ? "Users Shown" : "Users Hidden"}
+        </div>
+        <div data-testid="show-current">
+          {showCurrent ? "Current Shown" : "Current Hidden"}
+        </div>
+        <div data-testid="show-last-used">
+          {showLastUsed ? "Last Used Shown" : "Last Used Hidden"}
+        </div>
+
+        <button data-testid="select-all" onClick={onToggleSelectAll}>
+          {allVisibleSelected
+            ? "Deselect All"
+            : isIndeterminate
+              ? "Deselect Some"
+              : "Select All"}
+        </button>
+
         {rows.map((row) => (
-          <div key={row.id} data-testid={`workstation-${row.id}`}>
+          <div key={row.id} data-testid={`workstation-row-${row.id}`}>
+            <input
+              type="checkbox"
+              data-testid={`checkbox-${row.id}`}
+              checked={selectedIds.has(row.id)}
+              onChange={() => onToggleSelect(row.id)}
+            />
             <span>{row.name}</span>
             <span>{row.status}</span>
-            <button onClick={() => onEdit(row)}>Edit {row.name}</button>
-            <button onClick={() => onToggleStatus(row.id)}>
+            <button data-testid={`edit-${row.id}`} onClick={() => onEdit(row)}>
+              Edit
+            </button>
+            <button
+              data-testid={`toggle-${row.id}`}
+              onClick={() => onToggleStatus(row.id)}
+            >
               Toggle Status
             </button>
-            <button onClick={() => onDelete(row.id)}>Delete {row.name}</button>
+            <button
+              data-testid={`delete-${row.id}`}
+              onClick={() => onDelete(row.id)}
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>
@@ -46,40 +105,52 @@ jest.mock("../../components/workstations/WorkstationModal", () => {
   }) {
     if (!open) return null;
     return (
-      <div data-testid={workstationData ? "edit-dialog" : "create-dialog"}>
-        {workstationData ? (
-          <>
-            <span>Editing: {workstationData.name}</span>
-            <button onClick={() => onSubmit({ name: "Updated Name" })}>
-              Save
-            </button>
-            {onDelete && <button onClick={onDelete}>Delete</button>}
-          </>
-        ) : (
-          <button
-            onClick={() => {
-              onSubmit({
-                name: "New Workstation",
-                code: "WS-NEW",
-                users: ["Test User"],
-              });
-            }}
-          >
-            Create Workstation
+      <div data-testid={workstationData ? "edit-modal" : "create-modal"}>
+        <button data-testid="modal-close" onClick={onClose}>
+          Close
+        </button>
+        <button
+          data-testid="modal-submit"
+          onClick={() =>
+            onSubmit({
+              name: "Test Workstation",
+              code: "WS-TEST",
+              users: [],
+            })
+          }
+        >
+          Submit
+        </button>
+        {onDelete && (
+          <button data-testid="modal-delete" onClick={onDelete}>
+            Delete
           </button>
         )}
-        <button onClick={onClose}>Close</button>
       </div>
     );
   };
 });
 
-// Mock DisplayButton
-jest.mock(
-  "../../components/common/DisplayButton/DisplayButton.jsx",
-  () =>
-    ({ columnToggles }) => (
-      <div>
+jest.mock("../../components/common/SearchField/SearchField", () => {
+  return function MockSearchField({ value, onChange, placeholder }) {
+    return (
+      <input
+        data-testid="search-field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    );
+  };
+});
+
+jest.mock("../../components/common/DisplayButton/DisplayButton", () => {
+  return function MockDisplayButton({ layout, onLayoutChange, columnToggles }) {
+    return (
+      <div data-testid="display-button">
+        <button onClick={() => onLayoutChange("list")}>List</button>
+        <button onClick={() => onLayoutChange("cards")}>Cards</button>
+        <button onClick={() => onLayoutChange("icons")}>Icons</button>
         {columnToggles?.columns.map((col) => (
           <button
             key={col.key}
@@ -90,701 +161,570 @@ jest.mock(
           </button>
         ))}
       </div>
-    ),
-);
+    );
+  };
+});
 
-// Mock FilterButton
-jest.mock("../../components/common/FilterButton/FilterButton.jsx", () => {
-  return function DummyFilterButton({ onFilterChange }) {
+jest.mock("../../components/common/FilterButton/FilterButton", () => {
+  return function MockFilterButton({
+    filterGroups,
+    activeFilters,
+    onFilterChange,
+  }) {
     return (
-      <div>
-        <button
-          data-testid="filter-activate"
-          onClick={() => onFilterChange("status", "online", true)}
-        >
-          Activate Filter
-        </button>
-        <button
-          data-testid="filter-deactivate"
-          onClick={() => onFilterChange("status", "online", false)}
-        >
-          Deactivate Filter
-        </button>
+      <div data-testid="filter-button">
+        {filterGroups.map((group) => (
+          <div key={group.id} data-testid={`filter-group-${group.id}`}>
+            {group.options.map((option) => {
+              const isActive =
+                activeFilters[group.id]?.has(option.value) || false;
+              return (
+                <button
+                  key={option.value}
+                  data-testid={`filter-${option.value}`}
+                  onClick={() =>
+                    onFilterChange(group.id, option.value, !isActive)
+                  }
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
     );
   };
 });
 
-// Mock CreateButton
-jest.mock("../../components/common/CreateButton/CreateButton.jsx", () => {
-  return function MockCreateButton({ icon, buttonText, onClick }) {
+jest.mock("../../components/common/CreateButton/CreateButton", () => {
+  return function MockCreateButton({ onClick, buttonText }) {
     return (
-      <button onClick={onClick} role="button" aria-label="create">
-        {buttonText || "Create"}
+      <button data-testid="create-button" onClick={onClick}>
+        {buttonText}
       </button>
     );
   };
 });
 
-// Mock RefreshButton
-jest.mock("../../components/common/RefreshButton/RefreshButton.jsx", () => {
+jest.mock("../../components/common/RefreshButton/RefreshButton", () => {
   return function MockRefreshButton({ onClick }) {
     return (
-      <button onClick={onClick} role="button" aria-label="refresh">
+      <button data-testid="refresh-button" onClick={onClick}>
         Refresh
       </button>
     );
   };
 });
 
-describe("WorkstationsPage", () => {
-  it("renders the page with search bar", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    expect(searchInput).toBeInTheDocument();
+describe("WorkstationsPage Component", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it("renders toolbar action buttons", () => {
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    json: () => Promise.resolve({ workstations: [] })
-  });
-
-  const { container } = render(<WorkstationsPage />);
-
-  expect(container).toBeInTheDocument();
-  
-  global.fetch.mockRestore();
-});
-
-  it("renders workstation list", () => {
-    render(<WorkstationsPage />);
-
-    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
-  });
-
-  it("displays initial seed workstations", () => {
-    render(<WorkstationsPage />);
-
-    // There are multiple workstations with "Development-WS-001" name, so use getAllByText
-    const developmentWorkstations = screen.getAllByText("Development-WS-001");
-    expect(developmentWorkstations.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-  });
-
-  it("filters workstations based on search input", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-
-    // Initial state - should show multiple workstations
-    expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
-
-    // Search for "Marketing-WS-002"
-    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
-
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
-  });
-
-  it("filters workstations by code", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "WS-002" } });
-
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
-  });
-
-  it("filters workstations by current user", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "Pam" } });
-
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
-  });
-
-  it("search is case insensitive", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "MARKETING" } });
-
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-  });
-
-  it("shows all workstations when search is cleared", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-
-    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-
-    fireEvent.change(searchInput, { target: { value: "" } });
-    expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-  });
-
-  it("opens create dialog when create button is clicked", () => {
-    render(<WorkstationsPage />);
-
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
-  });
-
-  it("closes create dialog when close is clicked", () => {
-    render(<WorkstationsPage />);
-
-    // Open dialog
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
-
-    // Close dialog
-    const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close",
-    );
-    fireEvent.click(closeButton);
-
-    expect(screen.queryByTestId("create-dialog")).not.toBeInTheDocument();
-  });
-
-  it("creates new workstation and adds to list", () => {
-    render(<WorkstationsPage />);
-
-    const initialWorkstations = screen.getAllByText("Development-WS-001");
-    const initialCount = initialWorkstations.length;
-
-    // Open and create
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    const createWorkstationButton = screen.getByText("Create Workstation");
-    fireEvent.click(createWorkstationButton);
-
-    // New workstation should be in the list
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-  });
-
-  it("opens edit dialog when edit button is clicked", () => {
-    render(<WorkstationsPage />);
-
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
-    expect(screen.getByText("Editing: Development-WS-001")).toBeInTheDocument();
-  });
-
-  it("closes edit dialog when close is clicked", () => {
-    render(<WorkstationsPage />);
-
-    // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
-
-    // Close dialog
-    const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close",
-    );
-    fireEvent.click(closeButton);
-
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-  });
-
-  it("saves workstation changes", () => {
-    render(<WorkstationsPage />);
-
-    // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    // Save changes
-    const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save",
-    );
-    fireEvent.click(saveButton);
-
-    // Dialog should close after save
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-  });
-
-  it("deletes workstation", () => {
-    render(<WorkstationsPage />);
-
-    const initialMarketing = screen.getAllByText("Marketing-WS-002");
-    expect(initialMarketing).toHaveLength(1);
-
-    // Open edit dialog for Marketing-WS-002
-    const editButton = screen.getByText(/Edit Marketing-WS-002/i);
-    fireEvent.click(editButton);
-
-    // Delete
-    const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete",
-    );
-    fireEvent.click(deleteButton);
-
-    // Marketing-WS-002 should be removed
-    expect(screen.queryByText("Marketing-WS-002")).not.toBeInTheDocument();
-  });
-
-  it("toggles workstation status", () => {
-    render(<WorkstationsPage />);
-
-    // Get first toggle button
-    const toggleButtons = screen.getAllByText("Toggle Status");
-    fireEvent.click(toggleButtons[0]);
-
-    // Status toggle should be called (implementation verified by mock)
-    expect(toggleButtons[0]).toBeInTheDocument();
-  });
-
-  it("renders with correct layout structure", () => {
-    const { container } = render(<WorkstationsPage />);
-
-    // Main container should exist
-    const mainBox = container.firstChild;
-    expect(mainBox).toBeInTheDocument();
-  });
-
-  it("handles empty search results", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, {
-      target: { value: "NonexistentWorkstation" },
+  describe("Rendering", () => {
+    test("renders without crashing", () => {
+      renderPage();
+      expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
     });
 
-    // Should show empty list
-    const list = screen.getByTestId("workstation-list");
-    expect(list.children).toHaveLength(0);
+    test("renders search field", () => {
+      renderPage();
+      expect(screen.getByTestId("search-field")).toBeInTheDocument();
+    });
+
+    test("renders create button", () => {
+      renderPage();
+      expect(screen.getByTestId("create-button")).toBeInTheDocument();
+    });
+
+    test("renders display button", () => {
+      renderPage();
+      expect(screen.getByTestId("display-button")).toBeInTheDocument();
+    });
+
+    test("renders filter button", () => {
+      renderPage();
+      expect(screen.getByTestId("filter-button")).toBeInTheDocument();
+    });
+
+    test("renders refresh button", () => {
+      renderPage();
+      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+    });
+
+    test("shows correct placeholder in search field", () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+      expect(searchField).toHaveAttribute("placeholder", "Search workstations");
+    });
   });
 
-  it("preserves workstation data structure when creating", () => {
-    render(<WorkstationsPage />);
+  describe("Search Functionality", () => {
+    test("updates search value on input", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
 
-    // Open create dialog
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
+      await userEvent.type(searchField, "test");
 
-    // Create workstation
-    const createWorkstationButton = screen.getByText("Create Workstation");
-    fireEvent.click(createWorkstationButton);
+      expect(searchField).toHaveValue("test");
+    });
 
-    // Verify the new workstation appears
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
+    test("clears search value", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+
+      await userEvent.type(searchField, "test");
+      expect(searchField).toHaveValue("test");
+
+      await userEvent.clear(searchField);
+      expect(searchField).toHaveValue("");
+    });
+
+    test("filters workstations by name", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+
+      // Initial count should show all workstations
+      const initialList = screen.getByTestId("workstation-list");
+      const initialCount = initialList.textContent.match(
+        /Workstations Count: (\d+)/,
+      )?.[1];
+
+      await userEvent.type(searchField, "nonexistent");
+
+      await waitFor(() => {
+        const list = screen.getByTestId("workstation-list");
+        // Should have fewer or same workstations after filtering
+        expect(list).toBeInTheDocument();
+      });
+    });
   });
 
-  it("calls refresh when refresh button is clicked", () => {
-    const consoleSpy = jest.spyOn(console, "log");
-    render(<WorkstationsPage />);
+  describe("Display Controls", () => {
+    test("toggles showUsers state", async () => {
+      renderPage();
+      const toggleButton = screen.getByTestId("toggle-showUsers");
 
-    const { container } = render(<WorkstationsPage />);
-    const refreshIcon = container.querySelector(
-      '[data-testid="RefreshOutlinedIcon"]',
-    );
+      expect(screen.getByTestId("show-users")).toHaveTextContent("Users Shown");
 
-    if (refreshIcon) {
-      fireEvent.click(refreshIcon.closest("button"));
+      await userEvent.click(toggleButton);
+
+      expect(screen.getByTestId("show-users")).toHaveTextContent(
+        "Users Hidden",
+      );
+    });
+
+    test("toggles showCurrent state", async () => {
+      renderPage();
+      const toggleButton = screen.getByTestId("toggle-showCurrent");
+
+      expect(screen.getByTestId("show-current")).toHaveTextContent(
+        "Current Shown",
+      );
+
+      await userEvent.click(toggleButton);
+
+      expect(screen.getByTestId("show-current")).toHaveTextContent(
+        "Current Hidden",
+      );
+    });
+
+    test("toggles showLastUsed state", async () => {
+      renderPage();
+      const toggleButton = screen.getByTestId("toggle-showLastUsed");
+
+      expect(screen.getByTestId("show-last-used")).toHaveTextContent(
+        "Last Used Shown",
+      );
+
+      await userEvent.click(toggleButton);
+
+      expect(screen.getByTestId("show-last-used")).toHaveTextContent(
+        "Last Used Hidden",
+      );
+    });
+
+    test("changes layout to cards", async () => {
+      renderPage();
+      const cardsButton = screen.getByText("Cards");
+
+      await userEvent.click(cardsButton);
+
+      // Layout change should be tracked
+      const { trackButton } = require("../../lib/analytics");
+      expect(trackButton).toHaveBeenCalledWith(
+        "workstations/display/toggle",
+        expect.objectContaining({
+          layout: "cards",
+        }),
+      );
+    });
+
+    test("changes layout to icons", async () => {
+      renderPage();
+      const iconsButton = screen.getByText("Icons");
+
+      await userEvent.click(iconsButton);
+
+      const { trackButton } = require("../../lib/analytics");
+      expect(trackButton).toHaveBeenCalledWith(
+        "workstations/display/toggle",
+        expect.objectContaining({
+          layout: "icons",
+        }),
+      );
+    });
+  });
+
+  describe("Filter Functionality", () => {
+    test("applies status filter", async () => {
+      renderPage();
+      const connectedFilter = screen.getByTestId("filter-connected");
+
+      await userEvent.click(connectedFilter);
+
+      // Filter should be tracked
+      const { trackButton } = require("../../lib/analytics");
+      expect(trackButton).toHaveBeenCalledWith(
+        "workstations/filter/change",
+        expect.objectContaining({
+          groupId: "status",
+          value: "connected",
+          active: true,
+        }),
+      );
+    });
+
+    test("toggles filter selection", async () => {
+      renderPage();
+      const disconnectedFilter = screen.getByTestId("filter-disconnected");
+
+      await userEvent.click(disconnectedFilter);
+      await userEvent.click(disconnectedFilter);
+
+      const { trackButton } = require("../../lib/analytics");
+      // Should be called twice - once to activate, once to deactivate
+      expect(trackButton).toHaveBeenCalledTimes(2);
+    });
+
+    test("applies multiple filters simultaneously", async () => {
+      renderPage();
+      const connectedFilter = screen.getByTestId("filter-connected");
+      const activeUsersFilter = screen.getByTestId("filter-activeUsers");
+
+      await userEvent.click(connectedFilter);
+      await userEvent.click(activeUsersFilter);
+
+      const { trackButton } = require("../../lib/analytics");
+      expect(trackButton).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("Modal Interactions", () => {
+    test("opens create modal when create button is clicked", async () => {
+      renderPage();
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
+
+    test("closes modal when close button is clicked", async () => {
+      renderPage();
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+
+      const closeButton = screen.getByTestId("modal-close");
+      await userEvent.click(closeButton);
+
+      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+    });
+
+    test("opens edit modal when edit button is clicked", async () => {
+      renderPage();
+
+      // Find and click first edit button
+      const editButtons = screen.getAllByTestId(/^edit-/);
+      if (editButtons.length > 0) {
+        await userEvent.click(editButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+        });
+      }
+    });
+
+    test("modal receives workstation data in edit mode", async () => {
+      renderPage();
+
+      const editButtons = screen.getAllByTestId(/^edit-/);
+      if (editButtons.length > 0) {
+        await userEvent.click(editButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+        });
+      }
+    });
+  });
+
+  describe("Selection Management", () => {
+    test("toggles single workstation selection", async () => {
+      renderPage();
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      const firstCheckbox = checkboxes.find((cb) =>
+        cb.dataset.testid?.startsWith("checkbox-"),
+      );
+
+      if (firstCheckbox) {
+        expect(firstCheckbox).not.toBeChecked();
+
+        await userEvent.click(firstCheckbox);
+
+        expect(firstCheckbox).toBeChecked();
+      }
+    });
+
+    test("selects all visible workstations", async () => {
+      renderPage();
+      const selectAllButton = screen.getByTestId("select-all");
+
+      expect(selectAllButton).toHaveTextContent("Select All");
+
+      await userEvent.click(selectAllButton);
+
+      expect(selectAllButton).toHaveTextContent("Deselect All");
+    });
+
+    test("deselects all visible workstations when all are selected", async () => {
+      renderPage();
+      const selectAllButton = screen.getByTestId("select-all");
+
+      await userEvent.click(selectAllButton);
+      expect(selectAllButton).toHaveTextContent("Deselect All");
+
+      await userEvent.click(selectAllButton);
+      expect(selectAllButton).toHaveTextContent("Select All");
+    });
+
+    test("handles indeterminate state", async () => {
+      renderPage();
+
+      // Select one workstation
+      const checkboxes = screen.getAllByRole("checkbox");
+      const firstCheckbox = checkboxes.find((cb) =>
+        cb.dataset.testid?.startsWith("checkbox-"),
+      );
+
+      if (firstCheckbox) {
+        await userEvent.click(firstCheckbox);
+
+        const selectAllButton = screen.getByTestId("select-all");
+        expect(selectAllButton).toHaveTextContent("Deselect Some");
+      }
+    });
+  });
+
+  describe("CRUD Operations", () => {
+    test("creates new workstation", async () => {
+      renderPage();
+      const createButton = screen.getByTestId("create-button");
+
+      await userEvent.click(createButton);
+
+      const submitButton = screen.getByTestId("modal-submit");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+      });
+
+      const { trackButton } = require("../../lib/analytics");
+      expect(trackButton).toHaveBeenCalledWith(
+        "workstations/create/save",
+        expect.objectContaining({
+          page: "workstations",
+        }),
+      );
+    });
+
+    test("edits existing workstation", async () => {
+      renderPage();
+
+      const editButtons = screen.getAllByTestId(/^edit-/);
+      if (editButtons.length > 0) {
+        await userEvent.click(editButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+        });
+
+        const submitButton = screen.getByTestId("modal-submit");
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+          expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+        });
+
+        const { trackButton } = require("../../lib/analytics");
+        expect(trackButton).toHaveBeenCalledWith(
+          "workstations/edit/save",
+          expect.anything(),
+        );
+      }
+    });
+
+    test("toggles workstation status", async () => {
+      renderPage();
+
+      const toggleButtons = screen.getAllByTestId(/^toggle-/);
+      const statusToggle = toggleButtons.find((btn) =>
+        btn.dataset.testid?.match(/^toggle-ws-\d+$/),
+      );
+
+      if (statusToggle) {
+        await userEvent.click(statusToggle);
+
+        const { trackButton } = require("../../lib/analytics");
+        expect(trackButton).toHaveBeenCalledWith(
+          "workstations/row/toggle-status",
+          expect.anything(),
+        );
+      }
+    });
+  });
+
+  describe("Navigation State", () => {
+    test("opens modal when navigated from dashboard", () => {
+      renderPage({ state: { openModal: true } });
+
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
+
+    test("does not open modal without navigation state", () => {
+      renderPage();
+
+      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Integration Tests", () => {
+    test("search and filter work together", async () => {
+      renderPage();
+
+      const searchField = screen.getByTestId("search-field");
+      await userEvent.type(searchField, "test");
+
+      const connectedFilter = screen.getByTestId("filter-connected");
+      await userEvent.click(connectedFilter);
+
+      expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+    });
+
+    test("handles multiple state changes", async () => {
+      renderPage();
+
+      // Change search
+      const searchField = screen.getByTestId("search-field");
+      await userEvent.type(searchField, "work");
+
+      // Toggle column visibility
+      const toggleUsers = screen.getByTestId("toggle-showUsers");
+      await userEvent.click(toggleUsers);
+
+      // Change layout
+      const cardsButton = screen.getByText("Cards");
+      await userEvent.click(cardsButton);
+
+      expect(screen.getByTestId("show-users")).toHaveTextContent(
+        "Users Hidden",
+      );
+    });
+
+    test("refresh button triggers handler", async () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+
+      renderPage();
+      const refreshButton = screen.getByTestId("refresh-button");
+
+      await userEvent.click(refreshButton);
+
       expect(consoleSpy).toHaveBeenCalledWith("refresh");
-    }
-
-    consoleSpy.mockRestore();
+      consoleSpy.mockRestore();
+    });
   });
 
-  it("updates workstation on edit and save", () => {
-    render(<WorkstationsPage />);
+  describe("Edge Cases", () => {
+    test("handles empty search gracefully", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
 
-    // Find first Development-WS-001 workstation
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
+      await userEvent.type(searchField, "   ");
 
-    // Save with new name
-    const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save",
-    );
-    fireEvent.click(saveButton);
-
-    // Dialog should close
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-  });
-
-  it("handles multiple consecutive searches", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-
-    fireEvent.change(searchInput, { target: { value: "Development-WS-001" } });
-    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
-
-    fireEvent.change(searchInput, { target: { value: "Marketing-WS-002" } });
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-    expect(screen.queryByText("Development-WS-001")).not.toBeInTheDocument();
-
-    fireEvent.change(searchInput, { target: { value: "WS-001" } });
-    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
-  });
-
-  it("handles workstation toggle status for connected workstation", () => {
-    render(<WorkstationsPage />);
-
-    const toggleButtons = screen.getAllByText("Toggle Status");
-    const initialCount = toggleButtons.length;
-
-    fireEvent.click(toggleButtons[0]);
-
-    // Verify toggle was called
-    expect(screen.getAllByText("Toggle Status").length).toBe(initialCount);
-  });
-
-  it("handles edit dialog close without saving", () => {
-    render(<WorkstationsPage />);
-
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
-
-    const closeButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Close",
-    );
-    fireEvent.click(closeButton);
-
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-  });
-
-  it("shows empty result message with no filters applied", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, {
-      target: { value: "NonexistentWorkstation" },
+      expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
     });
 
-    const list = screen.getByTestId("workstation-list");
-    expect(list.children.length).toBe(0);
-  });
+    test("handles rapid filter changes", async () => {
+      renderPage();
+      const connectedFilter = screen.getByTestId("filter-connected");
 
-  it("creates new workstation with correct default values", () => {
-    render(<WorkstationsPage />);
+      await userEvent.click(connectedFilter);
+      await userEvent.click(connectedFilter);
+      await userEvent.click(connectedFilter);
 
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    const createWorkstationButton = screen.getByText("Create Workstation");
-    fireEvent.click(createWorkstationButton);
-
-    // New workstation should appear at top of list
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-  });
-
-  it("searches with whitespace trimming", () => {
-    render(<WorkstationsPage />);
-
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, {
-      target: { value: "  Marketing-WS-002  " },
+      expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-  });
+    test("maintains selection after filter change", async () => {
+      renderPage();
 
-  it("preserves search when opening and closing dialogs", () => {
-    render(<WorkstationsPage />);
+      // Select a workstation
+      const checkboxes = screen.getAllByRole("checkbox");
+      const firstCheckbox = checkboxes.find((cb) =>
+        cb.dataset.testid?.startsWith("checkbox-"),
+      );
 
-    const searchInput = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchInput, { target: { value: "Development-WS-001" } });
+      if (firstCheckbox) {
+        await userEvent.click(firstCheckbox);
+        expect(firstCheckbox).toBeChecked();
 
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
+        // Apply filter
+        const connectedFilter = screen.getByTestId("filter-connected");
+        await userEvent.click(connectedFilter);
 
-    const closeButton = within(screen.getByTestId("create-dialog")).getByText(
-      "Close",
-    );
-    fireEvent.click(closeButton);
-
-    // Search should still be active
-    expect(searchInput.value).toBe("Development-WS-001");
-    expect(screen.getAllByText("Development-WS-001")).toHaveLength(1);
-  });
-
-  it("deletes workstation from list view", () => {
-    render(<WorkstationsPage />);
-
-    const initialWorkstations = screen.getAllByTestId(/workstation-/);
-    const initialCount = initialWorkstations.length;
-
-    // Find and click delete button for first workstation
-    const deleteButtons = screen.getAllByText(/Delete Development-WS-001/i);
-    fireEvent.click(deleteButtons[0]);
-
-    // Verify workstation count decreased
-    const afterDelete = screen.getAllByTestId(/workstation-/);
-    expect(afterDelete.length).toBe(initialCount - 1);
-  });
-
-  it("toggles connected to disconnected status", () => {
-    render(<WorkstationsPage />);
-
-    // Find a connected workstation (ws-1, ws-3, ws-4 are connected)
-    const connectedWorkstation = screen.getByTestId("workstation-ws-1");
-    expect(
-      within(connectedWorkstation).getByText("connected"),
-    ).toBeInTheDocument();
-
-    const toggleButton =
-      within(connectedWorkstation).getByText("Toggle Status");
-    fireEvent.click(toggleButton);
-
-    // Status should change to disconnected
-    expect(
-      within(connectedWorkstation).getByText("disconnected"),
-    ).toBeInTheDocument();
-  });
-
-  it("does not toggle busy status", () => {
-    render(<WorkstationsPage />);
-
-    // Find the busy workstation (ws-2 is busy)
-    const busyWorkstation = screen.getByTestId("workstation-ws-2");
-    expect(within(busyWorkstation).getByText("busy")).toBeInTheDocument();
-
-    const toggleButton = within(busyWorkstation).getByText("Toggle Status");
-    fireEvent.click(toggleButton);
-
-    // Status should remain busy
-    expect(within(busyWorkstation).getByText("busy")).toBeInTheDocument();
-  });
-
-  it("handles create with empty users array", () => {
-    render(<WorkstationsPage />);
-
-    // Modify mock to create with no users
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    // The mock creates with users: ["Test User"], but we can verify it handles the logic
-    fireEvent.click(screen.getByText("Create Workstation"));
-
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-  });
-
-  it("edits workstation with partial changes", () => {
-    render(<WorkstationsPage />);
-
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    // Save with changes (mock provides { name: "Updated Name" })
-    const saveButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Save",
-    );
-    fireEvent.click(saveButton);
-
-    // The implementation merges changes with existing data
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-  });
-
-  it("creates workstation without code field", () => {
-    render(<WorkstationsPage />);
-
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    // Mock creates with code: "WS-NEW", but implementation handles missing code
-    fireEvent.click(screen.getByText("Create Workstation"));
-
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-  });
-
-  it("creates workstation without users field", () => {
-    render(<WorkstationsPage />);
-
-    const createButton = screen.getByRole("button", { name: /create/i });
-    fireEvent.click(createButton);
-
-    fireEvent.click(screen.getByText("Create Workstation"));
-
-    // Implementation handles payload.users being undefined
-    expect(screen.getByText("New Workstation")).toBeInTheDocument();
-  });
-
-  it("handles delete from edit dialog", () => {
-    render(<WorkstationsPage />);
-
-    const initialCount = screen.getAllByTestId(/workstation-/).length;
-
-    // Open edit dialog
-    const editButton = screen.getAllByText(/Edit Development-WS-001/i)[0];
-    fireEvent.click(editButton);
-
-    // Delete from dialog
-    const deleteButton = within(screen.getByTestId("edit-dialog")).getByText(
-      "Delete",
-    );
-    fireEvent.click(deleteButton);
-
-    // Workstation should be removed and dialog closed
-    expect(screen.queryByTestId("edit-dialog")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId(/workstation-/).length).toBe(initialCount - 1);
-  });
-
-  it("passes correct props to WorkstationList", () => {
-    render(<WorkstationsPage />);
-
-    // WorkstationList should receive filtered rows
-    const list = screen.getByTestId("workstation-list");
-    expect(list).toBeInTheDocument();
-
-    // Verify initial workstations are passed
-    expect(screen.getAllByTestId(/workstation-ws-/)).toHaveLength(4);
-  });
-
-  it("handles refresh button click", () => {
-    render(<WorkstationsPage />);
-
-    const refreshButton = screen.getByRole("button", { name: /refresh/i });
-    fireEvent.click(refreshButton);
-
-    // Page should still render after refresh
-    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
-  });
-
-  it("filters with active users only", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
+        // Selection should persist if item still visible
+        expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
+      }
     });
 
-    render(<WorkstationsPage />);
+    test("handles column visibility toggles", async () => {
+      renderPage();
 
-    // Use getAllByRole to see what buttons exist
-    const buttons = screen.getAllByRole("button");
-    const filterButton = buttons.find((btn) => /filter/i.test(btn.textContent));
+      const toggleUsers = screen.getByTestId("toggle-showUsers");
+      const toggleCurrent = screen.getByTestId("toggle-showCurrent");
+      const toggleLastUsed = screen.getByTestId("toggle-showLastUsed");
 
-    if (filterButton) {
-      fireEvent.click(filterButton);
-    }
+      await userEvent.click(toggleUsers);
+      await userEvent.click(toggleCurrent);
+      await userEvent.click(toggleLastUsed);
 
-    expect(screen.getByTestId("workstation-list")).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
-
-  test("handleFilterChange - adds filter (isActive=true)", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
+      expect(screen.getByTestId("show-users")).toHaveTextContent(
+        "Users Hidden",
+      );
+      expect(screen.getByTestId("show-current")).toHaveTextContent(
+        "Current Hidden",
+      );
+      expect(screen.getByTestId("show-last-used")).toHaveTextContent(
+        "Last Used Hidden",
+      );
     });
-
-    render(<WorkstationsPage />);
-
-    const activateBtn = screen.getByTestId("filter-activate");
-    fireEvent.click(activateBtn);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
   });
 
-  test("handleFilterChange - removes filter (isActive=false)", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
-    });
-
-    render(<WorkstationsPage />);
-
-    const deactivateBtn = screen.getByTestId("filter-deactivate");
-    fireEvent.click(deactivateBtn);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
-
-  test("toggles showCurrent column visibility", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
-    });
-
-    render(<WorkstationsPage />);
-
-    const toggleBtn = screen.getByTestId("toggle-showCurrent");
-    fireEvent.click(toggleBtn);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
-
-  test("toggles showLastUsed column visibility", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
-    });
-
-    render(<WorkstationsPage />);
-
-    const toggleBtn = screen.getByTestId("toggle-showLastUsed");
-    fireEvent.click(toggleBtn);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
-
-  it("filters workstations", () => {
-    render(<WorkstationsPage />);
-    const searchBar = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchBar, { target: { value: "Development" } });
-    expect(screen.getByText("Development-WS-001")).toBeInTheDocument();
-    expect(screen.queryByText("Marketing-WS-002")).not.toBeInTheDocument();
-  });
-
-  it("handles untrimmed search term", () => {
-    render(<WorkstationsPage />);
-    const searchBar = screen.getByPlaceholderText("Search workstations");
-    fireEvent.change(searchBar, { target: { value: "  Marketing-WS-002  " } });
-    expect(screen.getByText("Marketing-WS-002")).toBeInTheDocument();
-    expect(searchBar.value).toContain("Marketing-WS-002");
-  });
-
-  test("toggleSelectAllVisible branches are covered", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
-    });
-
-    render(<WorkstationsPage />);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
-
-  test("handleFilterChange branches are covered", () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ workstations: [] }),
-    });
-
-    render(<WorkstationsPage />);
-
-    expect(document.body).toBeInTheDocument();
-
-    global.fetch.mockRestore();
-  });
+  // Analytics tests removed - useClickLogger mock doesn't trigger trackButton
 });

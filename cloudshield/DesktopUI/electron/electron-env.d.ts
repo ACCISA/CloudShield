@@ -32,6 +32,7 @@ interface ElectronAPI {
   showOpenDialog: (
     options: import("electron").OpenDialogOptions,
   ) => Promise<import("electron").OpenDialogReturnValue>;
+  killProcess: (pid: number) => Promise<{ success: boolean; message: string }>;
 }
 
 interface AuthStoreAPI {

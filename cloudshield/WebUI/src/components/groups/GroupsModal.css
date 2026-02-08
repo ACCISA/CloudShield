@@ -499,6 +499,11 @@
   flex-shrink: 0;
 }
 
+.groups-modal-actions-left {
+  display: flex;
+  gap: 12px;
+}
+
 .groups-modal-actions-right {
   display: flex;
   gap: 12px;
@@ -561,6 +566,16 @@
 
 .groups-modal-btn-cancel:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.groups-modal-btn-delete {
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+.groups-modal-btn-delete:hover:not(:disabled) {
+  background-color: rgba(220, 38, 38, 0.2);
 }
 
 /* Scrollbar */

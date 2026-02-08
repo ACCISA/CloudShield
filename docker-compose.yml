@@ -17,8 +17,9 @@ services:
       USERNAME: "bill"
       PASSWORD: "gates"
       VERSION: "11"
+      KVM: "N"
     devices:
-      - /dev/kvm
+      # - /dev/kvm
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
@@ -31,8 +32,8 @@ services:
         source: ${WORKSTATIONS_MOUNT_DIR}
         target: /storage
       #- workstation_data:/storage
-      - /home/cena/CloudShield/win11x64.iso:/boot.iso
-      - ./docker/workstation/oem:/oem
+      - ${WORKSTATIONS_MOUNT_DIR}/Desktop/CloudShield/win11x64.iso
+      - ${WORKSTATIONS_MOUNT_DIR}/docker/workstation/oem:/oem
     restart: always
     stop_grace_period: 2m
     networks:

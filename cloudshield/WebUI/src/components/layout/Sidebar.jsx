@@ -124,42 +124,6 @@ function NavItem({
                 />
               )}
             </Box>
-
-            {/* expand/collapse chevron */}
-            {onToggleExpand && (
-              <Box
-                role="button"
-                tabIndex={0}
-                aria-label={expanded ? "Collapse section" : "Expand section"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExpand();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onToggleExpand();
-                  }
-                }}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  lineHeight: 0,
-                  cursor: "pointer",
-                }}
-              >
-                {expanded ? (
-                  <KeyboardArrowUpIcon
-                    sx={{ opacity: 0.85, fontSize: "1rem" }}
-                  />
-                ) : (
-                  <KeyboardArrowDownIcon
-                    sx={{ opacity: 0.85, fontSize: "1rem" }}
-                  />
-                )}
-              </Box>
-            )}
           </>
         )}
 
@@ -242,10 +206,11 @@ export default function Sidebar({
     files: false,
   });
 
-  // colors for the little count pills
-  const workstationPill = "#3a3a2a";
-  const usersPill = "#2f3822";
-  const groupsPill = "#1e2438";
+  // colors for the little count pills (matching dashboard StatCard gradients)
+  const usersPill = "#6a4fcf";
+  const workstationPill = "#c94b4b";
+  const groupsPill = "#2656d8";
+  const sharesPill = "#c57a1c";
 
   const showNav = mode === "full";
   const showBottom = mode === "full";
@@ -385,23 +350,6 @@ export default function Sidebar({
                   admin@company.com
                 </Typography>
               </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  lineHeight: 1,
-                  color: "#fff",
-                  ml: 1,
-                  mt: "2px",
-                }}
-              >
-                <KeyboardArrowUpIcon sx={{ fontSize: "1rem", lineHeight: 1 }} />
-                <KeyboardArrowDownIcon
-                  sx={{ fontSize: "1rem", lineHeight: 1, mt: "-6px" }}
-                />
-              </Box>
             </Box>
           </Box>
         )}
@@ -483,6 +431,8 @@ export default function Sidebar({
             label="Shares"
             to="/files"
             active={isActive("/files")}
+            count={collapsed ? undefined : 33}
+            countColor={sharesPill}
             expanded={open.files}
             onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
             onNavigate={() => navigate("/files")}
