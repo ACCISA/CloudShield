@@ -121,8 +121,13 @@ export default function WorkstationsPage() {
       return;
     }
     //TODO: Get creds from Domain Controller
-    const rdpUsername = "demo";
-    const rdpPassword = "demo";
+    const rdpUsername = import.meta.env.VITE_RDP_USERNAME ?? "";
+    const rdpPassword = import.meta.env.VITE_RDP_PASSWORD ?? "";
+
+    if (!rdpUsername || !rdpPassword) {
+      setRdpStatus("Error: Missing RDP credentials");
+      return;
+    }
 
     try {
       setRdpStatus("Launching RDP client...");
