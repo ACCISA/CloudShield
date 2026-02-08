@@ -52,7 +52,15 @@ export default function AuthPage({ onLoginSuccess }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = {};
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          data = {};
+        }
+      }
 
       if (!response.ok) {
         // Handle 401 or 500 errors from auth.py
@@ -65,7 +73,7 @@ export default function AuthPage({ onLoginSuccess }) {
       }
 
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
