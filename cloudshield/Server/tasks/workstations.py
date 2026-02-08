@@ -2,7 +2,7 @@ from rq import get_current_job
 
 from provisioner import provision_default_workstation, provision_custom_workstation, provision_workstation_vm
 from utils import get_logger, update_job, db
-from repos import insert_workstation_template, insert_workstation, update_workstation, get_workstation, get_workstation_template
+from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation, get_workstation_template 
 from models import WorkstationStatus
 
 
@@ -52,6 +52,8 @@ def ws_create_default(org_id, name, description, software, access_groups):
 
     logger.info("Successfully created workstation template")
 
+    return {"result":{"template_id":template_id}}
+
   
 def ws_start(org_id, template_id):
 
@@ -98,6 +100,7 @@ def ws_start(org_id, template_id):
 
     update_workstation(
             db=db,
+            workstation_id=vm_id,
             mac=data["mac"],
             ipv4_address=data["ipv4_address"],
             status=WorkstationStatus.ACTIVE

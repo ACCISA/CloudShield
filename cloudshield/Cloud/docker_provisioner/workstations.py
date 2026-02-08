@@ -3,6 +3,8 @@ import socket
 import time
 import shutil
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from python_on_whales import DockerClient
 from pathlib import Path
@@ -24,19 +26,42 @@ def assign_mac(vm_path):
     f.close()
     return mac
 
-def copy_image(org_id, template_id, vm_path, job = None, updater = None):
+def copy_with_status(src, dst):
+
+    shutil.copy2(src, dst)
+
+    return True
+
+
+def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger = None):
 
     template_path = template_vm_path / org_id / template_id
+
+    files = [
+        (str(template_path / 'data.img'), str(vm_path / 'data.img')),
+        (str(template_path / 'windows.base'), str(vm_path / 'data.img')),
+        (str(template_path / 'windows.mac'), str(vm_path / 'windows.mac')),
+        (str(template_path / 'windows.vars'), str(vm_path / 'windows.vars')),
+        (str(template_path / 'windows.ver'), str(vm_path / 'windows.ver')),
+        (str(template_path / 'windows.rom'), str(vm_path / 'windows.rom')),
+    ]
+
+    n = len(files)
+
 
     if not template_vm_path.exists():
         updater(job, "failed to retrieve image")
         return
 
-    shutil.copytree(str(template_path), 
-                    str(vm_path), 
-                    dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns('*.iso'))
- 
+    with ThreadPoolExecutor(max_workers=n) as executor:
+
+        futures = [executor.submit(copy_with_status, src, dst) for src, dst in files]
+    
+        for future in futures:
+            try:
+                logger.info(future.result())
+            except Exception as e:
+                logger.info(f"A copy task failed: {e}")
 
 def wait_for_rdp(ip_address, port=3389, timeout_minutes=30, check_interval=30,logger=None):
     """
@@ -109,7 +134,7 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
 
     logger.info(f"Copying template to vm (template_id={template_id}, vm_id={vm_id})")
 
-    copy_image(org_id, template_id, vm_path, job=job, updater=updater)
+    copy_image(org_id, template_id, vm_path, job=job, updater=updater, logger=logger)
     assigned_mac = assign_mac(vm_path)
 
     updater(job, "starting workstation vm")
@@ -119,6 +144,7 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
     container_ws = docker.compose.run(
             service="workstation",
             command=["skip"],
+            publish=[(8006, 8006)],
             volumes=[(str(host_vm_storage_path), "/storage", "rw")],
             detach=True,
             tty=False

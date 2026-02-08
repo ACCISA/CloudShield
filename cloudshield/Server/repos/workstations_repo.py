@@ -22,17 +22,27 @@ def insert_workstation_template(*, db, org_id: str, name: str, description: str,
 
 def get_workstation_template(*, db, org_id: str, template_id: str):
     ws_db = db.workstation_templates
-    result = ws_db.find_one({"_id": ObjectId(template_id)})
-    if not result:
+    try:
+        result = ws_db.find_one({
+            "_id": ObjectId(template_id),
+            "org_id":org_id})
+        if not result:
+            return None
+        return result
+    except Exception as e:
         return None
-    return result
 
 def get_workstation(*, db, org_id: str, vm_id: str):
     ws_db = db.workstations
-    result = ws_db.find_one({"_id": ObjectId(vm_id)})
-    if not result:
+    try:
+        result = ws_db.find_one({
+            "_id": ObjectId(vm_id),
+            "org_id":org_id})
+        if not result:
+            return None
+        return result
+    except Exception as e:
         return None
-    return result
 
 def insert_workstation(*, db, org_id: str, template_id: str):
     """
