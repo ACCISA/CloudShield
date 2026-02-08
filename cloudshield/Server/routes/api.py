@@ -729,3 +729,41 @@ def get_my_organization():
             "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
         }
     }), 200
+
+@api_bp.route("/organizations/me/stats", methods=["GET"])
+@require_auth
+def get_my_organization_stats():
+    """
+    Get counts of core resources for the current user's organization.
+
+    Endpoint:
+        GET /api/organizations/me/stats
+
+    Returns:
+        {
+            "stats": {
+                "users": int,
+                "workstations": int,
+                "access_groups": int,
+                "shares": int
+            }
+        }
+    """
+    org_id = (g.user or {}).get("org_id")
+    if not org_id:
+        return jsonify({"error": "org_id missing from token"}), 401
+
+    # Collections for counting documents related to the organization
+    users_col = db_admin["users"]
+    workstations_col = db_admin["workstations"]
+    access_groups_col = db_admin["access_groups"]
+    shares_col = db_admin["shares"]
+
+    stats = {
+        "users": users_col.count_documents({"org_id": org_id}),
+        "workstations": workstations_col.count_documents({"org_id": org_id}),
+        "access_groups": access_groups_col.count_documents({"org_id": org_id}),
+        "shares": shares_col.count_documents({"org_id": org_id}),
+    }
+
+    return jsonify({"stats": stats}), 200
