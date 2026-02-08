@@ -2,7 +2,6 @@ import functools
 import os
 from flask import request, jsonify, g
 from .jwt_utils import verify_token
-from bson import ObjectId
 
 DEV_BYPASS_TOKEN = os.getenv("CLOUDSHIELD_DEV_TOKEN")
 DEV_BYPASS_USER = {
