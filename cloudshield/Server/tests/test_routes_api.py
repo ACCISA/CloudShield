@@ -624,3 +624,49 @@ def test_provision_already_completed(mock_orgs, mock_env, client):
     
     assert resp.status_code == 400
     assert "already provisioned" in resp.get_json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/vpn/config tests
+# ---------------------------------------------------------------------------
+
+
+def test_vpn_config_missing_params(client):
+    """Returns 400 when org_id or username is missing."""
+    resp = client.get("/api/vpn/config")
+    assert resp.status_code == 400
+
+    resp = client.get("/api/vpn/config?org_id=acme")
+    assert resp.status_code == 400
+
+    resp = client.get("/api/vpn/config?username=alice")
+    assert resp.status_code == 400
+
+
+@patch("cloudshield.Server.routes.api.get_vpn_config")
+def test_vpn_config_not_found(mock_get, client):
+    """Returns 404 when no config exists for the org/user pair."""
+    mock_get.return_value = None
+
+    resp = client.get("/api/vpn/config?org_id=acme&username=nobody")
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.get_vpn_config")
+def test_vpn_config_success(mock_get, client):
+    """Returns 200 with base64-encoded VPN config."""
+    mock_get.return_value = {
+        "filename": "alice.ovpn",
+        "content_b64": "Y2xpZW50CmRldiB0dW4K",
+        "created_at": "2026-01-01T00:00:00",
+        "updated_at": "2026-01-01T00:00:00",
+    }
+
+    resp = client.get("/api/vpn/config?org_id=acme&username=alice")
+    assert resp.status_code == 200
+
+    data = resp.get_json()
+    assert data["filename"] == "alice.ovpn"
+    assert data["content_b64"] == "Y2xpZW50CmRldiB0dW4K"
+

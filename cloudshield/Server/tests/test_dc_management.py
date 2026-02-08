@@ -1531,3 +1531,108 @@ def test_dc_remove_user(monkeypatch):
 
     assert result["status"] == "FAILED"
     assert result["message"] == "Failed to proxy rpc request"
+
+
+# ---------------------------------------------------------------------------
+# create_vpn_config_for_user tests
+# ---------------------------------------------------------------------------
+
+
+def test_create_vpn_config_no_openvpn_node():
+    """Returns FAILED when OPENVPN node is missing from inventory."""
+    from tasks.dc_management import create_vpn_config_for_user
+
+    logger = unittest.mock.MagicMock()
+    result = create_vpn_config_for_user("org1", "alice", {}, logger)
+
+    assert result["status"] == "FAILED"
+    assert "No OPENVPN node" in result["message"]
+    logger.error.assert_called_once()
+
+
+def test_create_vpn_config_success(monkeypatch):
+    """Happy path: gRPC returns SUCCESS and config is stored."""
+    from tasks.dc_management import create_vpn_config_for_user
+
+    # Mock gRPC channel + stub
+    mock_channel = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_grpc_channel", lambda host: mock_channel)
+
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status = vpn_service_pb2.SUCCESS
+    mock_response.filename = "alice.ovpn"
+    mock_response.content = b"ovpn-content"
+
+    mock_stub = unittest.mock.MagicMock()
+    mock_stub.CreateVPNClient.return_value = mock_response
+    monkeypatch.setattr(
+        "tasks.dc_management.vpn_pb2_grpc.VPNServiceStub",
+        lambda ch: mock_stub,
+    )
+
+    mock_store = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.store_vpn_config", mock_store)
+
+    openvpn_node = unittest.mock.MagicMock()
+    openvpn_node.get_host.return_value = "172.23.0.12:50055"
+    nodes = {"OPENVPN": openvpn_node}
+    logger = unittest.mock.MagicMock()
+
+    result = create_vpn_config_for_user("org1", "alice", nodes, logger)
+
+    assert result["status"] == "SUCCESS"
+    mock_store.assert_called_once_with(
+        org_id="org1",
+        username="alice",
+        filename="alice.ovpn",
+        content=b"ovpn-content",
+    )
+
+
+def test_create_vpn_config_grpc_non_success(monkeypatch):
+    """Returns FAILED when gRPC returns a non-SUCCESS status."""
+    from tasks.dc_management import create_vpn_config_for_user
+
+    mock_channel = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_grpc_channel", lambda host: mock_channel)
+
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status = vpn_service_pb2.FAILED
+
+    mock_stub = unittest.mock.MagicMock()
+    mock_stub.CreateVPNClient.return_value = mock_response
+    monkeypatch.setattr(
+        "tasks.dc_management.vpn_pb2_grpc.VPNServiceStub",
+        lambda ch: mock_stub,
+    )
+
+    openvpn_node = unittest.mock.MagicMock()
+    openvpn_node.get_host.return_value = "172.23.0.12:50055"
+    nodes = {"OPENVPN": openvpn_node}
+    logger = unittest.mock.MagicMock()
+
+    result = create_vpn_config_for_user("org1", "alice", nodes, logger)
+
+    assert result["status"] == "FAILED"
+    assert "non-success" in result["message"]
+
+
+def test_create_vpn_config_grpc_exception(monkeypatch):
+    """Returns FAILED when gRPC call raises an exception."""
+    from tasks.dc_management import create_vpn_config_for_user
+
+    monkeypatch.setattr(
+        "tasks.dc_management.get_grpc_channel",
+        unittest.mock.MagicMock(side_effect=Exception("connection refused")),
+    )
+
+    openvpn_node = unittest.mock.MagicMock()
+    openvpn_node.get_host.return_value = "172.23.0.12:50055"
+    nodes = {"OPENVPN": openvpn_node}
+    logger = unittest.mock.MagicMock()
+
+    result = create_vpn_config_for_user("org1", "alice", nodes, logger)
+
+    assert result["status"] == "FAILED"
+    assert "connection refused" in result["message"]
+
