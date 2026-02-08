@@ -26,7 +26,7 @@ from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
 from provisioner import provision_network_terraform, get_target_dir, destroy_infra, provision_workstation
-
+from cloudshield.Cloud.docker_provisioner.provision import provision_network_docker
 
 """
 Add the Cloud/terraform directory to the path to import main and destroy_infra
@@ -195,6 +195,70 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
     # Begin provisioning
     try:
+        # --- START DOCKER INTERCEPTION ---
+        if os.environ.get("DEPLOYMENT_MODE", "docker") == "docker":
+            set_progress("provisioning docker infrastructure")
+            logger.info("Engaging Docker Provisioner for org %s", org_id)
+
+            org_data_payload = {
+                "org_id": org_id,
+                "domain_name": "cloudshield.local",
+                "realm_name": "CLOUDSHIELD.LOCAL",
+                "dc_admin_password": "Password123!"
+            }
+
+            metadata = provision_network_docker(
+                org_data=org_data_payload,
+                region=region,
+                templates_dir=templates_dir,
+                generated_dir=generated_dir,
+                count=workstation_count,
+                server_logger=logger
+            )
+            
+            assets = []
+            if metadata:
+                for item in metadata:
+                    cpu_val = 1
+                    try:
+                        cpu_raw = item.get("cpu", "1")
+                        cpu_val = int(float(cpu_raw)) 
+                        if cpu_val < 1: cpu_val = 1
+                    except: cpu_val = 1
+
+                    assets.append({
+                        "resource_id": item.get("instance_id"),
+                        "instance_id": item.get("instance_id"),
+                        "name": item.get("name"),
+                        "private_ip": item.get("private_ip"),
+                        "public_ip": item.get("public_ip", ""),
+                        "type": "container",
+                        "status": "running",
+                        "org_id": org_id,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "vpc_id": item.get("vpc_id", f"{org_id}-net"),
+                        "subnet_id": item.get("subnet_id", "docker-subnet"),
+                        "ami_id": item.get("ami_id", "docker-image"),
+                        "os": item.get("os", "linux"),
+                        "cpu": cpu_val, 
+                        "ram_gb": str(item.get("ram_gb", "1")),
+                        "storage_size_gb": str(item.get("storage_size_gb", "10")),
+                        "ports": item.get("ports", []),
+                        "priv_key_path": item.get("ssh_key", "managed_by_docker"),
+                        "port": item.get("port", "0") 
+                    })
+
+            set_progress("saving inventory")
+            _update_org_provisioning_status(org_id, "completed", job_id, logger)
+            res = insert_inventory(db=db, org_id=org_id, assets=assets)
+            logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
+            logger.info("Provisioning complete for org %s", org_id)
+            
+            # EARLY RETURN: Skips all following Terraform code
+            return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
+        # --- END DOCKER INTERCEPTION ---
+
         set_progress("provisioning infrastructure")
         logger.info("Calling provision_network_terraform for org %s", org_id)
 
@@ -276,6 +340,24 @@ def destroy_environment(org_id: str, force: bool = False):
     generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "terraform" / "generated" / org_id
 
     try:
+        # --- START DOCKER INTERCEPTION ---
+        if os.environ.get("DEPLOYMENT_MODE", "docker") == "docker":
+            import python_on_whales
+            try:
+                docker = python_on_whales.DockerClient()
+                for c in docker.container.list(filters={"name": f"{org_id}-"}):
+                    logger.info("Stopping container %s", c.name)
+                    c.remove(force=True)
+                try: docker.network.remove(f"{org_id}-net")
+                except: pass
+            except: pass
+            
+            set_progress("completed destroy")
+            delete_inventory_by_org(db=db, org_id=org_id)
+            _update_org_provisioning_status(org_id, "destroyed", job_id, logger)
+            return {"message": "Destroy complete", "removed_dir": True}
+        # --- END DOCKER INTERCEPTION ---
+
         if not generated_dir.exists():
             logger.warning("Destroy requested but work dir not found: %s", generated_dir)
             set_progress("no run directory found")
