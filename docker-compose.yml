@@ -8,11 +8,13 @@ services:
       vpc_net: 
         ipv4_address: 172.23.0.5
 
+  # TEMPLATE: Workstation
   workstation:
+    profiles: ["templates"]
+    image: cs-workstation-template:latest
     build:
       context: docker/workstation
       dockerfile: Dockerfile.workstation_test
-    container_name: windows-workstation
     environment:
       USERNAME: "bill"
       PASSWORD: "gates"
@@ -23,20 +25,18 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - 8006:8006
-      - 3389:3389/tcp
-      - 3389:3389/udp
+      - 3389/tcp
+      - 3389/udp
     volumes:
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
       - type: bind
         source: ${WORKSTATIONS_MOUNT_DIR}
         target: /storage
-      #- workstation_data:/storage
       - /home/cena/CloudShield/win11x64.iso:/boot.iso
       - ./docker/workstation/oem:/oem
-    restart: always
+    restart: no
     stop_grace_period: 2m
-    networks:
-      vpc_net:
 
   api:
     build:
@@ -54,9 +54,16 @@ services:
     ports:
       - "5050:5050"
     volumes:
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
       - ./logs:/app/logs
+    networks:
+      - vpc_net
 
+  # TEMPLATE: OpenVPN
   openvpn-test:
+    profiles: ["templates"]
+    image: cs-openvpn-template:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.openvpn_test
@@ -77,14 +84,14 @@ services:
       - openvpn_protocol=${OPENVPN_PROTOCOL}
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
     volumes:
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    networks:
-      vpc_net:
-        ipv4_address: 172.23.0.12
 
-
-    
+  # TEMPLATE: Samba
   samba-test:
+    profiles: ["templates"]
+    image: cs-samba-template:latest
     build:
       context: .
       args:
@@ -93,7 +100,6 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    container_name: cs-samba-test
     privileged: true
     cgroup: host
     tty: true
@@ -108,6 +114,8 @@ services:
       - realm_name=${REALM_NAME}
       - realm_name_lwr=${REALM_NAME_LWR}
     volumes:
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     devices:
       - /dev/loop0:/dev/loop0
@@ -119,9 +127,6 @@ services:
       - /dev/loop6:/dev/loop6
       - /dev/loop7:/dev/loop7
       - /dev/loop-control:/dev/loop-control
-    networks:
-      vpc_net:
-        ipv4_address: 172.23.0.10
 
   api-test:
     build:
@@ -143,9 +148,11 @@ services:
       - redis
     ports:
       - "5050:5050"
-    networks: # for a dev env we will pretent that the API has access to the VPC somehow
+    networks: 
       - vpc_net
     volumes:
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -223,20 +230,22 @@ services:
 
   ui:
     build:
-      context: .                # path to your UI project (you were in WebUI %)
+      context: .
       dockerfile: docker/Dockerfile.ui
     container_name: cs-ui
     environment:
       - VITE_PORT=5173
-      - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
+      - CHOKIDAR_USEPOLLING=true
       - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.20
     ports:
-      - "5173:5173"                    # Vite dev server
+      - "5173:5173"
     volumes:
-      - ./cloudshield/WebUI:/app                   # live reload your source
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield:/app/cloudshield
+      - ./cloudshield/WebUI:/app
       - ui_node_modules:/app/node_modules
 
 networks:
