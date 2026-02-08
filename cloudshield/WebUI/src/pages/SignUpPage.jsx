@@ -171,13 +171,12 @@ export default function SignupPage({ onSignupSuccess }) {
     trackButton("signup/submit", { page: "signup", plan });
 
     try {
+      // 1. Create the User and Organization in MongoDB
       const createUserRes = await fetch(
         "http://localhost:5050/api/auth/signup",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email,
             password,
@@ -185,7 +184,7 @@ export default function SignupPage({ onSignupSuccess }) {
             company_name: company,
             package_type: plan,
           }),
-        },
+        }
       );
 
       let createUserData = {};
@@ -195,16 +194,29 @@ export default function SignupPage({ onSignupSuccess }) {
         console.error("Could not parse JSON response", err);
       }
 
-      const createUserErrors = extractServerErrors(
-        createUserRes,
-        createUserData,
-      );
+      const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
       }
 
-      // --- CRITICAL: SAVE SESSION DATA ---
+      // 2. TRIGGER DOCKER PROVISIONING
+      // This uses the new multi-tenant backend logic we just finished!
+      try {
+        await fetch("http://localhost:5050/api/task/provision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            org_id: createUserData.org_id, // Using the Org Object ID as requested
+            workstation_count: 1
+          }),
+        });
+        console.log("Provisioning task queued for:", createUserData.org_id);
+      } catch (provisionErr) {
+        console.error("Failed to trigger provisioning:", provisionErr);
+        // We don't block signup if provisioning fails, but we log it.
+      }
+
       const userData = {
         email: email,
         user_id: createUserData.user_id,
@@ -214,19 +226,16 @@ export default function SignupPage({ onSignupSuccess }) {
         job_id: createUserData.job_id,
       };
 
-      // Store in localStorage so the browser "remembers" the login
       localStorage.setItem("user", JSON.stringify(userData));
       if (createUserData.access_token) {
         localStorage.setItem("jwt", createUserData.access_token);
       }
 
-      // Update global state in App.jsx
       onSignupSuccess?.({
         access_token: createUserData.access_token || null,
         user: userData,
       });
 
-      // --- REDIRECT TO DASHBOARD ---
       console.log("Signup successful, navigating to dashboard...");
     } catch (err) {
       console.error("Signup error:", err);
