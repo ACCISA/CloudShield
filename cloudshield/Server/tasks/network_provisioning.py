@@ -223,8 +223,10 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                     try:
                         cpu_raw = item.get("cpu", "1")
                         cpu_val = int(float(cpu_raw)) 
-                        if cpu_val < 1: cpu_val = 1
-                    except: cpu_val = 1
+                        if cpu_val < 1:
+                            cpu_val = 1
+                    except Exception:
+                        cpu_val = 1
 
                     assets.append({
                         "resource_id": item.get("instance_id"),
@@ -348,9 +350,12 @@ def destroy_environment(org_id: str, force: bool = False):
                 for c in docker.container.list(filters={"name": f"{org_id}-"}):
                     logger.info("Stopping container %s", c.name)
                     c.remove(force=True)
-                try: docker.network.remove(f"{org_id}-net")
-                except: pass
-            except: pass
+                try:
+                    docker.network.remove(f"{org_id}-net")
+                except Exception:
+                    pass
+            except Exception:
+                    pass
             
             set_progress("completed destroy")
             delete_inventory_by_org(db=db, org_id=org_id)
