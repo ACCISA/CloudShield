@@ -13,6 +13,7 @@
  *   - endAdornment: optional adornment element
  */
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Box, Typography, OutlinedInput } from '@mui/material';
 
 /**
@@ -83,3 +84,21 @@ export default function AuthTextField({
     </Box>
   );
 }
+
+AuthTextField.propTypes = {
+  label: PropTypes.string.isRequired,
+  placeholder: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func.isRequired,
+  type: PropTypes.string,
+  endAdornment: PropTypes.node,
+  onKeyDown: PropTypes.func,
+};
+
+AuthTextField.defaultProps = {
+  placeholder: '',
+  value: '',
+  type: 'text',
+  endAdornment: null,
+  onKeyDown: undefined,
+};
