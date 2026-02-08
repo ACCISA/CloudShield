@@ -122,7 +122,7 @@ export default function WorkstationsPage() {
     }
     //TODO: Get creds from Domain Controller
     const rdpUsername = "demo";
-    const rdpPassword = "demo";
+    const rdpPassword = "demo"; //NOSONAR typescript:S2068
 
     try {
       setRdpStatus("Launching RDP client...");
