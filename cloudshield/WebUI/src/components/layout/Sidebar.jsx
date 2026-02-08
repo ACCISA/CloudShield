@@ -283,7 +283,7 @@ export default function Sidebar({
         setStatsLoading(true);
 
         // Call stats endpoint for counts to show in pills
-        const data = await apiGet("/organizations/me/stats"); // expects { stats: { users, workstations, access_groups, shares } }
+        const data = await apiGet("/organizations/me/metrics"); // expects { stats: { users, workstations, access_groups, shares } }
         if (!cancelled) setStats(data.stats);
       } catch (e) {
         if (!cancelled) {

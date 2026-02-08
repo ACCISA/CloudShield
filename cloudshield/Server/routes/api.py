@@ -730,14 +730,14 @@ def get_my_organization():
         }
     }), 200
 
-@api_bp.route("/organizations/me/stats", methods=["GET"])
+@api_bp.route("/organizations/me/metrics", methods=["GET"])
 @require_auth
-def get_my_organization_stats():
+def get_my_organization_metrics():
     """
     Get counts of core resources for the current user's organization.
 
     Endpoint:
-        GET /api/organizations/me/stats
+        GET /api/organizations/me/metrics
 
     Returns:
         {

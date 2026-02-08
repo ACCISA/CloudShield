@@ -103,7 +103,7 @@ const [statsLoading, setStatsLoading] = useState(true);
     async function loadStats() {
       try {
         setStatsLoading(true);
-        const res = await apiGet("/organizations/me/stats"); // { stats: {...} }
+        const res = await apiGet("/organizations/me/metrics"); // { stats: {...} }
 
         if (!mounted) return;
 

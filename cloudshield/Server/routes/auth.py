@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify
 from flask_cors import CORS  # <--- 1. Add this import
 from pydantic import ValidationError
 from bson import ObjectId # <-- Added to convert string ID for DB queries
