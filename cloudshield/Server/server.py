@@ -67,6 +67,7 @@ def create_app() -> Flask:
          resources={r"/api/*": {"origins": "http://localhost:5173"}},
          supports_credentials=True)
     
+    
     # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
     # Register Tasks API -> /api/task/...
     app.register_blueprint(api_bp, url_prefix="/api")

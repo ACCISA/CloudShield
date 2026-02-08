@@ -7,12 +7,12 @@ from typing import Iterable, List
 from pymongo.errors import PyMongoError
 
 from models.shares import FileShareCreate, create_fileshare_doc
-from utils import shares
+from utils import shares, get_logger
 
 
 DRIVE_LETTERS = [chr(c) for c in range(ord("A"), ord("Z") + 1)]
 RESERVED_DRIVES = {"C"}
-
+logger = get_logger("service")
 
 def _normalize_drive_letter(value: str) -> str:
     """
@@ -110,6 +110,7 @@ def create_share(
         ValueError: If no drive letters available or MongoDB insertion fails
         PyMongoError: If database operation fails (wrapped in ValueError)
     """
+    logger.info("Attempting to create file share for org_id=%s, name=%s", org_id, name)
     drive = allocate_drive_letter(org_id)
     share_model = FileShareCreate(
         org_id=org_id,
@@ -123,9 +124,11 @@ def create_share(
         current_size=current_size or 0,
         max_size=max_size,
     )
+    logger.info("Validated file share model: %s", share_model)
     share_doc = create_fileshare_doc(share_model)
     try:
         res = shares.insert_one(share_doc)
+        logger.info("Created file share with id=%s, drive=%s for org_id=%s", res.inserted_id, drive, org_id)
     except PyMongoError as exc:
         raise ValueError(f"Failed to create file share: {exc}") from exc
     share_doc["id"] = str(res.inserted_id)
