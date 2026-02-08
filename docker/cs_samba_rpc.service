@@ -1,6 +1,7 @@
 [Unit]
 Description=CloudShield RPC server for remote node management
-After=network.target
+After=network.target samba-provision.service samba-ad-dc.service
+Requires=samba-provision.service
 
 [Service]
 ExecStart=/usr/local/bin/cs-rpcsrv -samba

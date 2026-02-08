@@ -15,6 +15,7 @@ from services import (
     list_shares,
     list_groups_with_shares,
     update_share,
+    get_vpn_config,
 )
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
@@ -669,6 +670,30 @@ def job_status(job_id: str):
     """
     status_payload, code = get_job_status(job_id)
     return jsonify(status_payload), code
+
+
+@api_bp.route("/vpn/config", methods=["GET"])
+def vpn_config():
+    """
+    Retrieve a user's VPN configuration file.
+
+    Endpoint:
+        GET /api/vpn/config?org_id=<org_id>&username=<username>
+
+    Behaviour:
+        - Looks up the stored .ovpn config for the given org/user pair.
+        - Returns JSON with base64-encoded file content and filename, or 404.
+    """
+    org_id = request.args.get("org_id")
+    username = request.args.get("username")
+    if not org_id or not username:
+        return jsonify({"error": "org_id and username are required"}), 400
+
+    result = get_vpn_config(org_id, username)
+    if result is None:
+        return jsonify({"error": "VPN config not found"}), 404
+
+    return jsonify(result), 200
 
 
 @api_bp.route("/health", methods=["GET"])

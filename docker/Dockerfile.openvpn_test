@@ -10,6 +10,7 @@ RUN apt-get update \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2\
     iproute2 \
+    libgrpc++1.51t64 libgrpc29t64 \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean

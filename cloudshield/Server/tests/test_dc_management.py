@@ -205,9 +205,16 @@ def test_dc_add_user_persists_on_success(monkeypatch):
         "tasks.dc_management.persist_domain_user",
         mock_persist
     )
+
+    # Mock create_vpn_config_for_user (called on success path)
+    mock_vpn = unittest.mock.MagicMock(return_value={"status": "SUCCESS", "filename": "testuser.ovpn"})
+    monkeypatch.setattr(
+        "tasks.dc_management.create_vpn_config_for_user",
+        mock_vpn
+    )
     
     # Execute
-    dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
+    result = dc_add_user("test_org", "testuser", "Password123!","test@mail.com")
 
     # Assert persist_domain_user was called with correct args
     mock_persist.assert_called_once()
@@ -217,6 +224,11 @@ def test_dc_add_user_persists_on_success(monkeypatch):
     assert called_args[0][1]== "testuser"
     assert called_args[0][2] == "Password123!"
     assert "@mail.com" in called_args[0][3]
+
+    # Assert VPN config was created
+    mock_vpn.assert_called_once()
+    assert result["status"] == "SUCCESS"
+    assert result["vpn_config"]["status"] == "SUCCESS"
 
 
 def test_dc_add_user_does_not_persist_on_failure(monkeypatch):
