@@ -1,16 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import WorkstationsPage from "../WorkstationsPage";
-
+import {
+  mockWorkstationTemplates,
+  mockWorkstations,
+} from "../../../mocks/WorkstationsMock";
 const getWorkstationTemplatesMock = vi.hoisted(() => vi.fn());
+const getWorkstationsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/WorkstationService", () => ({
-  default: { getWorkstationTemplates: getWorkstationTemplatesMock },
+  default: {
+    getWorkstationTemplates: getWorkstationTemplatesMock,
+    getWorkstations: getWorkstationsMock,
+  },
 }));
 
 describe("WorkstationsPage", () => {
   const loadAuthMock = vi.fn<AuthStoreAPI["loadAuth"]>();
   const clearAuthMock = vi.fn<AuthStoreAPI["clearAuth"]>();
+  const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
+  const runOpenVPNMock = vi.fn<ElectronAPI["runOpenVPN"]>();
+  const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
+  const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
   beforeEach(() => {
     window.authStore = {
       saveAuth: vi.fn(),
@@ -18,6 +29,12 @@ describe("WorkstationsPage", () => {
       clearAuth: clearAuthMock,
     };
     localStorage.clear();
+    global.window.electronAPI = {
+      runXfreerdp: runXfreerdpMock,
+      runOpenVPN: runOpenVPNMock,
+      showOpenDialog: showOpenDialogMock,
+      killProcess: killProcessMock,
+    };
   });
 
   afterEach(() => {
@@ -64,7 +81,7 @@ describe("WorkstationsPage", () => {
     expect(await screen.findByText(/session expired/i)).toBeTruthy();
   });
 
-  it("renders workstation rows from the API", async () => {
+  it("renders workstation template rows from the API", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       tokenType: "Bearer",
@@ -139,7 +156,7 @@ describe("WorkstationsPage", () => {
     await screen.findByText(/no assigned workstation templates/i);
   });
 
-  it("filters workstations by search query", async () => {
+  it("filters workstation templates by search query", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       tokenType: "Bearer",
@@ -219,6 +236,29 @@ describe("WorkstationsPage", () => {
     expect(dispatchSpy).toHaveBeenCalled();
 
     dispatchSpy.mockRestore();
+  });
+
+  it("handles RDP launch", async () => {
+    runXfreerdpMock.mockResolvedValueOnce({
+      success: true,
+      pid: 12345,
+      message: "xfreerdp3 launched",
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
+    getWorkstationsMock.mockResolvedValueOnce(mockWorkstations);
+    render(<WorkstationsPage />);
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByText("Use")[0]);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Connected to workstation/)).toBeTruthy();
+      expect(screen.getByText(/192.168.122.106/)).toBeTruthy();
+      expect(screen.getByText(/Launch RDP/)).toBeTruthy();
+    });
+    fireEvent.click(screen.getByText("Launch RDP"));
+    await waitFor(() => {
+      expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(screen.getByText("Connected! (PID: 12345)")).toBeTruthy();
+    });
   });
 
 });
