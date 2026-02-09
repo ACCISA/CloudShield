@@ -34,9 +34,14 @@ def get_recent_activity(org_id: str):
         page = 1
         limit = 20
 
-    if page < 1: page = 1
-    if limit < 1: limit = 20
-    if limit > 100: limit = 100  #cap max limit
+    if page < 1:
+        page = 1
+
+    if limit < 1:
+        limit = 20
+
+    if limit > 100:
+        limit = 100  # cap max limit
 
     skip = (page - 1) * limit
     filter_query = {"org_id": org_id}

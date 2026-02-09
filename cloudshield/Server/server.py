@@ -87,6 +87,9 @@ def create_app() -> Flask:
     app.register_blueprint(workstations_bp, url_prefix="/api")
     logger.debug("Registered workstations blueprint: %s", workstations_bp.name)
 
+    app.register_blueprint(activity_bp, url_prefix="/api")
+    logger.debug("Registered activity blueprint: %s", activity_bp.name)
+
     if audit_bp:
         app.register_blueprint(audit_bp, url_prefix="/api")
 
