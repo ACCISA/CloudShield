@@ -20,7 +20,7 @@ module.exports = {
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
-    "<rootDir>/jest\\.importMetaTransformer\\.cjs",
+    "<rootDir>/jest.importMetaTransformer.cjs",
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
