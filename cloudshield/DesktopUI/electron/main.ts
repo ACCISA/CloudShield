@@ -97,8 +97,19 @@ export const getBinPath = (exeName: string) => {
   );
 };
 
+ipcMain.handle("killProcess", async (_event, params: { pid: number }) => {
+  return new Promise((resolve, reject) => {
+    try {
+      process.kill(params.pid);
+      resolve({ success: true, message: `Process ${params.pid} killed.` });
+    } catch (err) {
+      reject(err);
+    }
+  });
+});
+
 ipcMain.handle(
-  "run-openvpn",
+  "runOpenVPNvpn",
   async (
     _event,
     params: { ovpnPath: string } = {
@@ -113,31 +124,24 @@ ipcMain.handle(
           );
         }
 
-        let command: string = "openvpn";
-
+        let command = "openvpn";
         if (process.platform === "win32") {
-          let winOVPN = await getWinOVPNPath();
-          if (winOVPN.success) {
-            command = winOVPN.path!;
-          } else {
+          const winOVPN = await getWinOVPNPath();
+          if (!winOVPN.success) {
             return reject(new Error(winOVPN.message));
           }
+          command = winOVPN.path!;
         }
+
         const child = spawn(command, [params.ovpnPath], {
           stdio: "inherit",
         }); //NOSONAR typescript:S4036
-        let output = "";
         let error = "";
 
         resolve({
           success: true,
           pid: child.pid,
           message: `OpenVPN launched with config ${params.ovpnPath}`,
-        });
-
-        child.stdout?.on("data", (data) => {
-          output += data.toString();
-          console.log(output);
         });
 
         child.stderr?.on("data", (data) => {
@@ -169,7 +173,7 @@ ipcMain.handle("show-open-dialog", async (_event, options) => {
 });
 
 ipcMain.handle(
-  "run-xfreerdp",
+  "runXfreerdp",
   async (
     _event,
     params: { username: string; password: string; ip: string },
@@ -177,17 +181,33 @@ ipcMain.handle(
     return new Promise((resolve, reject) => {
       try {
         const isWin = process.platform === "win32";
-        let exePath: string = "xfreerdp3";
+        const exePath: string = "xfreerdp3";
+        let settled = false;
 
         if (isWin) {
           // Fallback to Windows built-in RDP client
           const mstsc = "mstsc.exe";
           const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
-          return resolve({
-            success: true,
-            pid: child.pid,
-            message: "mstsc launched",
+          child.on("error", (err) => {
+            if (settled) return;
+            settled = true;
+            reject(err);
           });
+          child.on("close", (code) => {
+            if (settled) return;
+            settled = true;
+            if (code !== 0) {
+              return reject(
+                new Error(`mstsc exited with code ${code ?? "unknown"}`),
+              );
+            }
+            return resolve({
+              success: true,
+              pid: child.pid,
+              message: "mstsc launched",
+            });
+          });
+          return;
         }
 
         //NOSONAR typescript:S4036
@@ -198,13 +218,6 @@ ipcMain.handle(
           "/cert:tofu",
         ]);
         let error = "";
-
-        resolve({
-          success: true,
-          pid: child.pid,
-          message: "xfreerdp3 launched",
-        });
-
         child.stdout?.on("data", () => undefined);
 
         child.stderr?.on("data", (data) => {
@@ -213,14 +226,25 @@ ipcMain.handle(
         });
 
         child.on("close", (code) => {
+          if (settled) return;
+          settled = true;
           if (code !== 0) {
-            console.log(`[xfreerdp3] Process exited with code ${code}`);
             if (error) console.log("[xfreerdp3 error output]:", error);
+            return reject(
+              new Error(`xfreerdp3 exited with code ${code ?? "unknown"}`),
+            );
           }
+          return resolve({
+            success: true,
+            pid: child.pid,
+            message: "xfreerdp3 launched",
+          });
         });
 
         child.on("error", (err) => {
-          console.error("[xfreerdp3 spawn error]:", err);
+          if (settled) return;
+          settled = true;
+          reject(err);
         });
       } catch (err) {
         reject(err);
