@@ -14,6 +14,7 @@ import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityTable from "../components/dashboard/ActivityTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; 
 
+const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -29,43 +30,45 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);
 
-  useEffect(() => {
-    if (!user?.org_id) return;
+  const org_id = localStorage.getItem("org_id");
 
-    const checkStatus = async () => {
-      try {
-        const response = await fetch(`/api/organization/${user.org_id}`);
-        const data = await response.json();
+  // useEffect(() => {
+  //   if (!org_id) return;
 
-        setProvisioningStatus(data.provisioning_status || "completed");
+  //   const checkStatus = async () => {
+  //     try {
+  //       const response = await fetch(`/api/organization/${org_id}`);
+  //       const data = await response.json();
 
-        if (data.provisioning_status === "in_progress") {
-          setLoadingText("Provisioning cloud infrastructure. This may take a few minutes.");
-        }
-      } catch (error) {
-        console.error("Failed to fetch provisioning status", error);
-      }
-    };
+  //       setProvisioningStatus(data.provisioning_status || "completed");
 
-    checkStatus();
+  //       if (data.provisioning_status === "in_progress") {
+  //         setLoadingText("Provisioning cloud infrastructure. This may take a few minutes.");
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch provisioning status", error);
+  //     }
+  //   };
 
-    let intervalId;
-    if (provisioningStatus === "in_progress") {
-      intervalId = setInterval(checkStatus, 10000);
-    }
+  //   checkStatus();
 
-    return () => clearInterval(intervalId);
-  }, [user?.org_id, provisioningStatus]);
+  //   let intervalId;
+  //   if (provisioningStatus === "in_progress") {
+  //     intervalId = setInterval(checkStatus, 10000);
+  //   }
+
+  //   return () => clearInterval(intervalId);
+  // }, [user?.org_id, provisioningStatus]);
 
 
   const fetchActivities = useCallback(async () => {
-    if (!user?.org_id) return;
+    if (!org_id) return;
 
     setActivityLoading(true);
     try {
       const apiPage = page + 1;
       const response = await fetch(
-        `/api/activity/${user.org_id}?page=${apiPage}&limit=${rowsPerPage}`
+        `${API_BASE_URL}/api/activity/${org_id}?page=${apiPage}&limit=${rowsPerPage}`
       );
 
       if (response.ok) {
@@ -80,7 +83,7 @@ export default function DashboardPage() {
     } finally {
       setActivityLoading(false);
     }
-  }, [user?.org_id, page, rowsPerPage]);
+  }, [org_id, page, rowsPerPage]);
 
   useEffect(() => {
     fetchActivities();

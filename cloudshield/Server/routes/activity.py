@@ -1,6 +1,6 @@
 """Activity logging endpoints with pagination."""
 from flask import Blueprint, jsonify, request
-from cloudshield.Server.utils.database import audit
+from cloudshield.Server.utils.database import activity
 from cloudshield.Server.utils.logging_setup import get_logger
 
 activity_bp = Blueprint("activity", __name__)
@@ -41,9 +41,9 @@ def get_recent_activity(org_id: str):
     skip = (page - 1) * limit
     filter_query = {"org_id": org_id}
 
-    total_count = audit.count_documents(filter_query)
+    total_count = activity.count_documents(filter_query)
 
-    cursor = audit.find(filter_query)\
+    cursor = activity.find(filter_query)\
                   .sort("created_at", -1)\
                   .skip(skip)\
                   .limit(limit)

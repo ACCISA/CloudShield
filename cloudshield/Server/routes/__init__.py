@@ -45,7 +45,7 @@ def __getattr__(name: str) -> Any:
 		return _workstations_bp
 	
 	if name == "activity_bp":
-		from .activity import activity_bp as _activitys_bp
+		from .activity import activity_bp as _activity_bp
 
 		return _activity_bp
 

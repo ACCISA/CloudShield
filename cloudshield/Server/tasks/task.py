@@ -8,7 +8,7 @@ from genproto.vpn_service import vpn_service_pb2_grpc as vpn_pb2_grpc
 
 from utils import get_logger, get_inventory_from_org_id
 from models.activity import create_activity_log_doc
-from cloudshield.Server.utils.database import audit
+from cloudshield.Server.utils.database import activity
 
 
 logger = get_logger("tasks")
@@ -108,7 +108,7 @@ def proxy_rpc_request(nodes, method_name, request, actor="System"):
         response = stub.Relay(proxy_request)
         try: 
             log_doc = create_activity_log_doc(org_id=org_id, method_name=full_method_name, actor=actor)
-            audit.insert_one(log_doc)
+            activity.insert_one(log_doc)
             logger.info(f"Activity logged: {log_doc['description']}")
         except Exception as log_error:
             logger.error("Failed to log activity: " + str(log_error))
