@@ -1,7 +1,6 @@
 """Background email tasks for onboarding notifications."""
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone
 
 from bson import ObjectId

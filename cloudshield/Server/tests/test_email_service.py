@@ -1,5 +1,3 @@
-import pytest
-
 from cloudshield.Server.services.email_service import render_template
 
 
