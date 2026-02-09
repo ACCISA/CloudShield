@@ -85,6 +85,10 @@ export default function DashboardPage() {
     }
   }, [org_id, page, rowsPerPage]);
 
+  const handleRefreshActivities = () => {
+    fetchActivities();
+  };
+
   useEffect(() => {
     fetchActivities();
   }, [fetchActivities]);
@@ -218,6 +222,7 @@ export default function DashboardPage() {
         totalCount={totalActivities}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
+        onRefresh={handleRefreshActivities}
       />
     </Box>
   );

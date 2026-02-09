@@ -22,6 +22,7 @@ export default function ActivityTable({
   totalCount,
   onPageChange,
   onRowsPerPageChange,
+  onRefresh,
 }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
@@ -102,8 +103,17 @@ export default function ActivityTable({
         <Typography fontWeight={600}>Recent activity</Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton size="small">
-            <RefreshIcon sx={{ color: "#aaa" }} />
+          <IconButton
+            size="small"
+            onClick={onRefresh}
+            disabled={loading}
+          >
+            <RefreshIcon
+              sx={{
+                color: loading ? "#555" : "#aaa",
+                animation: loading ? "spin 1s linear infinite" : "none",
+              }}
+            />
           </IconButton>
 
           <Box
