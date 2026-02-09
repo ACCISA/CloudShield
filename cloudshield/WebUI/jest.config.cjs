@@ -7,8 +7,11 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
-    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.cjs' }],
+    '^.+\\.(js|jsx)$': '<rootDir>/jest.importMetaTransformer.cjs',
   },
+  transformIgnorePatterns: [
+    '/node_modules/',
+  ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx}',
     '!src/main.jsx',
