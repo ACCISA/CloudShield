@@ -1,6 +1,24 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import DashboardPage from "../DashboardPage";
+
+const renderDashboard = () =>
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>
+  );
+
+jest.mock("react-router-dom", () => {
+  const actual = jest.requireActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => jest.fn(),
+  };
+});
+
+jest.mock("../../api/useOrgMetrics.js", () => ({
+  useOrgMetrics: jest.fn(),
+}));
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
@@ -32,6 +50,10 @@ jest.mock("../../components/dashboard/StatCard.jsx", () => {
 
 import { useAuth } from "../../context/AuthContext.jsx";
 import { trackButton } from "../../lib/analytics";
+import DashboardPage from "../DashboardPage";
+import { MemoryRouter } from "react-router-dom";
+import { useOrgMetrics } from "../../api/useOrgMetrics.js";
+
 
 describe("DashboardPage", () => {
   let mockFetch;
@@ -41,7 +63,18 @@ describe("DashboardPage", () => {
     mockFetch = jest.fn();
     global.fetch = mockFetch;
     jest.spyOn(console, "error").mockImplementation(() => {});
+
+    useOrgMetrics.mockReturnValue({
+      stats: {
+        users: 16,
+        workstations: 12,
+        groups: 3,
+        shares: 33,
+      },
+      loading: false,
+    });
   });
+
 
   afterEach(() => {
     jest.useRealTimers();
@@ -55,7 +88,7 @@ describe("DashboardPage", () => {
       json: async () => ({ provisioning_status: "completed" }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
     expect(screen.getByText("Users")).toBeInTheDocument();
     expect(screen.getByText("Workstations")).toBeInTheDocument();
     expect(screen.getByText("Groups")).toBeInTheDocument();
@@ -69,7 +102,7 @@ describe("DashboardPage", () => {
       json: async () => ({ provisioning_status: "completed" }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
     expect(screen.getByText("16")).toBeInTheDocument(); // Users
     expect(screen.getByText("12")).toBeInTheDocument(); // Workstations
     expect(screen.getByText("3")).toBeInTheDocument(); // Groups
@@ -83,7 +116,7 @@ describe("DashboardPage", () => {
       json: async () => ({ provisioning_status: "completed" }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
     expect(screen.getByTestId("activity-panel")).toBeInTheDocument();
   });
 
@@ -94,7 +127,7 @@ describe("DashboardPage", () => {
       json: async () => ({ provisioning_status: "completed" }),
     });
 
-    const { container } = render(<DashboardPage />);
+    const { container } = renderDashboard();
     const mainBox = container.firstChild;
     expect(mainBox).toHaveStyle({ display: "flex", flexDirection: "column" });
   });
@@ -102,7 +135,7 @@ describe("DashboardPage", () => {
   it("does not poll provisioning status without org_id", async () => {
     useAuth.mockReturnValue({ user: null });
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     // Give effects a tick.
     await waitFor(() => {
@@ -120,7 +153,7 @@ describe("DashboardPage", () => {
       json: async () => ({ provisioning_status: "in_progress" }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
@@ -154,7 +187,7 @@ describe("DashboardPage", () => {
       json: async () => ({}),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
@@ -169,7 +202,7 @@ describe("DashboardPage", () => {
     useAuth.mockReturnValue({ user: { org_id: "org123" } });
     mockFetch.mockRejectedValueOnce(new Error("boom"));
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
@@ -189,7 +222,7 @@ describe("DashboardPage", () => {
     });
 
     it("tracks add users", () => {
-      render(<DashboardPage />);
+      renderDashboard();
       const userCard = screen.getByTestId("stat-card-users");
       fireEvent.click(userCard.querySelector("button"));
       expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
@@ -199,7 +232,7 @@ describe("DashboardPage", () => {
     });
 
     it("tracks add workstations", () => {
-      render(<DashboardPage />);
+      renderDashboard();
       const card = screen.getByTestId("stat-card-workstations");
       fireEvent.click(card.querySelector("button"));
       expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
@@ -209,7 +242,7 @@ describe("DashboardPage", () => {
     });
 
     it("tracks add groups", () => {
-      render(<DashboardPage />);
+      renderDashboard();
       const card = screen.getByTestId("stat-card-groups");
       fireEvent.click(card.querySelector("button"));
       expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
@@ -219,7 +252,7 @@ describe("DashboardPage", () => {
     });
 
     it("tracks add files", () => {
-      render(<DashboardPage />);
+      renderDashboard();
       const card = screen.getByTestId("stat-card-files");
       fireEvent.click(card.querySelector("button"));
       expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
@@ -228,4 +261,44 @@ describe("DashboardPage", () => {
       });
     });
   });
+
+  describe("Org metrics rendering (useOrgMetrics)", () => {
+    beforeEach(() => {
+      useOrgMetrics.mockClear();
+    });
+
+
+    it('shows "…" when stats are missing and statsLoading=true', () => {
+      useOrgMetrics.mockReturnValue({ stats: {}, loading: true });
+
+      renderDashboard();
+
+      expect(screen.getByTestId("stat-card-users")).toHaveTextContent("…");
+      expect(screen.getByTestId("stat-card-workstations")).toHaveTextContent("…");
+      expect(screen.getByTestId("stat-card-groups")).toHaveTextContent("…");
+
+      const sharesOrFiles =
+        screen.queryByTestId("stat-card-shares") ||
+        screen.queryByTestId("stat-card-files");
+      expect(sharesOrFiles).toBeTruthy();
+      expect(sharesOrFiles).toHaveTextContent("…");
+    });
+
+    it("shows 0 when stats are missing and statsLoading=false", () => {
+      useOrgMetrics.mockReturnValue({ stats: {}, loading: false });
+
+      renderDashboard();
+
+      expect(screen.getByTestId("stat-card-users")).toHaveTextContent("0");
+      expect(screen.getByTestId("stat-card-workstations")).toHaveTextContent("0");
+      expect(screen.getByTestId("stat-card-groups")).toHaveTextContent("0");
+
+      const sharesOrFiles =
+        screen.queryByTestId("stat-card-shares") ||
+        screen.queryByTestId("stat-card-files");
+      expect(sharesOrFiles).toBeTruthy();
+      expect(sharesOrFiles).toHaveTextContent("0");
+    });
+  });
 });
+
