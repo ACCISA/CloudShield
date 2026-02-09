@@ -59,11 +59,9 @@ def _setup_mocks():
         else:
             sys.modules[name] = original
 
-
-
 # Minimal fake guards so decorators work without real JWT
 def install_fake_guards_module():
-    mod = types.ModuleType("security.guards")
+    guards_mod = types.ModuleType("security.guards")
 
     def require_auth(fn):
         from functools import wraps
@@ -92,10 +90,16 @@ def install_fake_guards_module():
             return wrapper
         return deco
 
-    mod.require_auth = require_auth
-    mod.require_role = require_role
-    sys.modules["security.guards"] = mod
-    sys.modules["security"] = mod  # Also install as 'security' for direct imports
+    guards_mod.require_auth = require_auth
+    guards_mod.require_role = require_role
+
+    # Create a proper top-level `security` module (like a package facade)
+    security_mod = types.ModuleType("security")
+    security_mod.require_auth = require_auth
+    security_mod.require_role = require_role
+
+    sys.modules["security"] = security_mod
+    sys.modules["security.guards"] = guards_mod
 
 #In-memory fake collection to simulate MongoDB operations
 class _InsertRes:
@@ -149,6 +153,157 @@ class FakeCollection:
             return _DeleteRes(1)
         return _DeleteRes(0)
 
+def install_fake_guards_module_with_custom_user(make_user_fn):
+    """
+    Variant of install_fake_guards_module that lets tests control g.user payload
+    so we can cover password stripping + _id -> id normalization in /users/me.
+    """
+    mod = types.ModuleType("security.guards")
+
+    def require_auth(fn):
+        from functools import wraps
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            auth = request.headers.get("Authorization", "")
+            if not auth.startswith("Bearer "):
+                return jsonify({"error": "Unauthorized"}), 401
+            try:
+                token = auth.split(" ", 1)[1]
+                role, org_id, user_id = token.split(":")
+            except Exception:
+                return jsonify({"error": "Unauthorized"}), 401
+
+            # Use the provided function to build g.user
+            g.user = make_user_fn(role=role, org_id=org_id, user_id=user_id)
+            return fn(*args, **kwargs)
+        return wrapper
+
+    def require_role(*roles):
+        from functools import wraps
+        def deco(fn):
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                if g.get("user") is None or g.user.get("role") not in roles:
+                    return jsonify({"error": "Unauthorized"}), 401
+                return fn(*args, **kwargs)
+            return wrapper
+        return deco
+
+    mod.require_auth = require_auth
+    mod.require_role = require_role
+    sys.modules["security.guards"] = mod
+    sys.modules["security"] = mod  # top-level facade
+
+@pytest.fixture
+def app_and_client_custom_me(monkeypatch, fake_users_collection):
+    """
+    Fresh app/client that registers users_bp with custom require_auth behavior
+    (so we can inject _id + password into g.user).
+    """
+   # Define how to build g.user with _id and password
+    def _make_user(role, org_id, user_id):
+        return {
+            "role": role,
+            "org_id": org_id,
+            "_id": user_id,              # mongo-style id
+            "password": "hashed::secret" # fake hashed password
+        }
+
+    install_fake_guards_module_with_custom_user(_make_user)
+    install_real_pydantic_models()
+    install_fake_passwords_module()
+    install_fake_services_user_service_module()
+
+    # Clear any previously loaded modules to ensure fresh import
+    for mod in ["cloudshield.Server.routes.users", "cloudshield.Server.security.guards"]:
+        if mod in sys.modules:
+            del sys.modules[mod]
+    sys.modules["cloudshield.Server.security.guards"] = sys.modules["security.guards"]
+
+    app = Flask(__name__)
+    users_mod = importlib.import_module("cloudshield.Server.routes.users")
+    app.register_blueprint(users_mod.users_bp)
+
+    return app, app.test_client()
+
+
+def test_get_current_user_endpoint_strips_password_and_normalizes_id(app_and_client_custom_me):
+    """
+    Covers:
+      u = g.user or {}
+      safe_user = dict(u)
+      safe_user.pop("password", None)
+      if "_id" in safe_user and "id" not in safe_user: normalize
+      return jsonify(...)
+    """
+    _, client = app_and_client_custom_me
+
+    resp = client.get("/users/me", headers={"Authorization": "Bearer employee:org_001:abc123"})
+    assert resp.status_code == 200
+
+    body = resp.get_json()
+    assert "user" in body
+
+    user = body["user"]
+    # Password stripped
+    assert "password" not in user
+    # _id normalized to id
+    assert user["id"] == "abc123"
+    assert "_id" not in user
+    # Other fields preserved
+    assert user["role"] == "employee"
+    assert user["org_id"] == "org_001"
+
+
+def test_get_current_user_endpoint_when_g_user_is_none_via_wrapped(monkeypatch, app_and_client):
+    """
+    Covers the `g.user or {}` path explicitly by calling the underlying
+    undecorated function (via __wrapped__) inside a request context.
+    """
+    app, _client = app_and_client
+    users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+    # Get the real function behind the decorators
+    real_fn = users_mod.get_current_user_endpoint.__wrapped__
+
+    with app.test_request_context("/users/me", method="GET"):
+        g.user = None
+        resp, status = real_fn()
+        assert status == 200
+        assert resp.get_json() == {"user": {}}
+
+
+def test_get_current_user_endpoint_does_not_override_existing_id(monkeypatch, app_and_client):
+    """
+    Covers the branch condition NOT firing:
+      if "_id" in safe_user and "id" not in safe_user:
+    by ensuring 'id' already exists.
+    Also verifies password stripping still occurs.
+    """
+    app, _client = app_and_client
+    users_mod = importlib.import_module("cloudshield.Server.routes.users")
+    real_fn = users_mod.get_current_user_endpoint.__wrapped__
+
+    with app.test_request_context("/users/me", method="GET"):
+        g.user = {
+            "id": "already-id",
+            "_id": "mongo-ish",
+            "password": "hashed::secret",
+            "role": "admin",
+            "org_id": "org_001",
+        }
+
+        resp, status = real_fn()
+        assert status == 200
+        data = resp.get_json()["user"]
+
+        # Password stripped
+        assert "password" not in data
+
+        # id remains as-is
+        assert data["id"] == "already-id"
+        # _id preserved since id existed
+        assert data["_id"] == "mongo-ish"
 
 def install_real_pydantic_models():
     """Import real Pydantic models to get validation behavior in tests"""
@@ -180,11 +335,18 @@ def install_real_pydantic_models():
 
 def install_fake_passwords_module():
     mod = types.ModuleType("security.passwords")
-    def hash_password(p): return f"hashed::{p}"
+
+    def hash_password(p): 
+        return f"hashed::{p}"
+
+    def is_bcrypt_string(s): 
+        return isinstance(s, str) and len(s) >= 55 and s.startswith("$2")
+
+    def verify_password(password: str, hashed: str) -> bool:
+        return hashed == f"hashed::{password}" or hashed == password
+
     mod.hash_password = hash_password
-    def is_bcrypt_string(s): return isinstance(s, str) and len(s) >= 55 and s.startswith("$2")
     mod.is_bcrypt_string = is_bcrypt_string
-    from security.passwords import verify_password
     mod.verify_password = verify_password
     sys.modules["security.passwords"] = mod
 

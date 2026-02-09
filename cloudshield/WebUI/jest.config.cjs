@@ -18,6 +18,10 @@ module.exports = {
     '!src/**/*.test.{js,jsx}',
     '!src/**/__tests__/**',
   ],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/jest\\.importMetaTransformer\\.cjs",
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testMatch: [
