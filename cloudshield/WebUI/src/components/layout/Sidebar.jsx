@@ -31,6 +31,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { apiGet } from "../../api/client";
+import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 
 function NavItem({
   collapsed,
@@ -187,37 +189,6 @@ function AccordionGrid({ items }) {
   );
 }
 
-const API_BASE =
-  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
-
-function getToken() {
-  // CloudShield stores the JWT under "jwt"
-  return localStorage.getItem("jwt");
-}
-
-async function apiGet(path) {
-  const token = getToken();
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try {
-      const data = await res.json();
-      msg = data?.error || data?.details || msg;
-    } catch {}
-    throw new Error(msg);
-  }
-
-  return res.json();
-}
-
 export default function Sidebar({
   mode = "full",
   collapsed,
@@ -236,7 +207,7 @@ export default function Sidebar({
     groups: false,
     files: false,
   });
-
+  
   const [me, setMe] = useState(null);            // { id, email, org_id, role }
   const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
   const [meErr, setMeErr] = useState(null);
@@ -266,44 +237,8 @@ export default function Sidebar({
       mounted = false;
     };
   }, []);
-
-  const [stats, setStats] = useState({
-    users: null,
-    workstations: null,
-    access_groups: null,
-    shares: null,
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadStats() {
-      try {
-        setStatsLoading(true);
-
-        // Call stats endpoint for counts to show in pills
-        const data = await apiGet("/organizations/me/metrics"); // expects { stats: { users, workstations, access_groups, shares } }
-        if (!cancelled) setStats(data.stats);
-      } catch (e) {
-        if (!cancelled) {
-          setStats({
-            users: null,
-            workstations: null,
-            access_groups: null,
-            shares: null,
-          });
-        }
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
-    }
-
-    loadStats();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  
+  const { stats, loading: statsLoading } = useOrgMetrics();
 
   // colors for the little count pills (matching dashboard StatCard gradients)
   const usersPill = "#6a4fcf";
@@ -521,7 +456,7 @@ export default function Sidebar({
             to="/groups"
             active={isActive("/groups")}
             // count={collapsed ? undefined : 6}
-            count={collapsed ? undefined : (stats.access_groups ?? (statsLoading ? "…" : 0))}
+            count={collapsed ? undefined : (stats.groups ?? (statsLoading ? "…" : 0))}
             countColor={groupsPill}
             expanded={open.groups}
             onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}

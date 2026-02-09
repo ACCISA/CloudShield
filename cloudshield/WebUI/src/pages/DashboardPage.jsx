@@ -13,6 +13,7 @@ import { trackButton } from "../lib/analytics";
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
+import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -24,44 +25,7 @@ export default function DashboardPage() {
     "Initializing infrastructure...",
   );
 
-  const API_BASE =
-  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
-
-  function getToken() {
-    // CloudShield stores the JWT under "jwt"
-    return localStorage.getItem("jwt");
-  }
-
-  async function apiGet(path) {
-    const token = getToken();
-
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (!res.ok) {
-      let msg = `HTTP ${res.status}`;
-      try {
-        const data = await res.json();
-        msg = data?.error || data?.details || msg;
-      } catch {}
-      throw new Error(msg);
-    }
-
-    return res.json();
-  }
-
-  const [stats, setStats] = useState({
-    users: null,
-    workstations: null,
-    groups: null,
-    shares: null,
-  });
-const [statsLoading, setStatsLoading] = useState(true);
+  const { stats, loading: statsLoading } = useOrgMetrics();
 
   // Polling logic to check provisioning status
   useEffect(() => {
@@ -96,41 +60,6 @@ const [statsLoading, setStatsLoading] = useState(true);
 
     return () => clearInterval(intervalId);
   }, [user?.org_id, provisioningStatus]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadStats() {
-      try {
-        setStatsLoading(true);
-        const res = await apiGet("/organizations/me/metrics"); // { stats: {...} }
-
-        if (!mounted) return;
-
-        setStats({
-          users: res.stats.users,
-          workstations: res.stats.workstations,
-          groups: res.stats.access_groups, // important mapping
-          shares: res.stats.shares,
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setStats({
-          users: 0,
-          workstations: 0,
-          groups: 0,
-          shares: 0,
-        });
-      } finally {
-        if (mounted) setStatsLoading(false);
-      }
-    }
-
-    loadStats();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   // Handler for add button clicks
   const handleAddUser = () => {
