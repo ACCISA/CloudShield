@@ -2,29 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import LoginCard from "../LoginCard";
 
-const LOGIN_URL = "http://127.0.0.1:5050/api/auth/login";
+const loginMock = vi.hoisted(() => vi.fn());
 
-type LoginResponse = {
-  access_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  error?: string;
-};
-
-const mockResponse = (payload: LoginResponse, ok: boolean): Response =>
-  ({
-    ok,
-    json: async () => payload,
-  } as Response);
+vi.mock("../../../services/AuthService", () => ({
+  default: { login: loginMock },
+}));
 
 describe("LoginCard Component", () => {
   const saveAuthMock = vi.fn<AuthStoreAPI["saveAuth"]>();
   const loadAuthMock = vi.fn<AuthStoreAPI["loadAuth"]>();
   const clearAuthMock = vi.fn<AuthStoreAPI["clearAuth"]>();
-  const fetchMock = vi.fn<typeof fetch>();
-
   beforeEach(() => {
-    global.fetch = fetchMock as typeof fetch;
     window.authStore = {
       saveAuth: saveAuthMock,
       loadAuth: loadAuthMock,
@@ -55,9 +43,7 @@ describe("LoginCard Component", () => {
   });
 
   it("handles login error", async () => {
-    fetchMock.mockResolvedValueOnce(
-      mockResponse({ error: "Invalid credentials" }, false)
-    );
+    loginMock.mockResolvedValueOnce({ error: "Invalid credentials" });
 
     render(<LoginCard />);
 
@@ -70,16 +56,10 @@ describe("LoginCard Component", () => {
     fireEvent.click(screen.getByText("Login"));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        LOGIN_URL,
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: "johndoe@example.com",
-            password: "wrongpassword",
-          }),
-        })
+      expect(loginMock).toHaveBeenCalledWith(
+        "johndoe@example.com",
+        "wrongpassword",
+        null,
       );
     });
 
@@ -87,16 +67,11 @@ describe("LoginCard Component", () => {
   });
 
   it("handles successful login and stores token", async () => {
-    fetchMock.mockResolvedValueOnce(
-      mockResponse(
-        {
-          access_token: "token123",
-          token_type: "Bearer",
-          expires_in: 3600,
-        },
-        true
-      )
-    );
+    loginMock.mockResolvedValueOnce({
+      access_token: "token123",
+      token_type: "Bearer",
+      expires_in: 3600,
+    });
 
     render(<LoginCard />);
 
@@ -166,16 +141,11 @@ describe("LoginCard Component", () => {
   });
 
   it("includes 2FA code in login payload when enabled", async () => {
-    fetchMock.mockResolvedValueOnce(
-      mockResponse(
-        {
-          access_token: "token123",
-          token_type: "Bearer",
-          expires_in: 3600,
-        },
-        true
-      )
-    );
+    loginMock.mockResolvedValueOnce({
+      access_token: "token123",
+      token_type: "Bearer",
+      expires_in: 3600,
+    });
 
     render(<LoginCard />);
 
@@ -193,16 +163,10 @@ describe("LoginCard Component", () => {
     fireEvent.click(screen.getByText("Login"));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        LOGIN_URL,
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            email: "johndoe@example.com",
-            password: "password123",
-            otp: "654321",
-          }),
-        })
+      expect(loginMock).toHaveBeenCalledWith(
+        "johndoe@example.com",
+        "password123",
+        "654321",
       );
     });
   });
