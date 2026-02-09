@@ -275,6 +275,56 @@ class TestUserService:
         assert inserted_doc["role"] == "admin"
         assert inserted_doc["org_id"] == self.TEST_ORG_ID
 
+    def test_create_user_public_signup_enqueues_welcome_email(self, setup_mocks, user_data, monkeypatch):
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        fake_orgs = unittest.mock.MagicMock()
+        mock_insert_result = unittest.mock.MagicMock()
+        mock_insert_result.inserted_id = ObjectId(self.TEST_ORG_ID)
+        fake_orgs.insert_one.return_value = mock_insert_result
+        monkeypatch.setattr("cloudshield.Server.services.user_service.organizations", fake_orgs, raising=True)
+
+        import services.job_service as job_service_module
+        mock_job_enqueue = unittest.mock.MagicMock()
+        monkeypatch.setattr(job_service_module, "enqueue_org_welcome_email", mock_job_enqueue, raising=True)
+
+        mocks["users_admin"].find_one.return_value = None
+        mocks["users_admin"].count_documents.return_value = 0
+        mocks["get_workstation_count"].return_value = 5
+        mock_user_result = unittest.mock.MagicMock()
+        mock_user_result.inserted_id = ObjectId(self.TEST_USER_ID)
+        mocks["users_admin"].insert_one.return_value = mock_user_result
+
+        user_data.role = "admin"
+        create_user(user_data, current_user=None, reason="bootstrap")
+
+        mock_job_enqueue.assert_called_once_with(self.TEST_ORG_ID, self.TEST_USER_ID)
+
+    def test_create_user_admin_employee_enqueues_invite(self, setup_mocks, admin_user, user_data, monkeypatch):
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        fake_orgs = unittest.mock.MagicMock()
+        fake_orgs.find_one.return_value = {}
+        monkeypatch.setattr("cloudshield.Server.services.user_service.organizations", fake_orgs, raising=True)
+
+        import services.job_service as job_service_module
+        mock_job_enqueue = unittest.mock.MagicMock()
+        monkeypatch.setattr(job_service_module, "enqueue_employee_invite_email", mock_job_enqueue, raising=True)
+
+        mocks["users_admin"].find_one.return_value = None
+        mocks["users_admin"].count_documents.return_value = 0
+        mocks["get_workstation_count"].return_value = 5
+        mock_user_result = unittest.mock.MagicMock()
+        mock_user_result.inserted_id = ObjectId(self.TEST_USER_ID)
+        mocks["users_admin"].insert_one.return_value = mock_user_result
+
+        user_data.role = "employee"
+        create_user(user_data, current_user=admin_user, reason="invite")
+
+        mock_job_enqueue.assert_called_once_with(self.TEST_USER_ID)
+
     ## UPDATE USER TESTS
 
     def test_update_user_validation_and_errors(self, setup_mocks, admin_user, employee_user):
