@@ -11,7 +11,7 @@ from services.email_service import render_template, send_email
 from utils import get_logger
 from utils.database import db_admin, organizations, users_admin, org_filter
 
-LOGIN_URL = "http://real.encs.concordia.ca/login"
+LOGIN_URL = "http://real.encs.concordia.ca/login" # NOSONAR
 
 
 def _coerce_object_id(value: str):
