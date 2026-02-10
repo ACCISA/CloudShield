@@ -283,4 +283,568 @@ describe("DashboardPage", () => {
       expect(lastCallProps.loading).toBe(false);
     });
   });
+
+  describe("fetchActivities - Comprehensive Coverage", () => {
+    it("should fetch activities with correct pagination parameters", async () => {
+      const mockActivities = [
+        { id: "1", actor: "Alice", description: "Created user", timestamp: "2025-01-01" },
+        { id: "2", actor: "Bob", description: "Deleted file", timestamp: "2025-01-02" },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 42 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:5050/api/activity/org-123?page=1&limit=20"
+        );
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+      expect(screen.getByTestId("activity-total")).toHaveTextContent("42");
+    });
+
+    it("should convert 0-indexed page to 1-indexed API page", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Page 0 -> API page 1
+      expect(global.fetch.mock.calls[0][0]).toContain("page=1");
+
+      // Click to page 1
+      fireEvent.click(screen.getByText("change-page"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      // Page 2 -> API page 3
+      expect(global.fetch.mock.calls[1][0]).toContain("page=3");
+    });
+
+    it("should handle API response with partial data (only items, no total)", async () => {
+      const mockActivities = [{ id: "1" }, { id: "2" }];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+      });
+    });
+
+    it("should handle API response with partial data (only total, no items)", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 100 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("100");
+      });
+    });
+
+    it("should handle empty activities array and zero total", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+      });
+    });
+
+    it("should set loading state to true before fetch and false after", async () => {
+      let resolveFetch;
+      const fetchPromise = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+      global.fetch.mockReturnValueOnce(fetchPromise);
+
+      render(<DashboardPage />);
+
+      // Check that loading is set to true during fetch
+      await waitFor(() => {
+        const propositionWithLoading = activityTableRenderMock.mock.calls.some(
+          ([props]) => props.loading === true
+        );
+        expect(propositionWithLoading).toBe(true);
+      });
+
+      resolveFetch({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      // Check that loading is set to false after fetch
+      await waitFor(() => {
+        const lastProps =
+          activityTableRenderMock.mock.calls[
+            activityTableRenderMock.mock.calls.length - 1
+          ][0];
+        expect(lastProps.loading).toBe(false);
+      });
+    });
+
+    it("should still set loading to false even when response.ok is false", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastProps =
+          activityTableRenderMock.mock.calls[
+            activityTableRenderMock.mock.calls.length - 1
+          ][0];
+        expect(lastProps.loading).toBe(false);
+      });
+    });
+
+    it("should still set loading to false even when fetch throws", async () => {
+      global.fetch.mockRejectedValueOnce(new Error("Network error"));
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastProps =
+          activityTableRenderMock.mock.calls[
+            activityTableRenderMock.mock.calls.length - 1
+          ][0];
+        expect(lastProps.loading).toBe(false);
+      });
+    });
+
+    it("should construct correct API URL with org_id from localStorage", async () => {
+      localStorage.setItem("org_id", "special-org-456");
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://localhost:5050/api/activity/special-org-456?page=1&limit=20"
+        );
+      });
+    });
+
+    it("should not fetch when org_id is not in localStorage", async () => {
+      localStorage.removeItem("org_id");
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-table")).toBeInTheDocument();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("should include correct rowsPerPage in API URL", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      expect(global.fetch.mock.calls[0][0]).toContain("limit=20");
+
+      fireEvent.click(screen.getByText("change-rpp"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      expect(global.fetch.mock.calls[1][0]).toContain("limit=50");
+    });
+
+    it("should handle multiple rapid refreshes correctly", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "1" }], total: 1 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "2" }], total: 1 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "3" }], total: 1 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByText("refresh"));
+      fireEvent.click(screen.getByText("refresh"));
+
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+    });
+
+    it("should handle 400 Bad Request response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: "Invalid request" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle 401 Unauthorized response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Unauthorized" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle 403 Forbidden response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: "Forbidden" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle 404 Not Found response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: "Not found" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle 500 Server Error response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: "Internal server error" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle network errors gracefully", async () => {
+      const networkError = new Error("Failed to fetch");
+      global.fetch.mockRejectedValueOnce(networkError);
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          "Error fetching activities:",
+          networkError
+        );
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle timeout errors", async () => {
+      const timeoutError = new Error("The operation was aborted");
+      global.fetch.mockRejectedValueOnce(timeoutError);
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          "Error fetching activities:",
+          timeoutError
+        );
+      });
+    });
+
+    it("should handle JSON parsing errors in response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw new Error("Invalid JSON");
+        },
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          "Error fetching activities:",
+          expect.any(Error)
+        );
+      });
+    });
+
+    it("should maintain correct state after successful fetch", async () => {
+      const mockActivities = [
+        { id: "act-1", actor: "Alice", description: "Action 1" },
+        { id: "act-2", actor: "Bob", description: "Action 2" },
+        { id: "act-3", actor: "Charlie", description: "Action 3" },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 150 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("3");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("150");
+        expect(screen.getByTestId("activity-page")).toHaveTextContent("0");
+        expect(screen.getByTestId("activity-rpp")).toHaveTextContent("20");
+      });
+    });
+
+    it("should respect page and rowsPerPage from state when fetching", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Initial: page=0, limit=20 -> API page=1, limit=20
+      expect(global.fetch.mock.calls[0][0]).toContain("page=1&limit=20");
+
+      // Change page to 5
+      fireEvent.click(screen.getByText("change-page"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+      expect(global.fetch.mock.calls[1][0]).toContain("page=3&limit=20");
+
+      // Change rowsPerPage to 50 (resets page to 0)
+      fireEvent.click(screen.getByText("change-rpp"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+      expect(global.fetch.mock.calls[2][0]).toContain("page=1&limit=50");
+    });
+
+    it("should handle response with large arrays of activities", async () => {
+      const largeActivityArray = Array.from({ length: 100 }, (_, i) => ({
+        id: `activity-${i}`,
+        actor: `Actor ${i}`,
+        description: `Action ${i}`,
+      }));
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: largeActivityArray, total: 500 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("100");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("500");
+      });
+    });
+
+    it("should handle response with null items field", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: null, total: 50 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("50");
+      });
+    });
+
+    it("should handle response with null total field", async () => {
+      const mockActivities = [{ id: "1" }, { id: "2" }];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: null }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+      });
+    });
+
+    it("should trigger fetchActivities again when page dependency changes", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByText("change-page"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    });
+
+    it("should trigger fetchActivities again when rowsPerPage dependency changes", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByText("change-rpp"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    });
+
+    it("should pass activities data correctly to ActivityTable component", async () => {
+      const mockActivities = [
+        { id: "1", actor: "Alice", description: "Created file" },
+        { id: "2", actor: "Bob", description: "Deleted user" },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 2 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastCall = activityTableRenderMock.mock.calls[
+          activityTableRenderMock.mock.calls.length - 1
+        ][0];
+        expect(lastCall.activities).toEqual(mockActivities);
+      });
+    });
+
+    it("should pass totalCount from API response to ActivityTable", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [{ id: "1" }], total: 250 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastCall = activityTableRenderMock.mock.calls[
+          activityTableRenderMock.mock.calls.length - 1
+        ][0];
+        expect(lastCall.totalCount).toBe(250);
+      });
+    });
+
+    it("should clear previous activities when refresh returns empty", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [{ id: "1" }, { id: "2" }],
+            total: 2,
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+
+      fireEvent.click(screen.getByText("refresh"));
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+      });
+    });
+  });
 });
