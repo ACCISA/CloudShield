@@ -7,6 +7,8 @@ from genproto.vpn_service import vpn_service_pb2 as vpn_pb2
 from genproto.vpn_service import vpn_service_pb2_grpc as vpn_pb2_grpc
 
 from utils import get_logger, get_inventory_from_org_id
+from models.activity import create_activity_log_doc
+from cloudshield.Server.utils.database import activity
 
 
 logger = get_logger("tasks")
@@ -77,7 +79,7 @@ def get_server_node(org_id, node_type):
         if node.node_type == node_type:
             return node
 
-def proxy_rpc_request(nodes, method_name, request):
+def proxy_rpc_request(nodes, method_name, request, actor="System"):
 
     if len(nodes.items()) < 2:
         return None
@@ -85,6 +87,7 @@ def proxy_rpc_request(nodes, method_name, request):
     domain_controller_node = nodes["DOMAIN_CONTROLLER"]
     openvpn_node = nodes["OPENVPN"]
 
+    org_id = openvpn_node.org_id
     full_method_name = get_full_grpc_path(method_name) # grpc server Relay expects the full method name
 
     if full_method_name is None:
@@ -102,7 +105,13 @@ def proxy_rpc_request(nodes, method_name, request):
 
     proxy_request = vpn_pb2.RelayData(ipv4=domain_controller_node.ip, port=domain_controller_node.port, data=serialized_data, method_name=full_method_name)
     try:
-        return stub.Relay(proxy_request)
+        stub.Relay(proxy_request)
+        try: 
+            log_doc = create_activity_log_doc(org_id=org_id, method_name=full_method_name, actor=actor)
+            activity.insert_one(log_doc)
+            logger.info(f"Activity logged: {log_doc['description']}")
+        except Exception as log_error:
+            logger.error("Failed to log activity: " + str(log_error))
     except Exception as e:
         logger.error("Proxy Fail: " + str(e))
         return None

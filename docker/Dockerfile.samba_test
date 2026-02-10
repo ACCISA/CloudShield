@@ -28,7 +28,8 @@ RUN echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
 RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
 
 # Make directories for Samba
-RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
+RUN mkdir -p /var/lib/samba /var/log/samba /etc/sambaA
+RUN mkdir -p /srv/samba/shares/
 
 # Copy entrypoint script
 COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

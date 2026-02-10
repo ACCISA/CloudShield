@@ -213,13 +213,21 @@ export default function SignupPage({ onSignupSuccess }) {
       if (createUserData.access_token) {
         localStorage.setItem("jwt", createUserData.access_token);
       }
+      if (createUserData.job_id) {
+        localStorage.setItem("provision_job_id", createUserData.job_id);
+      }
+      if (createUserData.org_id) {
+        localStorage.setItem("org_id", createUserData.org_id);
+      }
 
       onSignupSuccess?.({
         access_token: createUserData.access_token || null,
         user: userData,
       });
 
-      console.log("Signup successful, navigating to dashboard...");
+      // --- REDIRECT TO DASHBOARD ---
+      console.log("Signup successful, navigating to provisioning...");
+      navigate("/provisioning", { replace: true });
     } catch (err) {
       console.error("Signup error:", err);
       setErrors((prev) => ({

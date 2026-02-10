@@ -9,36 +9,43 @@ import AppLayout from "./components/layout/AppLayout.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
 import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
+import ProvisioningPage from "./pages/ProvisioningPage.jsx";
 
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 function AppWithAuth() {
-  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "false";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (devBypass) {
-      // Warn when auth is bypassed in dev mode
       console.warn("[App] Auth bypass is active (VITE_BYPASS_AUTH=true).");
     }
   }, [devBypass]);
 
-  // Initialize auth state based on presence of JWT in storage
+  // 1. Auth State
   const [isAuthed, setIsAuthed] = useState(() => {
     return devBypass || !!localStorage.getItem("jwt");
   });
 
-  /**
-   * Unified Handler for Login OR Signup Success
-   * Expects: { access_token: "...", user: { org_id?: "..." }, ... } from API response
-   */
+  // 2. Provisioning Check
+  // We check if a job ID exists AND we haven't explicitly marked it as done
+  const needsProvisioning = useMemo(() => {
+    if (devBypass) return false;
+    if (!isAuthed) return false;
+    
+    const isDone = localStorage.getItem("isProvisioned") === "true";
+    const hasJob = !!localStorage.getItem("provision_job_id");
+    
+    // Logic: If we have a job ID pending and aren't marked done, go to provisioning.
+    return hasJob && !isDone;
+  }, [devBypass, isAuthed]);
+
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
       localStorage.setItem("jwt", data.access_token);
-
       setIsAuthed(true);
       
-      // Decode JWT to extract org_id
       try {
         const payload = JSON.parse(atob(data.access_token.split('.')[1]));
         if (payload.org_id) {
@@ -50,9 +57,16 @@ function AppWithAuth() {
     }
   };
 
+  // 3. Protected Route Wrapper
   const Protected = useMemo(() => {
     return function ProtectedWrapper({ children }) {
+      // Not logged in -> Login
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
+      
+      // Logged in but provisioning incomplete -> Provisioning Page
+      if (needsProvisioning) return <Navigate to="/provisioning" replace />;
+      
+      // Logged in & Provisioned -> Dashboard Layout
       return (
         <AppLayout 
           showSidebar 
@@ -64,7 +78,7 @@ function AppWithAuth() {
         </AppLayout>
       );
     };
-  }, [devBypass, isAuthed, sidebarCollapsed]);
+  }, [devBypass, isAuthed, sidebarCollapsed, needsProvisioning]);
 
   return (
     <BrowserRouter>
@@ -77,9 +91,7 @@ function AppWithAuth() {
           path="/signup"
           element={
             isAuthed ? (
-              <Navigate to="/dashboard" replace />
-            ) : isAuthed ? (
-              <Navigate to="/dashboard" replace />
+              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
             ) : (
               <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
@@ -91,16 +103,23 @@ function AppWithAuth() {
           path="/login"
           element={
             isAuthed ? (
-              <Navigate to="/dashboard" replace />
-            ) : isAuthed ? (
-              <Navigate to="/dashboard" replace />
+              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
             ) : (
               <AuthPage onLoginSuccess={handleAuthSuccess} />
             )
           }
         />
 
-        {/* App routes (protected) */}
+        {/* Provisioning Route (No Layout) */}
+        <Route 
+          path="/provisioning"
+          element={
+             // Only allow access if authenticated
+             isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* App routes (Protected with Layout) */}
         <Route
           path="/dashboard"
           element={
@@ -151,7 +170,7 @@ function AppWithAuth() {
           path="*"
           element={
             isAuthed ? (
-              <Navigate to="/dashboard" replace />
+              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
             ) : (
               <Navigate to="/signup" replace />
             )
