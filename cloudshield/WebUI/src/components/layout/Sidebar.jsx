@@ -16,7 +16,7 @@
  *   - Uses react-router hooks (useNavigate/useLocation) for navigation; keep routing logic
  *     minimal here and handle heavier logic in pages or containers.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -31,6 +31,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { apiGet } from "../../api/client";
+import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 
 function NavItem({
   collapsed,
@@ -205,6 +207,38 @@ export default function Sidebar({
     groups: false,
     files: false,
   });
+  
+  const [me, setMe] = useState(null);            // { id, email, org_id, role }
+  const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
+  const [meErr, setMeErr] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const meRes = await apiGet("/users/me"); // expects { user: {...} }
+        if (!mounted) return;
+        setMe(meRes.user);
+
+        // Only call org endpoint after we know we're authenticated
+        // expects { organization: {...} }
+        const orgRes = await apiGet("/organizations/me");
+        if (!mounted) return;
+        setMyOrg(orgRes.organization);
+      } catch (e) {
+        if (!mounted) return;
+        setMeErr(e.message || "Failed to load user");
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  
+  const { stats, loading: statsLoading } = useOrgMetrics();
 
   // colors for the little count pills (matching dashboard StatCard gradients)
   const usersPill = "#6a4fcf";
@@ -337,7 +371,7 @@ export default function Sidebar({
                     lineHeight: 1.3,
                   }}
                 >
-                  Company Inc.
+                  {myOrg?.name || "Company Inc."}
                 </Typography>
                 <Typography
                   sx={{
@@ -347,7 +381,7 @@ export default function Sidebar({
                     wordBreak: "break-all",
                   }}
                 >
-                  admin@company.com
+                  {me?.email || "admin@company.com"}
                 </Typography>
               </Box>
             </Box>
@@ -385,7 +419,8 @@ export default function Sidebar({
             label="Workstations"
             to="/workstations"
             active={isActive("/workstations")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.workstations ?? (statsLoading ? "…" : 0))}
             countColor={workstationPill}
             expanded={open.workstations}
             onToggleExpand={() =>
@@ -399,7 +434,8 @@ export default function Sidebar({
             label="Employees"
             to="/employees"
             active={isActive("/employees") || isActive("/users")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.users ?? (statsLoading ? "…" : 0))}
             countColor={usersPill}
             expanded={open.employees}
             onToggleExpand={() =>
@@ -419,7 +455,8 @@ export default function Sidebar({
             label="Groups"
             to="/groups"
             active={isActive("/groups")}
-            count={collapsed ? undefined : 6}
+            // count={collapsed ? undefined : 6}
+            count={collapsed ? undefined : (stats.groups ?? (statsLoading ? "…" : 0))}
             countColor={groupsPill}
             expanded={open.groups}
             onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
@@ -431,7 +468,8 @@ export default function Sidebar({
             label="Shares"
             to="/files"
             active={isActive("/files")}
-            count={collapsed ? undefined : 33}
+            //count={collapsed ? undefined : 33}
+            count={collapsed ? undefined : (stats.shares ?? (statsLoading ? "…" : 0))}
             countColor={sharesPill}
             expanded={open.files}
             onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
@@ -542,3 +580,5 @@ export default function Sidebar({
     </Box>
   );
 }
+
+export { NavItem, AccordionGrid };

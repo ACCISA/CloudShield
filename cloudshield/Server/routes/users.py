@@ -17,7 +17,8 @@ from services import (  # noqa: E402
     list_users,
 )
 
-users_bp = Blueprint('users', __name__)
+users_bp = Blueprint('users', __name__) # Admin-only user management routes
+orgs_bp = Blueprint("organizations", __name__) # Organization-related routes (e.g., get my org)
 """
 Users routes (admin-only mutations).
 
@@ -305,3 +306,28 @@ def signup_admin_endpoint():
 
     except Exception as e:
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
+
+@users_bp.route("/users/me", methods=["GET"])
+@require_auth
+def get_current_user_endpoint():
+    """
+    Get the currently authenticated user's profile (self).
+
+    Endpoint:
+        GET /api/users/me
+
+    Response:
+        200: { "user": { ... } }
+        401/403 handled by require_auth
+    """
+    u = g.user or {}
+
+    # IMPORTANT: never return password hashes
+    safe_user = dict(u)
+    safe_user.pop("password", None)
+
+    # If your g.user uses "_id" internally, normalize it to "id"
+    if "_id" in safe_user and "id" not in safe_user:
+        safe_user["id"] = str(safe_user.pop("_id"))
+
+    return jsonify({"user": safe_user}), 200

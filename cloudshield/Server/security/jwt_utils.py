@@ -12,7 +12,7 @@ JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "cloudshield-app")
 JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))
 
 
-def issue_token(sub: str, role: str, org_id: str):
+def issue_token(sub: str, role: str, org_id: str, email: str, full_name: str):
     """
     Generate JWT access token with user claims.
 
@@ -20,6 +20,8 @@ def issue_token(sub: str, role: str, org_id: str):
         sub (str): The subject identifier --> the user's unique ID.
         role (str): The user's role ("admin" or "employee").
         org_id (str): The organization ID the user belongs to.
+        email (str): The user's email address.
+        full_name (str): The user's full name.
 
     Returns:
         str: Encoded JWT string signed with HS256.
@@ -42,6 +44,8 @@ def issue_token(sub: str, role: str, org_id: str):
         "sub": sub,
         "role": role,
         "org_id": org_id,
+        "email": email,
+        "full_name": full_name,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": now - 10,
@@ -80,7 +84,7 @@ def verify_token(token: str):
         issuer=JWT_ISSUER,
         leeway=30,
         options={
-            "require": ["sub", "role", "org_id", "exp", "iss", "aud"],
+            "require": ["sub", "role", "org_id", "email", "full_name", "exp", "iss", "aud"],
             "verify_iat": False,
         },
     )
