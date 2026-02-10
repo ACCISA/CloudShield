@@ -200,23 +200,6 @@ export default function SignupPage({ onSignupSuccess }) {
         return;
       }
 
-      // 2. TRIGGER DOCKER PROVISIONING
-      // This uses the new multi-tenant backend logic we just finished!
-      try {
-        await fetch("http://localhost:5050/api/task/provision", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            org_id: createUserData.org_id, // Using the Org Object ID as requested
-            workstation_count: 1
-          }),
-        });
-        console.log("Provisioning task queued for:", createUserData.org_id);
-      } catch (provisionErr) {
-        console.error("Failed to trigger provisioning:", provisionErr);
-        // We don't block signup if provisioning fails, but we log it.
-      }
-
       const userData = {
         email: email,
         user_id: createUserData.user_id,
