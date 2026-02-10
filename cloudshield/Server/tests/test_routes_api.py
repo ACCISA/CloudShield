@@ -55,6 +55,41 @@ def client(monkeypatch):
         app.testing = True
         return app.test_client()
 
+
+@pytest.fixture()
+def auth_client(client, monkeypatch):
+    """Client that bypasses require_auth by pre-populating g.user on every request."""
+    from flask import g as flask_g
+    from cloudshield.Server.server import create_app
+    import cloudshield.Server.routes.api as api_mod
+    import cloudshield.Server.services as services
+
+    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+        mock_redis_instance = MagicMock()
+        mock_redis_cls.return_value = mock_redis_instance
+        mock_redis_instance.ping.return_value = True
+        mock_redis_instance.get.return_value = b"some_value"
+        mock_redis_instance.set.return_value = True
+
+        class DummyJob:
+            def __init__(self, job_id):
+                self.id = job_id
+
+        monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        monkeypatch.setattr(services, "get_job_status", lambda jid: ({"job_id": jid, "status": "finished"}, 200))
+        monkeypatch.setattr(services, "health_status", lambda: ({"status": "ok", "redis": True}, 200))
+        monkeypatch.setattr(api_mod, "get_job_status", services.get_job_status)
+        monkeypatch.setattr(api_mod, "health_status", services.health_status)
+
+        app = create_app()
+        app.testing = True
+
+        @app.before_request
+        def _inject_test_user():
+            flask_g.user = {"id": "test-user", "role": "admin", "org_id": "test-org"}
+
+        return app.test_client()
+
 def test_provision_missing_org(client):
     # Added /api prefix
     resp = client.post("/api/task/provision", json={})
@@ -631,30 +666,30 @@ def test_provision_already_completed(mock_orgs, mock_env, client):
 # ---------------------------------------------------------------------------
 
 
-def test_vpn_config_missing_params(client):
+def test_vpn_config_missing_params(auth_client):
     """Returns 400 when org_id or username is missing."""
-    resp = client.get("/api/vpn/config")
+    resp = auth_client.get("/api/vpn/config")
     assert resp.status_code == 400
 
-    resp = client.get("/api/vpn/config?org_id=acme")
+    resp = auth_client.get("/api/vpn/config?org_id=acme")
     assert resp.status_code == 400
 
-    resp = client.get("/api/vpn/config?username=alice")
+    resp = auth_client.get("/api/vpn/config?username=alice")
     assert resp.status_code == 400
 
 
 @patch("cloudshield.Server.routes.api.get_vpn_config")
-def test_vpn_config_not_found(mock_get, client):
+def test_vpn_config_not_found(mock_get, auth_client):
     """Returns 404 when no config exists for the org/user pair."""
     mock_get.return_value = None
 
-    resp = client.get("/api/vpn/config?org_id=acme&username=nobody")
+    resp = auth_client.get("/api/vpn/config?org_id=acme&username=nobody")
     assert resp.status_code == 404
     assert "not found" in resp.get_json()["error"]
 
 
 @patch("cloudshield.Server.routes.api.get_vpn_config")
-def test_vpn_config_success(mock_get, client):
+def test_vpn_config_success(mock_get, auth_client):
     """Returns 200 with base64-encoded VPN config."""
     mock_get.return_value = {
         "filename": "alice.ovpn",
@@ -663,7 +698,7 @@ def test_vpn_config_success(mock_get, client):
         "updated_at": "2026-01-01T00:00:00",
     }
 
-    resp = client.get("/api/vpn/config?org_id=acme&username=alice")
+    resp = auth_client.get("/api/vpn/config?org_id=acme&username=alice")
     assert resp.status_code == 200
 
     data = resp.get_json()

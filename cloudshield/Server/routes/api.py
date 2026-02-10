@@ -17,6 +17,7 @@ from services import (
     update_share,
     get_vpn_config,
 )
+from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
@@ -673,6 +674,7 @@ def job_status(job_id: str):
 
 
 @api_bp.route("/vpn/config", methods=["GET"])
+@require_auth
 def vpn_config():
     """
     Retrieve a user's VPN configuration file.

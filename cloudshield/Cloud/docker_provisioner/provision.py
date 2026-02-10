@@ -229,9 +229,10 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         detach=True,
         tty=False,
         envs={
-        "DOMAIN_NAME": "ANISS",
-        "DC_ADMIN_PASSWORD": "4162728abb29acc12090e6432cdb6fd8%$@!",
-        "REALM_NAME": "ANISS.LOCAL"
+        "DOMAIN_NAME": domain_name,
+        "DC_ADMIN_PASSWORD": dc_admin_password,
+        "REALM_NAME": realm_name,
+        "REALM_NAME_LWR": realm_name.lower() if realm_name else "",
         })
     
     container_id = container_dc.id

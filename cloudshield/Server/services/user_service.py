@@ -134,8 +134,12 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # Determine package for this signup
     package = (user_data.package_type or "basic").strip() if isinstance(getattr(user_data, "package_type", None), str) else "basic"
     org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
-    domain_name = org_name.replace(" ", "_").upper()
-    realm_name = "SAMDOM."+domain_name+".COM"
+    # Build a valid AD domain name: lowercase, hyphens instead of spaces/underscores,
+    # append .local, and derive the Kerberos realm (uppercase FQDN).
+    import re
+    _slug = re.sub(r'[^a-z0-9]+', '-', org_name.lower()).strip('-')[:15]  # NetBIOS ≤15 chars
+    domain_name = f"{_slug}.local"          # e.g. "cloudshield-test.local"
+    realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
     
     def gen_password():
         alphabet = string.ascii_letters + string.digits + string.punctuation
