@@ -17,8 +17,9 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
-    "prop-types": "^15.8.1",
+    "date-fns": "^4.1.0",
     "posthog-js": "^1.335.2",
+    "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.5"
