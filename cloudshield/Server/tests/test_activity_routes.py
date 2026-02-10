@@ -1,14 +1,8 @@
-import sys
-import types
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
 from flask import Flask
-
-fake_database = types.ModuleType("cloudshield.Server.utils.database")
-fake_database.activity = MagicMock()
-sys.modules.setdefault("cloudshield.Server.utils.database", fake_database)
 
 import cloudshield.Server.routes.activity as activity_routes
 
