@@ -28,16 +28,6 @@ from repos import insert_inventory, delete_inventory_by_org
 from provisioner import provision_network_terraform, get_target_dir, destroy_infra, provision_workstation
 from cloudshield.Cloud.docker_provisioner.provision import provision_network_docker
 
-"""
-Add the Cloud/terraform directory to the path to import main and destroy_infra
-base_dir = Path(__file__).resolve().parents[1]
-terraform_dir = base_dir / "Cloud" / "terraform"
-sys.path.insert(0, str(terraform_dir))
-We wont be running the above code because we can just move the scripts to the same location using docker.
-This setup only works in the docker container
-run: sudo docker-compose up api
-"""
-
 _module_logger = get_logger("tasks")
 CLOUDSHIELD_JOBS_DIR = "/var/lib/cloudshield"
 
@@ -160,7 +150,6 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
 
 # Full Network Provisioning Task
 def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int | None = None):
-
     """
     Provisions the full network using Terraform templates.
     Isolates progress, mapping, and DB writes via helpers for reuse.
@@ -273,7 +262,6 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
                 server_logger=logger
         )
 
-
         if metadata is None:
             # Early return with explicit failure details, still sets progress.
             details = "Provisioning failed since the generated directory already exists"
@@ -290,38 +278,21 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
         set_progress("completed")
         _update_org_provisioning_status(org_id, "completed", job_id, logger)
 
-
         logger.info("Metadata from provisioner: %s", metadata)
-
-
 
         logger.info("Starting to provision 1 workstation for testing")
 
         ws_metadata = provision_workstation(org_id, logger)
-
         metadata.append(ws_metadata)
 
         assets = map_metadata_to_ec2_instances(metadata)
-
         res = insert_inventory(db=db, org_id=org_id, assets=assets)
 
         logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
-
         logger.info("Provisioning complete for org %s", org_id)
-
-
 
         return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
 
-        
-
-        return {
-            "message": "Provisioning complete",
-            "org_id": org_id,
-            "region": region,
-            "work_dir": str(generated_dir),
-            "metadata": metadata
-        }
     except Exception as e:
         logger.exception("Provisioning failed for org %s: %s", org_id, e)
         set_progress(f"failed: {e}")
@@ -355,7 +326,7 @@ def destroy_environment(org_id: str, force: bool = False):
                 except Exception:
                     pass
             except Exception:
-                    pass
+                pass
             
             set_progress("completed destroy")
             delete_inventory_by_org(db=db, org_id=org_id)
