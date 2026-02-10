@@ -1,6 +1,12 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardPage from "../DashboardPage";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { trackButton } from "../../lib/analytics";
+
+const navigateMock = jest.fn();
+const activityTableRenderMock = jest.fn();
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
@@ -10,222 +16,184 @@ jest.mock("../../context/AuthContext.jsx", () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock("../../components/dashboard/ActivityPanel.jsx", () => {
-  return function MockActivityPanel() {
-    return <div data-testid="activity-panel">Activity</div>;
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: jest.fn(),
+}));
+
+jest.mock("../../components/dashboard/StatCard.jsx", () => {
+  return function MockStatCard({ title, onAdd }) {
+    return (
+      <button type="button" onClick={onAdd}>
+        Add {title}
+      </button>
+    );
   };
 });
 
-jest.mock("../../components/dashboard/StatCard.jsx", () => {
-  return function MockStatCard({ title, value, onAdd }) {
+jest.mock("../../components/dashboard/ActivityTable.jsx", () => {
+  return function MockActivityTable(props) {
+    activityTableRenderMock(props);
     return (
-      <div data-testid={`stat-card-${title.toLowerCase()}`}>
-        <div>{title}</div>
-        <div>{String(value)}</div>
-        <button type="button" onClick={onAdd}>
-          Add
+      <div data-testid="activity-table">
+        <div data-testid="activity-size">{props.activities.length}</div>
+        <div data-testid="activity-total">{props.totalCount}</div>
+        <div data-testid="activity-page">{props.page}</div>
+        <div data-testid="activity-rpp">{props.rowsPerPage}</div>
+        <button type="button" onClick={props.onRefresh}>
+          refresh
+        </button>
+        <button type="button" onClick={(event) => props.onPageChange(event, 2)}>
+          change-page
+        </button>
+        <button
+          type="button"
+          onClick={() => props.onRowsPerPageChange({ target: { value: "50" } })}
+        >
+          change-rpp
         </button>
       </div>
     );
   };
 });
 
-import { useAuth } from "../../context/AuthContext.jsx";
-import { trackButton } from "../../lib/analytics";
-
 describe("DashboardPage", () => {
-  let mockFetch;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetch = jest.fn();
-    global.fetch = mockFetch;
-    jest.spyOn(console, "error").mockImplementation(() => {});
+    global.fetch = jest.fn();
+    useNavigate.mockReturnValue(navigateMock);
+    useAuth.mockReturnValue({ user: { org_id: "org-from-auth" } });
+    localStorage.setItem("org_id", "org-123");
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-  });
-
-  it("renders all stat cards", () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockResolvedValueOnce({
+  it("fetches activity on mount and passes data to ActivityTable", async () => {
+    global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ provisioning_status: "completed" }),
-    });
-
-    render(<DashboardPage />);
-    expect(screen.getByText("Users")).toBeInTheDocument();
-    expect(screen.getByText("Workstations")).toBeInTheDocument();
-    expect(screen.getByText("Groups")).toBeInTheDocument();
-    expect(screen.getByText("Files")).toBeInTheDocument();
-  });
-
-  it("displays correct stat values", () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ provisioning_status: "completed" }),
-    });
-
-    render(<DashboardPage />);
-    expect(screen.getByText("16")).toBeInTheDocument(); // Users
-    expect(screen.getByText("12")).toBeInTheDocument(); // Workstations
-    expect(screen.getByText("3")).toBeInTheDocument(); // Groups
-    expect(screen.getByText("33")).toBeInTheDocument(); // Files
-  });
-
-  it("renders activity panel", () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ provisioning_status: "completed" }),
-    });
-
-    render(<DashboardPage />);
-    expect(screen.getByTestId("activity-panel")).toBeInTheDocument();
-  });
-
-  it("applies correct layout styles", () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ provisioning_status: "completed" }),
-    });
-
-    const { container } = render(<DashboardPage />);
-    const mainBox = container.firstChild;
-    expect(mainBox).toHaveStyle({ display: "flex", flexDirection: "column" });
-  });
-
-  it("does not poll provisioning status without org_id", async () => {
-    useAuth.mockReturnValue({ user: null });
-
-    render(<DashboardPage />);
-
-    // Give effects a tick.
-    await waitFor(() => {
-      expect(screen.getByText("Users")).toBeInTheDocument();
-    });
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it("fetches provisioning status immediately and shows progress UI when in_progress", async () => {
-    jest.useFakeTimers();
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ provisioning_status: "in_progress" }),
+      json: async () => ({
+        items: [{ id: "a1", actor: "Alice", description: "Created group" }],
+        total: 1,
+      }),
     });
 
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:5050/api/activity/org-123?page=1&limit=20"
+      );
     });
 
-    // Progress panel visible + loading text updated
     await waitFor(() => {
-      expect(
-        screen.getByText("Cloud Infrastructure Provisioning"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Provisioning cloud infrastructure... This may take a few minutes.",
-        ),
-      ).toBeInTheDocument();
-    });
-
-    // After status flips to in_progress, component should start polling every 10s
-    const initialCalls = mockFetch.mock.calls.length;
-    jest.advanceTimersByTime(10000);
-
-    await waitFor(() => {
-      expect(mockFetch.mock.calls.length).toBeGreaterThan(initialCalls);
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+      expect(screen.getByTestId("activity-total")).toHaveTextContent("1");
+      expect(screen.getByTestId("activity-page")).toHaveTextContent("0");
+      expect(screen.getByTestId("activity-rpp")).toHaveTextContent("20");
     });
   });
 
-  it("hides progress UI when provisioning_status is missing (defaults to completed)", async () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({}),
-    });
-
+  it("does not fetch activity when org_id is missing in localStorage", async () => {
+    localStorage.removeItem("org_id");
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/organization/org123");
+      expect(screen.getByTestId("activity-table")).toBeInTheDocument();
     });
-
-    expect(
-      screen.queryByText("Cloud Infrastructure Provisioning"),
-    ).not.toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it("logs an error if provisioning status fetch fails", async () => {
-    useAuth.mockReturnValue({ user: { org_id: "org123" } });
-    mockFetch.mockRejectedValueOnce(new Error("boom"));
+  it("refreshes activity when ActivityTable onRefresh is called", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [{ id: "a2" }], total: 1 }),
+      });
 
     render(<DashboardPage />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
+    fireEvent.click(screen.getByText("refresh"));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+  });
+
+  it("re-fetches using next API page when page changes", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+    render(<DashboardPage />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText("change-page"));
     await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to fetch provisioning status",
-        expect.any(Error),
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        "http://localhost:5050/api/activity/org-123?page=3&limit=20"
       );
     });
   });
 
-  describe("Add Button Handlers", () => {
-    beforeEach(() => {
-      useAuth.mockReturnValue({ user: { org_id: "org123" } });
-      mockFetch.mockResolvedValueOnce({
+  it("resets page and fetches with updated limit when rowsPerPage changes", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ provisioning_status: "completed" }),
+        json: async () => ({ items: [], total: 0 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
       });
+
+    render(<DashboardPage />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText("change-rpp"));
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        "http://localhost:5050/api/activity/org-123?page=1&limit=50"
+      );
+    });
+  });
+
+  it("tracks analytics and navigates when stat card actions are clicked", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: [], total: 0 }),
     });
 
-    it("tracks add users", () => {
-      render(<DashboardPage />);
-      const userCard = screen.getByTestId("stat-card-users");
-      fireEvent.click(userCard.querySelector("button"));
-      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
-        page: "dashboard",
-        entity: "users",
-      });
+    render(<DashboardPage />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByText("Add Users"));
+    expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+      page: "dashboard",
+      entity: "users",
+    });
+    expect(navigateMock).toHaveBeenCalledWith("/employees", {
+      state: { openModal: true },
     });
 
-    it("tracks add workstations", () => {
-      render(<DashboardPage />);
-      const card = screen.getByTestId("stat-card-workstations");
-      fireEvent.click(card.querySelector("button"));
-      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
-        page: "dashboard",
-        entity: "workstations",
-      });
+    fireEvent.click(screen.getByText("Add Workstations"));
+    expect(navigateMock).toHaveBeenCalledWith("/workstations", {
+      state: { openModal: true },
     });
 
-    it("tracks add groups", () => {
-      render(<DashboardPage />);
-      const card = screen.getByTestId("stat-card-groups");
-      fireEvent.click(card.querySelector("button"));
-      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
-        page: "dashboard",
-        entity: "groups",
-      });
+    fireEvent.click(screen.getByText("Add Groups"));
+    expect(navigateMock).toHaveBeenCalledWith("/groups", {
+      state: { openModal: true },
     });
 
-    it("tracks add files", () => {
-      render(<DashboardPage />);
-      const card = screen.getByTestId("stat-card-files");
-      fireEvent.click(card.querySelector("button"));
-      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
-        page: "dashboard",
-        entity: "files",
-      });
+    fireEvent.click(screen.getByText("Add Shares"));
+    expect(navigateMock).toHaveBeenCalledWith("/files", {
+      state: { openModal: true },
     });
   });
 });
