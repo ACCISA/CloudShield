@@ -13,7 +13,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 docker = DockerClient(compose_files=["/app/docker-compose.yml"])
+
+storage_path = Path("/data/workstations/")
 template_vm_path = Path("/data/workstations/templates")
+default_oem_path = Path("/app/docker/workstation/oem")
 
 def generate_mac():
     return ":".join(f"{random.randint(0, 255):02X}" for _ in range(6))
@@ -37,6 +40,11 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
 
     template_path = template_vm_path / org_id / template_id
 
+    failed_status = {
+            "status":False,
+            "reason":""
+    }
+
     files = [
         (str(template_path / 'data.img'), str(vm_path / 'data.img')),
         (str(template_path / 'windows.base'), str(vm_path / 'data.img')),
@@ -50,8 +58,9 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
 
 
     if not template_vm_path.exists():
+        logger.error(f"Path not found {str(template_vm_path)}")
         updater(job, "failed to retrieve image")
-        return
+        return False
 
     with ThreadPoolExecutor(max_workers=n) as executor:
 
@@ -60,8 +69,36 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
         for future in futures:
             try:
                 logger.info(future.result())
+                if future.result() is False:
+                    return False
+
             except Exception as e:
                 logger.info(f"A copy task failed: {e}")
+                return False
+    return True
+
+def create_auto_configure_scripts(variables: dict, org_id, template_id, server_logger):
+    """
+    Reads all .ps1 files in a folder and replaces variable placeholders
+    with values provided in the variables dictionary.
+    """
+    source_folder = storage_path / "software" / org_id / template_id
+    server_logger.info(f"OEM source folder {str(source_folder)}")
+    for filename in os.listdir(str(source_folder)):
+        if filename.endswith(".ps1"):
+            source_path = source_folder / filename
+
+            with open(str(source_path), 'r', encoding='utf-8') as file:
+                content = file.read()
+
+            new_content = content
+            for key, value in variables.items():
+                new_content = new_content.replace(key.upper(), str(value))
+            server_logger.info(f"Update OEM script {source_path}")
+            with open(str(source_path), 'w', encoding='utf-8') as file:
+                file.write(new_content)
+
+
 
 def wait_for_rdp(ip_address, port=3389, timeout_minutes=30, check_interval=30,logger=None):
     """
@@ -88,21 +125,62 @@ def wait_for_rdp(ip_address, port=3389, timeout_minutes=30, check_interval=30,lo
     logger.info(f"Timeout reached: Port {port} did not open within {timeout_minutes} minutes.")
     return False
 
-def provision_default_workstation(org_id, template_id, job = None, updater = None, logger = None):
+def import_oem(oem_path):
+
+    shutil.copytree(str(default_oem_path), str(oem_path))
+
+def import_software(org_id, template_id, software_id):
+    pass
+
+def prepare_software(org_id, templated_id, software,oem_path,logger):
+    """
+    Move chosen software files for custom templates
+    """
+    logger.info("Importing default OEM scripts")
+    import_oem(oem_path)
+    for soft in software:
+        logger.info(f"Importing software (software_id={soft}")
+        import_software(org_id, template_id, soft)
+
+
+
+def provision_default_workstation(org_data, template_id, software, job = None, updater = None, logger = None):
 
     if updater is None:
         updater = lambda *args, **kwargs: None
-    
+
+    org_id = org_data["id"]
+
     default_vm_path = template_vm_path / org_id / template_id
     default_vm_path.mkdir(parents=True, exist_ok=True)
 
+    updater(job, "importing oem scripts")
+    oem_path = storage_path / "software" / org_id / template_id
+
+   
+
+    prepare_software(org_id, template_id, software,oem_path, logger)
+    
+    create_auto_configure_scripts({
+        "domain_name":org_data["realm_name"].lower(),
+        "admin_user":"administrator",
+        "admin_pass":org_data["dc_admin_password"],
+        "samba_ip":org_data["samba_ip"]}, org_id, template_id, logger) 
+
     updater(job, "starting workstation service")
 
-    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations/templates/"/ org_id / template_id
+    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "templates" / org_id / template_id
+    host_oem_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "software" / org_id / template_id
+    
+    logger.info(f"mounting storage path {str(host_vm_storage_path/'storage')}")
+    logger.info(f"mounting oem path {str(oem_path)}")
 
     container_ws = docker.compose.run(
             service="workstation",
-            volumes=[(str(host_vm_storage_path),"/storage","rw")],
+            volumes=[
+                (str(host_vm_storage_path),"/storage","rw"),
+                (str(host_oem_storage_path), "/oem", "rw")
+            ],
             publish=[(8009, 8006)],
             detach=True,
             tty=False
@@ -132,9 +210,15 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
     vm_path.mkdir(parents=True, exist_ok=True)
     updater(job, "copying workstation image")
 
+    failed_status = {"status":False}
+
     logger.info(f"Copying template to vm (template_id={template_id}, vm_id={vm_id})")
 
-    copy_image(org_id, template_id, vm_path, job=job, updater=updater, logger=logger)
+    if not copy_image(org_id, template_id, vm_path, job=job, updater=updater, logger=logger):
+        logger.error("Failed to copy template image")
+        failed_status["reason"] = "Failed to copy template image"
+        return failed_status
+
     assigned_mac = assign_mac(vm_path)
 
     updater(job, "starting workstation vm")

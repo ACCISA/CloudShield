@@ -1,10 +1,10 @@
 from rq import get_current_job
 
 from provisioner import provision_default_workstation, provision_custom_workstation, provision_workstation_vm
-from utils import get_logger, update_job, db
+from utils import get_logger, update_job, db, organizations, org_filter
 from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation, get_workstation_template 
 from models import WorkstationStatus
-
+from .task import get_server_nodes
 
 def ws_create_default(org_id, name, description, software, access_groups):
     """
@@ -16,6 +16,13 @@ def ws_create_default(org_id, name, description, software, access_groups):
 
     logger = get_logger("job", job_id=job_id)
     
+    org_doc = organizations.find_one(org_filter(org_id)) or None
+
+    if org_doc is None:
+        logger.error(f"Orginization not found (org_id={org_id})")
+        update_job(job, "org not found")
+        return
+
     ws_template = insert_workstation_template(
         db=db,
         name=name,
@@ -35,9 +42,27 @@ def ws_create_default(org_id, name, description, software, access_groups):
 
     update_job(job, "starting ws_create_default")
 
+    org_doc["id"] = org_id
+
+    nodes = get_server_nodes(org_id)
+    if nodes is None:
+        logger.error(f"Failed to get nodes (org_id={org_id})")
+        update_job(job, "failed to get server nodes")
+        return
+
+    samba_node = nodes.get("DOMAIN_CONTROLLER", None)
+
+    if samba_node is None:
+        logger.error(f"Failed to get DOMAIN_CONTROLLER node (org_id={org_id})")
+        update_job(job, "failed to get DOMAIN_CONTROLLER node")
+        return
+
+    org_doc["samba_ip"] = samba_node.ip
+
     status = provision_default_workstation(
-        org_id=org_id,
+        org_data=org_doc,
         template_id=template_id,
+        software=software,
         job=job,
         updater=update_job,
         logger=logger

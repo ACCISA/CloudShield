@@ -32,6 +32,13 @@ trap - ERR
 version=$(qemu-system-x86_64 --version | head -n 1 | cut -d '(' -f 1 | awk '{ print $NF }')
 info "Booting ${APP}${BOOT_DESC} using QEMU v$version..."
 
+iptables -t nat -A PREROUTING -i eth0 -p tcp -m multiport --dports 3389,5900,7100,8006 -j ACCEPT
+iptables -t nat -A PREROUTING -i eth0 -p tcp -j DNAT --to-destination 10.0.2.15
+iptables -t nat -A PREROUTING -i eth0 -p udp -j DNAT --to-destination 10.0.2.15
+iptables -t nat -A PREROUTING -i eth0 -p icmp -j DNAT --to-destination 10.0.2.15
+iptables -t nat -A POSTROUTING -s 172.30.0.14 -d 172.23.0.0/24 -j MASQUERADE
+iptables -t nat -A POSTROUTING -j MASQUERADE
+
 { qemu-system-x86_64 ${ARGS:+ $ARGS} >"$QEMU_OUT" 2>"$QEMU_LOG"; rc=$?; } || :
 (( rc != 0 )) && error "$(<"$QEMU_LOG")" && exit 15
 

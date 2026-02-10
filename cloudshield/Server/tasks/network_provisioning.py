@@ -227,14 +227,6 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
 
         logger.info("Metadata from provisioner: %s", metadata)
 
-
-
-        logger.info("Starting to provision 1 workstation for testing")
-
-        ws_metadata = provision_workstation(org_id, logger)
-
-        metadata.append(ws_metadata)
-
         assets = map_metadata_to_ec2_instances(metadata)
 
         res = insert_inventory(db=db, org_id=org_id, assets=assets)
