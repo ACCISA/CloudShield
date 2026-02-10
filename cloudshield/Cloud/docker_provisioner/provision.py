@@ -5,37 +5,21 @@ import uuid
 import socket
 from datetime import datetime, timezone
 import subprocess
-from python_on_whales import DockerClient
 from pathlib import Path
+import python_on_whales 
 
 from .keygen import generate_ssh_key_pair
-
-# FIX: Added compose_profiles=["templates"] so we can see the hidden services
-docker = DockerClient(compose_files=["/app/docker-compose.yml"], compose_profiles=["templates"])
-
-# In our test env, to be efficient we will build our infra now.
-print("BUILDING")
-PRAGMA_ONCE = False
-if PRAGMA_ONCE is False:
-    docker.compose.build(
-        services=["samba-test", "openvpn-test"]
-    )
-    # We pull alpine for the workstation instead of building the Windows image
-    try:
-        docker.image.pull("alpine:latest")
-    except:
-        pass
 
 def short_uuid():
     return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
 
-def ensure_clean_state(container_name, server_logger):
-    if docker.container.exists(container_name):
+def ensure_clean_state(container_name, server_logger, docker_client):
+    if docker_client.container.exists(container_name):
         server_logger.info(f"Removing existing container: {container_name}")
-        docker.container.remove(container_name, force=True)
+        docker_client.container.remove(container_name, force=True)
 
-def get_service_image(service_name):
-    image_name = docker.compose.config().services[service_name].image
+def get_service_image(service_name, docker_client):
+    image_name = docker_client.compose.config().services[service_name].image
     if not image_name:
         raise ValueError(f"Service '{service_name}' has no 'image' defined in docker-compose.yml")
     return image_name
@@ -53,6 +37,20 @@ def copy_file_container(server_logger, container_id, path_in, path_out):
     except subprocess.CalledProcessError as e:
         server_logger.error(e)
         server_logger.error(f"Failed to copy file to container (file={path_in}, container_id={container_id})")
+        return False
+
+def setup_container(server_logger, container_id):
+    try:
+        result = subprocess.run(
+                ["docker", "exec", "-i", container_id, "/usr/local/bin/docker-entrypoint.sh"],
+                capture_output=True,
+                text=True,
+                check=True
+        )
+        server_logger.info(f"Setup script output for {container_id}: {result.stdout}")
+        return True
+    except subprocess.CalledProcessError as e:
+        server_logger.error(f"Failed to run setup script on {container_id}: {e.stderr}")
         return False
 
 def setup_ssh_keys(server_logger, private_key_path):
@@ -76,14 +74,12 @@ def wait_workstation_completion(cid, server_logger):
 def create_auto_configure_scripts(variables: dict, container_id: str, server_logger):
     pass
 
-def provision_workstation_docker(org_id, network_name, samba_ip, server_logger):
-    ensure_clean_state(f"{org_id}-workstation", server_logger)
+def provision_workstation_docker(org_id, network_name, samba_ip, server_logger, docker_client):
+    ensure_clean_state(f"{org_id}-workstation", server_logger, docker_client)
 
     server_logger.info(f"Requesting dynamic Host Port -> Container 3389")
 
-    # FIX: Use Port 0. This asks Docker/Windows to pick a valid port automatically.
-    # This prevents the 'Forbidden Socket' crash.
-    container_ws = docker.run(
+    container_ws = docker_client.run(
         image="alpine:latest",
         name=f"{org_id}-workstation",
         networks=[network_name],
@@ -97,10 +93,8 @@ def provision_workstation_docker(org_id, network_name, samba_ip, server_logger):
     container_ws.reload()
     container_ws_ip = container_ws.network_settings.networks[network_name].ip_address
 
-    # FIX: Ask Docker which port it actually picked
     host_rdp_port = "0"
     try:
-        # returns dict like {'3389/tcp': [{'HostIp': '0.0.0.0', 'HostPort': '32768'}]}
         ports_map = container_ws.network_settings.ports
         if ports_map and "3389/tcp" in ports_map:
              host_rdp_port = ports_map["3389/tcp"][0]["HostPort"]
@@ -131,6 +125,21 @@ def provision_workstation_docker(org_id, network_name, samba_ip, server_logger):
     }
 
 def provision_network_docker(org_data, region, templates_dir, generated_dir, count, server_logger):
+    base_path = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
+    compose_file = os.path.join(base_path, "docker-compose.yml")    
+    
+    docker = python_on_whales.DockerClient(
+        compose_files=[compose_file],
+        compose_profiles=["templates"]
+    )
+
+    if server_logger and os.path.exists(compose_file):
+        try:
+            server_logger.info("Ensuring Docker templates are built...")
+            docker.compose.build(["samba-test", "openvpn-test"])
+        except Exception as e:
+            server_logger.warning(f"Build step skipped or failed: {e}")
+
     org_id = org_data.get("org_id", None)
     domain_name = org_data.get("domain_name", None)
     realm_name = org_data.get("realm_name", None)
@@ -161,11 +170,11 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     os.environ["DC_ADMIN_PASSWORD"] = dc_admin_password
     os.environ["REALM_NAME"] = realm_name
     os.environ["REALM_NAME_LWR"] = realm_name.lower()
+
+    ensure_clean_state(f"{org_id}-samba-test", server_logger, docker)
     
-    # 1. Start Samba
-    ensure_clean_state(f"{org_id}-samba-test", server_logger)
     container_dc = docker.run(
-        image=get_service_image("samba-test"),
+        image=get_service_image("samba-test", docker), 
         name=f"{org_id}-samba-test",
         networks=[network_name],
         detach=True,
@@ -182,9 +191,9 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "/dev/loop-control:/dev/loop-control"
         ],
         envs={
-            "DOMAIN_NAME": "ANISS",
-            "DC_ADMIN_PASSWORD": "4162728abb29acc12090e6432cdb6fd8%$@!",
-            "REALM_NAME": "ANISS.LOCAL"
+            "DOMAIN_NAME": domain_name,
+            "DC_ADMIN_PASSWORD": dc_admin_password,
+            "REALM_NAME": realm_name
         }
     )
     container_id = container_dc.id
@@ -192,14 +201,10 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     container_dc_ip = container_dc.network_settings.networks[network_name].ip_address
     server_logger.info(f"samba-test container id: {container_id} | IP: {container_dc_ip}")
 
-    # 2. Start OpenVPN
-    ensure_clean_state(f"{org_id}-openvpn-test", server_logger)
-    os.environ["OPENVPN_PORT"] = "1194"
-    os.environ["OPENVPN_PROTOCOL"] = "udp"
-    os.environ["OPENVPN_CLIENT_NAME"] = "client1"
+    ensure_clean_state(f"{org_id}-openvpn-test", server_logger, docker)
     
     container_vpn = docker.run(
-        image=get_service_image("openvpn-test"),
+        image=get_service_image("openvpn-test", docker),
         name=f"{org_id}-openvpn-test",
         networks=[network_name],
         detach=True,
@@ -208,21 +213,30 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         cap_add=["NET_ADMIN"],
         tmpfs=["/run", "/run/lock", "/tmp"],
         volumes=[("/sys/fs/cgroup", "/sys/fs/cgroup", "rw")],
-        devices=["/dev/net/tun:/dev/net/tun"]
+        devices=["/dev/net/tun:/dev/net/tun"],
+        envs={
+            "OPENVPN_PORT": "1194",
+            "OPENVPN_PROTOCOL": "udp",
+            "OPENVPN_CLIENT_NAME": "client1"
+        }
     )
     container_id_vpn = container_vpn.id
     container_vpn.reload()
     container_vpn_ip = container_vpn.network_settings.networks[network_name].ip_address
     server_logger.info(f"openvpn-test container id: {container_id_vpn} | IP: {container_vpn_ip}")
 
-    # Setup keys
+    if not setup_container(server_logger, container_id):
+        server_logger.error("Failed to run samba setup script")
+    
+    if not setup_container(server_logger, container_id_vpn):
+        server_logger.error("Failed to run openvpn setup script")
+
     if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):
         return
     if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
         return
 
-    # 3. Provision Workstation
-    workstation_meta = provision_workstation_docker(org_id, network_name, container_dc_ip, server_logger)
+    workstation_meta = provision_workstation_docker(org_id, network_name, container_dc_ip, server_logger, docker)
     if workstation_meta:
          wait_workstation_completion(workstation_meta["instance_id"], server_logger)
 
