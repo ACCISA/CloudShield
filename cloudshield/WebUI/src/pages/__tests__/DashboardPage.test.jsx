@@ -64,6 +64,12 @@ describe("DashboardPage", () => {
     useNavigate.mockReturnValue(navigateMock);
     useAuth.mockReturnValue({ user: { org_id: "org-from-auth" } });
     localStorage.setItem("org_id", "org-123");
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    localStorage.clear();
   });
 
   it("fetches activity on mount and passes data to ActivityTable", async () => {
@@ -117,6 +123,8 @@ describe("DashboardPage", () => {
 
     fireEvent.click(screen.getByText("refresh"));
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+    expect(screen.getByTestId("activity-total")).toHaveTextContent("1");
   });
 
   it("re-fetches using next API page when page changes", async () => {
@@ -194,6 +202,85 @@ describe("DashboardPage", () => {
     fireEvent.click(screen.getByText("Add Shares"));
     expect(navigateMock).toHaveBeenCalledWith("/files", {
       state: { openModal: true },
+    });
+  });
+
+  it("logs an error when fetchActivities receives a non-ok response", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ items: [{ id: "ignored" }], total: 99 }),
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+    expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+    expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+  });
+
+  it("logs an error when fetchActivities throws", async () => {
+    const networkError = new Error("network down");
+    global.fetch.mockRejectedValueOnce(networkError);
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching activities:",
+        networkError
+      );
+    });
+    expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+  });
+
+  it("uses safe defaults when API response omits items and total", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+  });
+
+  it("toggles loading prop around fetchActivities execution", async () => {
+    let resolveFetch;
+    global.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      const anyLoadingTrue = activityTableRenderMock.mock.calls.some(
+        ([props]) => props.loading === true
+      );
+      expect(anyLoadingTrue).toBe(true);
+    });
+
+    resolveFetch({
+      ok: true,
+      json: async () => ({ items: [], total: 0 }),
+    });
+
+    await waitFor(() => {
+      const lastCallProps =
+        activityTableRenderMock.mock.calls[
+          activityTableRenderMock.mock.calls.length - 1
+        ][0];
+      expect(lastCallProps.loading).toBe(false);
     });
   });
 });
