@@ -2,7 +2,7 @@
  * API functions for file shares
  */
 
-const API_BASE = "/api";
+const API_BASE = "http://localhost:5050/api";
 
 /**
  * Fetch all file shares for an organization

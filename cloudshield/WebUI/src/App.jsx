@@ -14,7 +14,7 @@ import ProvisioningPage from "./pages/ProvisioningPage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 function AppWithAuth() {
-  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "false";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
