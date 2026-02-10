@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { trackButton } from "../../lib/analytics";
 
 const navigateMock = jest.fn();
-const activityTableRenderMock = jest.fn();
+let mockActivityTableRenderMock;
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
@@ -33,7 +33,9 @@ jest.mock("../../components/dashboard/StatCard.jsx", () => {
 
 jest.mock("../../components/dashboard/ActivityTable.jsx", () => {
   return function MockActivityTable(props) {
-    activityTableRenderMock(props);
+    if (mockActivityTableRenderMock) {
+      mockActivityTableRenderMock(props);
+    }
     return (
       <div data-testid="activity-table">
         <div data-testid="activity-size">{props.activities.length}</div>
@@ -65,6 +67,7 @@ describe("DashboardPage", () => {
     useAuth.mockReturnValue({ user: { org_id: "org-from-auth" } });
     localStorage.setItem("org_id", "org-123");
     jest.spyOn(console, "error").mockImplementation(() => {});
+    mockActivityTableRenderMock = jest.fn();
   });
 
   afterEach(() => {
@@ -264,7 +267,7 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      const anyLoadingTrue = activityTableRenderMock.mock.calls.some(
+      const anyLoadingTrue = mockActivityTableRenderMock.mock.calls.some(
         ([props]) => props.loading === true
       );
       expect(anyLoadingTrue).toBe(true);
@@ -277,14 +280,18 @@ describe("DashboardPage", () => {
 
     await waitFor(() => {
       const lastCallProps =
-        activityTableRenderMock.mock.calls[
-          activityTableRenderMock.mock.calls.length - 1
+        mockActivityTableRenderMock.mock.calls[
+          mockActivityTableRenderMock.mock.calls.length - 1
         ][0];
       expect(lastCallProps.loading).toBe(false);
     });
   });
 
   describe("fetchActivities - Comprehensive Coverage", () => {
+    beforeEach(() => {
+      mockActivityTableRenderMock = jest.fn();
+    });
+
     it("should fetch activities with correct pagination parameters", async () => {
       const mockActivities = [
         { id: "1", actor: "Alice", description: "Created user", timestamp: "2025-01-01" },
@@ -301,10 +308,9 @@ describe("DashboardPage", () => {
         expect(global.fetch).toHaveBeenCalledWith(
           "http://localhost:5050/api/activity/org-123?page=1&limit=20"
         );
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("42");
       });
-
-      expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
-      expect(screen.getByTestId("activity-total")).toHaveTextContent("42");
     });
 
     it("should convert 0-indexed page to 1-indexed API page", async () => {
@@ -390,7 +396,7 @@ describe("DashboardPage", () => {
 
       // Check that loading is set to true during fetch
       await waitFor(() => {
-        const propositionWithLoading = activityTableRenderMock.mock.calls.some(
+        const propositionWithLoading = mockActivityTableRenderMock.mock.calls.some(
           ([props]) => props.loading === true
         );
         expect(propositionWithLoading).toBe(true);
@@ -404,8 +410,8 @@ describe("DashboardPage", () => {
       // Check that loading is set to false after fetch
       await waitFor(() => {
         const lastProps =
-          activityTableRenderMock.mock.calls[
-            activityTableRenderMock.mock.calls.length - 1
+          mockActivityTableRenderMock.mock.calls[
+            mockActivityTableRenderMock.mock.calls.length - 1
           ][0];
         expect(lastProps.loading).toBe(false);
       });
@@ -422,8 +428,8 @@ describe("DashboardPage", () => {
 
       await waitFor(() => {
         const lastProps =
-          activityTableRenderMock.mock.calls[
-            activityTableRenderMock.mock.calls.length - 1
+          mockActivityTableRenderMock.mock.calls[
+            mockActivityTableRenderMock.mock.calls.length - 1
           ][0];
         expect(lastProps.loading).toBe(false);
       });
@@ -436,8 +442,8 @@ describe("DashboardPage", () => {
 
       await waitFor(() => {
         const lastProps =
-          activityTableRenderMock.mock.calls[
-            activityTableRenderMock.mock.calls.length - 1
+          mockActivityTableRenderMock.mock.calls[
+            mockActivityTableRenderMock.mock.calls.length - 1
           ][0];
         expect(lastProps.loading).toBe(false);
       });
@@ -799,8 +805,8 @@ describe("DashboardPage", () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        const lastCall = activityTableRenderMock.mock.calls[
-          activityTableRenderMock.mock.calls.length - 1
+        const lastCall = mockActivityTableRenderMock.mock.calls[
+          mockActivityTableRenderMock.mock.calls.length - 1
         ][0];
         expect(lastCall.activities).toEqual(mockActivities);
       });
@@ -815,8 +821,8 @@ describe("DashboardPage", () => {
       render(<DashboardPage />);
 
       await waitFor(() => {
-        const lastCall = activityTableRenderMock.mock.calls[
-          activityTableRenderMock.mock.calls.length - 1
+        const lastCall = mockActivityTableRenderMock.mock.calls[
+          mockActivityTableRenderMock.mock.calls.length - 1
         ][0];
         expect(lastCall.totalCount).toBe(250);
       });
@@ -837,14 +843,498 @@ describe("DashboardPage", () => {
         });
 
       render(<DashboardPage />);
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-      expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
+      });
 
       fireEvent.click(screen.getByText("refresh"));
       await waitFor(() => {
         expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
       });
+    });
+
+    it("should handle very large page numbers correctly", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Simulate jumping to a very high page number
+      fireEvent.click(screen.getByText("change-page"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      // API page should be 3 (page 2 + 1)
+      expect(global.fetch.mock.calls[1][0]).toContain("page=3");
+    });
+
+    it("should handle edge case rowsPerPage values", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Change to 50 rows per page
+      fireEvent.click(screen.getByText("change-rpp"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      expect(global.fetch.mock.calls[1][0]).toContain("limit=50");
+    });
+
+    it("should construct URL with correct API_BASE_URL", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const url = global.fetch.mock.calls[0][0];
+        expect(url).toMatch(/^http:\/\/localhost:5050/);
+      });
+    });
+
+    it("should construct URL with correct endpoint format", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const url = global.fetch.mock.calls[0][0];
+        expect(url).toMatch(/\/api\/activity\/org-123/);
+      });
+    });
+
+    it("should handle response with extra fields in activity objects", async () => {
+      const mockActivities = [
+        {
+          id: "1",
+          actor: "Alice",
+          description: "action",
+          timestamp: "2025-01-01",
+          metadata: { key: "value" },
+          extra: "field",
+        },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 1 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastCall = mockActivityTableRenderMock.mock.calls[
+          mockActivityTableRenderMock.mock.calls.length - 1
+        ][0];
+        expect(lastCall.activities[0]).toEqual(mockActivities[0]);
+      });
+    });
+
+    it("should handle 502 Bad Gateway response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        json: async () => ({ error: "Bad Gateway" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle 503 Service Unavailable response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: "Service Unavailable" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    });
+
+    it("should handle DOMException (typical browser fetch error)", async () => {
+      const domError = new DOMException("The user aborted a request");
+      global.fetch.mockRejectedValueOnce(domError);
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          "Error fetching activities:",
+          domError
+        );
+      });
+    });
+
+    it("should handle TypeError from fetch", async () => {
+      const typeError = new TypeError("Failed to fetch");
+      global.fetch.mockRejectedValueOnce(typeError);
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          "Error fetching activities:",
+          typeError
+        );
+      });
+    });
+
+    it("should not update state if response is not ok", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ items: [{ id: "should-not-appear" }], total: 99 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+
+      // State should remain at default values
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+      expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+    });
+
+    it("should fetch again when org_id changes", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "1" }], total: 1 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "2" }], total: 1 }),
+        });
+
+      const { rerender } = render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Change org_id
+      localStorage.setItem("org_id", "new-org-789");
+      rerender(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        const lastCall = global.fetch.mock.calls[1][0];
+        expect(lastCall).toContain("new-org-789");
+      });
+    });
+
+    it("should handle response with boolean false in items field", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: false, total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+      });
+    });
+
+    it("should handle response with boolean false in total field", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [{ id: "1" }], total: false }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("0");
+      });
+    });
+
+    it("should handle 429 Too Many Requests response", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: async () => ({ error: "Too many requests" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+      });
+    });
+
+    it("should handle response with special characters in activity data", async () => {
+      const mockActivities = [
+        {
+          id: "1",
+          actor: "用户",
+          description: 'Created "special" <file>',
+        },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 1 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const lastCall = mockActivityTableRenderMock.mock.calls[
+          mockActivityTableRenderMock.mock.calls.length - 1
+        ][0];
+        expect(lastCall.activities[0].actor).toBe("用户");
+        expect(lastCall.activities[0].description).toBe(
+          'Created "special" <file>'
+        );
+      });
+    });
+
+    it("should handle concurrent page and rowsPerPage changes", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 0 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Both actions should trigger a fetch (rowsPerPage change resets page)
+      fireEvent.click(screen.getByText("change-rpp"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      expect(global.fetch.mock.calls[1][0]).toContain("page=1&limit=50");
+    });
+
+    it("should maintain pagination state in UI after load", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 50 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-page")).toHaveTextContent("0");
+        expect(screen.getByTestId("activity-rpp")).toHaveTextContent("20");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("50");
+      });
+    });
+
+    it("should handle response with undefined in items array", async () => {
+      const mockActivities = [
+        { id: "1", actor: "Alice", description: "Action 1" },
+        undefined,
+        { id: "2", actor: "Bob", description: "Action 2" },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: 3 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("3");
+      });
+    });
+
+    it("should handle very large total count value", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 999999999 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-total")).toHaveTextContent(
+          "999999999"
+        );
+      });
+    });
+
+    it("should handle 0 page and rowsPerPage correctly", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const url = global.fetch.mock.calls[0][0];
+        // page 0 + 1 = 1
+        expect(url).toContain("page=1&limit=20");
+      });
+    });
+
+    it("should handle mixed success and error scenarios", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "1" }], total: 1 }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ id: "2" }], total: 1 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // First fetch succeeds
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+
+      // Second fetch fails
+      fireEvent.click(screen.getByText("refresh"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+      expect(console.error).toHaveBeenCalledWith("Failed to fetch activities");
+
+      // State should not change after failed fetch
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+
+      // Third fetch succeeds
+      fireEvent.click(screen.getByText("refresh"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+      expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+    });
+
+    it("should handle response with numeric strings in total", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: "100" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("100");
+      });
+    });
+
+    it("should handle response with numeric strings in items length", async () => {
+      const mockActivities = [
+        { id: "1", actor: "Alice", description: "Action" },
+      ];
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: mockActivities, total: "50" }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("50");
+      });
+    });
+
+    it("should call fetch with correct parameters in specific order", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [], total: 0 }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        const [url] = global.fetch.mock.calls[0];
+        const parts = url.split("?");
+        expect(parts.length).toBe(2);
+        expect(parts[0]).toBe("http://localhost:5050/api/activity/org-123");
+        expect(parts[1]).toMatch(/page=\d+&limit=\d+/);
+      });
+    });
+
+    it("should handle response with extra top-level fields", async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [{ id: "1" }],
+          total: 1,
+          status: "success",
+          message: "Data retrieved",
+          timestamp: "2025-01-01T00:00:00Z",
+        }),
+      });
+
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
+        expect(screen.getByTestId("activity-total")).toHaveTextContent("1");
+      });
+    });
+
+    it("should handle refresh when at different page positions", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 100 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 100 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [], total: 100 }),
+        });
+
+      render(<DashboardPage />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+      // Go to page 2
+      fireEvent.click(screen.getByText("change-page"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+      // Refresh at page 2
+      fireEvent.click(screen.getByText("refresh"));
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+
+      // Should still be at page 2
+      expect(global.fetch.mock.calls[2][0]).toContain("page=3");
     });
   });
 });
