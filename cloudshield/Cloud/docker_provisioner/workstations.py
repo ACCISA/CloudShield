@@ -47,7 +47,7 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
 
     files = [
         (str(template_path / 'data.img'), str(vm_path / 'data.img')),
-        (str(template_path / 'windows.base'), str(vm_path / 'data.img')),
+        (str(template_path / 'windows.base'), str(vm_path / 'windows.base')),
         (str(template_path / 'windows.mac'), str(vm_path / 'windows.mac')),
         (str(template_path / 'windows.vars'), str(vm_path / 'windows.vars')),
         (str(template_path / 'windows.ver'), str(vm_path / 'windows.ver')),
