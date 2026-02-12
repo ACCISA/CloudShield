@@ -21,7 +21,6 @@ from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
-from security import require_auth
 
 logger = get_logger("api")
 
