@@ -129,6 +129,10 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     Raises:
         PermissionError: If public signup is not allowed or current_user is not admin
         ValueError: If email already exists or org user limit is exceeded
+
+    Side Effects:
+        - Enqueues a welcome email for public signups.
+        - Enqueues an invite email when an admin creates an employee.
     """
 
     # Determine package for this signup
@@ -200,6 +204,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         "updated_at": datetime.now(timezone.utc),
     }
     res = users_admin.insert_one(user_doc)
+    user_id = str(res.inserted_id)
 
     # -----------------------------
     # Audit logging
@@ -221,7 +226,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         action="create",
         actor=actor,
         resource="users",
-        target={"id": str(res.inserted_id), "email": user_data.email},
+        target={"id": user_id, "email": user_data.email},
         reason=reason,
         before=None,
         after={"role": user_data.role, "status": "active", "org_id": org_id},
@@ -233,7 +238,21 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     except Exception:
         pass
 
-    return str(res.inserted_id)
+    # -----------------------------
+    # Async email notifications
+    # -----------------------------
+    try:
+        from services.job_service import enqueue_org_welcome_email, enqueue_employee_invite_email
+
+        if current_user is None:
+            enqueue_org_welcome_email(org_id, user_id)
+        elif user_data.role == "employee":
+            enqueue_employee_invite_email(user_id)
+    except Exception:
+        # Keep email dispatch failures from impacting user creation.
+        pass
+
+    return user_id
 
 
 def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None) -> bool:
