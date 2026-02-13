@@ -47,12 +47,6 @@ std::string SambaTask::AddUserToGroup(std::string group_name, std::string userna
 	return this->RunCommand(full_cmd);
 }
 
-std::string SambaTask::RestartSambaService()
-{
-	std::system(this->RESTART_SAMBA_CMD);
-	return "";
-}
-
 std::vector<std::string> SambaTask::GetUserList()
 {
 	std::vector<std::string> users;

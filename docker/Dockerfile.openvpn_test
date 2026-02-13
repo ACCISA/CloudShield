@@ -10,6 +10,7 @@ RUN apt-get update \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2\
     iproute2 \
+    libgrpc++1.51t64 libgrpc29t64 \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -41,7 +42,8 @@ COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
 
 # Copy entrypoint script
 COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 
 # we created a fake sudo script for comaptibilty between docker and cloud dev/testing
 RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
