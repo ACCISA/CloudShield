@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import DashboardPage from "../DashboardPage";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -7,6 +7,25 @@ import { trackButton } from "../../lib/analytics";
 
 const navigateMock = jest.fn();
 let mockActivityTableRenderMock;
+
+const renderDashboard = () =>
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>
+  );
+
+jest.mock("react-router-dom", () => {
+  const actual = jest.requireActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => jest.fn(),
+  };
+});
+
+jest.mock("../../api/useOrgMetrics.js", () => ({
+  useOrgMetrics: jest.fn(),
+}));
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
@@ -59,6 +78,13 @@ jest.mock("../../components/dashboard/ActivityTable.jsx", () => {
   };
 });
 
+import { useAuth } from "../../context/AuthContext.jsx";
+import { trackButton } from "../../lib/analytics";
+import DashboardPage from "../DashboardPage";
+import { MemoryRouter } from "react-router-dom";
+import { useOrgMetrics } from "../../api/useOrgMetrics.js";
+
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -67,8 +93,19 @@ describe("DashboardPage", () => {
     useAuth.mockReturnValue({ user: { org_id: "org-from-auth" } });
     localStorage.setItem("org_id", "org-123");
     jest.spyOn(console, "error").mockImplementation(() => {});
+
+    useOrgMetrics.mockReturnValue({
+      stats: {
+        users: 16,
+        workstations: 12,
+        groups: 3,
+        shares: 33,
+      },
+      loading: false,
+    });
     mockActivityTableRenderMock = jest.fn();
   });
+
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -84,7 +121,12 @@ describe("DashboardPage", () => {
       }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
+    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Workstations")).toBeInTheDocument();
+    expect(screen.getByText("Groups")).toBeInTheDocument();
+    expect(screen.getByText("Files")).toBeInTheDocument();
+  });
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -92,7 +134,12 @@ describe("DashboardPage", () => {
       );
     });
 
-    await waitFor(() => {
+    renderDashboard();
+    expect(screen.getByText("16")).toBeInTheDocument(); // Users
+    expect(screen.getByText("12")).toBeInTheDocument(); // Workstations
+    expect(screen.getByText("3")).toBeInTheDocument(); // Groups
+    expect(screen.getByText("33")).toBeInTheDocument(); // Files
+     await waitFor(() => {
       expect(screen.getByTestId("activity-size")).toHaveTextContent("1");
       expect(screen.getByTestId("activity-total")).toHaveTextContent("1");
       expect(screen.getByTestId("activity-page")).toHaveTextContent("0");
@@ -121,7 +168,8 @@ describe("DashboardPage", () => {
         json: async () => ({ items: [{ id: "a2" }], total: 1 }),
       });
 
-    render(<DashboardPage />);
+    renderDashboard();
+    expect(screen.getByTestId("activity-panel")).toBeInTheDocument();
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByText("refresh"));
@@ -141,6 +189,9 @@ describe("DashboardPage", () => {
         json: async () => ({ items: [], total: 0 }),
       });
 
+    const { container } = renderDashboard();
+    const mainBox = container.firstChild;
+    expect(mainBox).toHaveStyle({ display: "flex", flexDirection: "column" });
     render(<DashboardPage />);
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
@@ -163,7 +214,7 @@ describe("DashboardPage", () => {
         json: async () => ({ items: [], total: 0 }),
       });
 
-    render(<DashboardPage />);
+    renderDashboard();
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByText("change-rpp"));
@@ -180,7 +231,7 @@ describe("DashboardPage", () => {
       json: async () => ({ items: [], total: 0 }),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByText("Add Users"));
@@ -246,7 +297,7 @@ describe("DashboardPage", () => {
       json: async () => ({}),
     });
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -264,7 +315,7 @@ describe("DashboardPage", () => {
         })
     );
 
-    render(<DashboardPage />);
+    renderDashboard();
 
     await waitFor(() => {
       const anyLoadingTrue = mockActivityTableRenderMock.mock.calls.some(
@@ -774,133 +825,43 @@ describe("DashboardPage", () => {
       await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
     });
 
-    it("should trigger fetchActivities again when rowsPerPage dependency changes", async () => {
-      global.fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        });
-
-      render(<DashboardPage />);
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-      fireEvent.click(screen.getByText("change-rpp"));
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
-    });
-
-    it("should pass activities data correctly to ActivityTable component", async () => {
-      const mockActivities = [
-        { id: "1", actor: "Alice", description: "Created file" },
-        { id: "2", actor: "Bob", description: "Deleted user" },
-      ];
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: mockActivities, total: 2 }),
-      });
-
-      render(<DashboardPage />);
-
-      await waitFor(() => {
-        const lastCall = mockActivityTableRenderMock.mock.calls[
-          mockActivityTableRenderMock.mock.calls.length - 1
-        ][0];
-        expect(lastCall.activities).toEqual(mockActivities);
+    it("tracks add users", () => {
+      renderDashboard();
+      const userCard = screen.getByTestId("stat-card-users");
+      fireEvent.click(userCard.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "users",
       });
     });
 
-    it("should pass totalCount from API response to ActivityTable", async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [{ id: "1" }], total: 250 }),
-      });
-
-      render(<DashboardPage />);
-
-      await waitFor(() => {
-        const lastCall = mockActivityTableRenderMock.mock.calls[
-          mockActivityTableRenderMock.mock.calls.length - 1
-        ][0];
-        expect(lastCall.totalCount).toBe(250);
+    it("tracks add workstations", () => {
+      renderDashboard();
+      const card = screen.getByTestId("stat-card-workstations");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "workstations",
       });
     });
 
-    it("should clear previous activities when refresh returns empty", async () => {
-      global.fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            items: [{ id: "1" }, { id: "2" }],
-            total: 2,
-          }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        });
-
-      render(<DashboardPage />);
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(screen.getByTestId("activity-size")).toHaveTextContent("2");
-      });
-
-      fireEvent.click(screen.getByText("refresh"));
-      await waitFor(() => {
-        expect(screen.getByTestId("activity-size")).toHaveTextContent("0");
+    it("tracks add groups", () => {
+      renderDashboard();
+      const card = screen.getByTestId("stat-card-groups");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "groups",
       });
     });
 
-    it("should handle very large page numbers correctly", async () => {
-      global.fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        });
-
-      render(<DashboardPage />);
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-      // Simulate jumping to a very high page number
-      fireEvent.click(screen.getByText("change-page"));
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
-
-      // API page should be 3 (page 2 + 1)
-      expect(global.fetch.mock.calls[1][0]).toContain("page=3");
-    });
-
-    it("should handle edge case rowsPerPage values", async () => {
-      global.fetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [], total: 0 }),
-        });
-
-      render(<DashboardPage />);
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-      // Change to 50 rows per page
-      fireEvent.click(screen.getByText("change-rpp"));
-      await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
-
-      expect(global.fetch.mock.calls[1][0]).toContain("limit=50");
-    });
-
-    it("should construct URL with correct API_BASE_URL", async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [], total: 0 }),
+    it("tracks add files", () => {
+      renderDashboard();
+      const card = screen.getByTestId("stat-card-files");
+      fireEvent.click(card.querySelector("button"));
+      expect(trackButton).toHaveBeenCalledWith("dashboard/statcard/add", {
+        page: "dashboard",
+        entity: "files",
       });
 
       render(<DashboardPage />);
@@ -1337,4 +1298,44 @@ describe("DashboardPage", () => {
       expect(global.fetch.mock.calls[2][0]).toContain("page=3");
     });
   });
+
+  describe("Org metrics rendering (useOrgMetrics)", () => {
+    beforeEach(() => {
+      useOrgMetrics.mockClear();
+    });
+
+
+    it('shows "…" when stats are missing and statsLoading=true', () => {
+      useOrgMetrics.mockReturnValue({ stats: {}, loading: true });
+
+      renderDashboard();
+
+      expect(screen.getByTestId("stat-card-users")).toHaveTextContent("…");
+      expect(screen.getByTestId("stat-card-workstations")).toHaveTextContent("…");
+      expect(screen.getByTestId("stat-card-groups")).toHaveTextContent("…");
+
+      const sharesOrFiles =
+        screen.queryByTestId("stat-card-shares") ||
+        screen.queryByTestId("stat-card-files");
+      expect(sharesOrFiles).toBeTruthy();
+      expect(sharesOrFiles).toHaveTextContent("…");
+    });
+
+    it("shows 0 when stats are missing and statsLoading=false", () => {
+      useOrgMetrics.mockReturnValue({ stats: {}, loading: false });
+
+      renderDashboard();
+
+      expect(screen.getByTestId("stat-card-users")).toHaveTextContent("0");
+      expect(screen.getByTestId("stat-card-workstations")).toHaveTextContent("0");
+      expect(screen.getByTestId("stat-card-groups")).toHaveTextContent("0");
+
+      const sharesOrFiles =
+        screen.queryByTestId("stat-card-shares") ||
+        screen.queryByTestId("stat-card-files");
+      expect(sharesOrFiles).toBeTruthy();
+      expect(sharesOrFiles).toHaveTextContent("0");
+    });
+  });
 });
+

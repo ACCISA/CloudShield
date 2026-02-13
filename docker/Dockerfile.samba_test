@@ -2,13 +2,15 @@ ARG BASEOS_DIGEST
 FROM docker.io/library/ubuntu:24.04${BASEOS_DIGEST:-}
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     software-properties-common \
-    rsyslog systemd systemd-cron sudo wget\
+    rsyslog systemd systemd-cron sudo wget \
     samba-ad-dc samba-ad-provision \
     krb5-user bind9-dnsutils dnsutils openssh-server net-tools vim \
     libldb-dev samba-libs ldb-tools libldb2 iputils-ping \
     iproute2 \
+    acl attr winbind libpam-winbind libnss-winbind python3-setproctitle \
+    libgrpc++1.51t64 libgrpc29t64 \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -28,13 +30,14 @@ RUN echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
 RUN echo "AuthorizedKeysFile .ssh/authorized_keys" >> /etc/ssh/sshd_config
 
 # Make directories for Samba
-RUN mkdir -p /var/lib/samba /var/log/samba /etc/sambaA
+RUN mkdir -p /var/lib/samba /var/log/samba /etc/samba
 RUN mkdir -p /srv/samba/shares/
 
 # Copy entrypoint script
 COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 
 # we created a fake sudo script for comaptibilty between docker and cloud dev/testing
 RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
@@ -46,6 +49,8 @@ RUN chmod +x /usr/local/bin/sudo
 COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
 COPY docker/cs_samba_rpc.service /etc/systemd/system/cs_rpc.service
 
+# Mask default Samba services at build time (AD DC uses its own service)
+RUN systemctl mask smbd nmbd winbind 2>/dev/null || true
 
 # Expose ports needed by AD DC
 #EXPOSE 53 53/udp \

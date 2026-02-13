@@ -191,11 +191,12 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "/dev/loop-control:/dev/loop-control"
         ],
         envs={
-            "DOMAIN_NAME": domain_name,
-            "DC_ADMIN_PASSWORD": dc_admin_password,
-            "REALM_NAME": realm_name
-        }
-    )
+        "DOMAIN_NAME": domain_name,
+        "DC_ADMIN_PASSWORD": dc_admin_password,
+        "REALM_NAME": realm_name,
+        "REALM_NAME_LWR": realm_name.lower() if realm_name else "",
+        })
+    
     container_id = container_dc.id
     container_dc.reload()
     container_dc_ip = container_dc.network_settings.networks[network_name].ip_address

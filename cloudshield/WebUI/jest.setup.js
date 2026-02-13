@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
 
+global.importMeta = { env: {} };
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

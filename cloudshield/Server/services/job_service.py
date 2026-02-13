@@ -82,6 +82,20 @@ def dc_remove_user(org_id: str, username: str):
 
     return _task(org_id, username)
 
+
+def send_org_welcome_email(org_id: str, admin_user_id: str):
+    """Call the org welcome email task directly (used by enqueue helpers/tests)."""
+    from cloudshield.Server.tasks import send_org_welcome_email as _task  # type: ignore
+
+    return _task(org_id, admin_user_id)
+
+
+def send_employee_invite_email(user_id: str):
+    """Call the employee invite email task directly (used by enqueue helpers/tests)."""
+    from cloudshield.Server.tasks import send_employee_invite_email as _task  # type: ignore
+
+    return _task(user_id)
+
 def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
     """
     Retrieve the current status and metadata of a queued background job.
@@ -359,6 +373,29 @@ def enqueue_dc_remove_user(org_id: str, username: str):
     return job
 
 
+def enqueue_org_welcome_email(org_id: str, admin_user_id: str) -> Job:
+    """Enqueue a welcome email for a newly created organization admin."""
+    job = task_queue.enqueue(
+        send_org_welcome_email,
+        org_id,
+        admin_user_id,
+        job_timeout=JOB_TIMEOUT,
+    )
+    logger.info("Enqueued send_org_welcome_email")
+    return job
+
+
+def enqueue_employee_invite_email(user_id: str) -> Job:
+    """Enqueue an invite email for a newly created employee."""
+    job = task_queue.enqueue(
+        send_employee_invite_email,
+        user_id,
+        job_timeout=JOB_TIMEOUT,
+    )
+    logger.info("Enqueued send_employee_invite_email")
+    return job
+
+
 SERVICES = {
     "provision_network": enqueue_provision,
     "provision_workstations": enqueue_provision_workstations,
@@ -372,6 +409,8 @@ SERVICES = {
     "dc_set_password": enqueue_dc_set_password,
     "dc_create_file_share": enqueue_create_file_share,
     "dc_delete_file_share": enqueue_delete_file_share,
+    "send_org_welcome_email": enqueue_org_welcome_email,
+    "send_employee_invite_email": enqueue_employee_invite_email,
 }
 
 def service_dispatcher(service_name: str, *args, **kwargs):

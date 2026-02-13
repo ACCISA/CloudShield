@@ -11,9 +11,9 @@ import { useNavigate } from "react-router-dom";
 import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
-import ActivityTable from "../components/dashboard/ActivityTable.jsx";
-import { useAuth } from "../context/AuthContext.jsx"; 
-
+import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
+import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
+import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
 const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
 
 export default function DashboardPage() {
@@ -23,9 +23,15 @@ export default function DashboardPage() {
   const [provisioningStatus, setProvisioningStatus] = useState("pending");
   const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
 
+  const { stats, loading: statsLoading } = useOrgMetrics();
+
+  // Polling logic to check provisioning status
+  useEffect(() => {
+    if (!user?.org_id) return;
+   
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [rowsPerPage, setRowsPerPage] = useState(20);   
 
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);
@@ -186,28 +192,28 @@ export default function DashboardPage() {
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
         <StatCard
           title="Users"
-          value={16}
+          value={stats.users ?? (statsLoading ? "…" : 0)}
           gradientFrom="#6a4fcf"
           gradientTo="#ad8bff"
           onAdd={handleAddUser}
         />
         <StatCard
           title="Workstations"
-          value={12}
+          value={stats.workstations ?? (statsLoading ? "…" : 0)}
           gradientFrom="#c94b4b"
           gradientTo="#de6f6f"
           onAdd={handleAddWorkstation}
         />
         <StatCard
           title="Groups"
-          value={3}
+          value={stats.groups ?? (statsLoading ? "…" : 0)}
           gradientFrom="#2656d8"
           gradientTo="#4d7fff"
           onAdd={handleAddGroup}
         />
         <StatCard
           title="Shares"
-          value={33}
+          value={stats.shares ?? (statsLoading ? "…" : 0)}
           gradientFrom="#c57a1c"
           gradientTo="#f0a24f"
           onAdd={handleAddFile}

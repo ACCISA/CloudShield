@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome to CloudShield</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial, Helvetica, sans-serif;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:8px;padding:24px;">
+            <tr>
+              <td style="background:#111827;border-radius:8px;padding:16px 20px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td align="center">
+                      <img src="http://real.encs.concordia.ca/cloudshield_logo_white.png" alt="CloudShield" style="height:40px;max-width:200px;display:block;" />
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px;font-weight:bold;color:#111111;padding:18px 0 12px;">
+                Welcome to CloudShield
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:16px;">
+                Hi {{ admin_name or "there" }}, your organization
+                <strong>{{ org_name or "your organization" }}</strong> is ready.
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:20px;">
+                You can access the admin dashboard by logging in here:
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:24px;">
+                <a href="{{ login_url }}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;">
+                  Open Login
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:12px;color:#6b7280;line-height:1.5;">
+                If you did not request this, please ignore this email.
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:12px;color:#9ca3af;line-height:1.5;padding-top:8px;">
+                Need help? Contact your CloudShield administrator.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

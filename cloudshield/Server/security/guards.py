@@ -70,7 +70,13 @@ def require_auth(fn):
         except Exception as e:
             log_denied(reason="invalid_jwt", path=request.path, method=request.method, meta={"err": str(e)})
             return jsonify({"error":"Unauthorized"}), 401
-        g.user = {"id": payload["sub"], "role": payload["role"], "org_id": payload["org_id"]}
+        g.user = {
+            "id": payload["sub"],
+            "role": payload["role"],
+            "org_id": payload["org_id"],
+            "email": payload.get("email"),
+            "full_name": payload.get("full_name"),
+                }
         return fn(*args, **kwargs)
     return wrapper
 

@@ -16,6 +16,14 @@ class DummyJob:
         return self._status
 
 
+class DummyLogger:
+    def __init__(self):
+        self.messages = []
+
+    def info(self, message, *args):
+        self.messages.append((message, args))
+
+
 @pytest.fixture
 def fake_tasks_module(monkeypatch):
     mod = types.ModuleType("cloudshield.Server.tasks")
@@ -35,6 +43,8 @@ def fake_tasks_module(monkeypatch):
     mod.dc_create_user_with_group = maker("dc_create_user_with_group")
     mod.dc_create_file_share = maker("dc_create_file_share")
     mod.dc_delete_file_share = maker("dc_delete_file_share")
+    mod.send_org_welcome_email = maker("send_org_welcome_email")
+    mod.send_employee_invite_email = maker("send_employee_invite_email")
 
     monkeypatch.setitem(sys.modules, "cloudshield.Server.tasks", mod)
     return mod
@@ -50,6 +60,8 @@ def test_task_wrappers_execute_underlying_tasks(fake_tasks_module):
     assert job_service.dc_create_user_with_group("org", "user", "pwd", "grp")["name"] == "dc_create_user_with_group"
     assert job_service.dc_create_file_share("org", "share")["name"] == "dc_create_file_share"
     assert job_service.dc_delete_file_share("org", "share")["name"] == "dc_delete_file_share"
+    assert job_service.send_org_welcome_email("org", "admin")["name"] == "send_org_welcome_email"
+    assert job_service.send_employee_invite_email("user")["name"] == "send_employee_invite_email"
 
 
 def test_enqueue_provision(monkeypatch):
@@ -256,3 +268,45 @@ def test_service_dispatcher_known(monkeypatch):
 def test_enqueue_dc_change_password_noop():
     # Function is intentionally a placeholder; ensure it is callable
     assert job_service.enqueue_dc_change_password("org", "user", "pass") is None
+
+
+def test_enqueue_org_welcome_email(monkeypatch):
+    recorded = {}
+    logger = DummyLogger()
+
+    def fake_enqueue(func, *args, **kwargs):
+        recorded["func"] = func
+        recorded["args"] = args
+        recorded["kwargs"] = kwargs
+        return DummyJob(job_id="job-welcome")
+
+    monkeypatch.setattr(job_service, "task_queue", types.SimpleNamespace(enqueue=fake_enqueue))
+    monkeypatch.setattr(job_service, "logger", logger)
+
+    job = job_service.enqueue_org_welcome_email("org", "admin")
+
+    assert job.id == "job-welcome"
+    assert recorded["func"] == job_service.send_org_welcome_email
+    assert recorded["args"] == ("org", "admin")
+    assert any("Enqueued send_org_welcome_email" in msg for msg, _ in logger.messages)
+
+
+def test_enqueue_employee_invite_email(monkeypatch):
+    recorded = {}
+    logger = DummyLogger()
+
+    def fake_enqueue(func, *args, **kwargs):
+        recorded["func"] = func
+        recorded["args"] = args
+        recorded["kwargs"] = kwargs
+        return DummyJob(job_id="job-invite")
+
+    monkeypatch.setattr(job_service, "task_queue", types.SimpleNamespace(enqueue=fake_enqueue))
+    monkeypatch.setattr(job_service, "logger", logger)
+
+    job = job_service.enqueue_employee_invite_email("user")
+
+    assert job.id == "job-invite"
+    assert recorded["func"] == job_service.send_employee_invite_email
+    assert recorded["args"] == ("user",)
+    assert any("Enqueued send_employee_invite_email" in msg for msg, _ in logger.messages)

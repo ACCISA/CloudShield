@@ -74,6 +74,13 @@ try:
     except Exception as e:
         print(f"[database.py] Note: access_groups index creation skipped: {e}")
 
+    # VPN config files collection
+    vpn_configs = db_admin["vpn_configs"]
+    try:
+        vpn_configs.create_index([("org_id", 1), ("username", 1)], unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: vpn_configs index creation skipped: {e}")
+
     # File shares collection with indexes
     shares = db_admin["shares"]
     try:
@@ -141,6 +148,7 @@ __all__ = [
     "orgs",
     "audit",
     "shares",
+    "vpn_configs",
     "org_filter",
     "activity",
 ]
