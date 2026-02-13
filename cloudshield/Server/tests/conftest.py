@@ -76,3 +76,27 @@ def redis_mock_fixture():
     """
     yield _redis_mock_client
 # ...existing code...
+_mock_crypto = unittest.mock.MagicMock()
+
+# 1. Base Paths
+sys.modules["cryptography"] = _mock_crypto
+sys.modules["cryptography.hazmat"] = _mock_crypto
+sys.modules["cryptography.hazmat.bindings"] = _mock_crypto
+sys.modules["cryptography.hazmat.bindings._rust"] = _mock_crypto
+
+# *** ADD THIS LINE FOR THE NEW ERROR ***
+sys.modules["cryptography.hazmat.backends"] = _mock_crypto 
+
+# 2. Primitives & Submodules
+sys.modules["cryptography.hazmat.primitives"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.serialization"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.hashes"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.asymmetric"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.asymmetric.rsa"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.asymmetric.ed25519"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.kdf"] = _mock_crypto
+sys.modules["cryptography.hazmat.primitives.kdf.scrypt"] = _mock_crypto
+
+# 3. Conflicting Libraries
+sys.modules["bcrypt"] = _mock_crypto
+sys.modules["paramiko"] = _mock_crypto
