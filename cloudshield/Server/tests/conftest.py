@@ -68,16 +68,11 @@ def redis_mock_fixture():
     Autouse fixture that yields the mock client for tests to assert calls.
     """
     yield _redis_mock_client
-
-# --- CONDITIONAL CRYPTOGRAPHY & BCRYPT MOCKING ---
-# This bypasses the Rust/PyO3 crash on local machines but allows CI to run real security tests.
 try:
-    import cryptography
-    import bcrypt
-    import paramiko
-    # If the environment is healthy (like CI), these will load fine.
+    import cryptography  # noqa: F401
+    import bcrypt        # noqa: F401
+    import paramiko      # noqa: F401
 except (ImportError, RuntimeError):
-    # If loading fails (like the Rust conflict on local), we neutralize them.
     _mock_sym = unittest.mock.MagicMock()
     
     modules_to_mock = [
