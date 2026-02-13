@@ -153,6 +153,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - DEPLOYMENT_MODE=docker
     depends_on:
       - redis
     ports:

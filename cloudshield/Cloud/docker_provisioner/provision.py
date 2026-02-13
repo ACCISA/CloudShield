@@ -166,11 +166,21 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
 
     server_logger.info("Running docker provisioning")
 
+
+    if domain_name is None:
+        print("WARNING: Missing domain_name. Using defaults.")
+        domain_name = "cloudshield.local"
+    
+    if realm_name is None:
+        realm_name = "CLOUDSHIELD.LOCAL"
+        
+    if dc_admin_password is None:
+        dc_admin_password = "Password123!"
+
     os.environ["DOMAIN_NAME"] = domain_name
     os.environ["DC_ADMIN_PASSWORD"] = dc_admin_password
     os.environ["REALM_NAME"] = realm_name
     os.environ["REALM_NAME_LWR"] = realm_name.lower()
-
     ensure_clean_state(f"{org_id}-samba-test", server_logger, docker)
     
     container_dc = docker.run(

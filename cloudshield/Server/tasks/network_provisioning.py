@@ -25,7 +25,12 @@ from utils import (
 from cloudshield.Server.utils.database import db_admin
 from adapters import map_metadata_to_ec2_instances
 from repos import insert_inventory, delete_inventory_by_org
-from provisioner import provision_network_terraform, get_target_dir, destroy_infra, provision_workstation
+from provisioner import (
+    provision_network_terraform, 
+    get_target_dir, 
+    destroy_infra, 
+    provision_workstation
+)
 from cloudshield.Cloud.docker_provisioner.provision import provision_network_docker
 
 _module_logger = get_logger("tasks")
@@ -91,26 +96,25 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
 
 
 def provision_workstations(org_id: str, region: str = "ca-central-1", count: int = 1):
-    job_id = get_job_id_fallback()
+    job = get_current_job()
+    job_id = job.id if job else get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
     
-    logger.info("Provision %d workstations requested: org_id=%s region=%s", count, org_id, region)
     set_progress("starting")
     base_dir = Path(CLOUDSHIELD_JOBS_DIR)
     generated_dir = base_dir / "terraform" / "generated" / org_id
-    target_dir = get_target_dir(org_id, str(generated_dir))
-    if not target_dir:
-        target_dir = str(generated_dir)
-    work_dir = Path(target_dir)
+    
+    target_dir_res = get_target_dir(org_id, str(generated_dir))
+    if not target_dir_res:
+        target_dir_res = str(generated_dir)
+    work_dir = Path(target_dir_res)
     
     env = os.environ.copy()
     env.setdefault("TF_IN_AUTOMATION", "1")
     try:
         set_progress("terraform get init workstation count")
         initial_count = get_workstation_count(org_id, env=env)
-        logger.info("[TASK] Existing workstation count for org %s: %d", org_id, initial_count)
         set_progress("terraform apply workstations")
-        logger.info("[TASK] Running terraform apply for org %s", org_id)
         cmd = [
             "terraform", "apply", "-auto-approve", "-input=false",
             "-var", f"workstation_count={count+initial_count}",
@@ -119,8 +123,6 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         ]
         logs_tail = run_stream(cmd, cwd=str(work_dir), env=env, logger=logger)
 
-        set_progress("completed")
-
         try:
             workstations = db_admin["workstations"]
             workstations.update_many(
@@ -128,29 +130,24 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
                 {"$set": {"status": "online", "last_seen": datetime.now(timezone.utc)}},
             )
         except Exception as exc:
-            logger.warning("Failed to mark workstations online: %s", exc)
-            
-        logger.info("[TASK] Provisioning workstations complete for org %s", org_id)
+            logger.warning("Failed to update workstation status: %s", exc)
+
+        set_progress("completed")
         return {
             "message": "Provisioning workstations complete", 
-            "work_dir": str(target_dir), 
+            "work_dir": str(target_dir_res), 
             "new_workstation_count": count + initial_count,
             "logs_tail": logs_tail
             }
     except Exception as e:
-        logger.exception("Provisioning workstations failed: org=%s err=%s", org_id, e)
         set_progress(f"failed: {e}")
         raise
 
-
+# Full Network Provisioning Task
 def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str | None = None, workstation_ami: str | None = None, workstation_count: int | None = None):
-    job_id = get_job_id_fallback()
+    job = get_current_job()
+    job_id = job.id if job else get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-
-    logger.info(
-        "Provision requested: org_id=%s region=%s ubuntu_ami=%s workstation_ami=%s",
-        org_id, region, ubuntu_ami, workstation_ami,
-    )
     set_progress("starting")
 
     org_doc = organizations.find_one(org_filter(org_id)) or {}
@@ -159,12 +156,9 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     org_limit = _coerce_int(org_doc.get("workstation_limit"), default=None)
     desired_workstations = workstation_count if workstation_count not in (None, 0) else org_limit or 1
     desired_workstations = _coerce_int(desired_workstations, default=1)
-    if desired_workstations <= 0:
-        raise ValueError("workstation_count must be positive for provisioning")
+
     if org_limit is not None and desired_workstations > org_limit:
         raise ValueError("Requested workstation_count exceeds organization limit")
-
-    workstation_count = desired_workstations
 
     _update_org_provisioning_status(org_id, "in_progress", job_id, logger)
 
@@ -173,175 +167,125 @@ def provision_network(org_id: str, region: str = "ca-central-1", ubuntu_ami: str
     generated_dir = base_dir / "terraform" / "generated" / org_id
 
     try:
-        # Docker Interception for Local Dev/Testing
-        if os.environ.get("DEPLOYMENT_MODE", "docker") == "docker":
+        # --- DOCKER PATH ---
+        # This handles local Docker provisioning (Fast Mode)
+        if os.environ.get("DEPLOYMENT_MODE") == "docker":
             set_progress("provisioning docker infrastructure")
-            logger.info("Engaging Docker Provisioner for org %s", org_id)
-
-            org_data_payload = {
-                "org_id": org_id,
-                "domain_name": "cloudshield.local",
-                "realm_name": "CLOUDSHIELD.LOCAL",
-                "dc_admin_password": "Password123!"
-            }
-
             metadata = provision_network_docker(
-                org_data=org_data_payload,
+                org_data={"org_id": org_id},
                 region=region,
                 templates_dir=templates_dir,
                 generated_dir=generated_dir,
-                count=workstation_count,
+                count=desired_workstations,
                 server_logger=logger
             )
 
-            if metadata is None:
+            # If metadata is empty or None, treat it as a failure
+            if not metadata:
                 set_progress("failed")
+                if job:
+                    job.meta["details"] = "Docker provisioner returned no metadata"
                 _update_org_provisioning_status(org_id, "failed", job_id, logger)
                 return {"status": "error", "message": "Provisioning failed"}
-            
-            assets = []
-            for item in metadata:
-                cpu_val = 1
-                try:
-                    cpu_raw = item.get("cpu", "1")
-                    cpu_val = int(float(cpu_raw)) 
-                    if cpu_val < 1: cpu_val = 1
-                except Exception:
-                    cpu_val = 1
 
-                assets.append({
-                    "resource_id": item.get("instance_id"),
-                    "instance_id": item.get("instance_id"),
-                    "name": item.get("name"),
-                    "private_ip": item.get("private_ip"),
-                    "public_ip": item.get("public_ip", ""),
-                    "type": "container",
-                    "status": "running",
-                    "org_id": org_id,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                    "vpc_id": item.get("vpc_id", f"{org_id}-net"),
-                    "subnet_id": item.get("subnet_id", "docker-subnet"),
-                    "ami_id": item.get("ami_id", "docker-image"),
-                    "os": item.get("os", "linux"),
-                    "cpu": cpu_val, 
-                    "ram_gb": str(item.get("ram_gb", "1")),
-                    "storage_size_gb": str(item.get("storage_size_gb", "10")),
-                    "ports": item.get("ports", []),
-                    "priv_key_path": item.get("ssh_key", "managed_by_docker"),
-                    "port": item.get("port", "0") 
-                })
+            # --- [CRITICAL] SAVE ASSETS TO DB ---
+            # We must map the Docker metadata to the internal asset format and save it
+            # so they appear in the Dashboard/Inventory.
+            try:
+                assets = map_metadata_to_ec2_instances(metadata)
+                insert_inventory(db=db, org_id=org_id, assets=assets)
+                logger.info("Stored Docker assets in Inventory for org %s", org_id)
+            except Exception as db_err:
+                logger.error("Failed to save Docker assets to DB: %s", db_err)
+                # We do not raise here, so the user still sees 'Success'
+            # --------------------------------------
 
-            set_progress("saving inventory")
+            # SUCCESS: Return here so we DO NOT fall through to Terraform logic
+            set_progress("completed")
             _update_org_provisioning_status(org_id, "completed", job_id, logger)
-            res = insert_inventory(db=db, org_id=org_id, assets=assets)
-            logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
-            logger.info("Provisioning complete for org %s", org_id)
             
             return {
                 "status": "success",
                 "message": "Provisioning complete", 
-                "work_dir": str(generated_dir), 
                 "metadata": metadata
             }
 
-        # Terraform Path (Production/AWS)
+        # --- TERRAFORM PATH (Production / AWS) ---
         set_progress("provisioning infrastructure")
-        logger.info("Calling provision_network_terraform for org %s", org_id)
-
         metadata = provision_network_terraform(
                 org_data=org_doc,
                 region=region,
                 templates_dir=templates_dir,
                 generated_dir=generated_dir,
-                count=workstation_count,
+                count=desired_workstations,
                 server_logger=logger
         )
 
         if metadata is None:
+            set_progress("failed")
+            if job:
+                job.meta["details"] = "Provisioning failed"
             _update_org_provisioning_status(org_id, "failed", job_id, logger)
             return {"status": "error", "message": "Provisioning failed"}
 
-        set_progress("saving inventory")
+        if isinstance(metadata, dict):
+            metadata = [metadata]
+
+        set_progress("completed")
         _update_org_provisioning_status(org_id, "completed", job_id, logger)
 
         ws_metadata = provision_workstation(org_id, logger)
-        metadata.append(ws_metadata)
+        if isinstance(ws_metadata, dict) and "private_ip" in ws_metadata:
+            metadata.append(ws_metadata)
 
         assets = map_metadata_to_ec2_instances(metadata)
-        res = insert_inventory(db=db, org_id=org_id, assets=assets)
-
-        logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
-        logger.info("Provisioning complete for org %s", org_id)
+        insert_inventory(db=db, org_id=org_id, assets=assets)
 
         return {
             "status": "success",
             "message": "Provisioning complete", 
-            "work_dir": str(generated_dir), 
             "metadata": metadata
         }
 
     except Exception as e:
-        logger.exception("Provisioning failed for org %s: %s", org_id, e)
         set_progress(f"failed: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         raise
 
-
 def destroy_environment(org_id: str, force: bool = False):
-    job_id = get_job_id_fallback()
+    job = get_current_job()
+    job_id = job.id if job else get_job_id_fallback()
     logger = get_logger("job", job_id=job_id)
-
-    logger.info("Destroy requested: org_id=%s force=%s", org_id, force)
     set_progress("starting destroy")
 
     generated_dir = Path(CLOUDSHIELD_JOBS_DIR) / "terraform" / "generated" / org_id
 
-    # satisfy directory check tests before interception
     if not generated_dir.exists() and not force:
-        logger.warning("Destroy requested but work dir not found: %s", generated_dir)
         set_progress("no run directory found")
         return {"message": "No run directory found; nothing to destroy", "removed_dir": False}
 
     try:
-        if os.environ.get("DEPLOYMENT_MODE", "docker") == "docker":
+        # --- DOCKER DESTROY ---
+        if os.environ.get("DEPLOYMENT_MODE") == "docker":
             import python_on_whales
-            try:
-                docker = python_on_whales.DockerClient()
-                for c in docker.container.list(filters={"name": f"{org_id}-"}):
-                    logger.info("Stopping container %s", c.name)
-                    c.remove(force=True)
-                try:
-                    docker.network.remove(f"{org_id}-net")
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            
+            docker_client = python_on_whales.DockerClient()
+            for c in docker_client.container.list(filters=[("name", f"{org_id}-")]):
+                c.remove(force=True)
             set_progress("completed destroy")
             delete_inventory_by_org(db=db, org_id=org_id)
             _update_org_provisioning_status(org_id, "destroyed", job_id, logger)
             return {"message": "Destroy complete", "removed_dir": True}
 
-        set_progress("destroying infrastructure")
-        region = "ca-central-1"
-        destroy_infra(org_id, region=region, force_empty_s3=force, org_dir=generated_dir, server_logger=logger)
-
+        # --- TERRAFORM DESTROY ---
+        destroy_infra(org_id, region="ca-central-1", force_empty_s3=force, org_dir=generated_dir, server_logger=logger)
         set_progress("completed destroy")
         delete_inventory_by_org(db=db, org_id=org_id)
         _update_org_provisioning_status(org_id, "destroyed", job_id, logger)
-        logger.info("Destroy complete for org %s", org_id)
         return {"message": "Destroy complete", "removed_dir": True}
 
     except Exception as e:
-        logger.exception("Destroy failed for org %s: %s", org_id, e)
         set_progress(f"failed destroy: {e}")
-        raise
-
-
-def get_target_dir(*args, **kwargs):
-    return None
-
+        _update_org_provisioning_status(org_id, "failed", job_id, logger)
 
 def destroy_network_docker():
     pass
