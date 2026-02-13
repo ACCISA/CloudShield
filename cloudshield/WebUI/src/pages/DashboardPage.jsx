@@ -11,62 +11,64 @@ import { useNavigate } from "react-router-dom";
 import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
-import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
-import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
-import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
-const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
+// FIX: Using ActivityPanel since that is what you imported
+import ActivityPanel from "../components/dashboard/ActivityPanel.jsx"; 
+import { useAuth } from "../context/AuthContext.jsx";
+import { useOrgMetrics } from "../api/useOrgMetrics.js";
+
+const API_BASE_URL = "http://localhost:5050"; 
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get current logged-in user data
-
-  const [provisioningStatus, setProvisioningStatus] = useState("pending");
-  const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
+  const { user } = useAuth();
 
   const { stats, loading: statsLoading } = useOrgMetrics();
 
-  // Polling logic to check provisioning status
-  useEffect(() => {
-    if (!user?.org_id) return;
-   
+  // --- STATE DECLARATIONS (Must be at top level) ---
+  const [provisioningStatus, setProvisioningStatus] = useState("pending");
+  const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
+  
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
-  const [rowsPerPage, setRowsPerPage] = useState(20);   
-
+  const [rowsPerPage, setRowsPerPage] = useState(20);    
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);
 
   const org_id = localStorage.getItem("org_id");
 
-  // useEffect(() => {
-  //   if (!org_id) return;
+  // --- POLLING EFFECT (Restored from comments) ---
+  useEffect(() => {
+    if (!org_id) return;
 
-  //   const checkStatus = async () => {
-  //     try {
-  //       const response = await fetch(`/api/organization/${org_id}`);
-  //       const data = await response.json();
+    const checkStatus = async () => {
+      try {
+        // Note: Ensure this endpoint exists in your API
+        const response = await fetch(`${API_BASE_URL}/api/organization/${org_id}`);
+        if (response.ok) {
+            const data = await response.json();
+            setProvisioningStatus(data.provisioning_status || "completed");
 
-  //       setProvisioningStatus(data.provisioning_status || "completed");
+            if (data.provisioning_status === "in_progress") {
+            setLoadingText("Provisioning cloud infrastructure. This may take a few minutes.");
+            }
+        }
+      } catch (error) {
+        console.error("Failed to fetch provisioning status", error);
+      }
+    };
 
-  //       if (data.provisioning_status === "in_progress") {
-  //         setLoadingText("Provisioning cloud infrastructure. This may take a few minutes.");
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch provisioning status", error);
-  //     }
-  //   };
+    checkStatus();
 
-  //   checkStatus();
+    let intervalId;
+    if (provisioningStatus === "in_progress" || provisioningStatus === "pending") {
+      intervalId = setInterval(checkStatus, 5000);
+    }
 
-  //   let intervalId;
-  //   if (provisioningStatus === "in_progress") {
-  //     intervalId = setInterval(checkStatus, 10000);
-  //   }
-
-  //   return () => clearInterval(intervalId);
-  // }, [user?.org_id, provisioningStatus]);
+    return () => clearInterval(intervalId);
+  }, [org_id, provisioningStatus]);
 
 
+  // --- ACTIVITY FETCHING ---
   const fetchActivities = useCallback(async () => {
     if (!org_id) return;
 
@@ -100,6 +102,7 @@ export default function DashboardPage() {
   }, [fetchActivities]);
 
 
+  // --- HANDLERS ---
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -109,36 +112,23 @@ export default function DashboardPage() {
     setPage(0);
   };
 
-
   const handleAddUser = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "users",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "users" });
     navigate("/employees", { state: { openModal: true } });
   };
 
   const handleAddWorkstation = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "workstations",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "workstations" });
     navigate("/workstations", { state: { openModal: true } });
   };
 
   const handleAddGroup = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "groups",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "groups" });
     navigate("/groups", { state: { openModal: true } });
   };
 
   const handleAddFile = () => {
-    trackButton("dashboard/statcard/add", {
-      page: "dashboard",
-      entity: "files",
-    });
+    trackButton("dashboard/statcard/add", { page: "dashboard", entity: "files" });
     navigate("/files", { state: { openModal: true } });
   };
 
@@ -152,7 +142,7 @@ export default function DashboardPage() {
       }}
     >
       {/* CONDITIONAL PROVISIONING PROGRESS BAR */}
-      {provisioningStatus === "in_progress" && (
+      {(provisioningStatus === "in_progress" || provisioningStatus === "pending") && (
         <Paper
           sx={{
             p: 3,
@@ -220,7 +210,8 @@ export default function DashboardPage() {
         />
       </Box>
 
-      <ActivityTable 
+      {/* Replaced ActivityTable with ActivityPanel to match your import */}
+      <ActivityPanel 
         activities={activities}
         loading={activityLoading}
         page={page}
