@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Tray, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
@@ -28,6 +28,22 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+let appIcon: Tray | null = null;
+let isQuitting = false;
+
+const showMainWindow = () => {
+  if (!win || win.isDestroyed()) {
+    createWindow();
+    return;
+  }
+
+  if (win.isMinimized()) {
+    win.restore();
+  }
+
+  win.show();
+  win.focus();
+};
 
 function createWindow() {
   win = new BrowserWindow({
@@ -51,6 +67,12 @@ function createWindow() {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
+
+  win.on("close", (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    win?.hide();
+  });
 }
 
 const getWinOVPNPath = async (): Promise<OVPNPathResult> => {
@@ -149,7 +171,14 @@ ipcMain.handle(
           console.log("[openvpn stderr]:", data.toString());
         });
 
-        child.on("close", (code) => {
+        child.on("close", (code, signal) => {
+          win?.webContents.send("openvpn-status", {
+            status: "exited",
+            pid: child.pid,
+            code,
+            signal,
+          });
+
           if (code !== 0) {
             console.log(`[openvpn] Process exited with code ${code}`);
             if (error) console.log("[openvpn error output]:", error);
@@ -253,14 +282,22 @@ ipcMain.handle(
   },
 );
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", () => {
+  showMainWindow();
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
+});
+
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+  // quit using tray instead
 });
 
 app.on("activate", () => {
@@ -271,4 +308,27 @@ app.on("activate", () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  appIcon = new Tray(
+    path.join(
+      process.env.APP_ROOT,
+      "src",
+      "assets",
+      "cloudshield_logo_white.png",
+    ),
+  );
+  appIcon.on("click", () => {
+    showMainWindow();
+  });
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Item1", type: "radio" },
+    { label: "Item2", type: "radio" },
+    { role: "quit" },
+  ]);
+
+  contextMenu.items[1].checked = false;
+
+  // Call this again for Linux because we modified the context menu
+  appIcon.setContextMenu(contextMenu);
+  createWindow();
+});
