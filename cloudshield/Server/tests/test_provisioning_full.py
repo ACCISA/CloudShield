@@ -2,7 +2,6 @@ import pytest
 import unittest.mock
 import subprocess
 import sys
-from types import SimpleNamespace
 
 from cloudshield.Server.tasks.network_provisioning import (
     provision_network, 
