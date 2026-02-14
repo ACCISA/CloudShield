@@ -252,7 +252,7 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
   });
 });
 
-ipcMain.handle("vpn:disconnect", async () => {
+const disconnectVPN = () => {
   if (vpnState.status !== "connected" || !vpnState.pid) {
     return;
   }
@@ -263,6 +263,10 @@ ipcMain.handle("vpn:disconnect", async () => {
   } catch (err: any) {
     updateVPNState({ status: "error", error: err.message });
   }
+};
+
+ipcMain.handle("vpn:disconnect", async () => {
+  disconnectVPN();
 });
 
 ipcMain.handle("show-open-dialog", async (_event, options) => {
@@ -363,6 +367,7 @@ app.on("second-instance", () => {
 });
 
 app.on("before-quit", () => {
+  disconnectVPN();
   isQuitting = true;
 });
 
