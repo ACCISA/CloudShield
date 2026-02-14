@@ -14,3 +14,5 @@ from .shares_services import list_groups_with_shares as list_groups_with_shares
 from .shares_services import delete_share as delete_share
 from .shares_services import update_share as update_share
 from .shares_services import allocate_drive_letter as allocate_drive_letter
+from .vpn_config_service import store_vpn_config as store_vpn_config
+from .vpn_config_service import get_vpn_config as get_vpn_config

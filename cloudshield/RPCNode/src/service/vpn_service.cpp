@@ -9,7 +9,31 @@ Status VPNService::CreateVPNClient(ServerContext* context, const vs::CreateVPNCl
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
 
-	return Status(grpc::StatusCode::OK, "New VPN Client created");
+	std::string client_name = request->client_name();
+	std::cout << "[VPNService] CreateVPNClient called for: " << client_name << std::endl;
+
+	if (client_name.empty()) {
+		response->set_status(vs::FAILED);
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, "client_name is required");
+	}
+
+	auto vpn = std::make_unique<VPNTask>();
+	VPNClientResult result = vpn->CreateVPNClient(client_name);
+
+	if (!result.success) {
+		std::cerr << "[VPNService] CreateVPNClient failed: " << result.error << std::endl;
+		response->set_status(vs::FAILED);
+		return Status(grpc::StatusCode::INTERNAL, result.error);
+	}
+
+	response->set_status(vs::SUCCESS);
+	response->set_filename(result.filename);
+	response->set_content(result.content.data(), result.content.size());
+
+	std::cout << "[VPNService] Successfully created VPN config: " << result.filename
+	          << " (" << result.content.size() << " bytes)" << std::endl;
+
+	return Status::OK;
 }
 
 Status VPNService::OpenSSHTunnel(ServerContext* context, const vs::OpenSSHTunnelData* request, vs::OpenSSHTunnelDataAck* response)
