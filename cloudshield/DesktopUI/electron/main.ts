@@ -46,7 +46,12 @@ const showMainWindow = () => {
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    icon: path.join(
+      process.env.APP_ROOT,
+      "src",
+      "assets",
+      "cloudshield_logo_white.png",
+    ),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       sandbox: false,
