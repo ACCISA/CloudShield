@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import os
 
-from flask import Blueprint, request, jsonify
-
-
+from flask import Blueprint, request, jsonify, g
+from bson import ObjectId
+from bson.errors import InvalidId
 from services import (
     service_dispatcher,
     get_job_status,
@@ -15,7 +15,9 @@ from services import (
     list_shares,
     list_groups_with_shares,
     update_share,
+    get_vpn_config,
 )
+from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
 from cloudshield.Server.utils.database import db_admin
@@ -671,6 +673,31 @@ def job_status(job_id: str):
     return jsonify(status_payload), code
 
 
+@api_bp.route("/vpn/config", methods=["GET"])
+@require_auth
+def vpn_config():
+    """
+    Retrieve a user's VPN configuration file.
+
+    Endpoint:
+        GET /api/vpn/config?org_id=<org_id>&username=<username>
+
+    Behaviour:
+        - Looks up the stored .ovpn config for the given org/user pair.
+        - Returns JSON with base64-encoded file content and filename, or 404.
+    """
+    org_id = request.args.get("org_id")
+    username = request.args.get("username")
+    if not org_id or not username:
+        return jsonify({"error": "org_id and username are required"}), 400
+
+    result = get_vpn_config(org_id, username)
+    if result is None:
+        return jsonify({"error": "VPN config not found"}), 404
+
+    return jsonify(result), 200
+
+
 @api_bp.route("/health", methods=["GET"])
 def health():
     """
@@ -685,3 +712,84 @@ def health():
     """
     payload, code = health_status()
     return jsonify(payload), code
+
+@api_bp.route("/organizations/me", methods=["GET"])
+@require_auth
+def get_my_organization():
+    """
+    Retrieve the current user's organization from JWT-derived g.user.org_id.
+
+    Endpoint:
+        GET /api/organizations/me
+
+    Returns:
+        200: JSON with organization details
+        401: Unauthorized (handled by require_auth)
+        404: Organization not found
+    """
+    org_id = (g.user or {}).get("org_id")
+    if not org_id:
+        return jsonify({"error": "org_id missing from token"}), 401
+
+    try:
+        doc = organizations.find_one({"_id": ObjectId(org_id)})
+    except InvalidId:
+        return jsonify({"error": "Invalid organization ID format"}), 400
+
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+
+    return jsonify({
+        "organization": {
+            "id": str(doc.get("_id")),
+            "name": doc.get("name"),
+            "package": doc.get("package"),
+            "domain_name": doc.get("domain_name"),
+            "realm_name": doc.get("realm_name"),
+            "workstation_limit": doc.get("workstation_limit"),
+            "user_limit": doc.get("user_limit"),
+            "storage_limit_gb": doc.get("storage_limit_gb"),
+            "provisioning_status": doc.get("provisioning_status"),
+            "provisioning_job_id": doc.get("provisioning_job_id"),
+            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+            "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+        }
+    }), 200
+
+@api_bp.route("/organizations/me/metrics", methods=["GET"])
+@require_auth
+def get_my_organization_metrics():
+    """
+    Get counts of core resources for the current user's organization.
+
+    Endpoint:
+        GET /api/organizations/me/metrics
+
+    Returns:
+        {
+            "stats": {
+                "users": int,
+                "workstations": int,
+                "access_groups": int,
+                "shares": int
+            }
+        }
+    """
+    org_id = (g.user or {}).get("org_id")
+    if not org_id:
+        return jsonify({"error": "org_id missing from token"}), 401
+
+    # Collections for counting documents related to the organization
+    users_col = db_admin["users"]
+    workstations_col = db_admin["workstations"]
+    access_groups_col = db_admin["access_groups"]
+    shares_col = db_admin["shares"]
+
+    stats = {
+        "users": users_col.count_documents({"org_id": org_id}),
+        "workstations": workstations_col.count_documents({"org_id": org_id}),
+        "access_groups": access_groups_col.count_documents({"org_id": org_id}),
+        "shares": shares_col.count_documents({"org_id": org_id}),
+    }
+
+    return jsonify({"stats": stats}), 200

@@ -21,9 +21,9 @@ from utils import get_logger  # type: ignore
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.
 try:
-    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp  # type: ignore
+    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp  # type: ignore
 except Exception:  # pragma: no cover
-    from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp  # type: ignore
+    from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp  # type: ignore
 
 
 def _coerce_exception_class(candidate, name: str):
@@ -62,10 +62,24 @@ def create_app() -> Flask:
     app = Flask(__name__)
     
     # --- 2. INITIALIZE CORS ---
-    # This enables Cross-Origin Resource Sharing for all routes
-    CORS(app, 
-         resources={r"/api/*": {"origins": "http://localhost:5173"}},
-         supports_credentials=True)
+    # This enables Cross-Origin Resource Sharing for all routes    
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": [
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                ]
+            }
+        },
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    )
+
+
+    
     
     # --- 3. REGISTER BLUEPRINTS HERE (Consolidated) ---
     # Register Tasks API -> /api/task/...
@@ -85,6 +99,9 @@ def create_app() -> Flask:
 
     app.register_blueprint(workstations_bp, url_prefix="/api")
     logger.debug("Registered workstations blueprint: %s", workstations_bp.name)
+
+    app.register_blueprint(activity_bp, url_prefix="/api")
+    logger.debug("Registered activity blueprint: %s", activity_bp.name)
 
     if audit_bp:
         app.register_blueprint(audit_bp, url_prefix="/api")

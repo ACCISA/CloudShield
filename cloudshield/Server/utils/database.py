@@ -59,6 +59,7 @@ try:
     users_public = db_emp["users_public"]
     orgs = db_admin["orgs"]
     audit = db_admin["audit"]    
+    activity = db_admin["activity"]
 
     try:
         orgs.create_index("company_name", unique=True)
@@ -72,6 +73,13 @@ try:
         access_groups.create_index("name", unique=True)
     except Exception as e:
         print(f"[database.py] Note: access_groups index creation skipped: {e}")
+
+    # VPN config files collection
+    vpn_configs = db_admin["vpn_configs"]
+    try:
+        vpn_configs.create_index([("org_id", 1), ("username", 1)], unique=True)
+    except Exception as e:
+        print(f"[database.py] Note: vpn_configs index creation skipped: {e}")
 
     # File shares collection with indexes
     shares = db_admin["shares"]
@@ -99,13 +107,6 @@ try:
         # or if text indexes conflict - this is non-critical for startup
         print(f"[database.py] Note: Text index creation skipped: {e}")
 
-    # Organizations: index on org_id for quick lookups plus package/status indexes
-    try:
-        # Create a non-unique index on `org_id`. The unique constraint was removed to allow
-        # multiple documents to reference the same org_id during migrations and dev work.
-        organizations.create_index("org_id", unique=True)
-    except Exception as e:
-        print(f"[database.py] Note: organizations index creation skipped: {e}")
 
     organizations.create_index("package")
     organizations.create_index("provisioning_status")
@@ -147,7 +148,9 @@ __all__ = [
     "orgs",
     "audit",
     "shares",
+    "vpn_configs",
     "org_filter",
+    "activity",
 ]
 
 

@@ -22,6 +22,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "organizations": (".database", "organizations"),
     "access_groups": (".database", "access_groups"),
     "shares": (".database", "shares"),
+    "vpn_configs": (".database", "vpn_configs"),
     "db_admin": (".database", "db_admin"),
     "db": (".database", "db"),
     "get_inventory_from_org_id": (".database", "get_inventory_from_org_id"),

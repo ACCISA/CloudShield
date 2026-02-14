@@ -16,3 +16,4 @@ python-on-whales
 grpcio
 protobuf
 flask-cors
+jinja2

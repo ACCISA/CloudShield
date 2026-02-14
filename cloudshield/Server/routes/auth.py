@@ -12,7 +12,7 @@ from models import UserCreate
 from services.user_service import create_user
 
 from services import service_dispatcher
-from utils import organizations
+from utils.database import organizations
 from utils.database import users_admin
 from security.passwords import hash_password, is_bcrypt_string, verify_password
 
@@ -47,12 +47,15 @@ def signup():
         # user_service auto-generates the MongoDB ID and attaches it to user_model.org_id
         user_id = create_user(user_model, current_user=None, reason="public_signup")
         org_id = user_model.org_id 
-
+        email=user_model.email
+        full_name=user_model.full_name
         # Generate token for the new user
         token = issue_token(
             sub=user_id,
             role="admin",      # first user is org admin
-            org_id=org_id
+            org_id=org_id,
+            email=email,
+            full_name=full_name
         )
 
     except PermissionError as exc:
@@ -159,7 +162,7 @@ def login():
 
     user = users_admin.find_one(
         {"email": email, "status": "active"},
-        {"email": 1, "password": 1, "role": 1, "org_id": 1}
+        {"email": 1, "password": 1, "role": 1, "org_id": 1, "full_name": 1}
     )
     if not user or not verify_password(password, user.get("password", "")):
         return jsonify({"error": "Invalid credentials"}), 401
@@ -170,7 +173,7 @@ def login():
             {"$set": {"password": hash_password(password)}}
         )
 
-    token = issue_token(sub=str(user["_id"]), role=user["role"], org_id=user["org_id"])
+    token = issue_token(sub=str(user["_id"]), role=user["role"], org_id=user["org_id"], email=user["email"], full_name=user.get("full_name", ""))
     return jsonify({
         "access_token": token,
         "token_type": "Bearer",
