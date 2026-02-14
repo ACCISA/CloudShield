@@ -1,7 +1,6 @@
 import { ipcRenderer, contextBridge } from "electron";
 import { createRequire } from "node:module";
-import { kill } from "node:process";
-
+import { VPNConnectInput, VPNState } from "../src/models/VPN";
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args: Parameters<typeof ipcRenderer.on>) {
@@ -27,25 +26,23 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
   // ...
 });
 
+contextBridge.exposeInMainWorld("vpnAPI", {
+  getState: () => ipcRenderer.invoke("vpn:getState"),
+  connect: (input: VPNConnectInput) => ipcRenderer.invoke("vpn:connect", input),
+  disconnect: () => ipcRenderer.invoke("vpn:disconnect"),
+  onStateChanged: (cb: (state: VPNState) => void) => {
+    const handler = (_: unknown, state: VPNState) => cb(state);
+    ipcRenderer.on("vpn:stateChanged", handler);
+    return () => ipcRenderer.off("vpn:stateChanged", handler);
+  },
+});
+
 contextBridge.exposeInMainWorld("electronAPI", {
   runXfreerdp: (username: string, password: string, ip: string) =>
     ipcRenderer.invoke("runXfreerdp", { username, password, ip }),
-  runOpenVPN: (ovpnPath?: string) =>
-    ipcRenderer.invoke("runOpenVPNvpn", { ovpnPath }),
   showOpenDialog: (options: Parameters<typeof ipcRenderer.invoke>[1]) =>
     ipcRenderer.invoke("show-open-dialog", options),
-  killProcess: (pid: number) => {
-    try {
-      kill(pid);
-      return { success: true, message: `Process ${pid} killed successfully` };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      return {
-        success: false,
-        message: `Failed to kill process ${pid}: ${message}`,
-      };
-    }
-  },
+  killProcess: (pid: number) => ipcRenderer.invoke("killProcess", { pid }),
 });
 type AuthStoreSnapshot = {
   accessToken?: string;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import LoginPage from "./pages/Login/LoginPage";
 import WorkstationsPage from "./pages/Workstations/WorkstationsPage";
 import "./App.css";
+import VPNService from "./services/VPNService";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -20,10 +21,17 @@ function App() {
   });
 
   useEffect(() => {
-    const handleAuthChanged = () => {
+    const handleAuthChanged = async() => {
       const snapshot = window.authStore?.loadAuth();
       if (snapshot?.accessToken) {
         setIsAuthenticated(true);
+        const status =await window.vpnAPI?.getState();
+        if (status?.status !== "connected") {
+          const ovpn =await VPNService.getVPNConfig();
+          if (ovpn) {
+            await window.vpnAPI?.connect({ ovpnData: ovpn });
+          }
+        }
         return;
       }
       const raw = localStorage.getItem("cloudshield.auth");

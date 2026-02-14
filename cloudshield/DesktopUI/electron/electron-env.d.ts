@@ -28,11 +28,20 @@ interface ElectronAPI {
     password: string,
     ip: string,
   ) => Promise<unknown>;
-  runOpenVPN: (ovpnPath?: string) => Promise<unknown>;
   showOpenDialog: (
     options: import("electron").OpenDialogOptions,
   ) => Promise<import("electron").OpenDialogReturnValue>;
   killProcess: (pid: number) => Promise<{ success: boolean; message: string }>;
+}
+
+type VPNState = import("../src/models/VPN").VPNState;
+type VPNConnectInput = import("../src/models/VPN").VPNConnectInput;
+
+interface VPNAPI {
+  getState: () => Promise<VPNState>;
+  connect: (input: VPNConnectInput) => Promise<unknown>;
+  disconnect: () => Promise<unknown>;
+  onStateChanged: (cb: (state: VPNState) => void) => () => void;
 }
 
 interface AuthStoreAPI {
@@ -54,5 +63,6 @@ interface AuthStoreAPI {
 interface Window {
   ipcRenderer: import("electron").IpcRenderer;
   electronAPI?: ElectronAPI;
+  vpnAPI?: VPNAPI;
   authStore?: AuthStoreAPI;
 }

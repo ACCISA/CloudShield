@@ -6,7 +6,7 @@ import { spawn } from "child_process";
 import { list } from "regedit-rs";
 import { OVPNPathResult } from "./models/OVPNPathResult.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
+import { VPNConnectInput, VPNState } from "../src/models/VPN.ts";
 // The built directory structure
 //
 // ├─┬─┬ dist
@@ -30,7 +30,6 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let win: BrowserWindow | null;
 let appIcon: Tray | null = null;
 let isQuitting = false;
-
 const showMainWindow = () => {
   if (!win || win.isDestroyed()) {
     createWindow();
@@ -74,6 +73,41 @@ function createWindow() {
     win?.hide();
   });
 }
+
+let vpnState: VPNState = {
+  status: "disconnected",
+};
+
+const getVPNStatusLabel = (): string => {
+  switch (vpnState.status) {
+    case "disconnected":
+      return "VPN: Disconnected";
+    case "connecting":
+      return "VPN: Connecting...";
+    case "connected":
+      return "VPN: Connected";
+    case "disconnecting":
+      return "VPN: Disconnecting...";
+    case "error":
+      return `VPN: Error (${vpnState.error ?? "unknown"})`;
+    default:
+      return "VPN: Unknown";
+  }
+};
+
+const refreshTrayMenu = () => {
+  if (!appIcon) return;
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: getVPNStatusLabel(), enabled: false },
+    { type: "separator" },
+    { label: "Show", click: () => showMainWindow() },
+    { role: "quit" },
+  ]);
+
+  appIcon.setToolTip(getVPNStatusLabel());
+  appIcon.setContextMenu(contextMenu);
+};
 
 const getWinOVPNPath = async (): Promise<OVPNPathResult> => {
   const res = await list(["HKLM\\SOFTWARE\\OpenVPN"]);
@@ -130,70 +164,97 @@ ipcMain.handle("killProcess", async (_event, params: { pid: number }) => {
   });
 });
 
-ipcMain.handle(
-  "runOpenVPNvpn",
-  async (
-    _event,
-    params: { ovpnPath: string } = {
-      ovpnPath: "",
-    },
-  ) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (!fs.existsSync(params.ovpnPath)) {
-          return reject(
-            new Error(`OpenVPN config not found: ${params.ovpnPath}`),
-          );
-        }
+const updateVPNState = (newVPNState: VPNState) => {
+  vpnState = newVPNState;
+  win?.webContents.send("vpn:stateChanged", vpnState);
+  refreshTrayMenu();
+};
 
-        let command = "openvpn";
-        if (process.platform === "win32") {
-          const winOVPN = await getWinOVPNPath();
-          if (!winOVPN.success) {
-            return reject(new Error(winOVPN.message));
-          }
-          command = winOVPN.path!;
-        }
+ipcMain.handle("vpn:getState", async () => {
+  return vpnState;
+});
 
-        const child = spawn(command, [params.ovpnPath], {
-          stdio: "inherit",
-        }); //NOSONAR typescript:S4036
-        let error = "";
+ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
+  if (vpnState.status === "connected" || vpnState.status === "connecting") {
+    return;
+  }
 
-        resolve({
-          success: true,
-          pid: child.pid,
-          message: `OpenVPN launched with config ${params.ovpnPath}`,
-        });
+  let ovpnPath = params.ovpnPath;
+  if (!ovpnPath && params.ovpnData?.content_b64) {
+    const safeFilename = (params.ovpnData.filename || "default.ovpn").replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_",
+    );
+    const vpnDir = path.join(app.getPath("userData"), "vpn");
+    fs.mkdirSync(vpnDir, { recursive: true });
+    ovpnPath = path.join(vpnDir, safeFilename);
+    fs.writeFileSync(
+      ovpnPath,
+      Buffer.from(params.ovpnData.content_b64, "base64"),
+    );
+  }
 
-        child.stderr?.on("data", (data) => {
-          error += data.toString();
-          console.log("[openvpn stderr]:", data.toString());
-        });
+  if (!ovpnPath || !fs.existsSync(ovpnPath)) {
+    updateVPNState({ status: "error", error: "OVPN file not found" });
+    return;
+  }
 
-        child.on("close", (code, signal) => {
-          win?.webContents.send("openvpn-status", {
-            status: "exited",
-            pid: child.pid,
-            code,
-            signal,
-          });
+  let command = "openvpn";
+  if (process.platform === "win32") {
+    const winOVPN = await getWinOVPNPath();
+    if (!winOVPN.success) {
+      updateVPNState({ status: "error", error: winOVPN.message });
+      return;
+    }
+    command = winOVPN.path!;
+  }
 
-          if (code !== 0) {
-            console.log(`[openvpn] Process exited with code ${code}`);
-            if (error) console.log("[openvpn error output]:", error);
-          }
-        });
+  const child = spawn(command, [ovpnPath], {
+    stdio: "inherit",
+  }); //NOSONAR typescript:S4036
 
-        child.on("error", (err) => {
-          console.error("[openvpn spawn error]:", err);
-        });
-      } catch (err) {
-        reject(err);
-      }
-    });
-  },
-);
+  child.on("spawn", () => {
+    updateVPNState({ status: "connecting", pid: child.pid });
+  });
+
+  child.stdout?.on("data", (data) => {
+    const output = data.toString();
+    if (output.includes("Initialization Sequence Completed")) {
+      updateVPNState({
+        status: "connected",
+        pid: child.pid,
+        connectedAt: Date.now(),
+      });
+    }
+  });
+  child.on("error", (err) => {
+    updateVPNState({ status: "error", error: err.message });
+  });
+
+  child.on("close", (code) => {
+    if (code === 0) {
+      updateVPNState({ status: "disconnected" });
+    } else {
+      updateVPNState({
+        status: "error",
+        error: `OpenVPN exited with code ${code ?? "unknown"}`,
+      });
+    }
+  });
+});
+
+ipcMain.handle("vpn:disconnect", async () => {
+  if (vpnState.status !== "connected" || !vpnState.pid) {
+    return;
+  }
+  try {
+    updateVPNState({ status: "disconnecting" });
+    process.kill(vpnState.pid);
+    updateVPNState({ status: "disconnected" });
+  } catch (err: any) {
+    updateVPNState({ status: "error", error: err.message });
+  }
+});
 
 ipcMain.handle("show-open-dialog", async (_event, options) => {
   const focused = BrowserWindow.getFocusedWindow();
@@ -320,15 +381,6 @@ app.whenReady().then(() => {
   appIcon.on("click", () => {
     showMainWindow();
   });
-  const contextMenu = Menu.buildFromTemplate([
-    { label: "Item1", type: "radio" },
-    { label: "Item2", type: "radio" },
-    { role: "quit" },
-  ]);
-
-  contextMenu.items[1].checked = false;
-
-  // Call this again for Linux because we modified the context menu
-  appIcon.setContextMenu(contextMenu);
+  refreshTrayMenu();
   createWindow();
 });
