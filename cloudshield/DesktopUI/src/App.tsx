@@ -27,10 +27,18 @@ function App() {
         setIsAuthenticated(true);
         const status =await window.vpnAPI?.getState();
         if (status?.status !== "connected") {
-          const ovpn =await VPNService.getVPNConfig();
-          if (ovpn) {
-            await window.vpnAPI?.connect({ ovpnData: ovpn });
-          }
+         try {
+           const ovpn = await VPNService.getVPNConfig();
+           if (ovpn) {
+             await window.vpnAPI?.connect({ ovpnData: ovpn });
+           }
+         } catch (error) {
+           console.error("Failed to connect VPN after login:", error);
+           window.vpnAPI?.receiveError(
+             "Failed to connect VPN: " +
+               (error instanceof Error ? error.message : String(error)),
+           );
+         }
         }
         return;
       }

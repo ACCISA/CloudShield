@@ -42,6 +42,7 @@ interface VPNAPI {
   connect: (input: VPNConnectInput) => Promise<unknown>;
   disconnect: () => Promise<unknown>;
   onStateChanged: (cb: (state: VPNState) => void) => () => void;
+  receiveError: (errorMessage: string) => Promise<unknown>;
 }
 
 interface AuthStoreAPI {

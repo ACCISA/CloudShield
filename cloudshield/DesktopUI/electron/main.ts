@@ -174,6 +174,10 @@ ipcMain.handle("vpn:getState", async () => {
   return vpnState;
 });
 
+ipcMain.handle("vpn:receiveError", async (_event, errorMessage: string) => {
+  updateVPNState({ status: "error", error: errorMessage });
+});
+
 ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
   if (vpnState.status === "connected" || vpnState.status === "connecting") {
     return;

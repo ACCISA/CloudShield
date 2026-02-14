@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld("vpnAPI", {
     ipcRenderer.on("vpn:stateChanged", handler);
     return () => ipcRenderer.off("vpn:stateChanged", handler);
   },
+  receiveError: (errorMessage: string) =>
+    ipcRenderer.invoke("vpn:receiveError", errorMessage),
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {
