@@ -47,6 +47,96 @@ std::string SambaTask::AddUserToGroup(std::string group_name, std::string userna
 	return this->RunCommand(full_cmd);
 }
 
+std::string SambaTask::RemoveDomainGroup(std::string group_name)
+{
+	if (!this->IsDomainGroup(group_name)) {
+		std::cout << "Group not found" << std::endl;
+		return "not_found";
+	}
+
+	std::string full_cmd = BuildCommand(this->GROUP_DELETE_CMD, group_name.c_str());
+	return this->RunCommand(full_cmd);
+}
+
+bool SambaTask::UpdateSambaFileShareACL(std::string share_name, const std::vector<std::string>& groups, const std::vector<std::string>& users)
+{
+	std::string configPath = this->SAMBA_SMB_CONF_PATH;
+	std::string tempPath = configPath + ".tmp";
+
+	std::ifstream inFile(configPath);
+	std::ofstream outFile(tempPath);
+
+	if (!inFile.is_open() || !outFile.is_open()) {
+		std::cerr << "Error: Could not open configuration files." << std::endl;
+		return false;
+	}
+
+	std::string line;
+	std::string targetHeader = "[" + share_name + "]";
+	bool insideTargetBlock = false;
+	bool found = false;
+	bool wroteValidUsers = false;
+
+	// Build the new 'valid users' line from groups and users
+	std::string validUsersLine = "\tvalid users = ";
+	for (const auto& g : groups) {
+		validUsersLine += "@\"" + g + "\" ";
+	}
+	for (const auto& u : users) {
+		validUsersLine += u + " ";
+	}
+
+	while (std::getline(inFile, line)) {
+		size_t first = line.find_first_not_of(" \t");
+		std::string trimmedLine = (first == std::string::npos) ? "" : line.substr(first);
+
+		if (trimmedLine.find(targetHeader) == 0) {
+			insideTargetBlock = true;
+			found = true;
+			outFile << line << "\n";
+			continue;
+		}
+
+		if (insideTargetBlock && trimmedLine.find("[") == 0) {
+			// Exiting the target block, write new valid users if we haven't yet
+			if (!wroteValidUsers) {
+				outFile << validUsersLine << "\n";
+				wroteValidUsers = true;
+			}
+			insideTargetBlock = false;
+		}
+
+		if (insideTargetBlock && trimmedLine.find("valid users") == 0) {
+			// Replace the valid users line
+			outFile << validUsersLine << "\n";
+			wroteValidUsers = true;
+			continue;
+		}
+
+		outFile << line << "\n";
+	}
+
+	// If we were inside the target block at EOF and didn't write valid users
+	if (insideTargetBlock && !wroteValidUsers) {
+		outFile << validUsersLine << "\n";
+	}
+
+	inFile.close();
+	outFile.close();
+
+	if (found) {
+		if (std::rename(tempPath.c_str(), configPath.c_str()) == 0) {
+			std::cout << "Successfully updated share ACLs: " << share_name << std::endl;
+			return true;
+		}
+	} else {
+		std::remove(tempPath.c_str());
+		std::cerr << "Share not found: " << share_name << std::endl;
+	}
+
+	return false;
+}
+
 std::vector<std::string> SambaTask::GetUserList()
 {
 	std::vector<std::string> users;

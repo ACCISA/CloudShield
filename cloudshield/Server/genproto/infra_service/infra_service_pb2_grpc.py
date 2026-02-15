@@ -100,6 +100,16 @@ class InfraServiceStub(object):
                 request_serializer=infra__service__pb2.RemoveDomainUserData.SerializeToString,
                 response_deserializer=infra__service__pb2.RemoveDomainUserDataAck.FromString,
                 _registered_method=True)
+        self.RemoveDomainGroup = channel.unary_unary(
+                '/infra_service.v1.InfraService/RemoveDomainGroup',
+                request_serializer=infra__service__pb2.RemoveDomainGroupData.SerializeToString,
+                response_deserializer=infra__service__pb2.RemoveDomainGroupDataAck.FromString,
+                _registered_method=True)
+        self.UpdateSambaFileShare = channel.unary_unary(
+                '/infra_service.v1.InfraService/UpdateSambaFileShare',
+                request_serializer=infra__service__pb2.UpdateSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service__pb2.UpdateSambaFileShareDataAck.FromString,
+                _registered_method=True)
         self.GetFileShareSize = channel.unary_unary(
                 '/infra_service.v1.InfraService/GetFileShareSize',
                 request_serializer=infra__service__pb2.GetFileShareSizeData.SerializeToString,
@@ -188,6 +198,18 @@ class InfraServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RemoveDomainGroup(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateSambaFileShare(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetFileShareSize(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -261,6 +283,16 @@ def add_InfraServiceServicer_to_server(servicer, server):
                     servicer.RemoveDomainUser,
                     request_deserializer=infra__service__pb2.RemoveDomainUserData.FromString,
                     response_serializer=infra__service__pb2.RemoveDomainUserDataAck.SerializeToString,
+            ),
+            'RemoveDomainGroup': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveDomainGroup,
+                    request_deserializer=infra__service__pb2.RemoveDomainGroupData.FromString,
+                    response_serializer=infra__service__pb2.RemoveDomainGroupDataAck.SerializeToString,
+            ),
+            'UpdateSambaFileShare': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateSambaFileShare,
+                    request_deserializer=infra__service__pb2.UpdateSambaFileShareData.FromString,
+                    response_serializer=infra__service__pb2.UpdateSambaFileShareDataAck.SerializeToString,
             ),
             'GetFileShareSize': grpc.unary_unary_rpc_method_handler(
                     servicer.GetFileShareSize,
@@ -619,6 +651,60 @@ class InfraService(object):
             '/infra_service.v1.InfraService/RemoveDomainUser',
             infra__service__pb2.RemoveDomainUserData.SerializeToString,
             infra__service__pb2.RemoveDomainUserDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RemoveDomainGroup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/RemoveDomainGroup',
+            infra__service__pb2.RemoveDomainGroupData.SerializeToString,
+            infra__service__pb2.RemoveDomainGroupDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateSambaFileShare(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/UpdateSambaFileShare',
+            infra__service__pb2.UpdateSambaFileShareData.SerializeToString,
+            infra__service__pb2.UpdateSambaFileShareDataAck.FromString,
             options,
             channel_credentials,
             insecure,

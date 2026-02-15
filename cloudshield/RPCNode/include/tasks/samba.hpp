@@ -61,6 +61,7 @@ private:
 	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '%s' > nul\n";
 
 	static constexpr const char* GROUP_ADD_CMD = "samba-tool group add %s";
+	static constexpr const char* GROUP_DELETE_CMD = "samba-tool group delete %s";
 	static constexpr const char* GROUP_ADD_TO_DOMAIN_USERS_CMD = "samba-tool group addmembers \"Domain Users\" %s";
 	static constexpr const char* GROUP_ADD_MEMBER_CMD = "samba-tool group addmembers %s %s";
 	static constexpr const char* GROUP_LIST_CMD = "samba-tool group list";
@@ -71,6 +72,7 @@ public:
 	std::string RemoveDomainUser(std::string username);
 	is::Status CreateSambaFileShare(std::string share_name, std::string share_size);
 	std::string AddDomainGroup(std::string group_name);
+	std::string RemoveDomainGroup(std::string group_name);
 	std::string LinkGroupToDomainUsers(std::string group_name);
 	std::string AddUserToGroup(std::string group_name, std::string username);
 	bool DeleteSambaFileShare(std::string share_name);
@@ -82,5 +84,6 @@ public:
 	bool DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result);
 	bool SyncNetlogonScript(std::string realm, const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups);
 	is::Status RestartSambaService();
+	bool UpdateSambaFileShareACL(std::string share_name, const std::vector<std::string>& groups, const std::vector<std::string>& users);
 	bool IsDomainGroup(std::string group_name);
 };
