@@ -25,6 +25,7 @@ import {
   updateUser,
 } from "../services/usersApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
 // Toast Notification
 const CustomToast = ({ msg, type, onClose }) => {
@@ -104,6 +105,9 @@ export default function EmployeesPage() {
   const location = useLocation();
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
+  
+  // Job creation task hook
+  const { jobId, status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -232,8 +236,11 @@ export default function EmployeesPage() {
 
         await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
         openToast("User updated successfully");
+        setModalOpen(false);
+        setModalEmployee(null);
+        fetchUsers();
       } else {
-        // Create mode
+        // Create mode - queue DC user creation task and poll for completion
         trackButton("employees/create/submit", {
           page: "employees",
           control: "create_dialog",
@@ -248,13 +255,15 @@ export default function EmployeesPage() {
           org_id: orgId || "cedric",
         };
 
-        await createUser(apiPayload, { token: accessToken });
-        openToast("User created successfully");
+        // Start async task to create user
+        await startCreation(async () => {
+          const response = await createUser(apiPayload, { token: accessToken });
+          if (!response?.job_id) {
+            throw new Error("No job_id returned from user creation");
+          }
+          return response.job_id;
+        });
       }
-
-      setModalOpen(false);
-      setModalEmployee(null);
-      fetchUsers();
     } catch (error) {
       // Show detailed validation errors if available
       let msg = "Failed to save user";
@@ -273,6 +282,19 @@ export default function EmployeesPage() {
       openToast(msg, "error");
     }
   };
+  
+  // Handle job completion
+  useEffect(() => {
+    if (status === "succeeded") {
+      openToast("User created successfully");
+      resetCreation();
+      setModalOpen(false);
+      setModalEmployee(null);
+      fetchUsers();
+    } else if (status === "failed") {
+      openToast(message || "Failed to create user", "error");
+    }
+  }, [status, message]);
 
   const handleDelete = async (user) => {
     // Use provided user or fall back to modalEmployee for modal context
@@ -531,10 +553,14 @@ export default function EmployeesPage() {
         onClose={() => {
           setModalOpen(false);
           setModalEmployee(null);
+          resetCreation();
         }}
         employeeData={modalEmployee}
         onSubmit={handleModalSubmit}
         onDelete={handleDelete}
+        creationStatus={status}
+        creationProgress={progress}
+        creationMessage={message}
       />
 
       {toast.open && (
