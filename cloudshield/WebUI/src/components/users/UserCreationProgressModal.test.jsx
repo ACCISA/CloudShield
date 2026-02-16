@@ -1,10 +1,3 @@
-/**
- * UserCreationProgressModal.test.jsx
- * 
- * Comprehensive test suite for the UserCreationProgressModal component.
- * Tests all status states, progress variations, and user interactions.
- */
-
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
@@ -832,9 +825,8 @@ describe("UserCreationProgressModal", () => {
           onClose={mockOnClose}
         />
       );
-      expect(
-        screen.queryByText(".user-creation-message-section")
-      ).not.toBeInTheDocument();
+      const messageSection = screen.queryByText(".user-creation-message-section");
+      expect(messageSection).not.toBeInTheDocument();
     });
 
     test("should handle undefined message gracefully", () => {
@@ -845,9 +837,8 @@ describe("UserCreationProgressModal", () => {
           onClose={mockOnClose}
         />
       );
-      expect(
-        screen.queryByText(".user-creation-message-section")
-      ).not.toBeInTheDocument();
+      const messageSection = screen.queryByText(".user-creation-message-section");
+      expect(messageSection).not.toBeInTheDocument();
     });
 
     test("should handle very high progress values", () => {
