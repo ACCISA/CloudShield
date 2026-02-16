@@ -6,7 +6,7 @@
  */
 
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useAsyncTask } from "./useAsyncTask";
+import { useAsyncTask } from "../useAsyncTask";
 
 describe("useAsyncTask Hook", () => {
   beforeEach(() => {

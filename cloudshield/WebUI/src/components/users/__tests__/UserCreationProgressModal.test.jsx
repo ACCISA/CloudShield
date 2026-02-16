@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import UserCreationProgressModal from "./UserCreationProgressModal";
+import UserCreationProgressModal from "../UserCreationProgressModal";
 
 describe("UserCreationProgressModal", () => {
   const mockOnClose = jest.fn();
