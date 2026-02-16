@@ -108,7 +108,8 @@ def _handle_user_create(current_user):
         body["role"] = "admin"
 
     user_data = UserCreate(**body)
-    
+
+    create_user(user_data, current_user=current_user, reason=reason)
     # Generate username from email if not provided
     username = user_data.username or user_data.email.split("@")[0]
     logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
