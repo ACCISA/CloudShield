@@ -12,6 +12,7 @@ import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
+import ActivityTable from "../components/dashboard/ActivityTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
 import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
 const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   // Polling logic to check provisioning status
   useEffect(() => {
     if (!user?.org_id) return;
+  }, [user?.org_id]);
    
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
