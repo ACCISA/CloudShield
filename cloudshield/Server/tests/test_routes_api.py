@@ -415,7 +415,7 @@ def signup_admin_client(monkeypatch):
         mock_redis_instance.set.return_value = True
 
         class DummyJob:
-            def __init__(self, job_id):
+            def __init__(self, job_id="p1"):
                 self.id = job_id
 
         # Import modules BEFORE create_app so we can patch them.
@@ -424,6 +424,7 @@ def signup_admin_client(monkeypatch):
         import cloudshield.Server.routes.users as users_mod
         import cloudshield.Server.services as services_mod
         import cloudshield.Server.services.user_service as user_service_mod
+        from cloudshield.Server.services import job_service
 
         # Create a configurable mock that tests can modify
         mock_create_user = MagicMock()
@@ -438,6 +439,7 @@ def signup_admin_client(monkeypatch):
         monkeypatch.setattr(users_mod, "create_user", mock_create_user)
         monkeypatch.setattr(services_mod, "create_user", mock_create_user)
         monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
 
         # Also patch alternative import paths used by `cloudshield/Server/server.py`
         # when it falls back to `from routes import ...`.
@@ -500,8 +502,8 @@ def test_signup_admin_success(signup_admin_client):
     assert mock_create_user.call_count == 1, (
         f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
     )
-    assert resp.status_code == 201
-    assert "user_id" in resp.json
+    assert resp.status_code == 202
+    assert "job_id" in resp.json
 
 def test_signup_admin_validation_error(signup_admin_client):
     client, mock_create_user = signup_admin_client
