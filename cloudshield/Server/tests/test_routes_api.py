@@ -419,6 +419,46 @@ def test_dc_add_user_with_group(client):
     resp = client.post("/api/task/dc/add_user_with_group", json={"username": "user1", "password": "pass"})
     assert resp.status_code == 422
 
+def test_task_dc_add_group(client):
+    # Success
+    resp = client.post("/api/task/dc/add_group", json={"org_id": "acme", "group_name": "devs"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/add_group", json={"group_name": "devs"})
+    assert resp.status_code == 422
+    # Missing group_name
+    resp = client.post("/api/task/dc/add_group", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_task_dc_remove_group(client):
+    # Success
+    resp = client.post("/api/task/dc/remove_group", json={"org_id": "acme", "group_name": "devs"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/remove_group", json={"group_name": "devs"})
+    assert resp.status_code == 422
+    # Missing group_name
+    resp = client.post("/api/task/dc/remove_group", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_task_dc_update_file_share(client):
+    # Success with all fields
+    resp = client.post("/api/task/dc/update_file_share", json={
+        "org_id": "acme", "share_name": "Finance", "groups": ["devs"], "users": ["alice"]
+    })
+    assert resp.status_code == 202
+    # Success with only required fields (groups/users are optional)
+    resp = client.post("/api/task/dc/update_file_share", json={
+        "org_id": "acme", "share_name": "Finance"
+    })
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/update_file_share", json={"share_name": "Finance"})
+    assert resp.status_code == 422
+    # Missing share_name
+    resp = client.post("/api/task/dc/update_file_share", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
 # --- Signup Admin Endpoints ---
 
 # A valid payload that satisfies the UserCreate Pydantic model

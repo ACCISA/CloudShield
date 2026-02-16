@@ -311,10 +311,18 @@ def delete_user_endpoint(user_id):
         500: { "error": "Internal server error" }
     """
     try:
-        # Look up user info before deletion so we can derive DC username
-        from utils.database import db_admin
-        from bson import ObjectId
-        user_doc = db_admin["users"].find_one({"_id": ObjectId(user_id)}, {"email": 1, "org_id": 1, "full_name": 1})
+        # Try to look up user info before deletion for DC username derivation.
+        # This is best-effort; failure here must not block the actual deletion.
+        user_doc = None
+        try:
+            from utils.database import db_admin
+            from bson import ObjectId
+            user_doc = db_admin["users"].find_one(
+                {"_id": ObjectId(user_id)},
+                {"email": 1, "org_id": 1, "full_name": 1},
+            )
+        except Exception:
+            pass  # Non-critical: DC dispatch will simply be skipped
 
         reason = _extract_reason()
         delete_user(user_id, current_user=g.user, reason=reason)

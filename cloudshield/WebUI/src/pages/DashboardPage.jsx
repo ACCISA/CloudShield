@@ -26,8 +26,6 @@ export default function DashboardPage() {
   const { stats, loading: statsLoading } = useOrgMetrics();
 
   // Polling logic to check provisioning status
-  useEffect(() => {
-    if (!user?.org_id) return;
    
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
@@ -220,15 +218,9 @@ export default function DashboardPage() {
         />
       </Box>
 
-      <ActivityTable 
-        activities={activities}
-        loading={activityLoading}
-        page={page}
-        rowsPerPage={rowsPerPage}
-        totalCount={totalActivities}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        onRefresh={handleRefreshActivities}
+      <ActivityPanel
+        fetchActivities={fetchActivities}
+        initialData={activities}
       />
     </Box>
   );
