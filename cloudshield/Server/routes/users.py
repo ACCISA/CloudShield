@@ -6,6 +6,9 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
+from utils import get_logger
+
+logger = get_logger("tasks")
 
 # Expose service functions at module scope so tests can monkeypatch:
 # tests expect cloudshield.Server.routes.users.create_user, etc.
@@ -15,6 +18,7 @@ from services import (  # noqa: E402
     deactivate_user,
     delete_user,
     list_users,
+    service_dispatcher,
 )
 
 users_bp = Blueprint('users', __name__) # Admin-only user management routes
@@ -89,9 +93,11 @@ def _extract_reason() -> str | None:
 
 def _handle_user_create(current_user):
     """
-    Shared handler for creating a user.
+    Shared handler for creating a user via DC integration.
     - If current_user is provided: normal admin flow.
     - If current_user is None: public signup flow (service layer enforces rules).
+    
+    Returns job_id for async DC user creation instead of directly creating in MongoDB.
     """
     body = _json_or_empty()
     reason = _extract_reason()
@@ -102,9 +108,20 @@ def _handle_user_create(current_user):
         body["role"] = "admin"
 
     user_data = UserCreate(**body)
-
-    user_id = create_user(user_data, current_user=current_user, reason=reason)
-    return jsonify({"user_id": user_id, "org_id": user_data.org_id}), 201
+    
+    # Generate username from email if not provided
+    username = user_data.username or user_data.email.split("@")[0]
+    logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
+    # Queue DC user creation task via service dispatcher
+    job = service_dispatcher(
+        service_name="dc_add_user",
+        org_id=user_data.org_id,
+        username=username,
+        password=user_data.password,
+        email=user_data.email,
+    )
+    
+    return jsonify({"job_id": job.id, "org_id": user_data.org_id}), 202
 
 
 @users_bp.route("/users", methods=["GET"])
