@@ -503,6 +503,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
 
     monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
     monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+    monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
     
     # Test successful user creation with password hashing
     import uuid
@@ -971,6 +972,7 @@ class TestCreateUserEndpoint:
         
         monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
         monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+        monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
         return _fake_create_user
     
     def test_create_user_success_admin(self, app_and_client, mock_create_service):

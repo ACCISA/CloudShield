@@ -462,6 +462,7 @@ def signup_admin_client(monkeypatch):
             pass
 
         monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        monkeypatch.setattr("cloudshield.Server.routes.users.service_dispatcher", lambda *args, **kw: DummyJob("p1"))
         try:
             monkeypatch.setattr("routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
         except Exception:
