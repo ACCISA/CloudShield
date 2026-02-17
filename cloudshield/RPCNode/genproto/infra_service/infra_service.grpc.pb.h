@@ -7,24 +7,24 @@
 #include "infra_service/infra_service.pb.h"
 
 #include <functional>
-#include <grpc/impl/codegen/port_platform.h>
-#include <grpcpp/impl/codegen/async_generic_service.h>
-#include <grpcpp/impl/codegen/async_stream.h>
-#include <grpcpp/impl/codegen/async_unary_call.h>
-#include <grpcpp/impl/codegen/client_callback.h>
-#include <grpcpp/impl/codegen/client_context.h>
-#include <grpcpp/impl/codegen/completion_queue.h>
-#include <grpcpp/impl/codegen/message_allocator.h>
-#include <grpcpp/impl/codegen/method_handler.h>
-#include <grpcpp/impl/codegen/proto_utils.h>
-#include <grpcpp/impl/codegen/rpc_method.h>
-#include <grpcpp/impl/codegen/server_callback.h>
-#include <grpcpp/impl/codegen/server_callback_handlers.h>
-#include <grpcpp/impl/codegen/server_context.h>
-#include <grpcpp/impl/codegen/service_type.h>
-#include <grpcpp/impl/codegen/status.h>
-#include <grpcpp/impl/codegen/stub_options.h>
-#include <grpcpp/impl/codegen/sync_stream.h>
+#include <grpcpp/generic/async_generic_service.h>
+#include <grpcpp/support/async_stream.h>
+#include <grpcpp/support/async_unary_call.h>
+#include <grpcpp/support/client_callback.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/completion_queue.h>
+#include <grpcpp/support/message_allocator.h>
+#include <grpcpp/support/method_handler.h>
+#include <grpcpp/impl/proto_utils.h>
+#include <grpcpp/impl/rpc_method.h>
+#include <grpcpp/support/server_callback.h>
+#include <grpcpp/impl/server_callback_handlers.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/impl/service_type.h>
+#include <grpcpp/support/status.h>
+#include <grpcpp/support/stub_options.h>
+#include <grpcpp/support/sync_stream.h>
+#include <grpcpp/ports_def.inc>
 
 namespace infra_service {
 namespace v1 {
@@ -128,20 +128,6 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainUserDataAck>> PrepareAsyncRemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainUserDataAck>>(PrepareAsyncRemoveDomainUserRaw(context, request, cq));
     }
-    virtual ::grpc::Status RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::infra_service::v1::RemoveDomainGroupDataAck* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>> AsyncRemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>>(AsyncRemoveDomainGroupRaw(context, request, cq));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>> PrepareAsyncRemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>>(PrepareAsyncRemoveDomainGroupRaw(context, request, cq));
-    }
-    virtual ::grpc::Status UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::infra_service::v1::UpdateSambaFileShareDataAck* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>> AsyncUpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>>(AsyncUpdateSambaFileShareRaw(context, request, cq));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>> PrepareAsyncUpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>>(PrepareAsyncUpdateSambaFileShareRaw(context, request, cq));
-    }
     virtual ::grpc::Status GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::infra_service::v1::GetFileShareSizeDataAck* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>> AsyncGetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>>(AsyncGetFileShareSizeRaw(context, request, cq));
@@ -149,210 +135,42 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>> PrepareAsyncGetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>>(PrepareAsyncGetFileShareSizeRaw(context, request, cq));
     }
-    class experimental_async_interface {
+    class async_interface {
      public:
-      virtual ~experimental_async_interface() {}
+      virtual ~async_interface() {}
       virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
       virtual void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)>) = 0;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       virtual void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      virtual void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      #else
-      virtual void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) = 0;
-      #endif
     };
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    typedef class experimental_async_interface async_interface;
-    #endif
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    async_interface* async() { return experimental_async(); }
-    #endif
-    virtual class experimental_async_interface* experimental_async() { return nullptr; }
-  private:
+    typedef class async_interface experimental_async_interface;
+    virtual class async_interface* async() { return nullptr; }
+    class async_interface* experimental_async() { return async(); }
+   private:
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::SyncNetlogonScriptDataAck>* AsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::SyncNetlogonScriptDataAck>* PrepareAsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDNSRecordDataAck>* AsyncAddDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::grpc::CompletionQueue* cq) = 0;
@@ -379,16 +197,12 @@ class InfraService final {
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::AddDomainUserDataAck>* PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainUserDataAck>* AsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainUserDataAck>* PrepareAsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>* AsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::RemoveDomainGroupDataAck>* PrepareAsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>* AsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::UpdateSambaFileShareDataAck>* PrepareAsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>* AsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::infra_service::v1::GetFileShareSizeDataAck>* PrepareAsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
-    Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
+    Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
     ::grpc::Status SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>> AsyncSyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>>(AsyncSyncNetlogonScriptRaw(context, request, cq));
@@ -480,20 +294,6 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>> PrepareAsyncRemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>>(PrepareAsyncRemoveDomainUserRaw(context, request, cq));
     }
-    ::grpc::Status RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::infra_service::v1::RemoveDomainGroupDataAck* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>> AsyncRemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>>(AsyncRemoveDomainGroupRaw(context, request, cq));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>> PrepareAsyncRemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>>(PrepareAsyncRemoveDomainGroupRaw(context, request, cq));
-    }
-    ::grpc::Status UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::infra_service::v1::UpdateSambaFileShareDataAck* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>> AsyncUpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>>(AsyncUpdateSambaFileShareRaw(context, request, cq));
-    }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>> PrepareAsyncUpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>>(PrepareAsyncUpdateSambaFileShareRaw(context, request, cq));
-    }
     ::grpc::Status GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::infra_service::v1::GetFileShareSizeDataAck* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>> AsyncGetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>>(AsyncGetFileShareSizeRaw(context, request, cq));
@@ -501,212 +301,48 @@ class InfraService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>> PrepareAsyncGetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>>(PrepareAsyncGetFileShareSizeRaw(context, request, cq));
     }
-    class experimental_async final :
-      public StubInterface::experimental_async_interface {
+    class async final :
+      public StubInterface::async_interface {
      public:
       void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)>) override;
-      void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)>) override;
-      void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)>) override;
-      void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)>) override;
-      void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)>) override;
-      void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) override;
-      void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
-      void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
-      void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
       void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)>) override;
-      void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)>) override;
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
-      #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) override;
-      #else
-      void GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) override;
-      #endif
      private:
       friend class Stub;
-      explicit experimental_async(Stub* stub): stub_(stub) { }
+      explicit async(Stub* stub): stub_(stub) { }
       Stub* stub() { return stub_; }
       Stub* stub_;
     };
-    class experimental_async_interface* experimental_async() override { return &async_stub_; }
+    class async* async() override { return &async_stub_; }
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
-    class experimental_async async_stub_{this};
+    class async async_stub_{this};
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* AsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* PrepareAsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDNSRecordDataAck>* AsyncAddDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::grpc::CompletionQueue* cq) override;
@@ -733,10 +369,6 @@ class InfraService final {
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* AsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* PrepareAsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>* AsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>* PrepareAsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>* AsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>* PrepareAsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* AsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* PrepareAsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) override;
     const ::grpc::internal::RpcMethod rpcmethod_SyncNetlogonScript_;
@@ -752,8 +384,6 @@ class InfraService final {
     const ::grpc::internal::RpcMethod rpcmethod_ResetUserPassword_;
     const ::grpc::internal::RpcMethod rpcmethod_AddDomainUser_;
     const ::grpc::internal::RpcMethod rpcmethod_RemoveDomainUser_;
-    const ::grpc::internal::RpcMethod rpcmethod_RemoveDomainGroup_;
-    const ::grpc::internal::RpcMethod rpcmethod_UpdateSambaFileShare_;
     const ::grpc::internal::RpcMethod rpcmethod_GetFileShareSize_;
   };
   static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
@@ -775,8 +405,6 @@ class InfraService final {
     virtual ::grpc::Status ResetUserPassword(::grpc::ServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response);
     virtual ::grpc::Status AddDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response);
     virtual ::grpc::Status RemoveDomainUser(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response);
-    virtual ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response);
-    virtual ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response);
     virtual ::grpc::Status GetFileShareSize(::grpc::ServerContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response);
   };
   template <class BaseClass>
@@ -1040,52 +668,12 @@ class InfraService final {
     }
   };
   template <class BaseClass>
-  class WithAsyncMethod_RemoveDomainGroup : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithAsyncMethod_RemoveDomainGroup() {
-      ::grpc::Service::MarkMethodAsync(13);
-    }
-    ~WithAsyncMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestRemoveDomainGroup(::grpc::ServerContext* context, ::infra_service::v1::RemoveDomainGroupData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::RemoveDomainGroupDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(13, context, request, response, new_call_cq, notification_cq, tag);
-    }
-  };
-  template <class BaseClass>
-  class WithAsyncMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithAsyncMethod_UpdateSambaFileShare() {
-      ::grpc::Service::MarkMethodAsync(14);
-    }
-    ~WithAsyncMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestUpdateSambaFileShare(::grpc::ServerContext* context, ::infra_service::v1::UpdateSambaFileShareData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::UpdateSambaFileShareDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(14, context, request, response, new_call_cq, notification_cq, tag);
-    }
-  };
-  template <class BaseClass>
   class WithAsyncMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithAsyncMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodAsync(15);
+      ::grpc::Service::MarkMethodAsync(13);
     }
     ~WithAsyncMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -1096,41 +684,27 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestGetFileShareSize(::grpc::ServerContext* context, ::infra_service::v1::GetFileShareSizeData* request, ::grpc::ServerAsyncResponseWriter< ::infra_service::v1::GetFileShareSizeDataAck>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(15, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(13, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_SyncNetlogonScript<WithAsyncMethod_AddDNSRecord<WithAsyncMethod_DeleteDNSRecord<WithAsyncMethod_GetUserList<WithAsyncMethod_RestartSambaService<WithAsyncMethod_CreateSambaFileShare<WithAsyncMethod_DeleteSambaFileShare<WithAsyncMethod_AddDomainGroup<WithAsyncMethod_AddUserToGroup<WithAsyncMethod_CreateDomainUserWithGroup<WithAsyncMethod_ResetUserPassword<WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<WithAsyncMethod_RemoveDomainGroup<WithAsyncMethod_UpdateSambaFileShare<WithAsyncMethod_GetFileShareSize<Service > > > > > > > > > > > > > > > > AsyncService;
+  typedef WithAsyncMethod_SyncNetlogonScript<WithAsyncMethod_AddDNSRecord<WithAsyncMethod_DeleteDNSRecord<WithAsyncMethod_GetUserList<WithAsyncMethod_RestartSambaService<WithAsyncMethod_CreateSambaFileShare<WithAsyncMethod_DeleteSambaFileShare<WithAsyncMethod_AddDomainGroup<WithAsyncMethod_AddUserToGroup<WithAsyncMethod_CreateDomainUserWithGroup<WithAsyncMethod_ResetUserPassword<WithAsyncMethod_AddDomainUser<WithAsyncMethod_RemoveDomainUser<WithAsyncMethod_GetFileShareSize<Service > > > > > > > > > > > > > > AsyncService;
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_SyncNetlogonScript : public BaseClass {
+  class WithCallbackMethod_SyncNetlogonScript : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_SyncNetlogonScript() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(0,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>(
+    WithCallbackMethod_SyncNetlogonScript() {
+      ::grpc::Service::MarkMethodCallback(0,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) { return this->SyncNetlogonScript(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) { return this->SyncNetlogonScript(context, request, response); }));}
     void SetMessageAllocatorFor_SyncNetlogonScript(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(0);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_SyncNetlogonScript() override {
+    ~WithCallbackMethod_SyncNetlogonScript() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1138,46 +712,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* SyncNetlogonScript(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::SyncNetlogonScriptData* /*request*/, ::infra_service::v1::SyncNetlogonScriptDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* SyncNetlogonScript(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::SyncNetlogonScriptData* /*request*/, ::infra_service::v1::SyncNetlogonScriptDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::SyncNetlogonScriptData* /*request*/, ::infra_service::v1::SyncNetlogonScriptDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_AddDNSRecord : public BaseClass {
+  class WithCallbackMethod_AddDNSRecord : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_AddDNSRecord() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(1,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>(
+    WithCallbackMethod_AddDNSRecord() {
+      ::grpc::Service::MarkMethodCallback(1,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response) { return this->AddDNSRecord(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response) { return this->AddDNSRecord(context, request, response); }));}
     void SetMessageAllocatorFor_AddDNSRecord(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(1);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_AddDNSRecord() override {
+    ~WithCallbackMethod_AddDNSRecord() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1185,46 +739,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDNSRecord(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDNSRecordData* /*request*/, ::infra_service::v1::AddDNSRecordDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDNSRecord(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDNSRecordData* /*request*/, ::infra_service::v1::AddDNSRecordDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDNSRecordData* /*request*/, ::infra_service::v1::AddDNSRecordDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_DeleteDNSRecord : public BaseClass {
+  class WithCallbackMethod_DeleteDNSRecord : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_DeleteDNSRecord() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(2,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>(
+    WithCallbackMethod_DeleteDNSRecord() {
+      ::grpc::Service::MarkMethodCallback(2,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response) { return this->DeleteDNSRecord(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response) { return this->DeleteDNSRecord(context, request, response); }));}
     void SetMessageAllocatorFor_DeleteDNSRecord(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(2);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_DeleteDNSRecord() override {
+    ~WithCallbackMethod_DeleteDNSRecord() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1232,46 +766,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* DeleteDNSRecord(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteDNSRecordData* /*request*/, ::infra_service::v1::DeleteDNSRecordDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* DeleteDNSRecord(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteDNSRecordData* /*request*/, ::infra_service::v1::DeleteDNSRecordDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteDNSRecordData* /*request*/, ::infra_service::v1::DeleteDNSRecordDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_GetUserList : public BaseClass {
+  class WithCallbackMethod_GetUserList : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_GetUserList() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(3,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>(
+    WithCallbackMethod_GetUserList() {
+      ::grpc::Service::MarkMethodCallback(3,
+          new ::grpc::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response) { return this->GetUserList(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response) { return this->GetUserList(context, request, response); }));}
     void SetMessageAllocatorFor_GetUserList(
-        ::grpc::experimental::MessageAllocator< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(3);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(3);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_GetUserList() override {
+    ~WithCallbackMethod_GetUserList() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1279,46 +793,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* GetUserList(
-      ::grpc::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::GetUserListDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* GetUserList(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::GetUserListDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::GetUserListDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_RestartSambaService : public BaseClass {
+  class WithCallbackMethod_RestartSambaService : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_RestartSambaService() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(4,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>(
+    WithCallbackMethod_RestartSambaService() {
+      ::grpc::Service::MarkMethodCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response) { return this->RestartSambaService(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response) { return this->RestartSambaService(context, request, response); }));}
     void SetMessageAllocatorFor_RestartSambaService(
-        ::grpc::experimental::MessageAllocator< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(4);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(4);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_RestartSambaService() override {
+    ~WithCallbackMethod_RestartSambaService() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1326,46 +820,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* RestartSambaService(
-      ::grpc::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::RestartSambaServiceDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RestartSambaService(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::RestartSambaServiceDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::google::protobuf::Empty* /*request*/, ::infra_service::v1::RestartSambaServiceDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_CreateSambaFileShare : public BaseClass {
+  class WithCallbackMethod_CreateSambaFileShare : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_CreateSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(5,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
+    WithCallbackMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodCallback(5,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response) { return this->CreateSambaFileShare(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response) { return this->CreateSambaFileShare(context, request, response); }));}
     void SetMessageAllocatorFor_CreateSambaFileShare(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(5);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(5);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_CreateSambaFileShare() override {
+    ~WithCallbackMethod_CreateSambaFileShare() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1373,46 +847,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* CreateSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateSambaFileShareData* /*request*/, ::infra_service::v1::CreateSambaFileShareDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_DeleteSambaFileShare : public BaseClass {
+  class WithCallbackMethod_DeleteSambaFileShare : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_DeleteSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(6,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>(
+    WithCallbackMethod_DeleteSambaFileShare() {
+      ::grpc::Service::MarkMethodCallback(6,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) { return this->DeleteSambaFileShare(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) { return this->DeleteSambaFileShare(context, request, response); }));}
     void SetMessageAllocatorFor_DeleteSambaFileShare(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(6);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(6);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_DeleteSambaFileShare() override {
+    ~WithCallbackMethod_DeleteSambaFileShare() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1420,46 +874,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* DeleteSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteSambaFileShareData* /*request*/, ::infra_service::v1::DeleteSambaFileShareDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* DeleteSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteSambaFileShareData* /*request*/, ::infra_service::v1::DeleteSambaFileShareDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::DeleteSambaFileShareData* /*request*/, ::infra_service::v1::DeleteSambaFileShareDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_AddDomainGroup : public BaseClass {
+  class WithCallbackMethod_AddDomainGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_AddDomainGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(7,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
+    WithCallbackMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodCallback(7,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response) { return this->AddDomainGroup(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response) { return this->AddDomainGroup(context, request, response); }));}
     void SetMessageAllocatorFor_AddDomainGroup(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(7);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(7);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_AddDomainGroup() override {
+    ~WithCallbackMethod_AddDomainGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1467,46 +901,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDomainGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDomainGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainGroupData* /*request*/, ::infra_service::v1::AddDomainGroupDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_AddUserToGroup : public BaseClass {
+  class WithCallbackMethod_AddUserToGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_AddUserToGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(8,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>(
+    WithCallbackMethod_AddUserToGroup() {
+      ::grpc::Service::MarkMethodCallback(8,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response) { return this->AddUserToGroup(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response) { return this->AddUserToGroup(context, request, response); }));}
     void SetMessageAllocatorFor_AddUserToGroup(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(8);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(8);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_AddUserToGroup() override {
+    ~WithCallbackMethod_AddUserToGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1514,46 +928,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddUserToGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddUserToGroupData* /*request*/, ::infra_service::v1::AddUserToGroupDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddUserToGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::AddUserToGroupData* /*request*/, ::infra_service::v1::AddUserToGroupDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddUserToGroupData* /*request*/, ::infra_service::v1::AddUserToGroupDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_CreateDomainUserWithGroup : public BaseClass {
+  class WithCallbackMethod_CreateDomainUserWithGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_CreateDomainUserWithGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(9,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>(
+    WithCallbackMethod_CreateDomainUserWithGroup() {
+      ::grpc::Service::MarkMethodCallback(9,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response) { return this->CreateDomainUserWithGroup(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response) { return this->CreateDomainUserWithGroup(context, request, response); }));}
     void SetMessageAllocatorFor_CreateDomainUserWithGroup(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(9);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(9);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_CreateDomainUserWithGroup() override {
+    ~WithCallbackMethod_CreateDomainUserWithGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1561,46 +955,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateDomainUserWithGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateDomainUserWithGroupData* /*request*/, ::infra_service::v1::CreateDomainUserWithGroupDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* CreateDomainUserWithGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateDomainUserWithGroupData* /*request*/, ::infra_service::v1::CreateDomainUserWithGroupDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::CreateDomainUserWithGroupData* /*request*/, ::infra_service::v1::CreateDomainUserWithGroupDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_ResetUserPassword : public BaseClass {
+  class WithCallbackMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_ResetUserPassword() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(10,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
+    WithCallbackMethod_ResetUserPassword() {
+      ::grpc::Service::MarkMethodCallback(10,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response) { return this->ResetUserPassword(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response) { return this->ResetUserPassword(context, request, response); }));}
     void SetMessageAllocatorFor_ResetUserPassword(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(10);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(10);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_ResetUserPassword() override {
+    ~WithCallbackMethod_ResetUserPassword() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1608,46 +982,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* ResetUserPassword(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::ResetUserPasswordData* /*request*/, ::infra_service::v1::ResetUserPasswordDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* ResetUserPassword(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::ResetUserPasswordData* /*request*/, ::infra_service::v1::ResetUserPasswordDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::ResetUserPasswordData* /*request*/, ::infra_service::v1::ResetUserPasswordDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_AddDomainUser : public BaseClass {
+  class WithCallbackMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_AddDomainUser() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(11,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
+    WithCallbackMethod_AddDomainUser() {
+      ::grpc::Service::MarkMethodCallback(11,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response) { return this->AddDomainUser(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response) { return this->AddDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_AddDomainUser(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(11);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(11);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_AddDomainUser() override {
+    ~WithCallbackMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1655,46 +1009,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDomainUser(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainUserData* /*request*/, ::infra_service::v1::AddDomainUserDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDomainUser(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainUserData* /*request*/, ::infra_service::v1::AddDomainUserDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::AddDomainUserData* /*request*/, ::infra_service::v1::AddDomainUserDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_RemoveDomainUser : public BaseClass {
+  class WithCallbackMethod_RemoveDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_RemoveDomainUser() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(12,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
+    WithCallbackMethod_RemoveDomainUser() {
+      ::grpc::Service::MarkMethodCallback(12,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response) { return this->RemoveDomainUser(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response) { return this->RemoveDomainUser(context, request, response); }));}
     void SetMessageAllocatorFor_RemoveDomainUser(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
+        ::grpc::MessageAllocator< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(12);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(12);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_RemoveDomainUser() override {
+    ~WithCallbackMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1702,140 +1036,26 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* RemoveDomainUser(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainUserData* /*request*/, ::infra_service::v1::RemoveDomainUserDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RemoveDomainUser(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainUserData* /*request*/, ::infra_service::v1::RemoveDomainUserDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainUserData* /*request*/, ::infra_service::v1::RemoveDomainUserDataAck* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithCallbackMethod_RemoveDomainGroup : public BaseClass {
+  class WithCallbackMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithCallbackMethod_RemoveDomainGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(13,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>(
+    WithCallbackMethod_GetFileShareSize() {
+      ::grpc::Service::MarkMethodCallback(13,
+          new ::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response) { return this->RemoveDomainGroup(context, request, response); }));}
-    void SetMessageAllocatorFor_RemoveDomainGroup(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(13);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(13);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>*>(handler)
-              ->SetMessageAllocator(allocator);
-    }
-    ~ExperimentalWithCallbackMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    virtual ::grpc::ServerUnaryReactor* RemoveDomainGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RemoveDomainGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/)
-    #endif
-      { return nullptr; }
-  };
-  template <class BaseClass>
-  class ExperimentalWithCallbackMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    ExperimentalWithCallbackMethod_UpdateSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(14,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>(
-            [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response) { return this->UpdateSambaFileShare(context, request, response); }));}
-    void SetMessageAllocatorFor_UpdateSambaFileShare(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(14);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(14);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>*>(handler)
-              ->SetMessageAllocator(allocator);
-    }
-    ~ExperimentalWithCallbackMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    virtual ::grpc::ServerUnaryReactor* UpdateSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* UpdateSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/)
-    #endif
-      { return nullptr; }
-  };
-  template <class BaseClass>
-  class ExperimentalWithCallbackMethod_GetFileShareSize : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    ExperimentalWithCallbackMethod_GetFileShareSize() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodCallback(15,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
-            [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response) { return this->GetFileShareSize(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response) { return this->GetFileShareSize(context, request, response); }));}
     void SetMessageAllocatorFor_GetFileShareSize(
-        ::grpc::experimental::MessageAllocator< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>* allocator) {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(15);
-    #else
-      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::experimental().GetHandler(15);
-    #endif
-      static_cast<::grpc_impl::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>*>(handler)
+        ::grpc::MessageAllocator< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(13);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>*>(handler)
               ->SetMessageAllocator(allocator);
     }
-    ~ExperimentalWithCallbackMethod_GetFileShareSize() override {
+    ~WithCallbackMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -1843,20 +1063,11 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* GetFileShareSize(
-      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::GetFileShareSizeData* /*request*/, ::infra_service::v1::GetFileShareSizeDataAck* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* GetFileShareSize(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::infra_service::v1::GetFileShareSizeData* /*request*/, ::infra_service::v1::GetFileShareSizeDataAck* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::infra_service::v1::GetFileShareSizeData* /*request*/, ::infra_service::v1::GetFileShareSizeDataAck* /*response*/)  { return nullptr; }
   };
-  #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-  typedef ExperimentalWithCallbackMethod_SyncNetlogonScript<ExperimentalWithCallbackMethod_AddDNSRecord<ExperimentalWithCallbackMethod_DeleteDNSRecord<ExperimentalWithCallbackMethod_GetUserList<ExperimentalWithCallbackMethod_RestartSambaService<ExperimentalWithCallbackMethod_CreateSambaFileShare<ExperimentalWithCallbackMethod_DeleteSambaFileShare<ExperimentalWithCallbackMethod_AddDomainGroup<ExperimentalWithCallbackMethod_AddUserToGroup<ExperimentalWithCallbackMethod_CreateDomainUserWithGroup<ExperimentalWithCallbackMethod_ResetUserPassword<ExperimentalWithCallbackMethod_AddDomainUser<ExperimentalWithCallbackMethod_RemoveDomainUser<ExperimentalWithCallbackMethod_RemoveDomainGroup<ExperimentalWithCallbackMethod_UpdateSambaFileShare<ExperimentalWithCallbackMethod_GetFileShareSize<Service > > > > > > > > > > > > > > > > CallbackService;
-  #endif
-
-  typedef ExperimentalWithCallbackMethod_SyncNetlogonScript<ExperimentalWithCallbackMethod_AddDNSRecord<ExperimentalWithCallbackMethod_DeleteDNSRecord<ExperimentalWithCallbackMethod_GetUserList<ExperimentalWithCallbackMethod_RestartSambaService<ExperimentalWithCallbackMethod_CreateSambaFileShare<ExperimentalWithCallbackMethod_DeleteSambaFileShare<ExperimentalWithCallbackMethod_AddDomainGroup<ExperimentalWithCallbackMethod_AddUserToGroup<ExperimentalWithCallbackMethod_CreateDomainUserWithGroup<ExperimentalWithCallbackMethod_ResetUserPassword<ExperimentalWithCallbackMethod_AddDomainUser<ExperimentalWithCallbackMethod_RemoveDomainUser<ExperimentalWithCallbackMethod_RemoveDomainGroup<ExperimentalWithCallbackMethod_UpdateSambaFileShare<ExperimentalWithCallbackMethod_GetFileShareSize<Service > > > > > > > > > > > > > > > > ExperimentalCallbackService;
+  typedef WithCallbackMethod_SyncNetlogonScript<WithCallbackMethod_AddDNSRecord<WithCallbackMethod_DeleteDNSRecord<WithCallbackMethod_GetUserList<WithCallbackMethod_RestartSambaService<WithCallbackMethod_CreateSambaFileShare<WithCallbackMethod_DeleteSambaFileShare<WithCallbackMethod_AddDomainGroup<WithCallbackMethod_AddUserToGroup<WithCallbackMethod_CreateDomainUserWithGroup<WithCallbackMethod_ResetUserPassword<WithCallbackMethod_AddDomainUser<WithCallbackMethod_RemoveDomainUser<WithCallbackMethod_GetFileShareSize<Service > > > > > > > > > > > > > > CallbackService;
+  typedef CallbackService ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_SyncNetlogonScript : public BaseClass {
    private:
@@ -2079,46 +1290,12 @@ class InfraService final {
     }
   };
   template <class BaseClass>
-  class WithGenericMethod_RemoveDomainGroup : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithGenericMethod_RemoveDomainGroup() {
-      ::grpc::Service::MarkMethodGeneric(13);
-    }
-    ~WithGenericMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-  };
-  template <class BaseClass>
-  class WithGenericMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithGenericMethod_UpdateSambaFileShare() {
-      ::grpc::Service::MarkMethodGeneric(14);
-    }
-    ~WithGenericMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-  };
-  template <class BaseClass>
   class WithGenericMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithGenericMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodGeneric(15);
+      ::grpc::Service::MarkMethodGeneric(13);
     }
     ~WithGenericMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -2390,52 +1567,12 @@ class InfraService final {
     }
   };
   template <class BaseClass>
-  class WithRawMethod_RemoveDomainGroup : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithRawMethod_RemoveDomainGroup() {
-      ::grpc::Service::MarkMethodRaw(13);
-    }
-    ~WithRawMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestRemoveDomainGroup(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(13, context, request, response, new_call_cq, notification_cq, tag);
-    }
-  };
-  template <class BaseClass>
-  class WithRawMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithRawMethod_UpdateSambaFileShare() {
-      ::grpc::Service::MarkMethodRaw(14);
-    }
-    ~WithRawMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    void RequestUpdateSambaFileShare(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(14, context, request, response, new_call_cq, notification_cq, tag);
-    }
-  };
-  template <class BaseClass>
   class WithRawMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithRawMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodRaw(15);
+      ::grpc::Service::MarkMethodRaw(13);
     }
     ~WithRawMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
@@ -2446,31 +1583,21 @@ class InfraService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestGetFileShareSize(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(15, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(13, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_SyncNetlogonScript : public BaseClass {
+  class WithRawCallbackMethod_SyncNetlogonScript : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_SyncNetlogonScript() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(0,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_SyncNetlogonScript() {
+      ::grpc::Service::MarkMethodRawCallback(0,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->SyncNetlogonScript(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->SyncNetlogonScript(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_SyncNetlogonScript() override {
+    ~WithRawCallbackMethod_SyncNetlogonScript() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2478,37 +1605,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* SyncNetlogonScript(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* SyncNetlogonScript(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_AddDNSRecord : public BaseClass {
+  class WithRawCallbackMethod_AddDNSRecord : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_AddDNSRecord() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(1,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_AddDNSRecord() {
+      ::grpc::Service::MarkMethodRawCallback(1,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDNSRecord(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDNSRecord(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_AddDNSRecord() override {
+    ~WithRawCallbackMethod_AddDNSRecord() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2516,37 +1627,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDNSRecord(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDNSRecord(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_DeleteDNSRecord : public BaseClass {
+  class WithRawCallbackMethod_DeleteDNSRecord : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_DeleteDNSRecord() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(2,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_DeleteDNSRecord() {
+      ::grpc::Service::MarkMethodRawCallback(2,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->DeleteDNSRecord(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->DeleteDNSRecord(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_DeleteDNSRecord() override {
+    ~WithRawCallbackMethod_DeleteDNSRecord() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2554,37 +1649,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* DeleteDNSRecord(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* DeleteDNSRecord(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_GetUserList : public BaseClass {
+  class WithRawCallbackMethod_GetUserList : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_GetUserList() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(3,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_GetUserList() {
+      ::grpc::Service::MarkMethodRawCallback(3,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->GetUserList(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->GetUserList(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_GetUserList() override {
+    ~WithRawCallbackMethod_GetUserList() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2592,37 +1671,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* GetUserList(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* GetUserList(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_RestartSambaService : public BaseClass {
+  class WithRawCallbackMethod_RestartSambaService : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_RestartSambaService() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(4,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_RestartSambaService() {
+      ::grpc::Service::MarkMethodRawCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RestartSambaService(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RestartSambaService(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_RestartSambaService() override {
+    ~WithRawCallbackMethod_RestartSambaService() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2630,37 +1693,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* RestartSambaService(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RestartSambaService(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_CreateSambaFileShare : public BaseClass {
+  class WithRawCallbackMethod_CreateSambaFileShare : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_CreateSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(5,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_CreateSambaFileShare() {
+      ::grpc::Service::MarkMethodRawCallback(5,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateSambaFileShare(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateSambaFileShare(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_CreateSambaFileShare() override {
+    ~WithRawCallbackMethod_CreateSambaFileShare() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2668,37 +1715,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* CreateSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_DeleteSambaFileShare : public BaseClass {
+  class WithRawCallbackMethod_DeleteSambaFileShare : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_DeleteSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(6,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_DeleteSambaFileShare() {
+      ::grpc::Service::MarkMethodRawCallback(6,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->DeleteSambaFileShare(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->DeleteSambaFileShare(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_DeleteSambaFileShare() override {
+    ~WithRawCallbackMethod_DeleteSambaFileShare() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2706,37 +1737,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* DeleteSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* DeleteSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_AddDomainGroup : public BaseClass {
+  class WithRawCallbackMethod_AddDomainGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_AddDomainGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(7,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_AddDomainGroup() {
+      ::grpc::Service::MarkMethodRawCallback(7,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainGroup(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainGroup(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_AddDomainGroup() override {
+    ~WithRawCallbackMethod_AddDomainGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2744,37 +1759,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDomainGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDomainGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_AddUserToGroup : public BaseClass {
+  class WithRawCallbackMethod_AddUserToGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_AddUserToGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(8,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_AddUserToGroup() {
+      ::grpc::Service::MarkMethodRawCallback(8,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddUserToGroup(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddUserToGroup(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_AddUserToGroup() override {
+    ~WithRawCallbackMethod_AddUserToGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2782,37 +1781,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddUserToGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddUserToGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_CreateDomainUserWithGroup : public BaseClass {
+  class WithRawCallbackMethod_CreateDomainUserWithGroup : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_CreateDomainUserWithGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(9,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_CreateDomainUserWithGroup() {
+      ::grpc::Service::MarkMethodRawCallback(9,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateDomainUserWithGroup(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateDomainUserWithGroup(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_CreateDomainUserWithGroup() override {
+    ~WithRawCallbackMethod_CreateDomainUserWithGroup() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2820,37 +1803,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* CreateDomainUserWithGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* CreateDomainUserWithGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_ResetUserPassword : public BaseClass {
+  class WithRawCallbackMethod_ResetUserPassword : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_ResetUserPassword() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(10,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_ResetUserPassword() {
+      ::grpc::Service::MarkMethodRawCallback(10,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->ResetUserPassword(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->ResetUserPassword(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_ResetUserPassword() override {
+    ~WithRawCallbackMethod_ResetUserPassword() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2858,37 +1825,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* ResetUserPassword(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* ResetUserPassword(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_AddDomainUser : public BaseClass {
+  class WithRawCallbackMethod_AddDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_AddDomainUser() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(11,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_AddDomainUser() {
+      ::grpc::Service::MarkMethodRawCallback(11,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainUser(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->AddDomainUser(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_AddDomainUser() override {
+    ~WithRawCallbackMethod_AddDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2896,37 +1847,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* AddDomainUser(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* AddDomainUser(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_RemoveDomainUser : public BaseClass {
+  class WithRawCallbackMethod_RemoveDomainUser : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_RemoveDomainUser() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(12,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_RemoveDomainUser() {
+      ::grpc::Service::MarkMethodRawCallback(12,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RemoveDomainUser(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RemoveDomainUser(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_RemoveDomainUser() override {
+    ~WithRawCallbackMethod_RemoveDomainUser() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -2934,113 +1869,21 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* RemoveDomainUser(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RemoveDomainUser(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_RemoveDomainGroup : public BaseClass {
+  class WithRawCallbackMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
-    ExperimentalWithRawCallbackMethod_RemoveDomainGroup() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(13,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+    WithRawCallbackMethod_GetFileShareSize() {
+      ::grpc::Service::MarkMethodRawCallback(13,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
             [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->RemoveDomainGroup(context, request, response); }));
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->GetFileShareSize(context, request, response); }));
     }
-    ~ExperimentalWithRawCallbackMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    virtual ::grpc::ServerUnaryReactor* RemoveDomainGroup(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* RemoveDomainGroup(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
-  };
-  template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    ExperimentalWithRawCallbackMethod_UpdateSambaFileShare() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(14,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
-            [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->UpdateSambaFileShare(context, request, response); }));
-    }
-    ~ExperimentalWithRawCallbackMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable synchronous version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-    virtual ::grpc::ServerUnaryReactor* UpdateSambaFileShare(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* UpdateSambaFileShare(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
-  };
-  template <class BaseClass>
-  class ExperimentalWithRawCallbackMethod_GetFileShareSize : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    ExperimentalWithRawCallbackMethod_GetFileShareSize() {
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-      ::grpc::Service::
-    #else
-      ::grpc::Service::experimental().
-    #endif
-        MarkMethodRawCallback(15,
-          new ::grpc_impl::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
-            [this](
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
-                   ::grpc::CallbackServerContext*
-    #else
-                   ::grpc::experimental::CallbackServerContext*
-    #endif
-                     context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->GetFileShareSize(context, request, response); }));
-    }
-    ~ExperimentalWithRawCallbackMethod_GetFileShareSize() override {
+    ~WithRawCallbackMethod_GetFileShareSize() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
@@ -3048,14 +1891,8 @@ class InfraService final {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    #ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
     virtual ::grpc::ServerUnaryReactor* GetFileShareSize(
-      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #else
-    virtual ::grpc::experimental::ServerUnaryReactor* GetFileShareSize(
-      ::grpc::experimental::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)
-    #endif
-      { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
   class WithStreamedUnaryMethod_SyncNetlogonScript : public BaseClass {
@@ -3066,8 +1903,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(0,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>* streamer) {
                        return this->StreamedSyncNetlogonScript(context,
                          streamer);
@@ -3093,8 +1930,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>* streamer) {
                        return this->StreamedAddDNSRecord(context,
                          streamer);
@@ -3120,8 +1957,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>* streamer) {
                        return this->StreamedDeleteDNSRecord(context,
                          streamer);
@@ -3147,8 +1984,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(3,
         new ::grpc::internal::StreamedUnaryHandler<
           ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>* streamer) {
                        return this->StreamedGetUserList(context,
                          streamer);
@@ -3174,8 +2011,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(4,
         new ::grpc::internal::StreamedUnaryHandler<
           ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>* streamer) {
                        return this->StreamedRestartSambaService(context,
                          streamer);
@@ -3201,8 +2038,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(5,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>* streamer) {
                        return this->StreamedCreateSambaFileShare(context,
                          streamer);
@@ -3228,8 +2065,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(6,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>* streamer) {
                        return this->StreamedDeleteSambaFileShare(context,
                          streamer);
@@ -3255,8 +2092,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(7,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>* streamer) {
                        return this->StreamedAddDomainGroup(context,
                          streamer);
@@ -3282,8 +2119,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(8,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>* streamer) {
                        return this->StreamedAddUserToGroup(context,
                          streamer);
@@ -3309,8 +2146,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(9,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>* streamer) {
                        return this->StreamedCreateDomainUserWithGroup(context,
                          streamer);
@@ -3336,8 +2173,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(10,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>* streamer) {
                        return this->StreamedResetUserPassword(context,
                          streamer);
@@ -3363,8 +2200,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(11,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>* streamer) {
                        return this->StreamedAddDomainUser(context,
                          streamer);
@@ -3390,8 +2227,8 @@ class InfraService final {
       ::grpc::Service::MarkMethodStreamed(12,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>* streamer) {
                        return this->StreamedRemoveDomainUser(context,
                          streamer);
@@ -3409,70 +2246,16 @@ class InfraService final {
     virtual ::grpc::Status StreamedRemoveDomainUser(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::RemoveDomainUserData,::infra_service::v1::RemoveDomainUserDataAck>* server_unary_streamer) = 0;
   };
   template <class BaseClass>
-  class WithStreamedUnaryMethod_RemoveDomainGroup : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithStreamedUnaryMethod_RemoveDomainGroup() {
-      ::grpc::Service::MarkMethodStreamed(13,
-        new ::grpc::internal::StreamedUnaryHandler<
-          ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
-                     ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>* streamer) {
-                       return this->StreamedRemoveDomainGroup(context,
-                         streamer);
-                  }));
-    }
-    ~WithStreamedUnaryMethod_RemoveDomainGroup() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable regular version of this method
-    ::grpc::Status RemoveDomainGroup(::grpc::ServerContext* /*context*/, const ::infra_service::v1::RemoveDomainGroupData* /*request*/, ::infra_service::v1::RemoveDomainGroupDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedRemoveDomainGroup(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::RemoveDomainGroupData,::infra_service::v1::RemoveDomainGroupDataAck>* server_unary_streamer) = 0;
-  };
-  template <class BaseClass>
-  class WithStreamedUnaryMethod_UpdateSambaFileShare : public BaseClass {
-   private:
-    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
-   public:
-    WithStreamedUnaryMethod_UpdateSambaFileShare() {
-      ::grpc::Service::MarkMethodStreamed(14,
-        new ::grpc::internal::StreamedUnaryHandler<
-          ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
-                     ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>* streamer) {
-                       return this->StreamedUpdateSambaFileShare(context,
-                         streamer);
-                  }));
-    }
-    ~WithStreamedUnaryMethod_UpdateSambaFileShare() override {
-      BaseClassMustBeDerivedFromService(this);
-    }
-    // disable regular version of this method
-    ::grpc::Status UpdateSambaFileShare(::grpc::ServerContext* /*context*/, const ::infra_service::v1::UpdateSambaFileShareData* /*request*/, ::infra_service::v1::UpdateSambaFileShareDataAck* /*response*/) override {
-      abort();
-      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
-    }
-    // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedUpdateSambaFileShare(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::UpdateSambaFileShareData,::infra_service::v1::UpdateSambaFileShareDataAck>* server_unary_streamer) = 0;
-  };
-  template <class BaseClass>
   class WithStreamedUnaryMethod_GetFileShareSize : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
    public:
     WithStreamedUnaryMethod_GetFileShareSize() {
-      ::grpc::Service::MarkMethodStreamed(15,
+      ::grpc::Service::MarkMethodStreamed(13,
         new ::grpc::internal::StreamedUnaryHandler<
           ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
-            [this](::grpc_impl::ServerContext* context,
-                   ::grpc_impl::ServerUnaryStreamer<
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
                      ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>* streamer) {
                        return this->StreamedGetFileShareSize(context,
                          streamer);
@@ -3489,13 +2272,14 @@ class InfraService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedGetFileShareSize(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::infra_service::v1::GetFileShareSizeData,::infra_service::v1::GetFileShareSizeDataAck>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_SyncNetlogonScript<WithStreamedUnaryMethod_AddDNSRecord<WithStreamedUnaryMethod_DeleteDNSRecord<WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_AddUserToGroup<WithStreamedUnaryMethod_CreateDomainUserWithGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_RemoveDomainGroup<WithStreamedUnaryMethod_UpdateSambaFileShare<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > > > > > > > > StreamedUnaryService;
+  typedef WithStreamedUnaryMethod_SyncNetlogonScript<WithStreamedUnaryMethod_AddDNSRecord<WithStreamedUnaryMethod_DeleteDNSRecord<WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_AddUserToGroup<WithStreamedUnaryMethod_CreateDomainUserWithGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > > > > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_SyncNetlogonScript<WithStreamedUnaryMethod_AddDNSRecord<WithStreamedUnaryMethod_DeleteDNSRecord<WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_AddUserToGroup<WithStreamedUnaryMethod_CreateDomainUserWithGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_RemoveDomainGroup<WithStreamedUnaryMethod_UpdateSambaFileShare<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > > > > > > > > StreamedService;
+  typedef WithStreamedUnaryMethod_SyncNetlogonScript<WithStreamedUnaryMethod_AddDNSRecord<WithStreamedUnaryMethod_DeleteDNSRecord<WithStreamedUnaryMethod_GetUserList<WithStreamedUnaryMethod_RestartSambaService<WithStreamedUnaryMethod_CreateSambaFileShare<WithStreamedUnaryMethod_DeleteSambaFileShare<WithStreamedUnaryMethod_AddDomainGroup<WithStreamedUnaryMethod_AddUserToGroup<WithStreamedUnaryMethod_CreateDomainUserWithGroup<WithStreamedUnaryMethod_ResetUserPassword<WithStreamedUnaryMethod_AddDomainUser<WithStreamedUnaryMethod_RemoveDomainUser<WithStreamedUnaryMethod_GetFileShareSize<Service > > > > > > > > > > > > > > StreamedService;
 };
 
 }  // namespace v1
 }  // namespace infra_service
 
 
+#include <grpcpp/ports_undef.inc>
 #endif  // GRPC_infra_5fservice_2finfra_5fservice_2eproto__INCLUDED

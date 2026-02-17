@@ -6,19 +6,20 @@
 #include "infra_service/vpn_service.grpc.pb.h"
 
 #include <functional>
-#include <grpcpp/impl/codegen/async_stream.h>
-#include <grpcpp/impl/codegen/async_unary_call.h>
-#include <grpcpp/impl/codegen/channel_interface.h>
-#include <grpcpp/impl/codegen/client_unary_call.h>
-#include <grpcpp/impl/codegen/client_callback.h>
-#include <grpcpp/impl/codegen/message_allocator.h>
-#include <grpcpp/impl/codegen/method_handler.h>
-#include <grpcpp/impl/codegen/rpc_service_method.h>
-#include <grpcpp/impl/codegen/server_callback.h>
-#include <grpcpp/impl/codegen/server_callback_handlers.h>
-#include <grpcpp/impl/codegen/server_context.h>
-#include <grpcpp/impl/codegen/service_type.h>
-#include <grpcpp/impl/codegen/sync_stream.h>
+#include <grpcpp/support/async_stream.h>
+#include <grpcpp/support/async_unary_call.h>
+#include <grpcpp/impl/channel_interface.h>
+#include <grpcpp/impl/client_unary_call.h>
+#include <grpcpp/support/client_callback.h>
+#include <grpcpp/support/message_allocator.h>
+#include <grpcpp/support/method_handler.h>
+#include <grpcpp/impl/rpc_service_method.h>
+#include <grpcpp/support/server_callback.h>
+#include <grpcpp/impl/server_callback_handlers.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/impl/service_type.h>
+#include <grpcpp/support/sync_stream.h>
+#include <grpcpp/ports_def.inc>
 namespace vpn_service {
 namespace v1 {
 
@@ -30,107 +31,92 @@ static const char* VPNService_method_names[] = {
 
 std::unique_ptr< VPNService::Stub> VPNService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
   (void)options;
-  std::unique_ptr< VPNService::Stub> stub(new VPNService::Stub(channel));
+  std::unique_ptr< VPNService::Stub> stub(new VPNService::Stub(channel, options));
   return stub;
 }
 
-VPNService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
-  : channel_(channel), rpcmethod_CreateVPNClient_(VPNService_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_OpenSSHTunnel_(VPNService_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_Relay_(VPNService_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+VPNService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
+  : channel_(channel), rpcmethod_CreateVPNClient_(VPNService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_OpenSSHTunnel_(VPNService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_Relay_(VPNService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status VPNService::Stub::CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::vpn_service::v1::CreateVPNClientDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_CreateVPNClient_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateVPNClient_, context, request, response);
 }
 
-void VPNService::Stub::experimental_async::CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, std::move(f));
+void VPNService::Stub::async::CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, std::move(f));
 }
 
-void VPNService::Stub::experimental_async::CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, std::move(f));
-}
-
-void VPNService::Stub::experimental_async::CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, reactor);
-}
-
-void VPNService::Stub::experimental_async::CreateVPNClient(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, reactor);
-}
-
-::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>* VPNService::Stub::AsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::CreateVPNClientDataAck>::Create(channel_.get(), cq, rpcmethod_CreateVPNClient_, context, request, true);
+void VPNService::Stub::async::CreateVPNClient(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData* request, ::vpn_service::v1::CreateVPNClientDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateVPNClient_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>* VPNService::Stub::PrepareAsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::CreateVPNClientDataAck>::Create(channel_.get(), cq, rpcmethod_CreateVPNClient_, context, request, false);
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::vpn_service::v1::CreateVPNClientDataAck, ::vpn_service::v1::CreateVPNClientData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateVPNClient_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::vpn_service::v1::CreateVPNClientDataAck>* VPNService::Stub::AsyncCreateVPNClientRaw(::grpc::ClientContext* context, const ::vpn_service::v1::CreateVPNClientData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncCreateVPNClientRaw(context, request, cq);
+  result->StartCall();
+  return result;
 }
 
 ::grpc::Status VPNService::Stub::OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::vpn_service::v1::OpenSSHTunnelDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_OpenSSHTunnel_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_OpenSSHTunnel_, context, request, response);
 }
 
-void VPNService::Stub::experimental_async::OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, std::move(f));
+void VPNService::Stub::async::OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, std::move(f));
 }
 
-void VPNService::Stub::experimental_async::OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, std::move(f));
-}
-
-void VPNService::Stub::experimental_async::OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, reactor);
-}
-
-void VPNService::Stub::experimental_async::OpenSSHTunnel(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, reactor);
-}
-
-::grpc::ClientAsyncResponseReader< ::vpn_service::v1::OpenSSHTunnelDataAck>* VPNService::Stub::AsyncOpenSSHTunnelRaw(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::OpenSSHTunnelDataAck>::Create(channel_.get(), cq, rpcmethod_OpenSSHTunnel_, context, request, true);
+void VPNService::Stub::async::OpenSSHTunnel(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData* request, ::vpn_service::v1::OpenSSHTunnelDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_OpenSSHTunnel_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::OpenSSHTunnelDataAck>* VPNService::Stub::PrepareAsyncOpenSSHTunnelRaw(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::OpenSSHTunnelDataAck>::Create(channel_.get(), cq, rpcmethod_OpenSSHTunnel_, context, request, false);
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::vpn_service::v1::OpenSSHTunnelDataAck, ::vpn_service::v1::OpenSSHTunnelData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_OpenSSHTunnel_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::vpn_service::v1::OpenSSHTunnelDataAck>* VPNService::Stub::AsyncOpenSSHTunnelRaw(::grpc::ClientContext* context, const ::vpn_service::v1::OpenSSHTunnelData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncOpenSSHTunnelRaw(context, request, cq);
+  result->StartCall();
+  return result;
 }
 
 ::grpc::Status VPNService::Stub::Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::vpn_service::v1::RelayDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_Relay_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_Relay_, context, request, response);
 }
 
-void VPNService::Stub::experimental_async::Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, std::move(f));
+void VPNService::Stub::async::Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, std::move(f));
 }
 
-void VPNService::Stub::experimental_async::Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, std::move(f));
-}
-
-void VPNService::Stub::experimental_async::Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, reactor);
-}
-
-void VPNService::Stub::experimental_async::Relay(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
-  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, reactor);
-}
-
-::grpc::ClientAsyncResponseReader< ::vpn_service::v1::RelayDataAck>* VPNService::Stub::AsyncRelayRaw(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::RelayDataAck>::Create(channel_.get(), cq, rpcmethod_Relay_, context, request, true);
+void VPNService::Stub::async::Relay(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData* request, ::vpn_service::v1::RelayDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_Relay_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::vpn_service::v1::RelayDataAck>* VPNService::Stub::PrepareAsyncRelayRaw(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::vpn_service::v1::RelayDataAck>::Create(channel_.get(), cq, rpcmethod_Relay_, context, request, false);
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::vpn_service::v1::RelayDataAck, ::vpn_service::v1::RelayData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_Relay_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::vpn_service::v1::RelayDataAck>* VPNService::Stub::AsyncRelayRaw(::grpc::ClientContext* context, const ::vpn_service::v1::RelayData& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncRelayRaw(context, request, cq);
+  result->StartCall();
+  return result;
 }
 
 VPNService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       VPNService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck>(
+      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::CreateVPNClientData, ::vpn_service::v1::CreateVPNClientDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](VPNService::Service* service,
-             ::grpc_impl::ServerContext* ctx,
+             ::grpc::ServerContext* ctx,
              const ::vpn_service::v1::CreateVPNClientData* req,
              ::vpn_service::v1::CreateVPNClientDataAck* resp) {
                return service->CreateVPNClient(ctx, req, resp);
@@ -138,9 +124,9 @@ VPNService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       VPNService_method_names[1],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck>(
+      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::OpenSSHTunnelData, ::vpn_service::v1::OpenSSHTunnelDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](VPNService::Service* service,
-             ::grpc_impl::ServerContext* ctx,
+             ::grpc::ServerContext* ctx,
              const ::vpn_service::v1::OpenSSHTunnelData* req,
              ::vpn_service::v1::OpenSSHTunnelDataAck* resp) {
                return service->OpenSSHTunnel(ctx, req, resp);
@@ -148,9 +134,9 @@ VPNService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       VPNService_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck>(
+      new ::grpc::internal::RpcMethodHandler< VPNService::Service, ::vpn_service::v1::RelayData, ::vpn_service::v1::RelayDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](VPNService::Service* service,
-             ::grpc_impl::ServerContext* ctx,
+             ::grpc::ServerContext* ctx,
              const ::vpn_service::v1::RelayData* req,
              ::vpn_service::v1::RelayDataAck* resp) {
                return service->Relay(ctx, req, resp);
@@ -184,4 +170,5 @@ VPNService::Service::~Service() {
 
 }  // namespace vpn_service
 }  // namespace v1
+#include <grpcpp/ports_undef.inc>
 

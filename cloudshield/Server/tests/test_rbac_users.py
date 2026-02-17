@@ -1373,9 +1373,17 @@ class TestMakeJsonSafe:
 class TestSignupAdminEndpoint:
     """Cover signup_admin_endpoint (lines 105-106, 362-376)."""
 
-    def test_signup_admin_success_forces_admin_role(self, app_and_client, fake_users_collection):
+    def test_signup_admin_success_forces_admin_role(self, app_and_client, fake_users_collection, monkeypatch):
         """Line 105-106: current_user is None → body['role'] forced to 'admin'."""
         app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        class FakeJob:
+            id = "signup-job-1"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
         resp = client.post("/signup_admin", json={
             "email": "signup@test.com",
             "password": "StrongP@ss1!",
@@ -1383,9 +1391,9 @@ class TestSignupAdminEndpoint:
             "role": "employee",
             "full_name": "Admin"
         })
-        assert resp.status_code == 201
+        assert resp.status_code == 202
         data = resp.get_json()
-        assert "user_id" in data
+        assert "job_id" in data
 
     def test_signup_admin_validation_error(self, app_and_client):
         """Line 362-366: ValidationError → 400."""
@@ -1447,7 +1455,8 @@ class TestCreateUserDCDispatch:
     """Cover DC dispatch branches in create_user_endpoint (174→198, 184→198, 193)."""
 
     def test_create_user_dc_dispatch_success(self, app_and_client, monkeypatch):
-        """Lines 185-193: service_dispatcher succeeds, dc_job_id is returned."""
+        """_handle_user_create now dispatches DC directly and returns 202.
+        Verify the happy path returns job_id."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
 
@@ -1464,11 +1473,40 @@ class TestCreateUserDCDispatch:
             "role": "employee",
             "full_name": "DC User",
         }, headers={"Authorization": "Bearer admin:org_001:u1"})
-        assert resp.status_code == 201
-        assert resp.get_json()["dc_job_id"] == "job-123"
+        assert resp.status_code == 202
+        assert resp.get_json()["job_id"] == "job-123"
 
-    def test_create_user_dc_dispatch_exception(self, app_and_client, monkeypatch):
-        """Line 193: service_dispatcher raises → dc_sync_warning, still 201."""
+    def test_create_user_legacy_dc_dispatch_on_201(self, app_and_client, monkeypatch):
+        """Exercise the fallback DC dispatch block in create_user_endpoint
+        that runs when _handle_user_create returns status 201."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
+
+        class FakeJob:
+            id = "dc-job-201"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
+        resp = client.post("/users", json={
+            "email": "legacy@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "Legacy User",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 201
+        assert resp.get_json()["dc_job_id"] == "dc-job-201"
+
+    def test_create_user_dc_dispatch_exception_propagates(self, app_and_client, monkeypatch):
+        """When service_dispatcher raises inside _handle_user_create the
+        exception propagates to create_user_endpoint's outer handler → 500."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
 
@@ -1484,37 +1522,58 @@ class TestCreateUserDCDispatch:
             "role": "employee",
             "full_name": "DC Fail",
         }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 500
+
+    def test_create_user_legacy_dc_dispatch_exception(self, app_and_client, monkeypatch):
+        """Exercise the dc_sync_warning path in create_user_endpoint's
+        fallback DC dispatch block (when _handle_user_create returns 201)."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
+
+        call_count = [0]
+        def _raise_on_second(**kw):
+            call_count[0] += 1
+            raise RuntimeError("DC unreachable")
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _raise_on_second, raising=True)
+
+        resp = client.post("/users", json={
+            "email": "dcfail2@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "DC Fail",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 201
         assert "dc_sync_warning" in resp.get_json()
 
-    def test_create_user_dc_skip_no_password(self, app_and_client, monkeypatch):
-        """Branch 184→198: dc_password empty → DC dispatch skipped."""
+    def test_create_user_legacy_dc_skip_no_password(self, app_and_client, monkeypatch):
+        """Exercise the skip branch in create_user_endpoint's fallback DC
+        dispatch block when dc_password is empty (mock _handle_user_create
+        returning 201 to enter that block)."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
 
         dispatcher_called = []
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: dispatcher_called.append(kw), raising=True)
 
-        def _track_dispatch(**kw):
-            dispatcher_called.append(kw)
-
-        monkeypatch.setattr(users_mod, "service_dispatcher", _track_dispatch, raising=True)
-
-        # After the user is created (first call to _json_or_empty), the endpoint
-        # calls _json_or_empty() again to read DC fields. We patch it to return
-        # a body with no password on the second call so dc_password == "".
-        original_json_or_empty = users_mod._json_or_empty
-        call_count = [0]
-
-        def _patched():
-            call_count[0] += 1
-            result = original_json_or_empty()
-            if call_count[0] > 1:
-                # Second+ call: strip password to simulate missing DC password
-                result = dict(result)
-                result.pop("password", None)
-            return result
-
-        monkeypatch.setattr(users_mod, "_json_or_empty", _patched, raising=True)
+        # Patch _json_or_empty so the DC-dispatch read sees no password
+        monkeypatch.setattr(users_mod, "_json_or_empty",
+                            lambda: {"email": "nodc@test.com", "org_id": "org_001",
+                                     "full_name": "No DC"}, raising=True)
 
         resp = client.post("/users", json={
             "email": "nodc@test.com",
@@ -1524,10 +1583,10 @@ class TestCreateUserDCDispatch:
             "full_name": "No DC",
         }, headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 201
-        # DC dispatch was skipped — no dc_job_id or dc_sync_warning
         data = resp.get_json()
         assert "dc_job_id" not in data
         assert "dc_sync_warning" not in data
+        assert len(dispatcher_called) == 0
 
     def test_create_user_status_not_201_skips_dc(self, app_and_client, monkeypatch):
         """Branch 174→198: status_code != 201 → DC dispatch block skipped."""
