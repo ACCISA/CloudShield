@@ -1089,6 +1089,298 @@ describe("EmployeesPage Integration", () => {
         // Assert: Only GET was called, no PATCH (because membership matched)
         expect(global.fetch).toHaveBeenCalledTimes(1);
       });
+
+      it("skips PATCH when group in toAdd is not found in allGroups", async () => {
+        // grp-1 is in the submitted groups but NOT in the fetched allGroups
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            access_groups: [], // No groups exist at all
+          }),
+        });
+
+        usersApi.updateUser.mockResolvedValue({ success: true });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
+
+        // Only GET for groups was called — no PATCH since the group doesn't exist
+        const patchCalls = global.fetch.mock.calls.filter(
+          (call) => call[1]?.method === "PATCH"
+        );
+        expect(patchCalls).toHaveLength(0);
+      });
+
+      it("skips PATCH when group in toRemove is not found in allGroups", async () => {
+        // Current membership has a group that doesn't exist in allGroups anymore
+        // This shouldn't happen in practice but covers the `if (!group) continue;` branch
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { id: "grp-old", members: ["1"] }, // Alice is a member
+            ],
+          }),
+        });
+
+        // After the GET, a second GET may happen during fetchUsers refresh
+        global.fetch.mockResolvedValue({
+          ok: true,
+          json: async () => ({ access_groups: [] }),
+        });
+
+        usersApi.updateUser.mockResolvedValue({ success: true });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        // Edit Alice and submit with groups that don't include grp-old
+        // This triggers removal from grp-old
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
+      });
+    });
+
+    describe("getAuthHeader", () => {
+      it("includes Bearer token when jwt is in localStorage", async () => {
+        localStorage.setItem("jwt", "my-secret-token");
+
+        // Mock groups fetch to capture headers
+        global.fetch.mockResolvedValue({
+          ok: true,
+          json: async () => ({ access_groups: [] }),
+        });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        // fetch is called for groups during fetchUsers — check the Authorization header
+        const groupsFetchCall = global.fetch.mock.calls.find(
+          (call) =>
+            typeof call[0] === "string" &&
+            call[0].includes("/api/access-groups")
+        );
+        expect(groupsFetchCall).toBeTruthy();
+        expect(groupsFetchCall[1].headers.Authorization).toBe(
+          "Bearer my-secret-token"
+        );
+      });
+
+      it("returns empty auth header when jwt is not set", async () => {
+        localStorage.removeItem("jwt");
+
+        global.fetch.mockResolvedValue({
+          ok: true,
+          json: async () => ({ access_groups: [] }),
+        });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        const groupsFetchCall = global.fetch.mock.calls.find(
+          (call) =>
+            typeof call[0] === "string" &&
+            call[0].includes("/api/access-groups")
+        );
+        expect(groupsFetchCall).toBeTruthy();
+        expect(groupsFetchCall[1].headers.Authorization).toBeUndefined();
+      });
+    });
+
+    describe("error.message fallback in handleModalSubmit", () => {
+      it("falls back to error.message when no payload details or payload.error", async () => {
+        // Covers: else if (error.message) { msg = error.message; }
+        usersApi.createUser.mockRejectedValue(new Error("Generic failure"));
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        expect(
+          await screen.findByText("Generic failure")
+        ).toBeInTheDocument();
+      });
+
+      it("falls back to default message when error has no message or payload", async () => {
+        // Covers: let msg = "Failed to save user" (no overrides)
+        usersApi.createUser.mockRejectedValue({});
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        expect(
+          await screen.findByText("Failed to save user")
+        ).toBeInTheDocument();
+      });
+
+      it("uses default msg when passwordError.msg is missing", async () => {
+        // Covers: passwordError.msg || msg  (msg stays as "Failed to save user")
+        const errorPayload = {
+          payload: {
+            details: [{ loc: ["body", "password"] }], // no msg property
+          },
+        };
+        usersApi.createUser.mockRejectedValue(errorPayload);
+
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        expect(
+          await screen.findByText("Failed to save user")
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe("Job status effect (useAsyncTask status changes)", () => {
+      it("shows success toast and refreshes when job status is 'succeeded'", async () => {
+        // Mock createUser to return a job_id
+        usersApi.createUser.mockResolvedValue({ job_id: "job-123" });
+
+        // Mock polling: first call returns "running", second returns "succeeded"
+        global.fetch
+          // Initial groups fetch during fetchUsers
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          })
+          // createUser triggers startCreation, then polling begins
+          // First poll: status endpoint
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              status: "succeeded",
+              message: "Done",
+              progress: "completed",
+            }),
+          })
+          // fetchUsers re-called after success — groups fetch
+          .mockResolvedValue({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        // The useEffect fires when status becomes "succeeded"
+        expect(
+          await screen.findByText("User created successfully")
+        ).toBeInTheDocument();
+
+        // Modal should be closed
+        expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+
+        // fetchUsers should have been called again
+        expect(usersApi.listUsers.mock.calls.length).toBeGreaterThanOrEqual(2);
+      });
+
+      it("shows error toast when job status is 'failed'", async () => {
+        // Mock createUser to return a job_id
+        usersApi.createUser.mockResolvedValue({ job_id: "job-456" });
+
+        // Mock polling: returns "failed"
+        global.fetch
+          // Initial groups fetch during fetchUsers
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          })
+          // Poll: status endpoint returns failed
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              status: "failed",
+              message: "Provisioning timed out",
+              progress: "failed",
+            }),
+          })
+          // Any subsequent fetch
+          .mockResolvedValue({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        // The useEffect fires when status becomes "failed"
+        expect(
+          await screen.findByText("Provisioning timed out")
+        ).toBeInTheDocument();
+      });
+
+      it("shows default failed message when job fails without a message", async () => {
+        usersApi.createUser.mockResolvedValue({ job_id: "job-789" });
+
+        global.fetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              status: "failed",
+              message: "",
+              progress: "failed",
+            }),
+          })
+          .mockResolvedValue({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          });
+
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        expect(
+          await screen.findByText("Failed to create user")
+        ).toBeInTheDocument();
+      });
+
+      it("handles createUser not returning a job_id", async () => {
+        // Covers: if (!response?.job_id) throw new Error("No job_id returned...")
+        usersApi.createUser.mockResolvedValue({ user_id: "no-job" }); // no job_id
+
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByText("Confirm Create"));
+
+        // The thrown error is caught by executeTask and sets status to "failed"
+        expect(
+          await screen.findByText("No job_id returned from user creation")
+        ).toBeInTheDocument();
+      });
     });
   });
 });
