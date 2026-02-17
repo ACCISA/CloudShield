@@ -1,6 +1,8 @@
 import pytest
+import sys
 import unittest.mock
 import subprocess
+import logging
 from types import SimpleNamespace
 
 # ======== run_stream tests ========
@@ -616,3 +618,260 @@ def test_network_provisioning_run_default_logger(monkeypatch):
     # Should not raise even without logger
     result = list(_run(["echo", "test"], cwd="/tmp"))
     assert result == ["line"]
+
+def _fake_job(job_id: str = "job-1"):
+    job = SimpleNamespace()
+    job.id = job_id
+    job.meta = {}
+    return job
+
+
+def test_detect_mode_forces_docker_when_runtime_detected(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    # DEPLOYMENT_MODE not docker, but docker.sock + provisioner file "exist"
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
+
+    orig_exists = np.Path.exists
+
+    def fake_exists(self):
+        s = str(self)
+        if s in ("/var/run/docker.sock", "/app/provisioner/provision.py"):
+            return True
+        return orig_exists(self)
+
+    monkeypatch.setattr(np.Path, "exists", fake_exists, raising=True)
+
+    logger = logging.getLogger("test")
+    assert np._detect_mode(logger) == "docker"
+
+
+def test_coerce_int_expected_rules():
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    assert np._coerce_int(True, default=5) == 5
+    assert np._coerce_int(False, default=7) == 7
+    assert np._coerce_int("10", default=3) == 3
+    assert np._coerce_int("x", default=3) == 3
+    assert np._coerce_int(10, default=None) == 10
+    assert np._coerce_int(10.9, default=None) == 10
+
+
+def test_validate_inventory_assets_success(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    class FakeInv:
+        def model_dump(self, **_kwargs):
+            return {
+                "org_id": "ACME",
+                "assets": [
+                    {"name": "a", "_id": "x"},
+                    {"name": "b", "_id": "y"},
+                ],
+            }
+
+    monkeypatch.setattr(np.Inventory, "model_validate", lambda *_args, **_kwargs: FakeInv())
+
+    logger = logging.getLogger("test")
+    assets = np._validate_inventory_assets(logger, "ACME", assets_raw=[{"name": "a"}, {"name": "b"}])
+
+    assert assets == [{"name": "a"}, {"name": "b"}]  # _id removed
+
+
+def test_validate_inventory_assets_falls_back_on_validation_error(monkeypatch, caplog):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    def boom(*_args, **_kwargs):
+        raise ValueError("bad inventory")
+
+    monkeypatch.setattr(np.Inventory, "model_validate", boom)
+
+    caplog.set_level(logging.WARNING)
+
+    logger = logging.getLogger("test")
+    assets = np._validate_inventory_assets(logger, "ACME", assets_raw=[{"_id": "x", "k": 1}])
+
+    assert assets == [{"k": 1}]
+    assert "Inventory validation failed" in caplog.text
+
+
+def test_run_streams_lines_and_succeeds(monkeypatch, caplog):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    caplog.set_level(logging.DEBUG, logger="np_test")
+
+    logger = logging.getLogger("np_test")
+
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["l1\n", "l2\n", "l3\n"])
+    mock_proc.returncode = 0
+
+    def fake_popen(*_args, **_kwargs):
+        return mock_proc
+
+    monkeypatch.setattr(np.subprocess, "Popen", fake_popen)
+
+    out = list(np._run(["echo", "x"], cwd="/tmp", logger=logger))
+    assert out == ["l1", "l2", "l3"]
+    assert "Executing command" in caplog.text
+    assert "Command succeeded" in caplog.text
+
+
+def test_run_calls_wait_if_returncode_none(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["ok\n"])
+    mock_proc.returncode = None
+    mock_proc.wait.return_value = 0
+
+    monkeypatch.setattr(np.subprocess, "Popen", lambda *_a, **_k: mock_proc)
+
+    out = list(np._run(["echo", "x"], cwd="/tmp"))
+    assert out == ["ok"]
+    mock_proc.wait.assert_called_once()
+
+
+def test_run_raises_calledprocesserror_on_failure(monkeypatch, caplog):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    caplog.set_level(logging.ERROR, logger="np_fail")
+    logger = logging.getLogger("np_fail")
+
+    mock_proc = unittest.mock.MagicMock()
+    mock_proc.stdout = iter(["e1\n", "e2\n"])
+    mock_proc.returncode = 1
+
+    monkeypatch.setattr(np.subprocess, "Popen", lambda *_a, **_k: mock_proc)
+
+    with unittest.mock.patch.object(logger, "error") as _:
+        try:
+            list(np._run(["false"], cwd="/tmp", logger=logger))
+            assert False, "expected CalledProcessError"
+        except subprocess.CalledProcessError as exc:
+            assert exc.returncode == 1
+
+
+def test_provision_network_docker_success_inserts_inventory(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    job = _fake_job("job-1")
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-fallback")
+
+    monkeypatch.setattr(np, "set_progress", lambda *_a, **_k: None)
+    monkeypatch.setattr(np, "get_logger", lambda *_a, **_k: unittest.mock.MagicMock())
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {"workstation_limit": 3}
+    monkeypatch.setattr(np, "organizations", orgs)
+    monkeypatch.setattr(np, "org_filter", lambda org_id: {"org_id": org_id})
+
+    # Force docker path
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+
+    fake_meta = [{"name": "x"}]
+    monkeypatch.setattr(np, "provision_network_docker", lambda **_kwargs: fake_meta)
+
+    monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda metadata: [{"asset": 1}])
+
+    inserted = []
+    monkeypatch.setattr(
+        np,
+        "insert_inventory",
+        lambda db, org_id, assets: inserted.append((org_id, assets)) or SimpleNamespace(inserted_id="inv"),
+    )
+    monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
+
+    # avoid pydantic dependency in test: validate just returns normalized
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda logger, org_id, assets_raw: assets_raw)
+
+    res = np.provision_network("ACME", workstation_count=2)
+    assert res["status"] == "success"
+    assert inserted and inserted[0][0] == "ACME"
+
+
+def test_provision_network_docker_no_metadata_sets_details(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    job = _fake_job("job-2")
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-fallback")
+    monkeypatch.setattr(np, "set_progress", lambda *_a, **_k: None)
+    monkeypatch.setattr(np, "get_logger", lambda *_a, **_k: unittest.mock.MagicMock())
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {}
+    monkeypatch.setattr(np, "organizations", orgs)
+    monkeypatch.setattr(np, "org_filter", lambda org_id: {"org_id": org_id})
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+
+    monkeypatch.setattr(np, "provision_network_docker", lambda **_kwargs: None)
+
+    res = np.provision_network("ACME")
+    assert res["status"] == "error"
+    assert "details" in job.meta
+
+
+def test_provision_network_terraform_none_sets_details(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    job = _fake_job("job-3")
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-fallback")
+    monkeypatch.setattr(np, "set_progress", lambda *_a, **_k: None)
+    monkeypatch.setattr(np, "get_logger", lambda *_a, **_k: unittest.mock.MagicMock())
+
+    orgs = unittest.mock.MagicMock()
+    orgs.find_one.return_value = {}
+    monkeypatch.setattr(np, "organizations", orgs)
+    monkeypatch.setattr(np, "org_filter", lambda org_id: {"org_id": org_id})
+
+    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setattr(np, "_detect_mode", lambda _logger: "terraform")
+
+    monkeypatch.setattr(
+        np,
+        "provision_network_terraform",
+        lambda **_kwargs: None,
+    )
+
+    res = np.provision_network("ACME")
+    assert res["status"] == "error"
+    assert "details" in job.meta
+
+
+def test_destroy_environment_docker_branch(monkeypatch):
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    job = _fake_job("job-4")
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "job-fallback")
+    monkeypatch.setattr(np, "set_progress", lambda *_a, **_k: None)
+    monkeypatch.setattr(np, "get_logger", lambda *_a, **_k: unittest.mock.MagicMock())
+
+    monkeypatch.setattr(np, "_detect_mode", lambda _logger: "docker")
+
+    removed = {"count": 0}
+
+    class FakeContainer:
+        def remove(self, force=False):
+            removed["count"] += 1
+
+    class FakeDockerClient:
+        def __init__(self):
+            self.container = self
+
+        def list(self, filters=None):
+            return [FakeContainer(), FakeContainer()]
+
+    sys.modules["python_on_whales"] = SimpleNamespace(DockerClient=FakeDockerClient)
+
+    monkeypatch.setattr(np, "delete_inventory_by_org", lambda db, org_id: None)
+    monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda *_a, **_k: None)
+
+    res = np.destroy_environment("ACME", force=True)
+    assert "Destroy complete" in res["message"]
+    assert removed["count"] == 2
