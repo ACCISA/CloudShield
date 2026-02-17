@@ -4,7 +4,6 @@ import unittest.mock
 import subprocess
 import logging
 from types import SimpleNamespace
-import logging
 
 # ======== run_stream tests ========
 def test_run_stream_returns_tail_and_logs(monkeypatch, caplog):
@@ -1128,17 +1127,16 @@ def test_update_org_provisioning_status_logs_warning_on_update_failure(monkeypat
 
     logger.warning.assert_called()
 
+
 def test_destroy_network_docker_dummy_coverage():
-    """Cover the dummy destroy_network_docker function (Line 62)."""
+    """Cover the dummy destroy_network_docker function."""
     from tasks.network_provisioning import destroy_network_docker
     assert destroy_network_docker() is None
 
 
 def test_run_wait_exception_handler(monkeypatch, caplog):
     """
-    Cover lines 117-127: 
-    - proc.returncode is None
-    - proc.wait() raises Exception -> rc defaults to 0
+    Cover lines where proc.wait() raises Exception when returncode is initially None.
     """
     import logging
     import subprocess
@@ -1166,7 +1164,7 @@ def test_run_wait_exception_handler(monkeypatch, caplog):
 
 def test_run_logger_exceptions_inside_loop_and_execution(monkeypatch):
     """
-    Cover lines 82->88 (log exec fail) and 104->110 (log line fail).
+    Cover log execution failures and log line failures.
     """
     import subprocess
     from tasks.network_provisioning import _run
@@ -1189,7 +1187,7 @@ def test_run_logger_exceptions_inside_loop_and_execution(monkeypatch):
 
 def test_run_logger_exception_on_failure_block(monkeypatch):
     """
-    Cover line 129->exit: Exception during error logging when rc != 0.
+    Cover Exception during error logging when rc != 0.
     """
     import subprocess
     from tasks.network_provisioning import _run
@@ -1212,7 +1210,7 @@ def test_run_logger_exception_on_failure_block(monkeypatch):
 
 def test_import_provision_network_docker_sys_path_check(monkeypatch):
     """
-    Cover lines 155->157: Second ModuleNotFoundError and sys.path check.
+    Cover Second ModuleNotFoundError and sys.path check.
     """
     import sys
     import builtins
@@ -1243,7 +1241,7 @@ def test_import_provision_network_docker_sys_path_check(monkeypatch):
 
 def test_import_terraform_provisioner_spec_loader_none(monkeypatch):
     """
-    Cover line 184->181: spec exists but loader is None.
+    Cover spec exists but loader is None.
     """
     import importlib.util
     import cloudshield.Server.tasks.network_provisioning as np
@@ -1265,7 +1263,7 @@ def test_import_terraform_provisioner_spec_loader_none(monkeypatch):
 
 
 def test_update_org_provisioning_status_no_job_id(monkeypatch):
-    """Cover lines 219->222: job_id is None."""
+    """Cover job_id is None."""
     import tasks.network_provisioning as np
     
     mock_orgs = unittest.mock.MagicMock()
@@ -1280,7 +1278,7 @@ def test_update_org_provisioning_status_no_job_id(monkeypatch):
 
 
 def test_provision_workstations_target_dir_fallback(monkeypatch, tmp_path):
-    """Cover line 287: get_target_dir returns None/False."""
+    """Cover get_target_dir returns None/False."""
     import tasks.network_provisioning as np
     
     # Setup minimal mocks for success path
@@ -1300,7 +1298,7 @@ def test_provision_workstations_target_dir_fallback(monkeypatch, tmp_path):
 
 
 def test_provision_workstations_db_update_exception(monkeypatch, tmp_path, caplog):
-    """Cover lines 325-326: Exception during workstation DB update."""
+    """Cover Exception during workstation DB update."""
     import tasks.network_provisioning as np
     import logging
 
@@ -1324,7 +1322,7 @@ def test_provision_workstations_db_update_exception(monkeypatch, tmp_path, caplo
 
 
 def test_provision_network_org_not_found(monkeypatch):
-    """Cover line 354: organizations.find_one returns None."""
+    """Cover organizations.find_one returns None."""
     import tasks.network_provisioning as np
     
     mock_orgs = unittest.mock.MagicMock()
@@ -1335,21 +1333,18 @@ def test_provision_network_org_not_found(monkeypatch):
     monkeypatch.setattr(np, "get_logger", lambda *a, **k: unittest.mock.MagicMock())
     monkeypatch.setattr(np, "_update_org_provisioning_status", lambda *a, **k: None)
     
-    # Should not raise AttributeError accessing org_doc.get
-    # It constructs defaults. We'll force it to fail later to stop execution 
-    # or just let it run to a point we check org_doc structure.
-    
     # Let's mock provision_network_terraform to return None to exit early
     monkeypatch.setattr(np, "provision_network_terraform", lambda **k: None)
-    monkeypatch.setattr(np, "_detect_mode", lambda l: "terraform")
+    monkeypatch.setattr(np, "_detect_mode", lambda _log: "terraform")
     
     res = np.provision_network("org1")
     assert res["status"] == "error"
 
 
 def test_provision_network_docker_db_save_failure(monkeypatch, caplog):
-    """Cover lines 403-404: Docker inventory save failure."""
+    """Cover Docker inventory save failure."""
     import tasks.network_provisioning as np
+    import logging
     
     monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
     monkeypatch.setattr(np, "organizations", unittest.mock.MagicMock())
@@ -1360,7 +1355,7 @@ def test_provision_network_docker_db_save_failure(monkeypatch, caplog):
     
     monkeypatch.setattr(np, "provision_network_docker", lambda **k: [{"id": "1"}])
     monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda m: m)
-    monkeypatch.setattr(np, "_validate_inventory_assets", lambda l, o, a: a)
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda _log, o, a: a)
     
     # Mock insert failure
     def fail_insert(*args, **kwargs):
@@ -1373,13 +1368,13 @@ def test_provision_network_docker_db_save_failure(monkeypatch, caplog):
 
 
 def test_provision_network_terraform_type_error_retry(monkeypatch):
-    """Cover lines 427-429: TypeError fallback signature."""
+    """Cover TypeError fallback signature."""
     import tasks.network_provisioning as np
     
     monkeypatch.setattr(np, "organizations", unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_current_job", lambda: unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_logger", lambda *a, **k: unittest.mock.MagicMock())
-    monkeypatch.setattr(np, "_detect_mode", lambda l: "terraform")
+    monkeypatch.setattr(np, "_detect_mode", lambda _log: "terraform")
     
     # First call raises TypeError, second call succeeds
     mock_prov = unittest.mock.MagicMock()
@@ -1390,7 +1385,7 @@ def test_provision_network_terraform_type_error_retry(monkeypatch):
     monkeypatch.setattr(np, "provision_workstation", None)
     monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda m: [{"id": "success"}])
     monkeypatch.setattr(np, "insert_inventory", lambda **k: None)
-    monkeypatch.setattr(np, "_validate_inventory_assets", lambda l, o, a: a)
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda _log, o, a: a)
     monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
     
     res = np.provision_network("org1")
@@ -1400,13 +1395,13 @@ def test_provision_network_terraform_type_error_retry(monkeypatch):
 
 
 def test_provision_network_terraform_none_result_no_job(monkeypatch):
-    """Cover lines 444->447: Metadata None AND job is None."""
+    """Cover Metadata None AND job is None."""
     import tasks.network_provisioning as np
     
     monkeypatch.setattr(np, "organizations", unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_current_job", lambda: None) # NO JOB
     monkeypatch.setattr(np, "get_logger", lambda *a, **k: unittest.mock.MagicMock())
-    monkeypatch.setattr(np, "_detect_mode", lambda l: "terraform")
+    monkeypatch.setattr(np, "_detect_mode", lambda _log: "terraform")
     monkeypatch.setattr(np, "provision_network_terraform", lambda **k: None)
     
     res = np.provision_network("org1")
@@ -1422,12 +1417,13 @@ def test_provision_network_workstation_exception(monkeypatch, caplog):
     - Line 456-457: provision_workstation raises exception
     """
     import tasks.network_provisioning as np
+    import logging
     
     monkeypatch.setattr(np, "organizations", unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_current_job", lambda: unittest.mock.MagicMock())
     logger = logging.getLogger("test_ws_exc")
     monkeypatch.setattr(np, "get_logger", lambda *a, **k: logger)
-    monkeypatch.setattr(np, "_detect_mode", lambda l: "terraform")
+    monkeypatch.setattr(np, "_detect_mode", lambda _log: "terraform")
     
     # Returns a DICT (triggers line 450)
     monkeypatch.setattr(np, "provision_network_terraform", lambda **k: {"id": "net1"})
@@ -1441,7 +1437,7 @@ def test_provision_network_workstation_exception(monkeypatch, caplog):
     # Stubs
     monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda m: m)
     monkeypatch.setattr(np, "insert_inventory", lambda **k: None)
-    monkeypatch.setattr(np, "_validate_inventory_assets", lambda l, o, a: a)
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda _log, o, a: a)
     monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
     
     res = np.provision_network("org1")
@@ -1472,10 +1468,10 @@ def test_import_globals_none_fallback(monkeypatch):
     monkeypatch.setattr(np, "organizations", unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_current_job", lambda: unittest.mock.MagicMock())
     monkeypatch.setattr(np, "get_logger", lambda *a, **k: unittest.mock.MagicMock())
-    monkeypatch.setattr(np, "_detect_mode", lambda l: "terraform")
+    monkeypatch.setattr(np, "_detect_mode", lambda _log: "terraform")
     monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda m: [])
     monkeypatch.setattr(np, "insert_inventory", lambda **k: None)
-    monkeypatch.setattr(np, "_validate_inventory_assets", lambda l, o, a: a)
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda _log, o, a: a)
     monkeypatch.setattr(np, "db", unittest.mock.MagicMock())
 
     # Trigger provision (hits line 414)
