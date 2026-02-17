@@ -313,21 +313,51 @@ def get_ec2_ips(region: str, org_id: str):
 
 
 # MAIN
-def provision_network_terraform(org_id, region, templates_dir, generated_dir, count, server_logger):
+def provision_network_terraform(
+    org_id: str | None = None,
+    region: str = "ca-central-1",
+    templates_dir: str = DEFAULT_TEMPLATES_DIR,
+    generated_dir: str | None = None,
+    count: int = 1,
+    server_logger=None,
+    org_data: dict | None = None,
+    **kwargs,
+):
+    """
+    Terraform provisioning entrypoint.
+
+    Backwards/forwards compatible:
+    - supports calls with org_id positional/keyword
+    - supports calls with org_data={"org_id": "..."} (older task code)
+    - if the generated dir already exists, reuse it and still update metadata
+    """
     global logger
-    logger = server_logger
-    templates_dir = os.path.abspath(templates_dir)
+    logger = server_logger or logging.getLogger("provisioner")
 
-    logger.info(f"[*] Provisioning for org: {org_id} in region: {region}")
+    # Resolve org_id from multiple possible call styles
+    if (not org_id or org_id == "unknown") and isinstance(org_data, dict):
+        org_id = org_data.get("org_id") or org_id
+
+    if not org_id or org_id == "unknown":
+        org_id = kwargs.get("org_id") or org_id
+
+    if not org_id or org_id == "unknown":
+        raise ValueError("provision_network_terraform requires a valid org_id")
+
+    templates_dir = os.path.abspath(str(templates_dir))
+    logger.info("[*] Provisioning for org: %s in region: %s", org_id, region)
+
+    # Prepare directory (or reuse if it already exists)
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
-
     if target_dir is None:
-        return None
+        logger.warning("[!] Target dir already exists for %s. Reusing existing directory.", org_id)
+        target_dir = get_target_dir(org_id, generated_dir)
 
-    run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir,count=count)
-    
-    # Get EC2 metadata
+    # Run Terraform apply (idempotent)
+    run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir, count=count)
+
+    # Fetch EC2 metadata (updates UI/DB via task layer)
     metadata = get_ec2_ips(region, org_id)
-    
-    logger.info(f"[✓] Finished provisioning for {org_id}.")
+
+    logger.info("[✓] Finished provisioning for %s.", org_id)
     return metadata
