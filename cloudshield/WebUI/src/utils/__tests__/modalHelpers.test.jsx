@@ -360,6 +360,90 @@ describe("modalHelpers", () => {
         members: 5,
       });
     });
+
+    // NEW COVERAGE TESTS START HERE
+    it("should log warning and reset state on 404/405 error code", async () => {
+      const consoleSpy = jest
+        .spyOn(console, "warn")
+        .mockImplementation(() => {});
+      const setAllGroups = jest.fn();
+
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      const result = await fetchGroups("org1", "token1", setAllGroups);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Groups API not available (404)"),
+      );
+      expect(setAllGroups).toHaveBeenCalledWith([]);
+      expect(result).toEqual([]);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle response with 'access_groups' wrapper key", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          access_groups: [{ id: "g1", name: "Wrapper Test" }],
+        }),
+      });
+
+      const result = await fetchGroups("org1", "token1");
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Wrapper Test");
+    });
+
+    it("should handle response with 'groups' wrapper key", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          groups: [{ id: "g2", name: "Wrapper Test 2" }],
+        }),
+      });
+
+      const result = await fetchGroups("org1", "token1");
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Wrapper Test 2");
+    });
+
+    it("should apply strict normalization fallbacks", async () => {
+      // Logic being tested:
+      // id: String(g.id || g._id || ""),
+      // name: g.group_name || g.name || "Untitled Group",
+      // members: Array.isArray(g.members) ? g.members : [],
+      // users: g.users || [],
+      // files: g.files || [],
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            _id: "group_underscore", // Missing 'id'
+            // Missing name
+            members: "not-an-array", // Invalid member format
+            // Missing users/files
+            org_id: "orgXYZ",
+          },
+        ],
+      });
+
+      const result = await fetchGroups("org1", "token1");
+
+      expect(result[0]).toEqual({
+        id: "group_underscore",
+        _id: "group_underscore",
+        name: "Untitled Group",
+        members: [], // Fallback triggered
+        users: [],
+        files: [],
+        org_id: "orgXYZ",
+      });
+    });
+    // NEW COVERAGE TESTS END HERE
   });
 
   describe("safeSplitName", () => {

@@ -25,7 +25,7 @@ jest.mock("../../lib/analytics.js", () => ({
 
 // --- 2. MOCK COMPONENTS ---
 
-// Mock Table: Added 'Force Delete' to test deletion when no users are loaded (token missing)
+// Mock Table: Added 'Force Delete' to test deletion when no users are loaded
 jest.mock("../../components/users/UsersTable.jsx", () => {
   return function DummyUsersTable({
     users,
@@ -84,6 +84,7 @@ jest.mock("../../components/users/UsersTable.jsx", () => {
 });
 
 // Mock Employees Modal (unified create/edit)
+// UPDATED: Added "submit-with-groups" button to test group logic without breaking old tests
 jest.mock("../../components/users/EmployeesModal.jsx", () => {
   const { useState } = require("react");
   return function DummyEmployeesModal({
@@ -103,6 +104,7 @@ jest.mock("../../components/users/EmployeesModal.jsx", () => {
           defaultValue={employeeData?.name?.split(" ")[0] || ""}
           onChange={(e) => setForm({ ...form, firstName: e.target.value })}
         />
+        {/* Standard Submit used by existing tests */}
         <button
           onClick={() =>
             onSubmit({
@@ -111,17 +113,61 @@ jest.mock("../../components/users/EmployeesModal.jsx", () => {
               email: "t@t.com",
               password: "123",
               jobTitle: "Dev",
+              groups: [], // Default empty for standard tests
             })
           }
         >
           {isEdit ? "Confirm Update" : "Confirm Create"}
         </button>
+
+        {/* New Button for Group Logic Coverage */}
+        <button
+          data-testid="submit-with-groups"
+          onClick={() =>
+            onSubmit({
+              firstName: "Group",
+              lastName: "User",
+              email: "g@t.com",
+              jobTitle: "Dev",
+              groups: [{ id: "grp-1", _id: "grp-1" }],
+            })
+          }
+        >
+          Confirm With Groups
+        </button>
+
         {isEdit && <button onClick={onDelete}>Confirm Delete</button>}
         <button onClick={onClose}>Cancel</button>
       </div>
     );
   };
 });
+
+// Mock DisplayButton
+// UPDATED: Added layout toggle button
+jest.mock(
+  "../../components/common/DisplayButton/DisplayButton.jsx",
+  () =>
+    ({ columnToggles, onLayoutChange }) => (
+      <div>
+        <button
+          data-testid="layout-toggle-grid"
+          onClick={() => onLayoutChange && onLayoutChange("grid")}
+        >
+          Grid Layout
+        </button>
+        {columnToggles?.columns.map((col) => (
+          <button
+            key={col.key}
+            data-testid={`toggle-${col.key}`}
+            onClick={() => columnToggles.onToggle(col.key)}
+          >
+            Toggle {col.label}
+          </button>
+        ))}
+      </div>
+    )
+);
 
 // Simple Mocks for others
 jest.mock(
@@ -134,7 +180,7 @@ jest.mock(
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
       />
-    ),
+    )
 );
 jest.mock(
   "../../components/common/FilterButton/FilterButton.jsx",
@@ -146,7 +192,7 @@ jest.mock(
       >
         Filter Active
       </button>
-    ),
+    )
 );
 jest.mock(
   "../../components/common/CreateButton/CreateButton.jsx",
@@ -155,7 +201,7 @@ jest.mock(
       <button data-testid="open-create-btn" onClick={onClick}>
         Create
       </button>
-    ),
+    )
 );
 jest.mock(
   "../../components/common/RefreshButton/RefreshButton.jsx",
@@ -164,24 +210,7 @@ jest.mock(
       <button data-testid="refresh-btn" onClick={onClick}>
         Refresh
       </button>
-    ),
-);
-jest.mock(
-  "../../components/common/DisplayButton/DisplayButton.jsx",
-  () =>
-    ({ columnToggles }) => (
-      <div>
-        {columnToggles?.columns.map((col) => (
-          <button
-            key={col.key}
-            data-testid={`toggle-${col.key}`}
-            onClick={() => columnToggles.onToggle(col.key)}
-          >
-            Toggle {col.label}
-          </button>
-        ))}
-      </div>
-    ),
+    )
 );
 
 // --- 3. HELPER ---
@@ -197,7 +226,7 @@ const renderPage = ({
       <MemoryRouter>
         <EmployeesPage />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 };
 
@@ -223,8 +252,10 @@ describe("EmployeesPage Integration", () => {
   ];
 
   beforeAll(() => {
+    // Silence console errors for negative tests
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
+
   afterAll(() => {
     console.error.mockRestore();
   });
@@ -233,6 +264,13 @@ describe("EmployeesPage Integration", () => {
     jest.clearAllMocks();
     localStorage.clear();
     localStorage.setItem("org_id", "org-local");
+    
+    // Mock global fetch for group logic (default success empty)
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_groups: [] }),
+    });
+
     usersApi.listUsers.mockResolvedValue([...seedUsers]);
     usersApi.createUser.mockResolvedValue({ user_id: "new" });
     usersApi.updateUser.mockResolvedValue({ success: true });
@@ -265,7 +303,7 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     await userEvent.type(screen.getByTestId("search-input"), "Alice");
     await waitFor(() =>
-      expect(screen.getByTestId("user-count")).toHaveTextContent("Count: 1"),
+      expect(screen.getByTestId("user-count")).toHaveTextContent("Count: 1")
     );
   });
 
@@ -295,7 +333,7 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     await userEvent.click(screen.getByTestId("filter-active"));
     await waitFor(() =>
-      expect(screen.queryByText("Bob")).not.toBeInTheDocument(),
+      expect(screen.queryByText("Bob")).not.toBeInTheDocument()
     );
   });
 
@@ -305,7 +343,7 @@ describe("EmployeesPage Integration", () => {
     await userEvent.click(screen.getByTestId("open-create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
     expect(
-      await screen.findByText("User created successfully"),
+      await screen.findByText("User created successfully")
     ).toBeInTheDocument();
   });
 
@@ -318,8 +356,8 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() =>
       expect(usersApi.createUser).toHaveBeenCalledWith(
         expect.objectContaining({ org_id: "org-from-user" }),
-        expect.any(Object),
-      ),
+        expect.any(Object)
+      )
     );
   });
 
@@ -332,8 +370,8 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() =>
       expect(usersApi.createUser).toHaveBeenCalledWith(
         expect.objectContaining({ org_id: "org-local" }),
-        expect.any(Object),
-      ),
+        expect.any(Object)
+      )
     );
   });
 
@@ -359,7 +397,7 @@ describe("EmployeesPage Integration", () => {
     await userEvent.click(screen.getByTestId("edit-btn-1"));
     await userEvent.click(screen.getByText("Confirm Update"));
     expect(
-      await screen.findByText("User updated successfully"),
+      await screen.findByText("User updated successfully")
     ).toBeInTheDocument();
   });
 
@@ -386,7 +424,7 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     await userEvent.click(screen.getByTestId("delete-btn-1"));
     expect(
-      await screen.findByText("User deleted successfully"),
+      await screen.findByText("User deleted successfully")
     ).toBeInTheDocument();
   });
 
@@ -427,8 +465,8 @@ describe("EmployeesPage Integration", () => {
     fireEvent.keyDown(toast, { key: "Enter", code: "Enter" });
     await waitFor(() =>
       expect(
-        screen.queryByText("User created successfully"),
-      ).not.toBeInTheDocument(),
+        screen.queryByText("User created successfully")
+      ).not.toBeInTheDocument()
     );
   });
 
@@ -658,15 +696,12 @@ describe("EmployeesPage Integration", () => {
     expect(usersApi.deleteUser).not.toHaveBeenCalled();
   });
 
-  // Note: Toast close tests removed - they require full modal workflow
-  // which has complex async timing dependencies
-
   it("shows error toast type with correct styling class", async () => {
     usersApi.createUser.mockRejectedValue(new Error("Creation error"));
     renderPage();
     await userEvent.click(screen.getByTestId("open-create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
-    
+
     const toast = await screen.findByText("Creation error");
     expect(toast).toBeInTheDocument();
   });
@@ -692,7 +727,6 @@ describe("EmployeesPage Integration", () => {
     );
   });
 
-  // Additional tests for uncovered lines
   it("handles localStorage error gracefully when reading org_id", async () => {
     // Mock localStorage to throw error
     const originalGetItem = Storage.prototype.getItem;
@@ -700,7 +734,9 @@ describe("EmployeesPage Integration", () => {
       throw new Error("Storage error");
     });
 
-    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "default-org" } });
+    renderPage({
+      currentUser: { id: "admin-1", role: "admin", org_id: "default-org" },
+    });
 
     // Should still render without crashing
     expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
@@ -710,13 +746,21 @@ describe("EmployeesPage Integration", () => {
 
   it("opens modal when location state has openModal true", async () => {
     const { MemoryRouter } = require("react-router-dom");
-    
+
     // Use MemoryRouter with initial state
     render(
       <AuthProvider
-        initialState={{ currentUser: { id: "admin-1" }, accessToken: "valid-token", disableBootstrap: true }}
+        initialState={{
+          currentUser: { id: "admin-1" },
+          accessToken: "valid-token",
+          disableBootstrap: true,
+        }}
       >
-        <MemoryRouter initialEntries={[{ pathname: "/employees", state: { openModal: true } }]}>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: "/employees", state: { openModal: true } },
+          ]}
+        >
           <EmployeesPage />
         </MemoryRouter>
       </AuthProvider>
@@ -771,9 +815,6 @@ describe("EmployeesPage Integration", () => {
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    // Restore fetch
-    global.fetch.mockRestore();
   });
 
   it("aggregates workstations from multiple groups", async () => {
@@ -811,8 +852,6 @@ describe("EmployeesPage Integration", () => {
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    global.fetch.mockRestore();
   });
 
   it("maps user without full_name to use email as name", async () => {
@@ -838,13 +877,15 @@ describe("EmployeesPage Integration", () => {
     it("closes toast on Enter key press", async () => {
       usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
       renderPage();
-      await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-      
+      await waitFor(() =>
+        expect(screen.getByText("Alice")).toBeInTheDocument()
+      );
+
       await userEvent.click(screen.getByTestId("delete-btn-1"));
-      
+
       const toast = await screen.findByText("Delete failed");
       fireEvent.keyDown(toast, { key: "Enter" });
-      
+
       await waitFor(() => {
         expect(screen.queryByText("Delete failed")).not.toBeInTheDocument();
       });
@@ -853,97 +894,201 @@ describe("EmployeesPage Integration", () => {
     it("closes toast on Space key press", async () => {
       usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
       renderPage();
-      await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-      
+      await waitFor(() =>
+        expect(screen.getByText("Alice")).toBeInTheDocument()
+      );
+
       await userEvent.click(screen.getByTestId("delete-btn-1"));
-      
+
       const toast = await screen.findByText("Delete failed");
       fireEvent.keyDown(toast, { key: " " });
-      
+
       await waitFor(() => {
         expect(screen.queryByText("Delete failed")).not.toBeInTheDocument();
       });
     });
-    
+
     it("does not close toast on other key press", async () => {
       usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
       renderPage();
-      await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-      
+      await waitFor(() =>
+        expect(screen.getByText("Alice")).toBeInTheDocument()
+      );
+
       await userEvent.click(screen.getByTestId("delete-btn-1"));
-      
+
       const toast = await screen.findByText("Delete failed");
       fireEvent.keyDown(toast, { key: "Escape" });
-      
+
       // Toast should still be visible
       expect(screen.getByText("Delete failed")).toBeInTheDocument();
     });
   });
 
-  // Tests for updateUserGroupMemberships
-  describe("updateUserGroupMemberships", () => {
-    it("handles failed fetch when updating group memberships", async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: false,
-        status: 500,
+  // =========================================================
+  // NEW COVERAGE TESTS (Added below existing blocks)
+  // =========================================================
+  describe("Complex Logic & Error Handling Coverage", () => {
+    const { trackButton } = require("../../lib/analytics.js");
+
+    it("handles specific password error details from API", async () => {
+      // Covers: if (passwordError) { msg = passwordError.msg || msg; }
+      const errorPayload = {
+        payload: {
+          details: [{ loc: ["body", "password"], msg: "Password is too weak" }],
+        },
+      };
+      usersApi.createUser.mockRejectedValue(errorPayload);
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("open-create-btn"));
+      await userEvent.click(screen.getByText("Confirm Create"));
+
+      // Verify specific password error message is displayed
+      expect(await screen.findByText("Password is too weak")).toBeInTheDocument();
+    });
+
+    it("handles generic payload errors from API", async () => {
+      // Covers: } else if (error.payload?.error) { msg = error.payload.error; }
+      const errorPayload = {
+        payload: { error: "Duplicate email address" },
+      };
+      usersApi.createUser.mockRejectedValue(errorPayload);
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("open-create-btn"));
+      await userEvent.click(screen.getByText("Confirm Create"));
+
+      expect(
+        await screen.findByText("Duplicate email address")
+      ).toBeInTheDocument();
+    });
+
+    it("tracks layout changes", async () => {
+      // Covers: trackButton("employees/display/toggle", ...);
+      renderPage();
+
+      await userEvent.click(screen.getByTestId("layout-toggle-grid"));
+
+      expect(trackButton).toHaveBeenCalledWith("employees/display/toggle", {
+        page: "employees",
+        layout: "grid",
+      });
+    });
+
+    describe("Group Membership Updates (updateUserGroupMemberships)", () => {
+      it("adds user to new groups", async () => {
+        // 1. Mock GET access-groups (Current state: User is NOT in 'grp-1')
+        global.fetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              access_groups: [{ id: "grp-1", members: ["other-user"] }],
+            }),
+          })
+          // 2. Mock PATCH access-groups (Update: Add user)
+          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+
+        usersApi.createUser.mockResolvedValue({ user_id: "new-user-123" });
+
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+
+        // Use the specific button that submits with groups
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+        await waitFor(() => {
+          // Covers: fetch(`.../api/access-groups/${groupId}`, { method: "PATCH", ... })
+          // Verify the PATCH call was made to add the user
+          expect(global.fetch).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining("/api/access-groups/grp-1"),
+            expect.objectContaining({
+              method: "PATCH",
+              body: JSON.stringify({ members: ["other-user", "new-user-123"] }),
+            })
+          );
+        });
       });
 
-      usersApi.listUsers.mockResolvedValue([{
-        _id: "1",
-        full_name: "Test User",
-        email: "test@test.com",
-        role: "employee",
-        status: "active",
-        files: 0,
-      }]);
+      it("removes user from old groups", async () => {
+        // 1. Mock GET access-groups (Current state: User IS in 'grp-1')
+        global.fetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              access_groups: [{ id: "grp-1", members: ["1"] }], // "1" is the ID of Alice in seedUsers
+            }),
+          })
+          // 2. Mock PATCH access-groups (Update: Remove user)
+          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
 
-      renderPage();
-      await waitFor(() => expect(screen.getByText("Test User")).toBeInTheDocument());
+        // We need to UPDATE an existing user to trigger removal logic
+        // We submit WITHOUT groups (default button), effectively removing them from 'grp-1'
+        renderPage();
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
 
-      global.fetch.mockRestore();
-    });
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
+        await userEvent.click(screen.getByText("Confirm Update"));
 
-    it("removes user from groups when updating memberships", async () => {
-      // Mock fetch to return groups with user as member
-      global.fetch = jest.fn()
-        .mockResolvedValueOnce({
+        await waitFor(() => {
+          // Verify PATCH call removed ID "1"
+          expect(global.fetch).toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining("/api/access-groups/grp-1"),
+            expect.objectContaining({
+              method: "PATCH",
+              body: JSON.stringify({ members: [] }), // Empty because Alice was the only one
+            })
+          );
+        });
+      });
+
+      it("handles failure when fetching groups", async () => {
+        // Covers: if (!res.ok) { console.error(...); return; }
+        const consoleSpy = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+
+        global.fetch.mockResolvedValueOnce({ ok: false });
+
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+        await waitFor(() => {
+          expect(consoleSpy).toHaveBeenCalledWith(
+            "Failed to fetch groups for membership update"
+          );
+        });
+
+        // Ensure logic stopped (no PATCH calls made)
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+      });
+
+      it("skips PATCH if user is already a member (idempotency)", async () => {
+        // Mock GET: User IS ALREADY in 'grp-1'
+        global.fetch.mockResolvedValueOnce({
           ok: true,
-          json: () => Promise.resolve({
-            access_groups: [
-              { id: "grp1", members: ["user-1"] },
-              { id: "grp2", members: ["user-1", "user-2"] },
-            ],
+          json: async () => ({
+            access_groups: [{ id: "grp-1", members: ["new-user-123"] }],
           }),
-        })
-        .mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+        });
 
-      usersApi.listUsers.mockResolvedValue([{
-        _id: "user-1",
-        full_name: "Test User",
-        email: "test@test.com",
-        role: "employee",
-        status: "active",
-        files: 0,
-      }]);
+        usersApi.createUser.mockResolvedValue({ user_id: "new-user-123" });
 
-      renderPage();
-      await waitFor(() => expect(screen.getByText("Test User")).toBeInTheDocument());
+        renderPage();
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
 
-      global.fetch.mockRestore();
-    });
-  });
+        // Wait for process to finish
+        await waitFor(() => expect(usersApi.createUser).toHaveBeenCalled());
 
-  // Tests for handleLayoutChange
-  describe("handleLayoutChange", () => {
-    it("changes layout and tracks analytics", async () => {
-      const { trackButton } = require("../../lib/analytics.js");
-      
-      renderPage();
-      await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-      // The layout change is triggered through the DisplayButton mock
-      // which calls onLayoutChange - verify trackButton was available
-      expect(trackButton).toBeDefined();
+        // Assert: Only GET was called, no PATCH (because membership matched)
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

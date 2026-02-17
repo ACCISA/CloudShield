@@ -415,3 +415,92 @@ describe("Pagination Component", () => {
     });
   });
 });
+
+describe("Edge Case & Branch Logic Coverage", () => {
+    // Redefine defaultProps if outside scope, or rely on closure
+    const defaultProps = {
+      currentPage: 1,
+      totalItems: 100,
+      rowsPerPage: 10,
+      onPageChange: vi.fn(),
+      onRowsPerPageChange: vi.fn(),
+    };
+
+    // Covers: const totalPages = Math.ceil(totalItems / rowsPerPage);
+    // Specifically checks the scenario where division leaves a remainder
+    it("calculates total pages correctly with uneven division", () => {
+      // 101 items / 10 rows = 10.1 -> Math.ceil should be 11 pages
+      render(<Pagination {...defaultProps} totalItems={101} rowsPerPage={10} currentPage={10} />);
+      
+      // If total pages was 10, 'next' would be disabled. Since it's 11, it should be enabled.
+      const nextButton = screen.getByTestId("pagination-next");
+      expect(nextButton).toBeEnabled();
+    });
+
+    // Covers: const startItem = totalItems === 0 ? 0 : ...
+    // Specifically validates the ternary 'else' path (page > 1) matches the formula
+    it("calculates accurate start index on subsequent pages", () => {
+      // Page 3, 10 per page. Start should be: (3 - 1) * 10 + 1 = 21
+      render(<Pagination {...defaultProps} currentPage={3} rowsPerPage={10} />);
+      
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent(/21–/);
+    });
+
+    // Covers: const endItem = Math.min(currentPage * rowsPerPage, totalItems);
+    // Case 1: Math.min chooses 'totalItems' (Last page, items < rowsPerPage capacity)
+    it("clamps the end item to totalItems on the last page", () => {
+      // Page 2, 10 per page, 15 total. 
+      // Calc: 2 * 10 = 20. Total = 15. Min is 15.
+      render(<Pagination {...defaultProps} totalItems={15} rowsPerPage={10} currentPage={2} />);
+      
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent(/–15 of 15/);
+    });
+
+    // Covers: const endItem = Math.min(...)
+    // Case 2: Math.min chooses 'currentPage * rowsPerPage' (Middle page)
+    it("uses calculated page limit when not on the last page", () => {
+      // Page 1, 10 per page, 100 total.
+      // Calc: 1 * 10 = 10. Total = 100. Min is 10.
+      render(<Pagination {...defaultProps} totalItems={100} rowsPerPage={10} currentPage={1} />);
+      
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent(/–10 of 100/);
+    });
+
+    // Covers: handleNext guard clause (if (canGoNext))
+    // Ensures the callback is strictly not fired if checking against the boolean
+    it("strictly prevents 'Next' action when on the last page", () => {
+      const onPageChange = vi.fn();
+      render(
+        <Pagination 
+          {...defaultProps} 
+          totalItems={10} 
+          rowsPerPage={10} 
+          currentPage={1} // Only 1 page exists
+          onPageChange={onPageChange} 
+        />
+      );
+
+      const nextButton = screen.getByTestId("pagination-next");
+      
+      // Even if we force a click event (simulating a DOM event bypassing 'disabled' attr)
+      // The internal logic `if (canGoNext)` should stop it.
+      fireEvent.click(nextButton);
+
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
+
+    // Covers: handleRowsPerPageChange parsing logic
+    // const newRowsPerPage = parseInt(event.target.value, 10);
+    it("parses string input from select to integer", () => {
+      const onRowsPerPageChange = vi.fn();
+      render(<Pagination {...defaultProps} onRowsPerPageChange={onRowsPerPageChange} />);
+
+      const selector = screen.getByTestId("pagination-rows-per-page");
+      
+      // Simulate the string event coming from the DOM
+      fireEvent.change(selector, { target: { value: "50" } });
+
+      // Verify called with Number(50), not String("50")
+      expect(onRowsPerPageChange).toHaveBeenCalledWith(50);
+    });
+  });

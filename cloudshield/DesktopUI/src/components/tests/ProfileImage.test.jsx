@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import ProfileImage from "../ProfileImage";
 
 describe("ProfileImage Component", () => {
@@ -218,5 +218,107 @@ describe("ProfileImage Component", () => {
     
     const img = screen.getByTestId("profile-image-img");
     expect(img).toHaveAttribute("alt", "User avatar");
+  });
+});
+describe("Internal Logic & Edge Cases", () => {
+  // Covers: (parts[0][0] + parts[parts.length - 1][0])
+  // Specifically ensures the LAST part is used, not the middle one
+  it("generates initials from first and last name, ignoring middle names", () => {
+    render(<ProfileImage name="John Middle Doe" />);
+    // Should be JD, not JM
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("JD");
+  });
+
+  // Covers: parts = name.trim().split(/\s+/)
+  // Ensures trim() and regex work for irregular spacing
+  it("handles names with excessive whitespace correctly", () => {
+    render(<ProfileImage name="  Sarah      Connor  " />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("SC");
+  });
+
+  // Covers: parts[0]?.substring(0, 2).toUpperCase()
+  // 1. Single short letter
+  // 2. Single long word
+  it("generates initials for single-word names", () => {
+    const { rerender } = render(<ProfileImage name="Madonna" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("MA");
+
+    rerender(<ProfileImage name="Q" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("Q");
+  });
+
+  // Covers: if (name) check failing for empty string
+  it("falls back to question mark if name is provided but empty/whitespace", () => {
+    render(<ProfileImage name="   " />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("?");
+  });
+
+  // Covers: localPart?.substring(0, 2) for email
+  it("generates initials from email when name is missing", () => {
+    const { rerender } = render(<ProfileImage email="admin@cloudshield.com" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("AD");
+
+    // Short email case
+    rerender(<ProfileImage email="z@cloudshield.com" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("Z");
+  });
+
+  // Covers: onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+  it("hides the image and shows fallback if image fails to load", () => {
+    render(
+      <ProfileImage 
+        name="Fallback User" 
+        imageUrl="https://broken-link.com/404.jpg" 
+      />
+    );
+
+    const img = screen.getByTestId("profile-image-img");
+    
+    // Initial state: Image is present
+    expect(img).toBeVisible();
+
+    // Simulate error event
+    fireEvent.error(img);
+
+    // Assert: The inline style should be set to display: none
+    expect(img).toHaveStyle({ display: "none" });
+    
+    // Since the image is hidden, the container effectively just shows the background/border
+    // Note: In a real DOM, the underlying text/initials might be obscured by the img tag 
+    // depending on Z-index, but hiding the img usually reveals what's behind it 
+    // or simply leaves the colored circle.
+  });
+
+  // Covers: const bgColor = getColorFromString(...)
+  // Validates that the hashing logic doesn't crash and produces expected class format
+  it("assigns a valid background color class based on input", () => {
+    render(<ProfileImage name="Color Test" />);
+    const container = screen.getByTestId("profile-image");
+    
+    // Check for one of the specific classes defined in your colors array
+    // We don't need to check specific hashing math (that's implementation detail), 
+    // just that a valid class from the list is applied.
+    const validColors = [
+      "bg-blue-500", "bg-emerald-500", "bg-purple-500", 
+      "bg-amber-500", "bg-rose-500", "bg-cyan-500", 
+      "bg-indigo-500", "bg-teal-500"
+    ];
+    
+    const hasValidColor = validColors.some(color => 
+      container.className.includes(color)
+    );
+
+    expect(hasValidColor).toBe(true);
+  });
+
+  // Covers: Math.abs(hash) logic in getColorFromString
+  // We want to ensure inputs that might generate negative hash codes don't break the array index
+  it("handles inputs that generate negative hash codes for color generation", () => {
+    // "Polygenelubricants" is a known string that often produces negative Java-style hash codes.
+    // Even if it doesn't in this specific hash impl, it ensures the modulo logic holds up.
+    render(<ProfileImage name="Polygenelubricants" />); 
+    const container = screen.getByTestId("profile-image");
+    
+    expect(container.className).toMatch(/bg-[a-z]+-500/);
   });
 });
