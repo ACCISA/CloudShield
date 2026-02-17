@@ -7,6 +7,7 @@ import type {
 import WorkstationService from "../../services/WorkstationService";
 import SoftwarePopup from "./SoftwarePopup";
 import SearchIcon from "../../assets/icons8-search.svg";
+import { EmptyState, Pagination, ProfileImage } from "../../components";
 
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
@@ -23,6 +24,8 @@ export default function WorkstationsPage() {
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
   const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -164,6 +167,16 @@ export default function WorkstationsPage() {
     });
   }, [listItems, searchQuery]);
 
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredItems.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredItems, currentPage, rowsPerPage]);
+
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -202,6 +215,18 @@ export default function WorkstationsPage() {
             </button>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ProfileImage
+                email={storedAuth?.email}
+                testId="header-profile-image"
+                size="sm"
+              />
+              {storedAuth?.email && (
+                <span className="hidden text-xs text-white/60 md:inline">
+                  {storedAuth.email}
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleRefresh}
@@ -264,14 +289,40 @@ export default function WorkstationsPage() {
         )}
 
         {!isLoadingTemplates && !error && filteredItems.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
-            No assigned workstation templates found.
-          </div>
+          <EmptyState
+            testId="empty-workstations"
+            message={
+              searchQuery.trim()
+                ? "No workstations found"
+                : "No assigned workstation templates found"
+            }
+            description={
+              searchQuery.trim()
+                ? "Try adjusting your search query"
+                : "Contact your administrator to get access to workstation templates"
+            }
+            icon={
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            }
+          />
         )}
 
         {!isLoadingTemplates && !error && filteredItems.length > 0 && (
           <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
-            {filteredItems.map((item, index) => {
+            {paginatedItems.map((item, index) => {
               const actionClasses = item.is_ready
                 ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
                 : "border-amber-500/40 bg-amber-500/10 text-amber-100";
@@ -288,7 +339,7 @@ export default function WorkstationsPage() {
                 <div
                   key={item.key}
                   className={`flex flex-col gap-4 border-b border-white/5 px-5 py-4 md:flex-row md:items-center md:justify-between ${
-                    index === filteredItems.length - 1 ? "border-b-0" : ""
+                    index === paginatedItems.length - 1 ? "border-b-0" : ""
                   }`}
                 >
                   <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
@@ -297,7 +348,11 @@ export default function WorkstationsPage() {
                         type="checkbox"
                         className="h-4 w-4 rounded border-white/10 bg-[#0f0f0f] text-white"
                       />
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#0f0f0f]" />
+                      <ProfileImage
+                        name={item.name}
+                        testId={`profile-image-${index}`}
+                        size="md"
+                      />
                       <div>
                         <div className="text-sm font-semibold text-white/90">
                           {item.name || "Workstation"}
@@ -371,6 +426,15 @@ export default function WorkstationsPage() {
                 </div>
               );
             })}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredItems.length}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              onPageChange={setCurrentPage}
+              onRowsPerPageChange={setRowsPerPage}
+              testId="workstations-pagination"
+            />
           </div>
         )}
 

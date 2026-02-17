@@ -261,4 +261,118 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  it("shows empty state with icon when no workstations match search", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([
+      {
+        name: "Development",
+        org_id: "ORG-001",
+        description: "Dev template",
+        software: [],
+        is_ready: true,
+        access_groups: [],
+      },
+    ]);
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Development");
+
+    fireEvent.change(
+      screen.getByPlaceholderText("Search workstation templates"),
+      {
+        target: { value: "nonexistent" },
+      },
+    );
+
+    expect(screen.getByTestId("empty-workstations")).toBeTruthy();
+    expect(screen.getByText("No workstations found")).toBeTruthy();
+    expect(screen.getByText("Try adjusting your search query")).toBeTruthy();
+  });
+
+  it("shows EmptyState component when templates list is empty", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByTestId("empty-workstations")).toBeTruthy();
+    expect(screen.getByText(/no assigned workstation templates/i)).toBeTruthy();
+  });
+
+  it("renders pagination component when templates exist", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Windows 10 Pro");
+
+    expect(screen.getByTestId("workstations-pagination")).toBeTruthy();
+    expect(screen.getByTestId("workstations-pagination-rows-per-page")).toBeTruthy();
+  });
+
+  it("renders profile image in header", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+      email: "test@example.com",
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
+
+    render(<WorkstationsPage />);
+
+    await screen.findByTestId("empty-workstations");
+
+    expect(screen.getByTestId("header-profile-image")).toBeTruthy();
+    expect(screen.getByText("test@example.com")).toBeTruthy();
+  });
+
+  it("renders profile images for each workstation template row", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Windows 10 Pro");
+
+    expect(screen.getByTestId("profile-image-0")).toBeTruthy();
+    expect(screen.getByTestId("profile-image-1")).toBeTruthy();
+  });
+
+  it("changes rows per page when selector is changed", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
+
+    render(<WorkstationsPage />);
+
+    await screen.findByText("Windows 10 Pro");
+
+    const selector = screen.getByTestId("workstations-pagination-rows-per-page");
+    fireEvent.change(selector, { target: { value: "5" } });
+
+    expect(selector).toHaveValue("5");
+  });
+
 });
+

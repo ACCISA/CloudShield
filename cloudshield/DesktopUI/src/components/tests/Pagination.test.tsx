@@ -1,0 +1,191 @@
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import Pagination from "../Pagination";
+
+describe("Pagination Component", () => {
+  const defaultProps = {
+    currentPage: 1,
+    totalItems: 100,
+    rowsPerPage: 10,
+    onPageChange: vi.fn(),
+    onRowsPerPageChange: vi.fn(),
+  };
+
+  it("renders the pagination component", () => {
+    render(<Pagination {...defaultProps} />);
+
+    expect(screen.getByTestId("pagination")).toBeTruthy();
+  });
+
+  it("renders with custom testId", () => {
+    render(<Pagination {...defaultProps} testId="custom-pagination" />);
+
+    expect(screen.getByTestId("custom-pagination")).toBeTruthy();
+  });
+
+  it("displays correct item range information", () => {
+    render(<Pagination {...defaultProps} />);
+
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent(
+      "1–10 of 100"
+    );
+  });
+
+  it("displays correct range on middle pages", () => {
+    render(<Pagination {...defaultProps} currentPage={5} />);
+
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent(
+      "41–50 of 100"
+    );
+  });
+
+  it("displays correct range on last page with partial items", () => {
+    render(
+      <Pagination {...defaultProps} currentPage={4} totalItems={35} />
+    );
+
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent(
+      "31–35 of 35"
+    );
+  });
+
+  it("displays 0 items correctly when empty", () => {
+    render(<Pagination {...defaultProps} totalItems={0} />);
+
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent(
+      "0–0 of 0"
+    );
+  });
+
+  it("renders rows per page selector", () => {
+    render(<Pagination {...defaultProps} />);
+
+    const selector = screen.getByTestId("pagination-rows-per-page");
+    expect(selector).toBeTruthy();
+    expect(selector).toHaveValue("10");
+  });
+
+  it("renders custom rows per page options", () => {
+    render(
+      <Pagination {...defaultProps} rowsPerPageOptions={[5, 15, 30]} />
+    );
+
+    const selector = screen.getByTestId(
+      "pagination-rows-per-page"
+    ) as HTMLSelectElement;
+    const options = Array.from(selector.options).map((opt) => opt.value);
+
+    expect(options).toEqual(["5", "15", "30"]);
+  });
+
+  it("calls onRowsPerPageChange and resets to page 1 when changing rows per page", () => {
+    const onPageChange = vi.fn();
+    const onRowsPerPageChange = vi.fn();
+
+    render(
+      <Pagination
+        {...defaultProps}
+        currentPage={3}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId("pagination-rows-per-page"), {
+      target: { value: "25" },
+    });
+
+    expect(onRowsPerPageChange).toHaveBeenCalledWith(25);
+    expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("disables previous button on first page", () => {
+    render(<Pagination {...defaultProps} currentPage={1} />);
+
+    const prevButton = screen.getByTestId("pagination-prev");
+    expect(prevButton).toBeDisabled();
+  });
+
+  it("enables previous button when not on first page", () => {
+    render(<Pagination {...defaultProps} currentPage={2} />);
+
+    const prevButton = screen.getByTestId("pagination-prev");
+    expect(prevButton).not.toBeDisabled();
+  });
+
+  it("disables next button on last page", () => {
+    render(
+      <Pagination {...defaultProps} currentPage={10} totalItems={100} />
+    );
+
+    const nextButton = screen.getByTestId("pagination-next");
+    expect(nextButton).toBeDisabled();
+  });
+
+  it("enables next button when not on last page", () => {
+    render(<Pagination {...defaultProps} currentPage={5} />);
+
+    const nextButton = screen.getByTestId("pagination-next");
+    expect(nextButton).not.toBeDisabled();
+  });
+
+  it("calls onPageChange with previous page when clicking prev button", () => {
+    const onPageChange = vi.fn();
+
+    render(
+      <Pagination {...defaultProps} currentPage={3} onPageChange={onPageChange} />
+    );
+
+    fireEvent.click(screen.getByTestId("pagination-prev"));
+
+    expect(onPageChange).toHaveBeenCalledWith(2);
+  });
+
+  it("calls onPageChange with next page when clicking next button", () => {
+    const onPageChange = vi.fn();
+
+    render(
+      <Pagination {...defaultProps} currentPage={3} onPageChange={onPageChange} />
+    );
+
+    fireEvent.click(screen.getByTestId("pagination-next"));
+
+    expect(onPageChange).toHaveBeenCalledWith(4);
+  });
+
+  it("does not call onPageChange when clicking disabled prev button", () => {
+    const onPageChange = vi.fn();
+
+    render(
+      <Pagination {...defaultProps} currentPage={1} onPageChange={onPageChange} />
+    );
+
+    fireEvent.click(screen.getByTestId("pagination-prev"));
+
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("does not call onPageChange when clicking disabled next button", () => {
+    const onPageChange = vi.fn();
+
+    render(
+      <Pagination
+        {...defaultProps}
+        currentPage={10}
+        totalItems={100}
+        onPageChange={onPageChange}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId("pagination-next"));
+
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("has correct aria-labels on navigation buttons", () => {
+    render(<Pagination {...defaultProps} />);
+
+    expect(screen.getByLabelText("Previous page")).toBeTruthy();
+    expect(screen.getByLabelText("Next page")).toBeTruthy();
+  });
+});
