@@ -8,9 +8,13 @@ def insert_inventory(*, db, org_id: str, assets: List[EC2Instance]):
     Reusable from any workflow that generates or refreshes assets.
     """
     itam_db = db.itam
-    return itam_db.insert_one(
-    Inventory(org_id=org_id, assets=assets).model_dump(by_alias=True)
+
+    doc = Inventory(org_id=org_id, assets=assets).model_dump(
+        by_alias=True,
+        exclude_none=True,
     )
+    doc.pop("_id", None)
+    return itam_db.replace_one({"org_id": org_id}, doc, upsert=True)
 
 def delete_inventory_by_org(*, db, org_id: str):
     """
