@@ -1217,10 +1217,14 @@ describe("EmployeesPage Integration", () => {
 
       it("falls back to default message when error has no message or payload", async () => {
         // Covers: let msg = "Failed to save user" (no overrides)
-        usersApi.createUser.mockRejectedValue({});
+        // Must use the edit flow so the error reaches handleModalSubmit's catch
+        usersApi.updateUser.mockRejectedValue({});
         renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
+        await userEvent.click(screen.getByText("Confirm Update"));
 
         expect(
           await screen.findByText("Failed to save user")
@@ -1229,16 +1233,20 @@ describe("EmployeesPage Integration", () => {
 
       it("uses default msg when passwordError.msg is missing", async () => {
         // Covers: passwordError.msg || msg  (msg stays as "Failed to save user")
+        // Must use the edit flow so the error reaches handleModalSubmit's catch
         const errorPayload = {
           payload: {
             details: [{ loc: ["body", "password"] }], // no msg property
           },
         };
-        usersApi.createUser.mockRejectedValue(errorPayload);
+        usersApi.updateUser.mockRejectedValue(errorPayload);
 
         renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
+        await userEvent.click(screen.getByText("Confirm Update"));
 
         expect(
           await screen.findByText("Failed to save user")
@@ -1346,8 +1354,7 @@ describe("EmployeesPage Integration", () => {
             ok: true,
             json: async () => ({
               status: "failed",
-              message: "",
-              progress: "failed",
+              // no message or progress — useAsyncTask will set message to ""
             }),
           })
           .mockResolvedValue({
@@ -1363,6 +1370,7 @@ describe("EmployeesPage Integration", () => {
         await userEvent.click(screen.getByTestId("open-create-btn"));
         await userEvent.click(screen.getByText("Confirm Create"));
 
+        // When message is empty/falsy, the effect uses the fallback
         expect(
           await screen.findByText("Failed to create user")
         ).toBeInTheDocument();
