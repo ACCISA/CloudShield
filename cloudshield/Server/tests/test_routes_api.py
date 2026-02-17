@@ -419,6 +419,46 @@ def test_dc_add_user_with_group(client):
     resp = client.post("/api/task/dc/add_user_with_group", json={"username": "user1", "password": "pass"})
     assert resp.status_code == 422
 
+def test_task_dc_add_group(client):
+    # Success
+    resp = client.post("/api/task/dc/add_group", json={"org_id": "acme", "group_name": "devs"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/add_group", json={"group_name": "devs"})
+    assert resp.status_code == 422
+    # Missing group_name
+    resp = client.post("/api/task/dc/add_group", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_task_dc_remove_group(client):
+    # Success
+    resp = client.post("/api/task/dc/remove_group", json={"org_id": "acme", "group_name": "devs"})
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/remove_group", json={"group_name": "devs"})
+    assert resp.status_code == 422
+    # Missing group_name
+    resp = client.post("/api/task/dc/remove_group", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
+def test_task_dc_update_file_share(client):
+    # Success with all fields
+    resp = client.post("/api/task/dc/update_file_share", json={
+        "org_id": "acme", "share_name": "Finance", "groups": ["devs"], "users": ["alice"]
+    })
+    assert resp.status_code == 202
+    # Success with only required fields (groups/users are optional)
+    resp = client.post("/api/task/dc/update_file_share", json={
+        "org_id": "acme", "share_name": "Finance"
+    })
+    assert resp.status_code == 202
+    # Missing org_id
+    resp = client.post("/api/task/dc/update_file_share", json={"share_name": "Finance"})
+    assert resp.status_code == 422
+    # Missing share_name
+    resp = client.post("/api/task/dc/update_file_share", json={"org_id": "acme"})
+    assert resp.status_code == 422
+
 # --- Signup Admin Endpoints ---
 
 # A valid payload that satisfies the UserCreate Pydantic model
@@ -450,7 +490,7 @@ def signup_admin_client(monkeypatch):
         mock_redis_instance.set.return_value = True
 
         class DummyJob:
-            def __init__(self, job_id):
+            def __init__(self, job_id="p1"):
                 self.id = job_id
 
         # Import modules BEFORE create_app so we can patch them.
@@ -459,6 +499,7 @@ def signup_admin_client(monkeypatch):
         import cloudshield.Server.routes.users as users_mod
         import cloudshield.Server.services as services_mod
         import cloudshield.Server.services.user_service as user_service_mod
+        from cloudshield.Server.services import job_service
 
         # Create a configurable mock that tests can modify
         mock_create_user = MagicMock()
@@ -473,6 +514,7 @@ def signup_admin_client(monkeypatch):
         monkeypatch.setattr(users_mod, "create_user", mock_create_user)
         monkeypatch.setattr(services_mod, "create_user", mock_create_user)
         monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
+        monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
 
         # Also patch alternative import paths used by `cloudshield/Server/server.py`
         # when it falls back to `from routes import ...`.
@@ -495,6 +537,7 @@ def signup_admin_client(monkeypatch):
             pass
 
         monkeypatch.setattr("cloudshield.Server.routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
+        monkeypatch.setattr("cloudshield.Server.routes.users.service_dispatcher", lambda *args, **kw: DummyJob("p1"))
         try:
             monkeypatch.setattr("routes.api.service_dispatcher", lambda org_id, **kw: DummyJob("p1"))
         except Exception:
@@ -535,8 +578,8 @@ def test_signup_admin_success(signup_admin_client):
     assert mock_create_user.call_count == 1, (
         f"create_user not called; status={resp.status_code} body={resp.get_json() or resp.data.decode()}"
     )
-    assert resp.status_code == 201
-    assert "user_id" in resp.json
+    assert resp.status_code == 202
+    assert "job_id" in resp.json
 
 def test_signup_admin_validation_error(signup_admin_client):
     client, mock_create_user = signup_admin_client

@@ -34,10 +34,12 @@ export function useAsyncTask({ pollInterval = 5000 } = {}) {
    * @returns {Promise<Object>} Status object
    */
   async function apiGetStatus(jid) {
-    const res = await fetch(
-      `http://localhost:5050/status/${encodeURIComponent(jid)}`
-    );
+    const res = await fetch(`/api/status/${encodeURIComponent(jid)}`);
     if (!res.ok) {
+      // For 404, return a queued status (job may not be in Redis yet)
+      if (res.status === 404) {
+        return { status: "running", message: "Setting up task…", progress: "queued" };
+      }
       const text = await res.text().catch(() => "");
       throw new Error(text || `Failed to fetch status (${res.status})`);
     }

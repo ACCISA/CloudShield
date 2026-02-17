@@ -125,6 +125,33 @@ Status InfraService::AddUserToGroup(ServerContext* context, const is::AddUserToG
 	return Status(grpc::StatusCode::OK, "User added to group successfully");
 }
 
+Status InfraService::RemoveDomainGroup(ServerContext* context, const is::RemoveDomainGroupData* request, is::RemoveDomainGroupDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::string group_name = request->group_name().c_str();
+
+	auto samba = std::make_unique<SambaTask>();
+
+	if (!samba->IsDomainGroup(group_name)) {
+		response->set_result(this->GROUP_NOT_FOUND);
+		response->set_status(is::Status::GROUP_NOT_FOUND);
+		return Status(grpc::StatusCode::OK, "Group not found");
+	}
+
+	std::string result = samba->RemoveDomainGroup(group_name);
+
+	if (result.find(this->DELETED_GROUP) != std::string::npos) {
+		response->set_result(result);
+		response->set_status(is::Status::SUCCESS);
+		return Status(grpc::StatusCode::OK, "Group removed successfully");
+	}
+
+	response->set_result(result);
+	response->set_status(is::Status::FAILED);
+	return Status(grpc::StatusCode::OK, "Failed to remove group");
+}
+
 Status InfraService::CreateDomainUserWithGroup(ServerContext* context, const is::CreateDomainUserWithGroupData* request, is::CreateDomainUserWithGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
@@ -351,6 +378,40 @@ Status InfraService::DeleteSambaFileShare(ServerContext* context, const is::Dele
 	response->set_status(is::Status::SUCCESS);
 
 	return Status(grpc::StatusCode::OK, "Deleted samba file share");
+}
+
+Status InfraService::UpdateSambaFileShare(ServerContext* context, const is::UpdateSambaFileShareData* request, is::UpdateSambaFileShareDataAck* response)
+{
+	std::lock_guard<std::mutex> lock(this->mutex_);
+
+	std::string share_name = request->share_name().c_str();
+
+	std::cout << "RPC Call UpdateSambaFileShare: " << share_name << std::endl;
+
+	auto samba = std::make_unique<SambaTask>();
+
+	// Collect groups and users from the repeated fields
+	std::vector<std::string> groups;
+	for (const auto& g : request->groups()) {
+		groups.push_back(g);
+	}
+	std::vector<std::string> users;
+	for (const auto& u : request->users()) {
+		users.push_back(u);
+	}
+
+	bool result = samba->UpdateSambaFileShareACL(share_name, groups, users);
+
+	if (!result) {
+		response->set_status(is::Status::SHARE_NOT_FOUND);
+		return Status(grpc::StatusCode::OK, "Failed to update samba share");
+	}
+
+	// Restart samba to apply new config
+	samba->RestartSambaService();
+
+	response->set_status(is::Status::SUCCESS);
+	return Status(grpc::StatusCode::OK, "Updated samba file share ACLs");
 }
 
 Status InfraService::AddDNSRecord(ServerContext* context, const is::AddDNSRecordData* request, is::AddDNSRecordDataAck* response)

@@ -36,13 +36,19 @@ jest.mock("../../context/AuthContext", () => ({
 }));
 
 // Mock the files API
-jest.mock("../../api/filesApi", () => ({
-  createFileShare: jest.fn(),
-  updateFileShare: jest.fn(),
-  deleteFileShare: jest.fn(),
-  fetchUsers: jest.fn(),
-  fetchGroups: jest.fn(),
-}));
+jest.mock("../../api/filesApi", () => {
+  const actual = jest.requireActual("../../api/filesApi");
+  return {
+    ...actual,
+    createFileShare: jest.fn(),
+    updateFileShare: jest.fn(),
+    deleteFileShare: jest.fn(),
+    fetchUsers: jest.fn(),
+    fetchGroups: jest.fn(),
+    fetchFileShares: jest.fn(),
+    transformSharesToTree: actual.transformSharesToTree,
+  };
+});
 
 // Mock components
 jest.mock("../../components/common/SearchField/SearchField", () => ({
@@ -61,12 +67,20 @@ jest.mock("../../components/common/SearchField/SearchField", () => ({
 jest.mock("../../components/common/DisplayButton/DisplayButton", () => ({
   __esModule: true,
   default: ({ layout, onLayoutChange }) => (
-    <button
-      onClick={() => onLayoutChange(layout === "list" ? "icons" : "list")}
-      data-testid="display-button"
-    >
-      {layout}
-    </button>
+    <div>
+      <button
+        onClick={() => onLayoutChange(layout === "list" ? "icons" : "list")}
+        data-testid="display-button"
+      >
+        {layout}
+      </button>
+      <button
+        onClick={() => onLayoutChange("cards")}
+        data-testid="display-cards"
+      >
+        cards
+      </button>
+    </div>
   ),
 }));
 
@@ -123,6 +137,22 @@ jest.mock("../../components/files/FileShareWizardModal", () => ({
   __esModule: true,
   default: ({ isOpen, onClose, onSubmit, onDelete, file }) => {
     if (!isOpen) return null;
+    const submitPayload = file
+      ? {
+          shareName: file.name || "Test Share",
+          users: ["user1"],
+          groups: ["group1"],
+          description: "Test description",
+          maxSize: file.max_size ?? undefined,
+        }
+      : {
+          shareName: "Test Share",
+          users: ["user1"],
+          groups: ["group1"],
+          description: "Test description",
+          maxSize: 100,
+        };
+
     return (
       <div data-testid={file ? "edit-modal" : "create-modal"}>
         <h2>{file ? "Edit Share" : "Create Share"}</h2>
@@ -130,15 +160,7 @@ jest.mock("../../components/files/FileShareWizardModal", () => ({
           Close
         </button>
         <button
-          onClick={() =>
-            onSubmit({
-              shareName: "Test Share",
-              users: ["user1"],
-              groups: ["group1"],
-              description: "Test description",
-              maxSize: 100,
-            })
-          }
+          onClick={() => onSubmit(submitPayload)}
           data-testid="modal-submit"
         >
           Submit
@@ -206,6 +228,16 @@ describe("FilesPage", () => {
       current_size: 30,
       max_size: 50,
     },
+    {
+      id: "share-3",
+      name: "Report.pdf",
+      kind: "file",
+      users: ["user1@example.com"],
+      groups: [],
+      updated_at: "2024-01-17T12:00:00Z",
+      current_size: 5,
+      max_size: null,
+    },
   ];
 
   const mockUsers = [
@@ -243,16 +275,12 @@ describe("FilesPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn();
     localStorage.clear();
 
-    // Mock fetch for file shares
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ shares: mockShares.map((share) => ({ share })) }),
-    });
-
     // Mock API calls
+    filesApi.fetchFileShares.mockResolvedValue(
+      mockShares.map((share) => ({ share })),
+    );
     filesApi.fetchUsers.mockResolvedValue(mockUsers);
     filesApi.fetchGroups.mockResolvedValue(mockGroups);
     filesApi.createFileShare.mockResolvedValue({ job_id: "job-123" });
@@ -287,9 +315,7 @@ describe("FilesPage", () => {
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("api/file_shares?org_id=test-org-123"),
-        );
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("test-org-123");
       });
     });
 
@@ -324,21 +350,21 @@ describe("FilesPage", () => {
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("org_id=stored-org-123"),
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith(
+          "stored-org-123",
         );
       });
     });
 
     it("should handle fetch errors gracefully", async () => {
-      global.fetch.mockRejectedValue(new Error("Network error"));
+      filesApi.fetchFileShares.mockRejectedValue(new Error("Network error"));
       const consoleError = jest.spyOn(console, "error").mockImplementation();
 
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to fetch files"),
+          expect.stringContaining("fetchTree - Failed to fetch files"),
           expect.any(Error),
         );
       });
@@ -417,6 +443,46 @@ describe("FilesPage", () => {
       });
     });
 
+    it("should toggle folder expand state", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      const expandButton = await screen.findByLabelText("Expand folder");
+      await user.click(expandButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("Collapse folder")).toBeInTheDocument();
+      });
+    });
+
+    it("should display file size in list view when provided", async () => {
+      const transformSpy = jest
+        .spyOn(filesApi, "transformSharesToTree")
+        .mockImplementation(() => [
+          {
+            id: "file-1",
+            name: "Size File",
+            kind: "file",
+            size: "5 MB",
+            users: [],
+            groups: [],
+            updated_at: "2024-01-17T12:00:00Z",
+          },
+        ]);
+
+      filesApi.fetchFileShares.mockResolvedValue([
+        { share: { id: "file-1", name: "Size File", kind: "file" } },
+      ]);
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("5 MB")).toBeInTheDocument();
+      });
+
+      transformSpy.mockRestore();
+    });
+
     it("should render icons view with path bar", async () => {
       const user = userEvent.setup();
       renderWithRouter(<FilesPage />);
@@ -431,6 +497,23 @@ describe("FilesPage", () => {
       await waitFor(() => {
         expect(screen.getAllByText("Root").length).toBeGreaterThan(0);
         expect(screen.getByText("Path")).toBeInTheDocument();
+      });
+    });
+
+    it("should map cards layout to list", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-cards")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-cards"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toHaveTextContent(
+          "list",
+        );
       });
     });
   });
@@ -524,22 +607,19 @@ describe("FilesPage", () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
 
-      // Mock fetch to return the new share after polling
+      // Mock fetchFileShares to return the new share after polling
       let callCount = 0;
-      global.fetch.mockImplementation(() => {
+      filesApi.fetchFileShares.mockImplementation(() => {
         callCount++;
         const hasNewShare = callCount > 2; // Share appears after 2 polls
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            shares: hasNewShare
-              ? [
-                  ...mockShares.map((s) => ({ share: s })),
-                  { share: { name: "Test Share", id: "new-1" } },
-                ]
-              : mockShares.map((s) => ({ share: s })),
-          }),
-        });
+        return Promise.resolve(
+          hasNewShare
+            ? [
+                ...mockShares.map((s) => ({ share: s })),
+                { share: { name: "Test Share", id: "new-1" } },
+              ]
+            : mockShares.map((s) => ({ share: s })),
+        );
       });
 
       renderWithRouter(<FilesPage />);
@@ -581,7 +661,7 @@ describe("FilesPage", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + polls
+        expect(filesApi.fetchFileShares).toHaveBeenCalledTimes(4);
       });
 
       jest.useRealTimers();
@@ -590,13 +670,6 @@ describe("FilesPage", () => {
     it("should show creating banner during share creation", async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
-
-      global.fetch.mockImplementation(() =>
-        Promise.resolve({
-          ok: true,
-          json: async () => ({ shares: mockShares.map((s) => ({ share: s })) }),
-        }),
-      );
 
       renderWithRouter(<FilesPage />);
 
@@ -648,11 +721,10 @@ describe("FilesPage", () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
 
-      // Mock fetch to never return the new share
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ shares: mockShares.map((s) => ({ share: s })) }),
-      });
+      // Mock fetchFileShares to never return the new share
+      filesApi.fetchFileShares.mockResolvedValue(
+        mockShares.map((s) => ({ share: s })),
+      );
 
       renderWithRouter(<FilesPage />);
 
@@ -748,6 +820,47 @@ describe("FilesPage", () => {
       });
     });
 
+    it("should submit update without max size when absent", async () => {
+      const user = userEvent.setup();
+      filesApi.fetchFileShares.mockResolvedValue([
+        {
+          share: {
+            id: "share-no-max",
+            name: "No Max",
+            kind: "folder",
+            users: [],
+            groups: [],
+            updated_at: "2024-01-15T10:00:00Z",
+            current_size: 10,
+            max_size: null,
+          },
+        },
+      ]);
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        const editButtons = screen.getAllByTestId("edit-menu-0");
+        expect(editButtons.length).toBeGreaterThan(0);
+      });
+
+      await user.click(screen.getAllByTestId("edit-menu-0")[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("modal-submit"));
+
+      await waitFor(() => {
+        expect(filesApi.updateFileShare).toHaveBeenCalledWith(
+          "test-org-123",
+          "No Max",
+          expect.objectContaining({ max_size: undefined }),
+        );
+      });
+    });
+
     it("should handle update errors gracefully", async () => {
       const user = userEvent.setup();
       filesApi.updateFileShare.mockRejectedValue(new Error("Update failed"));
@@ -803,6 +916,32 @@ describe("FilesPage", () => {
       });
     });
 
+    it("should handle delete errors from edit modal", async () => {
+      const user = userEvent.setup();
+      filesApi.deleteFileShare.mockRejectedValue(new Error("Delete failed"));
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        const editButtons = screen.getAllByTestId("edit-menu-0");
+        expect(editButtons.length).toBeGreaterThan(0);
+      });
+
+      await user.click(screen.getAllByTestId("edit-menu-0")[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("modal-delete"));
+
+      await waitFor(() => {
+        expect(global.alert).toHaveBeenCalledWith(
+          "Failed to delete share: Delete failed",
+        );
+      });
+    });
+
     it("should not delete if user cancels confirmation", async () => {
       const user = userEvent.setup();
       global.confirm.mockReturnValue(false);
@@ -831,17 +970,14 @@ describe("FilesPage", () => {
       const user = userEvent.setup({ delay: null });
 
       let callCount = 0;
-      global.fetch.mockImplementation(() => {
+      filesApi.fetchFileShares.mockImplementation(() => {
         callCount++;
         const shareRemoved = callCount > 2;
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            shares: shareRemoved
-              ? [{ share: mockShares[1] }]
-              : mockShares.map((s) => ({ share: s })),
-          }),
-        });
+        return Promise.resolve(
+          shareRemoved
+            ? [{ share: mockShares[1] }]
+            : mockShares.map((s) => ({ share: s })),
+        );
       });
 
       renderWithRouter(<FilesPage />);
@@ -865,20 +1001,32 @@ describe("FilesPage", () => {
       });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(3);
+        expect(filesApi.fetchFileShares).toHaveBeenCalledTimes(4);
       });
 
       jest.useRealTimers();
     });
 
+    it("should not delete directly if user cancels confirmation", async () => {
+      const user = userEvent.setup();
+      global.confirm.mockReturnValue(false);
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        const deleteButtons = screen.getAllByTestId("edit-menu-1");
+        expect(deleteButtons.length).toBeGreaterThan(0);
+      });
+
+      await user.click(screen.getAllByTestId("edit-menu-1")[0]);
+
+      expect(global.confirm).toHaveBeenCalled();
+      expect(filesApi.deleteFileShare).not.toHaveBeenCalled();
+    });
+
     it("should show deleting banner during deletion", async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
-
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ shares: mockShares.map((s) => ({ share: s })) }),
-      });
 
       renderWithRouter(<FilesPage />);
 
@@ -891,6 +1039,36 @@ describe("FilesPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText(/Deleting/)).toBeInTheDocument();
+      });
+
+      jest.useRealTimers();
+    });
+
+    it("should timeout direct delete polling after max attempts", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ delay: null });
+
+      filesApi.fetchFileShares.mockResolvedValue(
+        mockShares.map((s) => ({ share: s })),
+      );
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        const deleteButtons = screen.getAllByTestId("edit-menu-1");
+        expect(deleteButtons.length).toBeGreaterThan(0);
+      });
+
+      await user.click(screen.getAllByTestId("edit-menu-1")[0]);
+
+      act(() => {
+        jest.advanceTimersByTime(31000);
+      });
+
+      await waitFor(() => {
+        expect(global.alert).toHaveBeenCalledWith(
+          expect.stringContaining("Delete is taking longer than expected"),
+        );
       });
 
       jest.useRealTimers();
@@ -926,15 +1104,13 @@ describe("FilesPage", () => {
         expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
       });
 
-      global.fetch.mockClear();
+      filesApi.fetchFileShares.mockClear();
 
       const refreshButton = screen.getByTestId("refresh-button");
       await user.click(refreshButton);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining("api/file_shares"),
-        );
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("test-org-123");
       });
     });
   });
@@ -988,6 +1164,25 @@ describe("FilesPage", () => {
       const selectAllCheckbox = screen.getAllByTestId("checkbox")[0];
       expect(selectAllCheckbox).toHaveAttribute("data-indeterminate", "true");
     });
+
+    it("should clear selections when indeterminate select-all is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        const checkboxes = screen.getAllByTestId("checkbox");
+        expect(checkboxes.length).toBeGreaterThan(1);
+      });
+
+      const selectAllCheckbox = screen.getAllByTestId("checkbox")[0];
+      const firstItemCheckbox = screen.getAllByTestId("checkbox")[1];
+
+      await user.click(firstItemCheckbox);
+      expect(firstItemCheckbox).toBeChecked();
+
+      await user.click(selectAllCheckbox);
+      expect(firstItemCheckbox).not.toBeChecked();
+    });
   });
 
   describe("StorageCell Component", () => {
@@ -1013,12 +1208,9 @@ describe("FilesPage", () => {
         },
       ];
 
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          shares: sharesWithoutMax.map((s) => ({ share: s })),
-        }),
-      });
+      filesApi.fetchFileShares.mockResolvedValue(
+        sharesWithoutMax.map((s) => ({ share: s })),
+      );
 
       renderWithRouter(<FilesPage />);
 
@@ -1053,6 +1245,44 @@ describe("FilesPage", () => {
 
       await waitFor(() => {
         expect(screen.getAllByText("Root").length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should filter icons view by search query", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      const searchField = screen.getByTestId("search-field");
+      await user.type(searchField, "Sales");
+
+      await waitFor(() => {
+        expect(screen.getByText("Sales Docs")).toBeInTheDocument();
+        expect(screen.queryByText("Marketing")).not.toBeInTheDocument();
+      });
+    });
+
+    it("should toggle selection with keyboard in icons view", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      const fileTile = await screen.findByLabelText("Report.pdf file");
+      fireEvent.keyDown(fileTile, { key: "Enter" });
+
+      await waitFor(() => {
+        const checkboxes = screen.getAllByTestId("checkbox");
+        expect(checkboxes.some((box) => box.checked)).toBe(true);
       });
     });
 
@@ -1122,6 +1352,177 @@ describe("FilesPage", () => {
         expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
       });
     });
+
+    it("should submit a valid path and exit path mode", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+      await waitFor(() => {
+        expect(screen.getByText("Path")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Path"));
+
+      const pathInput = await screen.findByPlaceholderText(/Type a path like/);
+      await user.type(pathInput, "Sales Docs{enter}");
+
+      await waitFor(() => {
+        expect(
+          screen.queryByPlaceholderText(/Type a path like/),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("should keep path mode on invalid path", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+      await waitFor(() => {
+        expect(screen.getByText("Path")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Path"));
+
+      const pathInput = await screen.findByPlaceholderText(/Type a path like/);
+      await user.type(pathInput, "Unknown{enter}");
+
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText(/Type a path like/),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should open edit modal on file double click", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      const fileTile = await screen.findByLabelText("Report.pdf file");
+      fireEvent.doubleClick(fileTile);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+      });
+    });
+
+    it("should display file size in icons view when provided", async () => {
+      const user = userEvent.setup();
+      const transformSpy = jest
+        .spyOn(filesApi, "transformSharesToTree")
+        .mockImplementation(() => [
+          {
+            id: "file-1",
+            name: "Size File",
+            kind: "file",
+            size: "5 MB",
+            users: [],
+            groups: [],
+            updated_at: "2024-01-17T12:00:00Z",
+          },
+        ]);
+
+      filesApi.fetchFileShares.mockResolvedValue([
+        { share: { id: "file-1", name: "Size File", kind: "file" } },
+      ]);
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      await waitFor(() => {
+        expect(screen.getByText("5 MB")).toBeInTheDocument();
+      });
+
+      transformSpy.mockRestore();
+    });
+
+    it("should show breadcrumb path for items inside a folder", async () => {
+      const user = userEvent.setup();
+      const transformSpy = jest
+        .spyOn(filesApi, "transformSharesToTree")
+        .mockImplementation(() => [
+          {
+            id: "folder-1",
+            name: "Parent",
+            kind: "folder",
+            children: [
+              {
+                id: "child-1",
+                name: "Child.txt",
+                kind: "file",
+                users: [],
+                groups: [],
+                updated_at: "2024-01-17T12:00:00Z",
+              },
+            ],
+          },
+        ]);
+
+      filesApi.fetchFileShares.mockResolvedValue([
+        { share: { id: "folder-1", name: "Parent", kind: "folder" } },
+      ]);
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      const folderTile = await screen.findByLabelText("Parent folder");
+      fireEvent.doubleClick(folderTile);
+
+      await waitFor(() => {
+        expect(screen.getByText("Parent")).toBeInTheDocument();
+      });
+
+      transformSpy.mockRestore();
+    });
+
+    it("should open a folder, navigate breadcrumb, and go up", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("display-button"));
+
+      const folderTile = await screen.findByLabelText("Sales Docs folder");
+      fireEvent.doubleClick(folderTile);
+
+      const upButton = await screen.findByText("←");
+      expect(upButton).not.toHaveClass("disabled");
+
+      await user.click(screen.getByText("Sales Docs"));
+      await user.click(upButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("←")).toHaveClass("disabled");
+      });
+    });
   });
 
   describe("User and Group Lookups", () => {
@@ -1154,10 +1555,7 @@ describe("FilesPage", () => {
 
   describe("Edge Cases", () => {
     it("should handle empty shares array", async () => {
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ shares: [] }),
-      });
+      filesApi.fetchFileShares.mockResolvedValue([]);
 
       renderWithRouter(<FilesPage />);
 
@@ -1170,52 +1568,52 @@ describe("FilesPage", () => {
       expect(checkboxes.length).toBe(1); // Only select-all checkbox
     });
 
-    it("should handle malformed API response", async () => {
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({}),
-      });
+    it("should handle localStorage read errors", async () => {
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+      const getItemSpy = jest
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation(() => {
+          throw new Error("read failed");
+        });
 
-      const consoleWarn = jest.spyOn(console, "warn").mockImplementation();
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
-        expect(consoleWarn).toHaveBeenCalledWith(
-          expect.stringContaining("Unexpected API format"),
-          expect.anything(),
+        expect(consoleError).toHaveBeenCalledWith(
+          expect.stringContaining("Error reading localStorage"),
+          expect.any(Error),
         );
       });
 
-      consoleWarn.mockRestore();
+      expect(filesApi.fetchFileShares).toHaveBeenCalledWith("test-org-123");
+
+      consoleError.mockRestore();
+      getItemSpy.mockRestore();
     });
 
-    it("should handle users as comma-separated string", async () => {
-      const sharesWithStringUsers = [
+    it("should handle groups as comma-separated string", async () => {
+      const sharesWithStringGroups = [
         {
           id: "share-4",
-          name: "String Users",
+          name: "String Groups",
           kind: "folder",
-          users: "user1,user2,user3",
-          groups: [],
+          users: ["user1@example.com"],
+          groups: "Sales Team,Marketing",
           updated_at: "2024-01-15T10:00:00Z",
         },
       ];
 
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          shares: sharesWithStringUsers.map((s) => ({ share: s })),
-        }),
-      });
+      filesApi.fetchFileShares.mockResolvedValue(
+        sharesWithStringGroups.map((s) => ({ share: s })),
+      );
 
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
-        expect(screen.getByText("String Users")).toBeInTheDocument();
+        expect(screen.getByText("String Groups")).toBeInTheDocument();
       });
 
-      // Should render avatar pill with split users
-      const avatarPills = screen.queryAllByTestId("avatar-pill-user");
+      const avatarPills = screen.queryAllByTestId("avatar-pill-group");
       expect(avatarPills.length).toBeGreaterThan(0);
     });
 
@@ -1233,18 +1631,17 @@ describe("FilesPage", () => {
         },
       ];
 
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          shares: sharesWithNulls.map((s) => ({ share: s })),
-        }),
-      });
+      filesApi.fetchFileShares.mockResolvedValue(
+        sharesWithNulls.map((s) => ({ share: s })),
+      );
 
       renderWithRouter(<FilesPage />);
 
       await waitFor(() => {
         expect(screen.getByText("Null Values")).toBeInTheDocument();
       });
+
+      expect(screen.getByText("—")).toBeInTheDocument();
     });
   });
 
@@ -1252,11 +1649,6 @@ describe("FilesPage", () => {
     it("should show both creating and deleting banners simultaneously", async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
-
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ shares: mockShares.map((s) => ({ share: s })) }),
-      });
 
       renderWithRouter(<FilesPage />);
 
@@ -1289,11 +1681,6 @@ describe("FilesPage", () => {
     it("should show circular progress in operation banner", async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ delay: null });
-
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ shares: mockShares.map((s) => ({ share: s })) }),
-      });
 
       renderWithRouter(<FilesPage />);
 

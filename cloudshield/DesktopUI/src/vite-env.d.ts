@@ -4,9 +4,8 @@ type ElectronAPI = {
   runXfreerdp: (
     username: string,
     password: string,
-    ip: string
+    ip: string,
   ) => Promise<unknown>;
-  runOpenVPN: () => Promise<unknown>;
 };
 
 type AuthStoreAPI = {

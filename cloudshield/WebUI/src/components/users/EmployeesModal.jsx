@@ -32,10 +32,14 @@ export default function EmployeesModal({
   employeeData = null,
   onSubmit,
   onDelete,
+  creationStatus = null,
+  creationProgress = null,
+  creationMessage = null,
 }) {
   const { accessToken, currentUser } = useAuth();
 
   const isEditMode = Boolean(employeeData);
+  const isCreating = creationStatus === "running" || creationStatus === "starting";
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -177,10 +181,12 @@ export default function EmployeesModal({
         groups: formData.selectedGroups,
         files: formData.selectedFiles,
       });
-      onClose();
+      // Only auto-close for edit mode; create mode closes after job completes
+      if (isEditMode) {
+        onClose();
+      }
     } catch (error) {
       console.error("Failed to submit employee:", error);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -285,18 +291,48 @@ export default function EmployeesModal({
         </div>
 
         {/* Content */}
-        <main className="employees-modal-content">{renderStepContent()}</main>
+        <main className="employees-modal-content">
+          {isCreating ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "24px", padding: "48px 24px" }}>
+              <div style={{ fontSize: "18px", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                Creating user...
+              </div>
+              <div style={{ width: "100%", maxWidth: "300px" }}>
+                <div style={{ height: "4px", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "2px", overflow: "hidden" }}>
+                  <div style={{ 
+                    height: "100%", 
+                    backgroundColor: "#4caf50",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }} />
+                </div>
+              </div>
+              {creationMessage && (
+                <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", textAlign: "center" }}>
+                  {creationMessage}
+                </div>
+              )}
+              {typeof creationProgress === "number" && (
+                <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)" }}>
+                  {creationProgress}%
+                </div>
+              )}
+            </div>
+          ) : (
+            renderStepContent()
+          )}
+        </main>
 
         {/* Footer */}
-        <footer className="employees-modal-actions">
+        <footer className="employees-modal-actions" style={{ opacity: isCreating ? 0.5 : 1, pointerEvents: isCreating ? "none" : "auto" }}>
           <div className="employees-modal-actions-left">
             <button
               className="employees-modal-btn employees-modal-btn-cancel"
               onClick={onClose}
+              disabled={isCreating}
             >
               Cancel
             </button>
-            {isEditMode && currentStep === 0 && (
+            {isEditMode && currentStep === 0 && !isCreating && (
               <button
                 className="employees-modal-btn employees-modal-btn-delete"
                 onClick={() => {
@@ -314,37 +350,39 @@ export default function EmployeesModal({
               </button>
             )}
           </div>
-          <div className="employees-modal-actions-right">
-            {currentStep > 0 && (
-              <button
-                className="employees-modal-btn employees-modal-btn-secondary"
-                onClick={() => handleNavigate(-1)}
-              >
-                Back
-              </button>
-            )}
-            {currentStep < STEPS.length - 1 ? (
-              <button
-                className="employees-modal-btn employees-modal-btn-primary"
-                onClick={() => handleNavigate(1)}
-                disabled={isNextDisabled}
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                className="employees-modal-btn employees-modal-btn-primary"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Save Changes"
-                    : "Create User"}
-              </button>
-            )}
-          </div>
+          {!isCreating && (
+            <div className="employees-modal-actions-right">
+              {currentStep > 0 && (
+                <button
+                  className="employees-modal-btn employees-modal-btn-secondary"
+                  onClick={() => handleNavigate(-1)}
+                >
+                  Back
+                </button>
+              )}
+              {currentStep < STEPS.length - 1 ? (
+                <button
+                  className="employees-modal-btn employees-modal-btn-primary"
+                  onClick={() => handleNavigate(1)}
+                  disabled={isNextDisabled}
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  className="employees-modal-btn employees-modal-btn-primary"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : isEditMode
+                      ? "Save Changes"
+                      : "Create User"}
+                </button>
+              )}
+            </div>
+          )}
         </footer>
       </div>
     </div>

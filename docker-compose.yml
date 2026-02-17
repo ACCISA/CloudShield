@@ -51,6 +51,9 @@ services:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true
       - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
+      - VITE_API_PROXY_TARGET=http://host.docker.internal:5050
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       cloudshield_net:
         ipv4_address: 172.28.0.20
@@ -128,6 +131,7 @@ services:
     networks:
       vpc_net:
         ipv4_address: 172.23.0.10
+
   workstation:
     profiles: ["workstation"]
     image: cs-workstation-template:latest

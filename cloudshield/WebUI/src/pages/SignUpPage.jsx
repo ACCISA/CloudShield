@@ -173,7 +173,7 @@ export default function SignupPage({ onSignupSuccess }) {
     try {
       // 1. Create the User and Organization in MongoDB
       const createUserRes = await fetch(
-        "http://localhost:5050/api/auth/signup",
+        "/api/auth/signup",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

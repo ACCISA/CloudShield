@@ -19,7 +19,6 @@ describe("WorkstationsPage", () => {
   const loadAuthMock = vi.fn<AuthStoreAPI["loadAuth"]>();
   const clearAuthMock = vi.fn<AuthStoreAPI["clearAuth"]>();
   const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
-  const runOpenVPNMock = vi.fn<ElectronAPI["runOpenVPN"]>();
   const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
   beforeEach(() => {
@@ -31,7 +30,6 @@ describe("WorkstationsPage", () => {
     localStorage.clear();
     global.window.electronAPI = {
       runXfreerdp: runXfreerdpMock,
-      runOpenVPN: runOpenVPNMock,
       showOpenDialog: showOpenDialogMock,
       killProcess: killProcessMock,
     };

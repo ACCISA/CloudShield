@@ -1,4 +1,4 @@
-const API_PREFIX = 'http://localhost:5050/api';
+const API_PREFIX = '/api';
 
 function buildHeaders(token) {
   const headers = { "Content-Type": "application/json" };

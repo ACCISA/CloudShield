@@ -333,7 +333,26 @@ def update_file_share(org_id, share_name):
     if not success:
         return jsonify({"error": "Share not found"}), 404
 
-    return jsonify({"status": "SUCCESS", "message": "Share updated successfully"}), 200
+    # After updating share metadata in DB, push the new ACLs to the
+    # domain controller so Samba reflects the changes.  This is non-blocking.
+    dc_job_id = None
+    try:
+        job = service_dispatcher(
+            service_name="dc_update_file_share",
+            org_id=org_id,
+            share_name=share_name,
+            groups=data.get("groups"),
+            users=data.get("users"),
+        )
+        dc_job_id = job.id
+        logger.info("Dispatched dc_update_file_share after share update for %s/%s", org_id, share_name)
+    except Exception as dc_err:
+        logger.warning("DC sync failed for share update (non-blocking): %s", dc_err)
+
+    resp = {"status": "SUCCESS", "message": "Share updated successfully"}
+    if dc_job_id:
+        resp["dc_job_id"] = dc_job_id
+    return jsonify(resp), 200
 
 @api_bp.route("/task/dc/set_password", methods=["POST"])
 def task_set_password():
@@ -457,6 +476,104 @@ def task_dc_add_user_to_group():
         org_id=org_id,
         username=username,
         group_name=group_name,
+    )
+    return jsonify({"job_id": job.id}), 202
+
+
+@api_bp.route("/task/dc/add_group", methods=["POST"])
+def task_dc_add_group():
+    """
+    Queue domain controller group creation task.
+
+    Endpoint:
+        POST /api/task/dc/add_group
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - group_name (str, required): Group name to create on the DC.
+
+    Behaviour:
+        - Validates required fields.
+        - Dispatches an async job named "dc_add_group" to the service layer.
+    """
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    group_name = data.get("group_name")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+    if group_name is None:
+        return jsonify({"error": "group_name is required"}), 422
+
+    job = service_dispatcher(
+        service_name="dc_add_group",
+        org_id=org_id,
+        group_name=group_name,
+    )
+    return jsonify({"job_id": job.id}), 202
+
+
+@api_bp.route("/task/dc/remove_group", methods=["POST"])
+def task_dc_remove_group():
+    """
+    Queue domain controller group removal task.
+
+    Endpoint:
+        POST /api/task/dc/remove_group
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - group_name (str, required): Group name to remove from the DC.
+    """
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    group_name = data.get("group_name")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+    if group_name is None:
+        return jsonify({"error": "group_name is required"}), 422
+
+    job = service_dispatcher(
+        service_name="dc_remove_group",
+        org_id=org_id,
+        group_name=group_name,
+    )
+    return jsonify({"job_id": job.id}), 202
+
+
+@api_bp.route("/task/dc/update_file_share", methods=["POST"])
+def task_dc_update_file_share():
+    """
+    Queue domain controller file share ACL update task.
+
+    Endpoint:
+        POST /api/task/dc/update_file_share
+
+    Request JSON:
+        - org_id (str, required): Organization identifier.
+        - share_name (str, required): Name of the share to update.
+        - groups (list[str], optional): Group names to set as valid users.
+        - users (list[str], optional): Usernames to set as valid users.
+    """
+    data = request.get_json() or {}
+
+    org_id = data.get("org_id")
+    share_name = data.get("share_name")
+
+    if org_id is None:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
+    if share_name is None:
+        return jsonify({"error": "share_name is required"}), 422
+
+    job = service_dispatcher(
+        service_name="dc_update_file_share",
+        org_id=org_id,
+        share_name=share_name,
+        groups=data.get("groups", []),
+        users=data.get("users", []),
     )
     return jsonify({"job_id": job.id}), 202
 

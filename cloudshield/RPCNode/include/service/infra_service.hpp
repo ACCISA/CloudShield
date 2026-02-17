@@ -27,7 +27,9 @@ public:
   	Status AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response) override;
   	Status ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response) override;
   	Status GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response) override;
-    	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
+	Status RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response) override;
+	Status RemoveDomainGroup(ServerContext* context, const is::RemoveDomainGroupData* request, is::RemoveDomainGroupDataAck* response) override;
+	Status UpdateSambaFileShare(ServerContext* context, const is::UpdateSambaFileShareData* request, is::UpdateSambaFileShareDataAck* response) override;
     	Status CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response) override;
 	Status AddDomainGroup(ServerContext* context, const is::AddDomainGroupData* request, is::AddDomainGroupDataAck* response) override;
 	Status AddUserToGroup(ServerContext* context, const is::AddUserToGroupData* request, is::AddUserToGroupDataAck* response) override;
@@ -48,6 +50,8 @@ private:
 	static constexpr const char* GROUP_ADD_MEMBERS_SUCCESS = "Added members";
 	static constexpr const char* GROUP_ADD_FAILED = "Failed to add group";
 	static constexpr const char* GROUP_EXISTS = "already exists";
+	static constexpr const char* DELETED_GROUP = "Deleted group";
+	static constexpr const char* GROUP_NOT_FOUND = "Group not found";
 
 	template <typename RepeatedField, typename Container>
 	void populate_repeated(RepeatedField* response_field, const Container& source_vector)

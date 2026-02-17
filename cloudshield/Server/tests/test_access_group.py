@@ -1739,26 +1739,40 @@ class TestAccessGroupRoutesWithFlask:
         data = response.get_json()
         assert data["error"] == "Internal server error"
 
-    def test_delete_access_group_success(self, app_client):
-        """Test DELETE successfully removes group"""
+    def test_delete_access_group_success(self, app_client, monkeypatch):
+        """Test DELETE successfully removes group and dispatches DC task"""
         client, mock_coll = app_client
 
-        group_id = str(ObjectId())
+        group_id = ObjectId()
+        mock_coll.find_one.return_value = {"_id": group_id, "org_id": "org123", "name": "test-group"}
         mock_coll.delete_one.return_value = MagicMock(deleted_count=1)
 
-        response = client.delete(f"/api/access-groups/{group_id}")
+        # Mock service_dispatcher to capture DC call
+        dc_calls = []
+
+        class DummyJob:
+            id = "dc-job-1"
+
+        import cloudshield.Server.routes.access_groups as routes_mod
+        monkeypatch.setattr(routes_mod, "service_dispatcher", lambda **kw: (dc_calls.append(kw), DummyJob())[1])
+
+        response = client.delete(f"/api/access-groups/{str(group_id)}")
 
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "deleted"
-        assert data["id"] == group_id
+        assert data["id"] == str(group_id)
+        assert data["dc_job_id"] == "dc-job-1"
+        assert len(dc_calls) == 1
+        assert dc_calls[0]["service_name"] == "dc_remove_group"
+        assert dc_calls[0]["group_name"] == "test-group"
 
     def test_delete_access_group_not_found(self, app_client):
-        """Test DELETE returns 404 when group doesn't exist"""
+        """Test DELETE returns 404 when group doesn't exist (find_one returns None)"""
         client, mock_coll = app_client
 
         group_id = str(ObjectId())
-        mock_coll.delete_one.return_value = MagicMock(deleted_count=0)
+        mock_coll.find_one.return_value = None
 
         response = client.delete(f"/api/access-groups/{group_id}")
 
@@ -1771,7 +1785,7 @@ class TestAccessGroupRoutesWithFlask:
         client, mock_coll = app_client
 
         group_id = str(ObjectId())
-        mock_coll.delete_one.side_effect = Exception("Database error")
+        mock_coll.find_one.side_effect = Exception("Database error")
 
         response = client.delete(f"/api/access-groups/{group_id}")
 

@@ -1636,3 +1636,199 @@ def test_create_vpn_config_grpc_exception(monkeypatch):
     assert result["status"] == "FAILED"
     assert "connection refused" in result["message"]
 
+
+# --- dc_remove_group tests ---
+
+
+def _make_remove_group_ack(status: int):
+    return infra_pb2.RemoveDomainGroupDataAck(status=status).SerializeToString()
+
+
+def test_dc_remove_group_invalid_name_sets_progress(monkeypatch):
+    from tasks.dc_management import dc_remove_group
+
+    mock_job = unittest.mock.MagicMock()
+    mock_job.meta = {}
+    mock_job.save_meta = lambda: None
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: mock_job)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+
+    result = dc_remove_group("org", "bad name")
+    assert "invalid" in result["message"].lower()
+    assert mock_job.meta["progress"] == "invalid group name"
+
+
+def test_dc_remove_group_success(monkeypatch):
+    from tasks.dc_management import dc_remove_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True})
+
+    def mock_proxy(nodes, method_name, request):
+        return types.SimpleNamespace(response=_make_remove_group_ack(infra_pb2.SUCCESS))
+
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_remove_group("org", "group1")
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_remove_group_not_found(monkeypatch):
+    from tasks.dc_management import dc_remove_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_remove_group_ack(infra_pb2.GROUP_NOT_FOUND)),
+    )
+
+    result = dc_remove_group("org", "group1")
+    assert result["status"] == "GROUP_NOT_FOUND"
+
+
+def test_dc_remove_group_failed(monkeypatch):
+    from tasks.dc_management import dc_remove_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_remove_group_ack(infra_pb2.FAILED)),
+    )
+
+    result = dc_remove_group("org", "group1")
+    assert result["status"] == "FAILED"
+
+
+def test_dc_remove_group_unknown(monkeypatch):
+    from tasks.dc_management import dc_remove_group
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_remove_group_ack(999)),
+    )
+
+    result = dc_remove_group("org", "group1")
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_remove_group_proxy_fail(monkeypatch):
+    from tasks.dc_management import dc_remove_group, PROXY_FAIL_MESSAGE
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", lambda nodes, method_name, request: None)
+
+    result = dc_remove_group("org", "group1")
+    assert result == PROXY_FAIL_MESSAGE
+
+
+# --- dc_update_file_share tests ---
+
+
+def _make_update_share_ack(status: int):
+    return infra_pb2.UpdateSambaFileShareDataAck(status=status).SerializeToString()
+
+
+def test_dc_update_file_share_success(monkeypatch):
+    from tasks.dc_management import dc_update_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+
+    def mock_proxy(nodes, method_name, request):
+        return types.SimpleNamespace(response=_make_update_share_ack(infra_pb2.SUCCESS))
+
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_update_file_share("org", "share1", groups=["devs"], users=["alice"])
+    assert result["status"] == "SUCCESS"
+
+
+def test_dc_update_file_share_not_found(monkeypatch):
+    from tasks.dc_management import dc_update_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_update_share_ack(infra_pb2.SHARE_NOT_FOUND)),
+    )
+
+    result = dc_update_file_share("org", "share1")
+    assert result["status"] == "SHARE_NOT_FOUND"
+
+
+def test_dc_update_file_share_failed(monkeypatch):
+    from tasks.dc_management import dc_update_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_update_share_ack(infra_pb2.FAILED)),
+    )
+
+    result = dc_update_file_share("org", "share1", groups=["devs"])
+    assert result["status"] == "FAILED"
+
+
+def test_dc_update_file_share_unknown(monkeypatch):
+    from tasks.dc_management import dc_update_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr(
+        "tasks.dc_management.proxy_rpc_request",
+        lambda nodes, method_name, request: types.SimpleNamespace(response=_make_update_share_ack(999)),
+    )
+
+    result = dc_update_file_share("org", "share1")
+    assert result["status"] == "UNKNOWN"
+
+
+def test_dc_update_file_share_proxy_fail(monkeypatch):
+    from tasks.dc_management import dc_update_file_share, PROXY_FAIL_MESSAGE
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", lambda nodes, method_name, request: None)
+
+    result = dc_update_file_share("org", "share1", groups=["g1"], users=["u1"])
+    assert result == PROXY_FAIL_MESSAGE
+
+
+def test_dc_update_file_share_defaults_none_lists(monkeypatch):
+    from tasks.dc_management import dc_update_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr("tasks.dc_management.get_logger", lambda name, job_id=None: logging.getLogger())
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {"DOMAIN_CONTROLLER": True})
+
+    captured = {}
+
+    def mock_proxy(nodes, method_name, request):
+        captured["request"] = request
+        return types.SimpleNamespace(response=_make_update_share_ack(infra_pb2.SUCCESS))
+
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_update_file_share("org", "share1")
+    assert result["status"] == "SUCCESS"
+    # Verify the request was built with empty lists, not None
+    assert list(captured["request"].groups) == []
+    assert list(captured["request"].users) == []
+

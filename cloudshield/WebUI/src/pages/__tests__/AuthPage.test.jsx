@@ -1,16 +1,27 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import AuthPage from '../AuthPage';
+
+jest.mock('../../lib/analytics', () => ({
+  trackButton: jest.fn(),
+}));
 
 // Mock fetch globally
 global.fetch = jest.fn();
+
+const buildResponse = ({ ok = true, status = 200, text = "" } = {}) => ({
+  ok,
+  status,
+  text: async () => text,
+});
 
 describe('AuthPage', () => {
   const mockOnLoginSuccess = jest.fn();
 
   beforeEach(() => {
     mockOnLoginSuccess.mockClear();
-    fetch.mockClear();
+    fetch.mockReset();
   });
 
   afterEach(() => {
@@ -92,11 +103,10 @@ describe('AuthPage', () => {
       user: { id: '1', email: 'test@example.com', role: 'admin' }
     };
     
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
-    
+    fetch.mockResolvedValueOnce(
+      buildResponse({ ok: true, text: JSON.stringify(mockResponse) })
+    );
+    const user = userEvent.setup();
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
     const emailInput = screen.getByPlaceholderText('johndoe@example.com');
@@ -108,7 +118,7 @@ describe('AuthPage', () => {
     fireEvent.click(loginButton);
     
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5050/api/auth/login', {
+      expect(fetch).toHaveBeenCalledWith('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,11 +133,13 @@ describe('AuthPage', () => {
   });
 
   it('shows error message on failed login (401)', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({ error: 'Invalid credentials' }),
-    });
+    fetch.mockResolvedValueOnce(
+      buildResponse({
+        ok: false,
+        status: 401,
+        text: JSON.stringify({ error: 'Invalid credentials' }),
+      })
+    );
     
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
@@ -147,11 +159,13 @@ describe('AuthPage', () => {
   });
 
   it('shows generic error on server error (500)', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: 'Internal server error' }),
-    });
+    fetch.mockResolvedValueOnce(
+      buildResponse({
+        ok: false,
+        status: 500,
+        text: JSON.stringify({ error: 'Internal server error' }),
+      })
+    );
     
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
@@ -169,11 +183,9 @@ describe('AuthPage', () => {
   });
 
   it('shows default error message when response has no error field', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({}),
-    });
+    fetch.mockResolvedValueOnce(
+      buildResponse({ ok: false, status: 400, text: JSON.stringify({}) })
+    );
     
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
@@ -211,7 +223,14 @@ describe('AuthPage', () => {
   });
 
   it('shows loading state while submitting', async () => {
-    fetch.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    fetch.mockImplementation(() =>
+      new Promise((resolve) =>
+        setTimeout(
+          () => resolve(buildResponse({ ok: true, text: JSON.stringify({}) })),
+          100
+        )
+      )
+    );
     
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
@@ -238,19 +257,18 @@ describe('AuthPage', () => {
       user: { id: '1', email: 'test@example.com' }
     };
     
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
-    
+    fetch.mockResolvedValueOnce(
+      buildResponse({ ok: true, text: JSON.stringify(mockResponse) })
+    );
+    const user = userEvent.setup();
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
     const emailInput = screen.getByPlaceholderText('johndoe@example.com');
     const passwordInput = getPasswordInput(container);
     
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.keyDown(emailInput, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    await user.type(emailInput, 'test@example.com');
+    await user.type(passwordInput, 'password123');
+    await user.type(emailInput, '{enter}');
     
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
@@ -263,19 +281,18 @@ describe('AuthPage', () => {
       user: { id: '1', email: 'test@example.com' }
     };
     
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
-    
+    fetch.mockResolvedValueOnce(
+      buildResponse({ ok: true, text: JSON.stringify(mockResponse) })
+    );
+    const user = userEvent.setup();
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     
     const emailInput = screen.getByPlaceholderText('johndoe@example.com');
     const passwordInput = getPasswordInput(container);
     
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.keyDown(passwordInput, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    await user.type(emailInput, 'test@example.com');
+    await user.type(passwordInput, 'password123');
+    await user.type(passwordInput, '{enter}');
     
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
@@ -288,10 +305,9 @@ describe('AuthPage', () => {
       user: { id: '1', email: 'test@example.com' }
     };
     
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    fetch.mockResolvedValueOnce(
+      buildResponse({ ok: true, text: JSON.stringify(mockResponse) })
+    );
     
     const { container } = render(<AuthPage />);
     
@@ -319,6 +335,53 @@ describe('AuthPage', () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
+    });
+  });
+
+  it('handles empty response body on success', async () => {
+    fetch.mockResolvedValueOnce(buildResponse({ ok: true, text: '' }));
+
+    const user = userEvent.setup();
+    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+
+    await user.type(screen.getByPlaceholderText('johndoe@example.com'), 'test@example.com');
+    await user.type(getPasswordInput(container), 'password123');
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(mockOnLoginSuccess).toHaveBeenCalledWith({});
+    });
+  });
+
+  it('handles invalid JSON response body', async () => {
+    fetch.mockResolvedValueOnce(buildResponse({ ok: true, text: '{bad json' }));
+
+    const user = userEvent.setup();
+    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+
+    await user.type(screen.getByPlaceholderText('johndoe@example.com'), 'test@example.com');
+    await user.type(getPasswordInput(container), 'password123');
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(mockOnLoginSuccess).toHaveBeenCalledWith({});
+    });
+  });
+
+  it('uses fallback error message when catch receives no error message', async () => {
+    fetch.mockRejectedValueOnce(null);
+
+    const user = userEvent.setup();
+    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+
+    await user.type(screen.getByPlaceholderText('johndoe@example.com'), 'test@example.com');
+    await user.type(getPasswordInput(container), 'password123');
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Login failed. Please check your credentials.')
+      ).toBeInTheDocument();
     });
   });
 });
