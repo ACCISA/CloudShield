@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import boto3
 import logging
 from botocore.exceptions import ClientError, WaiterError
+from pathlib import Path
 
 
 BASE_DIR = os.path.dirname(__file__)
@@ -350,8 +351,19 @@ def provision_network_terraform(
     # Prepare directory (or reuse if it already exists)
     target_dir = copy_and_replace_templates(org_id, templates_dir=templates_dir, generated_dir=generated_dir)
     if target_dir is None:
+        # copy_and_replace_templates returned None.
+        # Only "reuse" if the target directory actually exists on disk.
+        candidate_dir = get_target_dir(org_id, generated_dir)
+
+        if not os.path.exists(candidate_dir):
+            logger.warning(
+                "[!] copy_and_replace_templates returned None and '%s' does not exist; aborting.",
+                candidate_dir,
+            )
+            return None
+
         logger.warning("[!] Target dir already exists for %s. Reusing existing directory.", org_id)
-        target_dir = get_target_dir(org_id, generated_dir)
+        target_dir = candidate_dir
 
     # Run Terraform apply (idempotent)
     run_terraform_two_phase_apply(org_id, region=region, terraform_dir=target_dir, count=count)
