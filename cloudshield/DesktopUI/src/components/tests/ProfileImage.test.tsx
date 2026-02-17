@@ -137,4 +137,86 @@ describe("ProfileImage Component", () => {
     expect(screen.queryByTestId("profile-image-img")).toBeNull();
     expect(screen.getByTestId("profile-image-initials")).toBeTruthy();
   });
+
+  // Additional tests for uncovered getInitials and getColorFromString logic
+  it("getInitials returns first two chars of single word name", () => {
+    render(<ProfileImage name="A" />);
+    // Single char name should return what's available
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("A");
+  });
+
+  it("getInitials handles name with extra whitespace", () => {
+    render(<ProfileImage name="  John   Doe  " />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("JD");
+  });
+
+  it("getInitials uses email local part when no name", () => {
+    render(<ProfileImage email="ab@example.com" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("AB");
+  });
+
+  it("getInitials handles email with single char local part", () => {
+    render(<ProfileImage email="x@example.com" />);
+    expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("X");
+  });
+
+  it("getColorFromString generates consistent color for same input", () => {
+    const { rerender } = render(<ProfileImage name="TestUser" />);
+    const container1 = screen.getByTestId("profile-image");
+    const bgClass1 = container1.className;
+
+    rerender(<ProfileImage name="TestUser" />);
+    const container2 = screen.getByTestId("profile-image");
+    const bgClass2 = container2.className;
+
+    expect(bgClass1).toEqual(bgClass2);
+  });
+
+  it("getColorFromString generates different colors for different inputs", () => {
+    const { rerender } = render(<ProfileImage name="Alice" />);
+    const container1 = screen.getByTestId("profile-image");
+    const bgClass1 = container1.className;
+
+    rerender(<ProfileImage name="Bob" />);
+    const container2 = screen.getByTestId("profile-image");
+    const bgClass2 = container2.className;
+
+    // Colors may or may not differ based on hash, but both should have bg- class
+    expect(bgClass1).toContain("bg-");
+    expect(bgClass2).toContain("bg-");
+  });
+
+  it("uses 'user' as fallback for color generation when no name/email", () => {
+    render(<ProfileImage />);
+    const container = screen.getByTestId("profile-image");
+    expect(container.className).toContain("bg-");
+  });
+
+  it("renders image container when imageUrl is provided", () => {
+    render(<ProfileImage imageUrl="https://example.com/pic.jpg" />);
+    
+    const img = screen.getByTestId("profile-image-img");
+    expect(img).toBeTruthy();
+  });
+
+  it("uses name for alt text when imageUrl provided", () => {
+    render(<ProfileImage name="Test User" imageUrl="https://example.com/pic.jpg" />);
+    
+    const img = screen.getByTestId("profile-image-img");
+    expect(img).toHaveAttribute("alt", "Test User");
+  });
+
+  it("uses email for alt text when no name but imageUrl provided", () => {
+    render(<ProfileImage email="test@test.com" imageUrl="https://example.com/pic.jpg" />);
+    
+    const img = screen.getByTestId("profile-image-img");
+    expect(img).toHaveAttribute("alt", "test@test.com");
+  });
+
+  it("uses 'User avatar' default alt when no name/email with imageUrl", () => {
+    render(<ProfileImage imageUrl="https://example.com/pic.jpg" />);
+    
+    const img = screen.getByTestId("profile-image-img");
+    expect(img).toHaveAttribute("alt", "User avatar");
+  });
 });

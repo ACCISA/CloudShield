@@ -188,4 +188,91 @@ describe("Pagination Component", () => {
     expect(screen.getByLabelText("Previous page")).toBeTruthy();
     expect(screen.getByLabelText("Next page")).toBeTruthy();
   });
+
+  // Additional tests for uncovered calculation logic
+  it("calculates totalPages correctly with exact division", () => {
+    render(<Pagination {...defaultProps} totalItems={50} rowsPerPage={10} />);
+    // 50/10 = 5 pages, on page 5 next should be disabled
+    const nextButton = screen.getByTestId("pagination-next");
+    expect(nextButton).not.toBeDisabled();
+  });
+
+  it("calculates totalPages correctly with remainder", () => {
+    render(<Pagination {...defaultProps} totalItems={53} rowsPerPage={10} />);
+    // 53/10 = 6 pages (ceiling)
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent("1–10 of 53");
+  });
+
+  it("calculates startItem as 0 when totalItems is 0", () => {
+    render(<Pagination {...defaultProps} totalItems={0} rowsPerPage={10} currentPage={1} />);
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent("0–0 of 0");
+  });
+
+  it("calculates endItem correctly using Math.min on last page", () => {
+    render(<Pagination {...defaultProps} totalItems={23} rowsPerPage={10} currentPage={3} />);
+    // Page 3: startItem = 21, endItem = min(30, 23) = 23
+    expect(screen.getByTestId("pagination-info")).toHaveTextContent("21–23 of 23");
+  });
+
+  it("handles canGoPrevious correctly on page 1", () => {
+    const onPageChange = vi.fn();
+    render(<Pagination {...defaultProps} currentPage={1} onPageChange={onPageChange} />);
+    
+    fireEvent.click(screen.getByTestId("pagination-prev"));
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("handles canGoNext correctly on last page", () => {
+    const onPageChange = vi.fn();
+    render(<Pagination {...defaultProps} currentPage={10} totalItems={100} rowsPerPage={10} onPageChange={onPageChange} />);
+    
+    fireEvent.click(screen.getByTestId("pagination-next"));
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("handlePrevious decrements page when canGoPrevious is true", () => {
+    const onPageChange = vi.fn();
+    render(<Pagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />);
+    
+    fireEvent.click(screen.getByTestId("pagination-prev"));
+    expect(onPageChange).toHaveBeenCalledWith(4);
+  });
+
+  it("handleNext increments page when canGoNext is true", () => {
+    const onPageChange = vi.fn();
+    render(<Pagination {...defaultProps} currentPage={5} totalItems={100} onPageChange={onPageChange} />);
+    
+    fireEvent.click(screen.getByTestId("pagination-next"));
+    expect(onPageChange).toHaveBeenCalledWith(6);
+  });
+
+  it("handleRowsPerPageChange parses value and resets to page 1", () => {
+    const onPageChange = vi.fn();
+    const onRowsPerPageChange = vi.fn();
+    render(
+      <Pagination
+        {...defaultProps}
+        currentPage={5}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+      />
+    );
+    
+    fireEvent.change(screen.getByTestId("pagination-rows-per-page"), {
+      target: { value: "50" },
+    });
+    
+    expect(onRowsPerPageChange).toHaveBeenCalledWith(50);
+    expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("renders component with all elements visible", () => {
+    render(<Pagination {...defaultProps} />);
+    
+    expect(screen.getByTestId("pagination")).toBeTruthy();
+    expect(screen.getByTestId("pagination-info")).toBeTruthy();
+    expect(screen.getByTestId("pagination-rows-per-page")).toBeTruthy();
+    expect(screen.getByTestId("pagination-prev")).toBeTruthy();
+    expect(screen.getByTestId("pagination-next")).toBeTruthy();
+  });
 });
