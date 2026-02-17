@@ -244,26 +244,13 @@ export default function EmployeesPage() {
     }
   };
 
-  // Mappers
-  const mapUserToUI = (user) => ({
-    id: user._id,
-    name: user.full_name || user.email,
-    email: user.email,
-    title: user.role || "Employee",
-    workstations: user.workstations || 0,
-    groups: user.groups || 0,
-    files: user.files || 0,
-    status: user.status || "offline",
-    profileImage: user.profile_image || null,
-    _original: user,
-  });
-
   // API Actions
   const fetchUsers = useCallback(async () => {
     if (!accessToken) return;
 
     setLoading(true);
     try {
+      // Fetch users
       const data = await listUsers({
         token: accessToken,
         search: search,
@@ -271,7 +258,90 @@ export default function EmployeesPage() {
         offset: 0,
       });
 
-      const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
+      // Fetch groups to calculate membership counts
+      let allGroups = [];
+      try {
+        const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        });
+        if (groupsRes.ok) {
+          const groupsData = await groupsRes.json();
+          allGroups = groupsData.access_groups || [];
+        }
+      } catch (e) {
+        console.warn("Failed to fetch groups for enrichment:", e);
+      }
+
+      // Map users and enrich with group/workstation/file data
+      const mappedUsers = Array.isArray(data)
+        ? data.map((user) => {
+            const userId = String(user._id);
+
+            // Get groups where this user is a member
+            const userGroups = allGroups.filter((g) => {
+              const members = Array.isArray(g.members) ? g.members : [];
+              return members.some((m) => String(m) === userId);
+            }).map((g) => ({
+              id: g.id || g._id,
+              name: g.group_name || g.name || "Unknown Group",
+              description: g.description || "",
+              image: g.group_image || null,
+            }));
+
+            // Aggregate unique workstations from user's groups
+            const workstationMap = new Map();
+            allGroups
+              .filter((g) => {
+                const members = Array.isArray(g.members) ? g.members : [];
+                return members.some((m) => String(m) === userId);
+              })
+              .forEach((g) => {
+                const ws = Array.isArray(g.workstations) ? g.workstations : [];
+                ws.forEach((w) => {
+                  if (!workstationMap.has(w)) {
+                    workstationMap.set(w, { id: w, name: w, hostname: w });
+                  }
+                });
+              });
+            const userWorkstations = Array.from(workstationMap.values());
+
+            // Aggregate unique file shares from user's groups
+            const fileShareMap = new Map();
+            allGroups
+              .filter((g) => {
+                const members = Array.isArray(g.members) ? g.members : [];
+                return members.some((m) => String(m) === userId);
+              })
+              .forEach((g) => {
+                const fs = Array.isArray(g.file_shares) ? g.file_shares : [];
+                fs.forEach((f) => {
+                  if (!fileShareMap.has(f)) {
+                    fileShareMap.set(f, { id: f, name: f, drive: f });
+                  }
+                });
+              });
+            const userFileShares = Array.from(fileShareMap.values());
+
+            return {
+              id: user._id,
+              name: user.full_name || user.email,
+              email: user.email,
+              title: user.role || "Employee",
+              workstations: userWorkstations,
+              workstationCount: userWorkstations.length,
+              groups: userGroups,
+              groupCount: userGroups.length,
+              files: userFileShares,
+              fileCount: userFileShares.length,
+              status: user.status || "offline",
+              profileImage: user.profile_image || null,
+              _original: user,
+            };
+          })
+        : [];
+
       if (mappedUsers.length > 0) {
         console.log(
           "Sample user org_id format:",

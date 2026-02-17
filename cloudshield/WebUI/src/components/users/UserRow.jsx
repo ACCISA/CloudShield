@@ -131,26 +131,45 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers ---------------------------- */
 
-function renderBubbles(count) {
+/**
+ * Renders a pill with hoverable DisplayIcon items (groups, workstations, or files)
+ */
+function ItemsPill({ items, type, totalCount }) {
+  const itemsList = Array.isArray(items) ? items : [];
+  const show = itemsList.slice(0, 3);
+  const count = totalCount !== undefined ? totalCount : itemsList.length;
+  const extra = Math.max(count - show.length, 0);
+
   if (count === 0) {
     return <span style={{ opacity: 0.5 }}>—</span>;
   }
 
-  const bubbles = Math.min(count, 3);
+  if (show.length === 0) {
+    return (
+      <div style={styles.bubblesPill}>
+        <span style={styles.extraCount}>+ {count}</span>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.bubblesPill}>
       <div style={styles.avatarsContainer}>
-        {Array.from({ length: bubbles }).map((_, i) => (
+        {show.map((item, idx) => (
           <div
-            key={i}
+            key={item.id || item.name || idx}
             style={{
-              ...styles.avatar,
-              marginLeft: i === 0 ? 0 : "-6px",
+              marginLeft: idx === 0 ? 0 : "-8px",
+              zIndex: show.length - idx,
+              display: "flex",
+              alignItems: "center",
             }}
-          />
+          >
+            <DisplayIcon type={type} data={item} size="small" />
+          </div>
         ))}
       </div>
-      {count > 3 && <span style={styles.extraCount}>+ {count - 3}</span>}
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
     </div>
   );
 }
@@ -207,13 +226,31 @@ export default function UserRow({
         {showTitle && <span style={styles.textCell}>{data.title}</span>}
 
         {/* workstations */}
-        {showWorkstations && renderBubbles(data.workstations)}
+        {showWorkstations && (
+          <ItemsPill
+            items={data.workstations}
+            type="workstation"
+            totalCount={data.workstationCount}
+          />
+        )}
 
         {/* groups */}
-        {showGroups && renderBubbles(data.groups)}
+        {showGroups && (
+          <ItemsPill
+            items={data.groups}
+            type="group"
+            totalCount={data.groupCount}
+          />
+        )}
 
         {/* files */}
-        {showFiles && renderBubbles(data.files)}
+        {showFiles && (
+          <ItemsPill
+            items={data.files}
+            type="workstation"
+            totalCount={data.fileCount}
+          />
+        )}
 
         {/* status indicator */}
         <div style={{ ...styles.statusContainer, marginRight: "-16px" }}>
