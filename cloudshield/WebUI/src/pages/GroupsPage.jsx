@@ -150,7 +150,7 @@ export default function GroupsPage() {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+      const res = await fetch("/api/access-groups", {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
@@ -335,7 +335,7 @@ export default function GroupsPage() {
         };
 
         const res = await fetch(
-          `http://127.0.0.1:5050/api/access-groups/${editingGroup.id}`,
+          `/api/access-groups/${editingGroup.id}`,
           {
             method: "PATCH",
             credentials: "include",
@@ -362,7 +362,7 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+        const res = await fetch("/api/access-groups", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeader() },
@@ -394,7 +394,7 @@ export default function GroupsPage() {
 
     try {
       const res = await fetch(
-        `http://127.0.0.1:5050/api/access-groups/${groupId}`,
+        `/api/access-groups/${groupId}`,
         {
           method: "DELETE",
           credentials: "include",

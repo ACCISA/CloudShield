@@ -354,6 +354,119 @@ def dc_add_group(org_id: str, group_name: str):
     return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
 
 
+def dc_remove_group(org_id: str, group_name: str):
+    """
+    Remove a security group from Samba Active Directory.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_remove_group"
+        job.save_meta()
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = INVALID_GROUP
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.RemoveDomainGroupData(group_name=group_name)
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.RemoveDomainGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.RemoveDomainGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully removed group %s", group_name)
+        return {"status": "SUCCESS", "message": "Successfully removed group"}
+
+    if status == infra_pb2.GROUP_NOT_FOUND:
+        logger.warning("Group not found: %s", group_name)
+        return {"status": "GROUP_NOT_FOUND", "message": "Group not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to remove group %s", group_name)
+        return {"status": "FAILED", "message": "Failed to remove group"}
+
+    logger.error("Unexpected response when removing group")
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
+
+
+def dc_update_file_share(
+    org_id: str,
+    share_name: str,
+    groups: list = None,
+    users: list = None,
+):
+    """
+    Update ACLs (valid users / groups) on an existing Samba file share
+    and restart the Samba service so changes take effect.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_update_file_share"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
+
+    request = infra_pb2.UpdateSambaFileShareData(
+        share_name=share_name,
+        groups=groups or [],
+        users=users or [],
+    )
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.UpdateSambaFileShare",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.UpdateSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully updated file share ACLs for %s", share_name)
+        return {"status": "SUCCESS", "message": "Successfully updated file share"}
+
+    if status == infra_pb2.SHARE_NOT_FOUND:
+        logger.error("Share not found: %s", share_name)
+        return {"status": "SHARE_NOT_FOUND", "message": "Share not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to update file share %s", share_name)
+        return {"status": "FAILED", "message": "Failed to update file share"}
+
+    logger.error("Failed to update file share, unknown reason")
+    return {"status": "UNKNOWN", "message": "Failed to update file share, reason unknown"}
+
+
 def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger):
     """Call the OpenVPN gRPC node to generate a client .ovpn and store it in MongoDB.
 
