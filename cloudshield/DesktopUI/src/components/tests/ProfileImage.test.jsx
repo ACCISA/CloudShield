@@ -322,3 +322,90 @@ describe("Internal Logic & Edge Cases", () => {
     expect(container.className).toMatch(/bg-[a-z]+-500/);
   });
 });
+describe("Helper Functions & Edge Case Coverage", () => {
+    // Covers: getInitials -> name -> parts.length >= 2 (False path)
+    // "parts[0]?.substring(0, 2).toUpperCase() || '?'"
+    it("getInitials: returns first 2 chars of single name", () => {
+      render(<ProfileImage name="Single" />);
+      expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("SI");
+    });
+
+    // Covers: getInitials -> name (True) -> parts[0] is undefined/empty
+    it("getInitials: handles empty name string gracefully", () => {
+      render(<ProfileImage name=" " />);
+      expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("?");
+    });
+
+    // Covers: getInitials -> name (False) -> email (True)
+    // "localPart?.substring(0, 2).toUpperCase() || '?'"
+    it("getInitials: falls back to email when name is missing", () => {
+      render(<ProfileImage email="admin@example.com" />);
+      expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("AD");
+    });
+
+    // Covers: getInitials -> name (False) -> email (True) -> localPart empty
+    it("getInitials: handles empty email string gracefully", () => {
+      render(<ProfileImage email=" " />);
+      expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("?");
+    });
+
+    // Covers: getInitials -> name (False) -> email (False)
+    // "return '?'"
+    it("getInitials: returns '?' when neither name nor email provided", () => {
+      render(<ProfileImage />);
+      expect(screen.getByTestId("profile-image-initials")).toHaveTextContent("?");
+    });
+
+    // Covers: getColorFromString -> loop and hash calculation
+    // Specifically targets potential negative hash codes with Math.abs
+    it("getColorFromString: handles negative hash codes safely", () => {
+      // "Polygenelubricants" is known to produce negative hash codes in Java-style string hashing
+      // which allows us to verify the Math.abs logic
+      render(<ProfileImage name="Polygenelubricants" />);
+      const container = screen.getByTestId("profile-image");
+      // Check that a valid class from the array is applied
+      expect(container.className).toMatch(/bg-(blue|emerald|purple|amber|rose|cyan|indigo|teal)-500/);
+    });
+
+    // Covers: getColorFromString -> consistency
+    it("getColorFromString: generates consistent color for same input", () => {
+      const { rerender } = render(<ProfileImage name="User A" />);
+      const class1 = screen.getByTestId("profile-image").className;
+      
+      rerender(<ProfileImage name="User A" />);
+      const class2 = screen.getByTestId("profile-image").className;
+      
+      expect(class1).toEqual(class2);
+    });
+
+    // Covers: const altText = name || email || "User avatar";
+    // Case 1: Name provided
+    it("altText: uses name when provided", () => {
+      render(<ProfileImage imageUrl="img.jpg" name="Test Name" />);
+      expect(screen.getByTestId("profile-image-img")).toHaveAttribute("alt", "Test Name");
+    });
+
+    // Case 2: No name, Email provided
+    it("altText: uses email when name is missing", () => {
+      render(<ProfileImage imageUrl="img.jpg" email="test@email.com" />);
+      expect(screen.getByTestId("profile-image-img")).toHaveAttribute("alt", "test@email.com");
+    });
+
+    // Case 3: Neither provided
+    it("altText: defaults to 'User avatar'", () => {
+      render(<ProfileImage imageUrl="img.jpg" />);
+      expect(screen.getByTestId("profile-image-img")).toHaveAttribute("alt", "User avatar");
+    });
+
+    // Covers: const sizeClasses map usage
+    it("applies correct size classes for all variants", () => {
+      const { rerender } = render(<ProfileImage size="sm" />);
+      expect(screen.getByTestId("profile-image")).toHaveClass("h-8 w-8 text-xs");
+
+      rerender(<ProfileImage size="md" />);
+      expect(screen.getByTestId("profile-image")).toHaveClass("h-10 w-10 text-sm");
+
+      rerender(<ProfileImage size="lg" />);
+      expect(screen.getByTestId("profile-image")).toHaveClass("h-12 w-12 text-base");
+    });
+  });

@@ -276,3 +276,122 @@ describe("Pagination Component", () => {
     expect(screen.getByTestId("pagination-next")).toBeTruthy();
   });
 });
+describe("Internal Logic & Calculations Coverage", () => {
+    // Covers: const totalPages = Math.ceil(totalItems / rowsPerPage);
+    // Case: totalItems < rowsPerPage (should result in 1 page)
+    it("calculates exactly 1 page when total items are less than rows per page", () => {
+      render(
+        <Pagination
+          {...defaultProps}
+          totalItems={8}
+          rowsPerPage={10}
+          currentPage={1}
+        />
+      );
+      // If pages = 1, next button should be disabled
+      expect(screen.getByTestId("pagination-next")).toBeDisabled();
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent("1–8 of 8");
+    });
+
+    // Covers: const startItem = totalItems === 0 ? 0 : ...
+    // Case: totalItems is 0 (Ternary True path)
+    it("sets start item to 0 explicitly when totalItems is 0", () => {
+      render(<Pagination {...defaultProps} totalItems={0} />);
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent("0–0 of 0");
+    });
+
+    // Covers: const startItem = ... : (currentPage - 1) * rowsPerPage + 1;
+    // Case: Page 3, 10 per page -> (2 * 10) + 1 = 21 (Ternary False path)
+    it("calculates start item correctly for subsequent pages", () => {
+      render(
+        <Pagination
+          {...defaultProps}
+          totalItems={100}
+          rowsPerPage={10}
+          currentPage={3}
+        />
+      );
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent("21–30 of 100");
+    });
+
+    // Covers: const endItem = Math.min(currentPage * rowsPerPage, totalItems);
+    // Case 1: End of list (totalItems is smaller)
+    it("clamps end item to totalItems when on the last page", () => {
+      render(
+        <Pagination
+          {...defaultProps}
+          totalItems={25}
+          rowsPerPage={10}
+          currentPage={3}
+        />
+      );
+      // 3 * 10 = 30, but total is 25. Should show 25.
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent("21–25 of 25");
+    });
+
+    // Covers: const endItem = Math.min(...)
+    // Case 2: Middle of list (page limit is smaller)
+    it("uses page limit for end item when not on the last page", () => {
+      render(
+        <Pagination
+          {...defaultProps}
+          totalItems={100}
+          rowsPerPage={10}
+          currentPage={1}
+        />
+      );
+      // 1 * 10 = 10, total is 100. Should show 10.
+      expect(screen.getByTestId("pagination-info")).toHaveTextContent("1–10 of 100");
+    });
+
+    // Covers: handleRowsPerPageChange parsing and reset logic
+    // const newRowsPerPage = parseInt(event.target.value, 10);
+    // onPageChange(1);
+    it("correctly parses rows per page input and forces reset to page 1", () => {
+      const onRowsPerPageChange = vi.fn();
+      const onPageChange = vi.fn();
+
+      render(
+        <Pagination
+          {...defaultProps}
+          currentPage={5} // Start on a deep page
+          onRowsPerPageChange={onRowsPerPageChange}
+          onPageChange={onPageChange}
+        />
+      );
+
+      const selector = screen.getByTestId("pagination-rows-per-page");
+      fireEvent.change(selector, { target: { value: "50" } });
+
+      // Check strict integer parsing
+      expect(onRowsPerPageChange).toHaveBeenCalledWith(50);
+      // Check reset logic
+      expect(onPageChange).toHaveBeenCalledWith(1);
+    });
+
+    // Covers: Guard clauses in handlePrevious / handleNext
+    // Note: Since the buttons are disabled via HTML attributes when the condition is false,
+    // standard user interaction tests won't trigger the click handler. 
+    // This confirms the UI state reflects the boolean logic `currentPage > 1` and `currentPage < totalPages`.
+    it("strictly respects navigation boundaries", () => {
+      const onPageChange = vi.fn();
+      
+      // Boundary: Page 1 (Prev disabled)
+      const { rerender } = render(
+        <Pagination {...defaultProps} currentPage={1} totalItems={100} onPageChange={onPageChange} />
+      );
+      const prevBtn = screen.getByTestId("pagination-prev");
+      expect(prevBtn).toBeDisabled();
+      fireEvent.click(prevBtn);
+      expect(onPageChange).not.toHaveBeenCalled();
+
+      // Boundary: Last Page (Next disabled)
+      rerender(
+        <Pagination {...defaultProps} currentPage={10} totalItems={100} rowsPerPage={10} onPageChange={onPageChange} />
+      );
+      const nextBtn = screen.getByTestId("pagination-next");
+      expect(nextBtn).toBeDisabled();
+      fireEvent.click(nextBtn);
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
+  });

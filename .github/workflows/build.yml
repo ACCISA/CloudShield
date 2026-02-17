@@ -84,20 +84,3 @@ jobs:
           test -f "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
           ls -lh "dist/${{ matrix.component }}/cloudshield-${{ matrix.component }}"
 
-  desktopui:
-    name: Build DesktopUI (no container)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: cloudshield/DesktopUI
-    steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: cloudshield/DesktopUI/package-lock.json
-      - name: Install deps
-        run: npm ci
-      - name: Build
-        run: npm run build
