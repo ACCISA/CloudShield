@@ -478,6 +478,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     fake_users_collection._docs = {}
     
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
+    from cloudshield.Server.services import job_service
     
     def _fake_create_user(user_data, *args, **kwargs):
         def hash_password(p): return f"hashed::{p}"
@@ -496,7 +497,13 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
         fake_users_collection.insert_one(doc)
         return user_id
 
+    class DummyJob:
+        def __init__(self, job_id="p1"):
+            self.id = job_id
+
     monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
+    monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+    monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
     
     # Test successful user creation with password hashing
     import uuid
@@ -504,10 +511,8 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
                    json={"email": email, "password": "SecretPassword123!", "org_id": "org_001", 
                         "role": "employee", "full_name": "Jane"})
-    assert r.status_code == 201
-    user_id = r.get_json()["user_id"]
-    stored = fake_users_collection.find_one({"_id": user_id})
-    assert stored["password"].startswith("hashed::")
+    assert r.status_code == 202
+    assert "job_id" in r.get_json()
     
     # Test duplicate email returns 409
     r = client.post("/users", headers={"Authorization": "Bearer admin:org_001:u1"},
@@ -953,6 +958,11 @@ class TestCreateUserEndpoint:
     def mock_create_service(self, monkeypatch):
         """Setup mock create_user service for testing"""
         users_routes = importlib.import_module("cloudshield.Server.routes.users")
+        from cloudshield.Server.services import job_service
+        
+        class DummyJob:
+            def __init__(self, job_id="p1"):
+                self.id = job_id
         
         def _fake_create_user(user_data, *args, **kwargs):
             """Mock create_user service"""
@@ -961,6 +971,8 @@ class TestCreateUserEndpoint:
             return "new_user_id_123"
         
         monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
+        monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+        monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
         return _fake_create_user
     
     def test_create_user_success_admin(self, app_and_client, mock_create_service):
@@ -979,10 +991,9 @@ class TestCreateUserEndpoint:
             }
         )
         
-        assert resp.status_code == 201
+        assert resp.status_code == 202
         json_data = resp.get_json()
-        assert "user_id" in json_data
-        assert json_data["user_id"] == "new_user_id_123"
+        assert "job_id" in json_data
     
     def test_create_user_forbidden_employee(self, app_and_client, mock_create_service):
         """Test employee cannot create users"""

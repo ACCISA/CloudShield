@@ -479,9 +479,8 @@ class TestSignupAdminEndpoint:
             "reason": "bootstrap"
         })
 
-        assert resp.status_code == 201
-        assert resp.get_json()["user_id"] == "new_user_id_123"
-        assert resp.get_json()["org_id"] == "org-auto-1"
+        assert resp.status_code == 202
+        assert "job_id" in resp.get_json()
         assert captured["role"] == "admin"
         assert captured["current_user"] is None
         assert captured["reason"] == "bootstrap"
