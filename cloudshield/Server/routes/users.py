@@ -17,7 +17,7 @@ from services import (  # noqa: E402
     list_users,
     service_dispatcher,
 )
-from utils.logging_setup import get_logger
+from utils.logging_setup import get_logger  # noqa: E402
 
 logger = get_logger("users_routes")
 
