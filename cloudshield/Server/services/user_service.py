@@ -200,6 +200,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         "role": user_data.role,
         "full_name": user_data.full_name,
         "status": "active",
+        "profile_image": user_data.profile_image,  # Base64 data URL for profile picture
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
@@ -308,8 +309,8 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         resource="users",
         target={"id": str(before["_id"]), "email": before["email"]},
         reason=reason,
-        before={k: before.get(k) for k in ["role","status","org_id","full_name","email"]},
-        after={k: after.get(k) for k in ["role","status","org_id","full_name","email"]}
+        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]},
+        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]}
     )
     return True
 

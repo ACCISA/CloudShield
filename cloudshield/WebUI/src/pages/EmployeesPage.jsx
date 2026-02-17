@@ -166,6 +166,84 @@ export default function EmployeesPage() {
     setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
   };
 
+  // Helper for auth headers
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  /**
+   * Update group memberships for a user.
+   * Fetches all groups, determines current membership, and updates accordingly.
+   * @param {string} userId - The user ID to update group memberships for
+   * @param {Array} newGroups - Array of new group objects {id, name, ...} to be members of
+   */
+  const updateUserGroupMemberships = async (userId, newGroups) => {
+    const newGroupIds = newGroups.map((g) => String(g.id || g._id));
+
+    // Fetch all groups to determine current membership and update
+    const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch groups for membership update");
+      return;
+    }
+
+    const data = await res.json();
+    const allGroups = data.access_groups || [];
+
+    // Determine current group membership
+    const currentGroupIds = allGroups
+      .filter((g) => {
+        const members = Array.isArray(g.members) ? g.members : [];
+        return members.some((m) => String(m) === String(userId));
+      })
+      .map((g) => String(g.id || g._id));
+
+    // Groups to add user to (in newGroups but not in currentGroups)
+    const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
+    // Groups to remove user from (in currentGroups but not in newGroups)
+    const toRemove = currentGroupIds.filter((id) => !newGroupIds.includes(id));
+
+    // Update groups that need the user added
+    for (const groupId of toAdd) {
+      const group = allGroups.find((g) => String(g.id || g._id) === groupId);
+      if (!group) continue;
+
+      const currentMembers = Array.isArray(group.members) ? group.members : [];
+      if (!currentMembers.some((m) => String(m) === String(userId))) {
+        const updatedMembers = [...currentMembers, userId];
+        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+          body: JSON.stringify({ members: updatedMembers }),
+        });
+      }
+    }
+
+    // Update groups that need the user removed
+    for (const groupId of toRemove) {
+      const group = allGroups.find((g) => String(g.id || g._id) === groupId);
+      if (!group) continue;
+
+      const currentMembers = Array.isArray(group.members) ? group.members : [];
+      const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
+      if (updatedMembers.length !== currentMembers.length) {
+        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+          body: JSON.stringify({ members: updatedMembers }),
+        });
+      }
+    }
+  };
+
   // Mappers
   const mapUserToUI = (user) => ({
     id: user._id,
@@ -176,6 +254,7 @@ export default function EmployeesPage() {
     groups: user.groups || 0,
     files: user.files || 0,
     status: user.status || "offline",
+    profileImage: user.profile_image || null,
     _original: user,
   });
 
@@ -232,9 +311,16 @@ export default function EmployeesPage() {
           full_name: `${payload.firstName} ${payload.lastName}`,
           email: payload.email,
           role: payload.jobTitle,
+          profile_image: payload.profileImage || null,
         };
 
         await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
+
+        // Update group memberships if groups were provided
+        if (payload.groups) {
+          await updateUserGroupMemberships(modalEmployee.id, payload.groups);
+        }
+
         openToast("User updated successfully");
         setModalOpen(false);
         setModalEmployee(null);
@@ -253,6 +339,7 @@ export default function EmployeesPage() {
             ? "admin"
             : "employee",
           org_id: orgId || "cedric",
+          profile_image: payload.profileImage || null,
         };
 
         // Start async task to create user

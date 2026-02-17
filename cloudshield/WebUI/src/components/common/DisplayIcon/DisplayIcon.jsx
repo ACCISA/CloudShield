@@ -101,6 +101,7 @@ function DisplayIcon({ type = "user", data = {}, size = "medium", showHoverCard 
   const getProfileImage = () => {
     return (
       data.profileImage ||
+      data.profile_image ||
       data.profilePicture ||
       data.avatar ||
       data.image ||

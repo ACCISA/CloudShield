@@ -138,6 +138,24 @@ export default function EmployeesModal({
     fetchFileSharesAll();
   }, [open, employeeData, isEditMode, accessToken]);
 
+  // Pre-select groups that contain the user being edited
+  useEffect(() => {
+    if (!open || !isEditMode || !employeeData?.id || allGroups.length === 0) return;
+
+    const userId = employeeData.id;
+    const userGroups = allGroups.filter((g) => {
+      const members = Array.isArray(g.members) ? g.members : [];
+      return members.some((m) => String(m) === String(userId));
+    });
+
+    if (userGroups.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        selectedGroups: userGroups,
+      }));
+    }
+  }, [open, isEditMode, employeeData?.id, allGroups]);
+
   // Filter lists
   const filteredWorkstations = useMemo(
     () =>

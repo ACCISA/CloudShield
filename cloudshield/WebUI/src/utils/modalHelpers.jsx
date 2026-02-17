@@ -135,13 +135,13 @@ export const fetchGroups = async (
     }
 
     const data = await res.json();
-    const groups = Array.isArray(data) ? data : data.groups || [];
+    const groups = Array.isArray(data) ? data : data.access_groups || data.groups || [];
 
     const normalized = groups.map((g) => ({
       id: String(g.id || g._id || ""),
       _id: String(g._id || g.id || ""),
-      name: g.name || "Untitled Group",
-      members: g.members || 0,
+      name: g.group_name || g.name || "Untitled Group",
+      members: Array.isArray(g.members) ? g.members : [],
       users: g.users || [],
       files: g.files || [],
       org_id: g.org_id,

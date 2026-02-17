@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import EditButton from "../common/EditButton/EditButton.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
@@ -21,13 +22,6 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     minWidth: 0,
-  },
-  leadingCircle: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    backgroundColor: "#2A2A2A",
-    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
@@ -200,9 +194,9 @@ export default function UserRow({
           <Checkbox checked={isSelected} onChange={onToggleSelect} />
         )}
 
-        {/* name + email + leading circle */}
+        {/* name + email + profile icon */}
         <div style={responsiveStyles.nameSection}>
-          <div style={styles.leadingCircle} />
+          <DisplayIcon type="user" data={data} size="small" showHoverCard={false} />
           <div style={styles.nameContainer}>
             <span style={responsiveStyles.name}>{data.name}</span>
             <span style={responsiveStyles.email}>↳ {data.email}</span>
