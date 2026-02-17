@@ -4,5 +4,6 @@ venv/
 **/venv/**
 *.pyc
 *.log
+**/node_modules/
 docker/workstation/storage/
 win11x64.iso

@@ -20,6 +20,9 @@ from services import (  # noqa: E402
     list_users,
     service_dispatcher,
 )
+from utils.logging_setup import get_logger  # noqa: E402
+
+logger = get_logger("users_routes")
 
 users_bp = Blueprint('users', __name__) # Admin-only user management routes
 orgs_bp = Blueprint("organizations", __name__) # Organization-related routes (e.g., get my org)
@@ -180,7 +183,36 @@ def create_user_endpoint():
           leak back to clients beyond the 'user_id'.
     """
     try:
-        return _handle_user_create(g.user)
+        response, status_code = _handle_user_create(g.user)
+        resp_json = response.get_json()
+
+        # After DB user is created, dispatch domain controller sync.
+        # This enqueues an async job — the route returns immediately.
+        if status_code == 201:
+            try:
+                body = _json_or_empty()
+                org_id = resp_json.get("org_id") or body.get("org_id")
+                email = body.get("email", "")
+                full_name = body.get("full_name", "")
+                # Derive a DC username from the email prefix
+                dc_username = email.split("@")[0] if "@" in email else full_name.replace(" ", "").lower()
+                dc_password = body.get("password", "")
+
+                if org_id and dc_username and dc_password:
+                    job = service_dispatcher(
+                        service_name="dc_add_user",
+                        org_id=org_id,
+                        username=dc_username,
+                        password=dc_password,
+                        email=email,
+                    )
+                    resp_json["dc_job_id"] = job.id
+                    logger.info("Dispatched dc_add_user job %s for %s", job.id, dc_username)
+            except Exception as dc_err:
+                logger.warning("DC sync failed for user create (non-blocking): %s", dc_err)
+                resp_json["dc_sync_warning"] = str(dc_err)
+
+        return jsonify(resp_json), status_code
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
         return jsonify({"error": "Validation failed", "details": safe_errors}), 400
@@ -296,9 +328,44 @@ def delete_user_endpoint(user_id):
         500: { "error": "Internal server error" }
     """
     try:
+        # Try to look up user info before deletion for DC username derivation.
+        # This is best-effort; failure here must not block the actual deletion.
+        user_doc = None
+        try:
+            from utils.database import db_admin
+            from bson import ObjectId
+            user_doc = db_admin["users"].find_one(
+                {"_id": ObjectId(user_id)},
+                {"email": 1, "org_id": 1, "full_name": 1},
+            )
+        except Exception:
+            pass  # Non-critical: DC dispatch will simply be skipped
+
         reason = _extract_reason()
         delete_user(user_id, current_user=g.user, reason=reason)
-        return jsonify({"message": "User deleted"}), 200
+
+        resp = {"message": "User deleted"}
+
+        # After DB deletion, dispatch DC removal
+        if user_doc:
+            try:
+                org_id = user_doc.get("org_id") or g.user.get("org_id")
+                email = user_doc.get("email", "")
+                dc_username = email.split("@")[0] if "@" in email else ""
+
+                if org_id and dc_username:
+                    job = service_dispatcher(
+                        service_name="dc_remove_user",
+                        org_id=org_id,
+                        username=dc_username,
+                    )
+                    resp["dc_job_id"] = job.id
+                    logger.info("Dispatched dc_remove_user job %s for %s", job.id, dc_username)
+            except Exception as dc_err:
+                logger.warning("DC sync failed for user delete (non-blocking): %s", dc_err)
+                resp["dc_sync_warning"] = str(dc_err)
+
+        return jsonify(resp), 200
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:

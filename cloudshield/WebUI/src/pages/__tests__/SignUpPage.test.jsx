@@ -364,7 +364,7 @@ describe("SignupPage", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/provisioning", { replace: true });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:5050/api/auth/signup",
+      "/api/auth/signup",
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1327,3 +1327,413 @@ class TestDeactivateUserEndpoint:
         
         assert resp.status_code == 500
         assert resp.get_json()["error"] == "Internal server error"
+
+
+# ---------------------------------------------------------------------------
+# Coverage-completion tests (lines 56, 105-106, 174→198, 184→198, 193,
+#                             334-349, 353, 362-376)
+# ---------------------------------------------------------------------------
+
+
+class TestMakeJsonSafe:
+    """Cover the TypeError fallback in _make_json_safe (line 56)."""
+
+    def test_non_serializable_value_in_validation_error(self, app_and_client, monkeypatch):
+        """Trigger _make_json_safe with a non-serializable value through the
+        route's ValidationError handler so coverage instruments it."""
+        from pydantic import ValidationError as PydanticVE
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        sentinel = object()  # not JSON-serializable
+
+        def _raise_ve(current_user):
+            # Simulate a ValidationError whose .errors() has a non-serializable ctx
+            raise PydanticVE.from_exception_data(
+                title="UserCreate",
+                line_errors=[
+                    {
+                        "type": "value_error",
+                        "loc": ("email",),
+                        "msg": "bad",
+                        "input": "x",
+                        "ctx": {"error": sentinel},
+                    }
+                ],
+            )
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _raise_ve, raising=True)
+        resp = client.post("/users", json={"email": "a@b.com"},
+                           headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert "details" in data
+
+
+class TestSignupAdminEndpoint:
+    """Cover signup_admin_endpoint (lines 105-106, 362-376)."""
+
+    def test_signup_admin_success_forces_admin_role(self, app_and_client, fake_users_collection, monkeypatch):
+        """Line 105-106: current_user is None → body['role'] forced to 'admin'."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        class FakeJob:
+            id = "signup-job-1"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
+        resp = client.post("/signup_admin", json={
+            "email": "signup@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "Admin"
+        })
+        assert resp.status_code == 202
+        data = resp.get_json()
+        assert "job_id" in data
+
+    def test_signup_admin_validation_error(self, app_and_client):
+        """Line 362-366: ValidationError → 400."""
+        app, client = app_and_client
+        resp = client.post("/signup_admin", json={})
+        assert resp.status_code == 400
+        assert "Validation failed" in resp.get_json()["error"]
+
+    def test_signup_admin_permission_error(self, app_and_client, monkeypatch):
+        """Line 368-369: PermissionError → 403."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        def _perm_err(current_user):
+            raise PermissionError("no way")
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _perm_err, raising=True)
+        resp = client.post("/signup_admin", json={
+            "email": "x@t.com", "password": "P@ss12345!",
+            "org_id": "o1", "role": "admin", "full_name": "AA"
+        })
+        assert resp.status_code == 403
+        assert resp.get_json()["error"] == "no way"
+
+    def test_signup_admin_value_error(self, app_and_client, monkeypatch):
+        """Line 371-372: ValueError → 409."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        def _val_err(current_user):
+            raise ValueError("dup")
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _val_err, raising=True)
+        resp = client.post("/signup_admin", json={
+            "email": "x@t.com", "password": "P@ss12345!",
+            "org_id": "o1", "role": "admin", "full_name": "AA"
+        })
+        assert resp.status_code == 409
+        assert resp.get_json()["error"] == "dup"
+
+    def test_signup_admin_generic_error(self, app_and_client, monkeypatch):
+        """Line 374-375: Exception → 500."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        def _gen_err(current_user):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _gen_err, raising=True)
+        resp = client.post("/signup_admin", json={
+            "email": "x@t.com", "password": "P@ss12345!",
+            "org_id": "o1", "role": "admin", "full_name": "AA"
+        })
+        assert resp.status_code == 500
+        assert resp.get_json()["error"] == "Internal server error"
+
+
+class TestCreateUserDCDispatch:
+    """Cover DC dispatch branches in create_user_endpoint (174→198, 184→198, 193)."""
+
+    def test_create_user_dc_dispatch_success(self, app_and_client, monkeypatch):
+        """_handle_user_create now dispatches DC directly and returns 202.
+        Verify the happy path returns job_id."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        class FakeJob:
+            id = "job-123"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
+        resp = client.post("/users", json={
+            "email": "dc@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "DC User",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 202
+        assert resp.get_json()["job_id"] == "job-123"
+
+    def test_create_user_legacy_dc_dispatch_on_201(self, app_and_client, monkeypatch):
+        """Exercise the fallback DC dispatch block in create_user_endpoint
+        that runs when _handle_user_create returns status 201."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
+
+        class FakeJob:
+            id = "dc-job-201"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
+        resp = client.post("/users", json={
+            "email": "legacy@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "Legacy User",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 201
+        assert resp.get_json()["dc_job_id"] == "dc-job-201"
+
+    def test_create_user_dc_dispatch_exception_propagates(self, app_and_client, monkeypatch):
+        """When service_dispatcher raises inside _handle_user_create the
+        exception propagates to create_user_endpoint's outer handler → 500."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        def _raise(**kw):
+            raise RuntimeError("DC unreachable")
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _raise, raising=True)
+
+        resp = client.post("/users", json={
+            "email": "dcfail@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "DC Fail",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 500
+
+    def test_create_user_legacy_dc_dispatch_exception(self, app_and_client, monkeypatch):
+        """Exercise the dc_sync_warning path in create_user_endpoint's
+        fallback DC dispatch block (when _handle_user_create returns 201)."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
+
+        call_count = [0]
+        def _raise_on_second(**kw):
+            call_count[0] += 1
+            raise RuntimeError("DC unreachable")
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _raise_on_second, raising=True)
+
+        resp = client.post("/users", json={
+            "email": "dcfail2@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "DC Fail",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 201
+        assert "dc_sync_warning" in resp.get_json()
+
+    def test_create_user_legacy_dc_skip_no_password(self, app_and_client, monkeypatch):
+        """Exercise the skip branch in create_user_endpoint's fallback DC
+        dispatch block when dc_password is empty (mock _handle_user_create
+        returning 201 to enter that block)."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        from flask import jsonify as fj
+
+        def _legacy_create(current_user):
+            return fj({"user_id": "u1", "org_id": "org_001"}), 201
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _legacy_create, raising=True)
+
+        dispatcher_called = []
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: dispatcher_called.append(kw), raising=True)
+
+        # Patch _json_or_empty so the DC-dispatch read sees no password
+        monkeypatch.setattr(users_mod, "_json_or_empty",
+                            lambda: {"email": "nodc@test.com", "org_id": "org_001",
+                                     "full_name": "No DC"}, raising=True)
+
+        resp = client.post("/users", json={
+            "email": "nodc@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "No DC",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert "dc_job_id" not in data
+        assert "dc_sync_warning" not in data
+        assert len(dispatcher_called) == 0
+
+    def test_create_user_status_not_201_skips_dc(self, app_and_client, monkeypatch):
+        """Branch 174→198: status_code != 201 → DC dispatch block skipped."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        # Make _handle_user_create return a non-201 status to skip DC block
+        from flask import jsonify as fj
+
+        def _fake_create(current_user):
+            return fj({"user_id": "fake", "org_id": "org_001"}), 200
+
+        monkeypatch.setattr(users_mod, "_handle_user_create", _fake_create, raising=True)
+
+        dispatcher_called = []
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: dispatcher_called.append(1), raising=True)
+
+        resp = client.post("/users", json={
+            "email": "skip@test.com",
+            "password": "StrongP@ss1!",
+            "org_id": "org_001",
+            "role": "employee",
+            "full_name": "Skip",
+        }, headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 200
+        assert len(dispatcher_called) == 0
+
+
+class TestDeleteUserDCDispatch:
+    """Cover DC dispatch in delete_user_endpoint (lines 334-349, 353)."""
+
+    def test_delete_user_dc_dispatch_success(self, app_and_client, monkeypatch):
+        """Lines 334-349: user_doc found, service_dispatcher called, dc_job_id returned."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        # Patch the module-level import of db_admin inside delete_user_endpoint
+        fake_db = unittest.mock.MagicMock()
+        fake_users_col = unittest.mock.MagicMock()
+        fake_users_col.find_one.return_value = {
+            "email": "dcuser@test.com",
+            "org_id": "org_001",
+            "full_name": "DC"
+        }
+        fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
+
+        utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
+        monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
+        sys.modules["utils.database"] = utils_db
+
+        # Mock bson.ObjectId
+        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
+        bson_mod.ObjectId = lambda x: x
+        sys.modules["bson"] = bson_mod
+
+        class FakeJob:
+            id = "del-job-456"
+
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: FakeJob(), raising=True)
+
+        resp = client.delete("/users/abc123",
+                             headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["message"] == "User deleted"
+        assert data["dc_job_id"] == "del-job-456"
+
+    def test_delete_user_dc_dispatch_exception(self, app_and_client, monkeypatch):
+        """DC dispatch raises → dc_sync_warning returned, still 200."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        fake_db = unittest.mock.MagicMock()
+        fake_users_col = unittest.mock.MagicMock()
+        fake_users_col.find_one.return_value = {
+            "email": "dcfail@test.com",
+            "org_id": "org_001",
+        }
+        fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
+
+        utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
+        monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
+        sys.modules["utils.database"] = utils_db
+
+        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
+        bson_mod.ObjectId = lambda x: x
+        sys.modules["bson"] = bson_mod
+
+        def _raise(**kw):
+            raise RuntimeError("DC down")
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _raise, raising=True)
+
+        resp = client.delete("/users/abc123",
+                             headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 200
+        assert "dc_sync_warning" in resp.get_json()
+
+    def test_delete_user_dc_skip_no_username(self, app_and_client, monkeypatch):
+        """Branch 339→351: user_doc has no '@' in email → dc_username empty →
+        DC dispatch skipped, no dc_job_id or dc_sync_warning."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        # user_doc with email that has NO '@' so dc_username becomes ""
+        fake_db = unittest.mock.MagicMock()
+        fake_users_col = unittest.mock.MagicMock()
+        fake_users_col.find_one.return_value = {
+            "email": "noatsign",
+            "org_id": "org_001",
+        }
+        fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
+
+        utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
+        monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
+        sys.modules["utils.database"] = utils_db
+
+        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
+        bson_mod.ObjectId = lambda x: x
+        sys.modules["bson"] = bson_mod
+
+        dispatcher_called = []
+        monkeypatch.setattr(users_mod, "service_dispatcher",
+                            lambda **kw: dispatcher_called.append(1), raising=True)
+
+        resp = client.delete("/users/abc123",
+                             headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["message"] == "User deleted"
+        assert "dc_job_id" not in data
+        assert "dc_sync_warning" not in data
+        assert len(dispatcher_called) == 0
+
+    def test_delete_user_permission_error(self, app_and_client, monkeypatch):
+        """Line 353: delete_user raises PermissionError → 403."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+
+        def _perm_err(*a, **kw):
+            raise PermissionError("admin_only")
+
+        monkeypatch.setattr(users_mod, "delete_user", _perm_err, raising=True)
+
+        resp = client.delete("/users/abc123",
+                             headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 403
+        assert resp.get_json()["error"] == "admin_only"
