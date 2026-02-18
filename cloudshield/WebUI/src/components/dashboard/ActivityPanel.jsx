@@ -21,6 +21,8 @@ import {
 } from "@mui/material";
 import SearchField from "../common/SearchField/SearchField";
 import RefreshButton from "../common/RefreshButton/RefreshButton";
+import Pagination from "../common/Pagination/Pagination";
+import EmptyState from "../common/EmptyState/EmptyState";
 import { searchWithRelevance } from "../../utils/searchUtils";
 
 /**
@@ -29,7 +31,16 @@ import { searchWithRelevance } from "../../utils/searchUtils";
  * @param {Array} initialData - Optional initial data to display
  * @returns {JSX.Element} Activity panel with search and refresh controls
  */
-export default function ActivityPanel({ fetchActivities, initialData }) {
+export default function ActivityPanel({
+  fetchActivities,
+  initialData,
+  currentPage = 1,
+  totalItems = 0,
+  rowsPerPage = 25,
+  rowsPerPageOptions = [10, 25, 50, 100],
+  onPageChange,
+  onRowsPerPageChange,
+}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -115,7 +126,17 @@ export default function ActivityPanel({ fetchActivities, initialData }) {
     { field: "user", weight: 2 }, // User name is most important
     { field: "activity", weight: 1.5 }, // Activity description is important
     { field: "date", weight: 0.5 }, // Date is least important
-  ]);
+  ]) || [];
+
+  // Client-side pagination: slice the filtered list for the current page
+  const isServerPaginated = Boolean(onPageChange && onRowsPerPageChange);
+  const paginatedActivities = isServerPaginated
+    ? filteredActivities
+    : filteredActivities.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage,
+      );
+  const displayTotal = isServerPaginated ? totalItems : filteredActivities.length;
 
   // Get user initials for avatar
   const getUserInitials = (name) => {
@@ -286,14 +307,18 @@ export default function ActivityPanel({ fetchActivities, initialData }) {
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress sx={{ color: "#fff" }} />
           </Box>
-        ) : filteredActivities.length === 0 ? (
-          <Box
-            sx={{ textAlign: "center", py: 4, color: "rgba(255,255,255,0.5)" }}
-          >
-            <Typography>No activities found</Typography>
-          </Box>
+        ) : paginatedActivities.length === 0 ? (
+          <EmptyState
+            message="No activities found"
+            description={
+              search
+                ? "Try adjusting your search query"
+                : "Activity will appear here once actions are performed"
+            }
+            testId="activity-empty-state"
+          />
         ) : (
-          filteredActivities.map((activity, index) => (
+          paginatedActivities.map((activity, index) => (
             <Box
               key={activity.id || activity.date + activity.user}
               sx={{
@@ -383,6 +408,19 @@ export default function ActivityPanel({ fetchActivities, initialData }) {
           ))
         )}
       </Box>
+
+      {/* Pagination bar */}
+      {displayTotal > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={displayTotal}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={rowsPerPageOptions}
+          onPageChange={onPageChange || (() => {})}
+          onRowsPerPageChange={onRowsPerPageChange || (() => {})}
+          testId="activity-pagination"
+        />
+      )}
     </Box>
   );
 }

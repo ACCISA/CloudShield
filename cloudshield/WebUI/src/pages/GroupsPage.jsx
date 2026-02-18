@@ -109,6 +109,8 @@ export default function GroupsPage() {
         status: u.status,
         created_at: u.created_at,
         updated_at: u.updated_at,
+        profile_image: u.profile_image || null,
+        profileImage: u.profile_image || null,
       };
     });
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -137,6 +138,24 @@ export default function EmployeesModal({
     fetchGroupsAll();
     fetchFileSharesAll();
   }, [open, employeeData, isEditMode, accessToken]);
+
+  // Pre-select groups that contain the user being edited
+  useEffect(() => {
+    if (!open || !isEditMode || !employeeData?.id || allGroups.length === 0) return;
+
+    const userId = employeeData.id;
+    const userGroups = allGroups.filter((g) => {
+      const members = Array.isArray(g.members) ? g.members : [];
+      return members.some((m) => String(m) === String(userId));
+    });
+
+    if (userGroups.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        selectedGroups: userGroups,
+      }));
+    }
+  }, [open, isEditMode, employeeData?.id, allGroups]);
 
   // Filter lists
   const filteredWorkstations = useMemo(
@@ -682,3 +701,14 @@ function SelectionStep({
     </div>
   );
 }
+
+EmployeesModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  employeeData: PropTypes.object,
+  onSubmit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func,
+  creationStatus: PropTypes.string,
+  creationProgress: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  creationMessage: PropTypes.string,
+};
