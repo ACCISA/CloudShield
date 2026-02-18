@@ -99,12 +99,12 @@ export default function DashboardPage() {
   }, [fetchActivities]);
 
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+  const handleChangePage = (newPage) => {
+    setPage(newPage - 1);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -222,6 +222,12 @@ export default function DashboardPage() {
       <ActivityPanel
         fetchActivities={fetchActivities}
         initialData={activities}
+        currentPage={page + 1}
+        totalItems={totalActivities}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
       />
     </Box>
   );
