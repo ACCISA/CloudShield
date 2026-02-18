@@ -340,7 +340,7 @@ describe("modalHelpers", () => {
         {
           _id: "group2",
           name: "Admin Group",
-          members: 5,
+          members: ["user1", "user2", "user3", "user4", "user5"],
           users: [{ id: "user2" }],
           files: ["file2"],
           org_id: "org456",
@@ -357,7 +357,7 @@ describe("modalHelpers", () => {
         id: "group2",
         _id: "group2",
         name: "Admin Group",
-        members: 5,
+        members: ["user1", "user2", "user3", "user4", "user5"],
       });
     });
 

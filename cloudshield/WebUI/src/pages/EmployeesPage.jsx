@@ -79,6 +79,70 @@ CustomToast.defaultProps = {
   type: "success",
 };
 
+/**
+ * Returns the groups (from allGroups) where userId is a member.
+ */
+function getUserGroups(allGroups, userId) {
+  return allGroups
+    .filter((g) => {
+      const members = Array.isArray(g.members) ? g.members : [];
+      return members.some((m) => String(m) === userId);
+    });
+}
+
+/**
+ * Enriches a raw API user with group, workstation, and file-share data.
+ */
+function enrichUser(user, allGroups) {
+  const userId = String(user._id);
+  const memberGroups = getUserGroups(allGroups, userId);
+
+  const userGroups = memberGroups.map((g) => ({
+    id: g.id || g._id,
+    name: g.group_name || g.name || "Unknown Group",
+    description: g.description || "",
+    image: g.group_image || null,
+  }));
+
+  const workstationMap = new Map();
+  for (const g of memberGroups) {
+    const ws = Array.isArray(g.workstations) ? g.workstations : [];
+    for (const w of ws) {
+      if (!workstationMap.has(w)) {
+        workstationMap.set(w, { id: w, name: w, hostname: w });
+      }
+    }
+  }
+  const userWorkstations = Array.from(workstationMap.values());
+
+  const fileShareMap = new Map();
+  for (const g of memberGroups) {
+    const fs = Array.isArray(g.file_shares) ? g.file_shares : [];
+    for (const f of fs) {
+      if (!fileShareMap.has(f)) {
+        fileShareMap.set(f, { id: f, name: f, drive: f });
+      }
+    }
+  }
+  const userFileShares = Array.from(fileShareMap.values());
+
+  return {
+    id: user._id,
+    name: user.full_name || user.email,
+    email: user.email,
+    title: user.role || "Employee",
+    workstations: userWorkstations,
+    workstationCount: userWorkstations.length,
+    groups: userGroups,
+    groupCount: userGroups.length,
+    files: userFileShares,
+    fileCount: userFileShares.length,
+    status: user.status || "offline",
+    profileImage: user.profile_image || null,
+    _original: user,
+  };
+}
+
 const styles = {
   toolbar: {
     display: "flex",
@@ -107,7 +171,7 @@ export default function EmployeesPage() {
   const withClickLog = useClickLogger({ page: "employees" });
   
   // Job creation task hook
-  const { jobId, status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
+  const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -276,70 +340,7 @@ export default function EmployeesPage() {
 
       // Map users and enrich with group/workstation/file data
       const mappedUsers = Array.isArray(data)
-        ? data.map((user) => {
-            const userId = String(user._id);
-
-            // Get groups where this user is a member
-            const userGroups = allGroups.filter((g) => {
-              const members = Array.isArray(g.members) ? g.members : [];
-              return members.some((m) => String(m) === userId);
-            }).map((g) => ({
-              id: g.id || g._id,
-              name: g.group_name || g.name || "Unknown Group",
-              description: g.description || "",
-              image: g.group_image || null,
-            }));
-
-            // Aggregate unique workstations from user's groups
-            const workstationMap = new Map();
-            allGroups
-              .filter((g) => {
-                const members = Array.isArray(g.members) ? g.members : [];
-                return members.some((m) => String(m) === userId);
-              })
-              .forEach((g) => {
-                const ws = Array.isArray(g.workstations) ? g.workstations : [];
-                ws.forEach((w) => {
-                  if (!workstationMap.has(w)) {
-                    workstationMap.set(w, { id: w, name: w, hostname: w });
-                  }
-                });
-              });
-            const userWorkstations = Array.from(workstationMap.values());
-
-            // Aggregate unique file shares from user's groups
-            const fileShareMap = new Map();
-            allGroups
-              .filter((g) => {
-                const members = Array.isArray(g.members) ? g.members : [];
-                return members.some((m) => String(m) === userId);
-              })
-              .forEach((g) => {
-                const fs = Array.isArray(g.file_shares) ? g.file_shares : [];
-                fs.forEach((f) => {
-                  if (!fileShareMap.has(f)) {
-                    fileShareMap.set(f, { id: f, name: f, drive: f });
-                  }
-                });
-              });
-            const userFileShares = Array.from(fileShareMap.values());
-
-            return {
-              id: user._id,
-              name: user.full_name || user.email,
-              email: user.email,
-              title: user.role || "Employee",
-              workstations: userWorkstations,
-              workstationCount: userWorkstations.length,
-              groups: userGroups,
-              groupCount: userGroups.length,
-              files: userFileShares,
-              fileCount: userFileShares.length,
-              status: user.status || "offline",
-              profileImage: user.profile_image || null,
-              _original: user,
-            };
-          })
+        ? data.map((user) => enrichUser(user, allGroups))
         : [];
 
       if (mappedUsers.length > 0) {

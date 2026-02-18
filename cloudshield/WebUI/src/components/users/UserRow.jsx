@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
@@ -174,6 +175,12 @@ function ItemsPill({ items, type, totalCount }) {
   );
 }
 
+ItemsPill.propTypes = {
+  items: PropTypes.arrayOf(PropTypes.object),
+  type: PropTypes.string.isRequired,
+  totalCount: PropTypes.number,
+};
+
 /* --------------------------------- component -------------------------------- */
 
 export default function UserRow({
@@ -209,7 +216,7 @@ export default function UserRow({
         }
       >
         {/* select - hide on mobile */}
-        {!isMobile && (
+        {isMobile ? null : (
           <Checkbox checked={isSelected} onChange={onToggleSelect} />
         )}
 
@@ -288,3 +295,32 @@ export default function UserRow({
     </>
   );
 }
+
+UserRow.propTypes = {
+  data: PropTypes.shape({
+    id: PropTypes.string,
+    name: PropTypes.string,
+    email: PropTypes.string,
+    title: PropTypes.string,
+    status: PropTypes.string,
+    profileImage: PropTypes.string,
+    workstations: PropTypes.arrayOf(PropTypes.object),
+    workstationCount: PropTypes.number,
+    groups: PropTypes.arrayOf(PropTypes.object),
+    groupCount: PropTypes.number,
+    files: PropTypes.arrayOf(PropTypes.object),
+    fileCount: PropTypes.number,
+  }).isRequired,
+  showTitle: PropTypes.bool,
+  showWorkstations: PropTypes.bool,
+  showGroups: PropTypes.bool,
+  showFiles: PropTypes.bool,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  isLast: PropTypes.bool,
+  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
+  isMobile: PropTypes.bool,
+  isTablet: PropTypes.bool,
+  isSelected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+};

@@ -312,4 +312,134 @@ describe("UserRow", () => {
 
     expect(screen.getByTestId("display-icon-user")).toBeInTheDocument();
   });
+
+  describe("responsive breakpoints (getResponsiveStyles)", () => {
+    const originalInnerWidth = window.innerWidth;
+
+    afterEach(() => {
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    });
+
+    function setWidth(w) {
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: w,
+      });
+    }
+
+    // ---- Mobile (< 768) ----
+
+    it("applies mobile row styles when width < 768", () => {
+      setWidth(500);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("8px");
+      expect(row.style.padding).toBe("10px 6px");
+    });
+
+    it("applies mobile name fontSize when width < 768", () => {
+      setWidth(375);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const nameEl = container.querySelector('[style*="font-weight"]');
+      expect(nameEl).not.toBeNull();
+      expect(nameEl.style.fontSize).toBe("0.95rem");
+    });
+
+    it("applies mobile email fontSize when width < 768", () => {
+      setWidth(375);
+      render(<UserRow {...defaultProps} />);
+
+      const emailEl = screen.getByText("↳ john@example.com");
+      expect(emailEl.style.fontSize).toBe("0.8rem");
+    });
+
+    it("applies mobile nameSection gap when width < 768", () => {
+      setWidth(600);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      // The nameSection div wraps the DisplayIcon and name container
+      const nameSections = container.querySelectorAll(
+        '[style*="align-items: center"]'
+      );
+      const nameSection = Array.from(nameSections).find(
+        (el) => el.style.gap === "8px" && el.style.display === "flex"
+      );
+      expect(nameSection).toBeTruthy();
+    });
+
+    it("uses mobile styles at boundary width 767", () => {
+      setWidth(767);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("8px");
+      expect(row.style.padding).toBe("10px 6px");
+    });
+
+    // ---- Tablet (768 – 1023) ----
+
+    it("applies tablet row styles when width is 768", () => {
+      setWidth(768);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("10px");
+      expect(row.style.padding).toBe("11px 7px");
+    });
+
+    it("applies tablet row styles when width is 1023", () => {
+      setWidth(1023);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("10px");
+      expect(row.style.padding).toBe("11px 7px");
+    });
+
+    it("does not apply mobile name fontSize at tablet width", () => {
+      setWidth(900);
+      render(<UserRow {...defaultProps} />);
+
+      // At tablet width the responsive branch only overrides `row` —
+      // name / email style objects are undefined so React applies no inline style.
+      const emailEl = screen.getByText("↳ john@example.com");
+      expect(emailEl.style.fontSize).not.toBe("0.8rem");
+    });
+
+    // ---- Desktop (>= 1024) ----
+
+    it("applies default desktop styles when width >= 1024", () => {
+      setWidth(1440);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
+    });
+
+    it("applies desktop styles at boundary width 1024", () => {
+      setWidth(1024);
+      const { container } = render(<UserRow {...defaultProps} />);
+
+      const row = container.firstChild;
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
+    });
+
+    it("does not apply mobile or tablet styles at desktop width", () => {
+      setWidth(1920);
+      render(<UserRow {...defaultProps} />);
+
+      const emailEl = screen.getByText("↳ john@example.com");
+      // Desktop keeps the original 0.85rem email size
+      expect(emailEl.style.fontSize).toBe("0.85rem");
+    });
+  });
 });
