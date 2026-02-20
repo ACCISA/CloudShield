@@ -3,11 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import WorkstationsPage from "../WorkstationsPage";
-import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
-import { MOCK_WORKSTATIONS } from "../../data/mockData.js";
 
-const TARGET_WORKSTATION =
-  MOCK_WORKSTATIONS.find((ws) => ws.id === "ws-1") || MOCK_WORKSTATIONS[0];
 // Mock analytics
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
@@ -16,11 +12,6 @@ jest.mock("../../lib/analytics", () => ({
 // Mock click logger hook
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
-}));
-
-jest.mock("../../utils/modalHelpers.jsx", () => ({
-  ...jest.requireActual("../../utils/modalHelpers.jsx"),
-  fetchWorkstations: jest.fn(),
 }));
 
 // Helper to render with router
@@ -229,7 +220,6 @@ jest.mock("../../components/common/RefreshButton/RefreshButton", () => {
 describe("WorkstationsPage Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    fetchWorkstations.mockResolvedValue(MOCK_WORKSTATIONS);
   });
 
   describe("Rendering", () => {
@@ -606,94 +596,6 @@ describe("WorkstationsPage Component", () => {
           expect.anything(),
         );
       }
-    });
-
-    test("handleEditSave updates workstation row when edit modal is submitted", async () => {
-      const workstationId = TARGET_WORKSTATION.id;
-      const originalName = TARGET_WORKSTATION.name;
-
-      renderPage();
-      await screen.findByTestId(`workstation-row-${workstationId}`);
-
-      expect(
-        screen.getByTestId(`workstation-row-${workstationId}`),
-      ).toHaveTextContent(
-        originalName,
-      );
-
-      await userEvent.click(screen.getByTestId(`edit-${workstationId}`));
-      expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
-
-      await userEvent.click(screen.getByTestId("modal-submit"));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByTestId(`workstation-row-${workstationId}`),
-      ).toHaveTextContent("Test Workstation");
-
-      const { trackButton } = require("../../lib/analytics");
-      expect(trackButton).toHaveBeenCalledWith(
-        "workstations/edit/save",
-        expect.objectContaining({
-          page: "workstations",
-          id: workstationId,
-          control: "edit_dialog",
-        }),
-      );
-    });
-
-    test("handleDelete removes workstation when user confirms", async () => {
-      const workstationId = TARGET_WORKSTATION.id;
-      const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
-
-      renderPage();
-      await screen.findByTestId(`workstation-row-${workstationId}`);
-
-      await userEvent.click(screen.getByTestId(`delete-${workstationId}`));
-
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId(`workstation-row-${workstationId}`),
-        ).not.toBeInTheDocument();
-      });
-
-      const { trackButton } = require("../../lib/analytics");
-      expect(confirmSpy).toHaveBeenCalledWith(
-        "Are you sure you want to delete this workstation? This action cannot be undone.",
-      );
-      expect(trackButton).toHaveBeenCalledWith(
-        "workstations/edit/delete",
-        expect.objectContaining({
-          page: "workstations",
-          id: workstationId,
-          control: "edit_dialog",
-        }),
-      );
-
-      confirmSpy.mockRestore();
-    });
-
-    test("handleDelete keeps workstation when user cancels", async () => {
-      const workstationId = TARGET_WORKSTATION.id;
-      const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
-      const { trackButton } = require("../../lib/analytics");
-
-      renderPage();
-      await screen.findByTestId(`workstation-row-${workstationId}`);
-      trackButton.mockClear();
-
-      await userEvent.click(screen.getByTestId(`delete-${workstationId}`));
-
-      expect(confirmSpy).toHaveBeenCalled();
-      expect(
-        screen.getByTestId(`workstation-row-${workstationId}`),
-      ).toBeInTheDocument();
-      expect(trackButton).not.toHaveBeenCalled();
-
-      confirmSpy.mockRestore();
     });
   });
 

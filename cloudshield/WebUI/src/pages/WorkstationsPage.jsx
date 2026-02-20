@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
+import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
