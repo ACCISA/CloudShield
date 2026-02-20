@@ -11,6 +11,7 @@ workstations_bp = Blueprint("workstations", __name__)
 
 @workstations_bp.route("/workstations", methods=["GET"])
 @require_auth
+@require_role("admin")
 def list_workstations():
     """
     List all workstations.
@@ -21,15 +22,6 @@ def list_workstations():
 
     org_id = (request.args.get("org_id") or g.user.get("org_id") or "").strip()
     base_filter = {"org_id": org_id}
-    if g.user.get("role") != "admin":
-        user_id = g.user.get("id")
-        user_email = g.user.get("email")
-        base_filter["$or"] = [
-            {"assigned_user_id": user_id},
-            {"assigned_user": user_id},
-        ]
-        if user_email:
-            base_filter["$or"].append({"assigned_user": user_email})
 
     docs = list(workstations.find(base_filter))
     for doc in docs:
