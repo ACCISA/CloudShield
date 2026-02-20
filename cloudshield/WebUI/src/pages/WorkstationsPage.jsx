@@ -13,7 +13,7 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
-
+import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 const styles = {
   container: {
     display: "flex",
@@ -47,16 +47,56 @@ const styles = {
     overscrollBehavior: "contain",
   },
 };
-/* ----------------------------------- seed ---------------------------------- */
 
-const seed = MOCK_WORKSTATIONS_FULL;
+/**
+ * Creates a workstation for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {string} name - The name of the workstation
+ * @param {string} ip - The IP address of the workstation
+ * @returns {string} The created workstation id
+ */
+ 
+
+export const createWorkstation = async (orgId, name, ip, groups) => {
+  try {
+    const token = localStorage.getItem("jwt");
+    const res = await fetch(`/api/workstations`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        org_id: orgId,
+        name,
+        ip,
+        groups: groups?.map((g) => g.id) || [],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err?.error || `Failed to create workstation: ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (e) {
+    console.error("Error creating workstation:", e);
+    return null;
+  }
+};
+
 
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
-  const [rows, setRows] = useState(seed);
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
 
   // Layout state
@@ -87,6 +127,16 @@ export default function WorkstationsPage() {
     }
   }, [location]);
 
+  // Fetch workstations on mount
+  useEffect(() => {
+    const loadWorkstations = async () => {
+      const orgId = localStorage.getItem("org_id");
+      const token = localStorage.getItem("jwt");
+      const data = await fetchWorkstations(orgId, token);
+      setRows(data);
+    };
+    loadWorkstations();
+  }, []);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
@@ -186,7 +236,7 @@ export default function WorkstationsPage() {
     });
   };
 
-  const handleCreate = (payload) => {
+  const handleCreate = async (payload) => {
     trackButton("workstations/create/save", {
       page: "workstations",
       control: "create_dialog",
@@ -210,6 +260,15 @@ export default function WorkstationsPage() {
       allGroups: payload.allGroups || false,
       allSoftware: payload.allSoftware || false,
     };
+    const created = await createWorkstation(
+      payload.orgId,
+      payload.name,
+      payload.ip,
+      payload.groups,
+    );
+    if (!created) {
+      return;
+    }
     setRows((prev) => [newRow, ...prev]);
   };
 

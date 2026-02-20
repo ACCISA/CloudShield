@@ -246,7 +246,7 @@ export const fetchWorkstations = async (
     }
 
     const res = await fetch(
-      `http://127.0.0.1:5050/api/workstations?org_id=${encodeURIComponent(orgId)}`,
+      `/api/workstations?org_id=${encodeURIComponent(orgId)}`,
       {
         method: "GET",
         credentials: "include",
@@ -267,9 +267,17 @@ export const fetchWorkstations = async (
     }
 
     const data = await res.json();
-    const workstations = Array.isArray(data) ? data : data.workstations || [];
+    const workstations = Array.isArray(data)
+      ? data
+      : data.items || data.workstations || [];
 
     const normalized = workstations.map((w) => ({
+      status:
+        (w.status || "").toLowerCase() === "online"
+          ? "connected"
+          : (w.status || "").toLowerCase() === "offline"
+            ? "disconnected"
+            : w.status || "disconnected",
       id: String(w.id || w._id || ""),
       _id: String(w._id || w.id || ""),
       name: w.name || "Untitled Workstation",

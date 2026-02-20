@@ -1,11 +1,41 @@
 """Workstation read/write endpoints."""
 from datetime import datetime, timezone
 
+from bson import ObjectId
 from flask import Blueprint, jsonify, g, request
 from cloudshield.Server.security.guards import require_auth, require_role
 from cloudshield.Server.utils.database import db_admin
 
 workstations_bp = Blueprint("workstations", __name__)
+
+
+@workstations_bp.route("/workstations", methods=["GET"])
+@require_auth
+def list_workstations():
+    """
+    List all workstations.
+
+    Endpoint: GET /api/workstations?org_id=123
+    """
+    workstations = db_admin["workstations"]
+
+    org_id = (request.args.get("org_id") or g.user.get("org_id") or "").strip()
+    base_filter = {"org_id": org_id}
+    if g.user.get("role") != "admin":
+        user_id = g.user.get("id")
+        user_email = g.user.get("email")
+        base_filter["$or"] = [
+            {"assigned_user_id": user_id},
+            {"assigned_user": user_id},
+        ]
+        if user_email:
+            base_filter["$or"].append({"assigned_user": user_email})
+
+    docs = list(workstations.find(base_filter))
+    for doc in docs:
+        doc["_id"] = str(doc["_id"])
+
+    return jsonify({"items": docs}), 200
 
 
 @workstations_bp.route("/workstations/assigned", methods=["GET"])
@@ -56,6 +86,7 @@ def create_workstation():
     assigned_user = (body.get("assigned_user") or "").strip() or None
     assigned_user_id = (body.get("assigned_user_id") or "").strip() or None
     last_seen = body.get("last_seen")
+    groups = body.get("groups", [])
 
     workstations = db_admin["workstations"]
     doc = {
@@ -70,4 +101,12 @@ def create_workstation():
     }
 
     result = workstations.insert_one(doc)
+
+    if groups:
+        groups = [ObjectId(g) if isinstance(g, str) and ObjectId.is_valid(g) else g for g in groups]
+        access_groups_collection = db_admin["access_groups"]
+        access_groups_collection.update_many(
+            {"_id": {"$in": groups}, "org_id": org_id},
+            {"$addToSet": {"workstations": str(result.inserted_id)}},
+        )
     return jsonify({"id": str(result.inserted_id)}), 201
