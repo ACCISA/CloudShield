@@ -1,5 +1,4 @@
-# docker_provisioning is not part of code we release in prod.
-# This is just to avoid spending money on aws therefore we dont need to meet coverage requirements for this code.
+# docker_provisioning is not part of code we release in prod. This is just to avoid spending money on aws therefore we dont need to meet coverage requirements for this code.
 
 import os
 import base64
@@ -247,23 +246,60 @@ def ensure_org_network_with_subnet(org_id: str, server_logger) -> tuple[str, str
     raise RuntimeError("No free 172.23.X.0/24 subnet left for org networks (X=2..254)")
 
 
+def _workstation_storage_dir(org_id: str) -> str:
+    base = os.environ.get("WORKSTATION_STORAGE_BASE")
+    if base and str(base).strip():
+        return os.path.join(str(base).strip(), org_id)
+
+    mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "/home/cena")
+    return os.path.join(mount, "cloudshield_workstations", org_id)
+
+
+def _workstation_oem_dir(org_id: str) -> str:
+    return os.path.join(_workstation_storage_dir(org_id), "oem")
+
+
+def _resolve_windows_iso_path(server_logger) -> str:
+    # Notice we skip python Path().exists() checking because this script 
+    # runs inside the api container but the docker daemon evaluates paths
+    # from the context of the host machine.
+    p = os.environ.get("WINDOWS_ISO_PATH")
+    if p and str(p).strip():
+        iso = str(p).strip()
+    else:
+        mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "/home/cena")
+        iso = os.path.join(mount, "win11x64.iso")
+    
+    server_logger.info(f"WINDOWS_ISO_PATH resolved to: {iso} (will be evaluated by Host Docker Daemon)")
+    return iso
+
+
 def _write_compose_override_for_org(
     override_path: Path,
     external_network_name: str,
+    storage_dir: str,
+    oem_dir: str,
+    iso_path: str,
 ) -> None:
-    # Keep override minimal to avoid breaking workstation:
-    # only add org_net as an additional network. Volume paths are controlled by env vars.
     override_yaml = f"""\
 services:
   samba-test:
-    networks:
-      - org_net
+    networks: [org_net]
   openvpn-test:
-    networks:
-      - org_net
+    networks: [org_net]
   workstation:
-    networks:
-      - org_net
+    networks: [org_net]
+    volumes:
+      - type: bind
+        source: {storage_dir}
+        target: /storage
+      - type: bind
+        source: {oem_dir}
+        target: /oem
+      - type: bind
+        source: {iso_path}
+        target: /storage/win11x64.iso
+        read_only: true
 
 networks:
   org_net:
@@ -302,11 +338,6 @@ def _pick_workstation_host_port(org_subnet_cidr: str) -> int:
     return port
 
 
-def _workstation_storage_dir(org_id: str) -> str:
-    base = os.environ.get("WORKSTATION_STORAGE_BASE", "/home/cena/cloudshield_workstations")
-    return os.path.join(base, org_id)
-
-
 def provision_workstation_docker(
     org_id,
     server_logger,
@@ -319,18 +350,7 @@ def provision_workstation_docker(
     if PRAGMA_ONCE is False:
         PRAGMA_ONCE = True
 
-    # Make sure compose has a mount dir and a storage base even inside api-test container
-    os.environ.setdefault("WORKSTATIONS_MOUNT_DIR", "/home/cena")
-    os.environ.setdefault("WORKSTATION_STORAGE_BASE", "/home/cena/cloudshield_workstations")
-
     host_port = _pick_workstation_host_port(org_subnet_cidr)
-
-    storage_dir = _workstation_storage_dir(str(org_id))
-    Path(storage_dir).mkdir(parents=True, exist_ok=True)
-
-    # Compose variable used in docker-compose.yml
-    os.environ["WORKSTATION_STORAGE_DIR"] = storage_dir
-    server_logger.info(f"WORKSTATION_STORAGE_DIR={storage_dir}")
 
     container_ws = org_docker.compose.run(
         service="workstation",
@@ -342,7 +362,6 @@ def provision_workstation_docker(
     container_id_ws = container_ws.id
     container_ws.reload()
 
-    # NOTE: container is attached to org_net (via override) so it should have an IP there
     container_ws_ip = container_ws.network_settings.networks[org_network_name].ip_address
 
     server_logger.info("Creating OEM scripts")
@@ -358,7 +377,7 @@ def provision_workstation_docker(
     )
 
     if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
-        return None
+        return
 
     server_logger.info("Windows workstation installation has started, this will take some time")
 
@@ -367,8 +386,8 @@ def provision_workstation_docker(
         "org_id": org_id,
         "name": org_id + "_" + short_uuid() + "_" + "_workstation",
         "instance_id": container_id_ws,
-        "vpc_id": "vpc_net_docker",
-        "subnet_id": "subnet_id",
+        "vpc_id": org_network_name,
+        "subnet_id": org_subnet_cidr,
         "ssh_key": org_id + "_key",
         "ami_id": "windows_default_ami_id",
         "os": "windows11",
@@ -401,7 +420,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
 
     if _is_blank(org_id):
         server_logger.error("Missing org_id in org_data")
-        return None
+        return
 
     org_id = str(org_id).strip()
 
@@ -430,20 +449,33 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         server_logger.info("Cloudshield data directory created (or already exists)")
     except Exception:
         server_logger.error("Failed to create cloudshield work directory")
-        return None
+        return
 
-    # Create or reuse per-org network 172.23.X.0/24
-    org_network_name, org_subnet_cidr, _org_gateway = ensure_org_network_with_subnet(org_id, server_logger)
+    iso_path = _resolve_windows_iso_path(server_logger)
+
+    org_network_name, org_subnet_cidr, org_gateway = ensure_org_network_with_subnet(org_id, server_logger)
+
+    storage_dir = _workstation_storage_dir(org_id)
+    oem_dir = _workstation_oem_dir(org_id)
+
+    server_logger.info(f"WORKSTATION_STORAGE_DIR={storage_dir}")
+    server_logger.info(f"WORKSTATION_OEM_DIR={oem_dir}")
 
     override_path = cloudshield_path / "docker-compose.org.override.yml"
-    _write_compose_override_for_org(override_path, org_network_name)
+    _write_compose_override_for_org(
+        override_path=override_path,
+        external_network_name=org_network_name,
+        storage_dir=storage_dir,
+        oem_dir=oem_dir,
+        iso_path=iso_path,
+    )
 
     org_docker = DockerClient(compose_files=[COMPOSE_FILE, str(override_path)])
 
     public_key_path, private_key_path = setup_ssh_keys(server_logger, str(cloudshield_path) + f"/{org_id}_key")
     if public_key_path is None or private_key_path is None:
         server_logger.error("Failed to generate ssh keys")
-        return None
+        return
 
     server_logger.info("Running docker provisioning")
 
@@ -489,15 +521,15 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
 
     if not setup_container(server_logger, container_id):
         server_logger.error("Failed to run samba setup script")
-        return None
+        return
     if not setup_container(server_logger, container_id_vpn):
         server_logger.error("Failed to run openvpn setup script")
-        return None
+        return
 
     if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):
-        return None
+        return
     if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
-        return None
+        return
 
     workstation_meta = provision_workstation_docker(
         org_id,

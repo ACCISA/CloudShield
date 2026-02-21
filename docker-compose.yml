@@ -40,12 +40,9 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
-
-      # Needed because docker compose runs INSIDE api-test when provisioning
-      - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR:-/home/cena}
-      - WORKSTATION_STORAGE_BASE=${WORKSTATION_STORAGE_BASE:-/home/cena/cloudshield_workstations}
-      - WORKSTATION_PORT_BASE=${WORKSTATION_PORT_BASE:-18000}
-
+      # Pass through paths so the provisioner knows where to mount from the host
+      - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
+      - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
     depends_on:
       redis:
         condition: service_healthy
@@ -80,6 +77,7 @@ services:
       - ui_node_modules:/app/node_modules
 
   openvpn-test:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-openvpn-template:latest
     build:
       context: .
@@ -102,10 +100,9 @@ services:
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    networks:
-      - vpc_net
 
   samba-test:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-samba-template:latest
     build:
       context: .
@@ -115,7 +112,6 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    container_name: "cs-samba-test-${ORG_TAG:-dev}"
     privileged: true
     cgroup: host
     tty: true
@@ -141,15 +137,13 @@ services:
       - /dev/loop6:/dev/loop6
       - /dev/loop7:/dev/loop7
       - /dev/loop-control:/dev/loop-control
-    networks:
-      - vpc_net
 
   workstation:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-workstation-template:latest
     build:
       context: docker/workstation
       dockerfile: Dockerfile.workstation_test
-    container_name: "windows-workstation-${ORG_TAG:-dev}"
     environment:
       USERNAME: "bill"
       PASSWORD: "gates"
@@ -159,30 +153,19 @@ services:
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
-    ports:
-      - "8006:8006"
-      - "3389:3389/tcp"
-      - "3389:3389/udp"
     volumes:
-      # IMPORTANT: /storage MUST be unique per org to avoid data.img lock
       - type: bind
-        source: ${WORKSTATION_STORAGE_DIR:-${WORKSTATION_STORAGE_BASE:-/home/cena/cloudshield_workstations}/single}
+        source: ${WORKSTATIONS_MOUNT_DIR}
         target: /storage
-
-      # IMPORTANT: this MUST be a FILE on the host, not a directory
       - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR:-/home/cena}/Desktop/CloudShield/win11x64.iso
+        source: ${WORKSTATIONS_MOUNT_DIR}/docker/workstation/oem
+        target: /oem
+      - type: bind
+        source: ${WINDOWS_ISO_PATH}
         target: /storage/win11x64.iso
         read_only: true
-
-      - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR:-/home/cena}/docker/workstation/oem
-        target: /oem
-
-    restart: always
+    restart: "no"
     stop_grace_period: 2m
-    networks:
-      - vpc_net
 
   api:
     build:
