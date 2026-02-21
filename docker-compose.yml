@@ -6,13 +6,18 @@ services:
       - "6379:6379"
     networks:
       vpc_net:
-        ipv4_address: 172.23.0.5
+        ipv4_address: "172.23.${VPC_OCTET:-1}.5"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 30
 
   api-test:
     build:
       context: .
       dockerfile: docker/Dockerfile.api_test
-    container_name: cs-api-test
+    container_name: "cs-api-test-${ORG_TAG:-dev}"
     environment:
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
@@ -32,12 +37,23 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_USE_TLS=${SMTP_USE_TLS}
       - DEPLOYMENT_MODE=docker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+
+      # Needed because docker compose runs INSIDE api-test when provisioning
+      - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR:-/home/cena}
+      - WORKSTATION_STORAGE_BASE=${WORKSTATION_STORAGE_BASE:-/home/cena/cloudshield_workstations}
+      - WORKSTATION_PORT_BASE=${WORKSTATION_PORT_BASE:-18000}
+
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "5050:5050"
     networks:
-      - vpc_net
+      vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.2"
     volumes:
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
@@ -46,25 +62,24 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.ui
-    container_name: cs-ui
+    container_name: "cs-ui-${ORG_TAG:-dev}"
     environment:
       - VITE_PORT=5173
       - CHOKIDAR_USEPOLLING=true
       - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
-      - VITE_API_PROXY_TARGET=http://host.docker.internal:5050
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.20
+      - VITE_API_PROXY_TARGET=http://api-test:5050
     ports:
       - "5173:5173"
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.20"
+      cloudshield_net:
+        ipv4_address: 172.28.0.20
     volumes:
       - ./cloudshield/WebUI:/app
       - ui_node_modules:/app/node_modules
 
   openvpn-test:
-    profiles: ["templates"]
     image: cs-openvpn-template:latest
     build:
       context: .
@@ -88,11 +103,9 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     networks:
-      vpc_net:
-        ipv4_address: 172.23.0.12
+      - vpc_net
 
   samba-test:
-    profiles: ["templates"]
     image: cs-samba-template:latest
     build:
       context: .
@@ -102,7 +115,7 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    container_name: cs-samba-test
+    container_name: "cs-samba-test-${ORG_TAG:-dev}"
     privileged: true
     cgroup: host
     tty: true
@@ -129,16 +142,14 @@ services:
       - /dev/loop7:/dev/loop7
       - /dev/loop-control:/dev/loop-control
     networks:
-      vpc_net:
-        ipv4_address: 172.23.0.10
+      - vpc_net
 
   workstation:
-    profiles: ["workstation"]
     image: cs-workstation-template:latest
     build:
       context: docker/workstation
       dockerfile: Dockerfile.workstation_test
-    container_name: windows-workstation
+    container_name: "windows-workstation-${ORG_TAG:-dev}"
     environment:
       USERNAME: "bill"
       PASSWORD: "gates"
@@ -153,30 +164,43 @@ services:
       - "3389:3389/tcp"
       - "3389:3389/udp"
     volumes:
+      # IMPORTANT: /storage MUST be unique per org to avoid data.img lock
       - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR}
+        source: ${WORKSTATION_STORAGE_DIR:-${WORKSTATION_STORAGE_BASE:-/home/cena/cloudshield_workstations}/single}
         target: /storage
-      - ${WORKSTATIONS_MOUNT_DIR}/Desktop/CloudShield/win11x64.iso
-      - ${WORKSTATIONS_MOUNT_DIR}/docker/workstation/oem:/oem
+
+      # IMPORTANT: this MUST be a FILE on the host, not a directory
+      - type: bind
+        source: ${WORKSTATIONS_MOUNT_DIR:-/home/cena}/Desktop/CloudShield/win11x64.iso
+        target: /storage/win11x64.iso
+        read_only: true
+
+      - type: bind
+        source: ${WORKSTATIONS_MOUNT_DIR:-/home/cena}/docker/workstation/oem
+        target: /oem
+
     restart: always
     stop_grace_period: 2m
     networks:
       - vpc_net
 
   api:
-    profiles: ["prod"]
     build:
       context: .
       dockerfile: docker/Dockerfile.api
-    container_name: cs-api
+    container_name: "cs-api-${ORG_TAG:-dev}"
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "5050:5050"
     volumes:
@@ -186,9 +210,8 @@ services:
       - vpc_net
 
   elasticsearch:
-    profiles: ["search"]
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
-    container_name: elasticsearch
+    container_name: "elasticsearch-${ORG_TAG:-dev}"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -200,11 +223,10 @@ services:
       - "9200:9200"
 
   server:
-    profiles: ["runtime"]
     build:
       context: .
       dockerfile: docker/Dockerfile.server
-    container_name: server
+    container_name: "server-${ORG_TAG:-dev}"
     environment:
       ES_URL: "http://elasticsearch:9200"
       CLOUDSHIELD_RUNTIME: "1"
@@ -215,11 +237,10 @@ services:
       - "50051:50051"
 
   agent1:
-    profiles: ["runtime"]
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent1
+    container_name: "agent1-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-1"
       SERVER_ADDR: "server"
@@ -231,11 +252,10 @@ services:
         ipv4_address: 172.28.0.11
 
   agent2:
-    profiles: ["runtime"]
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent2
+    container_name: "agent2-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-2"
       SERVER_ADDR: "server"
@@ -247,11 +267,10 @@ services:
         ipv4_address: 172.28.0.12
 
   agent3:
-    profiles: ["runtime"]
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent3
+    container_name: "agent3-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-3"
       SERVER_ADDR: "server"
@@ -265,7 +284,7 @@ services:
 networks:
   vpc_net:
     external: true
-    name: vpc_net
+    name: ${VPC_NET_NAME:-vpc_net}
 
   cloudshield_net:
     driver: bridge
@@ -274,12 +293,4 @@ networks:
         - subnet: 172.28.0.0/16
 
 volumes:
-  workstation_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${WORKSTATIONS_MOUNT_DIR}
-      size: "20G"
-
   ui_node_modules:

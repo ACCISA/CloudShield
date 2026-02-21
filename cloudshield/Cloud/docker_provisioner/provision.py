@@ -1,36 +1,43 @@
+# docker_provisioning is not part of code we release in prod.
+# This is just to avoid spending money on aws therefore we dont need to meet coverage requirements for this code.
+
 import os
-import sys
 import base64
 import uuid
-import socket
+import json
+import re
 from datetime import datetime, timezone
 import subprocess
 from pathlib import Path
-import python_on_whales 
+
+from python_on_whales import DockerClient
 
 from .keygen import generate_ssh_key_pair
 
+BASE_PATH = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
+COMPOSE_FILE = os.path.join(BASE_PATH, "docker-compose.yml")
+
+docker = DockerClient(compose_files=[COMPOSE_FILE])
+
+OVPN_VOLUME_NAME = "opvn-data-cloudshield"
+PKI_INPUT = b"\n\n\n"
+
+PRAGMA_ONCE = False
+if PRAGMA_ONCE is False:
+    docker.compose.build(services=["samba-test", "openvpn-test", "workstation"])
+
+
 def short_uuid():
-    return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b'=').decode('ascii')
+    return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("ascii")
 
-def ensure_clean_state(container_name, server_logger, docker_client):
-    if docker_client.container.exists(container_name):
-        server_logger.info(f"Removing existing container: {container_name}")
-        docker_client.container.remove(container_name, force=True)
-
-def get_service_image(service_name, docker_client):
-    image_name = docker_client.compose.config().services[service_name].image
-    if not image_name:
-        raise ValueError(f"Service '{service_name}' has no 'image' defined in docker-compose.yml")
-    return image_name
 
 def copy_file_container(server_logger, container_id, path_in, path_out):
     try:
         subprocess.run(
-                ["docker","cp",path_in,container_id+":"+path_out],
-                capture_output=True,
-                text=True,
-                check=True
+            ["docker", "cp", path_in, container_id + ":" + path_out],
+            capture_output=True,
+            text=True,
+            check=True,
         )
         server_logger.info(f"Successfully copied file to container (file={path_in}, container_id={container_id})")
         return True
@@ -39,265 +46,522 @@ def copy_file_container(server_logger, container_id, path_in, path_out):
         server_logger.error(f"Failed to copy file to container (file={path_in}, container_id={container_id})")
         return False
 
+
 def setup_container(server_logger, container_id):
     try:
         result = subprocess.run(
-                ["docker", "exec", "-i", container_id, "/usr/local/bin/docker-entrypoint.sh"],
-                capture_output=True,
-                text=True,
-                check=True
+            ["docker", "exec", "-i", container_id, "/usr/local/bin/docker-entrypoint.sh"],
+            capture_output=True,
+            text=True,
+            check=True,
         )
-        server_logger.info(f"Setup script output for {container_id}: {result.stdout}")
+        server_logger.info(result.stdout)
+        server_logger.info("Successfully started setup script")
         return True
     except subprocess.CalledProcessError as e:
-        server_logger.error(f"Failed to run setup script on {container_id}: {e.stderr}")
+        server_logger.error(e)
+        server_logger.error(e.stderr)
+        server_logger.error("Failed to setup container")
         return False
+
 
 def setup_ssh_keys(server_logger, private_key_path):
     server_logger.info("Generating ssh keys for samba-test container...")
     public_key_path, private_key_path = generate_ssh_key_pair(private_key_path=private_key_path)
-    if not Path(public_key_path).exists() or not Path(private_key_path).exists():
+
+    if not Path(public_key_path).exists():
+        server_logger.error(f"Failed to find public key path {public_key_path}")
+        return None, None
+    if not Path(private_key_path).exists():
+        server_logger.error(f"Failed to find private key path {private_key_path}")
         return None, None
 
     os.chmod(public_key_path, 0o600)
     os.chmod(private_key_path, 0o600)
-    os.rename(private_key_path, private_key_path+".pem")
-    private_key_path=private_key_path+".pem"
-    
+
+    os.rename(private_key_path, private_key_path + ".pem")
+    private_key_path = private_key_path + ".pem"
+
     server_logger.info("SSH Key generation complete")
     return public_key_path, private_key_path
 
+
 def wait_workstation_completion(cid, server_logger):
-    server_logger.info(f"Workstation {cid} started (Lightweight Mode).")
-    return True
+    target_string = "Windows started successfully"
+    server_logger.info(f"Monitoring logs for ID {cid}...")
+
+    for stream_type, data in docker.logs(cid, stream=True):
+        try:
+            clean_line = data.decode("utf-8").strip()
+        except UnicodeDecodeError:
+            clean_line = data.decode("latin-1").strip()
+
+        server_logger.debug(f"[{stream_type}] {clean_line}")
+
+        if target_string in clean_line:
+            server_logger.info("Target string detected. Task complete.")
+            return True
+
+    return False
+
 
 def create_auto_configure_scripts(variables: dict, container_id: str, server_logger):
-    pass
+    source_folder = "/app/docker/workstation/oem/"
+    output_folder = os.path.join(source_folder, "scripts")
 
-def provision_workstation_docker(org_id, network_name, samba_ip, server_logger, docker_client):
-    ensure_clean_state(f"{org_id}-workstation", server_logger, docker_client)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
-    server_logger.info(f"Requesting dynamic Host Port -> Container 3389")
+    for filename in os.listdir(source_folder):
+        if filename.endswith(".ps1"):
+            source_path = os.path.join(source_folder, filename)
+            output_path = os.path.join(output_folder, filename)
 
-    container_ws = docker_client.run(
-        image="alpine:latest",
-        name=f"{org_id}-workstation",
-        networks=[network_name],
+            with open(source_path, "r", encoding="utf-8") as file:
+                content = file.read()
+
+            new_content = content
+            for key, value in variables.items():
+                new_content = new_content.replace(key, str(value))
+
+            with open(output_path, "w", encoding="utf-8") as file:
+                file.write(new_content)
+
+            if not copy_file_container(server_logger, container_id, output_path, "/oem/" + filename):
+                return
+
+
+def _docker_network_exists(name: str) -> bool:
+    r = subprocess.run(
+        ["docker", "network", "ls", "--format", "{{.Name}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return name in r.stdout.splitlines()
+
+
+def _list_network_names() -> list[str]:
+    r = subprocess.run(
+        ["docker", "network", "ls", "--format", "{{.Name}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [line.strip() for line in r.stdout.splitlines() if line.strip()]
+
+
+def _network_subnets(name: str) -> list[str]:
+    r = subprocess.run(
+        ["docker", "network", "inspect", name, "--format", "{{json .IPAM.Config}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    raw = (r.stdout or "").strip()
+    if not raw:
+        return []
+    try:
+        cfg = json.loads(raw)
+    except Exception:
+        return []
+
+    subnets: list[str] = []
+    for item in cfg or []:
+        if not isinstance(item, dict):
+            continue
+        s = item.get("Subnet")
+        if s:
+            subnets.append(str(s))
+    return subnets
+
+
+def ensure_org_network_with_subnet(org_id: str, server_logger) -> tuple[str, str, str]:
+    network_name = f"{org_id}-net"
+
+    if _docker_network_exists(network_name):
+        subnet = "unknown"
+        gateway = "unknown"
+        try:
+            subs = _network_subnets(network_name)
+            if subs:
+                subnet = subs[0]
+                m = re.match(r"^172\.23\.(\d+)\.0/24$", subnet)
+                if m:
+                    gateway = f"172.23.{int(m.group(1))}.1"
+        except Exception:
+            pass
+        server_logger.info(f"Network already exists: {network_name} ({subnet})")
+        return network_name, subnet, gateway
+
+    used_octets: set[int] = set()
+    for n in _list_network_names():
+        try:
+            for s in _network_subnets(n):
+                m = re.match(r"^172\.23\.(\d+)\.0/24$", s)
+                if m:
+                    used_octets.add(int(m.group(1)))
+        except Exception:
+            continue
+
+    for octet in range(2, 255):
+        if octet in used_octets:
+            continue
+
+        subnet = f"172.23.{octet}.0/24"
+        gateway = f"172.23.{octet}.1"
+
+        try:
+            subprocess.run(
+                [
+                    "docker",
+                    "network",
+                    "create",
+                    "--driver",
+                    "bridge",
+                    "--subnet",
+                    subnet,
+                    "--gateway",
+                    gateway,
+                    network_name,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            server_logger.info(f"Created network {network_name} ({subnet})")
+            return network_name, subnet, gateway
+
+        except subprocess.CalledProcessError as e:
+            msg = ((e.stdout or "") + "\n" + (e.stderr or "")).lower()
+
+            if "overlap" in msg or "pool overlaps" in msg:
+                continue
+
+            if "already exists" in msg:
+                server_logger.info(f"Network already exists (race): {network_name}")
+                return network_name, subnet, gateway
+
+            raise
+
+    raise RuntimeError("No free 172.23.X.0/24 subnet left for org networks (X=2..254)")
+
+
+def _write_compose_override_for_org(
+    override_path: Path,
+    external_network_name: str,
+) -> None:
+    # Keep override minimal to avoid breaking workstation:
+    # only add org_net as an additional network. Volume paths are controlled by env vars.
+    override_yaml = f"""\
+services:
+  samba-test:
+    networks:
+      - org_net
+  openvpn-test:
+    networks:
+      - org_net
+  workstation:
+    networks:
+      - org_net
+
+networks:
+  org_net:
+    external: true
+    name: {external_network_name}
+"""
+    override_path.parent.mkdir(parents=True, exist_ok=True)
+    override_path.write_text(override_yaml, encoding="utf-8")
+
+
+def _docker_host_port_in_use(port: int) -> bool:
+    r = subprocess.run(
+        ["docker", "ps", "--format", "{{.Ports}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    needle = f":{port}->"
+    for line in (r.stdout or "").splitlines():
+        if needle in line:
+            return True
+    return False
+
+
+def _pick_workstation_host_port(org_subnet_cidr: str) -> int:
+    base = int(os.environ.get("WORKSTATION_PORT_BASE", "18000"))
+    m = re.match(r"^172\.23\.(\d+)\.0/24$", (org_subnet_cidr or "").strip())
+    octet = int(m.group(1)) if m else 200
+
+    port = base + octet
+    while port <= 65535 and _docker_host_port_in_use(port):
+        port += 1
+
+    if port > 65535:
+        raise RuntimeError("No free host port available for workstation publish")
+    return port
+
+
+def _workstation_storage_dir(org_id: str) -> str:
+    base = os.environ.get("WORKSTATION_STORAGE_BASE", "/home/cena/cloudshield_workstations")
+    return os.path.join(base, org_id)
+
+
+def provision_workstation_docker(
+    org_id,
+    server_logger,
+    org_docker: DockerClient,
+    org_network_name: str,
+    samba_ip: str,
+    org_subnet_cidr: str,
+):
+    global PRAGMA_ONCE
+    if PRAGMA_ONCE is False:
+        PRAGMA_ONCE = True
+
+    # Make sure compose has a mount dir and a storage base even inside api-test container
+    os.environ.setdefault("WORKSTATIONS_MOUNT_DIR", "/home/cena")
+    os.environ.setdefault("WORKSTATION_STORAGE_BASE", "/home/cena/cloudshield_workstations")
+
+    host_port = _pick_workstation_host_port(org_subnet_cidr)
+
+    storage_dir = _workstation_storage_dir(str(org_id))
+    Path(storage_dir).mkdir(parents=True, exist_ok=True)
+
+    # Compose variable used in docker-compose.yml
+    os.environ["WORKSTATION_STORAGE_DIR"] = storage_dir
+    server_logger.info(f"WORKSTATION_STORAGE_DIR={storage_dir}")
+
+    container_ws = org_docker.compose.run(
+        service="workstation",
+        publish=[(host_port, 8006)],
         detach=True,
-        tty=True,
-        command=["sh", "-c", "apk add --no-cache iputils && sleep infinity"],
-        publish=[(0, 3389)]
+        tty=False,
     )
 
     container_id_ws = container_ws.id
     container_ws.reload()
-    container_ws_ip = container_ws.network_settings.networks[network_name].ip_address
 
-    host_rdp_port = "0"
-    try:
-        ports_map = container_ws.network_settings.ports
-        if ports_map and "3389/tcp" in ports_map:
-             host_rdp_port = ports_map["3389/tcp"][0]["HostPort"]
-    except Exception as e:
-        server_logger.warning(f"Could not determine assigned port: {e}")
+    # NOTE: container is attached to org_net (via override) so it should have an IP there
+    container_ws_ip = container_ws.network_settings.networks[org_network_name].ip_address
 
-    server_logger.info(f"Lightweight workstation started on port {host_rdp_port}")
-    
+    server_logger.info("Creating OEM scripts")
+    create_auto_configure_scripts(
+        {
+            "DOMAIN_NAME": "samdom.example.com",
+            "ADMIN_USER": "Administrator",
+            "ADMIN_PASS": "letmein123%",
+            "SAMBA_IP": samba_ip,
+        },
+        container_id_ws,
+        server_logger,
+    )
+
+    if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
+        return None
+
+    server_logger.info("Windows workstation installation has started, this will take some time")
+
     return {
-        "port": str(host_rdp_port),
+        "port": str(host_port),
         "org_id": org_id,
-        "name": f"{org_id}-workstation",
+        "name": org_id + "_" + short_uuid() + "_" + "_workstation",
         "instance_id": container_id_ws,
-        "vpc_id": network_name,
+        "vpc_id": "vpc_net_docker",
         "subnet_id": "subnet_id",
-        "ssh_key": org_id+"_key",
-        "ami_id": "alpine_lightweight_id",
-        "os": "alpine",
-        "cpu": "0.5",
-        "ram_gb":"0.5",
-        "storage_size_gb":1,
+        "ssh_key": org_id + "_key",
+        "ami_id": "windows_default_ami_id",
+        "os": "windows11",
+        "cpu": "2",
+        "ram_gb": "4",
+        "storage_size_gb": 10,
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "ports": ["80","169"],
+        "ports": [str(host_port)],
         "status": "running",
         "private_ip": container_ws_ip,
         "public_ip": container_ws_ip,
     }
 
-def provision_network_docker(org_data, region, templates_dir, generated_dir, count, server_logger):
-    base_path = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
-    compose_file = os.path.join(base_path, "docker-compose.yml")    
-    
-    docker = python_on_whales.DockerClient(
-        compose_files=[compose_file],
-        compose_profiles=["templates"]
-    )
 
-    if server_logger and os.path.exists(compose_file):
-        try:
-            server_logger.info("Ensuring Docker templates are built...")
-            docker.compose.build(["samba-test", "openvpn-test"])
-        except Exception as e:
-            server_logger.warning(f"Build step skipped or failed: {e}")
+def _is_blank(v: str | None) -> bool:
+    return v is None or str(v).strip() == ""
+
+
+def provision_network_docker(org_data, region, templates_dir, generated_dir, count, server_logger):
+    server_logger.info("count " + str(count))
+    server_logger.info("region " + str(region))
+    server_logger.info("gen_dir " + str(generated_dir))
+    server_logger.info("tmp_dir " + str(templates_dir))
 
     org_id = org_data.get("org_id", None)
     domain_name = org_data.get("domain_name", None)
     realm_name = org_data.get("realm_name", None)
     dc_admin_password = org_data.get("dc_admin_password", None)
 
-    cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/"+str(org_id))
+    if _is_blank(org_id):
+        server_logger.error("Missing org_id in org_data")
+        return None
+
+    org_id = str(org_id).strip()
+
+    if _is_blank(domain_name):
+        server_logger.warning("Missing domain_name. Using default cloudshield.local")
+        domain_name = "cloudshield.local"
+    else:
+        domain_name = str(domain_name).strip()
+
+    if _is_blank(realm_name):
+        server_logger.warning("Missing realm_name. Using default CLOUDSHIELD.LOCAL")
+        realm_name = "CLOUDSHIELD.LOCAL"
+    else:
+        realm_name = str(realm_name).strip()
+
+    if _is_blank(dc_admin_password):
+        server_logger.warning("Missing dc_admin_password. Using default Password123!")
+        dc_admin_password = "Password123!"
+    else:
+        dc_admin_password = str(dc_admin_password)
+
+    cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/" + org_id)
+
     try:
         cloudshield_path.mkdir(parents=True, exist_ok=True)
+        server_logger.info("Cloudshield data directory created (or already exists)")
     except Exception:
         server_logger.error("Failed to create cloudshield work directory")
-        return
+        return None
 
-    network_name = f"{org_id}-net"
-    try:
-        if not docker.network.list(filters={"name": network_name}):
-            docker.network.create(network_name)
-            server_logger.info(f"Created network {network_name}")
-    except Exception as e:
-        server_logger.warning(f"Network creation warning: {e}")
+    # Create or reuse per-org network 172.23.X.0/24
+    org_network_name, org_subnet_cidr, _org_gateway = ensure_org_network_with_subnet(org_id, server_logger)
 
-    public_key_path, private_key_path = setup_ssh_keys(server_logger, str(cloudshield_path)+f"/{org_id}_key")
+    override_path = cloudshield_path / "docker-compose.org.override.yml"
+    _write_compose_override_for_org(override_path, org_network_name)
+
+    org_docker = DockerClient(compose_files=[COMPOSE_FILE, str(override_path)])
+
+    public_key_path, private_key_path = setup_ssh_keys(server_logger, str(cloudshield_path) + f"/{org_id}_key")
     if public_key_path is None or private_key_path is None:
-        return
+        server_logger.error("Failed to generate ssh keys")
+        return None
 
     server_logger.info("Running docker provisioning")
-
-
-    if domain_name is None:
-        print("WARNING: Missing domain_name. Using defaults.")
-        domain_name = "cloudshield.local"
-    
-    if realm_name is None:
-        realm_name = "CLOUDSHIELD.LOCAL"
-        
-    if dc_admin_password is None:
-        dc_admin_password = "Password123!"
 
     os.environ["DOMAIN_NAME"] = domain_name
     os.environ["DC_ADMIN_PASSWORD"] = dc_admin_password
     os.environ["REALM_NAME"] = realm_name
     os.environ["REALM_NAME_LWR"] = realm_name.lower()
-    ensure_clean_state(f"{org_id}-samba-test", server_logger, docker)
-    
-    container_dc = docker.run(
-        image=get_service_image("samba-test", docker), 
-        name=f"{org_id}-samba-test",
-        networks=[network_name],
+
+    container_dc = org_docker.compose.run(
+        service="samba-test",
         detach=True,
-        tty=True,
-        privileged=True,
-        cgroupns="host",
-        tmpfs=["/run", "/run/lock", "/tmp"],
-        volumes=[("/sys/fs/cgroup", "/sys/fs/cgroup", "rw")],
-        devices=[
-            "/dev/loop0:/dev/loop0", "/dev/loop1:/dev/loop1", 
-            "/dev/loop2:/dev/loop2", "/dev/loop3:/dev/loop3",
-            "/dev/loop4:/dev/loop4", "/dev/loop5:/dev/loop5",
-            "/dev/loop6:/dev/loop6", "/dev/loop7:/dev/loop7",
-            "/dev/loop-control:/dev/loop-control"
-        ],
+        tty=False,
         envs={
-        "DOMAIN_NAME": domain_name,
-        "DC_ADMIN_PASSWORD": dc_admin_password,
-        "REALM_NAME": realm_name,
-        "REALM_NAME_LWR": realm_name.lower() if realm_name else "",
-        })
-    
+            "DOMAIN_NAME": domain_name,
+            "DC_ADMIN_PASSWORD": dc_admin_password,
+            "REALM_NAME": realm_name,
+            "REALM_NAME_LWR": realm_name.lower(),
+        },
+    )
+
     container_id = container_dc.id
     container_dc.reload()
-    container_dc_ip = container_dc.network_settings.networks[network_name].ip_address
+    container_dc_ip = container_dc.network_settings.networks[org_network_name].ip_address
     server_logger.info(f"samba-test container id: {container_id} | IP: {container_dc_ip}")
 
-    ensure_clean_state(f"{org_id}-openvpn-test", server_logger, docker)
-    
-    container_vpn = docker.run(
-        image=get_service_image("openvpn-test", docker),
-        name=f"{org_id}-openvpn-test",
-        networks=[network_name],
+    container_vpn = org_docker.compose.run(
+        service="openvpn-test",
         detach=True,
-        tty=True,
-        privileged=True,
-        cap_add=["NET_ADMIN"],
-        tmpfs=["/run", "/run/lock", "/tmp"],
-        volumes=[("/sys/fs/cgroup", "/sys/fs/cgroup", "rw")],
-        devices=["/dev/net/tun:/dev/net/tun"],
+        tty=False,
         envs={
             "OPENVPN_PORT": "1194",
             "OPENVPN_PROTOCOL": "udp",
-            "OPENVPN_CLIENT_NAME": "client1"
-        }
+            "OPENVPN_CLIENT_NAME": "client1",
+            "OPENVPN_DNS": container_dc_ip,
+            "ORG_SUBNET_CIDR": org_subnet_cidr,
+        },
     )
+
     container_id_vpn = container_vpn.id
     container_vpn.reload()
-    container_vpn_ip = container_vpn.network_settings.networks[network_name].ip_address
+    container_vpn_ip = container_vpn.network_settings.networks[org_network_name].ip_address
     server_logger.info(f"openvpn-test container id: {container_id_vpn} | IP: {container_vpn_ip}")
 
     if not setup_container(server_logger, container_id):
         server_logger.error("Failed to run samba setup script")
-    
+        return None
     if not setup_container(server_logger, container_id_vpn):
         server_logger.error("Failed to run openvpn setup script")
+        return None
 
     if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):
-        return
+        return None
     if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
-        return
+        return None
 
-    workstation_meta = provision_workstation_docker(org_id, network_name, container_dc_ip, server_logger, docker)
+    workstation_meta = provision_workstation_docker(
+        org_id,
+        server_logger,
+        org_docker=org_docker,
+        org_network_name=org_network_name,
+        samba_ip=container_dc_ip,
+        org_subnet_cidr=org_subnet_cidr,
+    )
     if workstation_meta:
-         wait_workstation_completion(workstation_meta["instance_id"], server_logger)
+        wait_workstation_completion(workstation_meta["instance_id"], server_logger)
 
-    metadata = [{
-        "port": "50055",
-        "org_id": org_id,
-        "name": f"{org_id}-samba-test",
-        "instance_id": container_id,
-        "vpc_id": network_name,
-        "subnet_id": "subnet_id",
-        "ssh_key": org_id+"_key",
-        "ami_id": "samba_ami_id",
-        "os": "ubuntu:22.04",
-        "cpu": "2",
-        "ram_gb":"4",
-        "storage_size_gb":10,
-        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "ports": ["80","169"],
-        "status": "running",
-        "private_ip": container_dc_ip,
-        "public_ip": container_dc_ip,
-    },{
-        "port":"50055",
-        "org_id": org_id,
-        "name": f"{org_id}-openvpn-test",
-        "instance_id": container_id,
-        "vpc_id": network_name,
-        "subnet_id": "subnet_id",
-        "ssh_key": org_id+"_key",
-        "ami_id": "samba_ami_id",
-        "os": "ubuntu:22.04",
-        "cpu": "2",
-        "ram_gb":"4",
-        "storage_size_gb":10,
-        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "ports": ["80","169"],
-        "status": "running",
-        "private_ip": container_vpn_ip,
-        "public_ip": container_vpn_ip
-    }]
-    
+    metadata = [
+        {
+            "port": "50055",
+            "org_id": org_id,
+            "name": org_id + "_samba",
+            "instance_id": container_id,
+            "vpc_id": org_network_name,
+            "subnet_id": org_subnet_cidr,
+            "ssh_key": org_id + "_key",
+            "ami_id": "samba_ami_id",
+            "os": "ubuntu:22.04",
+            "cpu": "2",
+            "ram_gb": "4",
+            "storage_size_gb": 10,
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "ports": ["80", "169"],
+            "status": "running",
+            "private_ip": container_dc_ip,
+            "public_ip": container_dc_ip,
+        },
+        {
+            "port": "50055",
+            "org_id": org_id,
+            "name": org_id + "_openvpn_server",
+            "instance_id": container_id_vpn,
+            "vpc_id": org_network_name,
+            "subnet_id": org_subnet_cidr,
+            "ssh_key": org_id + "_key",
+            "ami_id": "openvpn_ami_id",
+            "os": "ubuntu:22.04",
+            "cpu": "2",
+            "ram_gb": "4",
+            "storage_size_gb": 10,
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "ports": ["80", "169"],
+            "status": "running",
+            "private_ip": container_vpn_ip,
+            "public_ip": container_vpn_ip,
+        },
+    ]
+
     if workstation_meta:
         metadata.append(workstation_meta)
 
     return metadata
 
+
 def get_target_dir(*args, **kwargs):
     return None
+
 
 def destroy_network_docker():
     pass

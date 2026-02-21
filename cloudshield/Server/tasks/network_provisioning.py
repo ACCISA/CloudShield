@@ -229,17 +229,16 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
 def _detect_mode(logger) -> str:
     mode = (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower()
     docker_sock = Path("/var/run/docker.sock")
-    docker_prov_file = Path("/app/provisioner/provision.py")
 
-    if mode != "docker" and docker_sock.exists() and docker_prov_file.exists():
-        logger.warning(
-            "DEPLOYMENT_MODE is '%s' but docker runtime detected (docker.sock + provisioner file). "
-            "Forcing mode='docker' to avoid Terraform path.",
-            mode or "<unset>",
-        )
+    if mode in {"docker", "terraform"}:
+        return mode
+
+    if docker_sock.exists():
+        logger.warning("DEPLOYMENT_MODE unset; docker runtime detected. Using mode='docker'.")
         return "docker"
 
-    return mode
+    return "terraform"
+
 
 
 def _validate_inventory_assets(logger, org_id: str, assets_raw: list[Any]) -> list[dict[str, Any]]:
@@ -378,11 +377,18 @@ def provision_network(
 
             docker_fn = provision_network_docker or _import_provision_network_docker()
 
+            docker_org_data = {
+                "org_id": org_id,
+                "domain_name": org_doc.get("domain_name"),
+                "realm_name": org_doc.get("realm_name"),
+                "dc_admin_password": org_doc.get("dc_admin_password"),
+            }
+
             metadata = docker_fn(
-                org_data={"org_id": org_id},
+                org_data=docker_org_data,
                 region=region,
-                templates_dir=templates_dir,
-                generated_dir=generated_dir,
+                templates_dir=str(templates_dir),
+                generated_dir=str(generated_dir),
                 count=desired_workstations,
                 server_logger=logger,
             )
