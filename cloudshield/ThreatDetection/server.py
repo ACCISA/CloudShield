@@ -1,4 +1,5 @@
 """gRPC threat detection server with agent authentication and heartbeat monitoring."""
+import os
 import time
 import threading
 import grpc
@@ -10,6 +11,18 @@ from utils import get_agents, is_valid_agent
 from servicer import AgentServiceServicer
 from state import state_manager
 from logger import state_logger, server_logger, interceptor_logger
+
+# ── Threat-detection subsystem imports (graceful) ───────────────────────────
+try:
+    from snort.alert_parser import SnortAlertWatcher
+    from alerts import AlertDeduplicator, alert_from_snort
+    from es_templates import ensure_index_templates
+    from scheduled_tasks import start_scheduled_tasks
+    from servicer import _anomaly_detector, _threat_intel, _alert_dedup
+    from utils import es_log
+    _HAS_THREAT = True
+except Exception:
+    _HAS_THREAT = False
 
 agents = get_agents()
 heartbeats = {}
@@ -93,10 +106,62 @@ def monitor_state():
         state_manager.alert_missing_responses()
         time.sleep(5)
 
+
+def _start_threat_subsystems():
+    """
+    Initialise threat-detection subsystems that run alongside gRPC:
+      - Elasticsearch index templates
+      - Snort alert file watcher
+      - Scheduled background tasks (retrain, feed refresh, alert flush, prune)
+    """
+    if not _HAS_THREAT:
+        server_logger.info("Threat-detection subsystem imports unavailable — skipping")
+        return
+
+    # 1. ES index templates
+    try:
+        from elasticsearch import Elasticsearch
+        es = Elasticsearch(
+            ["http://localhost:9200"],
+            basic_auth=("elastic", os.environ.get("ES_PASSWORD", "enKPRIhK")),
+        )
+        ensure_index_templates(es, server_logger)
+    except Exception as exc:
+        server_logger.warning("ES index template setup skipped: %s", exc)
+        es = None
+
+    # 2. Snort alert watcher
+    snort_log = os.environ.get("SNORT_ALERT_FILE", "/var/log/snort/alert")
+    _snort_dedup = _alert_dedup  # reuse the servicer's deduplicator
+
+    def _on_snort_alert(alert):
+        """Callback invoked by the watcher for each new Snort line."""
+        es_log("snort_alerts", alert.to_dict())
+        if _snort_dedup is not None:
+            _snort_dedup.ingest(alert_from_snort(alert.to_dict()))
+
+    watcher = SnortAlertWatcher(snort_log, _on_snort_alert)
+    watcher.start()
+    server_logger.info("Snort alert watcher started (file=%s)", snort_log)
+
+    # 3. Scheduled tasks
+    start_scheduled_tasks(
+        threat_intel=_threat_intel,
+        anomaly_detector=_anomaly_detector,
+        alert_deduplicator=_alert_dedup,
+        es_client=es,
+        es_log_fn=es_log,
+        logger=server_logger,
+    )
+
+
 if __name__ == "__main__":
     t = threading.Thread(target=print_heartbeats, daemon=True)
     t2= threading.Thread(target=monitor_state, daemon=True)
     t.start()
     t2.start()
+
+    # Start threat-detection subsystems
+    _start_threat_subsystems()
 
     serve()

@@ -147,12 +147,14 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - ES_URL=http://elasticsearch:9200
     depends_on:
       - redis
     ports:
       - "5050:5050"
     networks: # for a dev env we will pretent that the API has access to the VPC somehow
       - vpc_net
+      - cloudshield_net
     volumes:
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
