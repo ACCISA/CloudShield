@@ -133,8 +133,12 @@ def ws_start(org_id, template_id):
 
 
     
-def wc_create_custom():
+def ws_create_custom():
     """
     Create a custom workstation
     """
     pass
+
+def ws_provision_update(workstation_id, status):
+    pass
+

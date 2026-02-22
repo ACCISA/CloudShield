@@ -1,4 +1,5 @@
 import os
+import uuid
 import socket
 import time
 import shutil
@@ -17,6 +18,8 @@ docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 storage_path = Path("/data/workstations/")
 template_vm_path = Path("/data/workstations/templates")
 default_oem_path = Path("/app/docker/workstation/oem")
+
+PROVISIONING_STATE = {}
 
 def generate_mac():
     return ":".join(f"{random.randint(0, 255):02X}" for _ in range(6))
@@ -48,7 +51,7 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
     files = [
         (str(template_path / 'data.img'), str(vm_path / 'data.img')),
         (str(template_path / 'windows.base'), str(vm_path / 'windows.base')),
-        (str(template_path / 'windows.mac'), str(vm_path / 'windows.mac')),
+ #       (str(template_path / 'windows.mac'), str(vm_path / 'windows.mac')),
         (str(template_path / 'windows.vars'), str(vm_path / 'windows.vars')),
         (str(template_path / 'windows.ver'), str(vm_path / 'windows.ver')),
         (str(template_path / 'windows.rom'), str(vm_path / 'windows.rom')),
@@ -76,6 +79,21 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
                 logger.info(f"A copy task failed: {e}")
                 return False
     return True
+
+def set_workstation_update_id(org_id, template_id, update_id, logger):
+    source_path = storage_path / "software" / org_id / template_id / "install.bat"
+    fr = open(str(source_path), "r", encoding='utf-8')
+    content = fr.read()
+    new_content = content
+    new_content.replace("WORKSTATION_UPDATE_ID_PLACEHOLDER", update_id)
+
+    fw = open(str(source_path), "w", encoding='utf-8')
+    fw.write(new_content)
+    fr.close()
+    fw.close()
+    
+    logger.info("Set workstation update id to install.bat")
+
 
 def create_auto_configure_scripts(variables: dict, org_id, template_id, server_logger):
     """
@@ -146,6 +164,8 @@ def prepare_software(org_id, templated_id, software,oem_path,logger):
 
 def provision_default_workstation(org_data, template_id, software, job = None, updater = None, logger = None):
 
+    global PROVISIONING_STATE
+
     if updater is None:
         updater = lambda *args, **kwargs: None
 
@@ -157,7 +177,7 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     updater(job, "importing oem scripts")
     oem_path = storage_path / "software" / org_id / template_id
 
-   
+    update_id = uuid.uuid4()
 
     prepare_software(org_id, template_id, software,oem_path, logger)
     
@@ -166,6 +186,9 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
         "admin_user":"administrator",
         "admin_pass":org_data["dc_admin_password"],
         "samba_ip":org_data["samba_ip"]}, org_id, template_id, logger) 
+
+    #set_workstation_update_id(org_id, template_org_id, template_id, update_id, logger)
+    
 
     updater(job, "starting workstation service")
 
@@ -181,7 +204,6 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
                 (str(host_vm_storage_path),"/storage","rw"),
                 (str(host_oem_storage_path), "/oem", "rw")
             ],
-            publish=[(8009, 8006)],
             detach=True,
             tty=False
     )
@@ -189,13 +211,14 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     container_ws_id = container_ws.id
     container_ws_ip = container_ws.network_settings.networks["vpc_net"].ip_address
 
+    PROVISIONING_STATE[update_id] = container_ws_id
+
     logger.info(f"default workstation container id: {container_ws.id}")
 
     updater(job, "initializing image")
 
     wait_for_rdp(container_ws_ip, logger=logger)
 
-    docker.container.kill(container_ws_id)
 
     updater(job, "workstation image created")
 
@@ -219,16 +242,18 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
         failed_status["reason"] = "Failed to copy template image"
         return failed_status
 
-    assigned_mac = assign_mac(vm_path)
+    # assigned_mac = assign_mac(vm_path)
 
     updater(job, "starting workstation vm")
 
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
 
+    name = "ws-"+str(vm_id)
+
     container_ws = docker.compose.run(
             service="workstation",
             command=["skip"],
-            publish=[(8006, 8006)],
+            name=name,
             volumes=[(str(host_vm_storage_path), "/storage", "rw")],
             detach=True,
             tty=False
@@ -244,8 +269,20 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
     return {
         "status": True,
         "ipv4_address": container_ws_ip,
-        "mac": assigned_mac
+        #"mac": assigned_mac
     }
 
 def provision_custom_workstation():
+    pass
+
+def provision_update(workstation_id, status, job = None, updater = None, logger = None):
+    global PROVISIONING_STATE
+
+    if updater is None:
+        updater = lambda *args, **kwargs: None
+
+    if status == 1:
+        container_id = PROVISIONING_STATE.get(workstation_id)
+        docker.container.kill(container_id)
+        logger.info("Update recieved from provisioning")
     pass

@@ -26,6 +26,8 @@ workstations_bp = Blueprint("workstations", __name__)
 
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 ERROR_TEMPLATE_ID_REQUIRED = "template_id is required"
+ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
+ERROR_STATUS_REQUIRED = "status is required"
 
 @workstations_bp.route("/workstations/create-default", methods=["POST"])
 @require_auth
@@ -73,7 +75,6 @@ def start():
     """
     data = request.get_json() or {}
 
-    
     logger.info("[API] Received /workstations/create-default POST request")
 
     org_id = data.get("org_id")
@@ -93,5 +94,36 @@ def start():
             template_id=template_id)
 
     return jsonify({"job_id":job.id}), 202
+
+@workstations_bp.route("/workstations/update", methods=["GET"])
+def update():
+    """
+    NOTE: this route should NEVER be called manually or by the UI
+    
+    This route is reserved for workstation to update their status after provisioning has started. In the future this route will only allow IPs from the workstations range for accessing it.
+
+    The workstation_id is a temporary identifier assigned during provisiong, its not the actual database workstation id
+    """
+
+    workstation_id = request.args.get('id')
+    status = request.args.get('status')
+
+    logger.info("[API] Received /workstations/update GET request")
+
+    if not workstation_id:
+        return jsonify({"error":ERROR_WORKSTATION_ID_REQUIRED})
+    if not status:
+        return jsonify({"error":ERROR_STATUS_REQUIRED})
+
+
+    job = service_dispatcher(
+            service_name="ws_provision_update",
+            workstation_id=workstation_id,
+            status=status)
+
+    return jsonify({"job_id":job.id}), 202
+
+    
+
 
 

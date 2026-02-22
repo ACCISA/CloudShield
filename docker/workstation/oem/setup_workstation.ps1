@@ -7,6 +7,7 @@ $dnsServers = @("SAMBA_IP")
 $domainName = "DOMAIN_NAME"
 $adminUser = "ADMIN_USER"
 $adminPass = "ADMIN_PASS"
+$computerName = "COMPUTER_NAME"
 
 # In our docker_provisioner we must make sure to set the DOMAIN_NAME, SAMBA_IP, ADMIN_USER and ADMIN_PASS
 

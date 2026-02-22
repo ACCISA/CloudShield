@@ -12,13 +12,12 @@ from .keygen import generate_ssh_key_pair
 
 docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 
-# In our test env, to be efficient we will build our infra now. We can assume that during testing
-# we are probably going to be provisioning infra. When we provision we will just docker compose up.
 OVPN_VOLUME_NAME = "opvn-data-cloudshield"
 PKI_INPUT = b"\n\n\n"
-print("BUILDING")
-PRAGMA_ONCE = False
-if PRAGMA_ONCE is False:
+
+def init_docker():
+    # In our test env, to be efficient we will build our infra now. We can assume that during testing
+    # we are probably going to be provisioning infra. When we provision we will just docker compose up.
     docker.compose.build(
         services=["samba-test", "openvpn-test","workstation"]
     )
@@ -140,7 +139,6 @@ def provision_workstation_docker(org_id, server_logger):
 
     container_ws = docker.compose.run(
             service="workstation",
-            publish=[(8006, 8006)],
             detach=True,
             tty=False
     )

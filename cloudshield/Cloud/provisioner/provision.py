@@ -13,6 +13,10 @@ BASE_DIR = os.path.dirname(__file__)
 DEFAULT_TEMPLATES_DIR = os.path.join(BASE_DIR, "../templates")
 logger = logging.getLogger()
 
+def init_cloud():
+    # This will be implemented once we start moving to AWS
+    pass
+
 def provision_workstation():
     # This will be implemented once we start moving to AWS
     pass
