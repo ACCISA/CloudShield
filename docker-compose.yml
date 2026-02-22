@@ -153,17 +153,6 @@ services:
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
-    volumes:
-      - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR}
-        target: /storage
-      - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR}/docker/workstation/oem
-        target: /oem
-      - type: bind
-        source: ${WINDOWS_ISO_PATH}
-        target: /storage/win11x64.iso
-        read_only: true
     restart: "no"
     stop_grace_period: 2m
 
