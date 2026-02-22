@@ -24,7 +24,6 @@ from __future__ import annotations
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, asdict
-from typing import Sequence
 
 
 @dataclass

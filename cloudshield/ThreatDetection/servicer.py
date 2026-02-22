@@ -12,10 +12,9 @@ from utils import es_log, get_ip, ingest_processes
 # ── Anomaly detection & threat intel (graceful import) ──────────────────────
 try:
     from anomaly.detector import AnomalyDetector
-    from anomaly.features import extract_conn_features
     from monitoring.threat_intel import ThreatIntelChecker
     from anomaly.rate_monitor import TrafficRateMonitor
-    from alerts import Alert, AlertDeduplicator, alert_from_anomaly, alert_from_threat_intel, alert_from_traffic_spike
+    from alerts import AlertDeduplicator, alert_from_anomaly, alert_from_threat_intel, alert_from_traffic_spike
     _anomaly_detector = AnomalyDetector(contamination=0.05)
     _threat_intel = ThreatIntelChecker()
     _rate_monitor = TrafficRateMonitor()

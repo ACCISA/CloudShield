@@ -1,7 +1,5 @@
 """Tests for the unified alert model, severity helpers, and AlertDeduplicator."""
 
-import time
-import pytest
 
 from cloudshield.ThreatDetection.alerts import (
     Severity,

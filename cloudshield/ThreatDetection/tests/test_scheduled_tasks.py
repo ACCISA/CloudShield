@@ -1,14 +1,11 @@
 """Tests for scheduled background tasks."""
 
-import time
-import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from cloudshield.ThreatDetection.scheduled_tasks import (
     _refresh_threat_intel,
     _retrain_anomaly_model,
     _flush_alerts,
-    _poll_fail2ban,
     _prune_old_alerts,
     start_scheduled_tasks,
 )

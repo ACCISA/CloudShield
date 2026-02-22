@@ -1,7 +1,5 @@
 """Tests for the anomaly detection feature extraction and detector."""
 
-import math
-import pytest
 
 from cloudshield.ThreatDetection.anomaly.features import (
     extract_conn_features,

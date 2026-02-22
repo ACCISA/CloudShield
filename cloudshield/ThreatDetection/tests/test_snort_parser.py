@@ -1,11 +1,9 @@
 """Tests for the Snort alert parser."""
 
-import pytest
 
 from cloudshield.ThreatDetection.snort.alert_parser import (
     parse_fast_alert_line,
     parse_alert_file,
-    SnortAlert,
     SnortAlertWatcher,
 )
 

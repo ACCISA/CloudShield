@@ -13,7 +13,6 @@ generate an Elasticsearch alert immediately.
 from __future__ import annotations
 
 import ipaddress
-import os
 import threading
 import time
 from dataclasses import dataclass, asdict

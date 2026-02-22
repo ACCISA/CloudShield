@@ -15,7 +15,7 @@ from logger import state_logger, server_logger, interceptor_logger
 # ── Threat-detection subsystem imports (graceful) ───────────────────────────
 try:
     from snort.alert_parser import SnortAlertWatcher
-    from alerts import AlertDeduplicator, alert_from_snort
+    from alerts import alert_from_snort
     from es_templates import ensure_index_templates
     from scheduled_tasks import start_scheduled_tasks
     from servicer import _anomaly_detector, _threat_intel, _alert_dedup

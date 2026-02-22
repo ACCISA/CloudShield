@@ -1,7 +1,6 @@
 """Tests for Elasticsearch index templates module."""
 
-import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock
 
 from cloudshield.ThreatDetection.es_templates import ensure_index_templates, INDEX_TEMPLATES
 

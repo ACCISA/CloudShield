@@ -1,15 +1,10 @@
 """Tests for the security monitoring helpers (fail2ban, geo-blocking, threat intel)."""
 
-import pytest
 
 from cloudshield.ThreatDetection.monitoring.fail2ban import (
     Fail2BanManager,
-    JailConfig,
-    JailStatus,
     parse_jail_status,
     OPENVPN_JAIL,
-    SSH_JAIL,
-    SAMBA_JAIL,
     DEFAULT_JAILS,
 )
 from cloudshield.ThreatDetection.monitoring.geo_blocking import (
