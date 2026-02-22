@@ -489,6 +489,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     os.environ["REALM_NAME_LWR"] = realm_name.lower()
 
     container_dc = org_docker.compose.run(
+        name="samba-test-"+str(org_id),
         service="samba-test",
         detach=True,
         tty=False,
@@ -506,6 +507,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     server_logger.info(f"samba-test container id: {container_id} | IP: {container_dc_ip}")
 
     container_vpn = org_docker.compose.run(
+        name="openvpn-test-"+str(org_id),
         service="openvpn-test",
         detach=True,
         tty=False,
