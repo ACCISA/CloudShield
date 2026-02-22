@@ -11,6 +11,7 @@ import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import ProvisioningPage from "./pages/ProvisioningPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
+import SubscriptionPage from './pages/SubscriptionPage';
 
 import { AuthProvider } from "./context/AuthContext.jsx";
 
@@ -126,6 +127,15 @@ function AppWithAuth() {
           element={
             <Protected>
               <DashboardPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/subscription"
+          element={
+            <Protected>
+              <SubscriptionPage />
             </Protected>
           }
         />
