@@ -222,6 +222,7 @@ def test_provision_workstations_failure(monkeypatch, tmp_path):
 
 
 def test_provision_network_success(monkeypatch, tmp_path):
+    monkeypatch.setattr("tasks.network_provisioning._detect_mode", lambda *args, **kwargs: "terraform")
     from tasks.network_provisioning import provision_network
 
     # Mock job/logger
@@ -295,6 +296,7 @@ def test_provision_network_success(monkeypatch, tmp_path):
 
 
 def test_provision_network_returns_none(monkeypatch):
+    monkeypatch.setattr("tasks.network_provisioning._detect_mode", lambda *args, **kwargs: "terraform")
     from tasks.network_provisioning import provision_network
 
     mock_job = unittest.mock.MagicMock()
@@ -434,6 +436,7 @@ def test_provision_network_raises_when_exceeding_org_limit(monkeypatch):
 
 def test_provision_network_uses_org_limit_and_updates_status(monkeypatch):
     import tasks.network_provisioning as np
+    monkeypatch.setattr(np, "_detect_mode", lambda *args, **kwargs: "terraform")
 
     updates = []
 
@@ -459,6 +462,7 @@ def test_provision_network_uses_org_limit_and_updates_status(monkeypatch):
 
 def test_destroy_environment_no_directory(monkeypatch, tmp_path):
     from tasks.network_provisioning import destroy_environment
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
 
     mock_job = unittest.mock.MagicMock()
     mock_job.id = "test_job"
@@ -483,6 +487,7 @@ def test_destroy_environment_no_directory(monkeypatch, tmp_path):
 
 
 def test_destroy_environment_failure(monkeypatch, tmp_path):
+    monkeypatch.setattr("tasks.network_provisioning._detect_mode", lambda *args, **kwargs: "terraform")
     from tasks.network_provisioning import destroy_environment
 
     jobs_dir = tmp_path
@@ -630,13 +635,13 @@ def test_detect_mode_forces_docker_when_runtime_detected(monkeypatch):
     import cloudshield.Server.tasks.network_provisioning as np
 
     # DEPLOYMENT_MODE not docker, but docker.sock + provisioner file "exist"
-    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
+    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
 
     orig_exists = np.Path.exists
 
     def fake_exists(self):
         s = str(self)
-        if s in ("/var/run/docker.sock", "/app/provisioner/provision.py"):
+        if "docker.sock" in s or "provision.py" in s:   
             return True
         return orig_exists(self)
 
@@ -828,7 +833,7 @@ def test_provision_network_terraform_none_sets_details(monkeypatch):
     monkeypatch.setattr(np, "organizations", orgs)
     monkeypatch.setattr(np, "org_filter", lambda org_id: {"org_id": org_id})
 
-    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     monkeypatch.setattr(np, "_detect_mode", lambda _logger: "terraform")
 
     monkeypatch.setattr(

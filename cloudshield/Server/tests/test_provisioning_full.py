@@ -63,7 +63,7 @@ def test_provision_network_docker_failure_no_metadata(mock_dependencies, monkeyp
     assert "failed" in mock_dependencies.meta["progress"]
 
 def test_provision_network_terraform_success(mock_dependencies, monkeypatch):
-    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     
     fake_meta = {"id": "tf-1"}
     monkeypatch.setattr(np_module, "provision_network_terraform", lambda **kwargs: fake_meta)
@@ -79,7 +79,7 @@ def test_provision_network_exception_handling(mock_dependencies, monkeypatch):
     def crash(**kwargs):
         raise ValueError("Boom")
     
-    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     monkeypatch.setattr(np_module, "provision_network_terraform", crash)
 
     with pytest.raises(ValueError):
@@ -123,7 +123,7 @@ def test_destroy_docker(mock_dependencies, monkeypatch):
     mock_container.remove.assert_called_with(force=True)
 
 def test_destroy_terraform_success(mock_dependencies, monkeypatch, tmp_path):
-    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     
     generated_dir = tmp_path / "terraform" / "generated" / "org_destroy_tf"
     generated_dir.mkdir(parents=True, exist_ok=True)
@@ -170,7 +170,7 @@ def test_update_status_db_failure(mock_dependencies, monkeypatch):
     np_module._update_org_provisioning_status("org_fail", "failed", "job_123", logger=mock_dependencies)
     
 def test_destroy_exception_handling(mock_dependencies, monkeypatch, tmp_path):
-    monkeypatch.delenv("DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     
     generated_dir = tmp_path / "terraform" / "generated" / "org_destroy_fail"
     generated_dir.mkdir(parents=True, exist_ok=True)
