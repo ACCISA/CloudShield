@@ -526,9 +526,14 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     app, client = app_and_client
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
 
-    def _fake_update_user(user_id, update_data, *args, **kwargs):
+    def _fake_update_user(user_id, update_data, current_user=None, *args, **kwargs):
         if user_id == "missing":
             raise ValueError(f"User {user_id} not found")
+        # Enforce admin-only access (unless self-update)
+        current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub") or "")
+        is_self = current_user_id == str(user_id)
+        if not is_self and current_user.get("role") != "admin":
+            raise PermissionError("User is not authorized to perform this action")
         new_fields = {k: v for k, v in update_data.model_dump().items()}
         doc = fake_users_collection.find_one({"_id": user_id})
         if not doc:
