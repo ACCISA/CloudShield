@@ -452,7 +452,7 @@ def get_current_user_endpoint():
             if fresh_user:
                 fresh_user["id"] = str(fresh_user.pop("_id"))
                 return jsonify({"user": fresh_user}), 200
-        except Exception as e:
+        except Exception:
             pass # If DB fetch fails for any reason, fall back to the token data
 
     # 2. Fallback to the JWT token claims if DB fetch wasn't possible
