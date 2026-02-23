@@ -339,4 +339,242 @@ describe("NotificationsTab", () => {
       expect(screen.getByText("Notification Centre")).toBeInTheDocument();
     });
   });
+
+  describe("Email Validation", () => {
+    it("shows error for invalid email format", async () => {
+      mockOnSave.mockResolvedValue();
+      const propsWithEnabled = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          notification_preferences: {
+            ...defaultProps.userData.notification_preferences,
+            email_alerts: true,
+          },
+        },
+      };
+      
+      render(<NotificationsTab {...propsWithEnabled} />);
+      const emailInput = screen.getByPlaceholderText("Email");
+      
+      await userEvent.clear(emailInput);
+      await userEvent.type(emailInput, "invalidemail");
+      fireEvent.blur(emailInput);
+      
+      expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
+    });
+
+    it("clears error on valid email entry", async () => {
+      mockOnSave.mockResolvedValue();
+      const propsWithEnabled = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          notification_preferences: {
+            ...defaultProps.userData.notification_preferences,
+            email_alerts: true,
+          },
+        },
+      };
+      
+      render(<NotificationsTab {...propsWithEnabled} />);
+      const emailInput = screen.getByPlaceholderText("Email");
+      
+      await userEvent.clear(emailInput);
+      await userEvent.type(emailInput, "valid@example.com");
+      fireEvent.blur(emailInput);
+      
+      await waitFor(() => {
+        expect(screen.queryByText(/invalid email/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it("prevents save with invalid email", async () => {
+      mockOnSave.mockResolvedValue();
+      const propsWithEnabled = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          notification_preferences: {
+            ...defaultProps.userData.notification_preferences,
+            email_alerts: true,
+          },
+        },
+      };
+      
+      render(<NotificationsTab {...propsWithEnabled} />);
+      const emailInput = screen.getByPlaceholderText("Email");
+      const saveButton = screen.getByText("Save changes");
+      
+      await userEvent.clear(emailInput);
+      await userEvent.type(emailInput, "invalidemail");
+      fireEvent.blur(emailInput);
+      
+      await userEvent.click(saveButton);
+      
+      // Save should not be called with invalid email
+      expect(mockOnSave).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          notification_preferences: expect.objectContaining({
+            alert_email: "invalidemail",
+          }),
+        })
+      );
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("shows error message on save failure", async () => {
+      const errorMessage = "Failed to save preferences";
+      mockOnSave.mockRejectedValue(new Error(errorMessage));
+      render(<NotificationsTab {...defaultProps} />);
+      
+      const switches = screen.getAllByRole("checkbox", { hidden: true });
+      await userEvent.click(switches[1]);
+      
+      await waitFor(() => {
+        expect(screen.getByText(/error|failed/i)).toBeInTheDocument();
+      });
+    });
+
+    it("allows retry after save failure", async () => {
+      mockOnSave.mockRejectedValueOnce(new Error("Save failed"));
+      mockOnSave.mockResolvedValueOnce();
+      
+      render(<NotificationsTab {...defaultProps} />);
+      
+      const switches = screen.getAllByRole("checkbox", { hidden: true });
+      await userEvent.click(switches[1]);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledTimes(1);
+      });
+      
+      // Second attempt should succeed
+      await userEvent.click(switches[1]);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it("preserves previous state on network error", async () => {
+      mockOnSave.mockRejectedValue(new Error("Network error"));
+      render(<NotificationsTab {...defaultProps} />);
+      
+      const switches = screen.getAllByRole("checkbox", { hidden: true });
+      const emailToggle = switches[1];
+      const originalState = emailToggle.checked;
+      
+      await userEvent.click(emailToggle);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalled();
+      });
+      
+      // State should revert
+      expect(emailToggle.checked).toBe(originalState);
+    });
+  });
+
+  describe("Empty Alerts State", () => {
+    it("displays empty state when no alerts exist", () => {
+      const propsWithNoAlerts = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          alerts: [],
+        },
+      };
+      
+      render(<NotificationsTab {...propsWithNoAlerts} />);
+      expect(screen.getByText("No alerts found")).toBeInTheDocument();
+    });
+
+    it("does not show delete all button when no alerts selected", () => {
+      render(<NotificationsTab {...defaultProps} />);
+      const deleteAllButton = screen.getByText("Delete All");
+      
+      expect(deleteAllButton).toBeDisabled();
+    });
+  });
+
+  describe("Concurrent Operations", () => {
+    it("prevents multiple simultaneous saves", async () => {
+      mockOnSave.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      render(<NotificationsTab {...defaultProps} />);
+      
+      const switches = screen.getAllByRole("checkbox", { hidden: true });
+      
+      await userEvent.click(switches[1]);
+      await userEvent.click(switches[2]);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("saves after user finishes editing", async () => {
+      mockOnSave.mockResolvedValue();
+      const propsWithEnabled = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          notification_preferences: {
+            ...defaultProps.userData.notification_preferences,
+            email_alerts: true,
+          },
+        },
+      };
+      
+      render(<NotificationsTab {...propsWithEnabled} />);
+      const emailInput = screen.getByPlaceholderText("Email");
+      
+      await userEvent.clear(emailInput);
+      await userEvent.type(emailInput, "new@example.com", { delay: 10 });
+      fireEvent.blur(emailInput);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("UI State Management", () => {
+    it("maintains toggle state during save", async () => {
+      mockOnSave.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      render(<NotificationsTab {...defaultProps} />);
+      
+      const switches = screen.getAllByRole("checkbox", { hidden: true });
+      const emailToggle = switches[1];
+      
+      await userEvent.click(emailToggle);
+      
+      // Toggle should show as checked immediately
+      expect(emailToggle).toBeChecked();
+    });
+
+    it("clears search when clicking clear button", async () => {
+      render(<NotificationsTab {...defaultProps} />);
+      const searchInput = screen.getByPlaceholderText("Search alerts");
+      
+      await userEvent.type(searchInput, "test");
+      expect(searchInput).toHaveValue("test");
+      
+      const clearButton = screen.getByLabelText(/clear/i);
+      await userEvent.click(clearButton);
+      
+      expect(searchInput).toHaveValue("");
+    });
+
+    it("highlights search matches in alert list", async () => {
+      render(<NotificationsTab {...defaultProps} />);
+      const searchInput = screen.getByPlaceholderText("Search alerts");
+      
+      await userEvent.type(searchInput, "logged");
+      
+      const foundAlert = screen.getByText(/You've been logged into a new device/i);
+      expect(foundAlert).toBeInTheDocument();
+    });
+  });
 });

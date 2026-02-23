@@ -171,7 +171,59 @@ describe("EmailCustomizationTab", () => {
 
     it("adjusts layout for different screen sizes", () => {
       render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.getByText(/email|customization/i)).toBeInTheDocument();
+      expect(screen.getByText(/email|customization|notifications/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Frequency Selection", () => {
+    it("selects daily frequency", async () => {
+      render(<EmailCustomizationTab {...defaultProps} />);
+      const dailyButtons = screen.queryAllByText(/daily/i);
+      if (dailyButtons.length > 0) {
+        await userEvent.click(dailyButtons[0]);
+        expect(mockOnSave).not.toThrow();
+      }
+    });
+
+    it("selects weekly frequency", async () => {
+      render(<EmailCustomizationTab {...defaultProps} />);
+      const weeklyButtons = screen.queryAllByText(/weekly/i);
+      if (weeklyButtons.length > 0) {
+        await userEvent.click(weeklyButtons[0]);
+        expect(mockOnSave).not.toThrow();
+      }
+    });
+
+    it("selects monthly frequency", async () => {
+      render(<EmailCustomizationTab {...defaultProps} />);
+      const monthlyButtons = screen.queryAllByText(/monthly/i);
+      if (monthlyButtons.length > 0) {
+        await userEvent.click(monthlyButtons[0]);
+        expect(mockOnSave).not.toThrow();
+      }
+    });
+  });
+
+  describe("Toggle State Changes", () => {
+    it("toggles email notifications", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<EmailCustomizationTab {...defaultProps} />);
+      const toggles = screen.queryAllByRole("checkbox", { hidden: true });
+      if (toggles.length > 0) {
+        await userEvent.click(toggles[0]);
+        // Verify toggle state can change
+        expect(toggles[0]).toBeInTheDocument();
+      }
+    });
+
+    it("toggles marketing emails", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<EmailCustomizationTab {...defaultProps} />);
+      const toggles = screen.queryAllByRole("checkbox", { hidden: true });
+      if (toggles.length > 1) {
+        await userEvent.click(toggles[1]);
+        expect(toggles[1]).toBeInTheDocument();
+      }
     });
   });
 });

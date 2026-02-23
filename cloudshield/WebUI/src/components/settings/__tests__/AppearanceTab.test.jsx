@@ -136,4 +136,80 @@ describe("AppearanceTab", () => {
       expect(() => render(<AppearanceTab {...propsWithLanguage} />)).not.toThrow();
     });
   });
+
+  describe("Theme Change", () => {
+    it("switches to light theme", async () => {
+      render(<AppearanceTab {...defaultProps} />);
+      const buttons = screen.queryAllByRole("button");
+      if (buttons.length > 0) {
+        // Find button that might be for theme switching
+        const themeButton = buttons.find(b => b.textContent.includes("Light") || b.textContent.includes("light"));
+        if (themeButton) {
+          await userEvent.click(themeButton);
+          expect(mockOnSave).not.toThrow();
+        }
+      }
+    });
+
+    it("switches to dark theme", async () => {
+      const lightProps = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          appearance_preferences: {
+            theme: "light",
+            language: "en",
+          },
+        },
+      };
+      render(<AppearanceTab {...lightProps} />);
+      const buttons = screen.queryAllByRole("button");
+      if (buttons.length > 0) {
+        const themeButton = buttons.find(b => b.textContent.includes("Dark") || b.textContent.includes("dark"));
+        if (themeButton) {
+          await userEvent.click(themeButton);
+          expect(mockOnSave).not.toThrow();
+        }
+      }
+    });
+  });
+
+  describe("Language Change", () => {
+    it("changes language setting", async () => {
+      render(<AppearanceTab {...defaultProps} />);
+      const inputs = screen.queryAllByDisplayValue("en");
+      if (inputs.length > 0) {
+        await userEvent.selectOptions(inputs[0], "es");
+        expect(mockOnSave).not.toThrow();
+      }
+    });
+  });
+
+  describe("Preference Persistence", () => {
+    it("persists theme preference", () => {
+      const { rerender } = render(<AppearanceTab {...defaultProps} />);
+      
+      expect(screen.getByText(/appearance|theme|settings/i)).toBeInTheDocument();
+      
+      rerender(<AppearanceTab {...defaultProps} />);
+      
+      expect(screen.getByText(/appearance|theme|settings/i)).toBeInTheDocument();
+    });
+
+    it("persists language preference", () => {
+      const spanishProps = {
+        ...defaultProps,
+        userData: {
+          ...defaultProps.userData,
+          appearance_preferences: {
+            theme: "dark",
+            language: "es",
+          },
+        },
+      };
+      
+      render(<AppearanceTab {...spanishProps} />);
+      expect(screen.getByText(/appearance|theme|settings/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -243,4 +243,133 @@ describe("BasicInfoTab", () => {
       expect(screen.getByDisplayValue("Jane Doe")).toBeInTheDocument();
     });
   });
+
+  describe("Validation Rules", () => {
+    it("prevents save when first name is empty", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const nameInput = screen.getByDisplayValue("John Doe");
+      await userEvent.clear(nameInput);
+      await userEvent.type(nameInput, "");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).not.toHaveBeenCalled();
+        expect(screen.getByText("First name is required")).toBeInTheDocument();
+      });
+    });
+
+    it("prevents save when email is empty", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const emailInput = screen.getByDisplayValue("test@example.com");
+      await userEvent.clear(emailInput);
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).not.toHaveBeenCalled();
+        expect(screen.getByText("Email is required")).toBeInTheDocument();
+      });
+    });
+
+    it("prevents save when password is too short", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const passwordInputs = screen.getAllByPlaceholderText(/password/i);
+      await userEvent.type(passwordInputs[0], "short");
+      await userEvent.type(passwordInputs[1], "short");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).not.toHaveBeenCalled();
+        expect(screen.getByText("Password must be at least 12 characters")).toBeInTheDocument();
+      });
+    });
+
+    it("prevents save when passwords don't match", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const passwordInputs = screen.getAllByPlaceholderText(/password/i);
+      await userEvent.type(passwordInputs[0], "ValidPassword123");
+      await userEvent.type(passwordInputs[1], "DifferentPass456");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).not.toHaveBeenCalled();
+        expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+      });
+    });
+
+    it("allows save with valid password", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const passwordInputs = screen.getAllByPlaceholderText(/password/i);
+      await userEvent.type(passwordInputs[0], "ValidPassword123");
+      await userEvent.type(passwordInputs[1], "ValidPassword123");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            password: "ValidPassword123",
+          })
+        );
+      });
+    });
+  });
+
+  describe("Save Behavior", () => {
+    it("only sends changed fields", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const emailInput = screen.getByDisplayValue("test@example.com");
+      await userEvent.clear(emailInput);
+      await userEvent.type(emailInput, "newemail@example.com");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith({
+          email: "newemail@example.com",
+        });
+        
+        // Should not include unchanged fields
+        expect(mockOnSave.mock.calls[0][0]).not.toHaveProperty("username");
+      });
+    });
+
+    it("clears password fields after save", async () => {
+      mockOnSave.mockResolvedValue();
+      render(<BasicInfoTab {...defaultProps} />);
+      
+      const passwordInputs = screen.getAllByPlaceholderText(/password/i);
+      await userEvent.type(passwordInputs[0], "ValidPassword123");
+      await userEvent.type(passwordInputs[1], "ValidPassword123");
+      
+      const saveButton = screen.getByText(/save changes|save/i);
+      await userEvent.click(saveButton);
+      
+      await waitFor(() => {
+        expect(passwordInputs[0]).toHaveValue("");
+        expect(passwordInputs[1]).toHaveValue("");
+      });
+    });
+  });
 });
