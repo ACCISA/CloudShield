@@ -5,11 +5,7 @@ every helper, lazy singleton, ES query path, and public function is covered.
 """
 
 import os
-import types
-import importlib
-from unittest.mock import patch, MagicMock, PropertyMock
-
-import pytest
+from unittest.mock import patch, MagicMock
 
 # ---------------------------------------------------------------------------
 # Utility: reload the module under test so global singletons are reset
@@ -129,7 +125,7 @@ class TestEsClient:
     @patch.dict(os.environ, {"ES_URL": "http://test-es:9200"})
     def test_returns_client_when_ping_succeeds(self):
         ts = _fresh_module()
-        with patch("cloudshield.Server.services.threat_service.Elasticsearch", create=True) as MockES:
+        with patch("cloudshield.Server.services.threat_service.Elasticsearch", create=True):
             # We need to patch the import inside the function
             mock_es_cls = MagicMock()
             mock_instance = MagicMock()
@@ -254,7 +250,7 @@ class TestGetRecentThreatIntelHits:
     def test_delegates_to_es_recent(self, mock_recent):
         ts = _fresh_module()
         mock_recent.return_value = []
-        result = ts.get_recent_threat_intel_hits(limit=5)
+        ts.get_recent_threat_intel_hits(limit=5)
         mock_recent.assert_called_once_with("threat_intel_hits", size=5)
 
 

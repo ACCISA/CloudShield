@@ -13,7 +13,6 @@ import time
 import sys
 
 import requests
-from elasticsearch import Elasticsearch
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
