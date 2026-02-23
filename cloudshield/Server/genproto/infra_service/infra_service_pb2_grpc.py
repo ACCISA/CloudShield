@@ -4,7 +4,7 @@ import grpc
 import warnings
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import genproto.infra_service_pb2 as infra__service__pb2
+from infra_service import infra_service_pb2 as infra__service_dot_infra__service__pb2
 
 GRPC_GENERATED_VERSION = '1.75.1'
 GRPC_VERSION = grpc.__version__
@@ -19,7 +19,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in infra_service_pb2_grpc.py depends on'
+        + f' but the generated code in infra_service/infra_service_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,73 +37,83 @@ class InfraServiceStub(object):
         """
         self.SyncNetlogonScript = channel.unary_unary(
                 '/infra_service.v1.InfraService/SyncNetlogonScript',
-                request_serializer=infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
-                response_deserializer=infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
                 _registered_method=True)
         self.AddDNSRecord = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddDNSRecord',
-                request_serializer=infra__service__pb2.AddDNSRecordData.SerializeToString,
-                response_deserializer=infra__service__pb2.AddDNSRecordDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.AddDNSRecordData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.AddDNSRecordDataAck.FromString,
                 _registered_method=True)
         self.DeleteDNSRecord = channel.unary_unary(
                 '/infra_service.v1.InfraService/DeleteDNSRecord',
-                request_serializer=infra__service__pb2.DeleteDNSRecordData.SerializeToString,
-                response_deserializer=infra__service__pb2.DeleteDNSRecordDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.DeleteDNSRecordData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.DeleteDNSRecordDataAck.FromString,
                 _registered_method=True)
         self.GetUserList = channel.unary_unary(
                 '/infra_service.v1.InfraService/GetUserList',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-                response_deserializer=infra__service__pb2.GetUserListDataAck.FromString,
+                response_deserializer=infra__service_dot_infra__service__pb2.GetUserListDataAck.FromString,
                 _registered_method=True)
         self.RestartSambaService = channel.unary_unary(
                 '/infra_service.v1.InfraService/RestartSambaService',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-                response_deserializer=infra__service__pb2.RestartSambaServiceDataAck.FromString,
+                response_deserializer=infra__service_dot_infra__service__pb2.RestartSambaServiceDataAck.FromString,
                 _registered_method=True)
         self.CreateSambaFileShare = channel.unary_unary(
                 '/infra_service.v1.InfraService/CreateSambaFileShare',
-                request_serializer=infra__service__pb2.CreateSambaFileShareData.SerializeToString,
-                response_deserializer=infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.CreateSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.CreateSambaFileShareDataAck.FromString,
                 _registered_method=True)
         self.DeleteSambaFileShare = channel.unary_unary(
                 '/infra_service.v1.InfraService/DeleteSambaFileShare',
-                request_serializer=infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
-                response_deserializer=infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
                 _registered_method=True)
         self.AddDomainGroup = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddDomainGroup',
-                request_serializer=infra__service__pb2.AddDomainGroupData.SerializeToString,
-                response_deserializer=infra__service__pb2.AddDomainGroupDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.AddDomainGroupData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.AddDomainGroupDataAck.FromString,
                 _registered_method=True)
         self.AddUserToGroup = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddUserToGroup',
-                request_serializer=infra__service__pb2.AddUserToGroupData.SerializeToString,
-                response_deserializer=infra__service__pb2.AddUserToGroupDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.AddUserToGroupData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.AddUserToGroupDataAck.FromString,
                 _registered_method=True)
         self.CreateDomainUserWithGroup = channel.unary_unary(
                 '/infra_service.v1.InfraService/CreateDomainUserWithGroup',
-                request_serializer=infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
-                response_deserializer=infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
                 _registered_method=True)
         self.ResetUserPassword = channel.unary_unary(
                 '/infra_service.v1.InfraService/ResetUserPassword',
-                request_serializer=infra__service__pb2.ResetUserPasswordData.SerializeToString,
-                response_deserializer=infra__service__pb2.ResetUserPasswordDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.ResetUserPasswordData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.ResetUserPasswordDataAck.FromString,
                 _registered_method=True)
         self.AddDomainUser = channel.unary_unary(
                 '/infra_service.v1.InfraService/AddDomainUser',
-                request_serializer=infra__service__pb2.AddDomainUserData.SerializeToString,
-                response_deserializer=infra__service__pb2.AddDomainUserDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.AddDomainUserData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.AddDomainUserDataAck.FromString,
                 _registered_method=True)
         self.RemoveDomainUser = channel.unary_unary(
                 '/infra_service.v1.InfraService/RemoveDomainUser',
-                request_serializer=infra__service__pb2.RemoveDomainUserData.SerializeToString,
-                response_deserializer=infra__service__pb2.RemoveDomainUserDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.RemoveDomainUserData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.RemoveDomainUserDataAck.FromString,
+                _registered_method=True)
+        self.RemoveDomainGroup = channel.unary_unary(
+                '/infra_service.v1.InfraService/RemoveDomainGroup',
+                request_serializer=infra__service_dot_infra__service__pb2.RemoveDomainGroupData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.RemoveDomainGroupDataAck.FromString,
+                _registered_method=True)
+        self.UpdateSambaFileShare = channel.unary_unary(
+                '/infra_service.v1.InfraService/UpdateSambaFileShare',
+                request_serializer=infra__service_dot_infra__service__pb2.UpdateSambaFileShareData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.UpdateSambaFileShareDataAck.FromString,
                 _registered_method=True)
         self.GetFileShareSize = channel.unary_unary(
                 '/infra_service.v1.InfraService/GetFileShareSize',
-                request_serializer=infra__service__pb2.GetFileShareSizeData.SerializeToString,
-                response_deserializer=infra__service__pb2.GetFileShareSizeDataAck.FromString,
+                request_serializer=infra__service_dot_infra__service__pb2.GetFileShareSizeData.SerializeToString,
+                response_deserializer=infra__service_dot_infra__service__pb2.GetFileShareSizeDataAck.FromString,
                 _registered_method=True)
 
 
@@ -188,6 +198,18 @@ class InfraServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RemoveDomainGroup(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateSambaFileShare(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetFileShareSize(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -199,73 +221,83 @@ def add_InfraServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SyncNetlogonScript': grpc.unary_unary_rpc_method_handler(
                     servicer.SyncNetlogonScript,
-                    request_deserializer=infra__service__pb2.SyncNetlogonScriptData.FromString,
-                    response_serializer=infra__service__pb2.SyncNetlogonScriptDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.SyncNetlogonScriptData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.SyncNetlogonScriptDataAck.SerializeToString,
             ),
             'AddDNSRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.AddDNSRecord,
-                    request_deserializer=infra__service__pb2.AddDNSRecordData.FromString,
-                    response_serializer=infra__service__pb2.AddDNSRecordDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.AddDNSRecordData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.AddDNSRecordDataAck.SerializeToString,
             ),
             'DeleteDNSRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteDNSRecord,
-                    request_deserializer=infra__service__pb2.DeleteDNSRecordData.FromString,
-                    response_serializer=infra__service__pb2.DeleteDNSRecordDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.DeleteDNSRecordData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.DeleteDNSRecordDataAck.SerializeToString,
             ),
             'GetUserList': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUserList,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                    response_serializer=infra__service__pb2.GetUserListDataAck.SerializeToString,
+                    response_serializer=infra__service_dot_infra__service__pb2.GetUserListDataAck.SerializeToString,
             ),
             'RestartSambaService': grpc.unary_unary_rpc_method_handler(
                     servicer.RestartSambaService,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                    response_serializer=infra__service__pb2.RestartSambaServiceDataAck.SerializeToString,
+                    response_serializer=infra__service_dot_infra__service__pb2.RestartSambaServiceDataAck.SerializeToString,
             ),
             'CreateSambaFileShare': grpc.unary_unary_rpc_method_handler(
                     servicer.CreateSambaFileShare,
-                    request_deserializer=infra__service__pb2.CreateSambaFileShareData.FromString,
-                    response_serializer=infra__service__pb2.CreateSambaFileShareDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.CreateSambaFileShareData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.CreateSambaFileShareDataAck.SerializeToString,
             ),
             'DeleteSambaFileShare': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteSambaFileShare,
-                    request_deserializer=infra__service__pb2.DeleteSambaFileShareData.FromString,
-                    response_serializer=infra__service__pb2.DeleteSambaFileShareDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.DeleteSambaFileShareData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.DeleteSambaFileShareDataAck.SerializeToString,
             ),
             'AddDomainGroup': grpc.unary_unary_rpc_method_handler(
                     servicer.AddDomainGroup,
-                    request_deserializer=infra__service__pb2.AddDomainGroupData.FromString,
-                    response_serializer=infra__service__pb2.AddDomainGroupDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.AddDomainGroupData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.AddDomainGroupDataAck.SerializeToString,
             ),
             'AddUserToGroup': grpc.unary_unary_rpc_method_handler(
                     servicer.AddUserToGroup,
-                    request_deserializer=infra__service__pb2.AddUserToGroupData.FromString,
-                    response_serializer=infra__service__pb2.AddUserToGroupDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.AddUserToGroupData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.AddUserToGroupDataAck.SerializeToString,
             ),
             'CreateDomainUserWithGroup': grpc.unary_unary_rpc_method_handler(
                     servicer.CreateDomainUserWithGroup,
-                    request_deserializer=infra__service__pb2.CreateDomainUserWithGroupData.FromString,
-                    response_serializer=infra__service__pb2.CreateDomainUserWithGroupDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupDataAck.SerializeToString,
             ),
             'ResetUserPassword': grpc.unary_unary_rpc_method_handler(
                     servicer.ResetUserPassword,
-                    request_deserializer=infra__service__pb2.ResetUserPasswordData.FromString,
-                    response_serializer=infra__service__pb2.ResetUserPasswordDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.ResetUserPasswordData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.ResetUserPasswordDataAck.SerializeToString,
             ),
             'AddDomainUser': grpc.unary_unary_rpc_method_handler(
                     servicer.AddDomainUser,
-                    request_deserializer=infra__service__pb2.AddDomainUserData.FromString,
-                    response_serializer=infra__service__pb2.AddDomainUserDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.AddDomainUserData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.AddDomainUserDataAck.SerializeToString,
             ),
             'RemoveDomainUser': grpc.unary_unary_rpc_method_handler(
                     servicer.RemoveDomainUser,
-                    request_deserializer=infra__service__pb2.RemoveDomainUserData.FromString,
-                    response_serializer=infra__service__pb2.RemoveDomainUserDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.RemoveDomainUserData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.RemoveDomainUserDataAck.SerializeToString,
+            ),
+            'RemoveDomainGroup': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveDomainGroup,
+                    request_deserializer=infra__service_dot_infra__service__pb2.RemoveDomainGroupData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.RemoveDomainGroupDataAck.SerializeToString,
+            ),
+            'UpdateSambaFileShare': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateSambaFileShare,
+                    request_deserializer=infra__service_dot_infra__service__pb2.UpdateSambaFileShareData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.UpdateSambaFileShareDataAck.SerializeToString,
             ),
             'GetFileShareSize': grpc.unary_unary_rpc_method_handler(
                     servicer.GetFileShareSize,
-                    request_deserializer=infra__service__pb2.GetFileShareSizeData.FromString,
-                    response_serializer=infra__service__pb2.GetFileShareSizeDataAck.SerializeToString,
+                    request_deserializer=infra__service_dot_infra__service__pb2.GetFileShareSizeData.FromString,
+                    response_serializer=infra__service_dot_infra__service__pb2.GetFileShareSizeDataAck.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -293,8 +325,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/SyncNetlogonScript',
-            infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
-            infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
+            infra__service_dot_infra__service__pb2.SyncNetlogonScriptData.SerializeToString,
+            infra__service_dot_infra__service__pb2.SyncNetlogonScriptDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -320,8 +352,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/AddDNSRecord',
-            infra__service__pb2.AddDNSRecordData.SerializeToString,
-            infra__service__pb2.AddDNSRecordDataAck.FromString,
+            infra__service_dot_infra__service__pb2.AddDNSRecordData.SerializeToString,
+            infra__service_dot_infra__service__pb2.AddDNSRecordDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -347,8 +379,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/DeleteDNSRecord',
-            infra__service__pb2.DeleteDNSRecordData.SerializeToString,
-            infra__service__pb2.DeleteDNSRecordDataAck.FromString,
+            infra__service_dot_infra__service__pb2.DeleteDNSRecordData.SerializeToString,
+            infra__service_dot_infra__service__pb2.DeleteDNSRecordDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -375,7 +407,7 @@ class InfraService(object):
             target,
             '/infra_service.v1.InfraService/GetUserList',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            infra__service__pb2.GetUserListDataAck.FromString,
+            infra__service_dot_infra__service__pb2.GetUserListDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -402,7 +434,7 @@ class InfraService(object):
             target,
             '/infra_service.v1.InfraService/RestartSambaService',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            infra__service__pb2.RestartSambaServiceDataAck.FromString,
+            infra__service_dot_infra__service__pb2.RestartSambaServiceDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -428,8 +460,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/CreateSambaFileShare',
-            infra__service__pb2.CreateSambaFileShareData.SerializeToString,
-            infra__service__pb2.CreateSambaFileShareDataAck.FromString,
+            infra__service_dot_infra__service__pb2.CreateSambaFileShareData.SerializeToString,
+            infra__service_dot_infra__service__pb2.CreateSambaFileShareDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -455,8 +487,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/DeleteSambaFileShare',
-            infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
-            infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
+            infra__service_dot_infra__service__pb2.DeleteSambaFileShareData.SerializeToString,
+            infra__service_dot_infra__service__pb2.DeleteSambaFileShareDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -482,8 +514,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/AddDomainGroup',
-            infra__service__pb2.AddDomainGroupData.SerializeToString,
-            infra__service__pb2.AddDomainGroupDataAck.FromString,
+            infra__service_dot_infra__service__pb2.AddDomainGroupData.SerializeToString,
+            infra__service_dot_infra__service__pb2.AddDomainGroupDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -509,8 +541,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/AddUserToGroup',
-            infra__service__pb2.AddUserToGroupData.SerializeToString,
-            infra__service__pb2.AddUserToGroupDataAck.FromString,
+            infra__service_dot_infra__service__pb2.AddUserToGroupData.SerializeToString,
+            infra__service_dot_infra__service__pb2.AddUserToGroupDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -536,8 +568,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/CreateDomainUserWithGroup',
-            infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
-            infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
+            infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupData.SerializeToString,
+            infra__service_dot_infra__service__pb2.CreateDomainUserWithGroupDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -563,8 +595,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/ResetUserPassword',
-            infra__service__pb2.ResetUserPasswordData.SerializeToString,
-            infra__service__pb2.ResetUserPasswordDataAck.FromString,
+            infra__service_dot_infra__service__pb2.ResetUserPasswordData.SerializeToString,
+            infra__service_dot_infra__service__pb2.ResetUserPasswordDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -590,8 +622,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/AddDomainUser',
-            infra__service__pb2.AddDomainUserData.SerializeToString,
-            infra__service__pb2.AddDomainUserDataAck.FromString,
+            infra__service_dot_infra__service__pb2.AddDomainUserData.SerializeToString,
+            infra__service_dot_infra__service__pb2.AddDomainUserDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -617,8 +649,62 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/RemoveDomainUser',
-            infra__service__pb2.RemoveDomainUserData.SerializeToString,
-            infra__service__pb2.RemoveDomainUserDataAck.FromString,
+            infra__service_dot_infra__service__pb2.RemoveDomainUserData.SerializeToString,
+            infra__service_dot_infra__service__pb2.RemoveDomainUserDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RemoveDomainGroup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/RemoveDomainGroup',
+            infra__service_dot_infra__service__pb2.RemoveDomainGroupData.SerializeToString,
+            infra__service_dot_infra__service__pb2.RemoveDomainGroupDataAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateSambaFileShare(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/infra_service.v1.InfraService/UpdateSambaFileShare',
+            infra__service_dot_infra__service__pb2.UpdateSambaFileShareData.SerializeToString,
+            infra__service_dot_infra__service__pb2.UpdateSambaFileShareDataAck.FromString,
             options,
             channel_credentials,
             insecure,
@@ -644,8 +730,8 @@ class InfraService(object):
             request,
             target,
             '/infra_service.v1.InfraService/GetFileShareSize',
-            infra__service__pb2.GetFileShareSizeData.SerializeToString,
-            infra__service__pb2.GetFileShareSizeDataAck.FromString,
+            infra__service_dot_infra__service__pb2.GetFileShareSizeData.SerializeToString,
+            infra__service_dot_infra__service__pb2.GetFileShareSizeDataAck.FromString,
             options,
             channel_credentials,
             insecure,

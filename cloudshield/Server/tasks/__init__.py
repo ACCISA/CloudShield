@@ -11,6 +11,9 @@ from .dc_management import dc_set_password as dc_set_password
 from .dc_management import dc_create_user_with_group as dc_create_user_with_group
 from .dc_management import dc_create_file_share as dc_create_file_share
 from .dc_management import dc_delete_file_share as dc_delete_file_share
+from .dc_management import dc_add_group as dc_add_group
+from .dc_management import dc_remove_group as dc_remove_group
+from .dc_management import dc_update_file_share as dc_update_file_share
 from .email_tasks import send_org_welcome_email as send_org_welcome_email
 from .email_tasks import send_employee_invite_email as send_employee_invite_email
 

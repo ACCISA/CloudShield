@@ -174,6 +174,86 @@ describe("modalHelpers", () => {
         groups: ["group2"],
       });
     });
+
+    // Additional tests for file share normalization fallbacks
+    it("should use fallback values for missing file share fields", async () => {
+      const rawData = {
+        shares: [
+          {
+            share: {
+              id: "file3",
+              // name is missing - should fallback to "Untitled Share"
+              // drive is missing - size should be empty
+              // description is missing - should fallback to ""
+              // groups is missing - should fallback to []
+              owner: "user3",
+              created_at: "2024-01-05",
+              updated_at: "2024-01-06",
+            },
+          },
+        ],
+      };
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => rawData,
+      });
+
+      const result = await fetchFileShares("org123");
+      expect(result[0]).toMatchObject({
+        id: "file3",
+        name: "Untitled Share",
+        type: "document",
+        size: "",
+        description: "",
+        groups: [],
+        owner: "user3",
+      });
+    });
+
+    it("should convert id to string using String()", async () => {
+      const rawData = {
+        shares: [
+          {
+            share: {
+              id: 12345, // numeric id
+              name: "Numeric ID Share",
+            },
+          },
+        ],
+      };
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => rawData,
+      });
+
+      const result = await fetchFileShares("org123");
+      expect(result[0].id).toBe("12345");
+      expect(typeof result[0].id).toBe("string");
+    });
+
+    it("should use empty string for id if missing", async () => {
+      const rawData = {
+        shares: [
+          {
+            share: {
+              // id is missing
+              name: "No ID Share",
+            },
+          },
+        ],
+      };
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => rawData,
+      });
+
+      const result = await fetchFileShares("org123");
+      // Should be filtered out because id is empty
+      expect(result).toHaveLength(0);
+    });
   });
 
   describe("fetchGroups", () => {
@@ -260,7 +340,7 @@ describe("modalHelpers", () => {
         {
           _id: "group2",
           name: "Admin Group",
-          members: 5,
+          members: ["user1", "user2", "user3", "user4", "user5"],
           users: [{ id: "user2" }],
           files: ["file2"],
           org_id: "org456",
@@ -277,9 +357,93 @@ describe("modalHelpers", () => {
         id: "group2",
         _id: "group2",
         name: "Admin Group",
-        members: 5,
+        members: ["user1", "user2", "user3", "user4", "user5"],
       });
     });
+
+    // NEW COVERAGE TESTS START HERE
+    it("should log warning and reset state on 404/405 error code", async () => {
+      const consoleSpy = jest
+        .spyOn(console, "warn")
+        .mockImplementation(() => {});
+      const setAllGroups = jest.fn();
+
+      global.fetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      const result = await fetchGroups("org1", "token1", setAllGroups);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Groups API not available (404)"),
+      );
+      expect(setAllGroups).toHaveBeenCalledWith([]);
+      expect(result).toEqual([]);
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle response with 'access_groups' wrapper key", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          access_groups: [{ id: "g1", name: "Wrapper Test" }],
+        }),
+      });
+
+      const result = await fetchGroups("org1", "token1");
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Wrapper Test");
+    });
+
+    it("should handle response with 'groups' wrapper key", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          groups: [{ id: "g2", name: "Wrapper Test 2" }],
+        }),
+      });
+
+      const result = await fetchGroups("org1", "token1");
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Wrapper Test 2");
+    });
+
+    it("should apply strict normalization fallbacks", async () => {
+      // Logic being tested:
+      // id: String(g.id || g._id || ""),
+      // name: g.group_name || g.name || "Untitled Group",
+      // members: Array.isArray(g.members) ? g.members : [],
+      // users: g.users || [],
+      // files: g.files || [],
+
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            _id: "group_underscore", // Missing 'id'
+            // Missing name
+            members: "not-an-array", // Invalid member format
+            // Missing users/files
+            org_id: "orgXYZ",
+          },
+        ],
+      });
+
+      const result = await fetchGroups("org1", "token1");
+
+      expect(result[0]).toEqual({
+        id: "group_underscore",
+        _id: "group_underscore",
+        name: "Untitled Group",
+        members: [], // Fallback triggered
+        users: [],
+        files: [],
+        org_id: "orgXYZ",
+      });
+    });
+    // NEW COVERAGE TESTS END HERE
   });
 
   describe("safeSplitName", () => {
@@ -598,6 +762,114 @@ describe("modalHelpers", () => {
         version: "2.0",
         vendor: "Corp",
       });
+    });
+
+    // Additional tests for software normalization fallbacks
+    it("should use fallback values for missing software fields", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            id: "sw3",
+            // name is missing - should fallback to "Untitled Software"
+            // version is missing - should fallback to ""
+            // vendor is missing - should fallback to ""
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0]).toMatchObject({
+        id: "sw3",
+        _id: "sw3",
+        name: "Untitled Software",
+        version: "",
+        vendor: "",
+      });
+    });
+
+    it("should prefer id over _id when both present", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            id: "primary-id",
+            _id: "secondary-id",
+            name: "Test Software",
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0].id).toBe("primary-id");
+      expect(result[0]._id).toBe("secondary-id");
+    });
+
+    it("should fallback to _id when id is missing", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            _id: "only-underscore-id",
+            name: "Test Software",
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0].id).toBe("only-underscore-id");
+      expect(result[0]._id).toBe("only-underscore-id");
+    });
+
+    it("should fallback to id when _id is missing", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            id: "only-regular-id",
+            name: "Test Software",
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0].id).toBe("only-regular-id");
+      expect(result[0]._id).toBe("only-regular-id");
+    });
+
+    it("should convert numeric ids to string", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            id: 99999,
+            _id: 88888,
+            name: "Numeric ID Software",
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0].id).toBe("99999");
+      expect(result[0]._id).toBe("88888");
+      expect(typeof result[0].id).toBe("string");
+      expect(typeof result[0]._id).toBe("string");
+    });
+
+    it("should use empty string when both id and _id are missing", async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            name: "No ID Software",
+            version: "1.0",
+          },
+        ]),
+      });
+
+      const result = await fetchSoftware("org123", "token123");
+      expect(result[0].id).toBe("");
+      expect(result[0]._id).toBe("");
     });
 
     it("should handle fetch error", async () => {

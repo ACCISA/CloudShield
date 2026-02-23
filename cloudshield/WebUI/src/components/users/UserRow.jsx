@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
+import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
@@ -21,13 +23,6 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     minWidth: 0,
-  },
-  leadingCircle: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    backgroundColor: "#2A2A2A",
-    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
@@ -137,29 +132,54 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers ---------------------------- */
 
-function renderBubbles(count) {
+/**
+ * Renders a pill with hoverable DisplayIcon items (groups, workstations, or files)
+ */
+function ItemsPill({ items, type, totalCount }) {
+  const itemsList = Array.isArray(items) ? items : [];
+  const show = itemsList.slice(0, 3);
+  const count = totalCount !== undefined ? totalCount : itemsList.length;
+  const extra = Math.max(count - show.length, 0);
+
   if (count === 0) {
     return <span style={{ opacity: 0.5 }}>—</span>;
   }
 
-  const bubbles = Math.min(count, 3);
+  if (show.length === 0) {
+    return (
+      <div style={styles.bubblesPill}>
+        <span style={styles.extraCount}>+ {count}</span>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.bubblesPill}>
       <div style={styles.avatarsContainer}>
-        {Array.from({ length: bubbles }).map((_, i) => (
+        {show.map((item, idx) => (
           <div
-            key={i}
+            key={item.id || item.name || idx}
             style={{
-              ...styles.avatar,
-              marginLeft: i === 0 ? 0 : "-6px",
+              marginLeft: idx === 0 ? 0 : "-8px",
+              zIndex: show.length - idx,
+              display: "flex",
+              alignItems: "center",
             }}
-          />
+          >
+            <DisplayIcon type={type} data={item} size="small" />
+          </div>
         ))}
       </div>
-      {count > 3 && <span style={styles.extraCount}>+ {count - 3}</span>}
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
     </div>
   );
 }
+
+ItemsPill.propTypes = {
+  items: PropTypes.arrayOf(PropTypes.object),
+  type: PropTypes.string.isRequired,
+  totalCount: PropTypes.number,
+};
 
 /* --------------------------------- component -------------------------------- */
 
@@ -196,13 +216,13 @@ export default function UserRow({
         }
       >
         {/* select - hide on mobile */}
-        {!isMobile && (
+        {isMobile ? null : (
           <Checkbox checked={isSelected} onChange={onToggleSelect} />
         )}
 
-        {/* name + email + leading circle */}
+        {/* name + email + profile icon */}
         <div style={responsiveStyles.nameSection}>
-          <div style={styles.leadingCircle} />
+          <DisplayIcon type="user" data={data} size="small" showHoverCard={false} />
           <div style={styles.nameContainer}>
             <span style={responsiveStyles.name}>{data.name}</span>
             <span style={responsiveStyles.email}>↳ {data.email}</span>
@@ -213,13 +233,31 @@ export default function UserRow({
         {showTitle && <span style={styles.textCell}>{data.title}</span>}
 
         {/* workstations */}
-        {showWorkstations && renderBubbles(data.workstations)}
+        {showWorkstations && (
+          <ItemsPill
+            items={data.workstations}
+            type="workstation"
+            totalCount={data.workstationCount}
+          />
+        )}
 
         {/* groups */}
-        {showGroups && renderBubbles(data.groups)}
+        {showGroups && (
+          <ItemsPill
+            items={data.groups}
+            type="group"
+            totalCount={data.groupCount}
+          />
+        )}
 
         {/* files */}
-        {showFiles && renderBubbles(data.files)}
+        {showFiles && (
+          <ItemsPill
+            items={data.files}
+            type="workstation"
+            totalCount={data.fileCount}
+          />
+        )}
 
         {/* status indicator */}
         <div style={{ ...styles.statusContainer, marginRight: "-16px" }}>
@@ -257,3 +295,32 @@ export default function UserRow({
     </>
   );
 }
+
+UserRow.propTypes = {
+  data: PropTypes.shape({
+    id: PropTypes.string,
+    name: PropTypes.string,
+    email: PropTypes.string,
+    title: PropTypes.string,
+    status: PropTypes.string,
+    profileImage: PropTypes.string,
+    workstations: PropTypes.arrayOf(PropTypes.object),
+    workstationCount: PropTypes.number,
+    groups: PropTypes.arrayOf(PropTypes.object),
+    groupCount: PropTypes.number,
+    files: PropTypes.arrayOf(PropTypes.object),
+    fileCount: PropTypes.number,
+  }).isRequired,
+  showTitle: PropTypes.bool,
+  showWorkstations: PropTypes.bool,
+  showGroups: PropTypes.bool,
+  showFiles: PropTypes.bool,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  isLast: PropTypes.bool,
+  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
+  isMobile: PropTypes.bool,
+  isTablet: PropTypes.bool,
+  isSelected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+};

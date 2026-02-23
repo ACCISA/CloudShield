@@ -12,6 +12,7 @@ import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
+import ActivityTable from "../components/dashboard/ActivityTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
 import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
 const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
@@ -26,8 +27,6 @@ export default function DashboardPage() {
   const { stats, loading: statsLoading } = useOrgMetrics();
 
   // Polling logic to check provisioning status
-  useEffect(() => {
-    if (!user?.org_id) return;
    
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
@@ -100,12 +99,12 @@ export default function DashboardPage() {
   }, [fetchActivities]);
 
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+  const handleChangePage = (newPage) => {
+    setPage(newPage - 1);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (newRowsPerPage) => {
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
@@ -220,15 +219,15 @@ export default function DashboardPage() {
         />
       </Box>
 
-      <ActivityTable 
-        activities={activities}
-        loading={activityLoading}
-        page={page}
+      <ActivityPanel
+        fetchActivities={fetchActivities}
+        initialData={activities}
+        currentPage={page + 1}
+        totalItems={totalActivities}
         rowsPerPage={rowsPerPage}
-        totalCount={totalActivities}
+        rowsPerPageOptions={[10, 25, 50, 100]}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        onRefresh={handleRefreshActivities}
       />
     </Box>
   );

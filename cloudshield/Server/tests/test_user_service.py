@@ -160,6 +160,29 @@ class TestUserService:
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
 
+    def test_create_user_with_profile_image(self, setup_mocks, admin_user, user_data):
+        """Test create_user includes profile_image in the inserted document."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import create_user
+
+        test_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+        user_data.profile_image = test_image
+        mocks['users_admin'].find_one.return_value = None
+        mocks['users_admin'].count_documents.return_value = 0
+        mocks['get_workstation_count'].return_value = 5
+
+        mock_result = unittest.mock.MagicMock()
+        mock_result.inserted_id = ObjectId(self.TEST_USER_ID)
+        mocks['users_admin'].insert_one.return_value = mock_result
+
+        result = create_user(user_data, admin_user)
+
+        assert result == self.TEST_USER_ID
+        mocks['users_admin'].insert_one.assert_called_once()
+        inserted_doc = mocks['users_admin'].insert_one.call_args[0][0]
+        assert "profile_image" in inserted_doc
+        assert inserted_doc["profile_image"] == test_image
+
     # ✅ New tests for public-signup permission rules in create_user()
 
     def test_create_user_public_signup_denied_when_role_not_admin(self, setup_mocks, user_data, monkeypatch):
@@ -717,6 +740,33 @@ class TestUserService:
         assert result is True
         mocks['hash_password'].assert_not_called()
         mocks['users_admin'].update_one.assert_called_once()
+
+    def test_update_user_with_profile_image(self, setup_mocks, admin_user):
+        """Ensure update_user includes profile_image in the update."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import update_user
+
+        test_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+        update_data = unittest.mock.MagicMock()
+        update_data.dict.return_value = {"profile_image": test_image}
+
+        existing_user = {
+            "_id": ObjectId(self.TEST_USER_ID),
+            "email": "john@example.com",
+            "profile_image": None,
+        }
+        updated_user = existing_user | {"profile_image": test_image}
+
+        mocks['users_admin'].find_one.side_effect = [existing_user, updated_user]
+
+        result = update_user(self.TEST_USER_ID, update_data, admin_user)
+
+        assert result is True
+        mocks['users_admin'].update_one.assert_called_once()
+        call_args = mocks['users_admin'].update_one.call_args
+        update_doc = call_args[0][1]["$set"]
+        assert "profile_image" in update_doc
+        assert update_doc["profile_image"] == test_image
 
     def test_list_users_requires_admin(self, setup_mocks, employee_user):
         """list_users should enforce admin guard."""

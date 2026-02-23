@@ -22,7 +22,12 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
  * @param {Function} props.onChange - Change handler
  * @returns {JSX.Element} Password input with visibility toggle
  */
-export default function PasswordField({ label = "Password", value, onChange }) {
+export default function PasswordField({
+  label = "Password",
+  value,
+  onChange,
+  onKeyDown,
+}) {
   // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
 
@@ -91,6 +96,7 @@ export default function PasswordField({ label = "Password", value, onChange }) {
         type={show ? "text" : "password"}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         sx={{
           width: "100%",
           backgroundColor: "#161616",

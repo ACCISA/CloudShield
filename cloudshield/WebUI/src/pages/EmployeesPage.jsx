@@ -25,6 +25,7 @@ import {
   updateUser,
 } from "../services/usersApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
 // Toast Notification
 const CustomToast = ({ msg, type, onClose }) => {
@@ -78,6 +79,70 @@ CustomToast.defaultProps = {
   type: "success",
 };
 
+/**
+ * Returns the groups (from allGroups) where userId is a member.
+ */
+function getUserGroups(allGroups, userId) {
+  return allGroups
+    .filter((g) => {
+      const members = Array.isArray(g.members) ? g.members : [];
+      return members.some((m) => String(m) === userId);
+    });
+}
+
+/**
+ * Enriches a raw API user with group, workstation, and file-share data.
+ */
+function enrichUser(user, allGroups) {
+  const userId = String(user._id);
+  const memberGroups = getUserGroups(allGroups, userId);
+
+  const userGroups = memberGroups.map((g) => ({
+    id: g.id || g._id,
+    name: g.group_name || g.name || "Unknown Group",
+    description: g.description || "",
+    image: g.group_image || null,
+  }));
+
+  const workstationMap = new Map();
+  for (const g of memberGroups) {
+    const ws = Array.isArray(g.workstations) ? g.workstations : [];
+    for (const w of ws) {
+      if (!workstationMap.has(w)) {
+        workstationMap.set(w, { id: w, name: w, hostname: w });
+      }
+    }
+  }
+  const userWorkstations = Array.from(workstationMap.values());
+
+  const fileShareMap = new Map();
+  for (const g of memberGroups) {
+    const fs = Array.isArray(g.file_shares) ? g.file_shares : [];
+    for (const f of fs) {
+      if (!fileShareMap.has(f)) {
+        fileShareMap.set(f, { id: f, name: f, drive: f });
+      }
+    }
+  }
+  const userFileShares = Array.from(fileShareMap.values());
+
+  return {
+    id: user._id,
+    name: user.full_name || user.email,
+    email: user.email,
+    title: user.role || "Employee",
+    workstations: userWorkstations,
+    workstationCount: userWorkstations.length,
+    groups: userGroups,
+    groupCount: userGroups.length,
+    files: userFileShares,
+    fileCount: userFileShares.length,
+    status: user.status || "offline",
+    profileImage: user.profile_image || null,
+    _original: user,
+  };
+}
+
 const styles = {
   toolbar: {
     display: "flex",
@@ -104,6 +169,9 @@ export default function EmployeesPage() {
   const location = useLocation();
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
+  
+  // Job creation task hook
+  const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -162,18 +230,83 @@ export default function EmployeesPage() {
     setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
   };
 
-  // Mappers
-  const mapUserToUI = (user) => ({
-    id: user._id,
-    name: user.full_name || user.email,
-    email: user.email,
-    title: user.role || "Employee",
-    workstations: user.workstations || 0,
-    groups: user.groups || 0,
-    files: user.files || 0,
-    status: user.status || "offline",
-    _original: user,
-  });
+  // Helper for auth headers
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  /**
+   * Update group memberships for a user.
+   * Fetches all groups, determines current membership, and updates accordingly.
+   * @param {string} userId - The user ID to update group memberships for
+   * @param {Array} newGroups - Array of new group objects {id, name, ...} to be members of
+   */
+  const updateUserGroupMemberships = async (userId, newGroups) => {
+    const newGroupIds = newGroups.map((g) => String(g.id || g._id));
+
+    // Fetch all groups to determine current membership and update
+    const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch groups for membership update");
+      return;
+    }
+
+    const data = await res.json();
+    const allGroups = data.access_groups || [];
+
+    // Determine current group membership
+    const currentGroupIds = allGroups
+      .filter((g) => {
+        const members = Array.isArray(g.members) ? g.members : [];
+        return members.some((m) => String(m) === String(userId));
+      })
+      .map((g) => String(g.id || g._id));
+
+    // Groups to add user to (in newGroups but not in currentGroups)
+    const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
+    // Groups to remove user from (in currentGroups but not in newGroups)
+    const toRemove = currentGroupIds.filter((id) => !newGroupIds.includes(id));
+
+    // Update groups that need the user added
+    for (const groupId of toAdd) {
+      const group = allGroups.find((g) => String(g.id || g._id) === groupId);
+      if (!group) continue;
+
+      const currentMembers = Array.isArray(group.members) ? group.members : [];
+      if (!currentMembers.some((m) => String(m) === String(userId))) {
+        const updatedMembers = [...currentMembers, userId];
+        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+          body: JSON.stringify({ members: updatedMembers }),
+        });
+      }
+    }
+
+    // Update groups that need the user removed
+    for (const groupId of toRemove) {
+      const group = allGroups.find((g) => String(g.id || g._id) === groupId);
+      if (!group) continue;
+
+      const currentMembers = Array.isArray(group.members) ? group.members : [];
+      const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
+      if (updatedMembers.length !== currentMembers.length) {
+        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+          body: JSON.stringify({ members: updatedMembers }),
+        });
+      }
+    }
+  };
 
   // API Actions
   const fetchUsers = useCallback(async () => {
@@ -181,6 +314,7 @@ export default function EmployeesPage() {
 
     setLoading(true);
     try {
+      // Fetch users
       const data = await listUsers({
         token: accessToken,
         search: search,
@@ -188,7 +322,27 @@ export default function EmployeesPage() {
         offset: 0,
       });
 
-      const mappedUsers = Array.isArray(data) ? data.map(mapUserToUI) : [];
+      // Fetch groups to calculate membership counts
+      let allGroups = [];
+      try {
+        const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        });
+        if (groupsRes.ok) {
+          const groupsData = await groupsRes.json();
+          allGroups = groupsData.access_groups || [];
+        }
+      } catch (e) {
+        console.warn("Failed to fetch groups for enrichment:", e);
+      }
+
+      // Map users and enrich with group/workstation/file data
+      const mappedUsers = Array.isArray(data)
+        ? data.map((user) => enrichUser(user, allGroups))
+        : [];
+
       if (mappedUsers.length > 0) {
         console.log(
           "Sample user org_id format:",
@@ -228,12 +382,22 @@ export default function EmployeesPage() {
           full_name: `${payload.firstName} ${payload.lastName}`,
           email: payload.email,
           role: payload.jobTitle,
+          profile_image: payload.profileImage || null,
         };
 
         await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
+
+        // Update group memberships if groups were provided
+        if (payload.groups) {
+          await updateUserGroupMemberships(modalEmployee.id, payload.groups);
+        }
+
         openToast("User updated successfully");
+        setModalOpen(false);
+        setModalEmployee(null);
+        fetchUsers();
       } else {
-        // Create mode
+        // Create mode - queue DC user creation task and poll for completion
         trackButton("employees/create/submit", {
           page: "employees",
           control: "create_dialog",
@@ -246,15 +410,18 @@ export default function EmployeesPage() {
             ? "admin"
             : "employee",
           org_id: orgId || "cedric",
+          profile_image: payload.profileImage || null,
         };
 
-        await createUser(apiPayload, { token: accessToken });
-        openToast("User created successfully");
+        // Start async task to create user
+        await startCreation(async () => {
+          const response = await createUser(apiPayload, { token: accessToken });
+          if (!response?.job_id) {
+            throw new Error("No job_id returned from user creation");
+          }
+          return response.job_id;
+        });
       }
-
-      setModalOpen(false);
-      setModalEmployee(null);
-      fetchUsers();
     } catch (error) {
       // Show detailed validation errors if available
       let msg = "Failed to save user";
@@ -273,6 +440,19 @@ export default function EmployeesPage() {
       openToast(msg, "error");
     }
   };
+  
+  // Handle job completion
+  useEffect(() => {
+    if (status === "succeeded") {
+      openToast("User created successfully");
+      resetCreation();
+      setModalOpen(false);
+      setModalEmployee(null);
+      fetchUsers();
+    } else if (status === "failed") {
+      openToast(message || "Failed to create user", "error");
+    }
+  }, [status, message]);
 
   const handleDelete = async (user) => {
     // Use provided user or fall back to modalEmployee for modal context
@@ -531,10 +711,14 @@ export default function EmployeesPage() {
         onClose={() => {
           setModalOpen(false);
           setModalEmployee(null);
+          resetCreation();
         }}
         employeeData={modalEmployee}
         onSubmit={handleModalSubmit}
         onDelete={handleDelete}
+        creationStatus={status}
+        creationProgress={progress}
+        creationMessage={message}
       />
 
       {toast.open && (
