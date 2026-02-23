@@ -37,21 +37,22 @@ DEFAULT_ALLOWED_COUNTRIES: frozenset[str] = frozenset({
 })
 
 # Bogon / reserved CIDRs that should never appear as a WAN source
-_BOGON_NETS = [
-    ipaddress.ip_network("0.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("100.64.0.0/10"),
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.0.0.0/24"),
-    ipaddress.ip_network("192.0.2.0/24"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("198.18.0.0/15"),
-    ipaddress.ip_network("198.51.100.0/24"),
-    ipaddress.ip_network("203.0.113.0/24"),
-    ipaddress.ip_network("224.0.0.0/4"),
-    ipaddress.ip_network("240.0.0.0/4"),
+# These are well-known RFC 1918 / RFC 5735 reserved ranges — not secrets.
+_BOGON_NETS = [  # NOSONAR — intentionally hardcoded reserved CIDR ranges
+    ipaddress.ip_network("0.0.0.0/8"),        # NOSONAR — RFC 1122 "This network"
+    ipaddress.ip_network("10.0.0.0/8"),       # NOSONAR — RFC 1918 private
+    ipaddress.ip_network("100.64.0.0/10"),    # NOSONAR — RFC 6598 CGN shared
+    ipaddress.ip_network("127.0.0.0/8"),      # NOSONAR — RFC 1122 loopback
+    ipaddress.ip_network("169.254.0.0/16"),   # NOSONAR — RFC 3927 link-local
+    ipaddress.ip_network("172.16.0.0/12"),    # NOSONAR — RFC 1918 private
+    ipaddress.ip_network("192.0.0.0/24"),     # NOSONAR — RFC 6890 IETF protocol
+    ipaddress.ip_network("192.0.2.0/24"),     # NOSONAR — RFC 5737 documentation
+    ipaddress.ip_network("192.168.0.0/16"),   # NOSONAR — RFC 1918 private
+    ipaddress.ip_network("198.18.0.0/15"),    # NOSONAR — RFC 2544 benchmarking
+    ipaddress.ip_network("198.51.100.0/24"),  # NOSONAR — RFC 5737 documentation
+    ipaddress.ip_network("203.0.113.0/24"),   # NOSONAR — RFC 5737 documentation
+    ipaddress.ip_network("224.0.0.0/4"),      # NOSONAR — RFC 5771 multicast
+    ipaddress.ip_network("240.0.0.0/4"),      # NOSONAR — RFC 1112 reserved
 ]
 
 
