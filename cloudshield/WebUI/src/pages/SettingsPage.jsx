@@ -52,7 +52,7 @@ export default function SettingsPage() {
 
   const handleUserUpdate = async (payload) => {
     try {
-      const res = await fetch(`/api/users/${currentUser.id}`, {
+      const res = await fetch(`http://127.0.0.1:5050/api/users/${currentUser.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
