@@ -299,7 +299,13 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    updates = update_data.dict(exclude_unset=True)
+    # Get all fields from update_data, excluding None values (unset defaults)
+    updates = {}
+    data_dict = update_data.dict()
+    for key, value in data_dict.items():
+        if value is not None:
+            updates[key] = value
+    
     if not updates:
         raise ValueError("No fields to update")
     if "password" in updates:
@@ -315,8 +321,8 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         resource="users",
         target={"id": str(before["_id"]), "email": before["email"]},
         reason=reason,
-        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]},
-        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]}
+        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image","notification_preferences"]},
+        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image","notification_preferences"]}
     )
     return True
 

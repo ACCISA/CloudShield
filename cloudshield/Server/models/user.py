@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from pydantic_core import PydanticCustomError
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Dict, Any
 import re
 
 PASSWORD_RX = re.compile(
@@ -42,6 +42,9 @@ class UserCreate(BaseModel):
     
     # Base64 data URL (from FileReader), optional
     profile_image: Optional[str] = None
+    
+    # Notification preferences
+    notification_preferences: Optional[Dict[str, Any]] = None
 
     # normalize + validate
     @field_validator("email")
@@ -141,6 +144,9 @@ class UserUpdate(BaseModel):
     
     # Base64 data URL (from FileReader), optional
     profile_image: Optional[str] = None
+    
+    # Notification preferences
+    notification_preferences: Optional[Dict[str, Any]] = None
 
     @field_validator("email")
     @classmethod

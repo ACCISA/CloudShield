@@ -55,16 +55,63 @@ export default function NotificationsTab({ userData, onSave }) {
 
   const deleteOne = (id) => setAlerts((prev) => prev.filter((a) => a.id !== id));
 
-  const handleSave = async () => {
+  const handleEmailAlertsToggle = async (newValue) => {
+    setEmailAlerts(newValue);
     setSaving(true);
-    await onSave({
-      notification_preferences: {
-        email_alerts: emailAlerts,
-        alert_email: alertEmail,
-        in_app_alerts: inAppAlerts,
-      },
-    });
-    setSaving(false);
+    try {
+      await onSave({
+        notification_preferences: {
+          email_alerts: newValue,
+          alert_email: alertEmail,
+          in_app_alerts: inAppAlerts,
+        },
+      });
+    } catch (e) {
+      setEmailAlerts(!newValue); // Revert on failure
+      console.error("Failed to save email alerts preference", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInAppAlertsToggle = async (newValue) => {
+    setInAppAlerts(newValue);
+    setSaving(true);
+    try {
+      await onSave({
+        notification_preferences: {
+          email_alerts: emailAlerts,
+          alert_email: alertEmail,
+          in_app_alerts: newValue,
+        },
+      });
+    } catch (e) {
+      setInAppAlerts(!newValue); // Revert on failure
+      console.error("Failed to save in-app alerts preference", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    setAlertEmail(e.target.value);
+  };
+
+  const handleSaveEmail = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        notification_preferences: {
+          email_alerts: emailAlerts,
+          alert_email: alertEmail,
+          in_app_alerts: inAppAlerts,
+        },
+      });
+    } catch (e) {
+      console.error("Failed to save email address", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,19 +138,24 @@ export default function NotificationsTab({ userData, onSave }) {
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
           <TextField
             value={alertEmail}
-            onChange={(e) => setAlertEmail(e.target.value)}
+            onChange={handleEmailChange}
+            onBlur={handleSaveEmail}
             placeholder="Email"
             size="small"
-            disabled={!emailAlerts}
+            disabled={!emailAlerts || saving}
             sx={{ ...inputSx, width: 280 }}
           />
           <Switch
             checked={emailAlerts}
-            onChange={(e) => setEmailAlerts(e.target.checked)}
+            onChange={(e) => handleEmailAlertsToggle(e.target.checked)}
+            disabled={saving}
             sx={{
-              "& .MuiSwitch-switchBase.Mui-checked": { color: "#fff" },
+              "& .MuiSwitch-switchBase.Mui-checked": { 
+                color: "#4caf50",
+                "&:hover": { backgroundColor: "rgba(76, 175, 80, 0.08)" }
+              },
               "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                backgroundColor: "#555",
+                backgroundColor: "#66bb6a",
               },
               "& .MuiSwitch-track": { backgroundColor: "#333" },
             }}
@@ -125,11 +177,15 @@ export default function NotificationsTab({ userData, onSave }) {
         </Box>
         <Switch
           checked={inAppAlerts}
-          onChange={(e) => setInAppAlerts(e.target.checked)}
+          onChange={(e) => handleInAppAlertsToggle(e.target.checked)}
+          disabled={saving}
           sx={{
-            "& .MuiSwitch-switchBase.Mui-checked": { color: "#fff" },
+            "& .MuiSwitch-switchBase.Mui-checked": { 
+              color: "#4caf50",
+              "&:hover": { backgroundColor: "rgba(76, 175, 80, 0.08)" }
+            },
             "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-              backgroundColor: "#555",
+              backgroundColor: "#66bb6a",
             },
             "& .MuiSwitch-track": { backgroundColor: "#333" },
           }}
@@ -268,21 +324,20 @@ export default function NotificationsTab({ userData, onSave }) {
       </Box>
 
       <Button
-        onClick={handleSave}
         disabled={saving}
         variant="contained"
         sx={{
-          backgroundColor: "#fff",
+          backgroundColor: saving ? "#555" : "#fff",
           color: "#000",
           fontWeight: 600,
           borderRadius: "10px",
           textTransform: "none",
           padding: "10px 28px",
-          "&:hover": { backgroundColor: "#e0e0e0" },
+          "&:hover": { backgroundColor: saving ? "#555" : "#e0e0e0" },
           "&:disabled": { backgroundColor: "#333", color: "#666" },
         }}
       >
-        {saving ? "Saving..." : "Save changes"}
+        {saving ? "Auto-saving..." : "Settings saved"}
       </Button>
     </Box>
   );
