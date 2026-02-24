@@ -179,7 +179,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Uniqueness / limits
     # -----------------------------
-    if users_admin.find_one({"email": user_data.email}):
+    if users_admin.find_one({"org_id": org_id, "email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
