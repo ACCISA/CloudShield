@@ -23,8 +23,7 @@ def read_hashes():
 hashes = read_hashes()
 
 es = Elasticsearch(
-    "http://localhost:9200",
-    http_auth=("elastic","enKPRIhK")
+    os.environ.get("ES_URL", "http://localhost:9200"),
 )
 try:
     es.ping()

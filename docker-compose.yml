@@ -170,6 +170,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
+      - ES_URL=http://elasticsearch:9200
     depends_on:
       redis:
         condition: service_healthy
@@ -180,6 +181,7 @@ services:
       - ./logs:/app/logs
     networks:
       - vpc_net
+      - cloudshield_net
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0

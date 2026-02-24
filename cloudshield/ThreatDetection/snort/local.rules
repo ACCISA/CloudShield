@@ -1,0 +1,43 @@
+# ============================================================================
+# CloudShield VPN Snort Rules — local.rules
+# ============================================================================
+# These rules target common malicious patterns on OpenVPN traffic.
+# Deploy alongside Snort 3 (or 2.9+) on the VPN gateway.
+#
+# Variables expected in snort.conf:
+#   HOME_NET     – internal VPN subnet (e.g., 10.8.0.0/24)
+#   EXTERNAL_NET – everything else (!$HOME_NET)
+#   VPN_PORT     – OpenVPN listener (default 1194)
+# ============================================================================
+
+# ---------- 1. Port-scan detection on the VPN interface --------------------
+alert tcp $EXTERNAL_NET any -> $HOME_NET $VPN_PORT (msg:"CS-VPN Port scan detected on VPN port"; flags:S; threshold:type threshold, track by_src, count 10, seconds 30; classtype:attempted-recon; sid:9000001; rev:1;)
+
+# ---------- 2. Brute-force OpenVPN auth (rapid TLS handshakes) -------------
+alert udp $EXTERNAL_NET any -> $HOME_NET $VPN_PORT (msg:"CS-VPN Possible OpenVPN brute-force (rapid handshake attempts)"; content:"|38|"; depth:1; threshold:type threshold, track by_src, count 15, seconds 60; classtype:attempted-admin; sid:9000002; rev:1;)
+
+# ---------- 3. Tunnel abuse — DNS tunneling over VPN ----------------------
+alert udp $HOME_NET any -> any 53 (msg:"CS-VPN Possible DNS tunneling over VPN"; dsize:>512; threshold:type threshold, track by_src, count 50, seconds 60; classtype:policy-violation; sid:9000003; rev:1;)
+
+# ---------- 4. Large outbound data exfiltration via VPN --------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"CS-VPN Large outbound transfer (possible exfiltration)"; flow:to_server,established; dsize:>60000; threshold:type threshold, track by_src, count 20, seconds 120; classtype:policy-violation; sid:9000004; rev:1;)
+
+# ---------- 5. Reverse shell indicators over VPN --------------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"CS-VPN Possible reverse shell (/bin/sh)"; flow:established; content:"/bin/sh"; nocase; classtype:trojan-activity; sid:9000005; rev:1;)
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"CS-VPN Possible reverse shell (cmd.exe)"; flow:established; content:"cmd.exe"; nocase; classtype:trojan-activity; sid:9000006; rev:1;)
+
+# ---------- 6. SSH brute-force through the VPN tunnel ----------------------
+alert tcp $HOME_NET any -> $HOME_NET 22 (msg:"CS-VPN SSH brute-force within VPN tunnel"; flags:S; threshold:type threshold, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:9000007; rev:1;)
+
+# ---------- 7. SMB/CIFS lateral movement inside VPN -----------------------
+alert tcp $HOME_NET any -> $HOME_NET 445 (msg:"CS-VPN SMB lateral movement inside VPN"; flags:S; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-admin; sid:9000008; rev:1;)
+
+# ---------- 8. Tor exit-node / anonymiser usage over VPN -------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET 9001 (msg:"CS-VPN Tor relay traffic detected"; flow:to_server,established; classtype:policy-violation; sid:9000009; rev:1;)
+alert tcp $HOME_NET any -> $EXTERNAL_NET 9030 (msg:"CS-VPN Tor directory traffic detected"; flow:to_server,established; classtype:policy-violation; sid:9000010; rev:1;)
+
+# ---------- 9. ICMP tunnel (unusually large ICMP payloads) -----------------
+alert icmp $HOME_NET any -> any any (msg:"CS-VPN ICMP tunnel (oversized payload)"; dsize:>800; threshold:type threshold, track by_src, count 10, seconds 30; classtype:policy-violation; sid:9000011; rev:1;)
+
+# ---------- 10. Crypto-mining pool connection indicators -------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"CS-VPN Crypto-mining stratum protocol"; flow:to_server,established; content:"stratum+tcp"; nocase; classtype:trojan-activity; sid:9000012; rev:1;)

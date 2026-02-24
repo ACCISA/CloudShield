@@ -27,7 +27,8 @@ except TypeError:
     docker = DockerClient()
 except Exception:
     # Fallback for CI/pytest environments where docker-compose.yml doesn't exist
-    class DummyDocker: pass
+    class DummyDocker:
+        pass
     docker = DummyDocker()
 
 def short_uuid():
