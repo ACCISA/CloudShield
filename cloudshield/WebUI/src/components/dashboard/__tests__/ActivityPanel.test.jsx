@@ -250,4 +250,193 @@ describe("ActivityPanel", () => {
     // Results should be sorted by relevance (exact matches first)
     expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
   });
+
+  // ─── Pagination ─────────────────────────────────────
+  describe("Pagination", () => {
+    const manyActivities = Array.from({ length: 12 }, (_, i) => ({
+      id: i + 1,
+      user: `User ${i + 1}`,
+      date: `01/${String(i + 1).padStart(2, "0")}/2026`,
+      activity: `Activity ${i + 1}`,
+    }));
+
+    it("renders the pagination bar when activities exist", () => {
+      render(<ActivityPanel initialData={manyActivities} />);
+      expect(screen.getByTestId("activity-pagination")).toBeInTheDocument();
+    });
+
+    it("does not render pagination when there are no activities", () => {
+      render(<ActivityPanel initialData={[]} />);
+      expect(
+        screen.queryByTestId("activity-pagination"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("displays correct item range info", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={1}
+        />,
+      );
+      expect(screen.getByTestId("activity-pagination-info")).toHaveTextContent(
+        "1–5 of 12",
+      );
+    });
+
+    it("shows only rowsPerPage items per page (client-side)", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={1}
+        />,
+      );
+      // Should only show the first 5 users
+      expect(screen.getByText("User 1")).toBeInTheDocument();
+      expect(screen.getByText("User 5")).toBeInTheDocument();
+      expect(screen.queryByText("User 6")).not.toBeInTheDocument();
+    });
+
+    it("shows the correct slice on page 2 (client-side)", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={2}
+        />,
+      );
+      expect(screen.queryByText("User 5")).not.toBeInTheDocument();
+      expect(screen.getByText("User 6")).toBeInTheDocument();
+      expect(screen.getByText("User 10")).toBeInTheDocument();
+      expect(screen.queryByText("User 11")).not.toBeInTheDocument();
+    });
+
+    it("shows remaining items on the last partial page", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={3}
+        />,
+      );
+      expect(screen.getByText("User 11")).toBeInTheDocument();
+      expect(screen.getByText("User 12")).toBeInTheDocument();
+      expect(screen.queryByText("User 10")).not.toBeInTheDocument();
+    });
+
+    it("calls onPageChange when Next is clicked", () => {
+      const onPageChange = jest.fn();
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          totalItems={manyActivities.length}
+          rowsPerPage={5}
+          currentPage={1}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={jest.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByTestId("activity-pagination-next"));
+      expect(onPageChange).toHaveBeenCalledWith(2);
+    });
+
+    it("calls onRowsPerPageChange when rows per page changes", () => {
+      const onRowsPerPageChange = jest.fn();
+      const onPageChange = jest.fn();
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          totalItems={manyActivities.length}
+          rowsPerPage={5}
+          currentPage={1}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={onRowsPerPageChange}
+        />,
+      );
+      fireEvent.change(
+        screen.getByTestId("activity-pagination-rows-per-page"),
+        { target: { value: "25" } },
+      );
+      expect(onRowsPerPageChange).toHaveBeenCalledWith(25);
+    });
+
+    it("uses default rowsPerPage of 25 when not specified", () => {
+      const thirtyActivities = Array.from({ length: 30 }, (_, i) => ({
+        id: i + 1,
+        user: `Person ${i + 1}`,
+        date: "01/01/2026",
+        activity: `Action ${i + 1}`,
+      }));
+      render(<ActivityPanel initialData={thirtyActivities} />);
+      // Default rowsPerPage is 25, so Person 25 should be visible but Person 26 should not
+      expect(screen.getByText("Person 25")).toBeInTheDocument();
+      expect(screen.queryByText("Person 26")).not.toBeInTheDocument();
+    });
+
+    it("renders custom rowsPerPageOptions", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPageOptions={[10, 20, 50]}
+        />,
+      );
+      const select = screen.getByTestId("activity-pagination-rows-per-page");
+      const options = select.querySelectorAll("option");
+      expect(options).toHaveLength(3);
+      expect(options[0]).toHaveValue("10");
+      expect(options[1]).toHaveValue("20");
+      expect(options[2]).toHaveValue("50");
+    });
+
+    it("disables Previous on the first page", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={1}
+        />,
+      );
+      expect(screen.getByTestId("activity-pagination-prev")).toBeDisabled();
+    });
+
+    it("disables Next on the last page", () => {
+      render(
+        <ActivityPanel
+          initialData={manyActivities}
+          rowsPerPage={5}
+          currentPage={3}
+        />,
+      );
+      expect(screen.getByTestId("activity-pagination-next")).toBeDisabled();
+    });
+  });
+
+  // ─── EmptyState ─────────────────────────────────────
+  describe("EmptyState", () => {
+    it("shows EmptyState with search hint when search yields no results", () => {
+      render(<ActivityPanel />);
+      const searchInput = screen.getByPlaceholderText("Search activities");
+      fireEvent.change(searchInput, { target: { value: "zzzNonExistent" } });
+
+      expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("activity-empty-state-message"),
+      ).toHaveTextContent("No activities found");
+      expect(
+        screen.getByTestId("activity-empty-state-description"),
+      ).toHaveTextContent("Try adjusting your search query");
+    });
+
+    it("shows EmptyState with default hint when no activities and no search", () => {
+      render(<ActivityPanel initialData={[]} />);
+      expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("activity-empty-state-description"),
+      ).toHaveTextContent(
+        "Activity will appear here once actions are performed",
+      );
+    });
+  });
 });

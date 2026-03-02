@@ -17,7 +17,7 @@ wget https://download.samba.org/pub/samba/stable/samba-4.18.5.tar.gz
 tar xf samba-4.18.5.tar.gz
 sudo samba-4.18.5/bootstrap/generated-dists/ubuntu2204/bootstrap.sh
 
-sudo apt-get udpate -y
+sudo apt-get update -y
 sudo apt-get install -y acl attr samba winbind libpam-winbind libnss-winbind krb5-config krb5-user dnsutils python3-setproctitle
 
 sudo rm /etc/samba/smb.conf
@@ -27,8 +27,11 @@ systemctl stop smbd nmbd winbind
 systemctl mask smbd nmbd winbind
 systemctl disable smbd nmbd winbind
 
+# Derive NetBIOS name from domain (first label, uppercased, max 15 chars)
+netbios_name=$(echo "${domain_name%%.*}" | tr '[:lower:]' '[:upper:]')
+
 # Provision
-sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=SAMBA_INTERNAL --realm=${realm_name} --domain=${domain_name} --adminpass=${dc_admin_password} --option="interfaces=lo eth0" --option="bind interfaces only=yes"
+sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=SAMBA_INTERNAL --realm=${realm_name} --domain=${netbios_name} --adminpass=${dc_admin_password} --option="interfaces=lo eth0" --option="bind interfaces only=yes"
 
 sudo tee /etc/resolv.conf > /dev/null <<EOF
 search ${realm_name_lwr}

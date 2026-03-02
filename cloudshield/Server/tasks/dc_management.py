@@ -6,11 +6,14 @@ from google.protobuf import empty_pb2
 
 from services.user_service import persist_domain_user, remove_domain_user_from_db
 from services.shares_services import create_share, delete_share
+from services.vpn_config_service import store_vpn_config
 from utils import get_logger
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
+from genproto.vpn_service import vpn_service_pb2 as vpn_pb2
+from genproto.vpn_service import vpn_service_pb2_grpc as vpn_pb2_grpc
 
-from .task import proxy_rpc_request, get_server_nodes
+from .task import proxy_rpc_request, get_server_nodes, get_grpc_channel
 
 
 def short_uuid():
@@ -351,6 +354,154 @@ def dc_add_group(org_id: str, group_name: str):
     return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
 
 
+def dc_remove_group(org_id: str, group_name: str):
+    """
+    Remove a security group from Samba Active Directory.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_remove_group"
+        job.save_meta()
+
+    if not validate_username(group_name, logger=logger):
+        if job is not None:
+            job.meta["progress"] = INVALID_GROUP
+            job.save_meta()
+        return {"message": f"the group name is invalid (group={group_name})"}
+
+    nodes = get_server_nodes(org_id)
+
+    request = infra_pb2.RemoveDomainGroupData(group_name=group_name)
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.RemoveDomainGroup",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.RemoveDomainGroupDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully removed group %s", group_name)
+        return {"status": "SUCCESS", "message": "Successfully removed group"}
+
+    if status == infra_pb2.GROUP_NOT_FOUND:
+        logger.warning("Group not found: %s", group_name)
+        return {"status": "GROUP_NOT_FOUND", "message": "Group not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to remove group %s", group_name)
+        return {"status": "FAILED", "message": "Failed to remove group"}
+
+    logger.error("Unexpected response when removing group")
+    return {"status": "UNKNOWN", "message": UNEXPECTED_RESPONSE}
+
+
+def dc_update_file_share(
+    org_id: str,
+    share_name: str,
+    groups: list = None,
+    users: list = None,
+):
+    """
+    Update ACLs (valid users / groups) on an existing Samba file share
+    and restart the Samba service so changes take effect.
+    """
+
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "starting dc_update_file_share"
+        job.save_meta()
+
+    nodes = get_server_nodes(org_id) or {}
+
+    if not nodes:
+        logger.error("Inventory is empty for org_id=%s", org_id)
+
+    request = infra_pb2.UpdateSambaFileShareData(
+        share_name=share_name,
+        groups=groups or [],
+        users=users or [],
+    )
+
+    proxy_response = proxy_rpc_request(
+        nodes,
+        method_name="infra_service.v1.InfraService.UpdateSambaFileShare",
+        request=request,
+    )
+
+    if proxy_response is None:
+        return PROXY_FAIL_MESSAGE
+
+    response = infra_pb2.UpdateSambaFileShareDataAck()
+    response.ParseFromString(proxy_response.response)
+
+    status = response.status
+
+    if status == infra_pb2.SUCCESS:
+        logger.info("Successfully updated file share ACLs for %s", share_name)
+        return {"status": "SUCCESS", "message": "Successfully updated file share"}
+
+    if status == infra_pb2.SHARE_NOT_FOUND:
+        logger.error("Share not found: %s", share_name)
+        return {"status": "SHARE_NOT_FOUND", "message": "Share not found"}
+
+    if status == infra_pb2.FAILED:
+        logger.error("Failed to update file share %s", share_name)
+        return {"status": "FAILED", "message": "Failed to update file share"}
+
+    logger.error("Failed to update file share, unknown reason")
+    return {"status": "UNKNOWN", "message": "Failed to update file share, reason unknown"}
+
+
+def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger):
+    """Call the OpenVPN gRPC node to generate a client .ovpn and store it in MongoDB.
+
+    Returns:
+        dict with ``status`` key (``SUCCESS`` or ``FAILED``).
+    """
+    openvpn_node = nodes.get("OPENVPN")
+    if openvpn_node is None:
+        logger.error("No OPENVPN node in inventory for org_id=%s", org_id)
+        return {"status": "FAILED", "message": "No OPENVPN node found"}
+
+    try:
+        channel = get_grpc_channel(openvpn_node.get_host())
+        stub = vpn_pb2_grpc.VPNServiceStub(channel)
+
+        vpn_request = vpn_pb2.CreateVPNClientData(client_name=username)
+        vpn_response = stub.CreateVPNClient(vpn_request, timeout=120)
+
+        if vpn_response.status == vpn_pb2.SUCCESS:
+            store_vpn_config(
+                org_id=org_id,
+                username=username,
+                filename=vpn_response.filename,
+                content=vpn_response.content,
+            )
+            logger.info("VPN config stored for %s/%s", org_id, username)
+            return {"status": "SUCCESS"}
+
+        logger.error("CreateVPNClient returned status=%s", vpn_response.status)
+        return {"status": "FAILED", "message": "gRPC call returned non-success status"}
+    except Exception as exc:
+        logger.error("VPN config creation failed for %s: %s", username, exc)
+        return {"status": "FAILED", "message": str(exc)}
+
+
 def dc_add_user(org_id: str, username: str, password: str, email: str):
     """
     Note: this job should only be executed if a network was provisioned for that org_id
@@ -402,7 +553,14 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
         persist_domain_user(org_id, username, password, email)
-        return {"status": "SUCCESS", "message":"Successfully added user"}
+
+        # Generate and store VPN config for the new user
+        vpn_result = create_vpn_config_for_user(org_id, username, nodes, logger)
+        return {
+            "status": "SUCCESS",
+            "message": "Successfully added user",
+            "vpn_config": vpn_result,
+        }
 
     if status == infra_pb2.FAILED:
         logger.error("Failed to add user")

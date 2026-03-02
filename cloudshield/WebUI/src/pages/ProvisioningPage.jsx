@@ -10,7 +10,7 @@ const POLL_INTERVAL_MS = 2000;
 // Reaching 95% will take roughly 125 seconds (approx 2 mins).
 const ANIMATION_INTERVAL_MS = 1300; 
 
-const API_BASE = "http://localhost:5050"; 
+const API_BASE = "/api"; 
 
 // --- Helpers ---
 
@@ -90,7 +90,7 @@ export default function ProvisioningPage() {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/task/provision`, {
+        const res = await fetch(`${API_BASE}/task/provision`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ org_id: orgId }),
@@ -148,7 +148,7 @@ export default function ProvisioningPage() {
       if (successHandled.current) return;
 
       try {
-        const res = await fetch(`${API_BASE}/api/status/${encodeURIComponent(jobId)}`);
+        const res = await fetch(`${API_BASE}/status/${encodeURIComponent(jobId)}`);
         
         if (res.status === 404 || res.status >= 500) return;
 

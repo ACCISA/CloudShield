@@ -22,6 +22,7 @@ class UserCreate(BaseModel):
         org_name (Optional[str]): Human-friendly org name used for signup-created orgs.
         package (Literal["basic", "pro", "enterprise"] | None): Package chosen during signup; defaults to "basic".
         file_shares (list[str] | None): Optional file share access list.
+        profile_image (Optional[str]): Base64 data URL for the user's profile picture.
 
     Notes:
         - Enforces password strength (≥12 chars, upper/lower/digit/special).
@@ -38,6 +39,9 @@ class UserCreate(BaseModel):
     org_id: Optional[str] = None 
     
     file_shares: Optional[List[str]] = []
+    
+    # Base64 data URL (from FileReader), optional
+    profile_image: Optional[str] = None
 
     # normalize + validate
     @field_validator("email")
@@ -122,6 +126,7 @@ class UserUpdate(BaseModel):
         role (Literal["admin", "employee"]): Updated role if applicable.
         status (Literal["active", "inactive"]): Account status toggle.
         full_name (str): Updated full name; must remain ≥2 characters if set.
+        profile_image (Optional[str]): Base64 data URL for the user's profile picture.
 
     Notes:
         - Only provided fields are validated and updated.
@@ -133,6 +138,9 @@ class UserUpdate(BaseModel):
     role: Optional[Literal["admin", "employee"]] = None
     status: Optional[Literal["active", "inactive"]] = None
     full_name: Optional[str] = None
+    
+    # Base64 data URL (from FileReader), optional
+    profile_image: Optional[str] = None
 
     @field_validator("email")
     @classmethod

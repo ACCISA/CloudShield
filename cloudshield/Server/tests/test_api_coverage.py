@@ -9,7 +9,8 @@ import unittest.mock
 from datetime import datetime, timezone
 import os
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from flask import g
 
 # Ensure Server package root is on path for legacy imports
 SERVER_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -478,9 +479,8 @@ class TestSignupAdminEndpoint:
             "reason": "bootstrap"
         })
 
-        assert resp.status_code == 201
-        assert resp.get_json()["user_id"] == "new_user_id_123"
-        assert resp.get_json()["org_id"] == "org-auto-1"
+        assert resp.status_code == 202
+        assert "job_id" in resp.get_json()
         assert captured["role"] == "admin"
         assert captured["current_user"] is None
         assert captured["reason"] == "bootstrap"
@@ -754,3 +754,182 @@ class TestUpdateFileShareEndpoint:
         })
         assert resp.status_code == 404
         assert "Share not found" in resp.get_json()["error"]
+
+def _unwrap(func):
+    """Unwrap decorators (require_auth) to call the underlying view directly."""
+    while hasattr(func, "__wrapped__"):
+        func = func.__wrapped__
+    return func
+
+
+def test_get_my_organization_org_id_missing_returns_401(client):
+    """
+    Covers:
+      org_id = (g.user or {}).get("org_id")
+      if not org_id: return 401
+    """
+    import cloudshield.Server.routes.api as api_mod
+
+    view = _unwrap(api_mod.get_my_organization)
+
+    with client.application.test_request_context("/api/organizations/me", method="GET"):
+        g.user = {}  # missing org_id
+        resp, code = view()
+
+    assert code == 401
+    assert resp.get_json()["error"] == "org_id missing from token"
+
+
+def test_get_my_organization_invalid_objectid_returns_400(client):
+    """
+    Covers:
+      except InvalidId: return 400
+    """
+    import cloudshield.Server.routes.api as api_mod
+
+    view = _unwrap(api_mod.get_my_organization)
+
+    with client.application.test_request_context("/api/organizations/me", method="GET"):
+        g.user = {"org_id": "not-a-valid-objectid"}  # ObjectId(...) raises InvalidId
+        resp, code = view()
+
+    assert code == 400
+    assert resp.get_json()["error"] == "Invalid organization ID format"
+
+
+def test_get_my_organization_not_found_returns_404(client, monkeypatch):
+    """
+    Covers:
+      if not doc: return 404
+    """
+    import cloudshield.Server.routes.api as api_mod
+
+    view = _unwrap(api_mod.get_my_organization)
+
+    # valid ObjectId string (won't raise)
+    g_org_id = "507f1f77bcf86cd799439011"
+
+    monkeypatch.setattr(api_mod, "organizations", MagicMock(find_one=lambda _filter: None))
+
+    with client.application.test_request_context("/api/organizations/me", method="GET"):
+        g.user = {"org_id": g_org_id}
+        resp, code = view()
+
+    assert code == 404
+    assert resp.get_json()["error"] == "Organization not found"
+
+
+def test_get_my_organization_success_includes_iso_dates(client, monkeypatch):
+    """
+    Covers:
+      success 200 payload
+      created_at isoformat if present
+      updated_at None if missing
+    """
+    import cloudshield.Server.routes.api as api_mod
+    from bson import ObjectId
+
+    view = _unwrap(api_mod.get_my_organization)
+
+    g_org_id = "507f1f77bcf86cd799439011"
+    created = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    fake_doc = {
+        "_id": ObjectId(g_org_id),
+        "name": "Acme",
+        "package": "basic",
+        "domain_name": "acme.local",
+        "realm_name": "ACME",
+        "workstation_limit": 5,
+        "user_limit": 10,
+        "storage_limit_gb": 100,
+        "provisioning_status": "complete",
+        "provisioning_job_id": "job_123",
+        "created_at": created,
+        "updated_at": None,  # forces else branch
+    }
+
+    monkeypatch.setattr(api_mod, "organizations", MagicMock(find_one=lambda _filter: fake_doc))
+
+    with client.application.test_request_context("/api/organizations/me", method="GET"):
+        g.user = {"org_id": g_org_id}
+        resp, code = view()
+
+    assert code == 200
+    body = resp.get_json()
+    org = body["organization"]
+    assert org["id"] == g_org_id
+    assert org["name"] == "Acme"
+    assert org["created_at"] == created.isoformat()
+    assert org["updated_at"] is None
+
+
+def test_get_my_organization_metrics_org_id_missing_returns_401(client):
+    """
+    Covers:
+      if not org_id: return 401
+    """
+    import cloudshield.Server.routes.api as api_mod
+
+    view = _unwrap(api_mod.get_my_organization_metrics)
+
+    with client.application.test_request_context("/api/organizations/me/metrics", method="GET"):
+        g.user = None  # (g.user or {}) => {}
+        resp, code = view()
+
+    assert code == 401
+    assert resp.get_json()["error"] == "org_id missing from token"
+
+
+def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch):
+    """
+    Covers:
+      users_col/workstations_col/access_groups_col/shares_col count_documents
+      return jsonify({"stats": stats}), 200
+    """
+    import cloudshield.Server.routes.api as api_mod
+
+    view = _unwrap(api_mod.get_my_organization_metrics)
+
+    org_id = "org_abc"
+
+    users_col = MagicMock()
+    workstations_col = MagicMock()
+    access_groups_col = MagicMock()
+    shares_col = MagicMock()
+
+    users_col.count_documents.return_value = 11
+    workstations_col.count_documents.return_value = 3
+    access_groups_col.count_documents.return_value = 7
+    shares_col.count_documents.return_value = 2
+
+    class DummyDB:
+        def __getitem__(self, name):
+            return {
+                "users": users_col,
+                "workstations": workstations_col,
+                "access_groups": access_groups_col,
+                "shares": shares_col,
+            }[name]
+
+    monkeypatch.setattr(api_mod, "db_admin", DummyDB())
+
+    with client.application.test_request_context("/api/organizations/me/metrics", method="GET"):
+        g.user = {"org_id": org_id}
+        resp, code = view()
+
+    assert code == 200
+    assert resp.get_json() == {
+        "stats": {
+            "users": 11,
+            "workstations": 3,
+            "access_groups": 7,
+            "shares": 2,
+        }
+    }
+
+    # Verify correct query filter used in count_documents calls
+    users_col.count_documents.assert_called_once_with({"org_id": org_id})
+    workstations_col.count_documents.assert_called_once_with({"org_id": org_id})
+    access_groups_col.count_documents.assert_called_once_with({"org_id": org_id})
+    shares_col.count_documents.assert_called_once_with({"org_id": org_id})

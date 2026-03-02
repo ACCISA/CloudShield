@@ -88,6 +88,15 @@ export const fetchFileShares = async (
 };
 
 /**
+ * Applies empty state to the setter and optionally shows a toast.
+ */
+const _resetGroups = (setAllGroups, openToast, toastMsg) => {
+  setAllGroups?.([]);
+  if (toastMsg) openToast?.(toastMsg);
+  return [];
+};
+
+/**
  * Fetches groups for a given org_id
  * @param {string} orgId - The organization ID
  * @param {string} accessToken - The auth token
@@ -101,18 +110,10 @@ export const fetchGroups = async (
   setAllGroups = null,
   openToast = null,
 ) => {
+  if (!orgId) return _resetGroups(setAllGroups, openToast, "Missing org_id for groups fetch");
+  if (!accessToken) return _resetGroups(setAllGroups);
+
   try {
-    if (!orgId) {
-      if (setAllGroups) setAllGroups([]);
-      if (openToast) openToast("Missing org_id for groups fetch");
-      return [];
-    }
-
-    if (!accessToken) {
-      if (setAllGroups) setAllGroups([]);
-      return [];
-    }
-
     const res = await fetch(
       `http://127.0.0.1:5050/api/access-groups?org_id=${encodeURIComponent(orgId)}`,
       {
@@ -126,33 +127,30 @@ export const fetchGroups = async (
     );
 
     if (!res.ok) {
-      // Silently handle missing endpoints (404/405)
       if (res.status === 404 || res.status === 405) {
         console.warn(`Groups API not available (${res.status})`);
       }
-      if (setAllGroups) setAllGroups([]);
-      return [];
+      return _resetGroups(setAllGroups);
     }
 
     const data = await res.json();
-    const groups = Array.isArray(data) ? data : data.groups || [];
+    const groups = Array.isArray(data) ? data : data.access_groups || data.groups || [];
 
     const normalized = groups.map((g) => ({
       id: String(g.id || g._id || ""),
       _id: String(g._id || g.id || ""),
-      name: g.name || "Untitled Group",
-      members: g.members || 0,
+      name: g.group_name || g.name || "Untitled Group",
+      members: Array.isArray(g.members) ? g.members : [],
       users: g.users || [],
       files: g.files || [],
       org_id: g.org_id,
     }));
 
-    if (setAllGroups) setAllGroups(normalized);
+    setAllGroups?.(normalized);
     return normalized;
   } catch (e) {
     console.error("Error fetching groups:", e);
-    if (setAllGroups) setAllGroups([]);
-    return [];
+    return _resetGroups(setAllGroups);
   }
 };
 

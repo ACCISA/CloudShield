@@ -18,6 +18,8 @@ from utils.logging_setup import get_logger
 
 from cloudshield.Server.security.guards import require_auth
 
+from services import service_dispatcher
+
 
 # Collection handle. In production this is resolved lazily.
 # In tests, this is monkeypatched to an in-memory fake.
@@ -178,9 +180,25 @@ def create_access_group():
         res = coll.insert_one(doc)
         created = coll.find_one({"_id": res.inserted_id})
 
-        #TODO rpc_sync_access_group(created)
+        # Dispatch DC group creation (non-blocking async job)
+        dc_job_id = None
+        try:
+            group_name = group_data.group_name
+            if org_id and group_name:
+                job = service_dispatcher(
+                    service_name="dc_add_group",
+                    org_id=org_id,
+                    group_name=group_name,
+                )
+                dc_job_id = job.id
+                logger.info("Dispatched dc_add_group job %s for group %s", job.id, group_name)
+        except Exception as dc_err:
+            logger.warning("DC sync failed for group create (non-blocking): %s", dc_err)
 
-        return jsonify({"access_group": access_group_to_json(created)}), 201
+        resp = {"access_group": access_group_to_json(created)}
+        if dc_job_id:
+            resp["dc_job_id"] = dc_job_id
+        return jsonify(resp), 201
 
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
@@ -250,9 +268,25 @@ def update_access_group(group_id: str):
         coll.update_one({"_id": gid, "org_id": org_id}, {"$set": set_doc})
         updated = coll.find_one({"_id": gid, "org_id": org_id})
 
-        #TODO rpc_sync_access_group(updated)
+        # If group_name changed, sync a new group to DC (non-blocking)
+        dc_job_id = None
+        try:
+            gname = patch.group_name or existing.get("name", "")
+            if org_id and gname:
+                job = service_dispatcher(
+                    service_name="dc_add_group",
+                    org_id=org_id,
+                    group_name=gname,
+                )
+                dc_job_id = job.id
+                logger.info("Dispatched dc_add_group (update sync) job %s for group %s", job.id, gname)
+        except Exception as dc_err:
+            logger.warning("DC sync failed for group update (non-blocking): %s", dc_err)
 
-        return jsonify({"access_group": access_group_to_json(updated)}), 200
+        resp = {"access_group": access_group_to_json(updated)}
+        if dc_job_id:
+            resp["dc_job_id"] = dc_job_id
+        return jsonify(resp), 200
 
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
@@ -273,13 +307,37 @@ def delete_access_group(group_id: str):
         org_id = _require_org_id()
         gid = ObjectId(group_id)
 
+        # Fetch the group doc first so we have the name for DC dispatch
+        existing = coll.find_one({"_id": gid, "org_id": org_id})
+        if not existing:
+            return jsonify({"error": "access group not found"}), 404
+
+        group_name = existing.get("name", "")
+
         res = coll.delete_one({"_id": gid, "org_id": org_id})
         if res.deleted_count == 0:
             return jsonify({"error": "access group not found"}), 404
 
-        #TODO rpc_sync_access_group_deleted(group_id)
+        # Dispatch DC group removal (non-blocking async job)
+        dc_job_id = None
+        try:
+            if org_id and group_name:
+                job = service_dispatcher(
+                    service_name="dc_remove_group",
+                    org_id=org_id,
+                    group_name=group_name,
+                )
+                dc_job_id = job.id
+                logger.info("Dispatched dc_remove_group job %s for group %s", job.id, group_name)
+        except Exception as dc_err:
+            logger.warning("DC sync failed for group delete (non-blocking): %s", dc_err)
 
-        return jsonify({"status": "deleted", "id": group_id}), 200
+        logger.info("Group %s deleted from DB.", group_id)
+
+        resp = {"status": "deleted", "id": group_id}
+        if dc_job_id:
+            resp["dc_job_id"] = dc_job_id
+        return jsonify(resp), 200
 
     except Exception as e:
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
@@ -320,7 +378,17 @@ def add_members_to_access_group():
 
         updated = coll.find_one({"name": add_req.group_name, "org_id": org_id})
 
-        #TODO rpc_sync_access_group(updated)
+        # Sync group existence to DC (ensures group is created on DC side)
+        try:
+            if org_id and add_req.group_name:
+                service_dispatcher(
+                    service_name="dc_add_group",
+                    org_id=org_id,
+                    group_name=add_req.group_name,
+                )
+                logger.info("Dispatched dc_add_group (add-members sync) for group %s", add_req.group_name)
+        except Exception as dc_err:
+            logger.warning("DC sync failed for add-members (non-blocking): %s", dc_err)
 
         return jsonify({"access_group": access_group_to_json(updated)}), 200
 

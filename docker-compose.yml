@@ -5,58 +5,80 @@ services:
     ports:
       - "6379:6379"
     networks:
-      vpc_net: 
-        ipv4_address: 172.23.0.5
-
-  workstation:
-    build:
-      context: docker/workstation
-      dockerfile: Dockerfile.workstation_test
-    container_name: windows-workstation
-    environment:
-      USERNAME: "bill"
-      PASSWORD: "gates"
-      VERSION: "11"
-    devices:
-      - /dev/kvm
-      - /dev/net/tun
-    cap_add:
-      - NET_ADMIN
-    ports:
-      - 8006:8006
-      - 3389:3389/tcp
-      - 3389:3389/udp
-    volumes:
-      - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR}
-        target: /storage
-      #- workstation_data:/storage
-      - /home/cena/CloudShield/win11x64.iso:/boot.iso
-      - /home/work/CloudShield/docker/workstation/oem:/oem
-    restart: always
-    stop_grace_period: 2m
-    networks:
       vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.5"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 30
 
-  api:
+  api-test:
     build:
       context: .
-      dockerfile: docker/Dockerfile.api
-    container_name: cs-api
+      dockerfile: docker/Dockerfile.api_test
+    container_name: "cs-api-test-${ORG_TAG:-dev}"
     environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
+      - CLOUDSHIELD_DEV_TOKEN=${CLOUDSHIELD_DEV_TOKEN}
+      - CLOUDSHIELD_DEV_EMAIL=${CLOUDSHIELD_DEV_EMAIL}
+      - CLOUDSHIELD_DEV_ROLE=${CLOUDSHIELD_DEV_ROLE}
+      - CLOUDSHIELD_DEV_ORG=${CLOUDSHIELD_DEV_ORG}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISS=${JWT_ISS}
+      - JWT_AUD=${JWT_AUD}
+      - JWT_EXPIRE_SECONDS=${JWT_EXPIRE_SECONDS}
+      - EMAIL_ENABLED=${EMAIL_ENABLED}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USE_TLS=${SMTP_USE_TLS}
+      - DEPLOYMENT_MODE=docker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+      # Pass through paths so the provisioner knows where to mount from the host
+      - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
+      - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "5050:5050"
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.2"
     volumes:
       - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    container_name: "cs-ui-${ORG_TAG:-dev}"
+    environment:
+      - VITE_PORT=5173
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
+      - VITE_API_PROXY_TARGET=http://api-test:5050
+    ports:
+      - "5173:5173"
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.20"
+      cloudshield_net:
+        ipv4_address: 172.28.0.20
+    volumes:
+      - ./cloudshield/WebUI:/app
+      - ui_node_modules:/app/node_modules
 
   openvpn-test:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
+    image: cs-openvpn-template:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.openvpn_test
@@ -78,13 +100,10 @@ services:
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    networks:
-      vpc_net:
-        ipv4_address: 172.23.0.12
 
-
-    
   samba-test:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
+    image: cs-samba-template:latest
     build:
       context: .
       args:
@@ -93,7 +112,6 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    container_name: cs-samba-test
     privileged: true
     cgroup: host
     tty: true
@@ -119,42 +137,55 @@ services:
       - /dev/loop6:/dev/loop6
       - /dev/loop7:/dev/loop7
       - /dev/loop-control:/dev/loop-control
-    networks:
-      vpc_net:
-        ipv4_address: 172.23.0.10
 
-  api-test:
+  workstation:
+    profiles: ["template"] # Prevents it from starting unless explicitly called
+    image: cs-workstation-template:latest
+    build:
+      context: docker/workstation
+      dockerfile: Dockerfile.workstation_test
+    environment:
+      USERNAME: "bill"
+      PASSWORD: "gates"
+      VERSION: "11"
+      KVM: "N"
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: "no"
+    stop_grace_period: 2m
+
+  api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.api_test
-    container_name: cs-api-test
+      dockerfile: docker/Dockerfile.api
+    container_name: "cs-api-${ORG_TAG:-dev}"
     environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
-      - CLOUDSHIELD_DEV_TOKEN=${CLOUDSHIELD_DEV_TOKEN}
-      - CLOUDSHIELD_DEV_EMAIL=${CLOUDSHIELD_DEV_EMAIL}
-      - CLOUDSHIELD_DEV_ROLE=${CLOUDSHIELD_DEV_ROLE}
-      - CLOUDSHIELD_DEV_ORG=${CLOUDSHIELD_DEV_ORG}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_ISS=${JWT_ISS}
-      - JWT_AUD=${JWT_AUD}
-      - JWT_EXPIRE_SECONDS=${JWT_EXPIRE_SECONDS}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+      - ES_URL=http://elasticsearch:9200
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     ports:
       - "5050:5050"
-    networks: # for a dev env we will pretent that the API has access to the VPC somehow
-      - vpc_net
     volumes:
-      - type: bind
-        source: ${WORKSTATIONS_MOUNT_DIR}
-        target: /data
+      - ./cloudshield:/app/cloudshield
       - ./logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - vpc_net
+      - cloudshield_net
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
-    container_name: elasticsearch
+    container_name: "elasticsearch-${ORG_TAG:-dev}"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -169,7 +200,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.server
-    container_name: server
+    container_name: "server-${ORG_TAG:-dev}"
     environment:
       ES_URL: "http://elasticsearch:9200"
       CLOUDSHIELD_RUNTIME: "1"
@@ -183,7 +214,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent1
+    container_name: "agent1-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-1"
       SERVER_ADDR: "server"
@@ -198,7 +229,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent2
+    container_name: "agent2-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-2"
       SERVER_ADDR: "server"
@@ -213,7 +244,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.agent
-    container_name: agent3
+    container_name: "agent3-${ORG_TAG:-dev}"
     environment:
       AGENT_ID: "agent-3"
       SERVER_ADDR: "server"
@@ -224,32 +255,11 @@ services:
       cloudshield_net:
         ipv4_address: 172.28.0.13
 
-  ui:
-    build:
-      context: .                # path to your UI project (you were in WebUI %)
-      dockerfile: docker/Dockerfile.ui
-    container_name: cs-ui
-    environment:
-      - VITE_PORT=5173
-      - CHOKIDAR_USEPOLLING=true       # improves hot-reload on Docker Desktop
-      - VITE_API_ACCESS_TOKEN=${VITE_API_ACCESS_TOKEN}
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.20
-    ports:
-      - "5173:5173"                    # Vite dev server
-    volumes:
-      - ./cloudshield/WebUI:/app                   # live reload your source
-      - ui_node_modules:/app/node_modules
-
 networks:
   vpc_net:
     external: true
-    driver: bridge
-    ipam:
-      driver: bridge
-      config:
-        - subnet: 172.25.0.0/24
+    name: ${VPC_NET_NAME:-vpc_net}
+
   cloudshield_net:
     driver: bridge
     ipam:
@@ -257,11 +267,4 @@ networks:
         - subnet: 172.28.0.0/16
 
 volumes:
-  workstation_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${WORKSTATIONS_MOUNT_DIR}
-      size: "20G"
   ui_node_modules:

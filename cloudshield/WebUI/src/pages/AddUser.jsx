@@ -29,7 +29,7 @@ export default function AddUserPage() {
     useAsyncTask();
 
   async function apiStartAddUser() {
-    const res = await fetch("http://localhost:5050/task/dc/add_user", {
+    const res = await fetch("/api/task/dc/add_user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ org_id: orgId, username, password, email }),

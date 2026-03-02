@@ -50,17 +50,18 @@ public:
 class SambaTask : public ExecutableTask {
 private:
 	// IMPORTANT TODO these commands allow command injections, we need sanitize inputs at some point
-	static constexpr const char* ADD_DNS_CMD = "samba-tool dns add 127.0.0.1 {} {} A {} -U administrator --password='{}'";
-	static constexpr const char* DELETE_DNS_CMD = "samba-tool dns delete 127.0.0.1 {} {} A {} -U administrator --password='{}'";
-	static constexpr const char* USER_DELETE_CMD = "sudo samba-tool user delete {}";
-	static constexpr const char* USER_ADD_CMD = "samba-tool user add {} {} --profile-path='\\\\SAMBA.LOCAL\\profiles\\%USERNAME%' --script-path=logon.bat";
-	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword {} --newpassword={}";
+	static constexpr const char* ADD_DNS_CMD = "samba-tool dns add 127.0.0.1 %s %s A %s -U administrator --password='%s'";
+	static constexpr const char* DELETE_DNS_CMD = "samba-tool dns delete 127.0.0.1 %s %s A %s -U administrator --password='%s'";
+	static constexpr const char* USER_DELETE_CMD = "sudo samba-tool user delete %s";
+	static constexpr const char* USER_ADD_CMD = "samba-tool user add %s %s --profile-path='\\\\SAMBA.LOCAL\\profiles\\%%USERNAME%%' --script-path=logon.bat";
+	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword %s --newpassword=%s";
 	static constexpr const char* USER_LIST_CMD = "samba-tool user list";
 
-	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/{}/scripts/logon.bat";
-	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '{}' > nul\n";
+	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/%s/scripts/logon.bat";
+	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '%s' > nul\n";
 
 	static constexpr const char* GROUP_ADD_CMD = "samba-tool group add %s";
+	static constexpr const char* GROUP_DELETE_CMD = "samba-tool group delete %s";
 	static constexpr const char* GROUP_ADD_TO_DOMAIN_USERS_CMD = "samba-tool group addmembers \"Domain Users\" %s";
 	static constexpr const char* GROUP_ADD_MEMBER_CMD = "samba-tool group addmembers %s %s";
 	static constexpr const char* GROUP_LIST_CMD = "samba-tool group list";
@@ -71,6 +72,7 @@ public:
 	std::string RemoveDomainUser(std::string username);
 	is::Status CreateSambaFileShare(std::string share_name, std::string share_size);
 	std::string AddDomainGroup(std::string group_name);
+	std::string RemoveDomainGroup(std::string group_name);
 	std::string LinkGroupToDomainUsers(std::string group_name);
 	std::string AddUserToGroup(std::string group_name, std::string username);
 	bool DeleteSambaFileShare(std::string share_name);
@@ -82,5 +84,6 @@ public:
 	bool DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result);
 	bool SyncNetlogonScript(std::string realm, const google::protobuf::RepeatedPtrField<infra_service::v1::GroupMapping>& groups);
 	is::Status RestartSambaService();
+	bool UpdateSambaFileShareACL(std::string share_name, const std::vector<std::string>& groups, const std::vector<std::string>& users);
 	bool IsDomainGroup(std::string group_name);
 };

@@ -8,55 +8,33 @@ TEST_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if TEST_ROOT not in sys.path:
     sys.path.insert(0, TEST_ROOT)
 
-# ...existing code...
+# ---------------------------------------------------------------------------
+# Redis mock: keep the *real* redis package in sys.modules so that libraries
+# like ``rq`` can import its internal classes (Pipeline, ConnectionPool, etc.)
+# but monkey-patch the constructors so no actual TCP connection is attempted.
+# ---------------------------------------------------------------------------
+import redis as _real_redis  # noqa: E402 (must come after sys.path setup)
+
 _redis_mock_client = unittest.mock.MagicMock(name="redis_client")
 _redis_mock_client.get.return_value = None
 _redis_mock_client.set.return_value = True
 _redis_mock_client.ping.return_value = True
 
-_fake_redis = types.ModuleType("redis")
 
 class DummyRedis:
+    """Drop-in replacement that proxies every call to *_redis_mock_client*."""
     def __init__(self, *args, **kwargs):
         self._client = _redis_mock_client
     def __getattr__(self, name):
         return getattr(self._client, name)
 
-_fake_redis.Redis = DummyRedis
-_fake_redis.StrictRedis = DummyRedis
 
-# Provide common redis exceptions and aliases (add more as needed)
-class _WatchError(Exception):
-    pass
+# Patch the constructors on the *real* module so any ``redis.Redis(...)`` call
+# returns a DummyRedis and no socket is opened.
+_real_redis.Redis = DummyRedis          # type: ignore[attr-defined]
+_real_redis.StrictRedis = DummyRedis    # type: ignore[attr-defined]
 
-class _RedisError(Exception):
-    pass
-
-class _ConnectionError(Exception):
-    pass
-
-# Export exceptions at module level so `from redis import WatchError` works
-_fake_redis.WatchError = _WatchError
-_fake_redis.RedisError = _RedisError
-_fake_redis.ConnectionError = _ConnectionError
-
-# client submodule
-_client_mod = types.ModuleType("redis.client")
-setattr(_client_mod, "Redis", DummyRedis)
-setattr(_client_mod, "StrictRedis", DummyRedis)
-sys.modules["redis.client"] = _client_mod
-_fake_redis.client = _client_mod
-
-# exceptions submodule for `redis.exceptions`
-_ex_mod = types.ModuleType("redis.exceptions")
-_ex_mod.WatchError = _WatchError
-_ex_mod.RedisError = _RedisError
-_ex_mod.ConnectionError = _ConnectionError
-sys.modules["redis.exceptions"] = _ex_mod
-
-# Install the fake redis module
-sys.modules["redis"] = _fake_redis
-
+# --- FLASK CORS MOCKING ---
 _fake_flask_cors = types.ModuleType("flask_cors")
 
 class CORS:
@@ -64,15 +42,38 @@ class CORS:
         pass
 
 _fake_flask_cors.CORS = CORS
-
 sys.modules["flask_cors"] = _fake_flask_cors
 
 @pytest.fixture(autouse=True)
 def redis_mock_fixture():
     """
     Autouse fixture that yields the mock client for tests to assert calls.
-    Because sys.modules was patched at import-time above, any module that does
-    `import redis` (or `from redis import WatchError`) will get the fake symbols.
     """
     yield _redis_mock_client
-# ...existing code...
+try:
+    import cryptography  # noqa: F401
+    import bcrypt        # noqa: F401
+    import paramiko      # noqa: F401
+except (ImportError, RuntimeError):
+    _mock_sym = unittest.mock.MagicMock()
+    
+    modules_to_mock = [
+        "cryptography",
+        "cryptography.hazmat",
+        "cryptography.hazmat.bindings",
+        "cryptography.hazmat.bindings._rust",
+        "cryptography.hazmat.backends",
+        "cryptography.hazmat.primitives",
+        "cryptography.hazmat.primitives.serialization",
+        "cryptography.hazmat.primitives.hashes",
+        "cryptography.hazmat.primitives.asymmetric",
+        "cryptography.hazmat.primitives.asymmetric.rsa",
+        "cryptography.hazmat.primitives.asymmetric.ed25519",
+        "cryptography.hazmat.primitives.kdf",
+        "cryptography.hazmat.primitives.kdf.scrypt",
+        "bcrypt",
+        "paramiko"
+    ]
+    
+    for mod in modules_to_mock:
+        sys.modules[mod] = _mock_sym

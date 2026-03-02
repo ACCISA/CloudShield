@@ -129,13 +129,21 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     Raises:
         PermissionError: If public signup is not allowed or current_user is not admin
         ValueError: If email already exists or org user limit is exceeded
+
+    Side Effects:
+        - Enqueues a welcome email for public signups.
+        - Enqueues an invite email when an admin creates an employee.
     """
 
     # Determine package for this signup
     package = (user_data.package_type or "basic").strip() if isinstance(getattr(user_data, "package_type", None), str) else "basic"
     org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
-    domain_name = org_name.replace(" ", "_").upper()
-    realm_name = "SAMDOM."+domain_name+".COM"
+    # Build a valid AD domain name: lowercase, hyphens instead of spaces/underscores,
+    # append .local, and derive the Kerberos realm (uppercase FQDN).
+    import re
+    _slug = re.sub(r'[^a-z0-9]+', '-', org_name.lower()).strip('-')[:15]  # NetBIOS ≤15 chars
+    domain_name = f"{_slug}.local"          # e.g. "cloudshield-test.local"
+    realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
     
     def gen_password():
         friendly_punctuation = "!@#$%^&*()-_=+[]{};:,.<>?"
@@ -193,10 +201,12 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         "role": user_data.role,
         "full_name": user_data.full_name,
         "status": "active",
+        "profile_image": user_data.profile_image,  # Base64 data URL for profile picture
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
     res = users_admin.insert_one(user_doc)
+    user_id = str(res.inserted_id)
 
     # -----------------------------
     # Audit logging
@@ -218,7 +228,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         action="create",
         actor=actor,
         resource="users",
-        target={"id": str(res.inserted_id), "email": user_data.email},
+        target={"id": user_id, "email": user_data.email},
         reason=reason,
         before=None,
         after={"role": user_data.role, "status": "active", "org_id": org_id},
@@ -230,7 +240,21 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     except Exception:
         pass
 
-    return str(res.inserted_id)
+    # -----------------------------
+    # Async email notifications
+    # -----------------------------
+    try:
+        from services.job_service import enqueue_org_welcome_email, enqueue_employee_invite_email
+
+        if current_user is None:
+            enqueue_org_welcome_email(org_id, user_id)
+        elif user_data.role == "employee":
+            enqueue_employee_invite_email(user_id)
+    except Exception:
+        # Keep email dispatch failures from impacting user creation.
+        pass
+
+    return user_id
 
 
 def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reason: str | None = None) -> bool:
@@ -286,8 +310,8 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         resource="users",
         target={"id": str(before["_id"]), "email": before["email"]},
         reason=reason,
-        before={k: before.get(k) for k in ["role","status","org_id","full_name","email"]},
-        after={k: after.get(k) for k in ["role","status","org_id","full_name","email"]}
+        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]},
+        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]}
     )
     return True
 

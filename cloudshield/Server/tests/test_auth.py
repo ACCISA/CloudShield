@@ -110,7 +110,7 @@ class TestAuth:
         assert response.status_code == 200
         mock_users_admin.find_one.assert_called_with(
             {"email": "john@example.com", "status": "active"},
-            {"email": 1, "password": 1, "role": 1, "org_id": 1}
+            {"email": 1, "password": 1, "role": 1, "org_id": 1, "full_name": 1}
         )
         
         #Legacy plaintext password upgrade

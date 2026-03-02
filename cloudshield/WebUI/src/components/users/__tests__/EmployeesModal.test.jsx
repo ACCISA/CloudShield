@@ -1698,5 +1698,266 @@ describe("EmployeesModal", () => {
       // The component should call createFilteredItems for files
       expect(modalHelpers.createFilteredItems).toHaveBeenCalled();
     });
+
+    it("should show creating state when creationStatus is running", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+          creationProgress={50}
+          creationMessage="Setting up workstation..."
+        />,
+      );
+
+      expect(screen.getByText("Creating user...")).toBeInTheDocument();
+      expect(screen.getByText("Setting up workstation...")).toBeInTheDocument();
+      expect(screen.getByText("50%")).toBeInTheDocument();
+    });
+
+    it("should show creating state when creationStatus is starting", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="starting"
+        />,
+      );
+
+      expect(screen.getByText("Creating user...")).toBeInTheDocument();
+    });
+
+    it("should disable footer buttons during creation", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+        />,
+      );
+
+      const cancelBtn = screen.getByText("Cancel");
+      expect(cancelBtn).toBeDisabled();
+    });
+
+    it("should pre-select groups where user is a member in edit mode", async () => {
+      // Setup groups with user as member
+      const groupsWithMember = [
+        { id: "grp-1", name: "Engineering", members: ["emp-1"] },
+        { id: "grp-2", name: "Marketing", members: ["emp-2"] },
+        { id: "grp-3", name: "DevOps", members: ["emp-1", "emp-3"] },
+      ];
+
+      // Mock fetchGroups to populate allGroups
+      modalHelpers.fetchGroups.mockImplementation(
+        (orgId, token, setGroups) => {
+          if (setGroups) setGroups(groupsWithMember);
+          return Promise.resolve(groupsWithMember);
+        }
+      );
+
+      const employeeData = {
+        id: "emp-1",
+        name: "John Doe",
+        email: "john@example.com",
+        title: "Engineer",
+      };
+
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          employeeData={employeeData}
+        />,
+      );
+
+      // Wait for groups to be fetched and processed
+      await waitFor(() => {
+        expect(modalHelpers.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("should not pre-select groups when not in edit mode", async () => {
+      modalHelpers.fetchGroups.mockImplementation(
+        (orgId, token, setGroups) => {
+          if (setGroups) setGroups(mockGroups);
+          return Promise.resolve(mockGroups);
+        }
+      );
+
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          employeeData={null}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchGroups).toHaveBeenCalled();
+      });
+
+      // In create mode, no groups should be pre-selected
+      expect(screen.getByText("New User")).toBeInTheDocument();
+    });
+
+    it("should not pre-select groups when allGroups is empty", async () => {
+      modalHelpers.fetchGroups.mockImplementation(
+        (orgId, token, setGroups) => {
+          if (setGroups) setGroups([]);
+          return Promise.resolve([]);
+        }
+      );
+
+      const employeeData = {
+        id: "emp-1",
+        name: "John Doe",
+        email: "john@example.com",
+      };
+
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          employeeData={employeeData}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("should not pre-select groups when employeeData has no id", async () => {
+      modalHelpers.fetchGroups.mockImplementation(
+        (orgId, token, setGroups) => {
+          if (setGroups) setGroups(mockGroups);
+          return Promise.resolve(mockGroups);
+        }
+      );
+
+      const employeeData = {
+        name: "John Doe",
+        email: "john@example.com",
+        // Missing id
+      };
+
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          employeeData={employeeData}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(modalHelpers.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("should display creationMessage when provided during creation", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+          creationMessage="Configuring domain account..."
+        />,
+      );
+
+      expect(screen.getByText("Configuring domain account...")).toBeInTheDocument();
+    });
+
+    it("should display creationProgress percentage when provided", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+          creationProgress={75}
+        />,
+      );
+
+      expect(screen.getByText("75%")).toBeInTheDocument();
+    });
+
+    it("should not display creationProgress when not a number", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+          creationProgress={null}
+        />,
+      );
+
+      expect(screen.queryByText("%")).not.toBeInTheDocument();
+    });
+
+    it("should render step content when not creating", () => {
+      render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus={null}
+        />,
+      );
+
+      // Should show form content, not creating state
+      expect(screen.queryByText("Creating user...")).not.toBeInTheDocument();
+    });
+
+    it("should apply reduced opacity to footer during creation", () => {
+      const { container } = render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+        />,
+      );
+
+      const footer = container.querySelector(".employees-modal-actions");
+      expect(footer).toHaveStyle({ opacity: "0.5" });
+    });
+
+    it("should apply pointer-events none to footer during creation", () => {
+      const { container } = render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus="running"
+        />,
+      );
+
+      const footer = container.querySelector(".employees-modal-actions");
+      expect(footer).toHaveStyle({ pointerEvents: "none" });
+    });
+
+    it("should have full opacity footer when not creating", () => {
+      const { container } = render(
+        <EmployeesModal
+          open={true}
+          onClose={mockOnClose}
+          onSubmit={mockOnSubmit}
+          creationStatus={null}
+        />,
+      );
+
+      const footer = container.querySelector(".employees-modal-actions");
+      expect(footer).toHaveStyle({ opacity: "1" });
+    });
   });
 });

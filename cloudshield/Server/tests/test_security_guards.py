@@ -85,6 +85,8 @@ def test_require_auth_success_sets_user(app, monkeypatch):
         "sub": "user1",
         "role": "employee",
         "org_id": "org99",
+        "email": "user1@example.com",
+        "full_name": "User One",
     })
     monkeypatch.setattr(guards, "verify_token", verify)
 
@@ -93,7 +95,13 @@ def test_require_auth_success_sets_user(app, monkeypatch):
         return g.user
 
     result = _call(handler, app, headers={"Authorization": "Bearer goodtoken"})
-    assert result == {"id": "user1", "role": "employee", "org_id": "org99"}
+    assert result == {
+        "id": "user1",
+        "role": "employee",
+        "org_id": "org99",
+        "email": "user1@example.com",
+        "full_name": "User One",
+    }
 
 
 def test_require_role_denies_without_role(app, monkeypatch):
