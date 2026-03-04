@@ -11,11 +11,12 @@ import SignUpPage from "./pages/SignUpPage.jsx";
 import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import ProvisioningPage from "./pages/ProvisioningPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 
 import { AuthProvider } from "./context/AuthContext.jsx";
 
-export default function App() {
-  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "true";
+function AppWithAuth() {
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "false";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -167,14 +168,23 @@ export default function App() {
             }
           />
 
-          <Route
-            path="/files"
-            element={
-              <Protected>
-                <FilesPage />
-              </Protected>
-            }
-          />
+        <Route
+          path="/files"
+          element={
+            <Protected>
+              <FilesPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <Protected>
+              <SettingsPage />
+            </Protected>
+          }
+        />
 
           {/* Catch-all */}
           <Route

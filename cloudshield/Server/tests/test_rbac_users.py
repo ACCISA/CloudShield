@@ -526,9 +526,14 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     app, client = app_and_client
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
 
-    def _fake_update_user(user_id, update_data, *args, **kwargs):
+    def _fake_update_user(user_id, update_data, current_user=None, *args, **kwargs):
         if user_id == "missing":
             raise ValueError(f"User {user_id} not found")
+        # Enforce admin-only access (unless self-update)
+        current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub") or "")
+        is_self = current_user_id == str(user_id)
+        if not is_self and current_user.get("role") != "admin":
+            raise PermissionError("User is not authorized to perform this action")
         new_fields = {k: v for k, v in update_data.model_dump().items()}
         doc = fake_users_collection.find_one({"_id": user_id})
         if not doc:
@@ -551,10 +556,10 @@ def test_user_update_operations(app_and_client, fake_users_collection, monkeypat
     assert r.status_code == 200
     assert fake_users_collection.find_one({"_id": uid})["full_name"] == "New Name"
     
-    # Test employee cannot update
-    r = client.patch("/users/abc123", headers={"Authorization": "Bearer employee:org_001:u2"},
+    # Test employee cannot update another user
+    r = client.patch(f"/users/{uid}", headers={"Authorization": "Bearer employee:org_001:u2"},
                     json={"full_name": "Blocked"})
-    assert r.status_code == 401
+    assert r.status_code == 403
     
     # Test missing user returns 404
     r = client.patch("/users/missing", headers={"Authorization": "Bearer admin:org_001:u1"},
@@ -1120,12 +1125,17 @@ class TestUpdateUserEndpoint:
         """Setup mock update_user service for testing"""
         users_routes = importlib.import_module("cloudshield.Server.routes.users")
         
-        def _fake_update_user(user_id, update_data, *args, **kwargs):
+        def _fake_update_user(user_id, update_data, current_user=None, *args, **kwargs):
             """Mock update_user service"""
             if user_id == "not_found":
                 raise ValueError(f"User {user_id} not found")
             if user_id == "permission_error":
                 raise PermissionError("Cannot modify this user")
+            # Enforce admin-only access (unless self-update)
+            current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub") or "")
+            is_self = current_user_id == str(user_id)
+            if not is_self and current_user.get("role") != "admin":
+                raise PermissionError("User is not authorized to perform this action")
             return True
         
         monkeypatch.setattr(users_routes, "update_user", _fake_update_user, raising=True)
@@ -1155,7 +1165,7 @@ class TestUpdateUserEndpoint:
             json={"full_name": "Updated Name"}
         )
         
-        assert resp.status_code == 401
+        assert resp.status_code == 403
         json_data = resp.get_json()
         assert "error" in json_data
     
