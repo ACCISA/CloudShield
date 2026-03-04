@@ -25,7 +25,12 @@ RUN mkdir -p /app/logs/jobs && chmod -R 755 /app/logs
 
 COPY cloudshield/__init__.py /app/cloudshield/
 COPY cloudshield/Server /app/cloudshield/Server/
+COPY cloudshield/ThreatDetection /app/cloudshield/ThreatDetection/
 COPY .env /app/
+
+# ThreatDetection dependencies (scikit-learn for anomaly detector, elasticsearch client pinned to v8)
+RUN pip install --no-cache-dir scikit-learn 'elasticsearch>=8.0,<9.0' schedule psutil
+
 RUN mkdir -p /app/cloudshield/RPCNode/build/
 # Instead of the terraform provisioner module we wrote, we will import the docker provisioner.
 # Docker provisioner allows us to test our api without using aws to save money and time.

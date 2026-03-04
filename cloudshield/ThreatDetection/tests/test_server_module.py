@@ -100,11 +100,11 @@ class DummyLogger:
     def __init__(self):
         self.messages = []
 
-    def info(self, message):
-        self.messages.append(("info", message))
+    def info(self, message, *args):
+        self.messages.append(("info", message % args if args else message))
 
-    def warning(self, message):
-        self.messages.append(("warning", message))
+    def warning(self, message, *args):
+        self.messages.append(("warning", message % args if args else message))
 
 
 logger_module = types.ModuleType("logger")
@@ -295,3 +295,247 @@ def test_monitor_state_invokes_alert(monkeypatch):
 
     assert calls == ["alert"]
     assert any("monitoring thread has started" in message for level, message in server.state_logger.messages)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# _start_threat_subsystems tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def test_start_threat_subsystems_skips_when_no_threat(monkeypatch):
+    """When _HAS_THREAT is False the function logs and returns immediately."""
+    monkeypatch.setattr(server, "_HAS_THREAT", False)
+    server.server_logger.messages.clear()
+
+    server._start_threat_subsystems()
+
+    assert any(
+        "unavailable" in msg.lower() or "skipping" in msg.lower()
+        for _, msg in server.server_logger.messages
+    )
+
+
+def _enable_threat_subsystem(monkeypatch):
+    """Helper: flip _HAS_THREAT and inject the attributes the try-block would have set."""
+    monkeypatch.setattr(server, "_HAS_THREAT", True)
+    # These attributes are normally set by the try-block at module level;
+    # they don't exist when imports fail, so we must inject them.
+    if not hasattr(server, "SnortAlertWatcher"):
+        monkeypatch.setattr(server, "SnortAlertWatcher", None, raising=False)
+    if not hasattr(server, "alert_from_snort"):
+        monkeypatch.setattr(server, "alert_from_snort", None, raising=False)
+    if not hasattr(server, "ensure_index_templates"):
+        monkeypatch.setattr(server, "ensure_index_templates", None, raising=False)
+    if not hasattr(server, "start_scheduled_tasks"):
+        monkeypatch.setattr(server, "start_scheduled_tasks", None, raising=False)
+    if not hasattr(server, "_anomaly_detector"):
+        monkeypatch.setattr(server, "_anomaly_detector", None, raising=False)
+    if not hasattr(server, "_threat_intel"):
+        monkeypatch.setattr(server, "_threat_intel", None, raising=False)
+    if not hasattr(server, "_alert_dedup"):
+        monkeypatch.setattr(server, "_alert_dedup", None, raising=False)
+    if not hasattr(server, "es_log"):
+        monkeypatch.setattr(server, "es_log", None, raising=False)
+
+
+def test_start_threat_subsystems_es_success(monkeypatch):
+    """When _HAS_THREAT is True and ES connects, templates + watcher + tasks start."""
+    _enable_threat_subsystem(monkeypatch)
+    server.server_logger.messages.clear()
+
+    # Stub Elasticsearch
+    fake_es_instance = SimpleNamespace(ping=lambda: True)
+    fake_es_class = lambda *a, **kw: fake_es_instance  # noqa: E731
+
+    es_mod = types.ModuleType("elasticsearch")
+    es_mod.Elasticsearch = fake_es_class
+    monkeypatch.setitem(sys.modules, "elasticsearch", es_mod)
+
+    # Stub ensure_index_templates
+    template_calls = []
+    monkeypatch.setattr(server, "ensure_index_templates",
+                        lambda es, logger: template_calls.append(es))
+
+    # Stub SnortAlertWatcher
+    watcher_calls = []
+
+    class FakeWatcher:
+        def __init__(self, path, callback):
+            self.path = path
+            self.callback = callback
+
+        def start(self):
+            watcher_calls.append(self.path)
+
+    monkeypatch.setattr(server, "SnortAlertWatcher", FakeWatcher)
+
+    # Stub start_scheduled_tasks
+    sched_calls = []
+    monkeypatch.setattr(server, "start_scheduled_tasks",
+                        lambda **kw: sched_calls.append(kw))
+
+    # Stub es_log and alert_from_snort
+    monkeypatch.setattr(server, "es_log", lambda idx, doc: None)
+    monkeypatch.setattr(server, "alert_from_snort", lambda d: d)
+    monkeypatch.setattr(server, "_alert_dedup", None)
+
+    server._start_threat_subsystems()
+
+    assert len(template_calls) == 1
+    assert template_calls[0] is fake_es_instance
+    assert len(watcher_calls) == 1
+    assert len(sched_calls) == 1
+    assert sched_calls[0]["es_client"] is fake_es_instance
+
+
+def test_start_threat_subsystems_es_fails(monkeypatch):
+    """When ES connection fails, templates are skipped but watcher + tasks still start."""
+    _enable_threat_subsystem(monkeypatch)
+    server.server_logger.messages.clear()
+
+    # Stub Elasticsearch to raise
+    def bad_es(*a, **kw):
+        raise ConnectionError("no ES")
+
+    es_mod = types.ModuleType("elasticsearch")
+    es_mod.Elasticsearch = bad_es
+    monkeypatch.setitem(sys.modules, "elasticsearch", es_mod)
+
+    # ensure_index_templates should NOT be called
+    template_calls = []
+    monkeypatch.setattr(server, "ensure_index_templates",
+                        lambda es, logger: template_calls.append(es))
+
+    # Stub SnortAlertWatcher
+    watcher_started = []
+
+    class FakeWatcher:
+        def __init__(self, path, callback):
+            self.path = path
+            self.callback = callback
+
+        def start(self):
+            watcher_started.append(self.path)
+
+    monkeypatch.setattr(server, "SnortAlertWatcher", FakeWatcher)
+    monkeypatch.setattr(server, "start_scheduled_tasks", lambda **kw: None)
+    monkeypatch.setattr(server, "es_log", lambda idx, doc: None)
+    monkeypatch.setattr(server, "alert_from_snort", lambda d: d)
+    monkeypatch.setattr(server, "_alert_dedup", None)
+
+    server._start_threat_subsystems()
+
+    # Templates skipped because ES failed
+    assert len(template_calls) == 0
+    # Watcher should still start
+    assert len(watcher_started) == 1
+    # Warning should be logged
+    assert any("skipped" in msg.lower() for _, msg in server.server_logger.messages)
+
+
+def test_start_threat_subsystems_snort_env_var(monkeypatch):
+    """SNORT_ALERT_FILE env var is passed to the watcher."""
+    _enable_threat_subsystem(monkeypatch)
+    monkeypatch.setenv("SNORT_ALERT_FILE", "/custom/snort/alert")
+
+    es_mod = types.ModuleType("elasticsearch")
+    es_mod.Elasticsearch = lambda *a, **kw: (_ for _ in ()).throw(Exception("no ES"))
+    monkeypatch.setitem(sys.modules, "elasticsearch", es_mod)
+    monkeypatch.setattr(server, "ensure_index_templates", lambda *a: None)
+    monkeypatch.setattr(server, "start_scheduled_tasks", lambda **kw: None)
+    monkeypatch.setattr(server, "es_log", lambda idx, doc: None)
+    monkeypatch.setattr(server, "alert_from_snort", lambda d: d)
+    monkeypatch.setattr(server, "_alert_dedup", None)
+
+    captured_path = []
+
+    class FakeWatcher:
+        def __init__(self, path, callback):
+            captured_path.append(path)
+            self.callback = callback
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(server, "SnortAlertWatcher", FakeWatcher)
+
+    server._start_threat_subsystems()
+
+    assert captured_path[0] == "/custom/snort/alert"
+
+
+def test_on_snort_alert_callback_logs_and_dedup(monkeypatch):
+    """The _on_snort_alert callback created inside _start_threat_subsystems
+    calls es_log and the deduplicator."""
+    _enable_threat_subsystem(monkeypatch)
+
+    es_mod = types.ModuleType("elasticsearch")
+    es_mod.Elasticsearch = lambda *a, **kw: (_ for _ in ()).throw(Exception("no ES"))
+    monkeypatch.setitem(sys.modules, "elasticsearch", es_mod)
+    monkeypatch.setattr(server, "ensure_index_templates", lambda *a: None)
+    monkeypatch.setattr(server, "start_scheduled_tasks", lambda **kw: None)
+
+    es_log_calls = []
+    monkeypatch.setattr(server, "es_log", lambda idx, doc: es_log_calls.append((idx, doc)))
+
+    dedup_calls = []
+    fake_dedup = SimpleNamespace(ingest=lambda alert: dedup_calls.append(alert))
+    monkeypatch.setattr(server, "_alert_dedup", fake_dedup)
+    monkeypatch.setattr(server, "alert_from_snort", lambda d: {"converted": True, **d})
+
+    captured_callback = []
+
+    class FakeWatcher:
+        def __init__(self, path, callback):
+            captured_callback.append(callback)
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(server, "SnortAlertWatcher", FakeWatcher)
+
+    server._start_threat_subsystems()
+
+    # Simulate a Snort alert arriving
+    fake_alert = SimpleNamespace(to_dict=lambda: {"sid": 123, "msg": "test"})
+    captured_callback[0](fake_alert)
+
+    assert len(es_log_calls) == 1
+    assert es_log_calls[0] == ("snort_alerts", {"sid": 123, "msg": "test"})
+    assert len(dedup_calls) == 1
+    assert dedup_calls[0]["converted"] is True
+
+
+def test_on_snort_alert_callback_no_dedup(monkeypatch):
+    """When _alert_dedup is None, the callback still logs but skips dedup."""
+    _enable_threat_subsystem(monkeypatch)
+
+    es_mod = types.ModuleType("elasticsearch")
+    es_mod.Elasticsearch = lambda *a, **kw: (_ for _ in ()).throw(Exception("no ES"))
+    monkeypatch.setitem(sys.modules, "elasticsearch", es_mod)
+    monkeypatch.setattr(server, "ensure_index_templates", lambda *a: None)
+    monkeypatch.setattr(server, "start_scheduled_tasks", lambda **kw: None)
+
+    es_log_calls = []
+    monkeypatch.setattr(server, "es_log", lambda idx, doc: es_log_calls.append((idx, doc)))
+    monkeypatch.setattr(server, "_alert_dedup", None)
+    monkeypatch.setattr(server, "alert_from_snort", lambda d: d)
+
+    captured_callback = []
+
+    class FakeWatcher:
+        def __init__(self, path, callback):
+            captured_callback.append(callback)
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(server, "SnortAlertWatcher", FakeWatcher)
+
+    server._start_threat_subsystems()
+
+    fake_alert = SimpleNamespace(to_dict=lambda: {"sid": 456})
+    captured_callback[0](fake_alert)
+
+    assert len(es_log_calls) == 1
+    # No crash even though dedup is None

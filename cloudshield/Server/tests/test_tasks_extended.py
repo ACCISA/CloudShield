@@ -22,6 +22,7 @@ def test_provision_network_basic(monkeypatch, tmp_path):
 
 
 def test_destroy_environment_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv("DEPLOYMENT_MODE", "terraform")
     base_dir = tmp_path
     (base_dir / "Cloud" / "terraform" / "generated").mkdir(parents=True)
 
