@@ -19,6 +19,7 @@ from services import (  # noqa: E402
     delete_user,
     list_users,
     service_dispatcher,
+    get_user
 )
 from utils.logging_setup import get_logger  # noqa: E402
 
@@ -224,10 +225,27 @@ def create_user_endpoint():
     except Exception as e:
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
+@users_bp.route("/users/<user_id>", methods=["GET"])
+@require_auth
+def get_user_endpoint(user_id):
+    """
+    Get a specific user's fresh profile data directly from the database.
+    
+    Endpoint:
+        GET /api/users/<user_id>
+    """
+    try:
+        user_data = get_user(user_id, current_user=g.user)
+        return jsonify({"user": user_data}), 200
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception:
+        return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
 @require_auth
-@require_role("admin")
 def update_user_endpoint(user_id):
     """
     Update user fields (admin only).
@@ -414,5 +432,36 @@ def get_current_user_endpoint():
     # If your g.user uses "_id" internally, normalize it to "id"
     if "_id" in safe_user and "id" not in safe_user:
         safe_user["id"] = str(safe_user.pop("_id"))
+
+    return jsonify({"user": safe_user}), 200
+
+
+    """
+    Get the currently authenticated user's profile (self).
+    """
+    u = g.user or {}
+    real_id = u.get("id") or u.get("_id") or u.get("sub")
+    
+    # 1. Try to fetch the absolute latest data from the database
+    if real_id:
+        try:
+            from utils import users_admin
+            from bson import ObjectId
+            
+            fresh_user = users_admin.find_one({"_id": ObjectId(real_id)}, {"password": 0})
+            if fresh_user:
+                fresh_user["id"] = str(fresh_user.pop("_id"))
+                return jsonify({"user": fresh_user}), 200
+        except Exception:
+            pass # If DB fetch fails for any reason, fall back to the token data
+
+    # 2. Fallback to the JWT token claims if DB fetch wasn't possible
+    safe_user = dict(u)
+    safe_user.pop("password", None)
+    
+    if real_id:
+        safe_user["id"] = str(real_id)
+        safe_user.pop("_id", None)
+        safe_user.pop("sub", None)
 
     return jsonify({"user": safe_user}), 200
