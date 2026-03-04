@@ -104,7 +104,7 @@ class SnortAlertWatcher:
         watcher.stop()
     """
 
-    def __init__(self, path: str | Path, callback, poll_interval: float = 1.0):
+    def __init__(self, path: str | Path, callback, poll_interval: float = 1.0, seek_to_end: bool = True):
         self._path = str(path)
         self._callback = callback
         self._poll = poll_interval
