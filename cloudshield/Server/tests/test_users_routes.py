@@ -1,8 +1,6 @@
 import pytest
-import json
 import sys
 import unittest.mock
-from bson import ObjectId
 
 # Mock setup for routes testing
 mock_pymongo = unittest.mock.MagicMock()
