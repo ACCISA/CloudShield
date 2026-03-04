@@ -904,6 +904,7 @@ class TestUserService:
 
     def test_update_user_other_user_requires_admin(self, setup_mocks, employee_user):
         """Test that editing another user requires admin role."""
+        mocks = setup_mocks
         from cloudshield.Server.services.user_service import update_user
         from cloudshield.Server.models import UserUpdate
 
@@ -967,6 +968,7 @@ class TestUserService:
 
     def test_deactivate_user_requires_admin(self, setup_mocks, employee_user):
         """Test that deactivate_user requires admin role."""
+        mocks = setup_mocks
         from cloudshield.Server.services.user_service import deactivate_user
 
         with pytest.raises(PermissionError):
@@ -1048,6 +1050,14 @@ class TestUserService:
         call_args = mocks['users_admin'].find.call_args
         assert call_args[0][0]["org_id"] == self.TEST_ORG_ID
 
+    def test_list_users_requires_admin(self, setup_mocks, employee_user):
+        """Test that list_users requires admin role."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import list_users
+
+        with pytest.raises(PermissionError):
+            list_users(employee_user)
+
     def test_get_user_self_access(self, setup_mocks, employee_user):
         """Test that users can access their own profile."""
         mocks = setup_mocks
@@ -1067,6 +1077,7 @@ class TestUserService:
 
     def test_get_user_other_user_requires_admin(self, setup_mocks, employee_user):
         """Test that accessing another user requires admin role."""
+        mocks = setup_mocks
         from cloudshield.Server.services.user_service import get_user
 
         with pytest.raises(PermissionError):

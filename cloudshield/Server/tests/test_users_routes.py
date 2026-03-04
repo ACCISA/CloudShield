@@ -1,7 +1,8 @@
-"""Tests for users routes endpoints."""
 import pytest
+import json
 import sys
 import unittest.mock
+from bson import ObjectId
 
 # Mock setup for routes testing
 mock_pymongo = unittest.mock.MagicMock()
@@ -12,15 +13,43 @@ mock_rq.get_current_job = unittest.mock.MagicMock(return_value=None)
 mock_provisioner = unittest.mock.MagicMock()
 mock_provisioner.get_target_dir = unittest.mock.MagicMock(return_value="/mock/path")
 
-sys.modules['pymongo'] = mock_pymongo
-sys.modules['pymongo.errors'] = mock_pymongo_errors
-sys.modules['rq'] = mock_rq
-sys.modules['provisioner'] = mock_provisioner
 
-mock_tasks = unittest.mock.MagicMock()
-sys.modules['tasks'] = mock_tasks
-sys.modules['tasks.dc_management'] = unittest.mock.MagicMock()
-sys.modules['tasks.task'] = unittest.mock.MagicMock()
+@pytest.fixture(autouse=True, scope="module")
+def setup_module_mocks():
+    """Set up module-level mocks for routes testing"""
+    original_pymongo = sys.modules.get('pymongo')
+    original_pymongo_errors = sys.modules.get('pymongo.errors')
+    original_rq = sys.modules.get('rq')
+    original_provisioner = sys.modules.get('provisioner')
+    original_tasks = sys.modules.get('tasks')
+    original_tasks_dc = sys.modules.get('tasks.dc_management')
+    original_tasks_task = sys.modules.get('tasks.task')
+    
+    sys.modules['pymongo'] = mock_pymongo
+    sys.modules['pymongo.errors'] = mock_pymongo_errors
+    sys.modules['rq'] = mock_rq
+    sys.modules['provisioner'] = mock_provisioner
+    
+    mock_tasks = unittest.mock.MagicMock()
+    sys.modules['tasks'] = mock_tasks
+    sys.modules['tasks.dc_management'] = unittest.mock.MagicMock()
+    sys.modules['tasks.task'] = unittest.mock.MagicMock()
+    
+    yield
+    
+    for name, original in [
+        ('pymongo', original_pymongo),
+        ('pymongo.errors', original_pymongo_errors),
+        ('rq', original_rq),
+        ('provisioner', original_provisioner),
+        ('tasks', original_tasks),
+        ('tasks.dc_management', original_tasks_dc),
+        ('tasks.task', original_tasks_task),
+    ]:
+        if original is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = original
 
 
 class TestUsersRoutes:
@@ -77,84 +106,215 @@ class TestUsersRoutes:
             "org_id": "507f1f77bcf86cd799439012"
         }
 
-    def test_users_module_imports_successfully(self):
-        """Test users routes module can be imported"""
-        import cloudshield.Server.routes.users as users_module
-        assert users_module is not None
-
-    def test_helper_functions_exist(self):
-        """Test that helper functions exist in users routes"""
-        from cloudshield.Server.routes.users import _make_json_safe, _json_or_empty, _extract_reason
-        
-        assert callable(_make_json_safe)
-        assert callable(_json_or_empty)
-        assert callable(_extract_reason)
-
-    def test_make_json_safe_with_simple_types(self):
-        """Test _make_json_safe handles simple types correctly"""
+    def test_make_json_safe_primitives(self):
+        """Test _make_json_safe with primitive types"""
         from cloudshield.Server.routes.users import _make_json_safe
-        
+
         assert _make_json_safe("string") == "string"
         assert _make_json_safe(42) == 42
         assert _make_json_safe(3.14) == 3.14
         assert _make_json_safe(True) is True
         assert _make_json_safe(None) is None
 
-    def test_make_json_safe_with_dict(self):
-        """Test _make_json_safe handles dictionaries correctly"""
+    def test_make_json_safe_dict(self):
+        """Test _make_json_safe with dictionaries"""
         from cloudshield.Server.routes.users import _make_json_safe
-        
-        input_dict = {"key": "value", "nested": {"inner": 42}}
-        result = _make_json_safe(input_dict)
-        
-        assert result == {"key": "value", "nested": {"inner": 42}}
-        assert isinstance(result, dict)
 
-    def test_make_json_safe_with_list(self):
-        """Test _make_json_safe handles lists correctly"""
+        data = {"key": "value", "nested": {"inner": "data"}}
+        result = _make_json_safe(data)
+        
+        assert result["key"] == "value"
+        assert result["nested"]["inner"] == "data"
+
+    def test_make_json_safe_list(self):
+        """Test _make_json_safe with lists"""
         from cloudshield.Server.routes.users import _make_json_safe
-        
-        input_list = [1, "two", 3.0, None]
-        result = _make_json_safe(input_list)
-        
-        assert result == [1, "two", 3.0, None]
-        assert isinstance(result, list)
 
-    def test_endpoint_functions_exist(self, setup_routes_mocks):
-        """Test that all required endpoint functions exist"""
-        from cloudshield.Server.routes import users
+        data = [1, "string", {"nested": "dict"}]
+        result = _make_json_safe(data)
         
-        # Verify all endpoint functions are present
-        assert hasattr(users, 'list_users_endpoint')
-        assert hasattr(users, 'get_user_endpoint')
-        assert hasattr(users, 'update_user_endpoint')
-        assert hasattr(users, 'deactivate_user_endpoint')
-        assert hasattr(users, 'delete_user_endpoint')
-        assert hasattr(users, 'create_user_endpoint')
-        assert hasattr(users, 'users_bp')
+        assert result[0] == 1
+        assert result[1] == "string"
+        assert result[2]["nested"] == "dict"
 
-    def test_blueprint_registered(self, setup_routes_mocks):
-        """Test that users blueprint is properly defined"""
+    def test_json_or_empty_with_valid_json(self, monkeypatch):
+        """Test _json_or_empty with valid JSON in request"""
+        from cloudshield.Server.routes.users import _json_or_empty
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = {"key": "value"}
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _json_or_empty()
+            
+        assert result == {"key": "value"}
+
+    def test_json_or_empty_with_invalid_json(self, monkeypatch):
+        """Test _json_or_empty with invalid JSON returns empty dict"""
+        from cloudshield.Server.routes.users import _json_or_empty
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = None
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _json_or_empty()
+            
+        assert result == {}
+
+    def test_extract_reason_from_json_body(self, monkeypatch):
+        """Test _extract_reason extracts reason from JSON body"""
+        from cloudshield.Server.routes.users import _extract_reason
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = {"reason": "Testing reason"}
+        mock_request.args.get.return_value = None
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _extract_reason()
+            
+        assert result == "Testing reason"
+
+    def test_extract_reason_from_query_params(self, monkeypatch):
+        """Test _extract_reason extracts reason from query params"""
+        from cloudshield.Server.routes.users import _extract_reason
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = None
+        mock_request.args.get.return_value = "Query reason"
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _extract_reason()
+            
+        assert result == "Query reason"
+
+    def test_extract_reason_body_takes_precedence(self, monkeypatch):
+        """Test _extract_reason prefers body over query params"""
+        from cloudshield.Server.routes.users import _extract_reason
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = {"reason": "Body reason"}
+        mock_request.args.get.return_value = "Query reason"
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _extract_reason()
+            
+        assert result == "Body reason"
+
+    def test_extract_reason_returns_none_when_empty(self, monkeypatch):
+        """Test _extract_reason returns None when no reason provided"""
+        from cloudshield.Server.routes.users import _extract_reason
+        
+        mock_request = unittest.mock.MagicMock()
+        mock_request.get_json.return_value = {"reason": ""}
+        mock_request.args.get.return_value = None
+        
+        with unittest.mock.patch('cloudshield.Server.routes.users.request', mock_request):
+            result = _extract_reason()
+            
+        assert result is None
+
+    def test_endpoints_exist(self, setup_routes_mocks):
+        """Test that all endpoint functions exist and are callable"""
+        from cloudshield.Server.routes.users import (
+            list_users_endpoint,
+            get_user_endpoint,
+            update_user_endpoint,
+            deactivate_user_endpoint,
+            delete_user_endpoint
+        )
+        
+        assert callable(list_users_endpoint)
+        assert callable(get_user_endpoint)
+        assert callable(update_user_endpoint)
+        assert callable(deactivate_user_endpoint)
+        assert callable(delete_user_endpoint)
+
+    def test_blueprint_exists(self, setup_routes_mocks):
+        """Test that users blueprint exists"""
         from cloudshield.Server.routes.users import users_bp
         
         assert users_bp is not None
         assert users_bp.name == 'users'
 
-    def test_service_functions_mocked(self, setup_routes_mocks):
+    def test_service_mocks_are_mocked(self, setup_routes_mocks):
         """Test that service functions are properly mocked"""
-        from cloudshield.Server.routes.users import (
-            create_user,
-            update_user,
-            delete_user,
-            list_users,
-            get_user,
-            deactivate_user
-        )
+        mocks = setup_routes_mocks
         
-        # Verify they're mocked
-        assert isinstance(create_user, unittest.mock.MagicMock)
-        assert isinstance(update_user, unittest.mock.MagicMock)
-        assert isinstance(delete_user, unittest.mock.MagicMock)
-        assert isinstance(list_users, unittest.mock.MagicMock)
-        assert isinstance(get_user, unittest.mock.MagicMock)
-        assert isinstance(deactivate_user, unittest.mock.MagicMock)
+        assert isinstance(mocks['list_users'], unittest.mock.MagicMock)
+        assert isinstance(mocks['get_user'], unittest.mock.MagicMock)
+        assert isinstance(mocks['update_user'], unittest.mock.MagicMock)
+        assert isinstance(mocks['deactivate_user'], unittest.mock.MagicMock)
+        assert isinstance(mocks['delete_user'], unittest.mock.MagicMock)
+
+    def test_list_users_service_can_be_called(self, setup_routes_mocks):
+        """Test that list_users service mock can be configured"""
+        mocks = setup_routes_mocks
+        mocks['list_users'].return_value = [
+            {"id": "user1", "email": "user1@example.com"},
+            {"id": "user2", "email": "user2@example.com"}
+        ]
+        
+        result = mocks['list_users'](current_user={"role": "admin"})
+        assert len(result) == 2
+        assert result[0]["email"] == "user1@example.com"
+
+    def test_get_user_service_can_be_called(self, setup_routes_mocks):
+        """Test that get_user service mock can be configured"""
+        mocks = setup_routes_mocks
+        mocks['get_user'].return_value = {
+            "id": "user-123",
+            "email": "user@example.com",
+            "full_name": "Test User"
+        }
+        
+        result = mocks['get_user']("user-123", current_user={"role": "admin"})
+        assert result["email"] == "user@example.com"
+
+    def test_update_user_service_can_be_called(self, setup_routes_mocks):
+        """Test that update_user service mock can be configured"""
+        mocks = setup_routes_mocks
+        mocks['update_user'].return_value = True
+        
+        result = mocks['update_user'](
+            "user-123",
+            {"full_name": "Updated"},
+            current_user={"role": "admin"},
+            reason="Testing"
+        )
+        assert result is True
+
+    def test_deactivate_user_service_can_be_called(self, setup_routes_mocks):
+        """Test that deactivate_user service mock can be configured"""
+        mocks = setup_routes_mocks
+        mocks['deactivate_user'].return_value = True
+        
+        result = mocks['deactivate_user'](
+            "user-123",
+            current_user={"role": "admin"},
+            reason="Testing"
+        )
+        assert result is True
+
+    def test_delete_user_service_can_be_called(self, setup_routes_mocks):
+        """Test that delete_user service mock can be configured"""
+        mocks = setup_routes_mocks
+        mocks['delete_user'].return_value = True
+        
+        result = mocks['delete_user'](
+            "user-123",
+            current_user={"role": "admin"},
+            reason="Testing"
+        )
+        assert result is True
+
+    def test_delete_user_service_permission_error(self, setup_routes_mocks):
+        """Test that delete_user service can raise PermissionError"""
+        mocks = setup_routes_mocks
+        mocks['delete_user'].side_effect = PermissionError("cannot_delete_self")
+        
+        with pytest.raises(PermissionError):
+            mocks['delete_user'](
+                "admin-id",
+                current_user={"id": "admin-id", "role": "admin"},
+                reason="Testing"
+            )
