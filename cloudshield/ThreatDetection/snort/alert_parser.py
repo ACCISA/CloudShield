@@ -104,10 +104,11 @@ class SnortAlertWatcher:
         watcher.stop()
     """
 
-    def __init__(self, path: str | Path, callback, poll_interval: float = 1.0):
+    def __init__(self, path: str | Path, callback, poll_interval: float = 1.0, seek_to_end: bool = True):
         self._path = str(path)
         self._callback = callback
         self._poll = poll_interval
+        self._seek_to_end = seek_to_end
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -138,9 +139,10 @@ class SnortAlertWatcher:
         if self._stop.is_set():
             return
 
-        with open(self._path, "r") as fh:
-            # Jump to end of file
-            fh.seek(0, 2)
+        with open(self._path, "r") as fh:            # Jump to end of file
+            # Jump to end of file if requested
+            if self._seek_to_end:
+                fh.seek(0, 2)
             while not self._stop.is_set():
                 line = fh.readline()
                 if not line:
