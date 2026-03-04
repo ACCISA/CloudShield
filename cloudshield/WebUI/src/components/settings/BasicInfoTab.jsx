@@ -61,9 +61,9 @@ export default function BasicInfoTab({ userData, onSave }) {
     if (!firstName.trim()) errs.firstName = "First name is required";
     if (!email.trim()) errs.email = "Email is required";
     if (newPassword && newPassword !== confirmPassword)
-      errs.confirmPassword = "Passwords do not match";
+      errs.confirmPassword = "Passwords do not match"; //NOSONAR javascript:S2068
     if (newPassword && newPassword.length < 12)
-      errs.newPassword = "Password must be at least 12 characters";
+      errs.newPassword = "Password must be at least 12 characters"; //NOSONAR javascript:S2068
     return errs;
   };
 
