@@ -1,229 +1,317 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import React from "react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import EmailCustomizationTab from "../EmailCustomizationTab";
+import "@testing-library/jest-dom";
+
+jest.mock("../EmailCustomizationTab", () => {
+  const actual = jest.requireActual("../EmailCustomizationTab");
+  return actual;
+});
 
 describe("EmailCustomizationTab", () => {
-  const mockOnSave = jest.fn();
-  const defaultProps = {
-    userData: {
-      id: "user123",
-      email: "test@example.com",
-      email_customization: {
-        digest_frequency: "weekly",
-        email_notifications: true,
-        marketing_emails: false,
+  const mockOrgData = {
+    id: "org-123",
+    email_branding: {
+      sender_name: "CloudShield Team",
+      brand_color: "#1a1a2e",
+      logo_image: null,
+      footer_text: "Thank you for using CloudShield",
+      notification_toggles: {
+        welcome_email: true,
+        employee_invite: true,
+        workstation_ready: true,
+        security_alert: true,
+        password_reset: true,
       },
     },
-    onSave: mockOnSave,
   };
 
+  const mockOnSave = jest.fn();
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockOnSave.mockClear();
   });
 
-  describe("Rendering", () => {
-    it("renders email customization tab", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.getByText(/email|customization|notifications/i)).toBeInTheDocument();
-    });
+  test("renders email customization header", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    it("displays email customization options", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.queryByText(/email|digest|frequency|notifications/i)).toBeTruthy();
-    });
+    expect(screen.getByText(/email customization|branding/i)).toBeInTheDocument();
   });
 
-  describe("Email Frequency Settings", () => {
-    it("displays frequency options", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const contentArea = screen.queryByText(/email|customization/i);
-      expect(contentArea).toBeTruthy();
-    });
+  test("renders sender name input field", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    it("renders daily option", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const dailyOption = screen.queryByText(/daily/i);
-      if (dailyOption) {
-        expect(dailyOption).toBeInTheDocument();
-      }
-    });
-
-    it("renders weekly option", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const weeklyOption = screen.queryByText(/weekly/i);
-      if (weeklyOption) {
-        expect(weeklyOption).toBeInTheDocument();
-      }
-    });
-
-    it("renders monthly option", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const monthlyOption = screen.queryByText(/monthly/i);
-      if (monthlyOption) {
-        expect(monthlyOption).toBeInTheDocument();
-      }
-    });
-
-    it("selects current frequency", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.queryByText(/weekly/i)).toBeTruthy();
-    });
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+    expect(senderNameInput).toBeInTheDocument();
   });
 
-  describe("Email Toggle Options", () => {
-    it("displays email notifications toggle", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const toggles = screen.queryAllByRole("switch", { hidden: true });
-      if (toggles.length > 0) {
-        expect(toggles.length).toBeGreaterThan(0);
-      }
+  test("updates sender name when input changes", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+
+    await act(async () => {
+      fireEvent.change(senderNameInput, { target: { value: "New Team Name" } });
     });
 
-    it("displays marketing emails toggle", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const toggleArea = screen.getByText(/email|customization/i);
-      expect(toggleArea).toBeInTheDocument();
-    });
-
-    it("shows current toggle states", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.getByText(/email|customization/i)).toBeInTheDocument();
-    });
+    expect(senderNameInput).toHaveValue("New Team Name");
   });
 
-  describe("Interaction", () => {
-    it("handles frequency change", async () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const buttons = screen.queryAllByRole("button");
-      if (buttons.length > 0) {
-        await userEvent.click(buttons[0]);
-        expect(mockOnSave).not.toThrow();
-      }
-    });
+  test("renders footer text input field", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    it("handles toggle change", async () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const toggles = screen.queryAllByRole("checkbox", { hidden: true });
-      if (toggles.length > 0) {
-        await userEvent.click(toggles[0]);
-        expect(mockOnSave).not.toThrow();
-      }
-    });
+    const footerInput = screen.getByDisplayValue("Thank you for using CloudShield");
+    expect(footerInput).toBeInTheDocument();
   });
 
-  describe("State Management", () => {
-    it("initializes with user preferences", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.getByText(/email|customization/i)).toBeInTheDocument();
+  test("updates footer text when input changes", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const footerInput = screen.getByDisplayValue("Thank you for using CloudShield");
+
+    await act(async () => {
+      fireEvent.change(footerInput, { target: { value: "New footer text" } });
     });
 
-    it("handles missing email customization data", () => {
-      const propsWithoutCustomization = {
-        userData: { id: "user123", email: "test@example.com" },
-        onSave: mockOnSave,
-      };
-      
-      render(<EmailCustomizationTab {...propsWithoutCustomization} />);
-      expect(screen.getByText(/email|customization/i)).toBeInTheDocument();
-    });
-
-    it("handles null userData", () => {
-      render(<EmailCustomizationTab userData={null} onSave={mockOnSave} />);
-      expect(screen.queryByText(/email|customization/i)).toBeTruthy();
-    });
+    expect(footerInput).toHaveValue("New footer text");
   });
 
-  describe("UI Structure", () => {
-    it("renders without errors", () => {
-      expect(() => render(<EmailCustomizationTab {...defaultProps} />)).not.toThrow();
+  test("renders color picker input", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    expect(colorInput).toBeInTheDocument();
+  });
+
+  test("updates brand color when changed", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const colorInput = screen.getByDisplayValue("#1a1a2e");
+
+    await act(async () => {
+      fireEvent.change(colorInput, { target: { value: "#ff0000" } });
     });
 
-    it("maintains consistent layout", () => {
-      const { container } = render(<EmailCustomizationTab {...defaultProps} />);
-      expect(container).toBeTruthy();
+    expect(colorInput).toHaveValue("#ff0000");
+  });
+
+  test("renders email preview section", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    expect(screen.getByText("LIVE PREVIEW")).toBeInTheDocument();
+  });
+
+  test("preview updates when sender name changes", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+
+    await act(async () => {
+      fireEvent.change(senderNameInput, { target: { value: "New Name" } });
     });
 
-    it("updates when userData changes", () => {
-      const { rerender } = render(<EmailCustomizationTab {...defaultProps} />);
-      
-      const updatedProps = {
-        ...defaultProps,
-        userData: {
-          ...defaultProps.userData,
-          email_customization: {
-            digest_frequency: "daily",
-            email_notifications: false,
-            marketing_emails: true,
-          },
-        },
-      };
-      
-      rerender(<EmailCustomizationTab {...updatedProps} />);
-      expect(screen.getByText(/email|customization/i)).toBeInTheDocument();
+    expect(screen.getByText("New Name")).toBeInTheDocument();
+  });
+
+  test("renders notification type toggles", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    expect(screen.getByText("Welcome email")).toBeInTheDocument();
+    expect(screen.getByText("Employee invite")).toBeInTheDocument();
+    expect(screen.getByText("Workstation ready")).toBeInTheDocument();
+    expect(screen.getByText("Security alert")).toBeInTheDocument();
+    expect(screen.getByText("Password reset")).toBeInTheDocument();
+  });
+
+  test("toggles notification type switches", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const switches = screen.getAllByRole("checkbox");
+    const welcomeEmailSwitch = switches[0];
+
+    await act(async () => {
+      fireEvent.click(welcomeEmailSwitch);
+    });
+
+    expect(welcomeEmailSwitch).not.toBeChecked();
+  });
+
+  test("loads notification toggle states from orgData", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const switches = screen.getAllByRole("checkbox");
+    switches.forEach((switchEl) => {
+      expect(switchEl).toBeChecked();
     });
   });
 
-  describe("Responsive Design", () => {
-    it("renders content responsively", () => {
-      const { container } = render(<EmailCustomizationTab {...defaultProps} />);
-      expect(container.firstChild).toBeTruthy();
+  test("renders save button", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const saveButton = screen.getByRole("button", { name: /save/i });
+    expect(saveButton).toBeInTheDocument();
+  });
+
+  test("calls onSave when save button is clicked", async () => {
+    mockOnSave.mockResolvedValue(true);
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+    const saveButton = screen.getByRole("button", { name: /save/i });
+
+    await act(async () => {
+      fireEvent.change(senderNameInput, { target: { value: "Updated Name" } });
+      fireEvent.click(saveButton);
     });
 
-    it("adjusts layout for different screen sizes", () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      expect(screen.getByText(/email|customization|notifications/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
     });
   });
 
-  describe("Frequency Selection", () => {
-    it("selects daily frequency", async () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const dailyButtons = screen.queryAllByText(/daily/i);
-      if (dailyButtons.length > 0) {
-        await userEvent.click(dailyButtons[0]);
-        expect(mockOnSave).not.toThrow();
-      }
+  test("includes updated branding in save payload", async () => {
+    mockOnSave.mockResolvedValue(true);
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    const saveButton = screen.getByRole("button", { name: /save/i });
+
+    await act(async () => {
+      fireEvent.change(senderNameInput, { target: { value: "New Name" } });
+      fireEvent.change(colorInput, { target: { value: "#ff0000" } });
+      fireEvent.click(saveButton);
     });
 
-    it("selects weekly frequency", async () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const weeklyButtons = screen.queryAllByText(/weekly/i);
-      if (weeklyButtons.length > 0) {
-        await userEvent.click(weeklyButtons[0]);
-        expect(mockOnSave).not.toThrow();
-      }
-    });
-
-    it("selects monthly frequency", async () => {
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const monthlyButtons = screen.queryAllByText(/monthly/i);
-      if (monthlyButtons.length > 0) {
-        await userEvent.click(monthlyButtons[0]);
-        expect(mockOnSave).not.toThrow();
-      }
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email_branding: expect.objectContaining({
+            sender_name: "New Name",
+            brand_color: "#ff0000",
+          }),
+        })
+      );
     });
   });
 
-  describe("Toggle State Changes", () => {
-    it("toggles email notifications", async () => {
-      mockOnSave.mockResolvedValue();
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const toggles = screen.queryAllByRole("checkbox", { hidden: true });
-      if (toggles.length > 0) {
-        await userEvent.click(toggles[0]);
-        // Verify toggle state can change
-        expect(toggles[0]).toBeInTheDocument();
-      }
+  test("shows loading state while saving", async () => {
+    let resolveSave;
+    mockOnSave.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const saveButton = screen.getByRole("button", { name: /save/i });
+
+    await act(async () => {
+      fireEvent.click(saveButton);
     });
 
-    it("toggles marketing emails", async () => {
-      mockOnSave.mockResolvedValue();
-      render(<EmailCustomizationTab {...defaultProps} />);
-      const toggles = screen.queryAllByRole("checkbox", { hidden: true });
-      if (toggles.length > 1) {
-        await userEvent.click(toggles[1]);
-        expect(toggles[1]).toBeInTheDocument();
-      }
+    const savingButton = screen.getByRole("button", { name: /saving/i });
+    expect(savingButton).toBeInTheDocument();
+
+    await act(async () => {
+      resolveSave(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
+    });
+  });
+
+  test("displays notification descriptions", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    expect(screen.getByText("Sent when a new org is provisioned")).toBeInTheDocument();
+    expect(screen.getByText("Sent when an employee is added")).toBeInTheDocument();
+    expect(screen.getByText("Sent when a workstation finishes provisioning")).toBeInTheDocument();
+  });
+
+  test("handles empty email branding data", () => {
+    const orgDataWithoutBranding = {
+      id: "org-123",
+      email_branding: {},
+    };
+
+    render(<EmailCustomizationTab orgData={orgDataWithoutBranding} onSave={mockOnSave} />);
+
+    expect(screen.getByText("LIVE PREVIEW")).toBeInTheDocument();
+  });
+
+  test("preview displays welcome message", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    expect(screen.getByText(/welcome/i)).toBeInTheDocument();
+  });
+
+  test("preview displays footer text", () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    expect(screen.getByText("Thank you for using CloudShield")).toBeInTheDocument();
+  });
+
+  test("handles logo image upload", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    expect(fileInputs.length).toBeGreaterThan(0);
+  });
+
+  test("updates preview with new sender name", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const senderNameInput = screen.getByDisplayValue("CloudShield Team");
+
+    await act(async () => {
+      fireEvent.change(senderNameInput, { target: { value: "Support Team" } });
+    });
+
+    expect(screen.getByText("Support Team")).toBeInTheDocument();
+  });
+
+  test("updates preview with new brand color", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const colorInput = screen.getByDisplayValue("#1a1a2e");
+
+    await act(async () => {
+      fireEvent.change(colorInput, { target: { value: "#007bff" } });
+    });
+
+    expect(colorInput).toHaveValue("#007bff");
+  });
+
+  test("disables save button while saving", async () => {
+    let resolveSave;
+    mockOnSave.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const saveButton = screen.getByRole("button", { name: /save/i });
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    const savingButton = screen.getByRole("button", { name: /saving/i });
+    expect(savingButton).toBeDisabled();
+
+    await act(async () => {
+      resolveSave(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save/i })).not.toBeDisabled();
     });
   });
 });

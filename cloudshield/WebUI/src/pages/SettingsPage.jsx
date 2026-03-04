@@ -128,7 +128,15 @@ export default function SettingsPage() {
       {/* Toast */}
       {toast.open && (
         <div
+          role="alert"
           onClick={() => setToast((p) => ({ ...p, open: false }))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setToast((p) => ({ ...p, open: false }));
+            }
+          }}
+          tabIndex={0}
           style={{
             position: "fixed",
             bottom: "24px",
@@ -141,6 +149,7 @@ export default function SettingsPage() {
             boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
             zIndex: 9999,
             cursor: "pointer",
+            outline: "none",
           }}
         >
           {toast.msg}

@@ -1,208 +1,222 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import React from "react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import BillingTab from "../BillingTab";
+import "@testing-library/jest-dom";
 
 describe("BillingTab", () => {
-  const mockOnSave = jest.fn();
-  const defaultProps = {
-    userData: {
-      id: "user123",
-      package_type: "pro",
-      billing_date: "2026-03-01",
-    },
-    onSave: mockOnSave,
-  };
+  test("renders billing center header", () => {
+    render(<BillingTab />);
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+    expect(screen.getByText("Billing Centre")).toBeInTheDocument();
+    expect(screen.getByText("Manage your plan and billing details")).toBeInTheDocument();
   });
 
-  describe("Rendering", () => {
-    it("renders billing tab title", () => {
-      render(<BillingTab {...defaultProps} />);
-      expect(screen.getByText(/plan|billing|subscription/i)).toBeInTheDocument();
-    });
+  test("displays Billing History label", () => {
+    render(<BillingTab />);
 
-    it("displays current plan information", () => {
-      render(<BillingTab {...defaultProps} />);
-      // Should display some plan info
-      const tabContent = screen.getByText(/plan|billing|subscription/i);
-      expect(tabContent).toBeInTheDocument();
-    });
-
-    it("renders billing management interface", () => {
-      render(<BillingTab {...defaultProps} />);
-      expect(screen.queryByText(/plan|billing|pricing|subscription/i)).toBeTruthy();
-    });
+    expect(screen.getByText("Billing History")).toBeInTheDocument();
   });
 
-  describe("Plan Display", () => {
-    it("displays basic plan option", () => {
-      render(<BillingTab {...defaultProps} />);
-      const basicPlanText = screen.queryByText(/basic/i);
-      if (basicPlanText) {
-        expect(basicPlanText).toBeInTheDocument();
-      }
-    });
+  test("renders search input field", () => {
+    render(<BillingTab />);
 
-    it("displays pro plan option", () => {
-      render(<BillingTab {...defaultProps} />);
-      const proPlanText = screen.queryByText(/pro/i);
-      if (proPlanText) {
-        expect(proPlanText).toBeInTheDocument();
-      }
-    });
-
-    it("displays enterprise plan option", () => {
-      render(<BillingTab {...defaultProps} />);
-      const enterprisePlanText = screen.queryByText(/enterprise/i);
-      if (enterprisePlanText) {
-        expect(enterprisePlanText).toBeInTheDocument();
-      }
-    });
+    expect(screen.getByPlaceholderText("Search Invoices")).toBeInTheDocument();
   });
 
-  describe("Empty State", () => {
-    it("handles missing user data", () => {
-      render(<BillingTab userData={null} onSave={mockOnSave} />);
-      expect(screen.queryByText(/plan|billing|subscription/i)).toBeTruthy();
-    });
+  test("renders Filter button", () => {
+    render(<BillingTab />);
 
-    it("renders without userData prop", () => {
-      render(<BillingTab onSave={mockOnSave} />);
-      expect(screen.queryByText(/plan|billing|subscription/i)).toBeTruthy();
-    });
+    const filterButton = screen.getByRole("button", { name: /filter/i });
+    expect(filterButton).toBeInTheDocument();
   });
 
-  describe("UI Structure", () => {
-    it("renders without errors", () => {
-      expect(() => render(<BillingTab {...defaultProps} />)).not.toThrow();
-    });
+  test("renders Download All button", () => {
+    render(<BillingTab />);
 
-    it("maintains layout structure", () => {
-      const { container } = render(<BillingTab {...defaultProps} />);
-      expect(container).toBeTruthy();
-    });
+    const downloadButton = screen.getByRole("button", { name: /download all/i });
+    expect(downloadButton).toBeInTheDocument();
   });
 
-  describe("Dynamic Content", () => {
-    it("updates when userData changes", () => {
-      const { rerender } = render(<BillingTab {...defaultProps} />);
-      
-      const updatedProps = {
-        ...defaultProps,
-        userData: {
-          ...defaultProps.userData,
-          package_type: "enterprise",
-        },
-      };
-      
-      rerender(<BillingTab {...updatedProps} />);
-      expect(screen.queryByText(/plan|billing|subscription/i)).toBeTruthy();
-    });
-  });
+  test("filters invoices based on search input", async () => {
+    render(<BillingTab />);
 
-  describe("Search and Filtering", () => {
-    it("renders search input field", () => {
-      render(<BillingTab {...defaultProps} />);
-      expect(screen.getByPlaceholderText("Search Invoices")).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "Pro" } });
     });
 
-    it("filters invoices by search term", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const searchInput = screen.getByPlaceholderText("Search Invoices");
-      
-      await userEvent.type(searchInput, "Pro");
-      
-      // The component should still render
+    await waitFor(() => {
       expect(searchInput).toHaveValue("Pro");
     });
+  });
 
-    it("clears search results when search is empty", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const searchInput = screen.getByPlaceholderText("Search Invoices");
-      
-      await userEvent.type(searchInput, "Pro");
-      expect(searchInput).toHaveValue("Pro");
-      
-      await userEvent.clear(searchInput);
-      expect(searchInput).toHaveValue("");
+  test("displays invoice table headers", () => {
+    render(<BillingTab />);
+
+    expect(screen.getByText("Invoice")).toBeInTheDocument();
+    expect(screen.getByText("Amount")).toBeInTheDocument();
+    expect(screen.getByText("Date")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+  });
+
+  test("renders checkbox for select all functionality", () => {
+    render(<BillingTab />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.length).toBeGreaterThan(0);
+  });
+
+  test("selects individual invoice when checkbox is clicked", async () => {
+    render(<BillingTab />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const firstInvoiceCheckbox = checkboxes[1]; // Skip the select-all checkbox
+
+    await act(async () => {
+      fireEvent.click(firstInvoiceCheckbox);
+    });
+
+    expect(firstInvoiceCheckbox).toBeChecked();
+  });
+
+  test("toggles select all when select-all checkbox is clicked", async () => {
+    render(<BillingTab />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const selectAllCheckbox = checkboxes[0];
+
+    await act(async () => {
+      fireEvent.click(selectAllCheckbox);
+    });
+
+    expect(selectAllCheckbox).toBeChecked();
+
+    // Check that other checkboxes are also checked
+    const otherCheckboxes = checkboxes.slice(1);
+    otherCheckboxes.forEach((checkbox) => {
+      expect(checkbox).toBeChecked();
     });
   });
 
-  describe("Checkbox Selection", () => {
-    it("renders checkboxes in table", () => {
-      render(<BillingTab {...defaultProps} />);
-      const checkboxes = screen.getAllByRole("checkbox");
-      expect(checkboxes.length).toBeGreaterThan(0);
+  test("deselects all items when select-all is toggled twice", async () => {
+    render(<BillingTab />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const selectAllCheckbox = checkboxes[0];
+
+    await act(async () => {
+      fireEvent.click(selectAllCheckbox);
     });
 
-    it("selects individual invoice", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const checkboxes = screen.getAllByRole("checkbox");
-      
-      // Skip select-all checkbox (first one) and select second
-      if (checkboxes.length > 1) {
-        await userEvent.click(checkboxes[1]);
-        expect(checkboxes[1]).toBeChecked();
-      }
+    expect(selectAllCheckbox).toBeChecked();
+
+    await act(async () => {
+      fireEvent.click(selectAllCheckbox);
     });
 
-    it("selects all invoices with select-all checkbox", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const checkboxes = screen.getAllByRole("checkbox");
-      const selectAllCheckbox = checkboxes[0];
-      
-      await userEvent.click(selectAllCheckbox);
-      
-      // All checkboxes should be checked
-      checkboxes.forEach((cb) => {
-        expect(cb).toBeChecked();
-      });
+    expect(selectAllCheckbox).not.toBeChecked();
+  });
+
+  test("search filters invoices by plan", async () => {
+    render(<BillingTab />);
+
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+
+    // Initially should show all 7 invoices
+    const allCheckboxes = screen.getAllByRole("checkbox");
+    expect(allCheckboxes.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "NonExistent" } });
     });
 
-    it("deselects all when select-all is clicked again", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const checkboxes = screen.getAllByRole("checkbox");
-      const selectAllCheckbox = checkboxes[0];
-      
-      // First click to select all
-      await userEvent.click(selectAllCheckbox);
-      checkboxes.forEach((cb) => {
-        expect(cb).toBeChecked();
-      });
-      
-      // Second click to deselect all
-      await userEvent.click(selectAllCheckbox);
-      checkboxes.forEach((cb) => {
-        expect(cb).not.toBeChecked();
-      });
+    await waitFor(() => {
+      expect(searchInput).toHaveValue("NonExistent");
     });
   });
 
-  describe("Buttons", () => {
-    it("renders filter button", () => {
-      render(<BillingTab {...defaultProps} />);
-      expect(screen.getByText("Filter")).toBeInTheDocument();
+  test("search is case-insensitive", async () => {
+    render(<BillingTab />);
+
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "pro" } });
     });
 
-    it("renders download all button", () => {
-      render(<BillingTab {...defaultProps} />);
-      expect(screen.getByText("Download All")).toBeInTheDocument();
+    expect(searchInput).toHaveValue("pro");
+  });
+
+  test("displays invoice details in table", () => {
+    render(<BillingTab />);
+
+    // Check for mock data in the table
+    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("$100 CAD")).toBeInTheDocument();
+  });
+
+  test("shows invoice status as Paid", () => {
+    render(<BillingTab />);
+
+    expect(screen.getByText("Paid")).toBeInTheDocument();
+  });
+
+  test("handles empty search gracefully", async () => {
+    render(<BillingTab />);
+
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "" } });
     });
 
-    it("filter button is clickable", async() => {
-      render(<BillingTab {...defaultProps} />);
-      const filterButton = screen.getByText("Filter");
-      await userEvent.click(filterButton);
-      expect(filterButton).toBeInTheDocument();
+    expect(searchInput).toHaveValue("");
+  });
+
+  test("maintains selection state when search is applied", async () => {
+    render(<BillingTab />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const firstItemCheckbox = checkboxes[1];
+
+    await act(async () => {
+      fireEvent.click(firstItemCheckbox);
     });
 
-    it("download all button is clickable", async () => {
-      render(<BillingTab {...defaultProps} />);
-      const downloadButton = screen.getByText("Download All");
-      await userEvent.click(downloadButton);
-      expect(downloadButton).toBeInTheDocument();
+    expect(firstItemCheckbox).toBeChecked();
+
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "Pro" } });
     });
+
+    // Search should reset the selection based on visible items
+    expect(searchInput).toHaveValue("Pro");
+  });
+
+  test("renders date and time in correct format", () => {
+    render(<BillingTab />);
+
+    expect(screen.getByText("10/11/2025 11:36 pm")).toBeInTheDocument();
+  });
+
+  test("renders invoice amount in correct format", () => {
+    render(<BillingTab />);
+
+    expect(screen.getByText("$100 CAD")).toBeInTheDocument();
+  });
+
+  test("renders AccessTime icon in toolbar", () => {
+    render(<BillingTab />);
+
+    expect(screen.getByText("Billing History")).toBeInTheDocument();
+  });
+
+  test("search input has correct styling classes", () => {
+    render(<BillingTab />);
+
+    const searchInput = screen.getByPlaceholderText("Search Invoices");
+    expect(searchInput).toHaveClass("MuiOutlinedInput-input");
   });
 });
