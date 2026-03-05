@@ -643,3 +643,17 @@
     flex: 1;
   }
 }
+
+/* Validation error styling */
+.groups-modal-input.input-error {
+  border-color: #ef5350;
+  background-color: rgba(239, 83, 80, 0.06);
+}
+
+.groups-modal-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #ef5350;
+  line-height: 1.3;
+}

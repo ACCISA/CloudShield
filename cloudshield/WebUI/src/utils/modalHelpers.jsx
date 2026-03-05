@@ -557,6 +557,7 @@ export const createRenderStepContent = ({
   removeSelection,
   BasicInfoStep,
   SelectionStep,
+  fieldErrors = {},
 }) => {
   return () => {
     const stepConfig = steps[currentStep];
@@ -570,6 +571,7 @@ export const createRenderStepContent = ({
           setFormData={setFormData}
           handleImageUpload={stepConfig.handleImageUpload}
           isEditMode={stepConfig.isEditMode}
+          fieldErrors={fieldErrors}
         />
       );
     }

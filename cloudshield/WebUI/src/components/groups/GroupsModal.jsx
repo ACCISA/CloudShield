@@ -5,6 +5,8 @@ import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import "./GroupsModal.css";
 
+import { validateGroupName } from "../../utils/validation.js";
+
 // Use the same Users API logic as EmployeesPage
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
@@ -40,6 +42,7 @@ export default function GroupsModal({
   const isEditMode = Boolean(groupData);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -166,10 +169,17 @@ export default function GroupsModal({
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    // Validate group name before submitting
+    const gnResult = validateGroupName(formData.groupName);
+    if (!gnResult.valid) {
+      setFieldErrors({ groupName: gnResult.error });
+      return;
+    }
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       await onSubmit?.({
-        name: formData.groupName,
+        name: formData.groupName.trim(),
         description: formData.description,
         image: formData.groupImage,
         users: formData.selectedUsers,
@@ -229,9 +239,10 @@ export default function GroupsModal({
     removeSelection,
     BasicInfoStep,
     SelectionStep,
+    fieldErrors,
   });
 
-  const isNextDisabled = currentStep === 0 && !formData.groupName.trim();
+  const isNextDisabled = currentStep === 0 && (!formData.groupName.trim() || !validateGroupName(formData.groupName).valid);
 
   return (
     <div className="groups-modal-overlay">
@@ -345,20 +356,24 @@ export default function GroupsModal({
 }
 
 // Sub-components
-function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
+function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors = {} }) {
   return (
     <div className="groups-modal-step">
       <div className="groups-modal-form-group">
         <label className="groups-modal-label">Group Name *</label>
         <input
           type="text"
-          className="groups-modal-input"
+          className={`groups-modal-input${fieldErrors.groupName ? " input-error" : ""}`}
           value={formData.groupName}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, groupName: e.target.value }))
           }
           placeholder="Enter group name"
+          maxLength={64}
         />
+        {fieldErrors.groupName && (
+          <span className="groups-modal-field-error">{fieldErrors.groupName}</span>
+        )}
       </div>
 
       <div className="groups-modal-form-group">
