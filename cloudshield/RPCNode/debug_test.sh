@@ -2,10 +2,11 @@
 # Quick debug script: start server, run one test, show server log
 set -e
 
-BUILD_DIR="/mnt/c/Users/ricob/Desktop/CloudShield/cloudshield/RPCNode/build"
-PROTO_DIR="/mnt/c/Users/ricob/Desktop/CloudShield/cloudshield/RPCNode/protos/infra_service"
-HOST="localhost:50055"
-LOG="/tmp/rpcsrv_debug.log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+: "${BUILD_DIR:="$SCRIPT_DIR/build"}"
+: "${PROTO_DIR:="$SCRIPT_DIR/protos/infra_service"}"
+: "${HOST:="localhost:50055"}"
+: "${LOG:="/tmp/rpcsrv_debug.log"}"
 
 # Kill any old instances
 killall cs-rpcsrv 2>/dev/null || true
