@@ -1,7 +1,7 @@
 """MongoDB connection management with admin and employee role separation."""
 import os
 from pymongo import MongoClient
-from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError, OperationFailure
 from dotenv import load_dotenv
 from bson import ObjectId
 from bson.errors import InvalidId
