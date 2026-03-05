@@ -1,7 +1,7 @@
 """MongoDB connection management with admin and employee role separation."""
 import os
 from pymongo import MongoClient
-from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError, OperationFailure
 from dotenv import load_dotenv
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -93,7 +93,12 @@ try:
         print(f"[database.py] Note: shares index creation skipped: {e}")
 
     # Create a unique index on email for users collection
-    users_admin.create_index("email", unique=True)
+    try:
+        users_admin.create_index("email", unique=True)
+    except OperationFailure:
+        # If the index exists with different rules, drop it and recreate it
+        users_admin.drop_index("email_1")
+        users_admin.create_index("email", unique=True)
     
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)

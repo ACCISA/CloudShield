@@ -1,30 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { apiGet } from '../../api/client';
-import { replyToTicket, updateTicketStatus } from '../../api/ticketsApi';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+    Box, Typography, Button, Chip, Paper, CircularProgress, 
+    IconButton, Avatar, InputAdornment, Select, MenuItem, 
+    FormControl, InputLabel, InputBase
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SendIcon from '@mui/icons-material/Send';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import PersonIcon from '@mui/icons-material/Person';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import CategoryIcon from '@mui/icons-material/Category';
+import BusinessIcon from '@mui/icons-material/Business';
+import { apiGet, apiPatch } from '../../api/client';
+import { replyToTicket } from '../../api/ticketsApi';
 
 const TicketDetailView = () => {
     const { ticketId } = useParams();
+    const navigate = useNavigate();
     const [ticketData, setTicketData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [replyText, setReplyText] = useState('');
     const [isReplying, setIsReplying] = useState(false);
+    const [myEmail, setMyEmail] = useState("");
+    
+    const messagesEndRef = useRef(null);
+    const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const loadTicket = async () => {
+    useEffect(() => { scrollToBottom(); }, [ticketData?.replies]);
+
+    useEffect(() => {
+        let mounted = true;
+        apiGet('/users/me').then(res => {
+            if (mounted) setMyEmail(res.user?.email || "");
+        }).catch(err => console.error("Failed to fetch user", err));
+        return () => { mounted = false; };
+    }, []);
+
+    const loadTicket = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             const data = await apiGet(`/tickets/${ticketId}`);
             setTicketData(data);
         } catch (err) {
-            setError(err.message || "Failed to load ticket");
+            if (!isBackground) setError(err.message || "Failed to load ticket");
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
     useEffect(() => {
         loadTicket();
+        const pollInterval = setInterval(() => { loadTicket(true); }, 5000);
+        return () => clearInterval(pollInterval);
     }, [ticketId]);
 
     const handleReply = async (e) => {
@@ -35,7 +65,8 @@ const TicketDetailView = () => {
         try {
             await replyToTicket(ticketId, replyText);
             setReplyText('');
-            await loadTicket(); // Refresh thread to show new message
+            await loadTicket(true);
+            scrollToBottom();
         } catch (err) {
             alert("Failed to send reply: " + err.message);
         } finally {
@@ -43,88 +74,309 @@ const TicketDetailView = () => {
         }
     };
 
-    const handleCloseTicket = async () => {
-        if (!window.confirm("Are you sure you want to close this ticket?")) return;
+    const handleUpdateTicket = async (field, value) => {
         try {
-            await updateTicketStatus(ticketId, "Closed");
-            await loadTicket();
+            await apiPatch(`/tickets/${ticketId}/status`, { [field]: value });
+            await loadTicket(true);
         } catch (err) {
-            alert("Failed to close ticket: " + err.message);
+            alert(`Failed to update ${field}: ` + err.message);
         }
     };
 
-    if (loading) return <div className="p-6">Loading thread...</div>;
-    if (error) return <div className="p-6 text-red-600">{error}</div>;
-    if (!ticketData) return <div className="p-6">Ticket not found.</div>;
+    const isClosed = ticketData?.status === 'Closed';
+    const isSuperAdmin = myEmail === "support@cloudshield.com";
+
+    // --- SMART PARSER: Extract Category from Description ---
+    let category = "General";
+    let cleanDescription = ticketData?.description || "";
+    if (ticketData?.description) {
+        const match = ticketData.description.match(/^\[Category:\s(.*?)\]\n\n/);
+        if (match) {
+            category = match[1];
+            cleanDescription = ticketData.description.replace(/^\[Category:\s(.*?)\]\n\n/, '');
+        }
+    }
+
+    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress sx={{ color: '#5aff3d' }} /></Box>;
+    if (error) return <Box sx={{ p: 4, color: '#ff4d4f' }}>{error}</Box>;
+    if (!ticketData) return <Box sx={{ p: 4, color: '#fff' }}>Ticket not found.</Box>;
+
+    // --- FIXED FLUID STYLES ---
+    const selectSx = {
+        color: '#fff',
+        borderRadius: '8px',
+        transition: 'all 0.2s ease-in-out',
+        '& .MuiOutlinedInput-notchedOutline': { 
+            borderColor: 'rgba(255,255,255,0.1)',
+            transition: 'border-color 0.2s ease-in-out',
+        },
+        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5aff3d' },
+        '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' },
+        '&.Mui-focused .MuiSvgIcon-root': { color: '#5aff3d' }
+    };
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <div className="mb-4">
-                <Link to="/support" className="text-blue-600 hover:underline">&larr; Back to Helpdesk</Link>
-            </div>
+        <Box sx={{ 
+            height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', 
+            maxWidth: '1400px', mx: 'auto', color: '#fff', p: { xs: 2, md: 4 }
+        }}>
+            {/* Top Bar: Back Button */}
+            <Box sx={{ mb: 2, flexShrink: 0 }}>
+                <Button 
+                    startIcon={<ArrowBackIcon />} 
+                    onClick={() => navigate('/tickets')}
+                    sx={{ 
+                        color: 'rgba(255,255,255,0.6)', textTransform: 'none', 
+                        transition: 'color 0.2s', '&:hover': { color: '#fff', backgroundColor: 'transparent' } 
+                    }}
+                >
+                    Back to Helpdesk
+                </Button>
+            </Box>
 
-            <div className="bg-white shadow rounded-lg p-6 mb-6">
-                <div className="flex justify-between items-start mb-4">
-                    <div>
-                        <h1 className="text-2xl font-bold">{ticketData.title}</h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Status: <span className="font-semibold">{ticketData.status}</span> | 
-                            Priority: <span className="font-semibold">{ticketData.priority}</span>
-                        </p>
-                    </div>
-                    {ticketData.status !== 'Closed' && (
-                        <button 
-                            onClick={handleCloseTicket}
-                            className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 text-sm"
-                        >
-                            Mark as Closed
-                        </button>
-                    )}
-                </div>
-                <div className="p-4 bg-gray-50 rounded text-gray-800 whitespace-pre-wrap">
-                    {ticketData.description}
-                </div>
-            </div>
+            {/* TWO-COLUMN LAYOUT CONTAINER */}
+            <Box sx={{ display: 'flex', gap: 4, flexGrow: 1, overflow: 'hidden' }}>
+                
+                {/* LEFT COLUMN: THE CHAT INTERFACE */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', overflow: 'hidden' }}>
+                    
+                    {/* Header */}
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1.5 }}>
+                            {ticketData.title}
+                        </Typography>
+                        <Paper sx={{ 
+                            p: 3, backgroundColor: 'rgba(255,255,255,0.02)', 
+                            border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' 
+                        }}>
+                            <Typography sx={{ color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                                {cleanDescription}
+                            </Typography>
+                        </Paper>
+                    </Box>
 
-            <div className="space-y-4 mb-6">
-                <h3 className="text-lg font-semibold border-b pb-2">Conversation History</h3>
-                {ticketData.replies?.length === 0 ? (
-                    <p className="text-gray-500 text-sm italic">No replies yet.</p>
-                ) : (
-                    ticketData.replies?.map((reply) => (
-                        <div key={reply.id} className="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
-                            <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                <span className="font-semibold">{reply.user_id}</span>
-                                <span>{new Date(reply.created_at).toLocaleString()}</span>
-                            </div>
-                            <div className="text-gray-800">{reply.message}</div>
-                        </div>
-                    ))
-                )}
-            </div>
+                    {/* Chat History */}
+                    <Box sx={{ 
+                        flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', 
+                        gap: 2, p: 2, border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px',
+                        backgroundColor: 'rgba(0,0,0,0.2)', mb: 2,
+                        '&::-webkit-scrollbar': { width: '6px' },
+                        '&::-webkit-scrollbar-track': { background: 'transparent' },
+                        '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.15)', borderRadius: '10px' }
+                    }}>
+                        {ticketData.replies?.length === 0 ? (
+                            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>Start the conversation...</Typography>
+                            </Box>
+                        ) : (
+                            ticketData.replies?.map((reply) => {
+                                const isMine = reply.user_id === myEmail || (isSuperAdmin && reply.user_id === "CloudShield Support");
+                                const isSupport = reply.user_id === "CloudShield Support";
 
-            {ticketData.status !== 'Closed' && (
-                <form onSubmit={handleReply} className="bg-white shadow rounded-lg p-4">
-                    <textarea 
-                        className="w-full border border-gray-300 rounded-md p-3 mb-3 focus:ring-blue-500 focus:border-blue-500"
-                        rows="3" 
-                        placeholder="Type your reply here..."
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        required
-                    />
-                    <div className="flex justify-end">
-                        <button 
-                            type="submit" 
-                            disabled={isReplying}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            {isReplying ? 'Sending...' : 'Send Reply'}
-                        </button>
-                    </div>
-                </form>
-            )}
-        </div>
+                                return (
+                                    <Box key={reply.id} sx={{ 
+                                        display: 'flex', gap: 2, alignSelf: isMine ? 'flex-end' : 'flex-start',
+                                        maxWidth: '85%', flexDirection: isMine ? 'row-reverse' : 'row'
+                                    }}>
+                                        <Avatar sx={{ 
+                                            bgcolor: isSupport ? 'rgba(90, 255, 61, 0.1)' : 'rgba(106, 79, 207, 0.2)', 
+                                            color: isSupport ? '#5aff3d' : '#886aff',
+                                            width: 36, height: 36,
+                                            border: `1px solid ${isSupport ? 'rgba(90, 255, 61, 0.2)' : 'rgba(106, 79, 207, 0.3)'}`
+                                        }}>
+                                            {isSupport ? <SupportAgentIcon fontSize="small"/> : <PersonIcon fontSize="small"/>}
+                                        </Avatar>
+
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
+                                                <Typography sx={{ fontSize: '0.8rem', color: isMine ? '#b9ff9f' : 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                                                    {isMine ? 'You' : reply.user_id.split('@')[0]}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+                                                    {new Date(reply.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Typography>
+                                            </Box>
+                                            
+                                            <Paper sx={{ 
+                                                p: 2, 
+                                                // Updated colors to blend better with the dark theme
+                                                backgroundColor: isMine ? '#3c2b75' : 'rgba(255,255,255,0.03)', 
+                                                color: '#fff', borderRadius: '12px', 
+                                                borderTopRightRadius: isMine ? '4px' : '12px',
+                                                borderTopLeftRadius: !isMine ? '4px' : '12px',
+                                                border: isMine ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                            }}>
+                                                <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, fontSize: '0.95rem' }}>{reply.message}</Typography>
+                                            </Paper>
+                                        </Box>
+                                    </Box>
+                                );
+                            })
+                        )}
+                        <div ref={messagesEndRef} />
+                    </Box>
+
+                    {/* NEW SLEEK CHAT INPUT */}
+                    <Box sx={{ flexShrink: 0 }}>
+                        {!isClosed ? (
+                            <form onSubmit={handleReply}>
+                                <Paper sx={{ 
+                                    display: 'flex', alignItems: 'center', p: '4px 12px',
+                                    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '24px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    transition: 'all 0.2s ease-in-out',
+                                    '&:focus-within': {
+                                        borderColor: '#5aff3d',
+                                        backgroundColor: 'rgba(255,255,255,0.06)',
+                                        boxShadow: '0 0 0 2px rgba(90, 255, 61, 0.1)'
+                                    }
+                                }}>
+                                    <InputBase
+                                        fullWidth
+                                        multiline
+                                        maxRows={4}
+                                        placeholder="Type a message... (Press Enter to send)"
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        onKeyDown={(e) => { 
+                                            if (e.key === 'Enter' && !e.shiftKey) { 
+                                                e.preventDefault(); handleReply(e); 
+                                            } 
+                                        }}
+                                        sx={{ color: '#fff', ml: 1, fontSize: '0.95rem', py: 1.5 }}
+                                    />
+                                    <IconButton 
+                                        type="submit" 
+                                        disabled={isReplying || !replyText.trim()}
+                                        sx={{ 
+                                            color: replyText.trim() ? '#5aff3d' : 'rgba(255,255,255,0.2)', 
+                                            transition: 'color 0.2s ease, background-color 0.2s ease',
+                                            '&:hover': { backgroundColor: 'rgba(90, 255, 61, 0.1)' }
+                                        }}
+                                    >
+                                        {isReplying ? <CircularProgress size={24} sx={{ color: '#5aff3d' }} /> : <SendIcon />}
+                                    </IconButton>
+                                </Paper>
+                            </form>
+                        ) : (
+                            <Box sx={{ textAlign: 'center', p: 2, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px' }}>
+                                <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>This ticket has been closed.</Typography>
+                            </Box>
+                        )}
+                    </Box>
+                </Box>
+
+                {/* RIGHT COLUMN: THE INSPECTOR SIDEBAR */}
+                <Box sx={{ 
+                    width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3,
+                    borderLeft: '1px solid rgba(255,255,255,0.08)', pl: 4
+                }}>
+                    {/* Details Panel */}
+                    <Box>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', mb: 2 }}>
+                            Ticket Details
+                        </Typography>
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.05)', width: 40, height: 40 }}><PersonIcon sx={{ color: 'rgba(255,255,255,0.7)' }} /></Avatar>
+                            <Box>
+                                <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Requester</Typography>
+                                <Typography sx={{ fontWeight: 600 }}>{ticketData.user_id}</Typography>
+                            </Box>
+                        </Box>
+
+                        {isSuperAdmin && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                                <Avatar sx={{ bgcolor: 'rgba(106, 79, 207, 0.15)', color: '#886aff', width: 40, height: 40, border: '1px solid rgba(106, 79, 207, 0.3)' }}><BusinessIcon /></Avatar>
+                                <Box>
+                                    <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Organization ID</Typography>
+                                    <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{ticketData.org_id.substring(0,12)}...</Typography>
+                                </Box>
+                            </Box>
+                        )}
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                            <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', color: 'rgba(255,255,255,0.7)', width: 40, height: 40 }}><CategoryIcon /></Avatar>
+                            <Box>
+                                <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Category</Typography>
+                                <Typography sx={{ fontWeight: 600 }}>{category}</Typography>
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                            <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', color: 'rgba(255,255,255,0.7)', width: 40, height: 40 }}><ConfirmationNumberIcon /></Avatar>
+                            <Box>
+                                <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Created On</Typography>
+                                <Typography sx={{ fontWeight: 600 }}>{new Date(ticketData.created_at).toLocaleDateString()}</Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    {/* Properties Panel */}
+                    <Box>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', mb: 2 }}>
+                            Properties
+                        </Typography>
+
+                        <FormControl fullWidth sx={{ mb: 2 }}>
+                            <InputLabel sx={{ 
+                                color: 'rgba(255,255,255,0.5)', 
+                                '&.Mui-focused': { color: '#5aff3d' } 
+                            }}>
+                                Status
+                            </InputLabel>
+                            <Select
+                                value={ticketData.status}
+                                label="Status"
+                                onChange={(e) => handleUpdateTicket('status', e.target.value)}
+                                sx={selectSx}
+                            >
+                                <MenuItem value="Open">Open</MenuItem>
+                                <MenuItem value="Pending">Pending</MenuItem>
+                                <MenuItem value="Closed">Closed</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth sx={{ mb: 3 }}>
+                            <InputLabel sx={{ 
+                                color: 'rgba(255,255,255,0.5)', 
+                                '&.Mui-focused': { color: '#5aff3d' } 
+                            }}>
+                                Priority
+                            </InputLabel>
+                            <Select
+                                value={ticketData.priority}
+                                label="Priority"
+                                onChange={(e) => handleUpdateTicket('priority', e.target.value)}
+                                sx={selectSx}
+                            >
+                                <MenuItem value="Low">Low</MenuItem>
+                                <MenuItem value="Medium">Medium</MenuItem>
+                                <MenuItem value="High">High</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        {!isClosed && (
+                            <Button 
+                                fullWidth
+                                variant="outlined"
+                                onClick={() => handleUpdateTicket('status', 'Closed')}
+                                startIcon={<CheckCircleOutlineIcon />}
+                                sx={{ 
+                                    color: '#ff4d4f', borderColor: 'rgba(255, 77, 79, 0.3)', textTransform: 'none', py: 1.5,
+                                    borderRadius: '8px', transition: 'all 0.2s ease-in-out',
+                                    '&:hover': { borderColor: '#ff4d4f', backgroundColor: 'rgba(255, 77, 79, 0.08)' }
+                                }}
+                            >
+                                Close Ticket
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
     );
 };
 
