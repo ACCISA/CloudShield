@@ -298,7 +298,7 @@ class TestUserService:
         assert inserted_doc["role"] == "admin"
         assert inserted_doc["org_id"] == self.TEST_ORG_ID
 
-    def test_create_user_public_signup_enqueues_welcome_email(self, setup_mocks, user_data, monkeypatch):
+    def test_create_user_public_signup_does_not_enqueue_welcome_email(self, setup_mocks, user_data, monkeypatch):
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import create_user
 
@@ -322,7 +322,7 @@ class TestUserService:
         user_data.role = "admin"
         create_user(user_data, current_user=None, reason="bootstrap")
 
-        mock_job_enqueue.assert_called_once_with(self.TEST_ORG_ID, self.TEST_USER_ID)
+        mock_job_enqueue.assert_not_called()
 
     def test_create_user_admin_employee_enqueues_invite(self, setup_mocks, admin_user, user_data, monkeypatch):
         mocks = setup_mocks

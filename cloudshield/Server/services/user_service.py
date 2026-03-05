@@ -131,8 +131,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         ValueError: If email already exists or org user limit is exceeded
 
     Side Effects:
-        - Enqueues a welcome email for public signups.
         - Enqueues an invite email when an admin creates an employee.
+        - Public-signup welcome email is sent after successful provisioning.
     """
 
     # Determine package for this signup
@@ -243,11 +243,9 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # Async email notifications
     # -----------------------------
     try:
-        from services.job_service import enqueue_org_welcome_email, enqueue_employee_invite_email
+        from services.job_service import enqueue_employee_invite_email
 
-        if current_user is None:
-            enqueue_org_welcome_email(org_id, user_id)
-        elif user_data.role == "employee":
+        if current_user is not None and user_data.role == "employee":
             enqueue_employee_invite_email(user_id)
     except Exception:
         # Keep email dispatch failures from impacting user creation.
