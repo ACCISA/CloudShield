@@ -39,8 +39,11 @@ export const DRIVE_LETTER_REGEX = /^[A-Za-z]$/;
 /** UNC path */
 export const UNC_PATH_REGEX = /^\\\\[a-zA-Z0-9.\-_]+\\[a-zA-Z0-9.\-_\\]+$/;
 
-/** Password: strong password — 12-128 chars, upper, lower, digit, special */
-export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$/;
+/** Password character-class helpers (O(n) checks, no backtracking) */
+const HAS_LOWER = /[a-z]/;
+const HAS_UPPER = /[A-Z]/;
+const HAS_DIGIT = /\d/;
+const HAS_SPECIAL = /[^\w\s]/;
 
 /** Characters forbidden in passwords (shell metacharacters) */
 const PASSWORD_FORBIDDEN = new Set("'\\\n\r\0;|&$`(){}[]<>!".split(""));
@@ -141,7 +144,7 @@ export function validatePassword(value) {
         "Password contains a disallowed character. Avoid: ' \\ ; | & $ ` ( ) { } [ ] < > !"
       );
   }
-  if (!PASSWORD_REGEX.test(value))
+  if (!HAS_LOWER.test(value) || !HAS_UPPER.test(value) || !HAS_DIGIT.test(value) || !HAS_SPECIAL.test(value))
     return fail(
       "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
     );
