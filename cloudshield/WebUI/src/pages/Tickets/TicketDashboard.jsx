@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTickets } from '../../api/ticketsApi';
+import CreateTicketModal from '../../components/Tickets/CreateTicketModal';
 
 const TicketDashboard = () => {
     const { tickets, loading, error, refreshTickets } = useTickets();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const navigate = useNavigate();
 
     if (loading) return <div className="p-6">Loading support tickets...</div>;
     
@@ -16,7 +20,10 @@ const TicketDashboard = () => {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Support Helpdesk</h1>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+                <button 
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+                >
                     + New Ticket
                 </button>
             </div>
@@ -39,7 +46,11 @@ const TicketDashboard = () => {
                             </tr>
                         ) : (
                             tickets.map((ticket) => (
-                                <tr key={ticket.id || ticket._id} className="hover:bg-gray-50 cursor-pointer">
+                                <tr 
+                                    key={ticket.id} 
+                                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.title}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -55,6 +66,12 @@ const TicketDashboard = () => {
                     </tbody>
                 </table>
             </div>
+
+            <CreateTicketModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSuccess={refreshTickets} 
+            />
         </div>
     );
 };
