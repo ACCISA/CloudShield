@@ -39,6 +39,11 @@ VPNClientResult VPNTask::CreateVPNClient(const std::string& client_name)
 
 	std::cout << "[VPN] EasyRSA output: " << build_result.output << std::endl;
 
+	if (!build_result.success()) {
+		result.error = "EasyRSA failed while building client certificate for '" + client_name + "'";
+		std::cerr << "[VPN] " << result.error << std::endl;
+		return result;
+	}
 	// 2. Build the .ovpn file using SafeExec with grep
 	std::string inline_path = std::string(EASYRSA_DIR) + "/pki/inline/private/" + client_name + ".inline";
 	std::string ovpn_path = std::string(OVPN_OUTPUT_DIR) + "/" + client_name + ".ovpn";

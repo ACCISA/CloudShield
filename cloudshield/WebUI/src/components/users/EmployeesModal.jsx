@@ -569,6 +569,7 @@ function BasicInfoStep({
             }
             placeholder="Min 12 chars, upper+lower+digit+special"
             maxLength={128}
+            data-testid="password-input"
           />
           {fieldErrors.password && (
             <span className="employees-modal-field-error">{fieldErrors.password}</span>
