@@ -81,12 +81,8 @@ ExecResult Run(const std::string& binary, const std::vector<std::string>& args) 
         result.output += "\nProcess killed by signal " + std::to_string(WTERMSIG(status));
     }
 
-    std::cout << "[SafeExec] " << binary;
-    for (const auto& arg : args) {
-        std::cout << " " << arg;
-    }
-    std::cout << " -> exit " << result.exitCode << std::endl;
-
+    std::cout << "[SafeExec] " << binary
+              << " -> exit " << result.exitCode << std::endl;
     return result;
 }
 
