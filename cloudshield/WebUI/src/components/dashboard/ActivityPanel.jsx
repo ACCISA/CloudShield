@@ -25,6 +25,8 @@ import Pagination from "../common/Pagination/Pagination";
 import EmptyState from "../common/EmptyState/EmptyState";
 import { searchWithRelevance } from "../../utils/searchUtils";
 
+const SIDEBAR_ACTIVE_BG = "#2a2a2a";
+
 /**
  * Displays a searchable list of recent user activities.
  * @param {Function} fetchActivities - Optional async function to fetch activities from backend
@@ -44,12 +46,15 @@ export default function ActivityPanel({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const appFontFamily = theme.typography.fontFamily;
 
   // State management
   const [search, setSearch] = useState("");
   const [activities, setActivities] = useState(initialData || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sortField, setSortField] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
 
   // Mock activity data (fallback when no backend is connected)
   const mockData = [
@@ -92,6 +97,13 @@ export default function ActivityPanel({
     }
   }, []);
 
+  // Keep local list in sync with parent-provided activity data.
+  useEffect(() => {
+    if (Array.isArray(initialData)) {
+      setActivities(initialData);
+    }
+  }, [initialData]);
+
   // Load activities from backend or use mock data
   const loadActivities = useCallback(async () => {
     if (!fetchActivities) {
@@ -104,7 +116,7 @@ export default function ActivityPanel({
       setLoading(true);
       setError(null);
       const data = await fetchActivities();
-      setActivities(data);
+      setActivities(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch activities:", err);
       setError("Failed to load activities. Please try again.");
@@ -128,15 +140,51 @@ export default function ActivityPanel({
     { field: "date", weight: 0.5 }, // Date is least important
   ]) || [];
 
+  const sortedActivities = [...filteredActivities].sort((a, b) => {
+    let left;
+    let right;
+
+    if (sortField === "date") {
+      const leftTs = Date.parse(a?.date || "");
+      const rightTs = Date.parse(b?.date || "");
+      left = Number.isNaN(leftTs) ? 0 : leftTs;
+      right = Number.isNaN(rightTs) ? 0 : rightTs;
+    } else {
+      left = String(a?.[sortField] || "").toLowerCase();
+      right = String(b?.[sortField] || "").toLowerCase();
+    }
+
+    if (left < right) return sortDir === "asc" ? -1 : 1;
+    if (left > right) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortField(field);
+    setSortDir(field === "date" ? "desc" : "asc");
+  };
+
+  const sortArrow = (field) => {
+    if (sortField !== field) return "↕";
+    return sortDir === "asc" ? "↑" : "↓";
+  };
+
+  const headerColor = (field) =>
+    sortField === field ? "#fff" : "rgba(255,255,255,0.6)";
+
   // Client-side pagination: slice the filtered list for the current page
   const isServerPaginated = Boolean(onPageChange && onRowsPerPageChange);
   const paginatedActivities = isServerPaginated
-    ? filteredActivities
-    : filteredActivities.slice(
+    ? sortedActivities
+    : sortedActivities.slice(
         (currentPage - 1) * rowsPerPage,
         currentPage * rowsPerPage,
       );
-  const displayTotal = isServerPaginated ? totalItems : filteredActivities.length;
+  const displayTotal = isServerPaginated ? totalItems : sortedActivities.length;
 
   // Get user initials for avatar
   const getUserInitials = (name) => {
@@ -152,16 +200,26 @@ export default function ActivityPanel({
       sx={{
         flex: 1,
         minWidth: 0,
-        backgroundColor: "#1a1a1a",
+        backgroundColor: "#0F0F0F",
         borderRadius: "16px",
         border: "1px solid rgba(255,255,255,0.1)",
         boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
         color: "#fff",
+        fontFamily: appFontFamily,
         padding: isMobile ? "16px" : "24px",
         mt: "24px",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        "& .MuiTypography-root": {
+          fontFamily: appFontFamily,
+        },
+        "& .MuiInputBase-input": {
+          fontFamily: appFontFamily,
+        },
+        "& .MuiButtonBase-root": {
+          fontFamily: appFontFamily,
+        },
       }}
     >
       {/* Header row */}
@@ -183,7 +241,7 @@ export default function ActivityPanel({
             flexShrink: 0,
           }}
         >
-          Recent activity
+          Recent Activity
         </Typography>
 
         <Box sx={{ flex: 1, minWidth: isMobile ? undefined : "16px" }} />
@@ -237,45 +295,62 @@ export default function ActivityPanel({
             gap: "16px",
             px: "16px",
             py: "12px",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
             mb: 1,
           }}
         >
-          <Typography
-            sx={{
-              color: "rgba(255,255,255,0.6)",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
+          <Box
+            onClick={() => toggleSort("user")}
+            sx={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", userSelect: "none" }}
           >
-            User ↑
-          </Typography>
-          {!isTablet && (
             <Typography
               sx={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: "0.75rem",
+                color: headerColor("user"),
+                fontSize: "0.85rem",
                 fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
               }}
             >
-              Date ↑
+              User
             </Typography>
+            <Typography sx={{ color: headerColor("user"), fontSize: "0.7rem" }}>
+              {sortArrow("user")}
+            </Typography>
+          </Box>
+          {!isTablet && (
+            <Box
+              onClick={() => toggleSort("date")}
+              sx={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", userSelect: "none" }}
+            >
+              <Typography
+                sx={{
+                  color: headerColor("date"),
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Date
+              </Typography>
+              <Typography sx={{ color: headerColor("date"), fontSize: "0.7rem" }}>
+                {sortArrow("date")}
+              </Typography>
+            </Box>
           )}
-          <Typography
-            sx={{
-              color: "rgba(255,255,255,0.6)",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
+          <Box
+            onClick={() => toggleSort("activity")}
+            sx={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", userSelect: "none" }}
           >
-            Activity ↑
-          </Typography>
+            <Typography
+              sx={{
+                color: headerColor("activity"),
+                fontSize: "0.85rem",
+                fontWeight: 600,
+              }}
+            >
+              Activity
+            </Typography>
+            <Typography sx={{ color: headerColor("activity"), fontSize: "0.7rem" }}>
+              {sortArrow("activity")}
+            </Typography>
+          </Box>
         </Box>
       )}
 
@@ -331,7 +406,8 @@ export default function ActivityPanel({
                     ? "2fr 1.5fr 3fr"
                     : undefined,
                 gap: isMobile ? "8px" : "16px",
-                backgroundColor: index % 2 === 0 ? "#2a2a2a" : "transparent",
+                backgroundColor:
+                  index % 2 === 0 ? SIDEBAR_ACTIVE_BG : "transparent",
                 borderRadius: "12px",
                 px: "16px",
                 py: "14px",
