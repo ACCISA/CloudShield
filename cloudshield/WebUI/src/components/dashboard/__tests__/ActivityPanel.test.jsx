@@ -5,7 +5,7 @@ import ActivityPanel from "../ActivityPanel";
 describe("ActivityPanel", () => {
   it("renders recent activity title", () => {
     render(<ActivityPanel />);
-    expect(screen.getByText("Recent activity")).toBeInTheDocument();
+    expect(screen.getByText("Recent Activity")).toBeInTheDocument();
   });
 
   it("renders search input", () => {
@@ -251,6 +251,31 @@ describe("ActivityPanel", () => {
     expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
   });
 
+  it("toggles user header sort direction", () => {
+    const data = [
+      { id: 1, user: "zoe", date: "01/01/2026", activity: "B activity" },
+      { id: 2, user: "adam", date: "01/02/2026", activity: "A activity" },
+    ];
+    render(<ActivityPanel initialData={data} rowsPerPage={10} />);
+
+    fireEvent.click(screen.getByText("User"));
+    expect(screen.getByText("↑")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("User"));
+    expect(screen.getByText("↓")).toBeInTheDocument();
+  });
+
+  it("switches to activity sort when activity header is clicked", () => {
+    const data = [
+      { id: 1, user: "zoe", date: "01/01/2026", activity: "zeta" },
+      { id: 2, user: "adam", date: "01/02/2026", activity: "alpha" },
+    ];
+    render(<ActivityPanel initialData={data} rowsPerPage={10} />);
+
+    fireEvent.click(screen.getByText("Activity"));
+    expect(screen.getByText("↑")).toBeInTheDocument();
+  });
+
   // ─── Pagination ─────────────────────────────────────
   describe("Pagination", () => {
     const manyActivities = Array.from({ length: 12 }, (_, i) => ({
@@ -293,10 +318,10 @@ describe("ActivityPanel", () => {
           currentPage={1}
         />,
       );
-      // Should only show the first 5 users
-      expect(screen.getByText("User 1")).toBeInTheDocument();
-      expect(screen.getByText("User 5")).toBeInTheDocument();
-      expect(screen.queryByText("User 6")).not.toBeInTheDocument();
+      // Default date sort is desc, so page 1 should include users 12..8
+      expect(screen.getByText("User 12")).toBeInTheDocument();
+      expect(screen.getByText("User 8")).toBeInTheDocument();
+      expect(screen.queryByText("User 7")).not.toBeInTheDocument();
     });
 
     it("shows the correct slice on page 2 (client-side)", () => {
@@ -307,10 +332,10 @@ describe("ActivityPanel", () => {
           currentPage={2}
         />,
       );
-      expect(screen.queryByText("User 5")).not.toBeInTheDocument();
-      expect(screen.getByText("User 6")).toBeInTheDocument();
-      expect(screen.getByText("User 10")).toBeInTheDocument();
-      expect(screen.queryByText("User 11")).not.toBeInTheDocument();
+      expect(screen.getByText("User 7")).toBeInTheDocument();
+      expect(screen.getByText("User 3")).toBeInTheDocument();
+      expect(screen.queryByText("User 8")).not.toBeInTheDocument();
+      expect(screen.queryByText("User 2")).not.toBeInTheDocument();
     });
 
     it("shows remaining items on the last partial page", () => {
@@ -321,9 +346,9 @@ describe("ActivityPanel", () => {
           currentPage={3}
         />,
       );
-      expect(screen.getByText("User 11")).toBeInTheDocument();
-      expect(screen.getByText("User 12")).toBeInTheDocument();
-      expect(screen.queryByText("User 10")).not.toBeInTheDocument();
+      expect(screen.getByText("User 2")).toBeInTheDocument();
+      expect(screen.getByText("User 1")).toBeInTheDocument();
+      expect(screen.queryByText("User 3")).not.toBeInTheDocument();
     });
 
     it("calls onPageChange when Next is clicked", () => {
