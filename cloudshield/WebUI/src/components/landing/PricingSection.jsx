@@ -48,33 +48,50 @@ const PLAN_OPTIONS = [
 ];
 
 const PricingSection = () => {
-  // Set to null so the middle card doesn't have the green glow by default
   const [selectedPlanId, setSelectedPlanId] = useState(null); 
   const [isAnnual, setIsAnnual] = useState(false);
 
+  // Keyboard handler for accessibility (SonarCloud fix)
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsAnnual(!isAnnual);
+    }
+  };
+
   return (
     <section id="pricing" className="landing-pricing-section">
-      <h2 className="landing-section-title">Flexible Pricing for Every Team Size</h2>
+      <h2 className="landing-section-title">
+        Our <span className="touch">Flexible Pricing for Every Team Size</span>
+      </h2>
       <p className="landing-section-subtitle">
         Choose a plan that fits your current needs and scales with you.
       </p>
 
-      {/* Toggle matching the screenshot */}
+      {/* Toggle matching the screenshot - ACCESSIBLE & FLIPS ANYWHERE */}
       <div className="landing-billing-toggle-wrap">
         <div 
           className="landing-billing-toggle-pill"
-          onClick={() => setIsAnnual(!isAnnual)}
+          onClick={() => setIsAnnual(!isAnnual)} // Clicking ANYWHERE flips it
+          role="switch"
+          aria-checked={isAnnual}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
         >
           <button
             type="button"
+            tabIndex={-1} 
             className={`landing-billing-toggle-btn ${!isAnnual ? 'active' : ''}`}
+            /* No onClick here, so the click passes straight to the parent pill */
           >
             monthly
           </button>
 
           <button
             type="button"
+            tabIndex={-1} 
             className={`landing-billing-toggle-btn ${isAnnual ? 'active' : ''}`}
+            /* No onClick here, so the click passes straight to the parent pill */
           >
             yearly
           </button>
