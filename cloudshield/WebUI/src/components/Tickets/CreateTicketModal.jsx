@@ -42,18 +42,19 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    // --- CUSTOM STYLING ---
+    // --- DESIGNER-ALIGNED STYLING ---
     const textFieldSx = {
         '& .MuiOutlinedInput-root': {
             color: '#fff',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            borderRadius: '8px',
-            '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-            '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-            '&.Mui-focused fieldset': { borderColor: '#5aff3d' },
+            backgroundColor: '#1a1a1a', // Matched to dashboard inputs
+            borderRadius: '6px', // Matched to dashboard borders
+            transition: 'all 0.2s ease-in-out',
+            '& fieldset': { borderColor: '#333' },
+            '&:hover fieldset': { borderColor: '#555' },
+            '&.Mui-focused fieldset': { borderColor: '#888' }, // Clean grey focus, no neon
         },
-        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
-        '& .MuiInputLabel-root.Mui-focused': { color: '#5aff3d' },
+        '& .MuiInputLabel-root': { color: '#888' },
+        '& .MuiInputLabel-root.Mui-focused': { color: '#fff' },
     };
 
     const toggleGroupSx = {
@@ -61,19 +62,22 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
         flexWrap: 'wrap', 
         gap: 1,
         '& .MuiToggleButtonGroup-grouped': {
-            border: '1px solid rgba(255,255,255,0.1) !important',
-            borderRadius: '8px !important',
-            color: 'rgba(255,255,255,0.6)',
+            border: '1px solid #333 !important',
+            borderRadius: '6px !important',
+            color: '#888',
+            backgroundColor: '#1a1a1a',
             textTransform: 'none',
             px: 3,
             py: 1,
+            transition: 'all 0.2s ease',
             '&.Mui-selected': {
                 backgroundColor: 'rgba(255,255,255,0.1)',
                 color: '#fff',
                 fontWeight: 600,
+                borderColor: '#666 !important'
             },
             '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.05)',
+                backgroundColor: '#222',
             }
         }
     };
@@ -87,12 +91,11 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
             fullWidth
             PaperProps={{
                 sx: { 
-                    backgroundColor: '#121212', // Deep dark theme
-                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.02), rgba(255,255,255,0.02))',
+                    backgroundColor: '#111111', // Exact match to designer's background
                     color: '#fff',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 24px 48px rgba(0,0,0,0.5)'
+                    borderRadius: '12px',
+                    border: '1px solid #222', // Exact match to designer's border
+                    boxShadow: '0 24px 48px rgba(0,0,0,0.7)'
                 }
             }}
         >
@@ -100,20 +103,20 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                 {/* HEADER */}
                 <DialogTitle sx={{ 
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                    borderBottom: '1px solid rgba(255,255,255,0.08)', pb: 2, pt: 3, px: 4
+                    borderBottom: '1px solid #222', pb: 2, pt: 3, px: 4
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{ 
-                            backgroundColor: 'rgba(90, 255, 61, 0.1)', color: '#5aff3d', 
-                            p: 1, borderRadius: '8px', display: 'flex' 
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#fff', // Removed neon green box
+                            p: 1, borderRadius: '6px', display: 'flex', border: '1px solid #333'
                         }}>
-                            <SupportAgentIcon />
+                            <SupportAgentIcon fontSize="small" />
                         </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
                             Submit a Request
                         </Typography>
                     </Box>
-                    <IconButton onClick={onClose} disabled={isSubmitting} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <IconButton onClick={onClose} disabled={isSubmitting} sx={{ color: '#888', '&:hover': { color: '#fff' } }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -121,13 +124,13 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                 {/* BODY */}
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3.5, px: 4, py: 4 }}>
                     {error && (
-                        <Box sx={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f', p: 2, borderRadius: '8px', fontSize: '0.85rem' }}>
+                        <Box sx={{ backgroundColor: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', p: 2, borderRadius: '6px', fontSize: '0.85rem' }}>
                             {error}
                         </Box>
                     )}
                     
                     <Box>
-                        <Typography sx={{ mb: 1.5, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <Typography sx={{ mb: 1.5, fontSize: '0.8rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             1. What do you need help with?
                         </Typography>
                         <TextField
@@ -141,7 +144,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                     </Box>
 
                     <Box>
-                        <Typography sx={{ mb: 1.5, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <Typography sx={{ mb: 1.5, fontSize: '0.8rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             2. Issue Category
                         </Typography>
                         <ToggleButtonGroup
@@ -158,7 +161,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                     </Box>
 
                     <Box>
-                        <Typography sx={{ mb: 1.5, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <Typography sx={{ mb: 1.5, fontSize: '0.8rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             3. Priority Level
                         </Typography>
                         <ToggleButtonGroup
@@ -167,9 +170,10 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                             onChange={(e, newVal) => newVal && setPriority(newVal)}
                             sx={{
                                 ...toggleGroupSx,
-                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="Low"]': { backgroundColor: 'rgba(90, 255, 61, 0.15)', color: '#5aff3d', borderColor: 'rgba(90, 255, 61, 0.3) !important' },
-                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="Medium"]': { backgroundColor: 'rgba(255, 183, 77, 0.15)', color: '#ffb74d', borderColor: 'rgba(255, 183, 77, 0.3) !important' },
-                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="High"]': { backgroundColor: 'rgba(255, 77, 79, 0.15)', color: '#ff4d4f', borderColor: 'rgba(255, 77, 79, 0.3) !important' },
+                                // Color palette mapped to Designer's Risk Levels
+                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="Low"]': { backgroundColor: 'rgba(77, 166, 255, 0.1)', color: '#4da6ff', borderColor: 'rgba(77, 166, 255, 0.3) !important' },
+                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="Medium"]': { backgroundColor: 'rgba(255, 183, 77, 0.1)', color: '#ffb74d', borderColor: 'rgba(255, 183, 77, 0.3) !important' },
+                                '& .MuiToggleButtonGroup-grouped.Mui-selected[value="High"]': { backgroundColor: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f', borderColor: 'rgba(255, 77, 79, 0.3) !important' },
                             }}
                         >
                             <ToggleButton value="Low">Low</ToggleButton>
@@ -179,7 +183,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                     </Box>
                     
                     <Box>
-                        <Typography sx={{ mb: 1.5, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <Typography sx={{ mb: 1.5, fontSize: '0.8rem', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             4. Description
                         </Typography>
                         <TextField
@@ -196,11 +200,11 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                 </DialogContent>
 
                 {/* FOOTER */}
-                <DialogActions sx={{ p: 3, px: 4, borderTop: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                <DialogActions sx={{ p: 3, px: 4, borderTop: '1px solid #222', backgroundColor: '#161616' }}>
                     <Button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none', fontWeight: 600, '&:hover': { color: '#fff' } }}
+                        sx={{ color: '#888', textTransform: 'none', fontWeight: 600, transition: 'color 0.2s', '&:hover': { color: '#fff', backgroundColor: 'transparent' } }}
                     >
                         Cancel
                     </Button>
@@ -208,16 +212,18 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                         type="submit" 
                         variant="contained" 
                         disabled={isSubmitting || !title.trim() || !description.trim()}
-                        endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                        endIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <SendIcon sx={{ fontSize: 18 }} />}
                         sx={{ 
                             backgroundColor: '#fff', 
                             color: '#000',
                             textTransform: 'none',
                             fontWeight: 600,
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             px: 3,
-                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.8)' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)' }
+                            boxShadow: 'none',
+                            transition: 'all 0.2s ease',
+                            '&:hover': { backgroundColor: '#e0e0e0', boxShadow: 'none' },
+                            '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.1)', color: '#555' }
                         }}
                     >
                         {isSubmitting ? 'Submitting...' : 'Submit Request'}

@@ -97,11 +97,11 @@ const TicketDetailView = () => {
         }
     }
 
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress sx={{ color: '#5aff3d' }} /></Box>;
+    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress sx={{ color: '#fff' }} /></Box>;
     if (error) return <Box sx={{ p: 4, color: '#ff4d4f' }}>{error}</Box>;
     if (!ticketData) return <Box sx={{ p: 4, color: '#fff' }}>Ticket not found.</Box>;
 
-    // --- FIXED FLUID STYLES ---
+    // --- FIXED FLUID STYLES (Color Corrected) ---
     const selectSx = {
         color: '#fff',
         borderRadius: '8px',
@@ -111,9 +111,9 @@ const TicketDetailView = () => {
             transition: 'border-color 0.2s ease-in-out',
         },
         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5aff3d' },
+        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
         '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)', transition: 'color 0.2s' },
-        '&.Mui-focused .MuiSvgIcon-root': { color: '#5aff3d' }
+        '&.Mui-focused .MuiSvgIcon-root': { color: '#fff' }
     };
 
     return (
@@ -180,17 +180,19 @@ const TicketDetailView = () => {
                                         maxWidth: '85%', flexDirection: isMine ? 'row-reverse' : 'row'
                                     }}>
                                         <Avatar sx={{ 
-                                            bgcolor: isSupport ? 'rgba(90, 255, 61, 0.1)' : 'rgba(106, 79, 207, 0.2)', 
-                                            color: isSupport ? '#5aff3d' : '#886aff',
+                                            // Changed from glowing green/purple to professional greys
+                                            bgcolor: isSupport ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)', 
+                                            color: isSupport ? '#fff' : 'rgba(255,255,255,0.7)',
                                             width: 36, height: 36,
-                                            border: `1px solid ${isSupport ? 'rgba(90, 255, 61, 0.2)' : 'rgba(106, 79, 207, 0.3)'}`
+                                            border: `1px solid ${isSupport ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'}`
                                         }}>
                                             {isSupport ? <SupportAgentIcon fontSize="small"/> : <PersonIcon fontSize="small"/>}
                                         </Avatar>
 
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline', mb: 0.5 }}>
-                                                <Typography sx={{ fontSize: '0.8rem', color: isMine ? '#b9ff9f' : 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                                                {/* Text color changed to white */}
+                                                <Typography sx={{ fontSize: '0.8rem', color: isMine ? '#fff' : 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
                                                     {isMine ? 'You' : reply.user_id.split('@')[0]}
                                                 </Typography>
                                                 <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
@@ -200,12 +202,12 @@ const TicketDetailView = () => {
                                             
                                             <Paper sx={{ 
                                                 p: 2, 
-                                                // Updated colors to blend better with the dark theme
-                                                backgroundColor: isMine ? '#3c2b75' : 'rgba(255,255,255,0.03)', 
+                                                // Replaced the purple with a sleek dark grey matching the designer's theme
+                                                backgroundColor: isMine ? '#2a2a2a' : 'rgba(255,255,255,0.03)', 
                                                 color: '#fff', borderRadius: '12px', 
                                                 borderTopRightRadius: isMine ? '4px' : '12px',
                                                 borderTopLeftRadius: !isMine ? '4px' : '12px',
-                                                border: isMine ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                                                border: isMine ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(255,255,255,0.08)',
                                                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                                             }}>
                                                 <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, fontSize: '0.95rem' }}>{reply.message}</Typography>
@@ -228,9 +230,9 @@ const TicketDetailView = () => {
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     transition: 'all 0.2s ease-in-out',
                                     '&:focus-within': {
-                                        borderColor: '#5aff3d',
+                                        borderColor: '#888', // Removed neon green focus
                                         backgroundColor: 'rgba(255,255,255,0.06)',
-                                        boxShadow: '0 0 0 2px rgba(90, 255, 61, 0.1)'
+                                        boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.05)'
                                     }
                                 }}>
                                     <InputBase
@@ -251,12 +253,13 @@ const TicketDetailView = () => {
                                         type="submit" 
                                         disabled={isReplying || !replyText.trim()}
                                         sx={{ 
-                                            color: replyText.trim() ? '#5aff3d' : 'rgba(255,255,255,0.2)', 
+                                            // Changed from glowing green to crisp white
+                                            color: replyText.trim() ? '#fff' : 'rgba(255,255,255,0.2)', 
                                             transition: 'color 0.2s ease, background-color 0.2s ease',
-                                            '&:hover': { backgroundColor: 'rgba(90, 255, 61, 0.1)' }
+                                            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
                                         }}
                                     >
-                                        {isReplying ? <CircularProgress size={24} sx={{ color: '#5aff3d' }} /> : <SendIcon />}
+                                        {isReplying ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : <SendIcon />}
                                     </IconButton>
                                 </Paper>
                             </form>
@@ -289,7 +292,8 @@ const TicketDetailView = () => {
 
                         {isSuperAdmin && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                <Avatar sx={{ bgcolor: 'rgba(106, 79, 207, 0.15)', color: '#886aff', width: 40, height: 40, border: '1px solid rgba(106, 79, 207, 0.3)' }}><BusinessIcon /></Avatar>
+                                {/* Fixed the bright purple here. Now matches the grey of everything else. */}
+                                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)', width: 40, height: 40 }}><BusinessIcon /></Avatar>
                                 <Box>
                                     <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Organization ID</Typography>
                                     <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{ticketData.org_id.substring(0,12)}...</Typography>
@@ -323,7 +327,7 @@ const TicketDetailView = () => {
                         <FormControl fullWidth sx={{ mb: 2 }}>
                             <InputLabel sx={{ 
                                 color: 'rgba(255,255,255,0.5)', 
-                                '&.Mui-focused': { color: '#5aff3d' } 
+                                '&.Mui-focused': { color: '#fff' } // Changed focus color
                             }}>
                                 Status
                             </InputLabel>
@@ -342,7 +346,7 @@ const TicketDetailView = () => {
                         <FormControl fullWidth sx={{ mb: 3 }}>
                             <InputLabel sx={{ 
                                 color: 'rgba(255,255,255,0.5)', 
-                                '&.Mui-focused': { color: '#5aff3d' } 
+                                '&.Mui-focused': { color: '#fff' } // Changed focus color
                             }}>
                                 Priority
                             </InputLabel>
