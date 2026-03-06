@@ -13,6 +13,12 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import StatusButton from "../components/common/StatusButton/StatusButton.jsx";
+import ActiveIcon from "../assets/ActiveIcon.jsx";
 
 const styles = {
   container: {
@@ -46,6 +52,115 @@ const styles = {
     minHeight: 0,
     overscrollBehavior: "contain",
   },
+  iconsWrapper: {
+    flex: 1,
+    overflow: "auto",
+    minHeight: 0,
+    overscrollBehavior: "contain",
+    marginTop: "14px",
+  },
+  selectionBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "12px",
+  },
+  selectionLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  selectAllButton: {
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    background: "rgba(255, 255, 255, 0.03)",
+    color: "#fff",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    fontFamily: "inherit",
+    lineHeight: 1,
+    borderRadius: "8px",
+    padding: "7px 10px",
+    cursor: "pointer",
+  },
+  selectedCount: {
+    fontSize: "12px",
+    opacity: 0.75,
+  },
+  iconsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+    gap: "12px",
+  },
+  iconCard: {
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(0,0,0,0.15)",
+    borderRadius: "14px",
+    padding: "14px",
+    minHeight: "180px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  iconCardSelected: {
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.06)",
+  },
+  iconCardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    minHeight: "28px",
+  },
+  iconTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
+  iconTitleText: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+  },
+  iconName: {
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconSub: {
+    fontSize: "0.85rem",
+    opacity: 0.85,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconMetaRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    fontSize: "0.85rem",
+    minWidth: 0,
+  },
+  iconMetaLabel: {
+    opacity: 0.68,
+    whiteSpace: "nowrap",
+  },
+  iconMetaValue: {
+    opacity: 0.9,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconStatusRow: {
+    marginTop: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+  },
 };
 /* ----------------------------------- seed ---------------------------------- */
 
@@ -60,7 +175,7 @@ export default function WorkstationsPage() {
   const [search, setSearch] = useState("");
 
   // Layout state
-  const [layout, setLayout] = useState("list"); // 'cards', 'list', or 'icons'
+  const [layout, setLayout] = useState("list"); // 'list' or 'icons'
   const [showUsersCol, setShowUsersCol] = useState(true);
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
@@ -275,6 +390,29 @@ export default function WorkstationsPage() {
     setLayout(newLayout);
   };
 
+  const selectedCount = useMemo(
+    () => filtered.filter((r) => selectedIds.has(r.id)).length,
+    [filtered, selectedIds],
+  );
+
+  const workstationMenuItems = (row) => [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit workstation",
+      color: "#1a1a1a",
+      onClick: () => {
+        setEditRow(row);
+        setOpenModal(true);
+      },
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete workstation",
+      color: "#D51616",
+      onClick: () => handleDelete(row.id),
+    },
+  ];
+
   return (
     <div style={styles.container}>
       {/* Toolbar */}
@@ -353,26 +491,136 @@ export default function WorkstationsPage() {
         </div>
       </div>
 
-      {/* Workstation List with Headers */}
-      <div style={styles.listWrapper}>
-        <WorkstationList
-          rows={filtered}
-          onEdit={(row) => {
-            setEditRow(row);
-            setOpenModal(true);
-          }}
-          onDelete={handleDelete}
-          onToggleStatus={handleToggleStatus}
-          selectedIds={selectedIds}
-          allVisibleSelected={allVisibleSelected}
-          isIndeterminate={isIndeterminate}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllVisible}
-          showUsers={showUsersCol}
-          showCurrent={showCurrentCol}
-          showLastUsed={showLastUsedCol}
-        />
-      </div>
+      {layout === "list" ? (
+        <div style={styles.listWrapper}>
+          <WorkstationList
+            rows={filtered}
+            onEdit={(row) => {
+              setEditRow(row);
+              setOpenModal(true);
+            }}
+            onDelete={handleDelete}
+            onToggleStatus={handleToggleStatus}
+            selectedIds={selectedIds}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAllVisible}
+            showUsers={showUsersCol}
+            showCurrent={showCurrentCol}
+            showLastUsed={showLastUsedCol}
+          />
+        </div>
+      ) : (
+        <div style={styles.iconsWrapper}>
+          <div style={styles.selectionBar}>
+            <div style={styles.selectionLeft}>
+              <Checkbox
+                checked={allVisibleSelected}
+                indeterminate={isIndeterminate}
+                onChange={toggleSelectAllVisible}
+              />
+              <button
+                type="button"
+                style={styles.selectAllButton}
+                onClick={toggleSelectAllVisible}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                {allVisibleSelected || isIndeterminate
+                  ? "Clear selection"
+                  : "Select all"}
+              </button>
+            </div>
+            <div style={styles.selectedCount}>{selectedCount} selected</div>
+          </div>
+
+          <div style={styles.iconsGrid}>
+            {filtered.map((row) => {
+              const selected = selectedIds.has(row.id);
+              const usersCount = row.usersCount ?? row.users?.length ?? 0;
+              const currentUser =
+                row.currentUser && row.currentUser !== "—"
+                  ? typeof row.currentUser === "string"
+                    ? {
+                        firstName: row.currentUser.split(" ")[0],
+                        lastName: row.currentUser.split(" ")[1] || "",
+                      }
+                    : row.currentUser
+                  : null;
+              return (
+                <div
+                  key={row.id}
+                  style={{
+                    ...styles.iconCard,
+                    ...(selected ? styles.iconCardSelected : {}),
+                  }}
+                >
+                  <div style={styles.iconCardHeader}>
+                    <Checkbox
+                      checked={selected}
+                      onChange={() => toggleSelect(row.id)}
+                    />
+                    <EditButton menuItems={workstationMenuItems(row)} />
+                  </div>
+
+                  <div style={styles.iconTitle}>
+                    <DisplayIcon type="workstation" data={row} size="small" />
+                    <div style={styles.iconTitleText}>
+                      <span style={styles.iconName}>{row.name}</span>
+                      <span style={styles.iconSub}>↳ {row.code}</span>
+                    </div>
+                  </div>
+
+                  {showUsersCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Users</span>
+                      <span style={styles.iconMetaValue}>{usersCount}</span>
+                    </div>
+                  )}
+
+                  {showCurrentCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Current</span>
+                      <span style={styles.iconMetaValue}>
+                        {currentUser ? (
+                          <DisplayIcon type="user" data={currentUser} size="small" />
+                        ) : (
+                          "—"
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {showLastUsedCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Last Used</span>
+                      <span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span>
+                    </div>
+                  )}
+
+                  <div style={styles.iconStatusRow}>
+                    <StatusButton
+                      status={row.status}
+                      onClick={() => handleToggleStatus(row.id)}
+                    />
+                    <ActiveIcon
+                      width={12}
+                      height={12}
+                      outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"}
+                      innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Workstation Modal */}
       {openModal && (

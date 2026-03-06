@@ -16,6 +16,11 @@ import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import EmployeesModal from "../components/users/EmployeesModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import ActiveIcon from "../assets/ActiveIcon.jsx";
 
 // Backend & Context
 import {
@@ -162,6 +167,113 @@ const styles = {
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
+  },
+  iconsWrapper: {
+    flex: 1,
+    overflow: "auto",
+    minHeight: 0,
+    overscrollBehavior: "contain",
+    marginTop: "14px",
+  },
+  selectionBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "12px",
+  },
+  selectionLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  selectAllButton: {
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    background: "rgba(255, 255, 255, 0.03)",
+    color: "#fff",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    fontFamily: "inherit",
+    lineHeight: 1,
+    borderRadius: "8px",
+    padding: "7px 10px",
+    cursor: "pointer",
+  },
+  selectedCount: {
+    fontSize: "12px",
+    opacity: 0.75,
+  },
+  iconsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+    gap: "12px",
+  },
+  iconCard: {
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(0,0,0,0.15)",
+    borderRadius: "14px",
+    padding: "14px",
+    minHeight: "180px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  iconCardSelected: {
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.06)",
+  },
+  iconCardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    minHeight: "28px",
+  },
+  iconTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
+  iconTitleText: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+  },
+  iconName: {
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconSub: {
+    fontSize: "0.85rem",
+    opacity: 0.85,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconMetaRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    fontSize: "0.85rem",
+  },
+  iconMetaLabel: {
+    opacity: 0.68,
+    whiteSpace: "nowrap",
+  },
+  iconMetaValue: {
+    opacity: 0.9,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  iconFooter: {
+    marginTop: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 };
 
@@ -603,6 +715,29 @@ export default function EmployeesPage() {
     applyFilter(groupId, value, isActive);
   };
 
+  const selectedCount = useMemo(
+    () => filtered.filter((u) => selectedIds.has(u.id)).length,
+    [filtered, selectedIds],
+  );
+
+  const getUserMenuItems = (user) => [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit user",
+      color: "#1a1a1a",
+      onClick: () => {
+        setModalEmployee(user);
+        setModalOpen(true);
+      },
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete user",
+      color: "#D51616",
+      onClick: () => handleDelete(user),
+    },
+  ];
+
   return (
     <div className="page-layout">
       {/* Toolbar */}
@@ -678,32 +813,134 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="page-list-wrapper">
-        <UsersTable
-          users={filtered}
-          showTitle={showTitle}
-          showWorkstations={showWorkstations}
-          showGroups={showGroups}
-          showFiles={showFiles}
-          selectedIds={selectedIds}
-          allVisibleSelected={allVisibleSelected}
-          isIndeterminate={isIndeterminate}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllVisible}
-          onSort={toggleSort}
-          sortField={sortField}
-          sortDir={sortDir}
-          onEdit={(u) => {
-            trackButton("employees/table/open-edit", {
-              page: "employees",
-              id: u.id,
-            });
-            setModalEmployee(u);
-            setModalOpen(true);
-          }}
-          onDelete={handleDelete}
-        />
-      </div>
+      {layout === "list" ? (
+        <div className="page-list-wrapper">
+          <UsersTable
+            users={filtered}
+            showTitle={showTitle}
+            showWorkstations={showWorkstations}
+            showGroups={showGroups}
+            showFiles={showFiles}
+            selectedIds={selectedIds}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAllVisible}
+            onSort={toggleSort}
+            sortField={sortField}
+            sortDir={sortDir}
+            onEdit={(u) => {
+              trackButton("employees/table/open-edit", {
+                page: "employees",
+                id: u.id,
+              });
+              setModalEmployee(u);
+              setModalOpen(true);
+            }}
+            onDelete={handleDelete}
+          />
+        </div>
+      ) : (
+        <div style={styles.iconsWrapper}>
+          <div style={styles.selectionBar}>
+            <div style={styles.selectionLeft}>
+              <Checkbox
+                checked={allVisibleSelected}
+                indeterminate={isIndeterminate}
+                onChange={toggleSelectAllVisible}
+              />
+              <button
+                type="button"
+                style={styles.selectAllButton}
+                onClick={toggleSelectAllVisible}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                {allVisibleSelected || isIndeterminate
+                  ? "Clear selection"
+                  : "Select all"}
+              </button>
+            </div>
+            <div style={styles.selectedCount}>{selectedCount} selected</div>
+          </div>
+
+          <div style={styles.iconsGrid}>
+            {filtered.map((user) => {
+              const selected = selectedIds.has(user.id);
+              return (
+                <div
+                  key={user.id}
+                  style={{
+                    ...styles.iconCard,
+                    ...(selected ? styles.iconCardSelected : {}),
+                  }}
+                >
+                  <div style={styles.iconCardHeader}>
+                    <Checkbox
+                      checked={selected}
+                      onChange={() => toggleSelect(user.id)}
+                    />
+                    <EditButton menuItems={getUserMenuItems(user)} />
+                  </div>
+
+                  <div style={styles.iconTitle}>
+                    <DisplayIcon type="user" data={user} size="small" />
+                    <div style={styles.iconTitleText}>
+                      <span style={styles.iconName}>{user.name}</span>
+                      <span style={styles.iconSub}>↳ {user.email}</span>
+                    </div>
+                  </div>
+
+                  {showTitle && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Title</span>
+                      <span style={styles.iconMetaValue}>{user.title || "—"}</span>
+                    </div>
+                  )}
+                  {showWorkstations && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Workstations</span>
+                      <span style={styles.iconMetaValue}>
+                        {user.workstationCount ?? user.workstations?.length ?? 0}
+                      </span>
+                    </div>
+                  )}
+                  {showGroups && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Groups</span>
+                      <span style={styles.iconMetaValue}>
+                        {user.groupCount ?? user.groups?.length ?? 0}
+                      </span>
+                    </div>
+                  )}
+                  {showFiles && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Shares</span>
+                      <span style={styles.iconMetaValue}>
+                        {user.fileCount ?? user.files?.length ?? 0}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={styles.iconFooter}>
+                    <span style={styles.iconMetaLabel}>{user.status || "offline"}</span>
+                    <ActiveIcon
+                      width={12}
+                      height={12}
+                      outerColor={user.status === "online" ? "#1F381F" : "#381F1F"}
+                      innerColor={user.status === "online" ? "#04C40A" : "#ff5252"}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       <EmployeesModal
