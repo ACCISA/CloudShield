@@ -751,6 +751,9 @@ export default function FilesPage() {
               openEdit(node);
             }
           };
+          const stopEventPropagation = (e) => {
+            e.stopPropagation();
+          };
 
           return (
             <div
@@ -765,7 +768,8 @@ export default function FilesPage() {
               <div className="tileHeader">
                 <div
                   className="tileSelect"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={stopEventPropagation}
+                  onKeyDown={stopEventPropagation}
                 >
                   <Checkbox
                     checked={isSelected}
@@ -783,7 +787,8 @@ export default function FilesPage() {
 
                 <div
                   className="tileActions"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={stopEventPropagation}
+                  onKeyDown={stopEventPropagation}
                 >
                   <EditButton
                     menuItems={[
