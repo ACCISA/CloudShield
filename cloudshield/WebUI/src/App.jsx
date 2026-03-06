@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import WorkstationsPage from "./pages/WorkstationsPage.jsx";
@@ -82,80 +83,90 @@ function AppWithAuth() {
   }, [devBypass, isAuthed, sidebarCollapsed, needsProvisioning]);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Landing page: sign up */}
-        <Route path="/" element={<Navigate to="/signup" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Landing page */}
+          <Route 
+            path="/" 
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <LandingPage />
+              )
+            } 
+          />
 
-        {/* Public route: sign up */}
-        <Route
-          path="/signup"
-          element={
-            isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
-            ) : (
-              <SignUpPage onSignupSuccess={handleAuthSuccess} />
-            )
-          }
-        />
+          {/* Public route: sign up */}
+          <Route
+            path="/signup"
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <SignUpPage onSignupSuccess={handleAuthSuccess} />
+              )
+            }
+          />
 
-        {/* Public route: login */}
-        <Route
-          path="/login"
-          element={
-            isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
-            ) : (
-              <AuthPage onLoginSuccess={handleAuthSuccess} />
-            )
-          }
-        />
+          {/* Public route: login */}
+          <Route
+            path="/login"
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <AuthPage onLoginSuccess={handleAuthSuccess} />
+              )
+            }
+          />
 
-        {/* Provisioning Route (No Layout) */}
-        <Route 
-          path="/provisioning"
-          element={
-             // Only allow access if authenticated
-             isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
-          }
-        />
+          {/* Provisioning Route (No Layout) */}
+          <Route 
+            path="/provisioning"
+            element={
+               // Only allow access if authenticated
+               isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
+            }
+          />
 
-        {/* App routes (Protected with Layout) */}
-        <Route
-          path="/dashboard"
-          element={
-            <Protected>
-              <DashboardPage />
-            </Protected>
-          }
-        />
+          {/* App routes (Protected with Layout) */}
+          <Route
+            path="/dashboard"
+            element={
+              <Protected>
+                <DashboardPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/workstations"
-          element={
-            <Protected>
-              <WorkstationsPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/workstations"
+            element={
+              <Protected>
+                <WorkstationsPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/employees"
-          element={
-            <Protected>
-              <EmployeesPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/employees"
+            element={
+              <Protected>
+                <EmployeesPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/groups"
-          element={
-            <Protected>
-              <GroupsPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/groups"
+            element={
+              <Protected>
+                <GroupsPage />
+              </Protected>
+            }
+          />
 
         <Route
           path="/files"
@@ -175,26 +186,20 @@ function AppWithAuth() {
           }
         />
 
-        {/* Catch-all */}
-        <Route
-          path="*"
-          element={
-            isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
-            ) : (
-              <Navigate to="/signup" replace />
-            )
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppWithAuth />
+          {/* Catch-all */}
+          <Route
+            path="*"
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
+export default AppWithAuth;
