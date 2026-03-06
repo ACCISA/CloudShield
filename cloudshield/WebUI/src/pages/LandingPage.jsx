@@ -1,9 +1,9 @@
 import React from 'react';
-import LandingNavbar from '../components/landing/LandingNavbar';
-import HeroSection from '../components/landing/HeroSection';
-import PricingSection from '../components/landing/PricingSection';
-import ContactSection from '../components/landing/ContactSection';
-import Footer from '../components/landing/Footer';
+import LandingNavbar from '../components/landing/LandingNavbar.jsx';
+import HeroSection from '../components/landing/HeroSection.jsx';
+import PricingSection from '../components/landing/PricingSection.jsx';
+import ContactSection from '../components/landing/ContactSection.jsx';
+import Footer from '../components/landing/Footer.jsx';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -18,7 +18,8 @@ const LandingPage = () => {
       <HeroSection />
       
       {/* Dashboard Preview Section */}
-      <section className="landing-dashboard-preview">
+      {/* Added id="features" right here so the navbar link can find it */}
+      <section id="features" className="landing-dashboard-preview">
         <div className="landing-dashboard-mockup">
           [ Dashboard Preview Mockup ]
         </div>

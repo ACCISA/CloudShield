@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PlanCard from '../signup/PlanCard';
+import PlanCard from '../signup/PlanCard.jsx';
 
 const PLAN_OPTIONS = [
   {
@@ -56,12 +56,11 @@ const PricingSection = () => {
     <section id="pricing" className="landing-pricing-section">
       <h2 className="landing-section-title">Flexible Pricing for Every Team Size</h2>
       <p className="landing-section-subtitle">
-        Choose a plan that fits your current needs and scales with you. No hidden fees.
+        Choose a plan that fits your current needs and scales with you.
       </p>
 
       {/* Toggle matching the screenshot */}
       <div className="landing-billing-toggle-wrap">
-        {/* onClick is now on the whole pill container to toggle back and forth */}
         <div 
           className="landing-billing-toggle-pill"
           onClick={() => setIsAnnual(!isAnnual)}

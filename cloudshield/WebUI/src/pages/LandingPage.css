@@ -1,5 +1,3 @@
-/* src/pages/LandingPage.css */
-
 /* Enable smooth scrolling for anchor links (like View Pricing) */
 html {
   scroll-behavior: smooth;
@@ -278,30 +276,27 @@ html {
 .landing-billing-toggle-pill {
   display: flex;
   align-items: center;
-  gap: 4px; /* Scaled down gap */
-  padding: 6px; /* Scaled down padding */
+  gap: 4px; 
+  padding: 6px; 
   border-radius: 999px;
-  
-  /* Updated to faint grey/off-white */
   background: #f8f9fa; 
-  
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  cursor: pointer; /* Makes entire pill show pointer */
+  cursor: pointer; 
 }
 
 .landing-billing-toggle-btn {
   border: none;
   outline: none;
-  pointer-events: none; /* Passes click to the pill container */
+  cursor: pointer; 
 
-  height: 42px; /* Scaled down height */
-  min-width: 130px; /* Scaled down width */
+  height: 42px; 
+  min-width: 130px; 
   padding: 0 20px;
 
   border-radius: 999px;
   background: transparent;
 
-  font-size: 1rem; /* Scaled down font */
+  font-size: 1rem; 
   font-weight: 700;
   line-height: 1;
 
@@ -331,28 +326,27 @@ html {
   }
 }
 
-
 /* --- Contact Section (UPDATED: More Compact) --- */
 .landing-contact-section {
   position: relative;
   z-index: 10;
-  padding: 4.5rem 5%; /* Reduced from 6.5rem */
+  padding: 4.5rem 5%; 
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(0, 0, 0, 0) 70%);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .landing-contact-container {
-  max-width: 800px; /* Reduced from 1100px */
+  max-width: 800px; 
   margin: 0 auto;
 }
 
 .landing-contact-header {
   text-align: center;
-  margin-bottom: 2.5rem; /* Tighter header margin */
+  margin-bottom: 2.5rem; 
 }
 
 .landing-contact-title {
-  font-size: 2.75rem; /* Scaled down slightly */
+  font-size: 2.75rem; 
   line-height: 1.1;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -368,29 +362,29 @@ html {
 .landing-contact-subtitle {
   color: #9ca3af;
   font-size: 1rem;
-  max-width: 550px; /* Tighter subtitle max-width */
+  max-width: 550px; 
   margin: 0 auto;
 }
 
 .landing-contact-form {
   width: 100%;
-  max-width: 650px; /* Highly compact form width */
+  max-width: 650px; 
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem; /* Tighter gaps between fields */
+  gap: 1rem; 
 }
 
 .landing-contact-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem; /* Tighter row gaps */
+  gap: 1rem; 
 }
 
 .landing-field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem; /* Tighter label-to-input gap */
+  gap: 0.4rem; 
 }
 
 .landing-label {
@@ -409,9 +403,9 @@ html {
   color: #ffffff;
 
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px; /* Smoother, less severe radius */
+  border-radius: 12px; 
 
-  padding: 0.75rem 1rem; /* Tighter padding inside inputs */
+  padding: 0.75rem 1rem; 
   font-size: 0.95rem;
   font-family: inherit;
 
@@ -420,11 +414,11 @@ html {
 }
 
 .landing-input {
-  height: 48px; /* Slimmer input height */
+  height: 48px; 
 }
 
 .landing-textarea {
-  min-height: 120px; /* Slimmer textarea */
+  min-height: 120px; 
   resize: vertical;
   padding-top: 0.75rem;
 }
@@ -443,11 +437,11 @@ html {
 
 .landing-contact-submit {
   width: 100%;
-  height: 52px; /* Slimmer submit button */
+  height: 52px; 
   margin-top: 0.5rem;
 
   border: none;
-  border-radius: 12px; /* Match input radius */
+  border-radius: 12px; 
 
   background: #ffffff;
   color: #111111;
