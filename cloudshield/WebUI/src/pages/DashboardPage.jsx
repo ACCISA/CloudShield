@@ -58,7 +58,7 @@ export default function DashboardPage() {
    
   const [activityLoading, setActivityLoading] = useState(false);
   const [page, setPage] = useState(0); // 0-indexed for MUI
-  const [rowsPerPage, setRowsPerPage] = useState(20);   
+  const [rowsPerPage, setRowsPerPage] = useState(10);   
 
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);

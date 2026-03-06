@@ -198,7 +198,7 @@ export default function ActivityPanel({
   return (
     <Box
       sx={{
-        flex: 1,
+        flex: "0 0 auto",
         minWidth: 0,
         backgroundColor: "#0F0F0F",
         borderRadius: "16px",

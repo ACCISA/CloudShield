@@ -100,7 +100,7 @@ describe("DashboardPage activity fetching and normalization", () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledWith("/activity/local-org?page=1&limit=20");
+      expect(apiGet).toHaveBeenCalledWith("/activity/local-org?page=1&limit=10");
     });
   });
 
@@ -115,7 +115,7 @@ describe("DashboardPage activity fetching and normalization", () => {
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
-        "/activity/current-user-org?page=1&limit=20",
+        "/activity/current-user-org?page=1&limit=10",
       );
     });
   });
@@ -131,7 +131,7 @@ describe("DashboardPage activity fetching and normalization", () => {
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
-        "/activity/auth-user-only-org?page=1&limit=20",
+        "/activity/auth-user-only-org?page=1&limit=10",
       );
     });
   });
@@ -229,13 +229,13 @@ describe("DashboardPage activity fetching and normalization", () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=1&limit=20");
+      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=1&limit=10");
     });
 
     apiGet.mockClear();
     fireEvent.click(screen.getByText("set-page-3"));
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=3&limit=20");
+      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=3&limit=10");
     });
 
     apiGet.mockClear();
@@ -259,7 +259,7 @@ describe("DashboardPage activity fetching and normalization", () => {
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledTimes(2);
-      expect(apiGet).toHaveBeenLastCalledWith("/activity/org-123?page=1&limit=20");
+      expect(apiGet).toHaveBeenLastCalledWith("/activity/org-123?page=1&limit=10");
     });
   });
 
@@ -270,7 +270,7 @@ describe("DashboardPage activity fetching and normalization", () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=1&limit=20");
+      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=1&limit=10");
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Users:1" }));
