@@ -17,6 +17,7 @@ import EmployeesModal from "../components/users/EmployeesModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
@@ -243,9 +244,18 @@ export default function EmployeesPage() {
     setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
   };
 
+  // Resolve auth token at call-time (handles post-login context lag safely).
+  const resolveAuthToken = () => {
+    try {
+      return localStorage.getItem("jwt") || accessToken || null;
+    } catch {
+      return accessToken || null;
+    }
+  };
+
   // Helper for auth headers
   const getAuthHeader = () => {
-    const token = localStorage.getItem("jwt");
+    const token = resolveAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -323,13 +333,14 @@ export default function EmployeesPage() {
 
   // API Actions
   const fetchUsers = useCallback(async () => {
-    if (!accessToken) return;
+    const token = resolveAuthToken();
+    if (!token) return;
 
     setLoading(true);
     try {
       // Fetch users
       const data = await listUsers({
-        token: accessToken,
+        token,
         search: search,
         limit: 100,
         offset: 0,
@@ -376,7 +387,8 @@ export default function EmployeesPage() {
   }, [fetchUsers]);
 
   const handleModalSubmit = async (payload) => {
-    if (!accessToken) {
+    const token = resolveAuthToken();
+    if (!token) {
       openToast("You must be logged in to create a user", "error");
       return;
     }
@@ -398,7 +410,7 @@ export default function EmployeesPage() {
           profile_image: payload.profileImage || null,
         };
 
-        await updateUser(modalEmployee.id, apiPayload, { token: accessToken });
+        await updateUser(modalEmployee.id, apiPayload, { token });
 
         // Update group memberships if groups were provided
         if (payload.groups) {
@@ -428,7 +440,7 @@ export default function EmployeesPage() {
 
         // Start async task to create user
         await startCreation(async () => {
-          const response = await createUser(apiPayload, { token: accessToken });
+          const response = await createUser(apiPayload, { token });
           if (!response?.job_id) {
             throw new Error("No job_id returned from user creation");
           }
@@ -470,8 +482,9 @@ export default function EmployeesPage() {
   const handleDelete = async (user) => {
     // Use provided user or fall back to modalEmployee for modal context
     const userToDelete = user || modalEmployee;
+    const token = resolveAuthToken();
 
-    if (!accessToken || !userToDelete) return;
+    if (!token || !userToDelete) return;
 
     if (userToDelete.id === currentUser?.id) {
       openToast("You cannot delete your own account", "error");
@@ -484,7 +497,7 @@ export default function EmployeesPage() {
         id: userToDelete.id,
         control: user ? "table_row" : "edit_dialog",
       });
-      await deleteUser(userToDelete.id, { token: accessToken });
+      await deleteUser(userToDelete.id, { token });
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
 
@@ -743,31 +756,13 @@ export default function EmployeesPage() {
         </div>
       ) : (
         <div style={styles.iconsWrapper}>
-          <div style={styles.selectionBar}>
-            <div style={styles.selectionLeft}>
-              <Checkbox
-                checked={allVisibleSelected}
-                indeterminate={isIndeterminate}
-                onChange={toggleSelectAllVisible}
-              />
-              <button
-                type="button"
-                style={styles.selectAllButton}
-                onClick={toggleSelectAllVisible}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
-                }}
-              >
-                {allVisibleSelected || isIndeterminate
-                  ? "Clear selection"
-                  : "Select all"}
-              </button>
-            </div>
-            <div style={styles.selectedCount}>{selectedCount} selected</div>
-          </div>
+          <IconSelectionBar
+            styles={styles}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelectAll={toggleSelectAllVisible}
+            selectedCount={selectedCount}
+          />
 
           <div style={styles.iconsGrid}>
             {filtered.map((user) => {

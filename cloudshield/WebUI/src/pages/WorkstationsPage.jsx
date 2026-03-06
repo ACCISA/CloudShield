@@ -14,6 +14,7 @@ import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
@@ -413,31 +414,13 @@ export default function WorkstationsPage() {
         </div>
       ) : (
         <div style={styles.iconsWrapper}>
-          <div style={styles.selectionBar}>
-            <div style={styles.selectionLeft}>
-              <Checkbox
-                checked={allVisibleSelected}
-                indeterminate={isIndeterminate}
-                onChange={toggleSelectAllVisible}
-              />
-              <button
-                type="button"
-                style={styles.selectAllButton}
-                onClick={toggleSelectAllVisible}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
-                }}
-              >
-                {allVisibleSelected || isIndeterminate
-                  ? "Clear selection"
-                  : "Select all"}
-              </button>
-            </div>
-            <div style={styles.selectedCount}>{selectedCount} selected</div>
-          </div>
+          <IconSelectionBar
+            styles={styles}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelectAll={toggleSelectAllVisible}
+            selectedCount={selectedCount}
+          />
 
           <div style={styles.iconsGrid}>
             {filtered.map((row) => {
