@@ -1,34 +1,33 @@
 import PropTypes from "prop-types";
 
 const ModerateAlertIcon = ({
-  width = "64px",
-  height = "64px",
+  width = "16",
+  height = "16",
   className = "",
+  fill = "#EBAF60",
 }) => {
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 24 24"
+      viewBox="0 0 16 16"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <g id="SVGRepo_bgCarrier" strokeWidth="0" />
-      <g
-        id="SVGRepo_tracerCarrier"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <g id="SVGRepo_iconCarrier">
-        <rect width="24" height="24" fill="white" />
+      <g clipPath="url(#clip0_444_42)">
         <path
           fillRule="evenodd"
           clipRule="evenodd"
-          d="M11 13C11 13.5523 11.4477 14 12 14C12.5523 14 13 13.5523 13 13V10C13 9.44772 12.5523 9 12 9C11.4477 9 11 9.44772 11 10V13ZM13 15.9888C13 15.4365 12.5523 14.9888 12 14.9888C11.4477 14.9888 11 15.4365 11 15.9888V16C11 16.5523 11.4477 17 12 17C12.5523 17 13 16.5523 13 16V15.9888ZM9.37735 4.66136C10.5204 2.60393 13.4793 2.60393 14.6223 4.66136L21.2233 16.5431C22.3341 18.5427 20.8882 21 18.6008 21H5.39885C3.11139 21 1.66549 18.5427 2.77637 16.5431L9.37735 4.66136Z"
-          fill="#323232"
+          d="M7.33268 8.66667C7.33268 9.03487 7.63115 9.33333 7.99935 9.33333C8.36755 9.33333 8.66602 9.03487 8.66602 8.66667V6.66667C8.66602 6.29848 8.36755 6 7.99935 6C7.63115 6 7.33268 6.29848 7.33268 6.66667V8.66667ZM8.66602 10.6592C8.66602 10.291 8.36755 9.99253 7.99935 9.99253C7.63115 9.99253 7.33268 10.291 7.33268 10.6592V10.6667C7.33268 11.0349 7.63115 11.3333 7.99935 11.3333C8.36755 11.3333 8.66602 11.0349 8.66602 10.6667V10.6592ZM6.25092 3.10757C7.01295 1.73595 8.98555 1.73595 9.74755 3.10757L14.1482 11.0287C14.8888 12.3618 13.9248 14 12.3999 14H3.59858C2.07361 14 1.10968 12.3618 1.85026 11.0287L6.25092 3.10757Z"
+          fill={fill}
         />
       </g>
+      <defs>
+        <clipPath id="clip0_444_42">
+          <rect width="16" height="16" fill="white" />
+        </clipPath>
+      </defs>
     </svg>
   );
 };
@@ -37,6 +36,7 @@ ModerateAlertIcon.propTypes = {
   width: PropTypes.string,
   height: PropTypes.string,
   className: PropTypes.string,
+  fill: PropTypes.string,
 };
 
 export default ModerateAlertIcon;

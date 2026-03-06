@@ -121,3 +121,36 @@ export const FILE_FILTERS = [
     ],
   },
 ];
+
+export const SECURITY_FILTERS = [
+  {
+    id: "risk",
+    label: "Risk Level",
+    type: "checkbox",
+    options: [
+      { value: "high", label: "High" },
+      { value: "moderate", label: "Moderate" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  {
+    id: "status",
+    label: "Status",
+    type: "checkbox",
+    options: [
+      { value: "unresolved", label: "Unresolved" },
+      { value: "resolved", label: "Resolved" },
+    ],
+  },
+  {
+    id: "type",
+    label: "Alert Type",
+    type: "checkbox",
+    options: [
+      { value: "Security breach", label: "Security Breach" },
+      { value: "Suspicious activity", label: "Suspicious Activity" },
+      { value: "Policy violation", label: "Policy Violation" },
+      { value: "Data access", label: "Data Access" },
+    ],
+  },
+];

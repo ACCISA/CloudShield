@@ -15,8 +15,26 @@ export function usePopover({ onOpen, onClose } = {}) {
   const updatePosition = () => {
     if (buttonRef) {
       const rect = buttonRef.getBoundingClientRect();
+      const popoverWidth = 320; // Default popover width
+      const viewportWidth = window.innerWidth;
+      const margin = 16; // Minimum margin from viewport edge
+
+      // Calculate left position
+      let left = rect.left;
+
+      // Check if popover would go off-screen to the right
+      if (left + popoverWidth > viewportWidth - margin) {
+        // Align right edge of popover with right edge of button
+        left = rect.right - popoverWidth;
+      }
+
+      // Ensure popover doesn't go off-screen to the left
+      if (left < margin) {
+        left = margin;
+      }
+
       setPopoverPosition({
-        left: `${rect.left}px`,
+        left: `${left}px`,
         top: `${rect.bottom}px`,
       });
     }

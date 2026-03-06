@@ -676,6 +676,168 @@ export const MOCK_GROUPS_FULL = [
 ];
 
 // ============================================================================
+// SECURITY ALERTS
+// ============================================================================
+
+const ALERT_TYPES = [
+  "Security breach",
+  "Suspicious activity",
+  "Policy violation",
+  "Data access",
+  "Malware detected",
+  "Unauthorized access",
+  "Ransomware attempt",
+  "Phishing attempt",
+  "Data exfiltration",
+  "Network intrusion",
+];
+
+const ACTIVITIES = [
+  "Uploaded file to group",
+  "Multiple failed login attempts",
+  "Access from unknown location",
+  "Unauthorized data export",
+  "Password policy violation",
+  "Unusual file access pattern",
+  "Malware detected in uploaded file",
+  "Sharing sensitive data externally",
+  "Account accessed from suspicious IP",
+  "Brute force attack detected",
+  "Elevated privileges requested",
+  "Database query anomaly detected",
+  "Unauthorized API access attempt",
+  "Large data download detected",
+  "Encryption key access attempted",
+  "Firewall rule modification",
+  "VPN connection from blacklisted region",
+  "Suspicious process execution",
+  "Credential harvesting attempt",
+  "Port scanning detected",
+  "DDoS attack pattern identified",
+  "Insider threat indicator observed",
+  "File integrity violation",
+  "Unusual network traffic spike",
+  "Privilege escalation detected",
+  "Unauthorized software installation",
+  "Sensitive file deletion attempt",
+  "SQL injection attempt blocked",
+  "XSS attack detected",
+  "Remote code execution attempt",
+  "Zero-day exploit signature",
+  "Rootkit activity suspected",
+  "Backdoor installation attempt",
+  "Keylogger detected",
+  "Screen capture malware found",
+  "Data tampering detected",
+  "Certificate authority anomaly",
+  "DNS tunneling detected",
+  "Tor network access detected",
+  "Anonymous proxy usage",
+  "USB device policy breach",
+  "Bluetooth device unauthorized",
+  "Mobile device jailbreak detected",
+  "Cloud storage unauthorized sync",
+  "Email forwarding rule created",
+  "Mailbox rule suspicious activity",
+  "Calendar invitation phishing",
+  "Document macro execution blocked",
+  "PowerShell script suspicious behavior",
+  "Registry modification detected",
+];
+
+const RISK_DISTRIBUTION = {
+  high: 0.3,
+  moderate: 0.5,
+  low: 0.2,
+};
+
+const STATUS_DISTRIBUTION = {
+  unresolved: 0.7,
+  resolved: 0.2,
+  investigating: 0.1,
+};
+
+// Generate dates for the last 30 days with weighted distribution
+// This creates realistic clustering where some days have more alerts
+const generateRecentDate = (daysAgo, hourOffset = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(Math.floor(Math.random() * 24) + hourOffset);
+  date.setMinutes(Math.floor(Math.random() * 60));
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  return date.toISOString();
+};
+
+// Get a weighted random day (some days more likely than others)
+const getWeightedDaysAgo = () => {
+  const rand = Math.random();
+  // 40% chance of alerts in last 7 days
+  if (rand < 0.4) return Math.floor(Math.random() * 7);
+  // 30% chance of alerts in days 7-14
+  if (rand < 0.7) return 7 + Math.floor(Math.random() * 7);
+  // 20% chance of alerts in days 14-21
+  if (rand < 0.9) return 14 + Math.floor(Math.random() * 7);
+  // 10% chance of alerts in days 21-30
+  return 21 + Math.floor(Math.random() * 9);
+};
+
+// Format date for display
+const formatDateForDisplay = (isoDate) => {
+  const date = new Date(isoDate);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  let hour = date.getHours();
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hour >= 12 ? "pm" : "am";
+  hour = hour % 12 || 12;
+  return `${month}/${day}/${year} ${hour}:${minute} ${ampm}`;
+};
+
+const getRandomItem = (array) =>
+  array[Math.floor(Math.random() * array.length)];
+
+const getWeightedRisk = () => {
+  const rand = Math.random();
+  if (rand < RISK_DISTRIBUTION.high) return "high";
+  if (rand < RISK_DISTRIBUTION.high + RISK_DISTRIBUTION.moderate)
+    return "moderate";
+  return "low";
+};
+
+const getWeightedStatus = () => {
+  const rand = Math.random();
+  if (rand < STATUS_DISTRIBUTION.unresolved) return "unresolved";
+  if (rand < STATUS_DISTRIBUTION.unresolved + STATUS_DISTRIBUTION.resolved)
+    return "resolved";
+  return "investigating";
+};
+
+// Generate comprehensive mock security alerts with realistic clustering
+// More alerts on recent days and certain days have multiple alerts
+export const MOCK_SECURITY_ALERTS = Array.from({ length: 150 }, (_, index) => {
+  const daysAgo = getWeightedDaysAgo();
+  const isoDate = generateRecentDate(daysAgo);
+  return {
+    id: index + 1,
+    type: getRandomItem(ALERT_TYPES),
+    date: isoDate,
+    displayDate: formatDateForDisplay(isoDate),
+    activity: getRandomItem(ACTIVITIES),
+    risk: getWeightedRisk(),
+    status: getWeightedStatus(),
+  };
+});
+
+// Sort by most recent first
+MOCK_SECURITY_ALERTS.sort((a, b) => {
+  const dateA = new Date(a.date);
+  const dateB = new Date(b.date);
+  return dateB - dateA;
+});
+
+// ============================================================================
 // MODAL STEP LABELS
 // ============================================================================
 export const USER_MODAL_STEPS = [

@@ -45,9 +45,9 @@ export default function AppLayout({
         sx={{
           flex: 1,
           minWidth: 0,
-          padding: "24px",
+          padding: "16px",
           height: "100vh",
-          overflow: "hidden",
+          overflow: "auto",
         }}
       >
         {children}

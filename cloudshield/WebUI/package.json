@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
+    "d3": "^7.9.0",
     "date-fns": "^4.1.0",
     "posthog-js": "^1.335.2",
     "prop-types": "^15.8.1",
