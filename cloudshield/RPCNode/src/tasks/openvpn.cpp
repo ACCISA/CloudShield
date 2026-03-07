@@ -26,13 +26,11 @@ VPNClientResult VPNTask::CreateVPNClient(const std::string& client_name)
 	// Validate client name
 	Sanitize::ValidateClientName(client_name);
 
-	// 1. Generate client certificate via EasyRSA (using SafeExec)
-	//    We need to run from the easy-rsa directory, so we use a wrapper approach
-	std::string easyrsa_bin = std::string(EASYRSA_DIR) + "/easyrsa";
-
+	// 1. Generate client certificate via EasyRSA
+	//    EasyRSA expects to run from its own directory for relative pki/ paths
 	std::cout << "[VPN] Building client cert for: " << client_name << std::endl;
 
-	auto build_result = SafeExec::Run(easyrsa_bin, {
+	auto build_result = SafeExec::RunInDir(EASYRSA_DIR, "./easyrsa", {
 		"--batch", "--days=3650",
 		"build-client-full", client_name, "nopass"
 	});

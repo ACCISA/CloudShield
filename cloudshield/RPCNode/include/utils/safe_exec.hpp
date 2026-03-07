@@ -28,10 +28,21 @@ struct ExecResult {
  *
  * Example:
  *   SafeExec::Run("samba-tool", {"user", "add", "john", "P@ss123"})
- *   executes: samba-tool user add john P@ss123
- *   with NO shell interpretation of any argument.
  */
 ExecResult Run(const std::string& binary, const std::vector<std::string>& args);
+
+/**
+ * Execute a binary after changing the working directory in the child process.
+ * Useful for tools like EasyRSA that expect to run from a specific directory.
+ *
+ * @param workdir The directory to chdir() into before exec
+ * @param binary  The binary name or path
+ * @param args    The argument vector
+ *
+ * Example:
+ *   SafeExec::RunInDir("/etc/openvpn/easy-rsa", "./easyrsa", {"build-client-full", "client1", "nopass"})
+ */
+ExecResult RunInDir(const std::string& workdir, const std::string& binary, const std::vector<std::string>& args);
 
 /**
  * Execute a binary via sudo with an argument vector.

@@ -10,34 +10,34 @@
 // ── Regex patterns ──────────────────────────────────────────────────────────
 
 /** Samba/AD username: start with alnum, then alnum + . - _ (1-64 chars) */
-export const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9.\-_]{0,63}$/;
+export const USERNAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 
 /** Samba/AD group name: start with alnum, then alnum + space + . - _ (1-64 chars) */
-export const GROUP_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9 .\-_]{0,63}$/;
+export const GROUP_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,63}$/;
 
 /** Samba share name: start with alnum, then alnum + - _ only (1-64) */
-export const SHARE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9\-_]{0,63}$/;
+export const SHARE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 
 /** Share size: positive integer optionally followed by K/M/G/T */
-export const SHARE_SIZE_REGEX = /^[1-9][0-9]{0,18}[KMGTkmgt]?$/;
+export const SHARE_SIZE_REGEX = /^[1-9]\d{0,18}[KMGTkmgt]?$/;
 
 /** DNS zone / realm: valid domain name */
-export const DNS_ZONE_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9.\-]{0,251}[a-zA-Z0-9])?$/;
+export const DNS_ZONE_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?$/;
 
 /** DNS record name: valid hostname label */
-export const DNS_NAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$/;
+export const DNS_NAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
 
 /** IPv4 address */
 export const IPV4_REGEX = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 
 /** VPN client name */
-export const CLIENT_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9.\-_]{0,63}$/;
+export const CLIENT_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 
 /** Drive letter */
 export const DRIVE_LETTER_REGEX = /^[A-Za-z]$/;
 
 /** UNC path */
-export const UNC_PATH_REGEX = /^\\\\[a-zA-Z0-9.\-_]+\\[a-zA-Z0-9.\-_\\]+$/;
+export const UNC_PATH_REGEX = /^\\\\[a-zA-Z0-9._-]+\\[a-zA-Z0-9._\\-]+$/;
 
 /** Password character-class helpers (O(n) checks, no backtracking) */
 const HAS_LOWER = /[a-z]/;
@@ -48,8 +48,8 @@ const HAS_SPECIAL = /[^\w\s]/;
 /** Characters forbidden in passwords (shell metacharacters) */
 const PASSWORD_FORBIDDEN = new Set("'\\\n\r\0;|&$`(){}[]<>!".split(""));
 
-/** Basic structural email check */
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Basic structural email check (backtrack-safe: dot-atom local + at least one dot in domain) */
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 // ── Validator functions ─────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ function fail(msg) {
  * Validate a Samba/AD username.
  */
 export function validateUsername(value) {
-  if (!value || !value.trim()) return fail("Username is required.");
+  if (!value?.trim()) return fail("Username is required.");
   if (value.length > 64) return fail("Username must be 64 characters or fewer.");
   if (!USERNAME_REGEX.test(value))
     return fail(
@@ -79,10 +79,10 @@ export function validateUsername(value) {
  * Allows letters, spaces, hyphens, apostrophes, and accented characters.
  */
 export function validateDisplayName(value, fieldName = "Name") {
-  if (!value || !value.trim()) return fail(`${fieldName} is required.`);
+  if (!value?.trim()) return fail(`${fieldName} is required.`);
   if (value.length > 100) return fail(`${fieldName} must be 100 characters or fewer.`);
   // Allow Unicode letters, spaces, hyphens, apostrophes
-  if (!/^[\p{L}\p{M}' \-]{1,100}$/u.test(value))
+  if (!/^[\p{L}\p{M}' -]{1,100}$/u.test(value))
     return fail(
       `${fieldName} may only contain letters, spaces, hyphens, and apostrophes.`
     );
@@ -93,7 +93,7 @@ export function validateDisplayName(value, fieldName = "Name") {
  * Validate a Samba/AD group name.
  */
 export function validateGroupName(value) {
-  if (!value || !value.trim()) return fail("Group name is required.");
+  if (!value?.trim()) return fail("Group name is required.");
   if (value.length > 64) return fail("Group name must be 64 characters or fewer.");
   if (!GROUP_NAME_REGEX.test(value))
     return fail(
@@ -106,7 +106,7 @@ export function validateGroupName(value) {
  * Validate a Samba share name.
  */
 export function validateShareName(value) {
-  if (!value || !value.trim()) return fail("Share name is required.");
+  if (!value?.trim()) return fail("Share name is required.");
   if (value.length > 64) return fail("Share name must be 64 characters or fewer.");
   if (!SHARE_NAME_REGEX.test(value))
     return fail(
@@ -119,7 +119,7 @@ export function validateShareName(value) {
  * Validate share size (e.g. "500M", "1G", "1024").
  */
 export function validateShareSize(value) {
-  if (!value || !String(value).trim()) return fail("Share size is required.");
+  if (!String(value ?? "").trim()) return fail("Share size is required.");
   const str = String(value).trim();
   if (!SHARE_SIZE_REGEX.test(str))
     return fail(
@@ -155,7 +155,7 @@ export function validatePassword(value) {
  * Validate an email address (structural check).
  */
 export function validateEmail(value) {
-  if (!value || !value.trim()) return fail("Email is required.");
+  if (!value?.trim()) return fail("Email is required.");
   if (value.length > 254) return fail("Email must be 254 characters or fewer.");
   if (!EMAIL_REGEX.test(value)) return fail("Please enter a valid email address.");
   return ok();
@@ -165,7 +165,7 @@ export function validateEmail(value) {
  * Validate a DNS zone.
  */
 export function validateDnsZone(value) {
-  if (!value || !value.trim()) return fail("DNS zone is required.");
+  if (!value?.trim()) return fail("DNS zone is required.");
   if (!DNS_ZONE_REGEX.test(value)) return fail("Invalid DNS zone format.");
   return ok();
 }
@@ -174,7 +174,7 @@ export function validateDnsZone(value) {
  * Validate a DNS record name.
  */
 export function validateDnsName(value) {
-  if (!value || !value.trim()) return fail("DNS name is required.");
+  if (!value?.trim()) return fail("DNS name is required.");
   if (!DNS_NAME_REGEX.test(value)) return fail("Invalid DNS name format.");
   return ok();
 }
@@ -183,11 +183,11 @@ export function validateDnsName(value) {
  * Validate an IPv4 address.
  */
 export function validateIPv4(value) {
-  if (!value || !value.trim()) return fail("IP address is required.");
+  if (!value?.trim()) return fail("IP address is required.");
   const match = IPV4_REGEX.exec(value);
   if (!match) return fail("Invalid IPv4 address format.");
   for (let i = 1; i <= 4; i++) {
-    const octet = parseInt(match[i], 10);
+    const octet = Number.parseInt(match[i], 10);
     if (octet < 0 || octet > 255) return fail("IPv4 octet must be 0-255.");
   }
   return ok();
@@ -197,7 +197,7 @@ export function validateIPv4(value) {
  * Validate a VPN client name.
  */
 export function validateClientName(value) {
-  if (!value || !value.trim()) return fail("Client name is required.");
+  if (!value?.trim()) return fail("Client name is required.");
   if (!CLIENT_NAME_REGEX.test(value))
     return fail(
       "Client name must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores."
@@ -218,10 +218,10 @@ export function validateRequired(value, fieldName = "This field") {
  * Validate a job title (free text, but sanitized).
  */
 export function validateJobTitle(value) {
-  if (!value || !value.trim()) return ok(); // optional field
+  if (!value?.trim()) return ok(); // optional field
   if (value.length > 100) return fail("Job title must be 100 characters or fewer.");
   // Allow letters, digits, spaces, hyphens, dots, commas, parentheses
-  if (!/^[\p{L}\p{N} .\-,()&/']{1,100}$/u.test(value))
+  if (!/^[\p{L}\p{N} .,()&/'-]{1,100}$/u.test(value))
     return fail("Job title contains invalid characters.");
   return ok();
 }
