@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import SecurityDashboardPage from "./pages/SecurityDashboardPage.jsx";
@@ -83,10 +84,20 @@ function AppWithAuth() {
   }, [devBypass, isAuthed, sidebarCollapsed, needsProvisioning]);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Landing page: sign up */}
-        <Route path="/" element={<Navigate to="/signup" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Landing page */}
+          <Route 
+            path="/" 
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <LandingPage />
+              )
+            } 
+          />
 
         {/* Public route: sign up */}
         <Route
@@ -146,32 +157,32 @@ function AppWithAuth() {
           }
         />
 
-        <Route
-          path="/workstations"
-          element={
-            <Protected>
-              <WorkstationsPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/workstations"
+            element={
+              <Protected>
+                <WorkstationsPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/employees"
-          element={
-            <Protected>
-              <EmployeesPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/employees"
+            element={
+              <Protected>
+                <EmployeesPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/groups"
-          element={
-            <Protected>
-              <GroupsPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/groups"
+            element={
+              <Protected>
+                <GroupsPage />
+              </Protected>
+            }
+          />
 
         <Route
           path="/files"
@@ -207,6 +218,7 @@ function AppWithAuth() {
         />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 
