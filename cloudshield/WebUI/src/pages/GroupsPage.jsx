@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -13,27 +13,18 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
 const styles = {
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-    flexWrap: "wrap",
-    flexShrink: 0,
-  },
-  leftActions: {
-    display: "flex",
-    gap: "10px",
-    flex: "1 1 auto",
-    flexWrap: "wrap",
-    minWidth: "0",
-  },
-  rightActions: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  },
+  ...managementToolbarStyles,
+  ...sharedIconViewStyles,
 };
 
 export default function GroupsPage() {
@@ -58,11 +49,6 @@ export default function GroupsPage() {
   const [sortDir, setSortDir] = useState("asc");
 
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
-
-  const getAuthHeader = () => {
-    const token = localStorage.getItem("jwt");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,18 +136,7 @@ export default function GroupsPage() {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch("/api/access-groups", {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to fetch groups");
-      }
-
-      const data = await res.json();
+      const data = await apiGet("/access-groups");
       const apiGroups = Array.isArray(data.access_groups)
         ? data.access_groups
         : [];
@@ -334,20 +309,7 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch(
-          `/api/access-groups/${editingGroup.id}`,
-          {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", ...getAuthHeader() },
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.error || "Failed to update group");
-        }
+        await apiPatch(`/access-groups/${editingGroup.id}`, payload);
 
         openToast("Group updated successfully");
         await fetchGroups();
@@ -362,17 +324,7 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch("/api/access-groups", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.error || "Failed to create group");
-        }
+        await apiPost("/access-groups", payload);
 
         openToast("Group created successfully");
         await fetchGroups();
@@ -393,19 +345,7 @@ export default function GroupsPage() {
     }
 
     try {
-      const res = await fetch(
-        `/api/access-groups/${groupId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-          headers: { ...getAuthHeader() },
-        },
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to delete group");
-      }
+      await apiDelete(`/access-groups/${groupId}`);
 
       openToast("Group deleted");
       await fetchGroups();
@@ -414,6 +354,30 @@ export default function GroupsPage() {
       openToast(e.message || "Delete failed", "error");
     }
   };
+
+  const selectedCount = useMemo(
+    () => filtered.filter((g) => selectedIds.has(g._id)).length,
+    [filtered, selectedIds],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const getGroupMenuItems = (group) => [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit group",
+      color: "#1a1a1a",
+      onClick: () => handleOpenEditModal(group),
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete group",
+      color: "#D51616",
+      onClick: () => handleDeleteGroup(group.id),
+    },
+  ];
 
   return (
     <div className="page-layout">
@@ -465,6 +429,28 @@ export default function GroupsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
+          {layout === "list" && selectedCount > 0 && (
+            <div style={styles.selectionSummary}>
+              <span style={styles.selectionSummaryCount}>
+                {selectedCount} selected
+              </span>
+              <button
+                type="button"
+                style={styles.clearSelectionButton}
+                onClick={clearSelection}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton onClick={fetchGroups} />
 
           <CreateButton
@@ -475,19 +461,84 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      <GroupsList
-        rows={filtered}
-        showUsers={showUsers}
-        showWorkstations={showWorkstations}
-        showFiles={showFiles}
-        selectedIds={selectedIds}
-        allVisibleSelected={allVisibleSelected}
-        isIndeterminate={isIndeterminate}
-        onToggleSelect={toggleSelect}
-        onToggleSelectAll={toggleSelectAllVisible}
-        onEdit={handleOpenEditModal}
-        onDelete={handleDeleteGroup}
-      />
+      {layout === "list" ? (
+        <GroupsList
+          rows={filtered}
+          showUsers={showUsers}
+          showWorkstations={showWorkstations}
+          showFiles={showFiles}
+          selectedIds={selectedIds}
+          allVisibleSelected={allVisibleSelected}
+          isIndeterminate={isIndeterminate}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAllVisible}
+          onEdit={handleOpenEditModal}
+          onDelete={handleDeleteGroup}
+        />
+      ) : (
+        <div style={styles.iconsWrapper}>
+          <IconSelectionBar
+            styles={styles}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelectAll={toggleSelectAllVisible}
+            selectedCount={selectedCount}
+          />
+
+          <div style={styles.iconsGrid}>
+            {filtered.map((group) => {
+              const selected = selectedIds.has(group._id);
+              const usersCount = group.memberCount ?? group.users?.length ?? 0;
+              const workstationsCount = group.workstations?.length ?? 0;
+              const filesCount = group.files ?? 0;
+              return (
+                <div
+                  key={group.id}
+                  style={{
+                    ...styles.iconCard,
+                    ...(selected ? styles.iconCardSelected : {}),
+                  }}
+                >
+                  <div style={styles.iconCardHeader}>
+                    <Checkbox
+                      checked={selected}
+                      onChange={() => toggleSelect(group._id)}
+                    />
+                    <EditButton menuItems={getGroupMenuItems(group)} />
+                  </div>
+
+                  <div style={styles.iconTitle}>
+                    <DisplayIcon type="group" data={group} size="small" />
+                    <div style={styles.iconTitleText}>
+                      <span style={styles.iconName}>{group.name}</span>
+                      <span style={styles.iconSub}>↳ {group.description || "—"}</span>
+                    </div>
+                  </div>
+
+                  {showUsers && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Users</span>
+                      <span style={styles.iconMetaValue}>{usersCount}</span>
+                    </div>
+                  )}
+                  {showWorkstations && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Workstations</span>
+                      <span style={styles.iconMetaValue}>{workstationsCount}</span>
+                    </div>
+                  )}
+                  {showFiles && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Shares</span>
+                      <span style={styles.iconMetaValue}>{filesCount}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <GroupsModal
         open={modalOpen}

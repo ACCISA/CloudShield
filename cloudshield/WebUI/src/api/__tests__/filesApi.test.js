@@ -56,7 +56,13 @@ describe('filesApi', () => {
 
       const result = await fetchFileShares('org123');
 
-      expect(fetch).toHaveBeenCalledWith('/api/file_shares?org_id=org123');
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/file_shares?org_id=org123'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: { Authorization: 'Bearer test-jwt-token' },
+        })
+      );
       expect(result).toEqual(mockShares);
     });
 
@@ -74,11 +80,12 @@ describe('filesApi', () => {
     it('should throw error when fetch fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Not Found',
+        status: 404,
+        json: async () => ({ error: 'Not Found' }),
       });
 
       await expect(fetchFileShares('org123')).rejects.toThrow(
-        'Failed to fetch shares: Not Found'
+        'Not Found'
       );
     });
 
@@ -108,18 +115,24 @@ describe('filesApi', () => {
 
       const result = await createFileShare(shareData);
 
-      expect(fetch).toHaveBeenCalledWith('/api/task/dc/create_file_share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          org_id: 'org123',
-          share_name: 'NewShare',
-          users: ['user1', 'user2'],
-          groups: ['group1'],
-          description: 'Test share',
-          max_size: 100,
-        }),
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/task/dc/create_file_share'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            org_id: 'org123',
+            share_name: 'NewShare',
+            users: ['user1', 'user2'],
+            groups: ['group1'],
+            description: 'Test share',
+            max_size: 100,
+          }),
+        })
+      );
       expect(result).toEqual(mockResponse);
     });
 
@@ -137,16 +150,22 @@ describe('filesApi', () => {
 
       await createFileShare(shareData);
 
-      expect(fetch).toHaveBeenCalledWith('/api/task/dc/create_file_share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          org_id: 'org123',
-          share_name: 'NewShare',
-          users: [],
-          groups: [],
-        }),
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/task/dc/create_file_share'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            org_id: 'org123',
+            share_name: 'NewShare',
+            users: [],
+            groups: [],
+          }),
+        })
+      );
     });
 
     it('should handle empty users and groups arrays', async () => {
@@ -210,12 +229,13 @@ describe('filesApi', () => {
     it('should throw error when creation fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Bad Request',
+        status: 400,
+        json: async () => ({ error: 'Bad Request' }),
       });
 
       await expect(
         createFileShare({ orgId: 'org123', name: 'NewShare' })
-      ).rejects.toThrow('Failed to create share: Bad Request');
+      ).rejects.toThrow('Bad Request');
     });
   });
 
@@ -242,11 +262,17 @@ describe('filesApi', () => {
 
       const result = await updateFileShare('org123', 'Share1', updates);
 
-      expect(fetch).toHaveBeenCalledWith('/api/file_shares/org123/Share1', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/file_shares/org123/Share1'),
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updates),
+        })
+      );
       expect(result).toEqual(mockResponse);
     });
 
@@ -305,12 +331,13 @@ describe('filesApi', () => {
     it('should throw error when update fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Forbidden',
+        status: 403,
+        json: async () => ({ error: 'Forbidden' }),
       });
 
       await expect(
         updateFileShare('org123', 'Share1', { description: 'test' })
-      ).rejects.toThrow('Failed to update share: Forbidden');
+      ).rejects.toThrow('Forbidden');
     });
 
     it('should handle special characters in share name', async () => {
@@ -322,7 +349,7 @@ describe('filesApi', () => {
       await updateFileShare('org123', 'Share With Spaces', {});
 
       expect(fetch).toHaveBeenCalledWith(
-        '/api/file_shares/org123/Share With Spaces',
+        expect.stringContaining('/api/file_shares/org123/Share%20With%20Spaces'),
         expect.any(Object)
       );
     });
@@ -339,25 +366,32 @@ describe('filesApi', () => {
 
       const result = await deleteFileShare('org123', 'Share1');
 
-      expect(fetch).toHaveBeenCalledWith('/api/task/dc/delete_file_share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          org_id: 'org123',
-          share_name: 'Share1',
-        }),
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/task/dc/delete_file_share'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            org_id: 'org123',
+            share_name: 'Share1',
+          }),
+        })
+      );
       expect(result).toEqual(mockResponse);
     });
 
     it('should throw error when deletion fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Internal Server Error',
+        status: 500,
+        json: async () => ({ error: 'Internal Server Error' }),
       });
 
       await expect(deleteFileShare('org123', 'Share1')).rejects.toThrow(
-        'Failed to delete share: Internal Server Error'
+        'Internal Server Error'
       );
     });
 
@@ -389,12 +423,13 @@ describe('filesApi', () => {
       const result = await fetchUsers('org123');
 
       expect(fetch).toHaveBeenCalledWith(
-        '/api/organizations/org123/users?summary=1',
-        {
+        expect.stringContaining('/api/organizations/org123/users?summary=1'),
+        expect.objectContaining({
+          method: 'GET',
           headers: {
             Authorization: 'Bearer test-jwt-token',
           },
-        }
+        })
       );
       expect(result).toEqual(mockUsers);
     });
@@ -409,11 +444,15 @@ describe('filesApi', () => {
 
       const result = await fetchUsers('org123', false);
 
-      expect(fetch).toHaveBeenCalledWith('/api/organizations/org123/users', {
-        headers: {
-          Authorization: 'Bearer test-jwt-token',
-        },
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/organizations/org123/users'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+          },
+        })
+      );
       expect(result).toEqual(mockUsers);
     });
 
@@ -450,12 +489,11 @@ describe('filesApi', () => {
     it('should throw error when fetch fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Unauthorized',
+        status: 401,
+        json: async () => ({ error: 'Unauthorized' }),
       });
 
-      await expect(fetchUsers('org123')).rejects.toThrow(
-        'Failed to fetch users: Unauthorized'
-      );
+      await expect(fetchUsers('org123')).rejects.toThrow('Unauthorized');
     });
   });
 
@@ -473,11 +511,15 @@ describe('filesApi', () => {
 
       const result = await fetchGroups('org123');
 
-      expect(fetch).toHaveBeenCalledWith('/api/access-groups?summary=1', {
-        headers: {
-          Authorization: 'Bearer test-jwt-token',
-        },
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/access-groups?summary=1'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+          },
+        })
+      );
       expect(result).toEqual(mockGroups);
     });
 
@@ -497,11 +539,15 @@ describe('filesApi', () => {
 
       const result = await fetchGroups('org123', false);
 
-      expect(fetch).toHaveBeenCalledWith('/api/access-groups', {
-        headers: {
-          Authorization: 'Bearer test-jwt-token',
-        },
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/access-groups'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer test-jwt-token',
+          },
+        })
+      );
       expect(result).toEqual(mockGroups);
     });
 
@@ -538,12 +584,11 @@ describe('filesApi', () => {
     it('should throw error when fetch fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
-        statusText: 'Not Found',
+        status: 404,
+        json: async () => ({ error: 'Not Found' }),
       });
 
-      await expect(fetchGroups('org123')).rejects.toThrow(
-        'Failed to fetch access groups: Not Found'
-      );
+      await expect(fetchGroups('org123')).rejects.toThrow('Not Found');
     });
   });
 

@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import EditIcon from "../../../assets/EditIcon";
 
+const MENU_MIN_WIDTH = 200;
+const MENU_HEIGHT_ESTIMATE = 220;
+const VIEWPORT_PADDING = 12;
+const TRIGGER_GAP = 8;
+
 export default function EditButton({ menuItems = [], disabled = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -9,10 +14,24 @@ export default function EditButton({ menuItems = [], disabled = false }) {
   const calculatePosition = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      // Position popover to the left of the button
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let left = rect.right - MENU_MIN_WIDTH;
+      left = Math.max(
+        VIEWPORT_PADDING,
+        Math.min(left, viewportWidth - MENU_MIN_WIDTH - VIEWPORT_PADDING),
+      );
+
+      let top = rect.bottom + TRIGGER_GAP;
+      top = Math.max(
+        VIEWPORT_PADDING,
+        Math.min(top, viewportHeight - MENU_HEIGHT_ESTIMATE - VIEWPORT_PADDING),
+      );
+
       setPosition({
-        top: rect.bottom + 8,
-        left: rect.right - 200, // 200px is minWidth of popover
+        top,
+        left,
       });
     }
   };
@@ -106,7 +125,7 @@ export default function EditButton({ menuItems = [], disabled = false }) {
               padding: "8px",
               zIndex: 1000,
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-              minWidth: "200px",
+              minWidth: `${MENU_MIN_WIDTH}px`,
             }}
           >
             {menuItems.map((item, index) => (
