@@ -9,9 +9,13 @@ const defaultProps = {
   onPageChange: jest.fn(),
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
+  beforeEach(() => {
+    mockOnPageChange = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
 describe("Pagination Component", () => {
   it("renders without crashing", () => {

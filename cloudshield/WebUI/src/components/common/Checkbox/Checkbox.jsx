@@ -17,6 +17,7 @@ const styles = {
     backgroundColor: "transparent",
     transition: "all 0.2s ease",
     cursor: "pointer",
+    boxSizing: "border-box",
   },
   checkboxChecked: {
     backgroundColor: "#fff",
@@ -59,6 +60,8 @@ export default function Checkbox({
     ...styles.checkbox,
     ...(checked || indeterminate ? styles.checkboxChecked : {}),
     ...style,
+    // Always maintain the border color for unchecked state
+    borderColor: checked || indeterminate ? "#fff" : "rgba(255, 255, 255, 0.5)",
   };
 
   return (

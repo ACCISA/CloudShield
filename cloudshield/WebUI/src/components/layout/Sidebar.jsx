@@ -21,14 +21,13 @@ import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import DashboardIcon from "../../assets/NavBar/DashboardIcon";
+import ShieldIcon from "../../assets/NavBar/shieldIcon.jsx";
 import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { apiGet } from "../../api/client";
@@ -413,6 +412,16 @@ export default function Sidebar({
             active={isActive("/dashboard")}
             onNavigate={() => navigate("/dashboard")}
           />
+
+          <NavItem
+            collapsed={collapsed}
+            icon={<ShieldIcon width={20} height={20} />}
+            label="Security dashboard"
+            to="/security-dashboard"
+            active={isActive("/security-dashboard")}
+            onNavigate={() => navigate("/security-dashboard")}
+          />
+
           <NavItem
             collapsed={collapsed}
             icon={<WorkstationsIcon width={20} height={20} />}
