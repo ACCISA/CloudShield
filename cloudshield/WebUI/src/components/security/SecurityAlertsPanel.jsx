@@ -75,9 +75,11 @@ function SecurityAlertsPanel() {
 
   // Selection handlers
   const handleToggleSelectAll = () => {
-    if (selectedAlerts.size === paginatedAlerts.length) {
+    if (selectedAlerts.size > 0) {
+      // If any items are selected (including all or some), deselect all
       setSelectedAlerts(new Set());
     } else {
+      // If nothing is selected, select all
       setSelectedAlerts(new Set(paginatedAlerts.map((a) => a.id)));
     }
   };

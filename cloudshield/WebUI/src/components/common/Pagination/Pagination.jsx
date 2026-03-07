@@ -124,6 +124,7 @@ function Pagination({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      outline: "none",
     },
     pageButtonActive: {
       backgroundColor: "#fff",
@@ -171,7 +172,10 @@ function Pagination({
               ...styles.pageButton,
               ...(currentPage === 1 ? styles.pageButtonDisabled : {}),
             }}
-            onClick={handlePreviousPage}
+            onClick={(e) => {
+              handlePreviousPage();
+              e.currentTarget.blur();
+            }}
             disabled={currentPage === 1}
             onMouseEnter={(e) => {
               if (currentPage !== 1) {
@@ -206,12 +210,15 @@ function Pagination({
 
             return (
               <button
-                key={page}
+                key={`page-${page}-${currentPage}`}
                 style={{
                   ...styles.pageButton,
                   ...(page === currentPage ? styles.pageButtonActive : {}),
                 }}
-                onClick={() => handlePageClick(page)}
+                onClick={(e) => {
+                  handlePageClick(page);
+                  e.currentTarget.blur();
+                }}
                 onMouseEnter={(e) => {
                   if (page !== currentPage) {
                     e.currentTarget.style.backgroundColor =
@@ -239,7 +246,10 @@ function Pagination({
               ...styles.pageButton,
               ...(currentPage === totalPages ? styles.pageButtonDisabled : {}),
             }}
-            onClick={handleNextPage}
+            onClick={(e) => {
+              handleNextPage();
+              e.currentTarget.blur();
+            }}
             disabled={currentPage === totalPages}
             onMouseEnter={(e) => {
               if (currentPage !== totalPages) {
