@@ -62,7 +62,20 @@ function PopoverMenuButton({
 
   return (
     <>
-      <div ref={buttonRef} onClick={handleButtonClick}>
+      <div
+        ref={buttonRef}
+        onClick={handleButtonClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleButtonClick();
+          }
+        }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
         {typeof children === "function"
           ? children({ isOpen, disabled })
           : children}
@@ -108,7 +121,7 @@ function PopoverMenuButton({
             }}
           >
             {menuItems.map((item) => (
-              <div key={item.label || Math.random()}>
+              <div key={item.label}>
                 <div
                   onClick={() => handleMenuItemClick(item.onClick)}
                   onKeyDown={(e) => {
