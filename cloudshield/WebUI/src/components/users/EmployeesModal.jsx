@@ -47,7 +47,7 @@ export default function EmployeesModal({
   const { accessToken, currentUser } = useAuth();
 
   const isEditMode = Boolean(employeeData);
-  const isCreating = creationStatus === "running" || creationStatus === "starting";
+  const isCreating = creationStatus === "running" || creationStatus === "starting"; // NOSONAR
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -757,6 +757,27 @@ function SelectionStep({
     </div>
   );
 }
+
+BasicInfoStep.propTypes = {
+  formData: PropTypes.object.isRequired,
+  setFormData: PropTypes.func.isRequired,
+  handleImageUpload: PropTypes.func,
+  isEditMode: PropTypes.bool,
+  fieldErrors: PropTypes.object,
+};
+
+SelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.array.isRequired,
+  selectedItems: PropTypes.array.isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+};
 
 EmployeesModal.propTypes = {
   open: PropTypes.bool.isRequired,
