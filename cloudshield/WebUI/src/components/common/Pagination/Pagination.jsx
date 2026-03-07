@@ -14,6 +14,7 @@
  *   - Only shows controls when there are multiple pages
  *   - Dark-theme styling matching the application aesthetic
  */
+import { useState } from "react";
 import PropTypes from "prop-types";
 
 function Pagination({
@@ -23,7 +24,9 @@ function Pagination({
   onPageChange,
   itemLabel = "items",
   maxPageButtons = 7,
+  testId = "pagination",
 }) {
+  const [hoveredControl, setHoveredControl] = useState(null);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
@@ -43,7 +46,6 @@ function Pagination({
   const handlePageClick = (page) => {
     onPageChange(page);
   };
-
   // Generate page numbers with ellipsis
   const getPageNumbers = () => {
     const pages = [];
@@ -78,7 +80,7 @@ function Pagination({
     }
 
     // Add page numbers in range
-    for (let i = startPage; i <= endPage; i++) {
+    for (let i = startPage; i <= endPage; i += 1) {
       pages.push(i);
     }
 
@@ -104,6 +106,7 @@ function Pagination({
       marginTop: "8px",
       paddingTop: "8px",
       borderTop: "1px solid rgba(255,255,255,0.08)",
+      flexWrap: "wrap",
     },
     controls: {
       display: "flex",
@@ -111,8 +114,10 @@ function Pagination({
       gap: "4px",
     },
     pageButton: {
-      background: "none",
-      border: "1px solid rgba(255,255,255,0.12)",
+      backgroundColor: "transparent",
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderColor: "rgba(255,255,255,0.12)",
       borderRadius: "6px",
       color: "rgba(255,255,255,0.7)",
       padding: "4px 8px",
@@ -124,7 +129,6 @@ function Pagination({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      outline: "none",
     },
     pageButtonActive: {
       backgroundColor: "#fff",
@@ -159,37 +163,41 @@ function Pagination({
     },
   };
 
+  const getPageButtonStyle = ({ isActive = false, isDisabled = false, controlKey }) => {
+    const isHovered = hoveredControl === controlKey;
+
+    return {
+      ...styles.pageButton,
+      ...(isActive ? styles.pageButtonActive : {}),
+      ...(isDisabled ? styles.pageButtonDisabled : {}),
+      ...(!isActive && !isDisabled && isHovered
+        ? {
+            backgroundColor: "rgba(255,255,255,0.08)",
+            borderColor: "rgba(255,255,255,0.2)",
+          }
+        : {}),
+    };
+  };
+
   return (
-    <div style={styles.container}>
-      <span style={styles.itemCount}>
-        Showing {totalItems > 0 ? startIndex : 0}-
+    <div data-testid={testId} style={styles.container}>
+      <span data-testid={`${testId}-info`} style={styles.itemCount}>
+       Showing {totalItems > 0 ? startIndex : 0}-
         {totalItems > 0 ? endIndex : 0} of {totalItems} {itemLabel}
       </span>
       {totalPages > 1 && (
         <div style={styles.controls}>
           <button
-            style={{
-              ...styles.pageButton,
-              ...(currentPage === 1 ? styles.pageButtonDisabled : {}),
-            }}
-            onClick={(e) => {
-              handlePreviousPage();
-              e.currentTarget.blur();
-            }}
+            type="button"
+            data-testid={`${testId}-prev`}
+            style={getPageButtonStyle({
+              isDisabled: currentPage === 1,
+              controlKey: "prev",
+            })}
+            onClick={handlePreviousPage}
             disabled={currentPage === 1}
-            onMouseEnter={(e) => {
-              if (currentPage !== 1) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255,255,255,0.08)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentPage !== 1) {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-              }
-            }}
+            onMouseEnter={() => setHoveredControl("prev")}
+            onMouseLeave={() => setHoveredControl(null)}
             aria-label="Previous page"
           >
             ←
@@ -198,11 +206,13 @@ function Pagination({
           {/* Page numbers with ellipsis */}
           {pageNumbers.map((page, index) => {
             if (page === "...") {
-              // Use position-based key for ellipsis (start or end)
-              const ellipsisKey =
-                index < pageNumbers.length / 2 ? "start" : "end";
+              const ellipsisKey = index < pageNumbers.length / 2 ? "start" : "end";
               return (
-                <span key={`ellipsis-${ellipsisKey}`} style={styles.ellipsis}>
+                <span
+                  key={`ellipsis-${ellipsisKey}`}
+                  style={styles.ellipsis}
+                  data-testid={`${testId}-ellipsis-${ellipsisKey}`}
+                >
                   ...
                 </span>
               );
@@ -210,29 +220,16 @@ function Pagination({
 
             return (
               <button
-                key={`page-${page}-${currentPage}`}
-                style={{
-                  ...styles.pageButton,
-                  ...(page === currentPage ? styles.pageButtonActive : {}),
-                }}
-                onClick={(e) => {
-                  handlePageClick(page);
-                  e.currentTarget.blur();
-                }}
-                onMouseEnter={(e) => {
-                  if (page !== currentPage) {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255,255,255,0.08)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (page !== currentPage) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255,255,255,0.12)";
-                  }
-                }}
+                key={page}
+                type="button"
+                data-testid={`${testId}-page-${page}`}
+                style={getPageButtonStyle({
+                  isActive: page === currentPage,
+                  controlKey: `page-${page}`,
+                })}
+                onClick={() => handlePageClick(page)}
+                onMouseEnter={() => setHoveredControl(`page-${page}`)}
+                onMouseLeave={() => setHoveredControl(null)}
                 aria-label={`Page ${page}`}
                 aria-current={page === currentPage ? "page" : undefined}
               >
@@ -242,34 +239,22 @@ function Pagination({
           })}
 
           <button
-            style={{
-              ...styles.pageButton,
-              ...(currentPage === totalPages ? styles.pageButtonDisabled : {}),
-            }}
-            onClick={(e) => {
-              handleNextPage();
-              e.currentTarget.blur();
-            }}
+            type="button"
+            data-testid={`${testId}-next`}
+            style={getPageButtonStyle({
+              isDisabled: currentPage === totalPages,
+              controlKey: "next",
+            })}
+            onClick={handleNextPage}
             disabled={currentPage === totalPages}
-            onMouseEnter={(e) => {
-              if (currentPage !== totalPages) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255,255,255,0.08)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentPage !== totalPages) {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-              }
-            }}
+            onMouseEnter={() => setHoveredControl("next")}
+            onMouseLeave={() => setHoveredControl(null)}
             aria-label="Next page"
           >
             →
           </button>
 
-          <span style={styles.pageInfo}>
+          <span data-testid={`${testId}-page-info`} style={styles.pageInfo}>
             Page {currentPage} of {totalPages}
           </span>
         </div>
@@ -291,6 +276,7 @@ Pagination.propTypes = {
   itemLabel: PropTypes.string,
   /** Maximum number of page buttons to show (default 7) */
   maxPageButtons: PropTypes.number,
+  testId: PropTypes.string,
 };
 
 export default Pagination;

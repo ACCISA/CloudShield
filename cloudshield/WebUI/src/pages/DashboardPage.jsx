@@ -12,14 +12,41 @@ import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
-import ActivityTable from "../components/dashboard/ActivityTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
 import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
-const API_BASE_URL = "http://localhost:5050"; // Base URL for API calls 
+import { apiGet } from "../api/client.js";
+
+function normalizeActivityItem(item, index) {
+  const createdAt = item?.created_at || item?.date || item?.timestamp;
+  let date = item?.date || "-";
+
+  if (createdAt && !item?.date) {
+    const parsed = new Date(createdAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      const datePart = parsed.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
+      });
+      const timePart = parsed.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      date = `${datePart} ${timePart}`;
+    }
+  }
+
+  return {
+    id: item?.id || item?._id || `activity-${index}`,
+    user: item?.user || item?.actor || "System",
+    date,
+    activity: item?.activity || item?.description || item?.action || "Performed an action",
+  };
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get current logged-in user data
+  const auth = useAuth();
 
   const [provisioningStatus, setProvisioningStatus] = useState("pending");
   const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
@@ -29,13 +56,17 @@ export default function DashboardPage() {
   // Polling logic to check provisioning status
    
   const [activityLoading, setActivityLoading] = useState(false);
-  const [page, setPage] = useState(0); // 0-indexed for MUI
-  const [rowsPerPage, setRowsPerPage] = useState(20);   
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);
 
-  const org_id = localStorage.getItem("org_id");
+  const org_id =
+    localStorage.getItem("org_id") ||
+    auth?.currentUser?.org_id ||
+    auth?.user?.org_id ||
+    null;
 
   // useEffect(() => {
   //   if (!org_id) return;
@@ -67,28 +98,25 @@ export default function DashboardPage() {
 
 
   const fetchActivities = useCallback(async () => {
-    if (!org_id) return;
+    if (!org_id) return [];
 
     setActivityLoading(true);
     try {
-      const apiPage = page + 1;
-      const response = await fetch(
-        `${API_BASE_URL}/api/activity/${org_id}?page=${apiPage}&limit=${rowsPerPage}`
+      const data = await apiGet(
+        `/activity/${org_id}?page=${page}&limit=${itemsPerPage}`
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        setActivities(data.items || []);
-        setTotalActivities(data.total || 0);
-      } else {
-        console.error("Failed to fetch activities");
-      }
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const normalized = items.map((item, idx) => normalizeActivityItem(item, idx));
+      setActivities(normalized);
+      setTotalActivities(data?.total || 0);
+      return normalized;
     } catch (error) {
       console.error("Error fetching activities:", error);
+      return [];
     } finally {
       setActivityLoading(false);
     }
-  }, [org_id, page, rowsPerPage]);
+  }, [org_id, page, itemsPerPage]);
 
   const handleRefreshActivities = () => {
     fetchActivities();
@@ -100,12 +128,7 @@ export default function DashboardPage() {
 
 
   const handleChangePage = (newPage) => {
-    setPage(newPage - 1);
-  };
-
-  const handleChangeRowsPerPage = (newRowsPerPage) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
+    setPage(newPage);
   };
 
 
@@ -148,6 +171,11 @@ export default function DashboardPage() {
         flexDirection: "column",
         gap: "24px",
         color: "#fff",
+        height: "100%",
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        pr: "4px",
       }}
     >
       {/* CONDITIONAL PROVISIONING PROGRESS BAR */}
@@ -222,12 +250,11 @@ export default function DashboardPage() {
       <ActivityPanel
         fetchActivities={fetchActivities}
         initialData={activities}
-        currentPage={page + 1}
+        currentPage={page}
         totalItems={totalActivities}
-        rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        itemsPerPage={itemsPerPage}
         onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        loading={activityLoading}
       />
     </Box>
   );

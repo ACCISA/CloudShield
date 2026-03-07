@@ -31,7 +31,7 @@ export default function FilterButton({
   onFilterChange,
   style = {},
 }) {
-  const popover = usePopover();
+  const popover = usePopover({ popoverWidth: 320, popoverHeight: 500 });
 
   const handleFilterToggle = (groupId, value) => {
     const group = filterGroups.find((g) => g.id === groupId);
