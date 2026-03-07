@@ -290,6 +290,12 @@ export default function FileShareWizardModal({
     }
   };
 
+  const submitLabel = isSubmitting
+    ? "Saving..."
+    : isEditMode
+      ? "Save Changes"
+      : "Create Share";
+
   return (
     <div className="file-wizard-overlay">
       <div className="file-wizard-dialog">
@@ -384,11 +390,7 @@ export default function FileShareWizardModal({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Save Changes"
-                    : "Create Share"}
+                {submitLabel}
               </button>
             )}
           </div>

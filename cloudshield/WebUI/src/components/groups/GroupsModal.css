@@ -545,8 +545,8 @@
 }
 
 .groups-modal-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: #242424;
+  border: 1px solid #2e2e2e;
   color: #ffffff;
 }
 
@@ -555,12 +555,14 @@
 }
 
 .groups-modal-btn-secondary:disabled {
-  opacity: 0.3;
+  background-color: #1e1e1e;
+  color: #8a8a8a;
+  cursor: not-allowed;
 }
 
 .groups-modal-btn-cancel {
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: #1f1f1f;
+  border: 1px solid #2e2e2e;
   color: #ffffff;
 }
 
@@ -569,9 +571,9 @@
 }
 
 .groups-modal-btn-delete {
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #dc2626;
+  background-color: #251313;
+  border: 1px solid #3d1616;
+  color: #f87171;
 }
 
 .groups-modal-btn-delete:hover:not(:disabled) {

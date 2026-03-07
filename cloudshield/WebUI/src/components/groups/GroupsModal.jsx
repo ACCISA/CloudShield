@@ -245,6 +245,12 @@ export default function GroupsModal({
 
   const isNextDisabled = currentStep === 0 && (!formData.groupName.trim() || !validateGroupName(formData.groupName).valid);
 
+  const submitLabel = isSubmitting
+    ? "Saving..."
+    : isEditMode
+      ? "Save Changes"
+      : "Create Group";
+
   return (
     <div className="groups-modal-overlay">
       <div className="groups-modal-dialog">
@@ -342,11 +348,7 @@ export default function GroupsModal({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Save Changes"
-                    : "Create Group"}
+                {submitLabel}
               </button>
             )}
           </div>
@@ -604,3 +606,25 @@ function SelectionStep({
     </div>
   );
 }
+
+GroupsModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  groupData: PropTypes.object,
+  onSubmit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onRefresh: PropTypes.func,
+};
+
+SelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.array.isRequired,
+  selectedItems: PropTypes.array.isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+};
