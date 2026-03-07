@@ -175,6 +175,12 @@ export default function ActivityPanel({
   };
 
   const headerStyle = (field) => ({
+    appearance: "none",
+    background: "none",
+    border: "none",
+    padding: 0,
+    textAlign: "left",
+    width: "100%",
     fontSize: "13px",
     fontWeight: sortField === field ? 600 : 500,
     color: sortField === field ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
@@ -325,18 +331,27 @@ export default function ActivityPanel({
 
       <div style={styles.tableWrapper}>
         <div style={styles.tableHeader}>
-          <div style={headerStyle("user")} onClick={() => toggleSort("user")}>
+          <button
+            type="button"
+            style={headerStyle("user")}
+            onClick={() => toggleSort("user")}
+          >
             User
-          </div>
-          <div style={headerStyle("date")} onClick={() => toggleSort("date")}>
+          </button>
+          <button
+            type="button"
+            style={headerStyle("date")}
+            onClick={() => toggleSort("date")}
+          >
             Date
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             style={headerStyle("activity")}
             onClick={() => toggleSort("activity")}
           >
             Activity
-          </div>
+          </button>
         </div>
 
         {loading && activities.length === 0 ? (
