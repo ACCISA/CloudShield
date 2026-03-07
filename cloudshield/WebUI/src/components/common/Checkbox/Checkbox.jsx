@@ -20,7 +20,7 @@ const styles = {
   },
   checkboxChecked: {
     backgroundColor: "#fff",
-    borderColor: "#fff",
+    border: "2px solid #fff",
   },
   checkmark: {
     width: "10px",

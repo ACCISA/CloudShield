@@ -94,27 +94,11 @@ export default function GroupSelectionPanel({
     return normalized.name || normalized.groupName || "Unknown";
   };
 
-  const allGroupsSelected =
-    availableGroups.length > 0 &&
-    availableGroups.every((group) =>
-      selectedGroups.some(
-        (selected) => getGroupId(selected) === getGroupId(group),
-      ),
-    );
-
-  const handleAllGroupsToggle = (checked) => {
-    if (checked) {
-      onSelectionChange(availableGroups);
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
   return (
     <div className="group-selection-container">
       <div className="group-selection-search-section">
         <div className="group-selection-label-row">
-          <label className="group-selection-label">Search Groups</label>
+          <label className="group-selection-label">Add Groups</label>
           <div className="group-selection-all-toggle">
             <Checkbox
               checked={allAreSelected}
@@ -129,63 +113,61 @@ export default function GroupSelectionPanel({
           className="group-selection-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by group name..."
+          placeholder="Search groups..."
         />
 
-        {searchTerm && (
-          <div className="group-selection-dropdown">
-            {filteredGroups.length === 0 ? (
-              <div
-                className="group-selection-dropdown-item"
-                style={{ opacity: 0.7, cursor: "default" }}
-              >
-                No groups found
-              </div>
-            ) : (
-              filteredGroups.map((group) => {
-                const normalized = normalizeGroup(group);
-                const selected = isSelected(group);
+        <div className="group-selection-dropdown">
+          {filteredGroups.length === 0 ? (
+            <div
+              className="group-selection-dropdown-item"
+              style={{ opacity: 0.7, cursor: "default" }}
+            >
+              No groups found
+            </div>
+          ) : (
+            filteredGroups.map((group) => {
+              const normalized = normalizeGroup(group);
+              const selected = isSelected(group);
 
-                return (
-                  <div
-                    key={getGroupId(group)}
-                    className={`group-selection-dropdown-item ${selected ? "selected" : ""}`}
-                    onClick={() => handleToggle(group)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleToggle(group);
-                      }
-                    }}
-                  >
-                    <DisplayIcon
-                      type="group"
-                      data={normalized}
-                      size="small"
-                      showHoverCard={true}
-                    />
-                    <div className="group-selection-dropdown-item-info">
-                      <div className="group-selection-dropdown-item-name">
-                        {getDisplayName(group)}
-                      </div>
-                      {normalized.member_count !== undefined && (
-                        <div className="group-selection-dropdown-item-detail">
-                          {normalized.member_count}{" "}
-                          {normalized.member_count === 1 ? "member" : "members"}
-                        </div>
-                      )}
+              return (
+                <div
+                  key={getGroupId(group)}
+                  className={`group-selection-dropdown-item ${selected ? "selected" : ""}`}
+                  onClick={() => handleToggle(group)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleToggle(group);
+                    }
+                  }}
+                >
+                  <DisplayIcon
+                    type="group"
+                    data={normalized}
+                    size="small"
+                    showHoverCard={true}
+                  />
+                  <div className="group-selection-dropdown-item-info">
+                    <div className="group-selection-dropdown-item-name">
+                      {getDisplayName(group)}
                     </div>
-                    {selected && (
-                      <span className="group-selection-checkmark">✓</span>
+                    {normalized.member_count !== undefined && (
+                      <div className="group-selection-dropdown-item-detail">
+                        {normalized.member_count}{" "}
+                        {normalized.member_count === 1 ? "member" : "members"}
+                      </div>
                     )}
                   </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  {selected && (
+                    <span className="group-selection-checkmark">✓</span>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Selected Groups Section */}
@@ -206,14 +188,13 @@ export default function GroupSelectionPanel({
                     type="button"
                     className="group-selection-card-remove-btn"
                     onClick={() => handleRemove(getGroupId(group))}
-                    aria-label="Remove group"
                   >
                     ×
                   </button>
                   <DisplayIcon
                     type="group"
                     data={normalized}
-                    size="medium"
+                    size="small"
                     showHoverCard={true}
                   />
                   <span className="group-selection-selected-card-name">

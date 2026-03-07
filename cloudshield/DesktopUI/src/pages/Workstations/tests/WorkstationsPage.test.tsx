@@ -60,6 +60,36 @@ describe("WorkstationsPage", () => {
     expect(screen.getByText("Logout")).toBeTruthy();
   });
 
+  it("switches between list and icons display layouts", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([
+      {
+        name: "Development",
+        org_id: "ORG-001",
+        description: "Dev template",
+        software: [],
+        is_ready: true,
+        access_groups: [],
+      },
+    ]);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Development")).toBeTruthy();
+    expect(screen.getByTestId("workstations-list-view")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Display" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /icons/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workstations-icons-view")).toBeTruthy();
+    });
+  });
+
   it("shows missing token error when no auth is available", async () => {
     loadAuthMock.mockReturnValue({});
 

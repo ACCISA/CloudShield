@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
@@ -13,6 +13,15 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import StatusButton from "../components/common/StatusButton/StatusButton.jsx";
+import ActiveIcon from "../assets/ActiveIcon.jsx";
+import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
 const styles = {
   container: {
@@ -21,30 +30,20 @@ const styles = {
     height: "100vh",
     overflow: "hidden",
   },
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-    flexWrap: "wrap",
-    flexShrink: 0,
-  },
-  leftActions: {
-    display: "flex",
-    gap: "10px",
-    flex: "1 1 auto",
-    flexWrap: "wrap",
-    minWidth: "0",
-  },
-  rightActions: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  },
+  ...managementToolbarStyles,
   listWrapper: {
     flex: 1,
     overflow: "auto",
     minHeight: 0,
     overscrollBehavior: "contain",
+  },
+  ...sharedIconViewStyles,
+  iconStatusRow: {
+    marginTop: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
   },
 };
 /* ----------------------------------- seed ---------------------------------- */
@@ -60,7 +59,7 @@ export default function WorkstationsPage() {
   const [search, setSearch] = useState("");
 
   // Layout state
-  const [layout, setLayout] = useState("list"); // 'cards', 'list', or 'icons'
+  const [layout, setLayout] = useState("list"); // 'list' or 'icons'
   const [showUsersCol, setShowUsersCol] = useState(true);
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
@@ -275,6 +274,33 @@ export default function WorkstationsPage() {
     setLayout(newLayout);
   };
 
+  const selectedCount = useMemo(
+    () => filtered.filter((r) => selectedIds.has(r.id)).length,
+    [filtered, selectedIds],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const workstationMenuItems = (row) => [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit workstation",
+      color: "#1a1a1a",
+      onClick: () => {
+        setEditRow(row);
+        setOpenModal(true);
+      },
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete workstation",
+      color: "#D51616",
+      onClick: () => handleDelete(row.id),
+    },
+  ];
+
   return (
     <div style={styles.container}>
       {/* Toolbar */}
@@ -332,6 +358,28 @@ export default function WorkstationsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
+          {layout === "list" && selectedCount > 0 && (
+            <div style={styles.selectionSummary}>
+              <span style={styles.selectionSummaryCount}>
+                {selectedCount} selected
+              </span>
+              <button
+                type="button"
+                style={styles.clearSelectionButton}
+                onClick={clearSelection}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton
             onClick={withClickLog({
               name: "workstations/toolbar/refresh",
@@ -353,26 +401,118 @@ export default function WorkstationsPage() {
         </div>
       </div>
 
-      {/* Workstation List with Headers */}
-      <div style={styles.listWrapper}>
-        <WorkstationList
-          rows={filtered}
-          onEdit={(row) => {
-            setEditRow(row);
-            setOpenModal(true);
-          }}
-          onDelete={handleDelete}
-          onToggleStatus={handleToggleStatus}
-          selectedIds={selectedIds}
-          allVisibleSelected={allVisibleSelected}
-          isIndeterminate={isIndeterminate}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllVisible}
-          showUsers={showUsersCol}
-          showCurrent={showCurrentCol}
-          showLastUsed={showLastUsedCol}
-        />
-      </div>
+      {layout === "list" ? (
+        <div style={styles.listWrapper}>
+          <WorkstationList
+            rows={filtered}
+            onEdit={(row) => {
+              setEditRow(row);
+              setOpenModal(true);
+            }}
+            onDelete={handleDelete}
+            onToggleStatus={handleToggleStatus}
+            selectedIds={selectedIds}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAllVisible}
+            showUsers={showUsersCol}
+            showCurrent={showCurrentCol}
+            showLastUsed={showLastUsedCol}
+          />
+        </div>
+      ) : (
+        <div style={styles.iconsWrapper}>
+          <IconSelectionBar
+            styles={styles}
+            allVisibleSelected={allVisibleSelected}
+            isIndeterminate={isIndeterminate}
+            onToggleSelectAll={toggleSelectAllVisible}
+            selectedCount={selectedCount}
+          />
+
+          <div style={styles.iconsGrid}>
+            {filtered.map((row) => {
+              const selected = selectedIds.has(row.id);
+              const usersCount = row.usersCount ?? row.users?.length ?? 0;
+              const currentUser =
+                row.currentUser && row.currentUser !== "—"
+                  ? typeof row.currentUser === "string"
+                    ? {
+                        firstName: row.currentUser.split(" ")[0],
+                        lastName: row.currentUser.split(" ")[1] || "",
+                      }
+                    : row.currentUser
+                  : null;
+              return (
+                <div
+                  key={row.id}
+                  style={{
+                    ...styles.iconCard,
+                    ...(selected ? styles.iconCardSelected : {}),
+                  }}
+                >
+                  <div style={styles.iconCardHeader}>
+                    <Checkbox
+                      checked={selected}
+                      onChange={() => toggleSelect(row.id)}
+                    />
+                    <EditButton menuItems={workstationMenuItems(row)} />
+                  </div>
+
+                  <div style={styles.iconTitle}>
+                    <DisplayIcon type="workstation" data={row} size="small" />
+                    <div style={styles.iconTitleText}>
+                      <span style={styles.iconName}>{row.name}</span>
+                      <span style={styles.iconSub}>↳ {row.code}</span>
+                    </div>
+                  </div>
+
+                  {showUsersCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Users</span>
+                      <span style={styles.iconMetaValue}>{usersCount}</span>
+                    </div>
+                  )}
+
+                  {showCurrentCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Current</span>
+                      <span style={styles.iconMetaValue}>
+                        {currentUser ? (
+                          <DisplayIcon type="user" data={currentUser} size="small" />
+                        ) : (
+                          "—"
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {showLastUsedCol && (
+                    <div style={styles.iconMetaRow}>
+                      <span style={styles.iconMetaLabel}>Last Used</span>
+                      <span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span>
+                    </div>
+                  )}
+
+                  <div style={styles.iconStatusRow}>
+                    <StatusButton
+                      status={row.status}
+                      onClick={() => handleToggleStatus(row.id)}
+                    />
+                    <ActiveIcon
+                      width={12}
+                      height={12}
+                      outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"}
+                      innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Workstation Modal */}
       {openModal && (
