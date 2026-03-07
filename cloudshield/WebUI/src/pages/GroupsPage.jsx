@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -40,6 +40,29 @@ const styles = {
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
+    alignItems: "center",
+  },
+  selectionSummary: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  selectionSummaryCount: {
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.75)",
+    whiteSpace: "nowrap",
+  },
+  clearSelectionButton: {
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    background: "rgba(255, 255, 255, 0.03)",
+    color: "#fff",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    fontFamily: "inherit",
+    lineHeight: 1,
+    borderRadius: "8px",
+    padding: "7px 10px",
+    cursor: "pointer",
   },
   ...sharedIconViewStyles,
 };
@@ -377,6 +400,10 @@ export default function GroupsPage() {
     [filtered, selectedIds],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   const getGroupMenuItems = (group) => [
     {
       icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
@@ -442,6 +469,28 @@ export default function GroupsPage() {
 
         {/* Right side: Refresh and Create buttons */}
         <div style={styles.rightActions}>
+          {layout === "list" && selectedCount > 0 && (
+            <div style={styles.selectionSummary}>
+              <span style={styles.selectionSummaryCount}>
+                {selectedCount} selected
+              </span>
+              <button
+                type="button"
+                style={styles.clearSelectionButton}
+                onClick={clearSelection}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton onClick={fetchGroups} />
 
           <CreateButton

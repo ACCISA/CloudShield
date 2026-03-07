@@ -46,7 +46,7 @@ jest.mock("../../components/dashboard/ActivityPanel.jsx", () => {
         <div data-testid="initial-count">{props.initialData.length}</div>
         <div data-testid="total-items">{props.totalItems}</div>
         <div data-testid="current-page">{props.currentPage}</div>
-        <div data-testid="rows-per-page">{props.rowsPerPage}</div>
+        <div data-testid="items-per-page">{props.itemsPerPage}</div>
         <div data-testid="first-activity">
           {props.initialData[0] ? JSON.stringify(props.initialData[0]) : ""}
         </div>
@@ -58,9 +58,6 @@ jest.mock("../../components/dashboard/ActivityPanel.jsx", () => {
         </button>
         <button type="button" onClick={() => props.onPageChange(3)}>
           set-page-3
-        </button>
-        <button type="button" onClick={() => props.onRowsPerPageChange(50)}>
-          set-rpp-50
         </button>
       </div>
     );
@@ -222,7 +219,7 @@ describe("DashboardPage activity fetching and normalization", () => {
     });
   });
 
-  it("re-fetches with updated page and rowsPerPage values", async () => {
+  it("re-fetches with the updated page value and keeps the fixed page size", async () => {
     localStorage.setItem("org_id", "org-123");
     apiGet.mockResolvedValue({ items: [], total: 0 });
 
@@ -237,12 +234,7 @@ describe("DashboardPage activity fetching and normalization", () => {
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=3&limit=10");
     });
-
-    apiGet.mockClear();
-    fireEvent.click(screen.getByText("set-rpp-50"));
-    await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledWith("/activity/org-123?page=1&limit=50");
-    });
+    expect(screen.getByTestId("items-per-page")).toHaveTextContent("10");
   });
 
   it("refresh button triggers fetchActivities again", async () => {

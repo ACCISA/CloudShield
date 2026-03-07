@@ -448,6 +448,11 @@ export default function FilesPage() {
     [iconVisibleIds, selectedIds],
   );
 
+  const selectedListCount = useMemo(
+    () => listVisibleIds.filter((id) => selectedIds.has(id)).length,
+    [listVisibleIds, selectedIds],
+  );
+
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     const hasSelected = ids.some((id) => selectedIds.has(id));
@@ -482,6 +487,10 @@ export default function FilesPage() {
       );
     }
   };
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
   const toggleExpand = (id) => {
     trackButton("files/list/toggle-folder", { page: "files", id });
@@ -872,6 +881,20 @@ export default function FilesPage() {
         </div>
 
         <div className="rightTools">
+          {layout === "list" && selectedListCount > 0 && (
+            <div className="selectionSummary">
+              <span className="selectionSummaryCount">
+                {selectedListCount} selected
+              </span>
+              <button
+                type="button"
+                className="clearSelectionButton"
+                onClick={clearSelection}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton
             onClick={withClickLog({
               name: "files/toolbar/refresh",
@@ -980,6 +1003,31 @@ export default function FilesPage() {
         }
         .rightTools {
           flex-shrink: 0;
+        }
+        .selectionSummary {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .selectionSummaryCount {
+          font-size: 12px;
+          color: rgba(255,255,255,0.75);
+          white-space: nowrap;
+        }
+        .clearSelectionButton {
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.03);
+          color: #fff;
+          font-size: 0.85rem;
+          font-weight: 500;
+          font-family: inherit;
+          line-height: 1;
+          border-radius: 8px;
+          padding: 7px 10px;
+          cursor: pointer;
+        }
+        .clearSelectionButton:hover {
+          background: rgba(255, 255, 255, 0.08);
         }
 
         /* Operation banner - subtle notification */

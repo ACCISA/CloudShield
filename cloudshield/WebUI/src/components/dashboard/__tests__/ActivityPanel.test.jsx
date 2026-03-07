@@ -1,216 +1,266 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ActivityPanel from "../ActivityPanel";
 
+const manyActivities = Array.from({ length: 12 }, (_, i) => ({
+  id: i + 1,
+  user: `User ${i + 1}`,
+  date: `2026-01-${String(i + 1).padStart(2, "0")} 09:00`,
+  activity: `Activity ${i + 1}`,
+}));
+
 describe("ActivityPanel", () => {
-  it("renders recent activity title", () => {
-    render(<ActivityPanel />);
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("renders the panel title, search input, and refresh control", () => {
+    render(<ActivityPanel initialData={[]} />);
+
     expect(screen.getByText("Recent Activity")).toBeInTheDocument();
-  });
-
-  it("renders search input", () => {
-    render(<ActivityPanel />);
     expect(
-      screen.getByPlaceholderText("Search activities")
+      screen.getByPlaceholderText("Search activities"),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /refresh/i })).toBeInTheDocument();
   });
 
-  it("renders refresh button", () => {
+  it("shows the default empty state when there are no activities", () => {
+    render(<ActivityPanel initialData={[]} />);
+
+    expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("activity-empty-state-description"),
+    ).toHaveTextContent("Activity will appear here once actions are performed");
+  });
+
+  it("loads mock data when refresh is clicked without a fetch handler", async () => {
     render(<ActivityPanel />);
-    const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBeGreaterThan(0);
-  });
 
-  it("updates search value when typing", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
-    fireEvent.change(searchInput, { target: { value: "test search" } });
-    expect(searchInput).toHaveValue("test search");
-  });
+    fireEvent.click(screen.getByRole("button", { name: /refresh/i }));
 
-  it("displays activity items", () => {
-    render(<ActivityPanel />);
-    // Check for mock activity data
-    const activities = screen.getAllByText("Michael Scott");
-    expect(activities.length).toBeGreaterThan(0);
-  });
-
-  it("displays activity dates", () => {
-    render(<ActivityPanel />);
-    const dates = screen.getAllByText("10/11/2025 11:36 pm");
-    expect(dates.length).toBeGreaterThan(0);
-  });
-
-  it("displays activity descriptions", () => {
-    render(<ActivityPanel />);
-    const descriptions = screen.getAllByText("Uploaded file to group");
-    expect(descriptions.length).toBeGreaterThan(0);
-  });
-
-  it("renders with correct styling", () => {
-    const { container } = render(<ActivityPanel />);
-    const mainBox = container.firstChild;
-    expect(mainBox).toHaveStyle({ display: "flex", flexDirection: "column" });
-  });
-
-  it("filters activities based on search query", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
-
-    fireEvent.change(searchInput, { target: { value: "Noah" } });
-
-    expect(screen.getByText("Noah Burns")).toBeInTheDocument();
-  });
-
-  it("shows all activities when search is cleared", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
-
-    fireEvent.change(searchInput, { target: { value: "Noah" } });
-    fireEvent.change(searchInput, { target: { value: "" } });
-
-    const activities = screen.getAllByText("Michael Scott");
-    expect(activities.length).toBeGreaterThan(0);
-  });
-
-  it("handles case-insensitive search", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
-
-    fireEvent.change(searchInput, { target: { value: "NOAH" } });
-
-    expect(screen.getByText("Noah Burns")).toBeInTheDocument();
-  });
-
-  it("refreshes activities when refresh button is clicked", async () => {
-    const mockFetch = jest.fn().mockResolvedValue([
-      {
-        id: 6,
-        user: "Test User",
-        date: "12/29/2025",
-        activity: "Test activity",
-      },
-    ]);
-
-    render(<ActivityPanel fetchActivities={mockFetch} />);
-
-    const refreshButton = screen.getAllByRole("button")[0];
-    fireEvent.click(refreshButton);
-
-    await screen.findByText("Test User");
-    expect(mockFetch).toHaveBeenCalled();
-  });
-
-  it("displays loading state during async fetch", async () => {
-    const mockFetch = jest
-      .fn()
-      .mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
-      );
-
-    render(<ActivityPanel fetchActivities={mockFetch} />);
-
-    const refreshButton = screen.getAllByRole("button")[0];
-    fireEvent.click(refreshButton);
-
-    // Loading state should be visible
-    expect(mockFetch).toHaveBeenCalled();
-  });
-
-  it("displays error message when fetch fails", async () => {
-    const mockFetch = jest.fn().mockRejectedValue(new Error("Fetch failed"));
-
-    render(<ActivityPanel fetchActivities={mockFetch} />);
-
-    const refreshButton = screen.getAllByRole("button")[0];
-    fireEvent.click(refreshButton);
-
-    const errorMessage = await screen.findByText(/Failed to load activities/);
-    expect(errorMessage).toBeInTheDocument();
-  });
-
-  it("falls back to mock data on fetch error", async () => {
-    const mockFetch = jest.fn().mockRejectedValue(new Error("Fetch failed"));
-
-    render(<ActivityPanel fetchActivities={mockFetch} />);
-
-    const refreshButton = screen.getAllByRole("button")[0];
-    fireEvent.click(refreshButton);
-
-    await screen.findByText(/Failed to load activities/);
-
-    // Should still show mock data
-    expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText("Uploaded file to group").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("uses initialData when provided", () => {
-    const initialData = [
-      {
-        id: 1,
-        user: "Initial User",
-        date: "12/29/2025",
-        activity: "Initial activity",
-      },
-    ];
-
-    render(<ActivityPanel initialData={initialData} />);
+    render(
+      <ActivityPanel
+        initialData={[
+          {
+            id: 1,
+            user: "Initial User",
+            date: "03/05/2026 08:00 AM",
+            activity: "Initial activity",
+          },
+        ]}
+      />,
+    );
 
     expect(screen.getByText("Initial User")).toBeInTheDocument();
+    expect(screen.getByText("Initial activity")).toBeInTheDocument();
   });
 
-  it("loads activities on mount when fetchActivities is provided", async () => {
+  it("loads activities on mount when fetchActivities is provided without initial data", async () => {
     const mockFetch = jest.fn().mockResolvedValue([
       {
         id: 1,
         user: "Fetched User",
-        date: "12/29/2025",
+        date: "03/05/2026 08:00 AM",
         activity: "Fetched activity",
       },
     ]);
 
     render(<ActivityPanel fetchActivities={mockFetch} />);
 
-    await screen.findByText("Fetched User");
-    expect(mockFetch).toHaveBeenCalled();
+    expect(await screen.findByText("Fetched User")).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("handles empty search results gracefully", () => {
-    render(<ActivityPanel />);
+  it("shows an error and falls back to mock data when fetch fails", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const mockFetch = jest.fn().mockRejectedValue(new Error("Fetch failed"));
+
+    render(<ActivityPanel fetchActivities={mockFetch} />);
+
+    expect(
+      await screen.findByText("Failed to load activities. Please try again."),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
+
+    errorSpy.mockRestore();
+  });
+
+  it("refreshes activities when the refresh button is clicked", async () => {
+    const mockFetch = jest.fn().mockResolvedValue([
+      {
+        id: 1,
+        user: "Refreshed User",
+        date: "03/05/2026 08:00 AM",
+        activity: "Refreshed activity",
+      },
+    ]);
+
+    render(
+      <ActivityPanel
+        initialData={[
+          {
+            id: 99,
+            user: "Initial User",
+            date: "03/05/2026 07:30 AM",
+            activity: "Initial activity",
+          },
+        ]}
+        fetchActivities={mockFetch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /refresh/i }));
+
+    expect(await screen.findByText("Refreshed User")).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates the search field and filters activities case-insensitively", () => {
+    render(
+      <ActivityPanel
+        initialData={[
+          {
+            id: 1,
+            user: "Noah Burns",
+            date: "03/05/2026 08:00 AM",
+            activity: "Uploaded file",
+          },
+          {
+            id: 2,
+            user: "Michael Scott",
+            date: "03/05/2026 09:00 AM",
+            activity: "Updated policy",
+          },
+        ]}
+      />,
+    );
+
     const searchInput = screen.getByPlaceholderText("Search activities");
+    fireEvent.change(searchInput, { target: { value: "NOAH" } });
 
-    fireEvent.change(searchInput, { target: { value: "NonExistentUser" } });
-
-    // Should not display any activities
+    expect(searchInput).toHaveValue("NOAH");
+    expect(screen.getByText("Noah Burns")).toBeInTheDocument();
     expect(screen.queryByText("Michael Scott")).not.toBeInTheDocument();
   });
 
-  it("searches across user name and activity description", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
+  it("shows the search empty state when no results match", () => {
+    render(<ActivityPanel initialData={manyActivities.slice(0, 2)} />);
 
-    fireEvent.change(searchInput, { target: { value: "Uploaded" } });
+    fireEvent.change(screen.getByPlaceholderText("Search activities"), {
+      target: { value: "zzzNonExistent" },
+    });
 
+    expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
     expect(
-      screen.getAllByText(/Uploaded file to group/).length
-    ).toBeGreaterThan(0);
+      screen.getByTestId("activity-empty-state-description"),
+    ).toHaveTextContent("Try adjusting your search query");
   });
 
-  it("handles mobile responsive layout", () => {
-    // Mock useMediaQuery to return true for mobile
-    const { container } = render(<ActivityPanel />);
-    expect(container.firstChild).toBeInTheDocument();
+  it("shows the external loading state when loading is true and there is no data", () => {
+    render(<ActivityPanel initialData={[]} loading />);
+
+    expect(screen.getByText("Loading activity…")).toBeInTheDocument();
   });
 
-  it("displays avatars for users", () => {
-    render(<ActivityPanel />);
+  it("sorts activities by clicking headers without rendering sort arrows", () => {
+    render(
+      <ActivityPanel
+        initialData={[
+          {
+            id: 1,
+            user: "zoe",
+            date: "2026-01-02 09:00",
+            activity: "zeta",
+          },
+          {
+            id: 2,
+            user: "adam",
+            date: "2026-01-01 09:00",
+            activity: "alpha",
+          },
+        ]}
+      />,
+    );
 
-    // Avatars should be rendered for each activity
-    const { container } = render(<ActivityPanel />);
-    const avatars = container.querySelectorAll(".MuiAvatar-root");
-    expect(avatars.length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/zoe|adam/).map((node) => node.textContent)).toEqual(
+      ["zoe", "adam"],
+    );
+
+    fireEvent.click(screen.getByText("User"));
+    expect(screen.getAllByText(/zoe|adam/).map((node) => node.textContent)).toEqual(
+      ["adam", "zoe"],
+    );
+    expect(screen.queryByText("↑")).not.toBeInTheDocument();
+    expect(screen.queryByText("↓")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("User"));
+    expect(screen.getAllByText(/zoe|adam/).map((node) => node.textContent)).toEqual(
+      ["zoe", "adam"],
+    );
   });
 
-  it("clears error state on successful refresh", async () => {
+  it("paginates client-side data with the new shared pagination component", () => {
+    render(
+      <ActivityPanel
+        initialData={manyActivities}
+        itemsPerPage={5}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("activity-pagination-page-2"));
+
+    expect(screen.getByTestId("activity-pagination")).toBeInTheDocument();
+    expect(screen.getByTestId("activity-pagination-info")).toHaveTextContent(
+      "Showing 6-10 of 12 activities",
+    );
+    expect(screen.getByText("User 7")).toBeInTheDocument();
+    expect(screen.getByText("User 3")).toBeInTheDocument();
+    expect(screen.queryByText("User 8")).not.toBeInTheDocument();
+  });
+
+  it("calls onPageChange in controlled mode", () => {
+    const onPageChange = jest.fn();
+
+    render(
+      <ActivityPanel
+        initialData={manyActivities.slice(0, 5)}
+        totalItems={12}
+        itemsPerPage={5}
+        currentPage={1}
+        onPageChange={onPageChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("activity-pagination-next"));
+    expect(onPageChange).toHaveBeenCalledWith(2);
+  });
+
+  it("keeps the active sort header visually emphasized", () => {
+    render(<ActivityPanel initialData={manyActivities.slice(0, 2)} />);
+
+    const dateHeader = screen.getByText("Date");
+    const userHeader = screen.getByText("User");
+
+    expect(dateHeader).toHaveStyle({ color: "rgba(255,255,255,1)" });
+    expect(userHeader).toHaveStyle({ color: "rgba(255,255,255,0.6)" });
+
+    fireEvent.click(userHeader);
+
+    expect(userHeader).toHaveStyle({ color: "rgba(255,255,255,1)" });
+    expect(dateHeader).toHaveStyle({ color: "rgba(255,255,255,0.6)" });
+  });
+
+  it("refreshes and clears a previous error after a successful retry", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     const mockFetch = jest
       .fn()
       .mockRejectedValueOnce(new Error("Fetch failed"))
@@ -218,250 +268,26 @@ describe("ActivityPanel", () => {
         {
           id: 1,
           user: "Success User",
-          date: "12/29/2025",
+          date: "03/05/2026 08:00 AM",
           activity: "Success activity",
         },
       ]);
 
     render(<ActivityPanel fetchActivities={mockFetch} />);
 
-    const refreshButton = screen.getAllByRole("button")[0];
-
-    // First fetch fails
-    fireEvent.click(refreshButton);
-    await screen.findByText(/Failed to load activities/);
-
-    // Second fetch succeeds
-    fireEvent.click(refreshButton);
-    await screen.findByText("Success User");
-
-    // Error message should be gone
     expect(
-      screen.queryByText(/Failed to load activities/)
-    ).not.toBeInTheDocument();
-  });
+      await screen.findByText("Failed to load activities. Please try again."),
+    ).toBeInTheDocument();
 
-  it("sorts search results by relevance", () => {
-    render(<ActivityPanel />);
-    const searchInput = screen.getByPlaceholderText("Search activities");
+    fireEvent.click(screen.getByRole("button", { name: /refresh/i }));
 
-    fireEvent.change(searchInput, { target: { value: "Michael" } });
-
-    // Results should be sorted by relevance (exact matches first)
-    expect(screen.getAllByText("Michael Scott").length).toBeGreaterThan(0);
-  });
-
-  it("toggles user header sort direction", () => {
-    const data = [
-      { id: 1, user: "zoe", date: "01/01/2026", activity: "B activity" },
-      { id: 2, user: "adam", date: "01/02/2026", activity: "A activity" },
-    ];
-    render(<ActivityPanel initialData={data} rowsPerPage={10} />);
-
-    fireEvent.click(screen.getByText("User"));
-    expect(screen.getByText("↑")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("User"));
-    expect(screen.getByText("↓")).toBeInTheDocument();
-  });
-
-  it("switches to activity sort when activity header is clicked", () => {
-    const data = [
-      { id: 1, user: "zoe", date: "01/01/2026", activity: "zeta" },
-      { id: 2, user: "adam", date: "01/02/2026", activity: "alpha" },
-    ];
-    render(<ActivityPanel initialData={data} rowsPerPage={10} />);
-
-    fireEvent.click(screen.getByText("Activity"));
-    expect(screen.getByText("↑")).toBeInTheDocument();
-  });
-
-  // ─── Pagination ─────────────────────────────────────
-  describe("Pagination", () => {
-    const manyActivities = Array.from({ length: 12 }, (_, i) => ({
-      id: i + 1,
-      user: `User ${i + 1}`,
-      date: `01/${String(i + 1).padStart(2, "0")}/2026`,
-      activity: `Activity ${i + 1}`,
-    }));
-
-    it("renders the pagination bar when activities exist", () => {
-      render(<ActivityPanel initialData={manyActivities} />);
-      expect(screen.getByTestId("activity-pagination")).toBeInTheDocument();
-    });
-
-    it("does not render pagination when there are no activities", () => {
-      render(<ActivityPanel initialData={[]} />);
+    expect(await screen.findByText("Success User")).toBeInTheDocument();
+    await waitFor(() => {
       expect(
-        screen.queryByTestId("activity-pagination"),
+        screen.queryByText("Failed to load activities. Please try again."),
       ).not.toBeInTheDocument();
     });
 
-    it("displays correct item range info", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={1}
-        />,
-      );
-      expect(screen.getByTestId("activity-pagination-info")).toHaveTextContent(
-        "1–5 of 12",
-      );
-    });
-
-    it("shows only rowsPerPage items per page (client-side)", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={1}
-        />,
-      );
-      // Default date sort is desc, so page 1 should include users 12..8
-      expect(screen.getByText("User 12")).toBeInTheDocument();
-      expect(screen.getByText("User 8")).toBeInTheDocument();
-      expect(screen.queryByText("User 7")).not.toBeInTheDocument();
-    });
-
-    it("shows the correct slice on page 2 (client-side)", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={2}
-        />,
-      );
-      expect(screen.getByText("User 7")).toBeInTheDocument();
-      expect(screen.getByText("User 3")).toBeInTheDocument();
-      expect(screen.queryByText("User 8")).not.toBeInTheDocument();
-      expect(screen.queryByText("User 2")).not.toBeInTheDocument();
-    });
-
-    it("shows remaining items on the last partial page", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={3}
-        />,
-      );
-      expect(screen.getByText("User 2")).toBeInTheDocument();
-      expect(screen.getByText("User 1")).toBeInTheDocument();
-      expect(screen.queryByText("User 3")).not.toBeInTheDocument();
-    });
-
-    it("calls onPageChange when Next is clicked", () => {
-      const onPageChange = jest.fn();
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          totalItems={manyActivities.length}
-          rowsPerPage={5}
-          currentPage={1}
-          onPageChange={onPageChange}
-          onRowsPerPageChange={jest.fn()}
-        />,
-      );
-      fireEvent.click(screen.getByTestId("activity-pagination-next"));
-      expect(onPageChange).toHaveBeenCalledWith(2);
-    });
-
-    it("calls onRowsPerPageChange when rows per page changes", () => {
-      const onRowsPerPageChange = jest.fn();
-      const onPageChange = jest.fn();
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          totalItems={manyActivities.length}
-          rowsPerPage={5}
-          currentPage={1}
-          onPageChange={onPageChange}
-          onRowsPerPageChange={onRowsPerPageChange}
-        />,
-      );
-      fireEvent.change(
-        screen.getByTestId("activity-pagination-rows-per-page"),
-        { target: { value: "25" } },
-      );
-      expect(onRowsPerPageChange).toHaveBeenCalledWith(25);
-    });
-
-    it("uses default rowsPerPage of 25 when not specified", () => {
-      const thirtyActivities = Array.from({ length: 30 }, (_, i) => ({
-        id: i + 1,
-        user: `Person ${i + 1}`,
-        date: "01/01/2026",
-        activity: `Action ${i + 1}`,
-      }));
-      render(<ActivityPanel initialData={thirtyActivities} />);
-      // Default rowsPerPage is 25, so Person 25 should be visible but Person 26 should not
-      expect(screen.getByText("Person 25")).toBeInTheDocument();
-      expect(screen.queryByText("Person 26")).not.toBeInTheDocument();
-    });
-
-    it("renders custom rowsPerPageOptions", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPageOptions={[10, 20, 50]}
-        />,
-      );
-      const select = screen.getByTestId("activity-pagination-rows-per-page");
-      const options = select.querySelectorAll("option");
-      expect(options).toHaveLength(3);
-      expect(options[0]).toHaveValue("10");
-      expect(options[1]).toHaveValue("20");
-      expect(options[2]).toHaveValue("50");
-    });
-
-    it("disables Previous on the first page", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={1}
-        />,
-      );
-      expect(screen.getByTestId("activity-pagination-prev")).toBeDisabled();
-    });
-
-    it("disables Next on the last page", () => {
-      render(
-        <ActivityPanel
-          initialData={manyActivities}
-          rowsPerPage={5}
-          currentPage={3}
-        />,
-      );
-      expect(screen.getByTestId("activity-pagination-next")).toBeDisabled();
-    });
-  });
-
-  // ─── EmptyState ─────────────────────────────────────
-  describe("EmptyState", () => {
-    it("shows EmptyState with search hint when search yields no results", () => {
-      render(<ActivityPanel />);
-      const searchInput = screen.getByPlaceholderText("Search activities");
-      fireEvent.change(searchInput, { target: { value: "zzzNonExistent" } });
-
-      expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("activity-empty-state-message"),
-      ).toHaveTextContent("No activities found");
-      expect(
-        screen.getByTestId("activity-empty-state-description"),
-      ).toHaveTextContent("Try adjusting your search query");
-    });
-
-    it("shows EmptyState with default hint when no activities and no search", () => {
-      render(<ActivityPanel initialData={[]} />);
-      expect(screen.getByTestId("activity-empty-state")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("activity-empty-state-description"),
-      ).toHaveTextContent(
-        "Activity will appear here once actions are performed",
-      );
-    });
+    errorSpy.mockRestore();
   });
 });

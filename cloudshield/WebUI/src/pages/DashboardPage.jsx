@@ -12,7 +12,6 @@ import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
-import ActivityTable from "../components/dashboard/ActivityTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
 import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
 import { apiGet } from "../api/client.js";
@@ -57,8 +56,8 @@ export default function DashboardPage() {
   // Polling logic to check provisioning status
    
   const [activityLoading, setActivityLoading] = useState(false);
-  const [page, setPage] = useState(0); // 0-indexed for MUI
-  const [rowsPerPage, setRowsPerPage] = useState(10);   
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [activities, setActivities] = useState([]);
   const [totalActivities, setTotalActivities] = useState(0);
@@ -103,9 +102,8 @@ export default function DashboardPage() {
 
     setActivityLoading(true);
     try {
-      const apiPage = page + 1;
       const data = await apiGet(
-        `/activity/${org_id}?page=${apiPage}&limit=${rowsPerPage}`
+        `/activity/${org_id}?page=${page}&limit=${itemsPerPage}`
       );
       const items = Array.isArray(data?.items) ? data.items : [];
       const normalized = items.map((item, idx) => normalizeActivityItem(item, idx));
@@ -118,7 +116,7 @@ export default function DashboardPage() {
     } finally {
       setActivityLoading(false);
     }
-  }, [org_id, page, rowsPerPage]);
+  }, [org_id, page, itemsPerPage]);
 
   const handleRefreshActivities = () => {
     fetchActivities();
@@ -130,12 +128,7 @@ export default function DashboardPage() {
 
 
   const handleChangePage = (newPage) => {
-    setPage(newPage - 1);
-  };
-
-  const handleChangeRowsPerPage = (newRowsPerPage) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
+    setPage(newPage);
   };
 
 
@@ -257,12 +250,11 @@ export default function DashboardPage() {
       <ActivityPanel
         fetchActivities={fetchActivities}
         initialData={activities}
-        currentPage={page + 1}
+        currentPage={page}
         totalItems={totalActivities}
-        rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        itemsPerPage={itemsPerPage}
         onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        loading={activityLoading}
       />
     </Box>
   );

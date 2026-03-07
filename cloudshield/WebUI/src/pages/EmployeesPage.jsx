@@ -169,6 +169,29 @@ const styles = {
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
+    alignItems: "center",
+  },
+  selectionSummary: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  selectionSummaryCount: {
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.75)",
+    whiteSpace: "nowrap",
+  },
+  clearSelectionButton: {
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    background: "rgba(255, 255, 255, 0.03)",
+    color: "#fff",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    fontFamily: "inherit",
+    lineHeight: 1,
+    borderRadius: "8px",
+    padding: "7px 10px",
+    cursor: "pointer",
   },
   ...sharedIconViewStyles,
   iconFooter: {
@@ -634,6 +657,10 @@ export default function EmployeesPage() {
     [filtered, selectedIds],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   const getUserMenuItems = (user) => [
     {
       icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
@@ -705,6 +732,28 @@ export default function EmployeesPage() {
         </div>
 
         <div style={styles.rightActions}>
+          {layout === "list" && selectedCount > 0 && (
+            <div style={styles.selectionSummary}>
+              <span style={styles.selectionSummaryCount}>
+                {selectedCount} selected
+              </span>
+              <button
+                type="button"
+                style={styles.clearSelectionButton}
+                onClick={clearSelection}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.03)";
+                }}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton
             onClick={withClickLog({
               name: "employees/toolbar/refresh",
