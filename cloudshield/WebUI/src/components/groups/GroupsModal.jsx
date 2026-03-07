@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
@@ -426,6 +427,13 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors =
     </div>
   );
 }
+
+BasicInfoStep.propTypes = {
+  formData: PropTypes.object.isRequired,
+  setFormData: PropTypes.func.isRequired,
+  handleImageUpload: PropTypes.func,
+  fieldErrors: PropTypes.object,
+};
 
 function SelectionStep({
   type,

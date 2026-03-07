@@ -511,6 +511,7 @@ BasicInfoStep.propTypes = {
   formData: formDataShape.isRequired,
   setFormData: PropTypes.func.isRequired,
   isEditMode: PropTypes.bool,
+  fieldErrors: PropTypes.object,
 };
 
 BasicInfoStep.defaultProps = {
