@@ -1,8 +1,16 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
+
+// UI standardization helpers
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import { safeAsync } from "../lib/safeAsync";
+import { getUserErrorMessage } from "../lib/errors";
+import { formatShares } from "../lib/format";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
 import PlanCard from "../components/signup/PlanCard.jsx";
@@ -106,6 +114,11 @@ export default function SignupPage({ onSignupSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedPlan = useMemo(
+    () => PLAN_OPTIONS.find((p) => p.id === plan) || PLAN_OPTIONS[0],
+    [plan]
+  );
+
   const handlePlanSelect = (id) => {
     trackButton("signup/plan/select", { page: "signup", plan: id });
     setPlan(id);
@@ -154,8 +167,7 @@ export default function SignupPage({ onSignupSuccess }) {
 
     if (!res.ok) {
       return {
-        form:
-          data.message || "Unexpected error during signup. Please try again.",
+        form: data.message || "Unexpected error during signup. Please try again.",
       };
     }
 
@@ -170,11 +182,19 @@ export default function SignupPage({ onSignupSuccess }) {
 
     trackButton("signup/submit", { page: "signup", plan });
 
+    // localStorage can throw (quota exceeded / blocked storage).
+    // Don’t let that block navigation after successful signup.
+    const safeSetItem = (key, value) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        console.warn("localStorage.setItem failed", key, e);
+      }
+    };
+
     try {
-      // 1. Create the User and Organization in MongoDB
-      const createUserRes = await fetch(
-        "/api/auth/signup",
-        {
+      const createUserRes = await safeAsync(() =>
+        fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -184,7 +204,7 @@ export default function SignupPage({ onSignupSuccess }) {
             company_name: company,
             package_type: plan,
           }),
-        }
+        })
       );
 
       let createUserData = {};
@@ -201,43 +221,32 @@ export default function SignupPage({ onSignupSuccess }) {
       }
 
       const userData = {
-        email: email,
+        email,
         user_id: createUserData.user_id,
         org_id: createUserData.org_id,
         company_name: company,
-        plan: plan,
+        plan,
         job_id: createUserData.job_id,
       };
 
-      localStorage.setItem("user", JSON.stringify(userData));
-      if (createUserData.access_token) {
-        localStorage.setItem("jwt", createUserData.access_token);
-      }
-      if (createUserData.job_id) {
-        localStorage.setItem("provision_job_id", createUserData.job_id);
-      }
-      if (createUserData.org_id) {
-        localStorage.setItem("org_id", createUserData.org_id);
-      }
+      safeSetItem("user", JSON.stringify(userData));
+      if (createUserData.access_token) safeSetItem("jwt", createUserData.access_token);
+      if (createUserData.job_id) safeSetItem("provision_job_id", createUserData.job_id);
+      if (createUserData.org_id) safeSetItem("org_id", createUserData.org_id);
 
       onSignupSuccess?.({
         access_token: createUserData.access_token || null,
         user: userData,
       });
 
-      // --- REDIRECT TO DASHBOARD ---
-      console.log("Signup successful, navigating to provisioning...");
       navigate("/provisioning", { replace: true });
     } catch (err) {
-      console.error("Signup error:", err);
-      setErrors((prev) => ({
-        ...prev,
-        form: "Error during signup. Is the server running?",
-      }));
+      setErrors((prev) => ({ ...prev, form: getUserErrorMessage(err) }));
     } finally {
       setSubmitting(false);
     }
   };
+
   return (
     <Box
       sx={{
@@ -250,145 +259,153 @@ export default function SignupPage({ onSignupSuccess }) {
         py: { xs: 3, md: 4 },
       }}
     >
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: 1240,
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          gap: { xs: 3, md: 5 },
-        }}
-      >
-        <Box
-          sx={{
-            flex: { xs: "1 1 auto", md: "0 0 360px" },
-            display: "flex",
-            alignItems: "center",
-          }}
+      <Box sx={{ width: "100%", maxWidth: 1240 }}>
+        <PageShell
+          title="Sign up"
+          subtitle={
+            selectedPlan
+              ? `Selected plan: ${selectedPlan.name} • $${formatShares(selectedPlan.price)}/mo`
+              : undefined
+          }
         >
-          <SignupCard>
-            <Typography
-              sx={{
-                fontSize: "1.6rem",
-                fontWeight: 700,
-                textAlign: "center",
-                mb: 2.5,
-              }}
-            >
-              Create Your Organization
-            </Typography>
-
-            {errors.form && (
-              <Typography
-                sx={{
-                  color: "#f87171",
-                  mb: 1.5,
-                  fontSize: "0.9rem",
-                  textAlign: "center",
-                }}
-              >
-                {errors.form}
-              </Typography>
-            )}
-
-            <AuthTextField
-              label="Email"
-              placeholder="jane@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {errors.email && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
-                {errors.email}
-              </Typography>
-            )}
-
-            <PasswordField
-              label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {errors.password && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
-                {errors.password}
-              </Typography>
-            )}
-
-            <AuthTextField
-              label="Company Name"
-              placeholder="Acme Corp"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-            />
-            {errors.company && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
-                {errors.company}
-              </Typography>
-            )}
-
-            <PrimaryButton onClick={handleSignup} disabled={submitting}>
-              {submitting ? "Creating..." : "Create Organization"}
-            </PrimaryButton>
-
-            <Typography
-              onClick={() => {
-                trackButton("signup/nav/login", { page: "signup" });
-                navigate("/login");
-              }}
-              sx={{
-                cursor: "pointer",
-                mt: 1.5,
-                textAlign: "center",
-                color: "#ffffffff",
-                fontSize: "0.9rem",
-                "&:hover": {
-                  textDecoration: "underline",
-                  color: "#93c5fd",
-                },
-              }}
-            >
-              Already have an account? Log in
-            </Typography>
-          </SignupCard>
-        </Box>
-
-        <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontSize: "1.9rem",
-              fontWeight: 700,
-              color: "#ffffff",
-              mb: 2.5,
-              textAlign: { xs: "center", md: "left" },
-            }}
-          >
-            Your Plan Overview
-          </Typography>
-
           <Box
             sx={{
               display: "flex",
-              flexWrap: "wrap",
-              gap: 2.5,
-              justifyContent: { xs: "center", md: "flex-start" },
+              flexDirection: { xs: "column", md: "row" },
+              gap: { xs: 3, md: 5 },
             }}
           >
-            {PLAN_OPTIONS.map((p) => (
-              <PlanCard
-                key={p.id}
-                plan={p}
-                selected={plan === p.id}
-                onSelect={handlePlanSelect}
-              />
-            ))}
+            <Box
+              sx={{
+                flex: { xs: "1 1 auto", md: "0 0 360px" },
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <SignupCard>
+                <Typography
+                  sx={{
+                    fontSize: "1.6rem",
+                    fontWeight: 700,
+                    textAlign: "center",
+                    mb: 2.5,
+                  }}
+                >
+                  Create Your Organization
+                </Typography>
+
+                {errors.form && (
+                  <Typography
+                    sx={{
+                      color: "#f87171",
+                      mb: 1.5,
+                      fontSize: "0.9rem",
+                      textAlign: "center",
+                    }}
+                  >
+                    {errors.form}
+                  </Typography>
+                )}
+
+                <AuthTextField
+                  label="Email"
+                  placeholder="jane@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                {errors.email && (
+                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                    {errors.email}
+                  </Typography>
+                )}
+
+                <PasswordField
+                  label="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                {errors.password && (
+                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                    {errors.password}
+                  </Typography>
+                )}
+
+                <AuthTextField
+                  label="Company Name"
+                  placeholder="Acme Corp"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                />
+                {errors.company && (
+                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                    {errors.company}
+                  </Typography>
+                )}
+
+                <PrimaryButton onClick={handleSignup} disabled={submitting}>
+                  {submitting ? "Creating..." : "Create Organization"}
+                </PrimaryButton>
+
+                <Typography
+                  onClick={() => {
+                    trackButton("signup/nav/login", { page: "signup" });
+                    navigate("/login");
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    mt: 1.5,
+                    textAlign: "center",
+                    color: "#ffffffff",
+                    fontSize: "0.9rem",
+                    "&:hover": { textDecoration: "underline", color: "#93c5fd" },
+                  }}
+                >
+                  Already have an account? Log in
+                </Typography>
+              </SignupCard>
+            </Box>
+
+            <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: "1.9rem",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  mb: 2.5,
+                  textAlign: { xs: "center", md: "left" },
+                }}
+              >
+                Your Plan Overview
+              </Typography>
+
+              {submitting ? (
+                <TableSurface>
+                  <Box sx={{ p: 2 }}>
+                    <TableSkeleton rows={4} cols={3} />
+                  </Box>
+                </TableSurface>
+              ) : (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 2.5,
+                    justifyContent: { xs: "center", md: "flex-start" },
+                  }}
+                >
+                  {PLAN_OPTIONS.map((p) => (
+                    <PlanCard
+                      key={p.id}
+                      plan={p}
+                      selected={plan === p.id}
+                      onSelect={handlePlanSelect}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Box>
           </Box>
-        </Box>
+        </PageShell>
       </Box>
     </Box>
   );

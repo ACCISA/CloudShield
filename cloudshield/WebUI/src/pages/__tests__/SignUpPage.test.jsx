@@ -396,9 +396,7 @@ describe("SignupPage", () => {
     fireEvent.click(screen.getByTestId("primary-button"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Error during signup. Is the server running?"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Network error")).toBeInTheDocument();
     });
   });
 
