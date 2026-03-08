@@ -6,20 +6,19 @@
 #include "infra_service/infra_service.grpc.pb.h"
 
 #include <functional>
-#include <grpcpp/support/async_stream.h>
-#include <grpcpp/support/async_unary_call.h>
-#include <grpcpp/impl/channel_interface.h>
-#include <grpcpp/impl/client_unary_call.h>
-#include <grpcpp/support/client_callback.h>
-#include <grpcpp/support/message_allocator.h>
-#include <grpcpp/support/method_handler.h>
-#include <grpcpp/impl/rpc_service_method.h>
-#include <grpcpp/support/server_callback.h>
-#include <grpcpp/impl/server_callback_handlers.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/impl/service_type.h>
-#include <grpcpp/support/sync_stream.h>
-#include <grpcpp/ports_def.inc>
+#include <grpcpp/impl/codegen/async_stream.h>
+#include <grpcpp/impl/codegen/async_unary_call.h>
+#include <grpcpp/impl/codegen/channel_interface.h>
+#include <grpcpp/impl/codegen/client_unary_call.h>
+#include <grpcpp/impl/codegen/client_callback.h>
+#include <grpcpp/impl/codegen/message_allocator.h>
+#include <grpcpp/impl/codegen/method_handler.h>
+#include <grpcpp/impl/codegen/rpc_service_method.h>
+#include <grpcpp/impl/codegen/server_callback.h>
+#include <grpcpp/impl/codegen/server_callback_handlers.h>
+#include <grpcpp/impl/codegen/server_context.h>
+#include <grpcpp/impl/codegen/service_type.h>
+#include <grpcpp/impl/codegen/sync_stream.h>
 namespace infra_service {
 namespace v1 {
 
@@ -37,361 +36,491 @@ static const char* InfraService_method_names[] = {
   "/infra_service.v1.InfraService/ResetUserPassword",
   "/infra_service.v1.InfraService/AddDomainUser",
   "/infra_service.v1.InfraService/RemoveDomainUser",
+  "/infra_service.v1.InfraService/RemoveDomainGroup",
+  "/infra_service.v1.InfraService/UpdateSambaFileShare",
   "/infra_service.v1.InfraService/GetFileShareSize",
 };
 
 std::unique_ptr< InfraService::Stub> InfraService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
   (void)options;
-  std::unique_ptr< InfraService::Stub> stub(new InfraService::Stub(channel, options));
+  std::unique_ptr< InfraService::Stub> stub(new InfraService::Stub(channel));
   return stub;
 }
 
-InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
-  : channel_(channel), rpcmethod_SyncNetlogonScript_(InfraService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDNSRecord_(InfraService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_DeleteDNSRecord_(InfraService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetUserList_(InfraService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RestartSambaService_(InfraService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[6], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainGroup_(InfraService_method_names[7], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddUserToGroup_(InfraService_method_names[8], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_CreateDomainUserWithGroup_(InfraService_method_names[9], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_ResetUserPassword_(InfraService_method_names[10], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_AddDomainUser_(InfraService_method_names[11], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RemoveDomainUser_(InfraService_method_names[12], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_GetFileShareSize_(InfraService_method_names[13], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+InfraService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
+  : channel_(channel), rpcmethod_SyncNetlogonScript_(InfraService_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDNSRecord_(InfraService_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteDNSRecord_(InfraService_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetUserList_(InfraService_method_names[3], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RestartSambaService_(InfraService_method_names[4], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateSambaFileShare_(InfraService_method_names[5], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_DeleteSambaFileShare_(InfraService_method_names[6], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainGroup_(InfraService_method_names[7], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddUserToGroup_(InfraService_method_names[8], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateDomainUserWithGroup_(InfraService_method_names[9], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_ResetUserPassword_(InfraService_method_names[10], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AddDomainUser_(InfraService_method_names[11], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainUser_(InfraService_method_names[12], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RemoveDomainGroup_(InfraService_method_names[13], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_UpdateSambaFileShare_(InfraService_method_names[14], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetFileShareSize_(InfraService_method_names[15], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status InfraService::Stub::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::infra_service::v1::SyncNetlogonScriptDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_SyncNetlogonScript_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_SyncNetlogonScript_, context, request, response);
 }
 
-void InfraService::Stub::async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* InfraService::Stub::PrepareAsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::SyncNetlogonScriptDataAck, ::infra_service::v1::SyncNetlogonScriptData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_SyncNetlogonScript_, context, request);
+void InfraService::Stub::experimental_async::SyncNetlogonScript(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::SyncNetlogonScript(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::SyncNetlogonScriptDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_SyncNetlogonScript_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* InfraService::Stub::AsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncSyncNetlogonScriptRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::SyncNetlogonScriptDataAck>::Create(channel_.get(), cq, rpcmethod_SyncNetlogonScript_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::SyncNetlogonScriptDataAck>* InfraService::Stub::PrepareAsyncSyncNetlogonScriptRaw(::grpc::ClientContext* context, const ::infra_service::v1::SyncNetlogonScriptData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::SyncNetlogonScriptDataAck>::Create(channel_.get(), cq, rpcmethod_SyncNetlogonScript_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::infra_service::v1::AddDNSRecordDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDNSRecord_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AddDNSRecord_, context, request, response);
 }
 
-void InfraService::Stub::async::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDNSRecordDataAck>* InfraService::Stub::PrepareAsyncAddDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::AddDNSRecordDataAck, ::infra_service::v1::AddDNSRecordData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AddDNSRecord_, context, request);
+void InfraService::Stub::experimental_async::AddDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::AddDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDNSRecord_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDNSRecordDataAck>* InfraService::Stub::AsyncAddDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncAddDNSRecordRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDNSRecordDataAck>::Create(channel_.get(), cq, rpcmethod_AddDNSRecord_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDNSRecordDataAck>* InfraService::Stub::PrepareAsyncAddDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDNSRecordData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDNSRecordDataAck>::Create(channel_.get(), cq, rpcmethod_AddDNSRecord_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData& request, ::infra_service::v1::DeleteDNSRecordDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_DeleteDNSRecord_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_DeleteDNSRecord_, context, request, response);
 }
 
-void InfraService::Stub::async::DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteDNSRecordDataAck>* InfraService::Stub::PrepareAsyncDeleteDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::DeleteDNSRecordDataAck, ::infra_service::v1::DeleteDNSRecordData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_DeleteDNSRecord_, context, request);
+void InfraService::Stub::experimental_async::DeleteDNSRecord(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::DeleteDNSRecord(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteDNSRecordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_DeleteDNSRecord_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteDNSRecordDataAck>* InfraService::Stub::AsyncDeleteDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncDeleteDNSRecordRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::DeleteDNSRecordDataAck>::Create(channel_.get(), cq, rpcmethod_DeleteDNSRecord_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteDNSRecordDataAck>* InfraService::Stub::PrepareAsyncDeleteDNSRecordRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteDNSRecordData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::DeleteDNSRecordDataAck>::Create(channel_.get(), cq, rpcmethod_DeleteDNSRecord_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::GetUserListDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetUserList_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_GetUserList_, context, request, response);
 }
 
-void InfraService::Stub::async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetUserListDataAck>* InfraService::Stub::PrepareAsyncGetUserListRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::GetUserListDataAck, ::google::protobuf::Empty, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetUserList_, context, request);
+void InfraService::Stub::experimental_async::GetUserList(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::GetUserList(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetUserListDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_GetUserList_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetUserListDataAck>* InfraService::Stub::AsyncGetUserListRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncGetUserListRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::GetUserListDataAck>::Create(channel_.get(), cq, rpcmethod_GetUserList_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetUserListDataAck>* InfraService::Stub::PrepareAsyncGetUserListRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::GetUserListDataAck>::Create(channel_.get(), cq, rpcmethod_GetUserList_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::infra_service::v1::RestartSambaServiceDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_RestartSambaService_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_RestartSambaService_, context, request, response);
 }
 
-void InfraService::Stub::async::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::RestartSambaServiceDataAck>* InfraService::Stub::PrepareAsyncRestartSambaServiceRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::RestartSambaServiceDataAck, ::google::protobuf::Empty, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_RestartSambaService_, context, request);
+void InfraService::Stub::experimental_async::RestartSambaService(::grpc::ClientContext* context, const ::google::protobuf::Empty* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::RestartSambaService(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RestartSambaServiceDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RestartSambaService_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RestartSambaServiceDataAck>* InfraService::Stub::AsyncRestartSambaServiceRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncRestartSambaServiceRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RestartSambaServiceDataAck>::Create(channel_.get(), cq, rpcmethod_RestartSambaService_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::RestartSambaServiceDataAck>* InfraService::Stub::PrepareAsyncRestartSambaServiceRaw(::grpc::ClientContext* context, const ::google::protobuf::Empty& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RestartSambaServiceDataAck>::Create(channel_.get(), cq, rpcmethod_RestartSambaService_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::infra_service::v1::CreateSambaFileShareDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateSambaFileShare_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_CreateSambaFileShare_, context, request, response);
 }
 
-void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::CreateSambaFileShareDataAck, ::infra_service::v1::CreateSambaFileShareData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateSambaFileShare_, context, request);
+void InfraService::Stub::experimental_async::CreateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::CreateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateSambaFileShare_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::AsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncCreateSambaFileShareRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_CreateSambaFileShare_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncCreateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_CreateSambaFileShare_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::infra_service::v1::DeleteSambaFileShareDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_DeleteSambaFileShare_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_DeleteSambaFileShare_, context, request, response);
 }
 
-void InfraService::Stub::async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::DeleteSambaFileShareDataAck, ::infra_service::v1::DeleteSambaFileShareData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_DeleteSambaFileShare_, context, request);
+void InfraService::Stub::experimental_async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::DeleteSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::DeleteSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_DeleteSambaFileShare_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::AsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncDeleteSambaFileShareRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::DeleteSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_DeleteSambaFileShare_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::DeleteSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncDeleteSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::DeleteSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::DeleteSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_DeleteSambaFileShare_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::infra_service::v1::AddDomainGroupDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDomainGroup_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AddDomainGroup_, context, request, response);
 }
 
-void InfraService::Stub::async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::AddDomainGroupDataAck, ::infra_service::v1::AddDomainGroupData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AddDomainGroup_, context, request);
+void InfraService::Stub::experimental_async::AddDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::AddDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDomainGroup_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::AsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncAddDomainGroupRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDomainGroupDataAck>::Create(channel_.get(), cq, rpcmethod_AddDomainGroup_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainGroupDataAck>* InfraService::Stub::PrepareAsyncAddDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDomainGroupDataAck>::Create(channel_.get(), cq, rpcmethod_AddDomainGroup_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData& request, ::infra_service::v1::AddUserToGroupDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddUserToGroup_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AddUserToGroup_, context, request, response);
 }
 
-void InfraService::Stub::async::AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddUserToGroupDataAck>* InfraService::Stub::PrepareAsyncAddUserToGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::AddUserToGroupDataAck, ::infra_service::v1::AddUserToGroupData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AddUserToGroup_, context, request);
+void InfraService::Stub::experimental_async::AddUserToGroup(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::AddUserToGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddUserToGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddUserToGroup_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddUserToGroupDataAck>* InfraService::Stub::AsyncAddUserToGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncAddUserToGroupRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddUserToGroupDataAck>::Create(channel_.get(), cq, rpcmethod_AddUserToGroup_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddUserToGroupDataAck>* InfraService::Stub::PrepareAsyncAddUserToGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddUserToGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddUserToGroupDataAck>::Create(channel_.get(), cq, rpcmethod_AddUserToGroup_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateDomainUserWithGroup_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_CreateDomainUserWithGroup_, context, request, response);
 }
 
-void InfraService::Stub::async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateDomainUserWithGroupDataAck>* InfraService::Stub::PrepareAsyncCreateDomainUserWithGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::CreateDomainUserWithGroupDataAck, ::infra_service::v1::CreateDomainUserWithGroupData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateDomainUserWithGroup_, context, request);
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::CreateDomainUserWithGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::CreateDomainUserWithGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_CreateDomainUserWithGroup_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateDomainUserWithGroupDataAck>* InfraService::Stub::AsyncCreateDomainUserWithGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncCreateDomainUserWithGroupRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateDomainUserWithGroupDataAck>::Create(channel_.get(), cq, rpcmethod_CreateDomainUserWithGroup_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::CreateDomainUserWithGroupDataAck>* InfraService::Stub::PrepareAsyncCreateDomainUserWithGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::CreateDomainUserWithGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::CreateDomainUserWithGroupDataAck>::Create(channel_.get(), cq, rpcmethod_CreateDomainUserWithGroup_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::infra_service::v1::ResetUserPasswordDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_ResetUserPassword_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_ResetUserPassword_, context, request, response);
 }
 
-void InfraService::Stub::async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* InfraService::Stub::PrepareAsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::ResetUserPasswordDataAck, ::infra_service::v1::ResetUserPasswordData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_ResetUserPassword_, context, request);
+void InfraService::Stub::experimental_async::ResetUserPassword(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::ResetUserPassword(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::ResetUserPasswordDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_ResetUserPassword_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* InfraService::Stub::AsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncResetUserPasswordRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::ResetUserPasswordDataAck>::Create(channel_.get(), cq, rpcmethod_ResetUserPassword_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::ResetUserPasswordDataAck>* InfraService::Stub::PrepareAsyncResetUserPasswordRaw(::grpc::ClientContext* context, const ::infra_service::v1::ResetUserPasswordData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::ResetUserPasswordDataAck>::Create(channel_.get(), cq, rpcmethod_ResetUserPassword_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::infra_service::v1::AddDomainUserDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AddDomainUser_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AddDomainUser_, context, request, response);
 }
 
-void InfraService::Stub::async::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* InfraService::Stub::PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::AddDomainUserDataAck, ::infra_service::v1::AddDomainUserData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AddDomainUser_, context, request);
+void InfraService::Stub::experimental_async::AddDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::AddDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::AddDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_AddDomainUser_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* InfraService::Stub::AsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncAddDomainUserRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDomainUserDataAck>::Create(channel_.get(), cq, rpcmethod_AddDomainUser_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::AddDomainUserDataAck>* InfraService::Stub::PrepareAsyncAddDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::AddDomainUserData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::AddDomainUserDataAck>::Create(channel_.get(), cq, rpcmethod_AddDomainUser_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::infra_service::v1::RemoveDomainUserDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_RemoveDomainUser_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_RemoveDomainUser_, context, request, response);
 }
 
-void InfraService::Stub::async::RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* InfraService::Stub::PrepareAsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::RemoveDomainUserDataAck, ::infra_service::v1::RemoveDomainUserData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_RemoveDomainUser_, context, request);
+void InfraService::Stub::experimental_async::RemoveDomainUser(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::RemoveDomainUser(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainUserDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainUser_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* InfraService::Stub::AsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncRemoveDomainUserRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RemoveDomainUserDataAck>::Create(channel_.get(), cq, rpcmethod_RemoveDomainUser_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainUserDataAck>* InfraService::Stub::PrepareAsyncRemoveDomainUserRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainUserData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RemoveDomainUserDataAck>::Create(channel_.get(), cq, rpcmethod_RemoveDomainUser_, context, request, false);
+}
+
+::grpc::Status InfraService::Stub::RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::infra_service::v1::RemoveDomainGroupDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_RemoveDomainGroup_, context, request, response);
+}
+
+void InfraService::Stub::experimental_async::RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainGroup_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainGroup_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::RemoveDomainGroup(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainGroup_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::RemoveDomainGroup(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::RemoveDomainGroupDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_RemoveDomainGroup_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>* InfraService::Stub::AsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RemoveDomainGroupDataAck>::Create(channel_.get(), cq, rpcmethod_RemoveDomainGroup_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::RemoveDomainGroupDataAck>* InfraService::Stub::PrepareAsyncRemoveDomainGroupRaw(::grpc::ClientContext* context, const ::infra_service::v1::RemoveDomainGroupData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::RemoveDomainGroupDataAck>::Create(channel_.get(), cq, rpcmethod_RemoveDomainGroup_, context, request, false);
+}
+
+::grpc::Status InfraService::Stub::UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::infra_service::v1::UpdateSambaFileShareDataAck* response) {
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_UpdateSambaFileShare_, context, request, response);
+}
+
+void InfraService::Stub::experimental_async::UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_UpdateSambaFileShare_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_UpdateSambaFileShare_, context, request, response, std::move(f));
+}
+
+void InfraService::Stub::experimental_async::UpdateSambaFileShare(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_UpdateSambaFileShare_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::UpdateSambaFileShare(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_UpdateSambaFileShare_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>* InfraService::Stub::AsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::UpdateSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_UpdateSambaFileShare_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::UpdateSambaFileShareDataAck>* InfraService::Stub::PrepareAsyncUpdateSambaFileShareRaw(::grpc::ClientContext* context, const ::infra_service::v1::UpdateSambaFileShareData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::UpdateSambaFileShareDataAck>::Create(channel_.get(), cq, rpcmethod_UpdateSambaFileShare_, context, request, false);
 }
 
 ::grpc::Status InfraService::Stub::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::infra_service::v1::GetFileShareSizeDataAck* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetFileShareSize_, context, request, response);
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_GetFileShareSize_, context, request, response);
 }
 
-void InfraService::Stub::async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, std::move(f));
+void InfraService::Stub::experimental_async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, std::move(f));
 }
 
-void InfraService::Stub::async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::ClientUnaryReactor* reactor) {
-  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, reactor);
+void InfraService::Stub::experimental_async::GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, std::function<void(::grpc::Status)> f) {
+  ::grpc_impl::internal::CallbackUnaryCall(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, std::move(f));
 }
 
-::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* InfraService::Stub::PrepareAsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::infra_service::v1::GetFileShareSizeDataAck, ::infra_service::v1::GetFileShareSizeData, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetFileShareSize_, context, request);
+void InfraService::Stub::experimental_async::GetFileShareSize(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, reactor);
+}
+
+void InfraService::Stub::experimental_async::GetFileShareSize(::grpc::ClientContext* context, const ::grpc::ByteBuffer* request, ::infra_service::v1::GetFileShareSizeDataAck* response, ::grpc::experimental::ClientUnaryReactor* reactor) {
+  ::grpc_impl::internal::ClientCallbackUnaryFactory::Create(stub_->channel_.get(), stub_->rpcmethod_GetFileShareSize_, context, request, response, reactor);
 }
 
 ::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* InfraService::Stub::AsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
-  auto* result =
-    this->PrepareAsyncGetFileShareSizeRaw(context, request, cq);
-  result->StartCall();
-  return result;
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::GetFileShareSizeDataAck>::Create(channel_.get(), cq, rpcmethod_GetFileShareSize_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::infra_service::v1::GetFileShareSizeDataAck>* InfraService::Stub::PrepareAsyncGetFileShareSizeRaw(::grpc::ClientContext* context, const ::infra_service::v1::GetFileShareSizeData& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc_impl::internal::ClientAsyncResponseReaderFactory< ::infra_service::v1::GetFileShareSizeDataAck>::Create(channel_.get(), cq, rpcmethod_GetFileShareSize_, context, request, false);
 }
 
 InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::SyncNetlogonScriptData, ::infra_service::v1::SyncNetlogonScriptDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::SyncNetlogonScriptData* req,
              ::infra_service::v1::SyncNetlogonScriptDataAck* resp) {
                return service->SyncNetlogonScript(ctx, req, resp);
@@ -399,9 +528,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[1],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDNSRecordData, ::infra_service::v1::AddDNSRecordDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::AddDNSRecordData* req,
              ::infra_service::v1::AddDNSRecordDataAck* resp) {
                return service->AddDNSRecord(ctx, req, resp);
@@ -409,9 +538,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteDNSRecordData, ::infra_service::v1::DeleteDNSRecordDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::DeleteDNSRecordData* req,
              ::infra_service::v1::DeleteDNSRecordDataAck* resp) {
                return service->DeleteDNSRecord(ctx, req, resp);
@@ -419,9 +548,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[3],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::GetUserListDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::google::protobuf::Empty* req,
              ::infra_service::v1::GetUserListDataAck* resp) {
                return service->GetUserList(ctx, req, resp);
@@ -429,9 +558,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[4],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::google::protobuf::Empty, ::infra_service::v1::RestartSambaServiceDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::google::protobuf::Empty* req,
              ::infra_service::v1::RestartSambaServiceDataAck* resp) {
                return service->RestartSambaService(ctx, req, resp);
@@ -439,9 +568,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[5],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateSambaFileShareData, ::infra_service::v1::CreateSambaFileShareDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::CreateSambaFileShareData* req,
              ::infra_service::v1::CreateSambaFileShareDataAck* resp) {
                return service->CreateSambaFileShare(ctx, req, resp);
@@ -449,9 +578,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[6],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::DeleteSambaFileShareData, ::infra_service::v1::DeleteSambaFileShareDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::DeleteSambaFileShareData* req,
              ::infra_service::v1::DeleteSambaFileShareDataAck* resp) {
                return service->DeleteSambaFileShare(ctx, req, resp);
@@ -459,9 +588,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[7],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainGroupData, ::infra_service::v1::AddDomainGroupDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::AddDomainGroupData* req,
              ::infra_service::v1::AddDomainGroupDataAck* resp) {
                return service->AddDomainGroup(ctx, req, resp);
@@ -469,9 +598,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[8],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddUserToGroupData, ::infra_service::v1::AddUserToGroupDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::AddUserToGroupData* req,
              ::infra_service::v1::AddUserToGroupDataAck* resp) {
                return service->AddUserToGroup(ctx, req, resp);
@@ -479,9 +608,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[9],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::CreateDomainUserWithGroupData, ::infra_service::v1::CreateDomainUserWithGroupDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::CreateDomainUserWithGroupData* req,
              ::infra_service::v1::CreateDomainUserWithGroupDataAck* resp) {
                return service->CreateDomainUserWithGroup(ctx, req, resp);
@@ -489,9 +618,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[10],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::ResetUserPasswordData, ::infra_service::v1::ResetUserPasswordDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::ResetUserPasswordData* req,
              ::infra_service::v1::ResetUserPasswordDataAck* resp) {
                return service->ResetUserPassword(ctx, req, resp);
@@ -499,9 +628,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[11],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::AddDomainUserData, ::infra_service::v1::AddDomainUserDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::AddDomainUserData* req,
              ::infra_service::v1::AddDomainUserDataAck* resp) {
                return service->AddDomainUser(ctx, req, resp);
@@ -509,9 +638,9 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[12],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainUserData, ::infra_service::v1::RemoveDomainUserDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::RemoveDomainUserData* req,
              ::infra_service::v1::RemoveDomainUserDataAck* resp) {
                return service->RemoveDomainUser(ctx, req, resp);
@@ -519,9 +648,29 @@ InfraService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       InfraService_method_names[13],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::RemoveDomainGroupData, ::infra_service::v1::RemoveDomainGroupDataAck>(
           [](InfraService::Service* service,
-             ::grpc::ServerContext* ctx,
+             ::grpc_impl::ServerContext* ctx,
+             const ::infra_service::v1::RemoveDomainGroupData* req,
+             ::infra_service::v1::RemoveDomainGroupDataAck* resp) {
+               return service->RemoveDomainGroup(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[14],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::UpdateSambaFileShareData, ::infra_service::v1::UpdateSambaFileShareDataAck>(
+          [](InfraService::Service* service,
+             ::grpc_impl::ServerContext* ctx,
+             const ::infra_service::v1::UpdateSambaFileShareData* req,
+             ::infra_service::v1::UpdateSambaFileShareDataAck* resp) {
+               return service->UpdateSambaFileShare(ctx, req, resp);
+             }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      InfraService_method_names[15],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< InfraService::Service, ::infra_service::v1::GetFileShareSizeData, ::infra_service::v1::GetFileShareSizeDataAck>(
+          [](InfraService::Service* service,
+             ::grpc_impl::ServerContext* ctx,
              const ::infra_service::v1::GetFileShareSizeData* req,
              ::infra_service::v1::GetFileShareSizeDataAck* resp) {
                return service->GetFileShareSize(ctx, req, resp);
@@ -622,6 +771,20 @@ InfraService::Service::~Service() {
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
+::grpc::Status InfraService::Service::RemoveDomainGroup(::grpc::ServerContext* context, const ::infra_service::v1::RemoveDomainGroupData* request, ::infra_service::v1::RemoveDomainGroupDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status InfraService::Service::UpdateSambaFileShare(::grpc::ServerContext* context, const ::infra_service::v1::UpdateSambaFileShareData* request, ::infra_service::v1::UpdateSambaFileShareDataAck* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
 ::grpc::Status InfraService::Service::GetFileShareSize(::grpc::ServerContext* context, const ::infra_service::v1::GetFileShareSizeData* request, ::infra_service::v1::GetFileShareSizeDataAck* response) {
   (void) context;
   (void) request;
@@ -632,5 +795,4 @@ InfraService::Service::~Service() {
 
 }  // namespace infra_service
 }  // namespace v1
-#include <grpcpp/ports_undef.inc>
 

@@ -11,6 +11,8 @@
 #include <google/protobuf/repeated_field.h>
 
 #include "utils/exec.hpp"
+#include "utils/sanitize.hpp"
+#include "utils/safe_exec.hpp"
 
 #include "infra_service/infra_service.grpc.pb.h"
 #include "infra_service/infra_service.pb.h"
@@ -49,25 +51,10 @@ public:
 
 class SambaTask : public ExecutableTask {
 private:
-	// IMPORTANT TODO these commands allow command injections, we need sanitize inputs at some point
-	static constexpr const char* ADD_DNS_CMD = "samba-tool dns add 127.0.0.1 %s %s A %s -U administrator --password='%s'";
-	static constexpr const char* DELETE_DNS_CMD = "samba-tool dns delete 127.0.0.1 %s %s A %s -U administrator --password='%s'";
-	static constexpr const char* USER_DELETE_CMD = "sudo samba-tool user delete %s";
-	static constexpr const char* USER_ADD_CMD = "samba-tool user add %s %s --profile-path='\\\\SAMBA.LOCAL\\profiles\\%%USERNAME%%' --script-path=logon.bat";
-	static constexpr const char* RESET_PASSWORD_CMD = "samba-tool user setpassword %s --newpassword=%s";
-	static constexpr const char* USER_LIST_CMD = "samba-tool user list";
-
+	// Netlogon script path template (only interpolated with validated realm)
 	static constexpr const char* NETLOGON_SCRIPT_PATH = "/var/lib/samba/sysvol/%s/scripts/logon.bat";
-	static constexpr const char* WINDOWS_GROUP_LOOKUP_CMD = "net groups /domain | findstr /i '%s' > nul\n";
-
-	static constexpr const char* GROUP_ADD_CMD = "samba-tool group add %s";
-	static constexpr const char* GROUP_DELETE_CMD = "samba-tool group delete %s";
-	static constexpr const char* GROUP_ADD_TO_DOMAIN_USERS_CMD = "samba-tool group addmembers \"Domain Users\" %s";
-	static constexpr const char* GROUP_ADD_MEMBER_CMD = "samba-tool group addmembers %s %s";
-	static constexpr const char* GROUP_LIST_CMD = "samba-tool group list";
 public:
 	static constexpr const char* SAMBA_SMB_CONF_PATH = "/etc/samba/smb.conf";
-	static constexpr const char* RESTART_SAMBA_CMD = "systemctl restart samba-ad-dc";
 	std::string AddDomainUser(std::string username, std::string password);
 	std::string RemoveDomainUser(std::string username);
 	is::Status CreateSambaFileShare(std::string share_name, std::string share_size);
@@ -76,7 +63,7 @@ public:
 	std::string LinkGroupToDomainUsers(std::string group_name);
 	std::string AddUserToGroup(std::string group_name, std::string username);
 	bool DeleteSambaFileShare(std::string share_name);
-	std::string ResetUserPassword(std::string username, std::string new_password); // unimp
+	std::string ResetUserPassword(std::string username, std::string new_password);
 	std::vector<std::string> GetUserList();
 	std::vector<std::string> GetGroupList();
 	bool IsDomainUser(std::string username);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -591,6 +592,12 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
 }
 
 // Generic selection step for users/groups (used by createRenderStepContent)
+BasicInfoStep.propTypes = {
+  formData: PropTypes.object.isRequired,
+  setFormData: PropTypes.func.isRequired,
+  handleImageUpload: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+};
+
 function GenericSelectionStep({
   type,
   searchTerm,
