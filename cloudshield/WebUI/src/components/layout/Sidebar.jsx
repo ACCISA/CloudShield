@@ -32,6 +32,7 @@ import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 
 function NavItem({
   collapsed,
@@ -503,6 +504,7 @@ export default function Sidebar({
             pb: "16px",
           }}
         >
+          
           <Box
             role="button"
             tabIndex={0}

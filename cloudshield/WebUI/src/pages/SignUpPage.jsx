@@ -10,10 +10,10 @@ import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
-// to be updated later with real plans
 const PLAN_OPTIONS = [
   {
     id: "basic",
+    priceId: "price_1T3VQLA5QKTufQ3cLmrB5VTV",
     name: "Beginner",
     price: 29,
     description: "Perfect for small teams exploring AI.",
@@ -28,6 +28,7 @@ const PLAN_OPTIONS = [
   },
   {
     id: "pro",
+    priceId: "price_1T3VQrA5QKTufQ3cRB80WIPb",
     name: "Professional",
     price: 59,
     tag: "Most Popular",
@@ -43,6 +44,7 @@ const PLAN_OPTIONS = [
   },
   {
     id: "enterprise",
+    priceId: "price_1T3VRDA5QKTufQ3csurJvjpn",
     name: "Enterprise",
     price: 89,
     description: "Designed for enterprises requiring scale.",
@@ -57,41 +59,27 @@ const PLAN_OPTIONS = [
   },
 ];
 
+// When true, skip Stripe entirely and go straight to provisioning.
+// Set VITE_BYPASS_STRIPE_CONFIRMATION=true in .env to disable billing.
+const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+
 // ------------------------------
 // Validation / security constants
 // ------------------------------
-const EMAIL_MAX_LENGTH = 254; // typical upper bound
-
-const PASSWORD_MIN_LENGTH = 12; // Match the backend requirement
+const EMAIL_MAX_LENGTH = 254;
 const PASSWORD_REQUIREMENTS_MESSAGE =
   "Password must be 12+ characters and include uppercase, lowercase, numbers, and symbols.";
 
-// Simple structural email validation without regex
 function isEmailValid(raw) {
   if (!raw) return false;
-
   const email = String(raw).trim();
-
-  if (email.length === 0 || email.length > EMAIL_MAX_LENGTH) {
-    return false;
-  }
-
+  if (email.length === 0 || email.length > EMAIL_MAX_LENGTH) return false;
   const atIndex = email.indexOf("@");
   const lastAtIndex = email.lastIndexOf("@");
-
-  // must contain exactly one "@", not at start or end
-  if (atIndex <= 0 || atIndex !== lastAtIndex || atIndex === email.length - 1) {
-    return false;
-  }
-
+  if (atIndex <= 0 || atIndex !== lastAtIndex || atIndex === email.length - 1) return false;
   const domain = email.slice(atIndex + 1);
   const lastDotIndex = domain.lastIndexOf(".");
-
-  // domain must contain a dot not at start or end
-  if (lastDotIndex <= 0 || lastDotIndex === domain.length - 1) {
-    return false;
-  }
-
+  if (lastDotIndex <= 0 || lastDotIndex === domain.length - 1) return false;
   return true;
 }
 
@@ -113,52 +101,25 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const validate = () => {
     const next = {};
-
-    // Complexity regex to match your Python PASSWORD_RX
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$/;
-
-    if (!isEmailValid(email)) {
-      next.email = "Invalid email format.";
-    }
-
-    if (!passwordRegex.test(password)) {
-      next.password = PASSWORD_REQUIREMENTS_MESSAGE;
-    }
-
-    if (!company.trim()) {
-      next.company = "Company name is required.";
-    }
-
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$/;
+    if (!isEmailValid(email)) next.email = "Invalid email format.";
+    if (!passwordRegex.test(password)) next.password = PASSWORD_REQUIREMENTS_MESSAGE;
+    if (!company.trim()) next.company = "Company name is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   function extractServerErrors(res, data) {
     if (res.status === 400) {
-      if (data.errors && typeof data.errors === "object") {
-        return data.errors;
-      }
-      return {
-        form: data.message || "Validation error. Please check your inputs.",
-      };
+      if (data.errors && typeof data.errors === "object") return data.errors;
+      return { form: data.message || "Validation error. Please check your inputs." };
     }
-
     if (res.status === 409) {
-      return {
-        form:
-          data.message ||
-          "An account with this email or organization ID already exists.",
-      };
+      return { form: data.message || "An account with this email or organization ID already exists." };
     }
-
     if (!res.ok) {
-      return {
-        form:
-          data.message || "Unexpected error during signup. Please try again.",
-      };
+      return { form: data.message || "Unexpected error during signup. Please try again." };
     }
-
     return null;
   }
 
@@ -167,25 +128,21 @@ export default function SignupPage({ onSignupSuccess }) {
 
     setSubmitting(true);
     setErrors((prev) => ({ ...prev, form: undefined }));
-
     trackButton("signup/submit", { page: "signup", plan });
 
     try {
       // 1. Create the User and Organization in MongoDB
-      const createUserRes = await fetch(
-        "/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password,
-            full_name: company,
-            company_name: company,
-            package_type: plan,
-          }),
-        }
-      );
+      const createUserRes = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: company,
+          company_name: company,
+          package_type: plan,
+        }),
+      });
 
       let createUserData = {};
       try {
@@ -201,33 +158,55 @@ export default function SignupPage({ onSignupSuccess }) {
       }
 
       const userData = {
-        email: email,
+        email,
         user_id: createUserData.user_id,
         org_id: createUserData.org_id,
         company_name: company,
-        plan: plan,
+        plan,
         job_id: createUserData.job_id,
       };
 
       localStorage.setItem("user", JSON.stringify(userData));
-      if (createUserData.access_token) {
-        localStorage.setItem("jwt", createUserData.access_token);
-      }
-      if (createUserData.job_id) {
-        localStorage.setItem("provision_job_id", createUserData.job_id);
-      }
-      if (createUserData.org_id) {
-        localStorage.setItem("org_id", createUserData.org_id);
-      }
+      if (createUserData.access_token) localStorage.setItem("jwt", createUserData.access_token);
+      if (createUserData.job_id) localStorage.setItem("provision_job_id", createUserData.job_id);
+      if (createUserData.org_id) localStorage.setItem("org_id", createUserData.org_id);
 
       onSignupSuccess?.({
         access_token: createUserData.access_token || null,
         user: userData,
       });
 
-      // --- REDIRECT TO DASHBOARD ---
-      console.log("Signup successful, navigating to provisioning...");
-      navigate("/provisioning", { replace: true });
+      if (BYPASS_STRIPE) {
+        console.log("[Stripe] Bypassed — navigating directly to provisioning.");
+        navigate("/provisioning", { replace: true });
+        return;
+      }
+
+      const selectedPlan = PLAN_OPTIONS.find((p) => p.id === plan);
+
+      const checkoutRes = await fetch("/api/billing/create-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${createUserData.access_token}`,
+        },
+        body: JSON.stringify({
+          price_id: selectedPlan.priceId,
+          org_id: createUserData.org_id,
+          success_path: "/provisioning",
+          cancel_path: "/signup",
+        }),
+      });
+
+      const checkoutData = await checkoutRes.json();
+
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
+      } else {
+        // Checkout creation failed — don't strand the account
+        console.error("Stripe checkout error:", checkoutData.error);
+        navigate("/provisioning", { replace: true });
+      }
     } catch (err) {
       console.error("Signup error:", err);
       setErrors((prev) => ({
@@ -238,6 +217,7 @@ export default function SignupPage({ onSignupSuccess }) {
       setSubmitting(false);
     }
   };
+
   return (
     <Box
       sx={{
@@ -268,25 +248,31 @@ export default function SignupPage({ onSignupSuccess }) {
         >
           <SignupCard>
             <Typography
-              sx={{
-                fontSize: "1.6rem",
-                fontWeight: 700,
-                textAlign: "center",
-                mb: 2.5,
-              }}
+              sx={{ fontSize: "1.6rem", fontWeight: 700, textAlign: "center", mb: 2.5 }}
             >
               Create Your Organization
             </Typography>
 
-            {errors.form && (
-              <Typography
+            {/* Show a notice when Stripe is bypassed so devs know billing is off */}
+            {BYPASS_STRIPE && (
+              <Box
                 sx={{
-                  color: "#f87171",
-                  mb: 1.5,
-                  fontSize: "0.9rem",
-                  textAlign: "center",
+                  mb: 2,
+                  px: 2,
+                  py: 1.2,
+                  borderRadius: "8px",
+                  bgcolor: "rgba(250, 204, 21, 0.08)",
+                  border: "1px solid rgba(250, 204, 21, 0.2)",
                 }}
               >
+                <Typography sx={{ color: "#facc15", fontSize: "0.78rem", fontWeight: 600, textAlign: "center" }}>
+                  Billing disabled — VITE_BYPASS_STRIPE_CONFIRMATION=true
+                </Typography>
+              </Box>
+            )}
+
+            {errors.form && (
+              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.9rem", textAlign: "center" }}>
                 {errors.form}
               </Typography>
             )}
@@ -298,9 +284,7 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setEmail(e.target.value)}
             />
             {errors.email && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
+              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
                 {errors.email}
               </Typography>
             )}
@@ -311,9 +295,7 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
             />
             {errors.password && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
+              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
                 {errors.password}
               </Typography>
             )}
@@ -325,15 +307,17 @@ export default function SignupPage({ onSignupSuccess }) {
               onChange={(e) => setCompany(e.target.value)}
             />
             {errors.company && (
-              <Typography
-                sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}
-              >
+              <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
                 {errors.company}
               </Typography>
             )}
 
             <PrimaryButton onClick={handleSignup} disabled={submitting}>
-              {submitting ? "Creating..." : "Create Organization"}
+              {submitting
+                ? BYPASS_STRIPE
+                  ? "Creating..."
+                  : "Redirecting to payment..."
+                : "Create Organization"}
             </PrimaryButton>
 
             <Typography
@@ -347,10 +331,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 textAlign: "center",
                 color: "#ffffffff",
                 fontSize: "0.9rem",
-                "&:hover": {
-                  textDecoration: "underline",
-                  color: "#93c5fd",
-                },
+                "&:hover": { textDecoration: "underline", color: "#93c5fd" },
               }}
             >
               Already have an account? Log in

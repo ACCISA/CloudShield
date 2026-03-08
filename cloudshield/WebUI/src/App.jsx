@@ -147,7 +147,7 @@ function AppWithAuth() {
             </Protected>
           }
         />
-
+        
         <Route
           path="/security-dashboard"
           element={
