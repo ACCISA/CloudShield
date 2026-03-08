@@ -40,6 +40,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
+      - ES_URL=http://elasticsearch:9200
       # Pass through paths so the provisioner knows where to mount from the host
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
@@ -51,6 +52,8 @@ services:
     networks:
       vpc_net:
         ipv4_address: "172.23.${VPC_OCTET:-1}.2"
+      cloudshield_net:
+        ipv4_address: 172.28.0.30
     volumes:
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
@@ -261,6 +264,7 @@ networks:
     name: ${VPC_NET_NAME:-vpc_net}
 
   cloudshield_net:
+    name: cloudshield_net
     driver: bridge
     ipam:
       config:

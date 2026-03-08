@@ -26,6 +26,15 @@ RUN set -eu && \
 
 COPY --chmod=755 ./src /run/
 COPY --chmod=755 ./assets /run/assets
+
+# ── OEM folder ──────────────────────────────────────────────────────────────
+# The oem/ directory is baked into the Windows ISO at C:\OEM.
+# install.bat (already present) executes every .ps1 file it finds there,
+# including install_cloudshield_agent.ps1 which registers the agent service.
+#
+# IMPORTANT: Before building this image, run the Agent build script so that
+# cloudshield_agent.exe is present inside oem/:
+#   cd cloudshield/Agent && .\build_agent.ps1
 COPY ./oem /oem
 
 ADD --chmod=664 https://github.com/qemus/virtiso-whql/releases/download/v1.9.49-0/virtio-win-1.9.49.tar.xz /var/drivers.txz

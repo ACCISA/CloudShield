@@ -293,7 +293,9 @@ services:
   openvpn-test:
     networks: [org_net]
   workstation:
-    networks: [org_net]
+    networks:
+      - org_net
+      - cloudshield_net
     volumes:
       - type: bind
         source: {storage_dir}
@@ -310,6 +312,9 @@ networks:
   org_net:
     external: true
     name: {external_network_name}
+  cloudshield_net:
+    external: true
+    name: cloudshield_net
 """
     override_path.parent.mkdir(parents=True, exist_ok=True)
     override_path.write_text(override_yaml, encoding="utf-8")
@@ -350,6 +355,7 @@ def provision_workstation_docker(
     org_network_name: str,
     samba_ip: str,
     org_subnet_cidr: str,
+    threat_detection_ip: str = "172.28.0.10",
 ):
     global PRAGMA_ONCE
     if PRAGMA_ONCE is False:
@@ -376,6 +382,7 @@ def provision_workstation_docker(
             "ADMIN_USER": "Administrator",
             "ADMIN_PASS": "letmein123%",
             "SAMBA_IP": samba_ip,
+            "THREAT_DETECTION_IP": threat_detection_ip,
         },
         container_id_ws,
         server_logger,
@@ -545,6 +552,8 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         org_network_name=org_network_name,
         samba_ip=container_dc_ip,
         org_subnet_cidr=org_subnet_cidr,
+        # ThreatDetection gRPC server — defaults to 172.28.0.10 (cloudshield_net).
+        # Override when the server runs elsewhere.
     )
     if workstation_meta:
         wait_workstation_completion(workstation_meta["instance_id"], server_logger)
