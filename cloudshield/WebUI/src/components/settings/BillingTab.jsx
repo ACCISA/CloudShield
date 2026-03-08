@@ -71,8 +71,6 @@ function BillingDisabled() {
 // Full billing tab (Stripe enabled)
 // ---------------------------------------------------------------------------
 export default function BillingTab() {
-  if (BYPASS_STRIPE) return <BillingDisabled />;
-
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
@@ -166,6 +164,9 @@ export default function BillingTab() {
   const currentPlan = PLAN_OPTIONS.find(p => p.id === activePackage) || PLAN_OPTIONS[0];
   const displayedInvoices = invoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+  // All hooks are above — safe to return early now
+  if (BYPASS_STRIPE) return <BillingDisabled />;
+
   return (
     <Box sx={{ pb: 4 }}>
       <Box sx={{ mb: 4 }}>
@@ -224,7 +225,7 @@ export default function BillingTab() {
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' }, gap: 1 }}>
                 <Button 
                   variant="contained" 
-                  onClick={handleManageBilling}
+                  onClick={() => setOpenModal(true)}
                   endIcon={<NorthEastIcon sx={{ fontSize: '1rem !important' }} />}
                   sx={{ bgcolor: "#fff", color: "#000", borderRadius: "8px", px: 2.5, py: 1, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#e5e5e5" } }}
                 >
@@ -406,7 +407,7 @@ export default function BillingTab() {
                             </Box>
                             <Button 
                               fullWidth variant="contained" 
-                              onClick={() => handlePlanSelect(plan.priceId)} 
+                              onClick={handleManageBilling} 
                               disabled={isActivePlan} 
                               sx={{ 
                                 mt: 'auto', bgcolor: isActivePlan ? '#f0f0f0' : '#fff', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: '8px', py: 1.2,
