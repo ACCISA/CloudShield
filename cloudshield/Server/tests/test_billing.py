@@ -13,9 +13,9 @@ Covers:
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from datetime import datetime
 
 
+# App fixture
 
 @pytest.fixture
 def app():
@@ -37,6 +37,7 @@ def client(app):
     return app.test_client()
 
 
+# Helpers / shared mocks
 
 def make_org(stripe_cust_id="cus_test123", package="pro", sub_status="active", cancel_at=None):
     return {
@@ -69,6 +70,7 @@ def make_payment_method(brand="visa", last4="4242", exp_month=12, exp_year=2026)
     return pm
 
 
+# is_subscription_canceling
 
 class TestIsSubscriptionCanceling:
     def _fn(self):
@@ -115,6 +117,7 @@ class TestIsSubscriptionCanceling:
         assert fn(sub) is True
 
 
+# create_checkout
 
 class TestCreateCheckout:
     @patch("stripe.checkout.Session.create")
@@ -159,6 +162,8 @@ class TestCreateCheckout:
         assert res.status_code == 400
         assert "error" in res.get_json()
 
+
+# get_payment_method
 
 class TestGetPaymentMethod:
 
@@ -324,6 +329,8 @@ class TestGetPaymentMethod:
             assert res.status_code == 500
 
 
+# get_invoices
+
 class TestGetInvoices:
     def _mod(self):
         try:
@@ -375,6 +382,8 @@ class TestGetInvoices:
                              headers={"Authorization": "Bearer test"})
             assert res.status_code == 500
 
+
+# stripe_webhook
 
 class TestStripeWebhook:
     def _mod(self):
@@ -478,6 +487,8 @@ class TestStripeWebhook:
         res = self._post(client, {})
         assert res.status_code == 200
 
+
+# create_portal_session
 
 class TestCreatePortalSession:
     def _mod(self):
