@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Typography, TextField, Button, Checkbox, Chip,
-  InputAdornment, IconButton, CircularProgress, Grid, Paper, 
-  Dialog, DialogContent, DialogTitle, Slide, TablePagination
+  InputAdornment, IconButton, CircularProgress, Grid, Paper,
+  TablePagination
 } from "@mui/material";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
-import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -17,9 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:5050";
 
-// When true, all Stripe API calls are skipped and the billing UI shows a
-// "billing disabled" notice. Set VITE_BYPASS_STRIPE_CONFIRMATION=true in .env.
-const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "false";
 
 const PLAN_OPTIONS = [
   { id: "basic", name: "Beginner", price: 29, priceId: "price_1T3VQLA5QKTufQ3cLmrB5VTV", description: "Perfect for small teams exploring AI security.", features: ["5 Workstations", "10 Users", "Standard NLP", "Email Support"] },
@@ -27,13 +24,6 @@ const PLAN_OPTIONS = [
   { id: "enterprise", name: "Enterprise", price: 89, priceId: "price_1T3VRDA5QKTufQ3csurJvjpn", description: "Designed for large scale enterprise infrastructure.", features: ["100 Workstations", "500 Users", "Premium NLP", "24/7 Support"] },
 ];
 
-const Transition = React.forwardRef(function Transition(props, ref) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
-
-// ---------------------------------------------------------------------------
-// Disabled state shown when VITE_BYPASS_STRIPE_CONFIRMATION=true
-// ---------------------------------------------------------------------------
 function BillingDisabled() {
   return (
     <Box sx={{ pb: 4 }}>
@@ -41,7 +31,6 @@ function BillingDisabled() {
         <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
         <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
       </Box>
-
       <Box
         sx={{
           p: 4,
@@ -67,15 +56,11 @@ function BillingDisabled() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Full billing tab (Stripe enabled)
-// ---------------------------------------------------------------------------
 export default function BillingTab() {
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openModal, setOpenModal] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const orgId = localStorage.getItem("org_id");
@@ -91,7 +76,7 @@ export default function BillingTab() {
       ]);
       const invData = await invRes.json();
       const cardData = await cardRes.json();
-      
+
       setInvoices(Array.isArray(invData) ? invData : []);
       if (!cardData.error) setCard(cardData);
     } catch (err) { console.error(err); }
@@ -109,18 +94,18 @@ export default function BillingTab() {
     if (params.get("status") === "success") {
       setIsSyncing(true);
       window.history.replaceState({}, document.title, window.location.pathname);
-      
+
       let attempts = 0;
       const pollInterval = setInterval(async () => {
         attempts++;
-        await fetchData(); 
+        await fetchData();
         if (attempts >= 5) {
           clearInterval(pollInterval);
           setIsSyncing(false);
         }
       }, 3000);
     } else {
-        if (orgId) fetchData();
+      if (orgId) fetchData();
     }
 
     return () => window.removeEventListener("focus", handleFocus);
@@ -140,18 +125,6 @@ export default function BillingTab() {
     finally { setPortalLoading(false); }
   };
 
-  const handlePlanSelect = async (priceId) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/billing/create-checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("jwt")}` },
-        body: JSON.stringify({ price_id: priceId, org_id: orgId }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch (err) { console.error(err); }
-  };
-
   const handleChangePage = (event, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
@@ -164,7 +137,6 @@ export default function BillingTab() {
   const currentPlan = PLAN_OPTIONS.find(p => p.id === activePackage) || PLAN_OPTIONS[0];
   const displayedInvoices = invoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  // All hooks are above — safe to return early now
   if (BYPASS_STRIPE) return <BillingDisabled />;
 
   return (
@@ -175,11 +147,10 @@ export default function BillingTab() {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        
-        {/* === ACTIVE PLAN SUMMARY === */}
+
         <Grid item xs={12} md={6}>
-          <Paper sx={{ 
-              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)", 
+          <Paper sx={{
+              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)",
               height: "100%", display: "flex", flexDirection: "column", position: 'relative', overflow: 'hidden'
           }}>
             {isSyncing && (
@@ -192,17 +163,17 @@ export default function BillingTab() {
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
                 <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700 }}>{currentPlan.name} plan</Typography>
-                <Chip 
-                    label={subStatus === "canceled" ? "Canceled" : "Active"} 
-                    size="small" 
-                    sx={{ 
-                        height: 22, 
-                        bgcolor: subStatus === "canceled" ? "rgba(239, 68, 68, 0.15)" : "#fff", 
-                        color: subStatus === "canceled" ? "#ef4444" : "#000", 
-                        fontWeight: 800, 
+                <Chip
+                    label={subStatus === "canceled" ? "Canceled" : "Active"}
+                    size="small"
+                    sx={{
+                        height: 22,
+                        bgcolor: subStatus === "canceled" ? "rgba(239, 68, 68, 0.15)" : "#fff",
+                        color: subStatus === "canceled" ? "#ef4444" : "#000",
+                        fontWeight: 800,
                         fontSize: '0.65rem',
                         border: subStatus === "canceled" ? "1px solid rgba(239, 68, 68, 0.3)" : "none"
-                    }} 
+                    }}
                 />
               </Box>
               {subStatus === "canceled" ? (
@@ -215,7 +186,7 @@ export default function BillingTab() {
                   </Typography>
               )}
             </Box>
-            
+
             <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'flex-start', sm: 'flex-end' }, mt: 'auto', pt: 3, gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
                 <Typography variant="h3" sx={{ color: "#fff", fontWeight: 800, lineHeight: 1 }}>${currentPlan.price}</Typography>
@@ -223,9 +194,9 @@ export default function BillingTab() {
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' }, gap: 1 }}>
-                <Button 
-                  variant="contained" 
-                  onClick={() => setOpenModal(true)}
+                <Button
+                  variant="contained"
+                  onClick={handleManageBilling}
                   endIcon={<NorthEastIcon sx={{ fontSize: '1rem !important' }} />}
                   sx={{ bgcolor: "#fff", color: "#000", borderRadius: "8px", px: 2.5, py: 1, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#e5e5e5" } }}
                 >
@@ -253,20 +224,19 @@ export default function BillingTab() {
           </Paper>
         </Grid>
 
-        {/* === PAYMENT METHOD === */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ 
-              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)", 
-              height: "100%", display: "flex", flexDirection: "column" 
+          <Paper sx={{
+              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)",
+              height: "100%", display: "flex", flexDirection: "column"
           }}>
             <Box>
                 <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700, mb: 0.5 }}>Payment method</Typography>
                 <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", mb: 2 }}>Change how you pay for your plan</Typography>
             </Box>
-            
-            <Box sx={{ 
-                p: 2, borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", 
-                display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, 
+
+            <Box sx={{
+                p: 2, borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)",
+                display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' },
                 justifyContent: "space-between", bgcolor: 'rgba(255,255,255,0.02)', mt: 'auto', gap: 2
             }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -283,7 +253,7 @@ export default function BillingTab() {
                   </Typography>
                 </Box>
               </Box>
-              <Button 
+              <Button
                 onClick={handleManageBilling}
                 disabled={portalLoading}
                 sx={{ height: 36, minWidth: 70, color: "#000", bgcolor: '#fff', borderRadius: "8px", textTransform: "none", fontWeight: 700, px: 2, '&:hover': { bgcolor: '#e5e5e5' } }}
@@ -295,27 +265,26 @@ export default function BillingTab() {
         </Grid>
       </Grid>
 
-      {/* === INVOICE TABLE === */}
       <Box sx={{ bgcolor: "#0A0A0A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
-        
+
         <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, p: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 2 }}>
            <Box sx={{ display: 'flex', alignItems: 'center' }}>
              <AccessTimeOutlinedIcon sx={{ fontSize: "1.2rem", mr: 1.5, color: "rgba(255,255,255,0.5)" }} />
              <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: '0.95rem' }}>Billing History</Typography>
            </Box>
            <Box sx={{ ml: { xs: 0, sm: 'auto' }, display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
-                <TextField 
-                    placeholder="Search Invoices" size="small" 
+                <TextField
+                    placeholder="Search Invoices" size="small"
                     InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlinedIcon sx={{ color: "#555", fontSize: '1.1rem' }} /></InputAdornment> }}
-                    sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}} 
+                    sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}}
                 />
                 <Button startIcon={<FilterListOutlinedIcon />} sx={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ccc', textTransform: 'none', borderRadius: '8px', px: 2, fontSize: '0.85rem' }}>Filter</Button>
            </Box>
         </Box>
 
-        <Box sx={{ 
-            height: '285px', 
-            overflowX: 'auto', 
+        <Box sx={{
+            height: '285px',
+            overflowX: 'auto',
             overflowY: 'auto',
             borderBottom: "1px solid rgba(255,255,255,0.06)",
             '&::-webkit-scrollbar': { width: '6px', height: '6px' },
@@ -330,7 +299,7 @@ export default function BillingTab() {
                     <Typography key={h} sx={{ color: "#777", fontSize: "0.7rem", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center' }}>{h}</Typography>
                   ))}
                 </Box>
-                
+
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} sx={{ color: '#4ade80' }} /></Box>
                 ) : displayedInvoices.map((inv) => (
@@ -347,7 +316,7 @@ export default function BillingTab() {
                 ))}
             </Box>
         </Box>
-        
+
         <TablePagination
             component="div"
             count={invoices.length}
@@ -358,71 +327,12 @@ export default function BillingTab() {
             rowsPerPageOptions={[5, 10, 25]}
             sx={{
                 color: 'rgba(255,255,255,0.6)',
-                borderBottom: 'none', 
+                borderBottom: 'none',
                 '.MuiTablePagination-selectIcon': { color: 'rgba(255,255,255,0.6)' },
                 '.MuiTablePagination-menuItem': { bgcolor: '#111', color: '#fff' }
             }}
         />
       </Box>
-
-      {/* === PLAN CHOICE MODAL === */}
-      <Dialog 
-        fullWidth 
-        maxWidth="md" 
-        open={openModal} 
-        onClose={() => setOpenModal(false)} 
-        TransitionComponent={Transition} 
-        PaperProps={{ sx: { bgcolor: "#111", borderRadius: "20px", border: '1px solid rgba(255,255,255,0.1)', backgroundImage: 'none', m: 2 } }}
-      >
-        <DialogTitle sx={{ color: "#fff", fontWeight: 800, px: 4, pt: 4, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Select your plan
-            <IconButton onClick={() => setOpenModal(false)} sx={{ color: 'rgba(255,255,255,0.8)' }}><CloseIcon /></IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 2, md: 4 }, pb: 6, pt: 2 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
-                {PLAN_OPTIONS.map((plan) => {
-                    const isActivePlan = plan.id === activePackage && subStatus !== "canceled";
-                    return (
-                        <Paper key={plan.id} sx={{ 
-                            p: 3.5, 
-                            bgcolor: isActivePlan ? "#fff" : "#1A1A1A", 
-                            borderRadius: "16px", 
-                            border: "1px solid",
-                            borderColor: isActivePlan ? "#fff" : "rgba(255,255,255,0.05)",
-                            display: 'flex', 
-                            flexDirection: 'column'
-                        }}>
-                            <Typography sx={{ color: isActivePlan ? "#000" : "#fff", fontWeight: 800, mb: 1, fontSize: '0.95rem' }}>{plan.name}</Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 3 }}>
-                                <Typography variant="h3" sx={{ color: isActivePlan ? "#000" : "#fff", fontWeight: 800 }}>${plan.price}</Typography>
-                                <Typography sx={{ color: isActivePlan ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.4)", fontSize: '0.85rem', ml: 1, fontWeight: 500 }}>/mo</Typography>
-                            </Box>
-                            <Box sx={{ flexGrow: 1, mb: 4 }}>
-                                {plan.features.map(f => (
-                                    <Box key={f} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.8 }}>
-                                        <CheckIcon sx={{ color: '#4ade80', fontSize: '1.2rem', mt: '2px' }} />
-                                        <Typography sx={{ color: isActivePlan ? "#444" : "rgba(255,255,255,0.7)", fontSize: '0.85rem', lineHeight: 1.4, fontWeight: 500 }}>{f}</Typography>
-                                    </Box>
-                                ))}
-                            </Box>
-                            <Button 
-                              fullWidth variant="contained" 
-                              onClick={handleManageBilling} 
-                              disabled={isActivePlan} 
-                              sx={{ 
-                                mt: 'auto', bgcolor: isActivePlan ? '#f0f0f0' : '#fff', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: '8px', py: 1.2,
-                                '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.05)', color: 'rgba(0,0,0,0.4)' },
-                                '&:hover': { bgcolor: '#e5e5e5' }
-                              }}
-                            >
-                                {isActivePlan ? "Current Plan" : "Choose Plan"}
-                            </Button>
-                        </Paper>
-                    );
-                })}
-            </Box>
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 }
