@@ -504,14 +504,7 @@ export default function Sidebar({
             pb: "16px",
           }}
         >
-        <NavItem
-          collapsed={collapsed}
-          icon={<PaymentsOutlinedIcon sx={{ fontSize: "1.2rem" }} />}
-          label="Subscription"
-          to="/subscription"
-          active={isActive("/subscription")}
-          onNavigate={() => navigate("/subscription")}
-        />
+          
           <Box
             role="button"
             tabIndex={0}

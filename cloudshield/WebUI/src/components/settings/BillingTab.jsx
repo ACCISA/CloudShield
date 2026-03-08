@@ -17,6 +17,10 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:5050";
 
+// When true, all Stripe API calls are skipped and the billing UI shows a
+// "billing disabled" notice. Set VITE_BYPASS_STRIPE_CONFIRMATION=true in .env.
+const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+
 const PLAN_OPTIONS = [
   { id: "basic", name: "Beginner", price: 29, priceId: "price_1T3VQLA5QKTufQ3cLmrB5VTV", description: "Perfect for small teams exploring AI security.", features: ["5 Workstations", "10 Users", "Standard NLP", "Email Support"] },
   { id: "pro", name: "Professional", price: 59, priceId: "price_1T3VQrA5QKTufQ3cRB80WIPb", description: "For growing businesses needing advanced protection.", features: ["20 Workstations", "50 Users", "Enhanced NLP", "Priority Support"] },
@@ -27,7 +31,48 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+// ---------------------------------------------------------------------------
+// Disabled state shown when VITE_BYPASS_STRIPE_CONFIRMATION=true
+// ---------------------------------------------------------------------------
+function BillingDisabled() {
+  return (
+    <Box sx={{ pb: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
+      </Box>
+
+      <Box
+        sx={{
+          p: 4,
+          borderRadius: "16px",
+          border: "1px dashed rgba(250, 204, 21, 0.3)",
+          bgcolor: "rgba(250, 204, 21, 0.04)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 1.5,
+          textAlign: "center",
+        }}
+      >
+        <Typography sx={{ color: "#facc15", fontWeight: 700, fontSize: "1rem" }}>
+          Billing is disabled
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.875rem", maxWidth: 480 }}>
+          Stripe integration is currently bypassed (<code style={{ color: "rgba(255,255,255,0.6)" }}>VITE_BYPASS_STRIPE_CONFIRMATION=true</code>).
+          Set it to <code style={{ color: "rgba(255,255,255,0.6)" }}>false</code> and configure your Stripe keys and webhook to enable billing.
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Full billing tab (Stripe enabled)
+// ---------------------------------------------------------------------------
 export default function BillingTab() {
+  if (BYPASS_STRIPE) return <BillingDisabled />;
+
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
@@ -117,7 +162,7 @@ export default function BillingTab() {
 
   const activePackage = card?.package || user?.package || "basic";
   const subStatus = card?.sub_status || "active";
-  const cancelDate = card?.cancel_at_date ? new Date(card.cancel_at_date).toLocaleDateString() : null; // <--- ADDED TO FORMAT DATE
+  const cancelDate = card?.cancel_at_date ? new Date(card.cancel_at_date).toLocaleDateString() : null;
   const currentPlan = PLAN_OPTIONS.find(p => p.id === activePackage) || PLAN_OPTIONS[0];
   const displayedInvoices = invoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -128,7 +173,6 @@ export default function BillingTab() {
         <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
       </Box>
 
-      {/* Top Cards: Plan & Payment Method */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         
         {/* === ACTIVE PLAN SUMMARY === */}
@@ -147,7 +191,6 @@ export default function BillingTab() {
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
                 <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700 }}>{currentPlan.name} plan</Typography>
-                {/* DYNAMIC CHIP: Turns Red if canceled */}
                 <Chip 
                     label={subStatus === "canceled" ? "Canceled" : "Active"} 
                     size="small" 
@@ -161,7 +204,6 @@ export default function BillingTab() {
                     }} 
                 />
               </Box>
-              {/* DYNAMIC DESCRIPTION: Shows warning if canceled */}
               {subStatus === "canceled" ? (
                   <Typography sx={{ color: "#ef4444", fontSize: "0.85rem", lineHeight: 1.5, fontWeight: 500 }}>
                       Your subscription was canceled. Access remains until {cancelDate || "the end of the billing period"}. Upgrade to reactivate.
@@ -178,15 +220,34 @@ export default function BillingTab() {
                 <Typography variant="h3" sx={{ color: "#fff", fontWeight: 800, lineHeight: 1 }}>${currentPlan.price}</Typography>
                 <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)", fontWeight: 500, ml: 1 }}>/ month</Typography>
               </Box>
-              <Button 
-                variant="contained" 
-                onClick={() => setOpenModal(true)}
-                endIcon={<NorthEastIcon sx={{ fontSize: '1rem !important' }} />}
-                sx={{ bgcolor: "#fff", color: "#000", borderRadius: "8px", px: 2.5, py: 1, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#e5e5e5" } }}
-              >
-                {/* Dynamically change button text */}
-                {subStatus === "canceled" ? "Reactivate plan" : "Upgrade plan"}
-              </Button>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' }, gap: 1 }}>
+                <Button 
+                  variant="contained" 
+                  onClick={handleManageBilling}
+                  endIcon={<NorthEastIcon sx={{ fontSize: '1rem !important' }} />}
+                  sx={{ bgcolor: "#fff", color: "#000", borderRadius: "8px", px: 2.5, py: 1, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#e5e5e5" } }}
+                >
+                  {subStatus === "canceled" ? "Reactivate plan" : "Upgrade plan"}
+                </Button>
+
+                {subStatus !== "canceled" && (
+                  <Typography
+                    onClick={handleManageBilling}
+                    sx={{
+                      cursor: portalLoading ? "not-allowed" : "pointer",
+                      fontSize: "0.78rem",
+                      color: "rgba(239, 68, 68, 0.6)",
+                      fontWeight: 500,
+                      userSelect: "none",
+                      transition: "color 0.15s",
+                      "&:hover": { color: "#ef4444" },
+                    }}
+                  >
+                    {portalLoading ? "Loading..." : "Cancel subscription"}
+                  </Typography>
+                )}
+              </Box>
             </Box>
           </Paper>
         </Grid>
@@ -233,10 +294,9 @@ export default function BillingTab() {
         </Grid>
       </Grid>
 
-      {/* === INVOICE TABLE (100% UNTOUCHED FROM YOUR CODE) === */}
+      {/* === INVOICE TABLE === */}
       <Box sx={{ bgcolor: "#0A0A0A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
         
-        {/* Table Toolbar */}
         <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, p: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 2 }}>
            <Box sx={{ display: 'flex', alignItems: 'center' }}>
              <AccessTimeOutlinedIcon sx={{ fontSize: "1.2rem", mr: 1.5, color: "rgba(255,255,255,0.5)" }} />
@@ -252,8 +312,6 @@ export default function BillingTab() {
            </Box>
         </Box>
 
-        {/* --- STRICTLY LOCKED SCROLL AREA --- */}
-        {/* height: '285px' perfectly hugs 5 rows + header. It will not grow if 10 rows are selected. */}
         <Box sx={{ 
             height: '285px', 
             overflowX: 'auto', 
@@ -265,7 +323,6 @@ export default function BillingTab() {
             '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(255,255,255,0.25)' }
         }}>
             <Box sx={{ minWidth: 800 }}>
-                {/* Sticky Header */}
                 <Box sx={{ display: "grid", gridTemplateColumns: "40px 1fr 180px 220px 140px 40px", px: "24px", py: "12px", bgcolor: "#0A0A0A", position: 'sticky', top: 0, zIndex: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                   <Checkbox size="small" disabled sx={{ p: 0 }} />
                   {["Invoice", "Amount", "Date", "Status", ""].map((h) => (
@@ -273,7 +330,6 @@ export default function BillingTab() {
                   ))}
                 </Box>
                 
-                {/* Data Rows */}
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} sx={{ color: '#4ade80' }} /></Box>
                 ) : displayedInvoices.map((inv) => (
@@ -291,7 +347,6 @@ export default function BillingTab() {
             </Box>
         </Box>
         
-        {/* Pagination Section */}
         <TablePagination
             component="div"
             count={invoices.length}
@@ -325,9 +380,7 @@ export default function BillingTab() {
         <DialogContent sx={{ px: { xs: 2, md: 4 }, pb: 6, pt: 2 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
                 {PLAN_OPTIONS.map((plan) => {
-                    // Logic to highlight current plan, UNLESS the subscription is canceled
                     const isActivePlan = plan.id === activePackage && subStatus !== "canceled";
-
                     return (
                         <Paper key={plan.id} sx={{ 
                             p: 3.5, 
@@ -352,8 +405,7 @@ export default function BillingTab() {
                                 ))}
                             </Box>
                             <Button 
-                              fullWidth 
-                              variant="contained" 
+                              fullWidth variant="contained" 
                               onClick={() => handlePlanSelect(plan.priceId)} 
                               disabled={isActivePlan} 
                               sx={{ 
