@@ -93,7 +93,12 @@ try:
         print(f"[database.py] Note: shares index creation skipped: {e}")
 
     # Create a unique index on email for users collection
-    users_admin.create_index("email", unique=True)
+# Create a unique index on email for users collection
+    try:
+        users_admin.create_index("email", unique=True)
+    except Exception as e:
+        # This handles the "IndexKeySpecsConflict" you are seeing
+        print(f"[database.py] Note: users_admin email index creation skipped/failed: {e}")
     
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)

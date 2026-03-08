@@ -3,6 +3,8 @@ import { Box, Typography, Container, Grid, Button } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useOrgMetrics } from "../api/useOrgMetrics";
 import SubscriptionPlanCard from "../components/subscription/PlanCard";
+// CORRECTED PATH BASED ON TREE:
+import BillingTab from "../components/settings/BillingTab"; 
 
 const API_BASE_URL = "http://localhost:5050";
 
@@ -13,18 +15,20 @@ const PLAN_OPTIONS = [
 ];
 
 export default function SubscriptionPage() {
-  const { user } = useAuth(); // Ensure AuthContext provides the 'package' field
+  const { user, refreshUser } = useAuth(); 
   const { stats } = useOrgMetrics();
   const [loadingId, setLoadingId] = useState(null);
 
   const orgId = localStorage.getItem("org_id");
 
-  // If we land here with ?status=success, force a reload to update 'user' state from DB
   useEffect(() => {
+    // If we land here with ?status=success, trigger the user refresh to pick up the new 'package'
     if (window.location.search.includes("status=success")) {
-      window.location.href = "/subscription"; 
+      if (refreshUser) refreshUser();
+      // Clean the URL so refresh doesn't trigger infinitely
+      window.history.replaceState({}, document.title, "/subscription");
     }
-  }, []);
+  }, [refreshUser]);
 
   const handleUpgrade = async (plan) => {
     setLoadingId(plan.id);
@@ -57,25 +61,39 @@ export default function SubscriptionPage() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#0A0A0A", py: 6 }}>
       <Container maxWidth="lg">
+        {/* Unified Settings Header */}
         <Box sx={{ mb: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <Box>
-            <Typography variant="h3" sx={{ color: "#fff", fontWeight: 800, mb: 1 }}>Subscription</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "1.1rem" }}>Choose the right plan for your security.</Typography>
+            <Typography variant="h3" sx={{ color: "#fff", fontWeight: 800, mb: 1 }}>Settings</Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "1.1rem" }}>Manage your subscription and organization details.</Typography>
           </Box>
           <Button onClick={handleManageBilling} disabled={loadingId === "portal"} sx={{ color: "#4ade80", textTransform: "none", fontWeight: 700 }}>
             {loadingId === "portal" ? "Connecting..." : "Manage Billing & Invoices →"}
           </Button>
         </Box>
 
-        <Grid container spacing={4}>
-          {PLAN_OPTIONS.map((plan) => (
-            <Grid item key={plan.id} xs={12} sm={6} md={4}>
-              <SubscriptionPlanCard plan={plan} isCurrent={user?.package === plan.id} isLoading={loadingId === plan.id} onUpgrade={handleUpgrade} />
-            </Grid>
-          ))}
-        </Grid>
+        {/* Plan Selection Section */}
+        <Box sx={{ p: 4, borderRadius: "20px", bgcolor: "#111", border: "1px solid rgba(255,255,255,0.05)", mb: 6 }}>
+          <Typography variant="h5" sx={{ color: "#fff", fontWeight: 700, mb: 4 }}>Plan Selection</Typography>
+          <Grid container spacing={4}>
+            {PLAN_OPTIONS.map((plan) => (
+              <Grid item key={plan.id} xs={12} sm={6} md={4}>
+                <SubscriptionPlanCard 
+                  plan={plan} 
+                  isCurrent={user?.package === plan.id} 
+                  isLoading={loadingId === plan.id} 
+                  onUpgrade={handleUpgrade} 
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
 
-        <Box sx={{ mt: 8, p: 4, borderRadius: "20px", bgcolor: "#111", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* Dynamic Billing History Component */}
+        <BillingTab />
+
+        {/* Resource Allocation Summary */}
+        <Box sx={{ mt: 6, p: 4, borderRadius: "20px", bgcolor: "#111", border: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box>
             <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", textTransform: "uppercase", fontWeight: 700, mb: 1 }}>Resource Allocation</Typography>
             <Typography variant="h5" sx={{ color: "#fff", fontWeight: 700 }}>
