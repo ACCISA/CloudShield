@@ -16,7 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:5050";
 
-const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "false";
 
 const PLAN_OPTIONS = [
   { id: "basic", name: "Beginner", price: 29, priceId: "price_1T3VQLA5QKTufQ3cLmrB5VTV", description: "Perfect for small teams exploring AI security.", features: ["5 Workstations", "10 Users", "Standard NLP", "Email Support"] },
