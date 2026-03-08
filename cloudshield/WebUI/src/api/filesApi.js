@@ -2,15 +2,13 @@
  * API functions for file shares
  */
 
-const API_BASE = "http://localhost:5050/api";
+import { apiGet, apiPatch, apiPost } from "./client";
 
 /**
  * Fetch all file shares for an organization
  */
 export async function fetchFileShares(orgId) {
-  const res = await fetch(`${API_BASE}/file_shares?org_id=${orgId}`);
-  if (!res.ok) throw new Error(`Failed to fetch shares: ${res.statusText}`);
-  const data = await res.json();
+  const data = await apiGet(`/file_shares?org_id=${encodeURIComponent(orgId)}`);
   return data.shares || [];
 }
 
@@ -29,13 +27,7 @@ export async function createFileShare({ orgId, name, users, groups, description,
   if (description) body.description = description;
   if (maxSize) body.max_size = parseInt(maxSize, 10); // Store as GB (just the number user entered)
 
-  const res = await fetch(`${API_BASE}/task/dc/create_file_share`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Failed to create share: ${res.statusText}`);
-  return await res.json();
+  return apiPost("/task/dc/create_file_share", body);
 }
 
 /**
@@ -43,13 +35,10 @@ export async function createFileShare({ orgId, name, users, groups, description,
  */
 export async function updateFileShare(orgId, shareName, updates) {
   console.log("updateFileShare API call:", { orgId, shareName, updates });
-  const res = await fetch(`${API_BASE}/file_shares/${orgId}/${shareName}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updates),
-  });
-  if (!res.ok) throw new Error(`Failed to update share: ${res.statusText}`);
-  const result = await res.json();
+  const result = await apiPatch(
+    `/file_shares/${encodeURIComponent(orgId)}/${encodeURIComponent(shareName)}`,
+    updates,
+  );
   console.log("updateFileShare API response:", result);
   return result;
 }
@@ -58,16 +47,10 @@ export async function updateFileShare(orgId, shareName, updates) {
  * Delete a file share (dispatches async job)
  */
 export async function deleteFileShare(orgId, shareName) {
-  const res = await fetch(`${API_BASE}/task/dc/delete_file_share`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      org_id: orgId,
-      share_name: shareName,
-    }),
+  return apiPost("/task/dc/delete_file_share", {
+    org_id: orgId,
+    share_name: shareName,
   });
-  if (!res.ok) throw new Error(`Failed to delete share: ${res.statusText}`);
-  return await res.json();
 }
 
 /**
@@ -76,17 +59,10 @@ export async function deleteFileShare(orgId, shareName) {
  * @param {boolean} summary - If true, returns only essential fields (for dropdowns/selection)
  */
 export async function fetchUsers(orgId, summary = true) {
-  const token = localStorage.getItem("jwt");
   const url = summary 
-    ? `${API_BASE}/organizations/${orgId}/users?summary=1`
-    : `${API_BASE}/organizations/${orgId}/users`;
-  const res = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
-  const data = await res.json();
+    ? `/organizations/${encodeURIComponent(orgId)}/users?summary=1`
+    : `/organizations/${encodeURIComponent(orgId)}/users`;
+  const data = await apiGet(url);
   return data.items || [];
 }
 
@@ -96,17 +72,11 @@ export async function fetchUsers(orgId, summary = true) {
  * @param {boolean} summary - If true, returns member_count instead of full members_info
  */
 export async function fetchGroups(orgId, summary = true) {
-  const token = localStorage.getItem("jwt");
+  void orgId; // Kept in signature for call-site consistency.
   const url = summary
-    ? `${API_BASE}/access-groups?summary=1`
-    : `${API_BASE}/access-groups`;
-  const res = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch access groups: ${res.statusText}`);
-  const data = await res.json();
+    ? "/access-groups?summary=1"
+    : "/access-groups";
+  const data = await apiGet(url);
   return data.access_groups || [];
 }
 

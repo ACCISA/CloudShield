@@ -137,7 +137,7 @@ export default function FileShareWizardModal({
         setFormData({
           shareName: file.name || "",
           description: file.description || "",
-          maxSize: file.max_size_gb || "",
+          maxSize: file.max_size_gb ?? file.max_size ?? "",
           selectedUsers: mapSelectedUsers(file.users, normalizedUsers),
           selectedGroups: mapSelectedGroups(file.groups, normalizedGroups),
         });

@@ -226,6 +226,17 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
             logger.warning("Failed to update provisioning status for org %s: %s", org_id, exc)
 
 
+def _enqueue_welcome_email_post_success(org_id: str, logger) -> None:
+    """
+    Trigger post-provision welcome email with centralized import/error handling.
+    """
+    try:
+        from cloudshield.Server.services.job_service import enqueue_org_welcome_email_if_ready  # type: ignore
+        enqueue_org_welcome_email_if_ready(org_id)
+    except Exception as exc:
+        logger.warning("Post-provision welcome email enqueue failed for org %s: %s", org_id, exc)
+
+
 def _detect_mode(logger) -> str:
     mode = (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower()
     docker_sock = Path("/var/run/docker.sock")
@@ -411,6 +422,9 @@ def provision_network(
 
             set_progress("completed")
             _update_org_provisioning_status(org_id, "completed", job_id, logger)
+            # Post-success trigger only:
+            # welcome email is intentionally deferred until provisioning completes.
+            _enqueue_welcome_email_post_success(org_id, logger)
             return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
 
         set_progress("provisioning infrastructure")
@@ -470,6 +484,8 @@ def provision_network(
 
         set_progress("completed")
         _update_org_provisioning_status(org_id, "completed", job_id, logger)
+        # Same post-success behavior for the terraform path.
+        _enqueue_welcome_email_post_success(org_id, logger)
         return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
 
     except Exception as e:

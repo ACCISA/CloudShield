@@ -10,6 +10,7 @@ const styles = {
     padding: "24px 24px 4px 24px",
     position: "sticky",
     top: 0,
+    backgroundColor: "#0D0D0D",
     zIndex: 10,
   },
   headerLabel: {
@@ -20,6 +21,7 @@ const styles = {
   listPanel: {
     borderRadius: "18px",
     border: "1px solid rgba(255,255,255,0.16)",
+    backgroundColor: "#0F0F0F",
     boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
     padding: "16px",
   },
@@ -154,24 +156,32 @@ export default function UsersTable({
             padding: isMobile ? "0 4px" : "0 8px",
           }}
         >
-          {users.map((u, idx) => (
-            <UserRow
-              key={u.id}
-              data={u}
-              showTitle={showTitleColumn}
-              showWorkstations={showWorkstationsColumn}
-              showGroups={showGroupsColumn}
-              showFiles={showFilesColumn}
-              onEdit={() => onEdit(u)}
-              onDelete={() => onDelete(u)}
-              isLast={idx === users.length - 1}
-              cols={cols}
-              isMobile={isMobile}
-              isTablet={isTablet}
-              isSelected={selectedIds.has(u.id)}
-              onToggleSelect={() => onToggleSelect(u.id)}
-            />
-          ))}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            {users.map((u, idx) => (
+              <UserRow
+                key={u.id}
+                data={u}
+                showTitle={showTitleColumn}
+                showWorkstations={showWorkstationsColumn}
+                showGroups={showGroupsColumn}
+                showFiles={showFilesColumn}
+                onEdit={() => onEdit(u)}
+                onDelete={() => onDelete(u)}
+                isLast={idx === users.length - 1}
+                cols={cols}
+                isMobile={isMobile}
+                isTablet={isTablet}
+                isSelected={selectedIds.has(u.id)}
+                onToggleSelect={() => onToggleSelect(u.id)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </>

@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
+import SecurityDashboardPage from "./pages/SecurityDashboardPage.jsx";
 import WorkstationsPage from "./pages/WorkstationsPage.jsx";
 import EmployeesPage from "./pages/EmployeesPage.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
@@ -35,10 +37,10 @@ function AppWithAuth() {
   const needsProvisioning = useMemo(() => {
     if (devBypass) return false;
     if (!isAuthed) return false;
-    
+
     const isDone = localStorage.getItem("isProvisioned") === "true";
     const hasJob = !!localStorage.getItem("provision_job_id");
-    
+
     // Logic: If we have a job ID pending and aren't marked done, go to provisioning.
     return hasJob && !isDone;
   }, [devBypass, isAuthed]);
@@ -47,9 +49,9 @@ function AppWithAuth() {
     if (data?.access_token) {
       localStorage.setItem("jwt", data.access_token);
       setIsAuthed(true);
-      
+
       try {
-        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+        const payload = JSON.parse(atob(data.access_token.split(".")[1]));
         if (payload.org_id) {
           localStorage.setItem("org_id", payload.org_id);
         }
@@ -64,17 +66,17 @@ function AppWithAuth() {
     return function ProtectedWrapper({ children }) {
       // Not logged in -> Login
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
-      
+
       // Logged in but provisioning incomplete -> Provisioning Page
       if (needsProvisioning) return <Navigate to="/provisioning" replace />;
-      
+
       // Logged in & Provisioned -> Dashboard Layout
       return (
-        <AppLayout 
-          showSidebar 
+        <AppLayout
+          showSidebar
           sidebarMode="full"
           collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
         >
           {children}
         </AppLayout>
@@ -83,17 +85,30 @@ function AppWithAuth() {
   }, [devBypass, isAuthed, sidebarCollapsed, needsProvisioning]);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Landing page: sign up */}
-        <Route path="/" element={<Navigate to="/signup" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Landing page */}
+          <Route 
+            path="/" 
+            element={
+              isAuthed ? (
+                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              ) : (
+                <LandingPage />
+              )
+            } 
+          />
 
         {/* Public route: sign up */}
         <Route
           path="/signup"
           element={
             isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              <Navigate
+                to={needsProvisioning ? "/provisioning" : "/dashboard"}
+                replace
+              />
             ) : (
               <SignUpPage onSignupSuccess={handleAuthSuccess} />
             )
@@ -105,7 +120,10 @@ function AppWithAuth() {
           path="/login"
           element={
             isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              <Navigate
+                to={needsProvisioning ? "/provisioning" : "/dashboard"}
+                replace
+              />
             ) : (
               <AuthPage onLoginSuccess={handleAuthSuccess} />
             )
@@ -113,11 +131,11 @@ function AppWithAuth() {
         />
 
         {/* Provisioning Route (No Layout) */}
-        <Route 
+        <Route
           path="/provisioning"
           element={
-             // Only allow access if authenticated
-             isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
+            // Only allow access if authenticated
+            isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
           }
         />
 
@@ -141,31 +159,40 @@ function AppWithAuth() {
         />
 
         <Route
-          path="/workstations"
+          path="/security-dashboard"
           element={
             <Protected>
-              <WorkstationsPage />
+              <SecurityDashboardPage />
             </Protected>
           }
         />
 
-        <Route
-          path="/employees"
-          element={
-            <Protected>
-              <EmployeesPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/workstations"
+            element={
+              <Protected>
+                <WorkstationsPage />
+              </Protected>
+            }
+          />
 
-        <Route
-          path="/groups"
-          element={
-            <Protected>
-              <GroupsPage />
-            </Protected>
-          }
-        />
+          <Route
+            path="/employees"
+            element={
+              <Protected>
+                <EmployeesPage />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/groups"
+            element={
+              <Protected>
+                <GroupsPage />
+              </Protected>
+            }
+          />
 
         <Route
           path="/files"
@@ -190,7 +217,10 @@ function AppWithAuth() {
           path="*"
           element={
             isAuthed ? (
-              <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
+              <Navigate
+                to={needsProvisioning ? "/provisioning" : "/dashboard"}
+                replace
+              />
             ) : (
               <Navigate to="/signup" replace />
             )
@@ -198,6 +228,7 @@ function AppWithAuth() {
         />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 
