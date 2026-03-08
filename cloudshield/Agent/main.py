@@ -1,5 +1,6 @@
 import os
 import sys
+import socket
 from pathlib import Path
 
 
@@ -53,7 +54,12 @@ def resolve_config_path() -> str:
 
 if __name__ == "__main__":
 
-    agent_id = os.getenv("AGENT_ID", "agent-1")
+    # Use hostname as default agent_id so each provisioned workstation is unique.
+    agent_id = os.getenv("AGENT_ID", socket.gethostname())
+
+    # SERVER_ADDR should point to the ThreatDetection gRPC server.
+    # The install_cloudshield_agent.ps1 OEM script injects these env vars
+    # via the scheduled task; they can also be set in agent_config.json.
     server_addr = os.getenv("SERVER_ADDR", "127.0.0.1")
     server_port = int(os.getenv("SERVER_PORT", "50051"))
 
