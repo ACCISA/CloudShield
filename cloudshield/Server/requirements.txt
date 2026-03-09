@@ -18,3 +18,4 @@ protobuf
 flask-cors
 jinja2
 stripe
+google-genai

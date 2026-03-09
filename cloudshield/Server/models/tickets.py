@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Literal, Optional
-
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from pydantic_core import PydanticCustomError
@@ -83,4 +81,5 @@ def ticket_reply_to_json(doc: dict) -> dict:
         "user_id": doc.get("user_id"),
         "message": doc.get("message"),
         "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "metadata": doc.get("metadata"),
     }
