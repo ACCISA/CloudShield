@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from bson import ObjectId
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 

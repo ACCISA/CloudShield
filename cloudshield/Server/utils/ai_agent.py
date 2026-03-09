@@ -5,7 +5,6 @@ import threading
 import datetime
 from bson import ObjectId
 from google import genai
-from google.genai import errors as genai_errors
 
 from cloudshield.Server.utils.database import db_admin
 from cloudshield.Server.utils.logging_setup import get_logger
