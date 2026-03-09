@@ -118,3 +118,26 @@ export const SECURITY_FILTERS = [
   createFilter("status", "Status", STATUS_OPTIONS.security),
   createFilter("type", "Alert Type", TYPE_OPTIONS.security),
 ];
+
+// Add this export to: cloudshield/WebUI/src/config/filterConfigs.js
+
+export const TICKET_FILTERS = [
+    {
+        id: "priority",
+        label: "Priority",
+        options: [
+            { value: "High",   label: "High" },
+            { value: "Medium", label: "Medium" },
+            { value: "Low",    label: "Low" },
+        ],
+    },
+    {
+        id: "status",
+        label: "Status",
+        options: [
+            { value: "Open",    label: "Open" },
+            { value: "Pending", label: "Pending" },
+            { value: "Closed",  label: "Closed" },
+        ],
+    },
+];
