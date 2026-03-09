@@ -11,6 +11,9 @@ from cloudshield.Server.security.guards import require_auth
 from cloudshield.Server.utils.database import db_admin
 from cloudshield.Server.utils.logging_setup import get_logger
 
+# --- AI INTEGRATION ---
+from cloudshield.Server.utils.ai_agent import trigger_ai_triage
+
 from models.tickets import (
     TicketCreate,
     TicketUpdate,
@@ -49,11 +52,17 @@ def create_ticket():
         
         tickets_coll = db_admin["tickets"]
         res = tickets_coll.insert_one(doc)
+
+        # --- TRIGGER AI TRIAGE AGENT ---
+        trigger_ai_triage(str(res.inserted_id))
         
         created_ticket = tickets_coll.find_one({"_id": res.inserted_id})
-        logger.info("User %s created ticket %s", user_id, res.inserted_id)
+        logger.info("User %s created ticket %s and triggered AI triage", user_id, res.inserted_id)
 
-        return jsonify({"message": "Ticket created", "ticket": ticket_to_json(created_ticket)}), 201
+        return jsonify({
+            "message": "Ticket created", 
+            "ticket": ticket_to_json(created_ticket)
+        }), 201
 
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
@@ -67,16 +76,13 @@ def create_ticket():
 def get_tickets():
     try:
         org_id = _require_org_id()
-        # Safely get the email and force lowercase to prevent case-sensitivity bugs
         user_email = getattr(g, "user", {}).get("email", "").lower()
         tickets_coll = db_admin["tickets"]
 
         # --- THE SUPER ADMIN BYPASS ---
         if user_email == "support@cloudshield.com":
-            # Support team sees EVERY ticket in the database
             cursor = tickets_coll.find({}).sort("created_at", -1)
         else:
-            # Normal users only see their organization's tickets
             filter_query = {"org_id": org_id}
             if g.user.get("role") != "admin":
                 filter_query["user_id"] = g.user.get("id")
@@ -103,7 +109,6 @@ def get_ticket_detail(ticket_id: str):
         tickets_coll = db_admin["tickets"]
         replies_coll = db_admin["ticket_replies"]
 
-        # Support can fetch any ticket detail, normal users restricted by org_id
         if user_email == "support@cloudshield.com":
             ticket_doc = tickets_coll.find_one({"_id": oid})
         else:
@@ -133,7 +138,7 @@ def add_reply(ticket_id: str):
         
         org_id = _require_org_id()
         user_email = getattr(g, "user", {}).get("email", "").lower()
-        # Use email for support replies so it shows clearly in the chat, otherwise use user ID
+        
         user_id = "CloudShield Support" if user_email == "support@cloudshield.com" else getattr(g, "user", {}).get("email", "unknown_user")
         oid = _coerce_object_id(ticket_id)
 
@@ -155,6 +160,11 @@ def add_reply(ticket_id: str):
             {"_id": oid},
             {"$set": {"updated_at": datetime.now(timezone.utc)}}
         )
+
+        # --- AI CONVERSATION TRIGGER ---
+        # Trigger the bot to reply to the user, UNLESS they escalated or a human admin sent the message
+        if user_email != "support@cloudshield.com" and "[SYSTEM]" not in validated_data.message:
+            trigger_ai_triage(str(oid))
 
         return jsonify({"message": "Reply added successfully"}), 201
 
