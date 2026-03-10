@@ -119,6 +119,17 @@ jobs:
           if [ -f cloudshield/Server/requirements.txt ]; then pip install -r cloudshield/Server/requirements.txt || true; fi
           pip install pytest pytest-cov
 
+      - name: Fix google namespace package conflict
+        run: |
+          python -c "
+          import site, os
+          for p in site.getsitepackages():
+              f = os.path.join(p, 'google', '__init__.py')
+              if os.path.exists(f):
+                  os.remove(f)
+                  print(f'Deleted {f}')
+          "
+
       - name: Prepare coverage directory
         run: mkdir -p tests/python/coverage/server
 
