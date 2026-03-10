@@ -97,8 +97,11 @@ function TicketsItem({ ticket, isEven, isSuperAdmin }) {
 
     return (
         <div
+            role="button"
+            tabIndex={0}
             style={styles.row}
             onClick={() => navigate(`/tickets/${ticket.id}`)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/tickets/${ticket.id}`); }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
