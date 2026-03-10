@@ -4,7 +4,7 @@ import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, users_public, log_audit, organizations
+from utils import users_admin, log_audit, organizations
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 from security import hash_password

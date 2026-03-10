@@ -13,6 +13,8 @@ import GroupsPage from "./pages/GroupsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import ProvisioningPage from "./pages/ProvisioningPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
+import TicketDashboard from "./pages/Tickets/TicketDashboard.jsx";
+import TicketDetailView from "./pages/Tickets/TicketDetailView.jsx";
 
 import { AuthProvider } from "./context/AuthContext.jsx";
 
@@ -201,7 +203,24 @@ function AppWithAuth() {
             </Protected>
           }
         />
+<Route
+          path="/tickets"
+          element={
+            <Protected>
+              <TicketDashboard />
+            </Protected>
+          }
+        />
 
+        <Route
+          path="/tickets/:ticketId"
+          element={
+            <Protected>
+              <TicketDetailView />
+            </Protected>
+          }
+        />
+        
         {/* Catch-all */}
         <Route
           path="*"
