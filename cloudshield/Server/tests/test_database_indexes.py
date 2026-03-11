@@ -21,13 +21,16 @@ def test_database_text_index_code_exists():
 
 
 def test_database_unique_index_code_exists():
-    """Test that unique index on email exists in database.py."""
+    """Test that user email uniqueness is enforced per organization."""
     test_dir = os.path.dirname(os.path.abspath(__file__))
     db_file = os.path.join(test_dir, "..", "utils", "database.py")
     
     with open(db_file, "r") as f:
         content = f.read()
-        assert 'create_index("email", unique=True)' in content or "create_index('email', unique=True)" in content
+        assert (
+            'create_index([("org_id", 1), ("email", 1)], unique=True)' in content
+            or "create_index([('org_id', 1), ('email', 1)], unique=True)" in content
+        )
 
 
 def test_database_connection_clients():
@@ -88,4 +91,3 @@ def test_database_import_fallback_exists():
         assert 'try:' in content
         assert 'from cloudshield.Server.models import Inventory' in content
         assert 'except ImportError:' in content
-

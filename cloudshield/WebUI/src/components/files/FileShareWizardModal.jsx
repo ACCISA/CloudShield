@@ -10,6 +10,7 @@ import {
   createDeleteHandler,
   createNavigationHandler,
 } from "../../utils/modalHelpers.jsx";
+import { validateShareName, validateShareSize } from "../../utils/validation.js";
 import "./FileShareWizardModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups"];
@@ -28,6 +29,7 @@ export default function FileShareWizardModal({
   const isEditMode = Boolean(file);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -137,7 +139,7 @@ export default function FileShareWizardModal({
         setFormData({
           shareName: file.name || "",
           description: file.description || "",
-          maxSize: file.max_size_gb || "",
+          maxSize: file.max_size_gb ?? file.max_size ?? "",
           selectedUsers: mapSelectedUsers(file.users, normalizedUsers),
           selectedGroups: mapSelectedGroups(file.groups, normalizedGroups),
         });
@@ -175,6 +177,21 @@ export default function FileShareWizardModal({
   });
 
   const handleSubmit = async () => {
+    // Validate inputs before submitting
+    const errs = {};
+    if (!isEditMode) {
+      const snResult = validateShareName(formData.shareName);
+      if (!snResult.valid) errs.shareName = snResult.error;
+    }
+    if (formData.maxSize && String(formData.maxSize).trim()) {
+      const msResult = validateShareSize(String(formData.maxSize).trim() + "G");
+      if (!msResult.valid) errs.maxSize = "Max size must be a positive number.";
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return;
+    }
+    setFieldErrors({});
     setIsSubmitting(true);
     try {
       // Prefer stable identifiers (email) and de-duplicate.
@@ -232,7 +249,7 @@ export default function FileShareWizardModal({
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
   const isNextDisabled =
-    currentStep === 0 && !isEditMode && !formData.shareName.trim();
+    currentStep === 0 && !isEditMode && (!formData.shareName.trim() || !validateShareName(formData.shareName).valid);
 
   if (!isOpen) return null;
 
@@ -245,6 +262,7 @@ export default function FileShareWizardModal({
             formData={formData}
             setFormData={setFormData}
             isEditMode={isEditMode}
+            fieldErrors={fieldErrors}
           />
         );
       case 1:
@@ -271,6 +289,12 @@ export default function FileShareWizardModal({
         return null;
     }
   };
+
+  const submitLabel = isSubmitting
+    ? "Saving..."
+    : isEditMode
+      ? "Save Changes"
+      : "Create Share";
 
   return (
     <div className="file-wizard-overlay">
@@ -366,11 +390,7 @@ export default function FileShareWizardModal({
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Save Changes"
-                    : "Create Share"}
+                {submitLabel}
               </button>
             )}
           </div>
@@ -412,7 +432,7 @@ FileShareWizardModal.defaultProps = {
 };
 
 // Sub-component: Basic Info Step
-function BasicInfoStep({ formData, setFormData, isEditMode }) {
+function BasicInfoStep({ formData, setFormData, isEditMode, fieldErrors = {} }) {
   return (
     <div className="file-wizard-step">
       <div className="file-wizard-form-group">
@@ -433,7 +453,7 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
         </label>
         <input
           type="text"
-          className="file-wizard-input"
+          className={`file-wizard-input${fieldErrors.shareName ? " input-error" : ""}`}
           value={formData.shareName}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, shareName: e.target.value }))
@@ -441,6 +461,7 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
           placeholder="e.g., TeamDocs, Projects, SharedData"
           autoFocus={!isEditMode}
           disabled={isEditMode}
+          maxLength={64}
           style={
             isEditMode
               ? {
@@ -451,6 +472,9 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
               : {}
           }
         />
+        {fieldErrors.shareName && (
+          <span className="file-wizard-field-error">{fieldErrors.shareName}</span>
+        )}
       </div>
 
       <div className="file-wizard-form-group">
@@ -470,13 +494,16 @@ function BasicInfoStep({ formData, setFormData, isEditMode }) {
         <label className="file-wizard-label">Max Size in GB (optional)</label>
         <input
           type="text"
-          className="file-wizard-input"
+          className={`file-wizard-input${fieldErrors.maxSize ? " input-error" : ""}`}
           value={formData.maxSize}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, maxSize: e.target.value }))
           }
           placeholder="e.g., 100"
         />
+        {fieldErrors.maxSize && (
+          <span className="file-wizard-field-error">{fieldErrors.maxSize}</span>
+        )}
       </div>
     </div>
   );
@@ -486,6 +513,7 @@ BasicInfoStep.propTypes = {
   formData: formDataShape.isRequired,
   setFormData: PropTypes.func.isRequired,
   isEditMode: PropTypes.bool,
+  fieldErrors: PropTypes.object,
 };
 
 BasicInfoStep.defaultProps = {

@@ -8,7 +8,6 @@ jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
 }));
 
-// Mock dependencies
 jest.mock("../../components/signup/SignupCard", () => {
   return function MockSignupCard({ children }) {
     return <div data-testid="signup-card">{children}</div>;
@@ -82,7 +81,7 @@ describe("SignupPage", () => {
 
   const VALID_EMAIL = "test@example.com";
   const VALID_COMPANY = "Acme Corp";
-  const VALID_PASSWORD = "ValidPass123!"; // 12+ chars, upper/lower/digit/symbol
+  const VALID_PASSWORD = "ValidPass123!";
 
   const PASSWORD_REQUIREMENTS_MESSAGE =
     "Password must be 12+ characters and include uppercase, lowercase, numbers, and symbols.";
@@ -175,7 +174,6 @@ describe("SignupPage", () => {
     const basicPlanCard = screen.getByTestId("plan-card-basic");
     fireEvent.click(basicPlanCard);
 
-    // Pro is default, check if basic is now selected by border style
     expect(basicPlanCard).toHaveStyle({ border: "2px solid green" });
   });
 
@@ -195,7 +193,7 @@ describe("SignupPage", () => {
   it("shows password requirements message for weak password", async () => {
     renderSignupPage();
 
-    setValidFormValues({ password: "password123" }); // missing uppercase + symbol, and <12
+    setValidFormValues({ password: "password123" });
     fireEvent.click(screen.getByTestId("primary-button"));
 
     await waitFor(() => {
@@ -208,7 +206,6 @@ describe("SignupPage", () => {
   it("enforces minimum password length of 12 (PASSWORD_MIN_LENGTH)", async () => {
     renderSignupPage();
 
-    // 11 chars, still meets upper/lower/digit/symbol but should fail length
     setValidFormValues({ password: "Aa1!aaaaaaa" });
     fireEvent.click(screen.getByTestId("primary-button"));
 
@@ -361,7 +358,6 @@ describe("SignupPage", () => {
     expect(localStorage.setItem).toHaveBeenCalledWith("jwt", "mock-token");
     expect(localStorage.setItem).toHaveBeenCalledWith("provision_job_id", "job123");
     expect(localStorage.setItem).toHaveBeenCalledWith("org_id", "org123");
-    expect(mockNavigate).toHaveBeenCalledWith("/provisioning", { replace: true });
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/auth/signup",
@@ -448,5 +444,125 @@ describe("SignupPage", () => {
     renderSignupPage();
     fireEvent.click(screen.getByText("Already have an account? Log in"));
     expect(mockNavigate).toHaveBeenCalledWith("/login");
+  });
+});
+
+describe("SignupPage — Stripe checkout flow", () => {
+  const VALID_EMAIL = "test@example.com";
+  const VALID_COMPANY = "Acme Corp";
+  const VALID_PASSWORD = "ValidPass123!";
+
+  const signupResponse = {
+    ok: true,
+    json: async () => ({
+      access_token: "mock-token",
+      user_id: "user123",
+      org_id: "org123",
+      job_id: "job123",
+    }),
+  };
+
+  function setValidFormValues() {
+    fireEvent.change(screen.getByTestId("auth-field-email"), { target: { value: VALID_EMAIL } });
+    fireEvent.change(screen.getByTestId("password-field"), { target: { value: VALID_PASSWORD } });
+    fireEvent.change(screen.getByTestId("auth-field-company-name"), { target: { value: VALID_COMPANY } });
+  }
+
+  const mockNavigateLocal = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    Storage.prototype.setItem = jest.fn();
+    Storage.prototype.getItem = jest.fn();
+    delete window.location;
+    window.location = { href: "" };
+  });
+
+  const renderSignupPage = (props = {}) =>
+    render(
+      <BrowserRouter>
+        <SignupPage {...props} />
+      </BrowserRouter>,
+    );
+
+  it("redirects to Stripe checkout URL on successful signup", async () => {
+    global.fetch
+      .mockResolvedValueOnce(signupResponse)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: "https://checkout.stripe.com/pay/cs_test" }),
+      });
+
+    renderSignupPage();
+    setValidFormValues();
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(window.location.href).toBe("https://checkout.stripe.com/pay/cs_test");
+    });
+  });
+
+  it("calls create-checkout with correct price_id, success_path and cancel_path", async () => {
+    global.fetch
+      .mockResolvedValueOnce(signupResponse)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: "https://checkout.stripe.com/pay/cs_test" }),
+      });
+
+    renderSignupPage();
+    setValidFormValues();
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/billing/create-checkout",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"success_path":"/provisioning"'),
+        }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/billing/create-checkout",
+        expect.objectContaining({
+          body: expect.stringContaining('"cancel_path":"/signup"'),
+        }),
+      );
+    });
+  });
+
+  it("shows Redirecting to payment... while Stripe checkout is in flight", async () => {
+    let resolveCheckout;
+    global.fetch
+      .mockResolvedValueOnce(signupResponse)
+      .mockReturnValueOnce(new Promise((res) => { resolveCheckout = res; }));
+
+    renderSignupPage();
+    setValidFormValues();
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Redirecting to payment...")).toBeInTheDocument();
+    });
+
+    resolveCheckout({ ok: true, json: async () => ({ url: "https://checkout.stripe.com/pay" }) });
+  });
+
+  it("falls back to /provisioning when checkout response has no URL", async () => {
+    global.fetch
+      .mockResolvedValueOnce(signupResponse)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ error: "Stripe unavailable" }),
+      });
+
+    renderSignupPage();
+    setValidFormValues();
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/provisioning", { replace: true });
+    });
   });
 });

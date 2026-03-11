@@ -21,14 +21,14 @@ import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import DashboardIcon from "../../assets/NavBar/DashboardIcon";
+import ShieldIcon from "../../assets/NavBar/shieldIcon.jsx";
 import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { apiGet } from "../../api/client";
@@ -413,6 +413,16 @@ export default function Sidebar({
             active={isActive("/dashboard")}
             onNavigate={() => navigate("/dashboard")}
           />
+
+          <NavItem
+            collapsed={collapsed}
+            icon={<ShieldIcon width={20} height={20} />}
+            label="Security dashboard"
+            to="/security-dashboard"
+            active={isActive("/security-dashboard")}
+            onNavigate={() => navigate("/security-dashboard")}
+          />
+
           <NavItem
             collapsed={collapsed}
             icon={<WorkstationsIcon width={20} height={20} />}
@@ -494,6 +504,7 @@ export default function Sidebar({
             pb: "16px",
           }}
         >
+          
           <Box
             role="button"
             tabIndex={0}
@@ -534,7 +545,46 @@ export default function Sidebar({
               </Typography>
             )}
           </Box>
-
+          <Box
+            role="button"
+            tabIndex={0}
+            aria-label="Tickets"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
+              color: "#fff",
+              fontSize: "0.9rem",
+              fontWeight: 500,
+              cursor: "pointer",
+              borderRadius: "8px",
+              padding: collapsed ? "8px" : "8px 12px",
+              "&:hover": { backgroundColor: "#2a2a2a" },
+            }}
+            onClick={() => navigate("/tickets")}
+            onKeyDown={(e) =>
+              (e.key === "Enter" || e.key === " ") && navigate("/tickets")
+            }
+          >
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mr: collapsed ? 0 : "10px",
+              }}
+            >
+              <ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />
+            </Box>
+            {!collapsed && (
+              <Typography sx={{ fontSize: "0.9rem", fontWeight: 500 }}>
+                Tickets
+              </Typography>
+            )}
+          </Box>
           <Box
             role="button"
             tabIndex={0}

@@ -6,6 +6,13 @@ import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import "./EmployeesModal.css";
 
+import {
+  validateDisplayName,
+  validateEmail,
+  validatePassword,
+  validateJobTitle,
+} from "../../utils/validation.js";
+
 // Use the same APIs as EmployeesPage
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
@@ -40,7 +47,7 @@ export default function EmployeesModal({
   const { accessToken, currentUser } = useAuth();
 
   const isEditMode = Boolean(employeeData);
-  const isCreating = creationStatus === "running" || creationStatus === "starting";
+  const isCreating = creationStatus === "running" || creationStatus === "starting"; // NOSONAR
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,6 +66,9 @@ export default function EmployeesModal({
     selectedFiles: [],
     allFiles: false,
   });
+
+  // Validation errors
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Search State
   const [searchTerms, setSearchTerms] = useState({
@@ -185,15 +195,35 @@ export default function EmployeesModal({
   // Handlers
   const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
+  /** Validate all fields and return true if the form is valid. */
+  const runValidation = () => {
+    const errs = {};
+    const fn = validateDisplayName(formData.firstName, "First name");
+    if (!fn.valid) errs.firstName = fn.error;
+    const ln = validateDisplayName(formData.lastName, "Last name");
+    if (!ln.valid) errs.lastName = ln.error;
+    const em = validateEmail(formData.email);
+    if (!em.valid) errs.email = em.error;
+    const jt = validateJobTitle(formData.jobTitle);
+    if (!jt.valid) errs.jobTitle = jt.error;
+    if (!isEditMode && formData.password) {
+      const pw = validatePassword(formData.password);
+      if (!pw.valid) errs.password = pw.error;
+    }
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    if (!runValidation()) return;
     setIsSubmitting(true);
     try {
       await onSubmit?.({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        jobTitle: formData.jobTitle,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        jobTitle: formData.jobTitle.trim(),
         password: formData.password,
         profileImage: formData.profileImage,
         workstations: formData.selectedWorkstations,
@@ -256,13 +286,17 @@ export default function EmployeesModal({
     removeSelection,
     BasicInfoStep,
     SelectionStep,
+    fieldErrors,
   });
 
   const isNextDisabled =
     currentStep === 0 &&
     (!formData.firstName.trim() ||
       !formData.lastName.trim() ||
-      !formData.email.trim());
+      !formData.email.trim() ||
+      !validateDisplayName(formData.firstName, "First name").valid ||
+      !validateDisplayName(formData.lastName, "Last name").valid ||
+      !validateEmail(formData.email).valid);
 
   return (
     <div className="employees-modal-overlay">
@@ -414,6 +448,7 @@ function BasicInfoStep({
   setFormData,
   handleImageUpload,
   isEditMode,
+  fieldErrors = {},
 }) {
   return (
     <div className="employees-modal-step">
@@ -422,26 +457,34 @@ function BasicInfoStep({
           <label className="employees-modal-label">First Name *</label>
           <input
             type="text"
-            className="employees-modal-input"
+            className={`employees-modal-input${fieldErrors.firstName ? " input-error" : ""}`}
             value={formData.firstName}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, firstName: e.target.value }))
             }
             placeholder="John"
+            maxLength={100}
           />
+          {fieldErrors.firstName && (
+            <span className="employees-modal-field-error">{fieldErrors.firstName}</span>
+          )}
         </div>
 
         <div className="employees-modal-form-group">
           <label className="employees-modal-label">Last Name *</label>
           <input
             type="text"
-            className="employees-modal-input"
+            className={`employees-modal-input${fieldErrors.lastName ? " input-error" : ""}`}
             value={formData.lastName}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, lastName: e.target.value }))
             }
             placeholder="Doe"
+            maxLength={100}
           />
+          {fieldErrors.lastName && (
+            <span className="employees-modal-field-error">{fieldErrors.lastName}</span>
+          )}
         </div>
       </div>
 
@@ -449,26 +492,34 @@ function BasicInfoStep({
         <label className="employees-modal-label">Email *</label>
         <input
           type="email"
-          className="employees-modal-input"
+          className={`employees-modal-input${fieldErrors.email ? " input-error" : ""}`}
           value={formData.email}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, email: e.target.value }))
           }
           placeholder="john.doe@example.com"
+          maxLength={254}
         />
+        {fieldErrors.email && (
+          <span className="employees-modal-field-error">{fieldErrors.email}</span>
+        )}
       </div>
 
       <div className="employees-modal-form-group">
         <label className="employees-modal-label">Job Title</label>
         <input
           type="text"
-          className="employees-modal-input"
+          className={`employees-modal-input${fieldErrors.jobTitle ? " input-error" : ""}`}
           value={formData.jobTitle}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, jobTitle: e.target.value }))
           }
           placeholder="Software Engineer"
+          maxLength={100}
         />
+        {fieldErrors.jobTitle && (
+          <span className="employees-modal-field-error">{fieldErrors.jobTitle}</span>
+        )}
       </div>
 
       <div className="employees-modal-form-group">
@@ -511,13 +562,18 @@ function BasicInfoStep({
           <label className="employees-modal-label">Password</label>
           <input
             type="password"
-            className="employees-modal-input"
+            className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}
             value={formData.password}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, password: e.target.value }))
             }
-            placeholder="Enter password"
+            placeholder="Min 12 chars, upper+lower+digit+special"
+            maxLength={128}
+            data-testid="password-input"
           />
+          {fieldErrors.password && (
+            <span className="employees-modal-field-error">{fieldErrors.password}</span>
+          )}
         </div>
       )}
     </div>
@@ -701,6 +757,27 @@ function SelectionStep({
     </div>
   );
 }
+
+BasicInfoStep.propTypes = {
+  formData: PropTypes.object.isRequired,
+  setFormData: PropTypes.func.isRequired,
+  handleImageUpload: PropTypes.func,
+  isEditMode: PropTypes.bool,
+  fieldErrors: PropTypes.object,
+};
+
+SelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.array.isRequired,
+  selectedItems: PropTypes.array.isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+};
 
 EmployeesModal.propTypes = {
   open: PropTypes.bool.isRequired,

@@ -1,12 +1,14 @@
 import { useState, type KeyboardEvent } from "react";
-import Logo from "../../assets/cloudShieldLogo.svg";
 import AuthService from "../../services/AuthService";
+import AuthCard from "../../components/auth/AuthCard";
+import AuthTextField from "../../components/auth/AuthTextField";
+import PasswordField from "../../components/auth/PasswordField";
+import PrimaryButton from "../../components/auth/PrimaryButton";
 
 
 export default function LoginCard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [useTwoFactor, setUseTwoFactor] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [showHelp, setShowHelp] = useState(false);
@@ -36,15 +38,6 @@ export default function LoginCard() {
     }
 
     try {
-      const payload: Record<string, string> = {
-        email: sanitizedEmail,
-        password,
-      };
-
-      if (useTwoFactor && twoFactorCode.trim()) {
-        payload.otp = twoFactorCode.trim();
-      }
-
       const data = await AuthService.login(
         sanitizedEmail,
         password,
@@ -96,115 +89,82 @@ export default function LoginCard() {
   };
 
   return (
-    <div className="w-full max-w-xl bg-[#111111] border border-white/10 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.75)] px-8 py-10 text-white">
-      <div className="flex flex-col items-center gap-6">
-        <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center">
-          <img src={Logo} alt="CloudShield logo" className="w-14 h-14" />
+    <AuthCard>
+      <div className="w-full space-y-4">
+        {error && (
+          <div className="w-full rounded-md border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            {success}
+          </div>
+        )}
+
+        <AuthTextField
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
+          type="email"
+          placeholder="johndoe@example.com"
+        />
+
+        <PasswordField
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="********"
+        />
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-white/70">
+            <button
+              type="button"
+              onClick={() => setUseTwoFactor((prev) => !prev)}
+              className="underline"
+            >
+              {useTwoFactor ? "Disable 2FA" : "Secure login with 2FA"}
+            </button>
+            {useTwoFactor && (
+              <span className="rounded-full border border-white/20 px-2 py-1 text-[10px] uppercase tracking-wide">
+                2FA enabled
+              </span>
+            )}
+          </div>
+
+          {useTwoFactor && (
+            <div className="space-y-2">
+              <AuthTextField
+                label="2FA code"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                onKeyDown={handleKeyDown}
+                inputMode="numeric"
+                placeholder="123456"
+                maxLength={6}
+              />
+              <p className="text-xs text-white/50">
+                Enter the 6-digit code from your authenticator app.
+              </p>
+            </div>
+          )}
+
+          <PrimaryButton onClick={handleLogin} disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Login"}
+          </PrimaryButton>
         </div>
 
-        <div className="w-full space-y-4">
-          {error && (
-            <div className="w-full rounded-md border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-              {success}
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-white/80">Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={handleKeyDown}
-              type="email"
-              placeholder="johndoe@example.com"
-              className="w-full rounded-lg border border-white/10 bg-[#161616] px-3 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-white/80">
-                Password
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="text-xs font-medium text-white/70 underline"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-              type={showPassword ? "text" : "password"}
-              placeholder="********"
-              className="w-full rounded-lg border border-white/10 bg-[#161616] px-3 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-white/70">
-              <button
-                type="button"
-                onClick={() => setUseTwoFactor((prev) => !prev)}
-                className="underline"
-              >
-                {useTwoFactor ? "Disable 2FA" : "Secure login with 2FA"}
-              </button>
-              {useTwoFactor && (
-                <span className="rounded-full border border-white/20 px-2 py-1 text-[10px] uppercase tracking-wide">
-                  2FA enabled
-                </span>
-              )}
-            </div>
-
-            {useTwoFactor && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white/80">
-                  2FA code
-                </label>
-                <input
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  inputMode="numeric"
-                  placeholder="123456"
-                  maxLength={6}
-                  className="w-full rounded-lg border border-white/10 bg-[#161616] px-3 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                />
-                <p className="text-xs text-white/50">
-                  Enter the 6-digit code from your authenticator app.
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleLogin}
-              disabled={isLoading}
-              className="mt-2 w-full rounded-2xl bg-white py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoading ? "Signing in..." : "Login"}
-            </button>
-          </div>
-
-          <div className="pt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setShowHelp(true)}
-              className="text-white underline"
-            >
-              Can't log in?
-            </button>
-          </div>
+        <div className="pt-4 text-center text-sm">
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="text-white underline"
+          >
+            Can't log in?
+          </button>
         </div>
       </div>
 
@@ -241,6 +201,6 @@ export default function LoginCard() {
           </div>
         </div>
       )}
-    </div>
+    </AuthCard>
   );
 }

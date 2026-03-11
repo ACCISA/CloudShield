@@ -374,3 +374,112 @@ def test_organizations_collection_and_indexes(monkeypatch):
     # assert any(args == ("org_id",) and kwargs.get("unique") for args, kwargs in calls), "org_id unique index missing"
     assert any(args == ("package",) for args, kwargs in calls)
     assert any(args == ("provisioning_status",) for args, kwargs in calls)
+
+
+def _import_database_with_custom_users(monkeypatch, users_admin_mock):
+    """
+    Import database module with a controlled users_admin collection mock so
+    import-time index migration branches can be tested deterministically.
+    """
+    class _FakeAdmin:
+        def command(self, *_args, **_kwargs):
+            return None
+
+    class _FakeClient:
+        def __init__(self, db_obj):
+            self._db = db_obj
+            self.admin = _FakeAdmin()
+
+        def __getitem__(self, _name):
+            return self._db
+
+    # Other collections used during module import.
+    orgs = unittest.mock.MagicMock()
+    access_groups = unittest.mock.MagicMock()
+    vpn_configs = unittest.mock.MagicMock()
+    shares = unittest.mock.MagicMock()
+    organizations = unittest.mock.MagicMock()
+    audit = unittest.mock.MagicMock()
+    activity = unittest.mock.MagicMock()
+    users_public = unittest.mock.MagicMock()
+    itam = unittest.mock.MagicMock()
+
+    db_admin = {
+        "users": users_admin_mock,
+        "orgs": orgs,
+        "audit": audit,
+        "activity": activity,
+        "organizations": organizations,
+        "access_groups": access_groups,
+        "vpn_configs": vpn_configs,
+        "shares": shares,
+    }
+    db_emp = {"users_public": users_public}
+    db_client = {"itam": itam}
+
+    admin_client = _FakeClient(db_admin)
+    emp_client = _FakeClient(db_emp)
+    client = _FakeClient(db_client)
+
+    call_count = {"n": 0}
+
+    def _mongo_client(*_args, **_kwargs):
+        # database.py creates three clients at import-time:
+        # admin_client, emp_client, then generic client.
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return admin_client
+        if call_count["n"] == 2:
+            return emp_client
+        return client
+
+    fake_pymongo = types.ModuleType("pymongo")
+    fake_pymongo.MongoClient = _mongo_client
+    fake_errors = types.ModuleType("pymongo.errors")
+    fake_errors.PyMongoError = Exception
+    fake_pymongo.errors = fake_errors
+
+    monkeypatch.setitem(sys.modules, "pymongo", fake_pymongo)
+    monkeypatch.setitem(sys.modules, "pymongo.errors", fake_errors)
+
+    sys.modules.pop("cloudshield.Server.utils.database", None)
+    import cloudshield.Server.utils.database as db_module
+    return db_module
+
+
+def test_database_drops_legacy_global_email_index(monkeypatch):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.return_value = {
+        "email_1": {"key": [("email", 1)]}
+    }
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    users_admin.drop_index.assert_called_once_with("email_1")
+
+
+def test_database_legacy_email_index_migration_exception_is_handled(monkeypatch, capsys):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.side_effect = RuntimeError("legacy migration boom")
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    out = capsys.readouterr().out
+    assert "legacy users email index migration skipped" in out
+
+
+def test_database_users_email_org_indexes_exception_is_handled(monkeypatch, capsys):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.return_value = {}
+
+    def _create_index_side_effect(*args, **kwargs):
+        if args and args[0] == [("org_id", 1), ("email", 1)] and kwargs.get("unique") is True:
+            raise RuntimeError("compound index boom")
+        return "ok"
+
+    users_admin.create_index.side_effect = _create_index_side_effect
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    out = capsys.readouterr().out
+    assert "users email/org indexes creation skipped" in out

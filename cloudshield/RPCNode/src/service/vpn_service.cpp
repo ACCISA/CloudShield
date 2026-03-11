@@ -1,4 +1,5 @@
 #include "service/vpn_service.hpp"
+#include "utils/sanitize.hpp"
 
 VPNService::VPNService()
 {
@@ -8,6 +9,7 @@ VPNService::VPNService()
 Status VPNService::CreateVPNClient(ServerContext* context, const vs::CreateVPNClientData* request, vs::CreateVPNClientDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string client_name = request->client_name();
 	std::cout << "[VPNService] CreateVPNClient called for: " << client_name << std::endl;
@@ -34,11 +36,16 @@ Status VPNService::CreateVPNClient(ServerContext* context, const vs::CreateVPNCl
 	          << " (" << result.content.size() << " bytes)" << std::endl;
 
 	return Status::OK;
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status VPNService::OpenSSHTunnel(ServerContext* context, const vs::OpenSSHTunnelData* request, vs::OpenSSHTunnelDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string ipv4 = request->ipv4().c_str();
 	std::string port = request->port().c_str();
@@ -53,6 +60,10 @@ Status VPNService::OpenSSHTunnel(ServerContext* context, const vs::OpenSSHTunnel
 	std::cout << result << std::endl;
 		
 	return Status(grpc::StatusCode::OK, "SSH Tunnel created");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status VPNService::Relay(ServerContext* context, const vs::RelayData* request, vs::RelayDataAck* response)

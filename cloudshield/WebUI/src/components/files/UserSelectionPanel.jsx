@@ -95,25 +95,11 @@ export default function UserSelectionPanel({
     return normalized.username || "Unknown";
   };
 
-  const allUsersSelected =
-    availableUsers.length > 0 &&
-    availableUsers.every((user) =>
-      selectedUsers.some((selected) => getUserId(selected) === getUserId(user)),
-    );
-
-  const handleAllUsersToggle = (checked) => {
-    if (checked) {
-      onSelectionChange(availableUsers);
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
   return (
     <div className="user-selection-container">
       <div className="user-selection-search-section">
         <div className="user-selection-label-row">
-          <label className="user-selection-label">Search Users</label>
+          <label className="user-selection-label">Add Users</label>
           <div className="user-selection-all-toggle">
             <Checkbox
               checked={allAreSelected}
@@ -128,64 +114,60 @@ export default function UserSelectionPanel({
           className="user-selection-search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder="Search users..."
         />
 
-        {searchTerm && (
-          <div className="user-selection-dropdown">
-            {filteredUsers.length === 0 ? (
-              <div
-                className="user-selection-dropdown-item"
-                style={{ opacity: 0.7, cursor: "default" }}
-              >
-                No users found
-              </div>
-            ) : (
-              filteredUsers.map((user) => {
-                const normalized = normalizeUser(user);
-                const selected = isSelected(user);
-                const isActive =
-                  normalized.active !== undefined ? normalized.active : true;
+        <div className="user-selection-dropdown">
+          {filteredUsers.length === 0 ? (
+            <div
+              className="user-selection-dropdown-item"
+              style={{ opacity: 0.7, cursor: "default" }}
+            >
+              No users found
+            </div>
+          ) : (
+            filteredUsers.map((user) => {
+              const normalized = normalizeUser(user);
+              const selected = isSelected(user);
 
-                return (
-                  <div
-                    key={getUserId(user)}
-                    className={`user-selection-dropdown-item ${selected ? "selected" : ""}`}
-                    onClick={() => handleToggle(user)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleToggle(user);
-                      }
-                    }}
-                  >
-                    <DisplayIcon
-                      type="user"
-                      data={normalized}
-                      size="small"
-                      showHoverCard={true}
-                    />
-                    <div className="user-selection-dropdown-item-info">
-                      <div className="user-selection-dropdown-item-name">
-                        {getDisplayName(user)}
-                      </div>
-                      {normalized.email && (
-                        <div className="user-selection-dropdown-item-detail">
-                          {normalized.email}
-                        </div>
-                      )}
+              return (
+                <div
+                  key={getUserId(user)}
+                  className={`user-selection-dropdown-item ${selected ? "selected" : ""}`}
+                  onClick={() => handleToggle(user)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleToggle(user);
+                    }
+                  }}
+                >
+                  <DisplayIcon
+                    type="user"
+                    data={normalized}
+                    size="small"
+                    showHoverCard={true}
+                  />
+                  <div className="user-selection-dropdown-item-info">
+                    <div className="user-selection-dropdown-item-name">
+                      {getDisplayName(user)}
                     </div>
-                    {selected && (
-                      <span className="user-selection-checkmark">✓</span>
+                    {normalized.email && (
+                      <div className="user-selection-dropdown-item-detail">
+                        {normalized.email}
+                      </div>
                     )}
                   </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  {selected && (
+                    <span className="user-selection-checkmark">✓</span>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Selected Users Section */}
@@ -206,14 +188,13 @@ export default function UserSelectionPanel({
                     type="button"
                     className="user-selection-card-remove-btn"
                     onClick={() => handleRemove(getUserId(user))}
-                    aria-label="Remove user"
                   >
                     ×
                   </button>
                   <DisplayIcon
                     type="user"
                     data={normalized}
-                    size="medium"
+                    size="small"
                     showHoverCard={true}
                   />
                   <span className="user-selection-selected-card-name">

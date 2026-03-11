@@ -1133,6 +1133,28 @@ def test_update_org_provisioning_status_logs_warning_on_update_failure(monkeypat
     logger.warning.assert_called()
 
 
+def test_enqueue_welcome_email_post_success_logs_warning_on_import_or_enqueue_error(monkeypatch):
+    import types
+    import cloudshield.Server.tasks.network_provisioning as np
+
+    fake_job_service = types.ModuleType("cloudshield.Server.services.job_service")
+
+    def boom(_org_id):
+        raise RuntimeError("queue down")
+
+    fake_job_service.enqueue_org_welcome_email_if_ready = boom
+    monkeypatch.setitem(sys.modules, "cloudshield.Server.services.job_service", fake_job_service)
+
+    logger = unittest.mock.MagicMock()
+    np._enqueue_welcome_email_post_success("ORG-1", logger)
+
+    logger.warning.assert_called_once()
+    msg, org_id, exc = logger.warning.call_args[0]
+    assert "Post-provision welcome email enqueue failed for org %s: %s" == msg
+    assert org_id == "ORG-1"
+    assert "queue down" in str(exc)
+
+
 def test_destroy_network_docker_dummy_coverage():
     """Cover the dummy destroy_network_docker function."""
     from tasks.network_provisioning import destroy_network_docker

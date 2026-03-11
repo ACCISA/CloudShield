@@ -1,5 +1,4 @@
 import React from "react";
-import CardsIcon from "../../../assets/DisplayButton/CardsIcon.jsx";
 import ListIcon from "../../../assets/DisplayButton/ListIcon.jsx";
 import ImageIcon from "../../../assets/DisplayButton/ImageIcon.jsx";
 import DisplayIcon from "../../../assets/DisplayButton/DisplayIcon.jsx";
@@ -18,7 +17,10 @@ export default function DisplayButton({
   style = {},
   columnToggles = null, // { columns: [{ key, label, checked }], onToggle }
 }) {
-  const popover = usePopover();
+  const popover = usePopover({
+    popoverWidth: columnToggles ? 400 : 280,
+    popoverHeight: columnToggles ? 420 : 220,
+  });
 
   const handleLayoutChange = (newLayout) => {
     onLayoutChange?.(newLayout);
@@ -26,7 +28,7 @@ export default function DisplayButton({
   };
 
   const buttonStyle = { ...baseButtonStyle, ...style };
-  const popoverStyle = getPopoverStyle(columnToggles ? "400px" : "380px");
+  const popoverStyle = getPopoverStyle(columnToggles ? "400px" : "280px");
 
   // Option card styling
   const getOptionStyle = (isActive) => ({
@@ -96,48 +98,10 @@ export default function DisplayButton({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
+                gridTemplateColumns: "1fr 1fr",
                 gap: "12px",
               }}
             >
-              {/* Cards Option */}
-              <div
-                onClick={() => handleLayoutChange("cards")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleLayoutChange("cards");
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label="Cards layout"
-                style={getOptionStyle(layout === "cards")}
-                onMouseEnter={(e) => {
-                  if (layout !== "cards") {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255,255,255,0.08)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (layout !== "cards") {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.border = "none";
-                  }
-                }}
-              >
-                <div style={getIconContainerStyle()}>
-                  <CardsIcon
-                    width={28}
-                    height={17}
-                    color={
-                      layout === "cards" ? "#fff" : "rgba(255,255,255,0.6)"
-                    }
-                  />
-                </div>
-                <div style={getLabelStyle(layout === "cards")}>Cards</div>
-              </div>
-
               {/* List Option */}
               <div
                 onClick={() => handleLayoutChange("list")}
@@ -209,7 +173,7 @@ export default function DisplayButton({
                     }
                   />
                 </div>
-                <div style={getLabelStyle(layout === "icons")}>icons</div>
+                <div style={getLabelStyle(layout === "icons")}>Icons</div>
               </div>
             </div>
 

@@ -7,7 +7,24 @@ import { useState, useEffect } from "react";
  * @param {Function} options.onClose - Optional callback when popover closes
  * @returns {Object} Popover state and handlers
  */
-export function usePopover({ onOpen, onClose } = {}) {
+const VIEWPORT_PADDING = 12;
+const TRIGGER_GAP = 8;
+
+function toNumber(value, fallback) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+export function usePopover({
+  onOpen,
+  onClose,
+  popoverWidth = 320,
+  popoverHeight = 320,
+} = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [buttonRef, setButtonRef] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState({});
@@ -15,9 +32,26 @@ export function usePopover({ onOpen, onClose } = {}) {
   const updatePosition = () => {
     if (buttonRef) {
       const rect = buttonRef.getBoundingClientRect();
+      const width = toNumber(popoverWidth, 320);
+      const height = toNumber(popoverHeight, 320);
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let left = rect.left;
+      left = Math.max(
+        VIEWPORT_PADDING,
+        Math.min(left, viewportWidth - width - VIEWPORT_PADDING),
+      );
+
+      let top = rect.bottom + TRIGGER_GAP;
+      top = Math.max(
+        VIEWPORT_PADDING,
+        Math.min(top, viewportHeight - height - VIEWPORT_PADDING),
+      );
+
       setPopoverPosition({
-        left: `${rect.left}px`,
-        top: `${rect.bottom}px`,
+        left: `${Math.round(left)}px`,
+        top: `${Math.round(top)}px`,
       });
     }
   };
@@ -50,7 +84,7 @@ export function usePopover({ onOpen, onClose } = {}) {
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen, buttonRef]);
+  }, [isOpen, buttonRef, popoverWidth, popoverHeight]);
 
   return {
     isOpen,

@@ -49,6 +49,8 @@ add_executable(${PROJECT_NAME}
     src/server/server.cpp
     src/utils/utils.cpp
     src/utils/exec.cpp
+    src/utils/sanitize.cpp
+    src/utils/safe_exec.cpp
     src/utils/ssh_tunnel.cpp
     src/tasks/samba.cpp
     src/tasks/openvpn.cpp
