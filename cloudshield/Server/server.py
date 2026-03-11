@@ -21,10 +21,11 @@ from utils import get_logger  # type: ignore
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.
 try:
-    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp  # type: ignore
+    from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp, threat_bp, billing_bp  # type: ignore
+    from cloudshield.Server.routes.tickets import tickets_bp
 except Exception:  # pragma: no cover
-    from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp  # type: ignore
-
+    from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp, threat_bp, billing_bp  # type: ignore
+    from routes.tickets import tickets_bp
 
 def _coerce_exception_class(candidate, name: str):
     """Ensure an imported exception reference is a proper Exception subclass."""
@@ -103,10 +104,20 @@ def create_app() -> Flask:
     app.register_blueprint(activity_bp, url_prefix="/api")
     logger.debug("Registered activity blueprint: %s", activity_bp.name)
 
+    app.register_blueprint(threat_bp, url_prefix="/api/threat")
+    logger.debug("Registered threat blueprint: %s", threat_bp.name)
+
+    app.register_blueprint(billing_bp, url_prefix="/api/billing")
+    logger.debug("Registered billing blueprint: %s", billing_bp.name)
+
+    app.register_blueprint(tickets_bp, url_prefix="/api")
+    logger.debug("Registered tickets blueprint: %s", tickets_bp.name)
+
     if audit_bp:
         app.register_blueprint(audit_bp, url_prefix="/api")
 
     return app
+
 
 
 

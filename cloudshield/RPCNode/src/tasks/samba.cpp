@@ -1,4 +1,5 @@
 #include "tasks/samba.hpp"
+#include <sstream>
 
 std::string ExecutableTask::RunCommand(std::string &command)
 {
@@ -7,59 +8,84 @@ std::string ExecutableTask::RunCommand(std::string &command)
 };
 
 std::string SambaTask::AddDomainUser(std::string username, std::string password)
-{	
-	std::cout << "aaaa" << std::endl;
-	std::cout << this->USER_ADD_CMD << std::endl;
-	std::cout << username.c_str() << std::endl;
-	std::cout << password.c_str() << std::endl;
-	std::string full_cmd = BuildCommand(this->USER_ADD_CMD, username.c_str(), password.c_str());
-	std::cout << "debug" << std::endl;
-	std::cout << full_cmd << std::endl;
-	return this->RunCommand(full_cmd);
+{
+	// Validate inputs before execution
+	Sanitize::ValidateUsername(username);
+	Sanitize::ValidatePassword(password);
+
+	std::string profilePath = "\\\\SAMBA.LOCAL\\profiles\\%USERNAME%";
+
+	auto result = SafeExec::Run("samba-tool", {
+		"user", "add", username, password,
+		"--profile-path=" + profilePath,
+		"--script-path=logon.bat"
+	});
+
+	return result.output;
 }
 
 std::string SambaTask::RemoveDomainUser(std::string username)
 {
+	Sanitize::ValidateUsername(username);
+
 	if (!this->IsDomainUser(username)) {
 		std::cout << "User not found" << std::endl;
 		return "not_found";
 	}
 
-	std::string full_cmd = BuildCommand(this->USER_DELETE_CMD, username.c_str());
-	return this->RunCommand(full_cmd);
+	auto result = SafeExec::RunSudo("samba-tool", {"user", "delete", username});
+	return result.output;
 }
 
 std::string SambaTask::AddDomainGroup(std::string group_name)
 {
-	std::string full_cmd = BuildCommand(this->GROUP_ADD_CMD, group_name.c_str());
-	return this->RunCommand(full_cmd);
+	Sanitize::ValidateGroupName(group_name);
+
+	auto result = SafeExec::Run("samba-tool", {"group", "add", group_name});
+	return result.output;
 }
 
 std::string SambaTask::LinkGroupToDomainUsers(std::string group_name)
 {
-	std::string full_cmd = BuildCommand(this->GROUP_ADD_TO_DOMAIN_USERS_CMD, group_name.c_str());
-	return this->RunCommand(full_cmd);
+	Sanitize::ValidateGroupName(group_name);
+
+	auto result = SafeExec::Run("samba-tool", {"group", "addmembers", "Domain Users", group_name});
+	return result.output;
 }
 
 std::string SambaTask::AddUserToGroup(std::string group_name, std::string username)
 {
-	std::string full_cmd = BuildCommand(this->GROUP_ADD_MEMBER_CMD, group_name.c_str(), username.c_str());
-	return this->RunCommand(full_cmd);
+	Sanitize::ValidateGroupName(group_name);
+	Sanitize::ValidateUsername(username);
+
+	auto result = SafeExec::Run("samba-tool", {"group", "addmembers", group_name, username});
+	return result.output;
 }
 
 std::string SambaTask::RemoveDomainGroup(std::string group_name)
 {
+	Sanitize::ValidateGroupName(group_name);
+
 	if (!this->IsDomainGroup(group_name)) {
 		std::cout << "Group not found" << std::endl;
 		return "not_found";
 	}
 
-	std::string full_cmd = BuildCommand(this->GROUP_DELETE_CMD, group_name.c_str());
-	return this->RunCommand(full_cmd);
+	auto result = SafeExec::Run("samba-tool", {"group", "delete", group_name});
+	return result.output;
 }
 
 bool SambaTask::UpdateSambaFileShareACL(std::string share_name, const std::vector<std::string>& groups, const std::vector<std::string>& users)
 {
+	// Validate all inputs before writing to config
+	Sanitize::ValidateShareName(share_name);
+	for (const auto& g : groups) {
+		Sanitize::ValidateGroupName(g);
+	}
+	for (const auto& u : users) {
+		Sanitize::ValidateUsername(u);
+	}
+
 	std::string configPath = this->SAMBA_SMB_CONF_PATH;
 	std::string tempPath = configPath + ".tmp";
 
@@ -140,71 +166,51 @@ bool SambaTask::UpdateSambaFileShareACL(std::string share_name, const std::vecto
 std::vector<std::string> SambaTask::GetUserList()
 {
 	std::vector<std::string> users;
-	char buffer[128];
 
-	FILE* pipe = popen(this->USER_LIST_CMD, "r");
+	auto result = SafeExec::Run("samba-tool", {"user", "list"});
 
-	if (!pipe) {
-		std::cout << "Failed to read pipe" << std::endl;
+	if (!result.success()) {
+		std::cout << "Failed to list users" << std::endl;
 		return {};
 	}
-	
-	try {
-		while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-			std::string user = buffer;
 
-			// remove last newline char
-			if (!user.empty() && user.back() == '\n') {
-				user.pop_back();
-			}
-
-			if (!user.empty()) {
-				users.push_back(user);
-			}
-
+	std::istringstream stream(result.output);
+	std::string line;
+	while (std::getline(stream, line)) {
+		// remove trailing whitespace/newline
+		while (!line.empty() && (line.back() == '\n' || line.back() == '\r' || line.back() == ' ')) {
+			line.pop_back();
+		}
+		if (!line.empty()) {
+			users.push_back(line);
 		}
 	}
-	catch (...) {
-		pclose(pipe);
-		return {};
-	}
 
-	pclose(pipe);
 	return users;
 }
 
 std::vector<std::string> SambaTask::GetGroupList()
 {
 	std::vector<std::string> groups;
-	char buffer[128];
 
-	FILE* pipe = popen(this->GROUP_LIST_CMD, "r");
+	auto result = SafeExec::Run("samba-tool", {"group", "list"});
 
-	if (!pipe) {
-		std::cout << "Failed to read pipe" << std::endl;
+	if (!result.success()) {
+		std::cout << "Failed to list groups" << std::endl;
 		return {};
 	}
 
-	try {
-		while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-			std::string group = buffer;
-
-			if (!group.empty() && group.back() == '\n') {
-				group.pop_back();
-			}
-
-			if (!group.empty()) {
-				groups.push_back(group);
-			}
-
+	std::istringstream stream(result.output);
+	std::string line;
+	while (std::getline(stream, line)) {
+		while (!line.empty() && (line.back() == '\n' || line.back() == '\r' || line.back() == ' ')) {
+			line.pop_back();
+		}
+		if (!line.empty()) {
+			groups.push_back(line);
 		}
 	}
-	catch (...) {
-		pclose(pipe);
-		return {};
-	}
 
-	pclose(pipe);
 	return groups;
 }
 
@@ -234,13 +240,22 @@ bool SambaTask::IsDomainGroup(std::string group)
 
 std::string SambaTask::ResetUserPassword(std::string username, std::string new_password)
 {
-	std::string full_cmd = BuildCommand(this->RESET_PASSWORD_CMD, username.c_str(), new_password.c_str());
-	return this->RunCommand(full_cmd);
+	Sanitize::ValidateUsername(username);
+	Sanitize::ValidatePassword(new_password);
+
+	auto result = SafeExec::Run("samba-tool", {
+		"user", "setpassword", username,
+		"--newpassword=" + new_password
+	});
+	return result.output;
 }
 
 
 is::Status SambaTask::CreateSambaFileShare(std::string share_name, std::string share_size)
 {
+	// Validate inputs
+	Sanitize::ValidateShareName(share_name);
+	Sanitize::ValidateShareSize(share_size);
 
 	is::Status status;
 
@@ -271,6 +286,8 @@ is::Status SambaTask::CreateSambaFileShare(std::string share_name, std::string s
 
 bool SambaTask::DeleteSambaFileShare(std::string share_name)
 {
+    Sanitize::ValidateShareName(share_name);
+
     std::string configPath = this->SAMBA_SMB_CONF_PATH;
     std::string tempPath = configPath+".tmp";
 
@@ -324,13 +341,19 @@ bool SambaTask::DeleteSambaFileShare(std::string share_name)
 
 bool SambaTask::AddDNSRecord(AddDNSRecordData& dns_record, std::string& result)
 {
-	std::string full_cmd = BuildCommand(this->ADD_DNS_CMD,
-			dns_record.zone.c_str(),
-			dns_record.name.c_str(),
-			dns_record.target.c_str(),
-			dns_record.password.c_str());
+	Sanitize::ValidateDnsZone(dns_record.zone);
+	Sanitize::ValidateDnsName(dns_record.name);
+	Sanitize::ValidateIPv4(dns_record.target);
+	Sanitize::ValidatePassword(dns_record.password);
+
+	auto exec_result = SafeExec::Run("samba-tool", {
+		"dns", "add", "127.0.0.1",
+		dns_record.zone, dns_record.name, "A", dns_record.target,
+		"-U", "administrator",
+		"--password=" + dns_record.password
+	});
 	
-	result =  this->RunCommand(full_cmd);
+	result = exec_result.output;
 
 	if (result.find("command not found") != std::string::npos) {
 		return false;
@@ -341,13 +364,19 @@ bool SambaTask::AddDNSRecord(AddDNSRecordData& dns_record, std::string& result)
 
 bool SambaTask::DeleteDNSRecord(AddDNSRecordData& dns_record, std::string& result)
 {
-	std::string full_cmd = BuildCommand(this->DELETE_DNS_CMD,
-			dns_record.zone.c_str(),
-			dns_record.name.c_str(),
-			dns_record.target.c_str(),
-			dns_record.password.c_str());
+	Sanitize::ValidateDnsZone(dns_record.zone);
+	Sanitize::ValidateDnsName(dns_record.name);
+	Sanitize::ValidateIPv4(dns_record.target);
+	Sanitize::ValidatePassword(dns_record.password);
 
-	result = this->RunCommand(full_cmd);
+	auto exec_result = SafeExec::Run("samba-tool", {
+		"dns", "delete", "127.0.0.1",
+		dns_record.zone, dns_record.name, "A", dns_record.target,
+		"-U", "administrator",
+		"--password=" + dns_record.password
+	});
+
+	result = exec_result.output;
 
 	if (result.find("command not found") != std::string::npos) {
 		return false;
@@ -360,7 +389,10 @@ bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::Re
 {
 	if (groups.empty()) return false;
 
-	std::ofstream out_file(BuildCommand(this->NETLOGON_SCRIPT_PATH, realm));
+	// Validate realm
+	Sanitize::ValidateRealm(realm);
+
+	std::ofstream out_file(BuildCommand(this->NETLOGON_SCRIPT_PATH, realm.c_str()));
 
 	out_file << "@echo off\n";
 	out_file << "net use * /delete /y\n";
@@ -370,6 +402,9 @@ bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::Re
 	for (const auto& group_mapping : groups) {
 		std::string group_name = group_mapping.group_name();
 
+		// Validate each group name and share data before writing to script
+		Sanitize::ValidateGroupName(group_name);
+
 		out_file << "net groups /domain | findstr /i \"" << group_name << "\" > nul\n";
 		out_file << "if %errorlevel% equ 0 (\n";
 
@@ -377,6 +412,10 @@ bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::Re
 		for (const auto& share : group_mapping.shares()) {
 	    		std::string share_path = share.share_path();
 			std::string drive_letter = share.drive_letter();
+
+			// Validate share path and drive letter
+			Sanitize::ValidateUNCPath(share_path);
+			Sanitize::ValidateDriveLetter(drive_letter);
 
 			out_file << "	if not exist " << drive_letter << ": net use " << drive_letter << ": " << share_path << "\n";
 		}
@@ -389,6 +428,6 @@ bool SambaTask::SyncNetlogonScript(std::string realm, const google::protobuf::Re
 
 is::Status SambaTask::RestartSambaService()
 {
-	_restart_samba_service();
+	SafeExec::Run("systemctl", {"restart", "samba-ad-dc"});
 	return is::Status::SUCCESS;
 }

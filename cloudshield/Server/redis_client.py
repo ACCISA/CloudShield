@@ -2,16 +2,26 @@ import os
 import redis
 from rq import Queue
 
-# Allow configuring Redis connection & default job timeout via environment
-# 172.23.0.5 is the ipv4 that we assigned in the docker-compose.yml for the redis container
-REDIS_HOST = os.getenv("CLOUDSHIELD_REDIS_HOST", "172.23.0.5")
-REDIS_PORT = int(os.getenv("CLOUDSHIELD_REDIS_PORT", "6379"))
-REDIS_DB = int(os.getenv("CLOUDSHIELD_REDIS_DB", "0"))
 
-# Default timeout for jobs (Terraform can exceed 3 minutes easily). Use env override.
-DEFAULT_JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))  # seconds
+def _first_env(*keys: str, default: str | None = None) -> str | None:
+    for k in keys:
+        v = os.getenv(k)
+        if v is not None and str(v).strip() != "":
+            return v
+    return default
 
-redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-task_queue = Queue(connection=redis_conn, default_timeout=10000)
+REDIS_URL = _first_env("CLOUDSHIELD_REDIS_URL", "REDIS_URL")
+
+REDIS_HOST = _first_env("CLOUDSHIELD_REDIS_HOST", "REDIS_HOST", default="redis") or "redis"
+REDIS_PORT = int(_first_env("CLOUDSHIELD_REDIS_PORT", "REDIS_PORT", default="6379") or "6379")
+REDIS_DB = int(_first_env("CLOUDSHIELD_REDIS_DB", "REDIS_DB", default="0") or "0")
+
+DEFAULT_JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))  
 
 
+if REDIS_URL:
+    redis_conn = redis.Redis.from_url(REDIS_URL)
+else:
+    redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
+task_queue = Queue(connection=redis_conn, default_timeout=DEFAULT_JOB_TIMEOUT)

@@ -31,6 +31,10 @@ class OrganizationBase(BaseModel):
     provisioning_status: Literal["pending", "in_progress", "completed", "failed"] = "pending"
     provisioning_job_id: Optional[str] = None
 
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    subscription_status: Optional[str] = "incomplete" # 'active', 'past_due', 'canceled'
+
     domain_name: str
     dc_admin_password: str
     realm_name: str
@@ -56,6 +60,10 @@ class OrganizationUpdate(BaseModel):
     storage_limit_gb: Optional[int] = None
     provisioning_status: Optional[Literal["pending", "in_progress", "completed", "failed"]] = None
     provisioning_job_id: Optional[str] = None
+
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    subscription_status: Optional[str] = None
 
     @field_validator("workstation_limit", "user_limit")
     @classmethod

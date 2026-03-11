@@ -4,7 +4,7 @@ import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, users_public, log_audit, organizations
+from utils import users_admin, log_audit, organizations
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 from security import hash_password
@@ -131,8 +131,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         ValueError: If email already exists or org user limit is exceeded
 
     Side Effects:
-        - Enqueues a welcome email for public signups.
         - Enqueues an invite email when an admin creates an employee.
+        - Public-signup welcome email is sent after successful provisioning.
     """
 
     # Determine package for this signup
@@ -179,7 +179,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Uniqueness / limits
     # -----------------------------
-    if users_admin.find_one({"email": user_data.email}):
+    if users_admin.find_one({"org_id": org_id, "email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
@@ -243,11 +243,9 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # Async email notifications
     # -----------------------------
     try:
-        from services.job_service import enqueue_org_welcome_email, enqueue_employee_invite_email
+        from services.job_service import enqueue_employee_invite_email
 
-        if current_user is None:
-            enqueue_org_welcome_email(org_id, user_id)
-        elif user_data.role == "employee":
+        if current_user is not None and user_data.role == "employee":
             enqueue_employee_invite_email(user_id)
     except Exception:
         # Keep email dispatch failures from impacting user creation.
@@ -263,11 +261,11 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
     Args:
         user_id (str): The target user's MongoDB ObjectId string.
         update_data (UserUpdate): Validated Pydantic model containing fields to update.
-        current_user (dict): The admin performing the update.
+        current_user (dict): The admin performing the update, or the user updating themselves.
         reason (str | None): Optional reason for the change, logged for auditing.
 
     Raises:
-        PermissionError: If the requester is not an admin.
+        PermissionError: If the requester is not an admin (and not editing themselves).
         ValueError:
             - If the user does not exist.
             - If no fields were provided to update.
@@ -276,7 +274,7 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         bool: True on successful update.
 
     Process:
-        1. Enforces admin-only access.
+        1. Enforces admin-only access (unless user is editing their own profile).
         2. Fetches the "before" snapshot for auditing (excluding password).
         3. Applies validated field updates, hashing passwords if applicable.
         4. Updates the 'updated_at' timestamp.
@@ -287,13 +285,25 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
         - Prevents empty updates (requires at least one changed field).
     """
     
-    _must_admin(current_user)
+    # Safely extract the ID regardless of how the JWT/g.user formats it
+    current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub"))
+    is_self = current_user_id == str(user_id)
+    
+    # Enforce admin ONLY if they are trying to edit someone else
+    if not is_self:
+        _must_admin(current_user)
 
     before = users_admin.find_one({"_id": ObjectId(user_id)}, {"password": 0})
     if not before:
         raise ValueError(f"User {user_id} not found")
 
-    updates = update_data.dict(exclude_unset=True)
+    # Get all fields from update_data, excluding None values (unset defaults)
+    updates = {}
+    data_dict = update_data.dict()
+    for key, value in data_dict.items():
+        if value is not None:
+            updates[key] = value
+    
     if not updates:
         raise ValueError("No fields to update")
     if "password" in updates:
@@ -305,15 +315,14 @@ def update_user(user_id: str, update_data: UserUpdate, current_user: dict, reaso
 
     log_audit(
         action="update",
-        actor={"id": current_user["id"], "role": current_user["role"], "org_id": current_user["org_id"]},
+        actor={"id": current_user_id, "role": current_user.get("role"), "org_id": current_user.get("org_id")},
         resource="users",
         target={"id": str(before["_id"]), "email": before["email"]},
         reason=reason,
-        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]},
-        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image"]}
+        before={k: before.get(k) for k in ["role","status","org_id","full_name","email","profile_image","notification_preferences"]},
+        after={k: after.get(k) for k in ["role","status","org_id","full_name","email","profile_image","notification_preferences"]}
     )
     return True
-
 
 def deactivate_user(user_id: str, current_user: dict, reason: str | None = None) -> bool:
     """Set user status to inactive with audit logging.
@@ -479,3 +488,33 @@ def list_users(current_user: dict) -> list[dict]:
             user["updated_at"] = user["updated_at"].isoformat()
             
     return users
+
+def get_user(user_id: str, current_user: dict) -> dict:
+    """Fetch fresh user data from the database."""
+    # Safely extract the ID
+    current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub"))
+    is_self = current_user_id == str(user_id)
+    
+    # Enforce admin ONLY if they are trying to view someone else
+    if not is_self:
+        _must_admin(current_user)
+        
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise ValueError("Invalid user ID format")
+        
+    user_doc = users_admin.find_one({"_id": oid}, {"password": 0})
+    if not user_doc:
+        raise ValueError("User not found")
+        
+    # Format for the frontend
+    user_doc["id"] = str(user_doc.pop("_id"))
+    
+    # Convert dates to strings so jsonify doesn't crash
+    if "created_at" in user_doc:
+        user_doc["created_at"] = user_doc["created_at"].isoformat()
+    if "updated_at" in user_doc:
+        user_doc["updated_at"] = user_doc["updated_at"].isoformat()
+        
+    return user_doc

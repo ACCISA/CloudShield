@@ -220,6 +220,15 @@ export const fetchUsers = async (
 };
 
 /**
+ * Applies empty state to the setter and optionally shows a toast.
+ */
+const _resetWorkstations = (setAllWorkstations, openToast, toastMsg) => {
+  setAllWorkstations?.([]);
+  if (toastMsg) openToast?.(toastMsg);
+  return [];
+};
+
+/**
  * Fetches workstations for a given org_id
  * @param {string} orgId - The organization ID
  * @param {string} accessToken - The auth token
@@ -233,18 +242,10 @@ export const fetchWorkstations = async (
   setAllWorkstations = null,
   openToast = null,
 ) => {
+  if (!orgId) return _resetWorkstations(setAllWorkstations, openToast, "Missing org_id for workstations fetch");
+  if (!accessToken) return _resetWorkstations(setAllWorkstations);
+
   try {
-    if (!orgId) {
-      if (setAllWorkstations) setAllWorkstations([]);
-      if (openToast) openToast("Missing org_id for workstations fetch");
-      return [];
-    }
-
-    if (!accessToken) {
-      if (setAllWorkstations) setAllWorkstations([]);
-      return [];
-    }
-
     const res = await fetch(
       `/api/workstations?org_id=${encodeURIComponent(orgId)}`,
       {
@@ -258,12 +259,10 @@ export const fetchWorkstations = async (
     );
 
     if (!res.ok) {
-      // Silently handle missing endpoints (404/405)
       if (res.status === 404 || res.status === 405) {
         console.warn(`Workstations API not available (${res.status})`);
       }
-      if (setAllWorkstations) setAllWorkstations([]);
-      return [];
+      return _resetWorkstations(setAllWorkstations);
     }
 
     const data = await res.json();
@@ -286,13 +285,21 @@ export const fetchWorkstations = async (
       org_id: w.org_id,
     }));
 
-    if (setAllWorkstations) setAllWorkstations(normalized);
+    setAllWorkstations?.(normalized);
     return normalized;
   } catch (e) {
     console.error("Error fetching workstations:", e);
-    if (setAllWorkstations) setAllWorkstations([]);
-    return [];
+    return _resetWorkstations(setAllWorkstations);
   }
+};
+
+/**
+ * Applies empty state to the setter and optionally shows a toast.
+ */
+const _resetSoftware = (setAllSoftware, openToast, toastMsg) => {
+  setAllSoftware?.([]);
+  if (toastMsg) openToast?.(toastMsg);
+  return [];
 };
 
 export const fetchSoftware = async (
@@ -301,17 +308,10 @@ export const fetchSoftware = async (
   setAllSoftware = null,
   openToast = null,
 ) => {
-  try {
-    if (!orgId) {
-      if (setAllSoftware) setAllSoftware([]);
-      if (openToast) openToast("Missing org_id for software fetch");
-      return [];
-    }
+  if (!orgId) return _resetSoftware(setAllSoftware, openToast, "Missing org_id for software fetch");
+  if (!accessToken) return _resetSoftware(setAllSoftware);
 
-    if (!accessToken) {
-      if (setAllSoftware) setAllSoftware([]);
-      return [];
-    }
+  try {
 
     const res = await fetch(
       `http://127.0.0.1:5050/api/software?org_id=${encodeURIComponent(orgId)}`,
@@ -325,10 +325,7 @@ export const fetchSoftware = async (
       },
     );
 
-    if (!res.ok) {
-      if (setAllSoftware) setAllSoftware([]);
-      return [];
-    }
+    if (!res.ok) return _resetSoftware(setAllSoftware);
 
     const data = await res.json();
     const software = Array.isArray(data) ? data : data.software || [];
@@ -341,13 +338,12 @@ export const fetchSoftware = async (
       vendor: s.vendor || "",
     }));
 
-    if (setAllSoftware) setAllSoftware(normalized);
+    setAllSoftware?.(normalized);
     return normalized;
   } catch (e) {
     console.error("Error fetching software:", e);
-    if (setAllSoftware) setAllSoftware([]);
-    if (openToast) openToast(e?.message || "Failed to load software");
-    return [];
+    openToast?.(e?.message || "Failed to load software");
+    return _resetSoftware(setAllSoftware);
   }
 };
 
@@ -565,6 +561,7 @@ export const createRenderStepContent = ({
   removeSelection,
   BasicInfoStep,
   SelectionStep,
+  fieldErrors = {},
 }) => {
   return () => {
     const stepConfig = steps[currentStep];
@@ -578,6 +575,7 @@ export const createRenderStepContent = ({
           setFormData={setFormData}
           handleImageUpload={stepConfig.handleImageUpload}
           isEditMode={stepConfig.isEditMode}
+          fieldErrors={fieldErrors}
         />
       );
     }

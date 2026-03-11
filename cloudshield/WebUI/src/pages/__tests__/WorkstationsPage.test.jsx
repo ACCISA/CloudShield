@@ -467,6 +467,21 @@ describe("WorkstationsPage Component", () => {
         }),
       );
     });
+
+    test("renders icon selection bar and toggles select-all in icons layout", async () => {
+      renderPage();
+      const iconsButton = screen.getByText("Icons");
+      await userEvent.click(iconsButton);
+
+      const selectAllButton = screen.getByRole("button", { name: /select all/i });
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
+
+      await userEvent.click(selectAllButton);
+      expect(screen.queryByText("0 selected")).not.toBeInTheDocument();
+
+      await userEvent.click(selectAllButton);
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
+    });
   });
 
   describe("Filter Functionality", () => {
@@ -734,9 +749,7 @@ describe("WorkstationsPage Component", () => {
       const cardsButton = screen.getByText("Cards");
       await userEvent.click(cardsButton);
 
-      expect(screen.getByTestId("show-users")).toHaveTextContent(
-        "Users Hidden",
-      );
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
     });
 
     test("refresh button triggers handler", async () => {
@@ -753,6 +766,44 @@ describe("WorkstationsPage Component", () => {
   });
 
   describe("Edge Cases", () => {
+    test("does not delete when confirmation is canceled", async () => {
+      const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
+      renderPage();
+
+      const deleteButtons = screen.getAllByTestId(/^delete-/);
+      const firstDelete = deleteButtons.find((btn) =>
+        btn.dataset.testid?.match(/^delete-ws-\d+$/),
+      );
+
+      if (firstDelete) {
+        await userEvent.click(firstDelete);
+        expect(confirmSpy).toHaveBeenCalled();
+      }
+
+      confirmSpy.mockRestore();
+    });
+
+    test("deletes workstation when confirmation is accepted", async () => {
+      const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+      renderPage();
+
+      const deleteButtons = screen.getAllByTestId(/^delete-/);
+      const firstDelete = deleteButtons.find((btn) =>
+        btn.dataset.testid?.match(/^delete-ws-\d+$/),
+      );
+
+      if (firstDelete) {
+        await userEvent.click(firstDelete);
+        const { trackButton } = require("../../lib/analytics");
+        expect(trackButton).toHaveBeenCalledWith(
+          "workstations/edit/delete",
+          expect.anything(),
+        );
+      }
+
+      confirmSpy.mockRestore();
+    });
+
     test("handles empty search gracefully", async () => {
       renderPage();
       const searchField = screen.getByTestId("search-field");

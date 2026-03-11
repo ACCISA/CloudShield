@@ -34,6 +34,7 @@ class DummyRedis:
 _real_redis.Redis = DummyRedis          # type: ignore[attr-defined]
 _real_redis.StrictRedis = DummyRedis    # type: ignore[attr-defined]
 
+# --- FLASK CORS MOCKING ---
 _fake_flask_cors = types.ModuleType("flask_cors")
 
 class CORS:
@@ -41,15 +42,38 @@ class CORS:
         pass
 
 _fake_flask_cors.CORS = CORS
-
 sys.modules["flask_cors"] = _fake_flask_cors
 
 @pytest.fixture(autouse=True)
 def redis_mock_fixture():
     """
     Autouse fixture that yields the mock client for tests to assert calls.
-    Because sys.modules was patched at import-time above, any module that does
-    `import redis` (or `from redis import WatchError`) will get the fake symbols.
     """
     yield _redis_mock_client
-# ...existing code...
+try:
+    import cryptography  # noqa: F401
+    import bcrypt        # noqa: F401
+    import paramiko      # noqa: F401
+except (ImportError, RuntimeError):
+    _mock_sym = unittest.mock.MagicMock()
+    
+    modules_to_mock = [
+        "cryptography",
+        "cryptography.hazmat",
+        "cryptography.hazmat.bindings",
+        "cryptography.hazmat.bindings._rust",
+        "cryptography.hazmat.backends",
+        "cryptography.hazmat.primitives",
+        "cryptography.hazmat.primitives.serialization",
+        "cryptography.hazmat.primitives.hashes",
+        "cryptography.hazmat.primitives.asymmetric",
+        "cryptography.hazmat.primitives.asymmetric.rsa",
+        "cryptography.hazmat.primitives.asymmetric.ed25519",
+        "cryptography.hazmat.primitives.kdf",
+        "cryptography.hazmat.primitives.kdf.scrypt",
+        "bcrypt",
+        "paramiko"
+    ]
+    
+    for mod in modules_to_mock:
+        sys.modules[mod] = _mock_sym

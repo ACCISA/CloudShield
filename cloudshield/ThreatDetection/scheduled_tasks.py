@@ -1,0 +1,221 @@
+"""
+Scheduled background tasks for CloudShield ThreatDetection server.
+
+These are long-running periodic jobs started as daemon threads alongside
+the gRPC server.  Each function runs in an infinite loop with ``time.sleep``
+between iterations.
+
+Tasks
+─────
+1. **Threat-intel feed refresh** – pull remote IP blocklists every N hours.
+2. **Anomaly-model retrain** – re-fit the IsolationForest on the latest
+   Elasticsearch data every N hours.
+3. **Alert dedup flush** – periodically write accumulated unified alerts
+   to Elasticsearch and clear the in-memory buffer.
+4. **Fail2ban status poll** – query fail2ban jail statuses and log to ES.
+5. **Old alert pruning** – delete ES documents older than a retention window.
+"""
+
+from __future__ import annotations
+
+import time
+import threading
+from typing import Callable
+
+
+def _safe_loop(name: str, interval: float, fn: Callable[[], None], logger=None):
+    """Run *fn* every *interval* seconds, swallowing exceptions."""
+    if logger:
+        logger.info("Scheduled task '%s' started (interval=%ss)", name, interval)
+    while True:
+        try:
+            fn()
+        except Exception as exc:
+            if logger:
+                logger.error("Scheduled task '%s' error: %s", name, exc)
+        time.sleep(interval)
+
+
+# ── 1. Threat-intel refresh ─────────────────────────────────────────────────
+
+def _refresh_threat_intel(threat_intel, logger=None):
+    """Pull remote blocklist feeds."""
+    added = threat_intel.refresh_feeds(timeout=60)
+    if logger:
+        logger.info(
+            "Threat-intel refresh: %d new indicators (total %d)",
+            added, threat_intel.total_indicators,
+        )
+
+
+# ── 2. Anomaly-model retrain ───────────────────────────────────────────────
+
+def _retrain_anomaly_model(detector, es_client, logger=None):
+    """
+    Re-train the anomaly detector on the most recent ``net_conns`` data
+    from Elasticsearch.
+    """
+    if es_client is None:
+        return
+
+    try:
+        from cloudshield.ThreatDetection.anomaly.features import extract_conn_features
+    except ImportError:
+        from anomaly.features import extract_conn_features
+
+    try:
+        resp = es_client.search(
+            index="net_conns",
+            body={"query": {"match_all": {}}, "sort": [{"_id": {"order": "desc"}}]},
+            size=2000,
+        )
+        docs = [hit["_source"] for hit in resp["hits"]["hits"]]
+    except Exception as exc:
+        if logger:
+            logger.warning("Retrain: failed to fetch training data: %s", exc)
+        return
+
+    if len(docs) < 100:
+        if logger:
+            logger.info("Retrain: only %d docs — need ≥100, skipping", len(docs))
+        return
+
+    features = [extract_conn_features(d) for d in docs]
+    detector.train(features)
+    if logger:
+        logger.info("Retrained anomaly model on %d samples", len(features))
+
+
+# ── 3. Alert dedup flush ───────────────────────────────────────────────────
+
+def _flush_alerts(deduplicator, es_log_fn, logger=None):
+    """Write buffered unified alerts to Elasticsearch."""
+    alerts = deduplicator.flush()
+    if not alerts:
+        return
+    for alert in alerts:
+        es_log_fn("unified_alerts", alert.to_dict())
+    if logger:
+        logger.info("Flushed %d unified alerts to ES", len(alerts))
+
+
+# ── 4. Fail2ban status poll ─────────────────────────────────────────────────
+
+def _poll_fail2ban(fail2ban_mgr, es_log_fn, logger=None):
+    """Query fail2ban jail statuses and write to ES."""
+    statuses = fail2ban_mgr.all_jail_statuses()
+    for s in statuses:
+        if s.currently_banned > 0 or s.total_banned > 0:
+            doc = s.to_dict()
+            doc["timestamp"] = int(time.time())
+            es_log_fn("fail2ban_status", doc)
+    if logger:
+        total_banned = sum(s.currently_banned for s in statuses)
+        if total_banned:
+            logger.info("Fail2ban: %d IPs currently banned across all jails", total_banned)
+
+
+# ── 5. Old alert pruning ───────────────────────────────────────────────────
+
+def _prune_old_alerts(es_client, max_age_days: int = 30, logger=None):
+    """Delete documents older than *max_age_days* from alert indices."""
+    if es_client is None:
+        return
+
+    indices = ["unified_alerts", "snort_alerts", "anomaly_alerts",
+               "threat_intel_hits", "traffic_spikes"]
+    cutoff = int(time.time()) - (max_age_days * 86400)
+
+    for index in indices:
+        try:
+            resp = es_client.delete_by_query(
+                index=index,
+                body={"query": {"range": {"timestamp": {"lt": cutoff}}}},
+                conflicts="proceed",
+            )
+            deleted = resp.get("deleted", 0)
+            if deleted and logger:
+                logger.info("Pruned %d old docs from '%s'", deleted, index)
+        except Exception:
+            pass  # index may not exist yet
+
+
+# ── Thread launcher ─────────────────────────────────────────────────────────
+
+def start_scheduled_tasks(
+    *,
+    threat_intel=None,
+    anomaly_detector=None,
+    alert_deduplicator=None,
+    fail2ban_mgr=None,
+    es_client=None,
+    es_log_fn=None,
+    logger=None,
+    threat_intel_interval: float = 3600 * 6,   # 6 hours
+    retrain_interval: float = 3600 * 4,        # 4 hours
+    flush_interval: float = 60,                # 1 minute
+    fail2ban_interval: float = 300,            # 5 minutes
+    prune_interval: float = 3600 * 24,         # daily
+) -> list[threading.Thread]:
+    """
+    Start all scheduled background tasks as daemon threads.
+
+    Returns the list of threads (callers don't usually need these since
+    they're daemonic).
+    """
+    threads: list[threading.Thread] = []
+
+    if threat_intel is not None:
+        t = threading.Thread(
+            target=_safe_loop,
+            args=("threat_intel_refresh", threat_intel_interval,
+                  lambda: _refresh_threat_intel(threat_intel, logger)),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+
+    if anomaly_detector is not None:
+        t = threading.Thread(
+            target=_safe_loop,
+            args=("anomaly_retrain", retrain_interval,
+                  lambda: _retrain_anomaly_model(anomaly_detector, es_client, logger)),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+
+    if alert_deduplicator is not None and es_log_fn is not None:
+        t = threading.Thread(
+            target=_safe_loop,
+            args=("alert_flush", flush_interval,
+                  lambda: _flush_alerts(alert_deduplicator, es_log_fn, logger)),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+
+    if fail2ban_mgr is not None and es_log_fn is not None:
+        t = threading.Thread(
+            target=_safe_loop,
+            args=("fail2ban_poll", fail2ban_interval,
+                  lambda: _poll_fail2ban(fail2ban_mgr, es_log_fn, logger)),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+
+    if es_client is not None:
+        t = threading.Thread(
+            target=_safe_loop,
+            args=("prune_old_alerts", prune_interval,
+                  lambda: _prune_old_alerts(es_client, logger=logger)),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+
+    if logger:
+        logger.info("Started %d scheduled background tasks", len(threads))
+
+    return threads
