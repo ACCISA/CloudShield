@@ -46,6 +46,8 @@ function NavItem({
   onToggleExpand,
   onNavigate,
 }) {
+  const showCountChip = typeof count === "number" || count === "-";
+
   return (
     <Box
       sx={{
@@ -93,43 +95,42 @@ function NavItem({
         </Box>
 
         {!collapsed && (
-          <>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                minWidth: 0,
-              }}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              sx={{ fontSize: "0.95rem", fontWeight: 500, lineHeight: 1.3 }}
             >
-              <Typography
-                sx={{ fontSize: "0.95rem", fontWeight: 500, lineHeight: 1.3 }}
-              >
-                {label}
-              </Typography>
-              {typeof count === "number" && (
-                <Chip
-                  label={count}
-                  size="small"
-                  sx={{
-                    height: "20px",
-                    minWidth: "20px",
-                    fontSize: "0.7rem",
-                    fontWeight: 500,
-                    borderRadius: "6px",
-                    px: "4px",
-                    lineHeight: 1.2,
-                    color: "#fff",
-                    backgroundColor: countColor || "#444",
-                  }}
-                />
-              )}
-            </Box>
-          </>
+              {label}
+            </Typography>
+
+            {showCountChip && (
+              <Chip
+                label={count}
+                size="small"
+                sx={{
+                  height: "20px",
+                  minWidth: "20px",
+                  fontSize: "0.7rem",
+                  fontWeight: 500,
+                  borderRadius: "6px",
+                  px: "4px",
+                  lineHeight: 1.2,
+                  color: "#fff",
+                  backgroundColor: countColor || "#444",
+                }}
+              />
+            )}
+          </Box>
         )}
 
-        {collapsed && typeof count === "number" && (
+        {collapsed && showCountChip && (
           <Chip
             label={count}
             size="small"
@@ -478,8 +479,15 @@ export default function Sidebar({
             label="Shares"
             to="/files"
             active={isActive("/files")}
-            //count={collapsed ? undefined : 33}
-            count={collapsed ? undefined : (stats.shares ?? (statsLoading ? "…" : 0))}
+            count={
+              collapsed
+                ? undefined
+                : statsLoading
+                  ? undefined
+                  : stats.shares === 0
+                    ? "-"
+                    : (stats.shares ?? 0)
+            }
             countColor={sharesPill}
             expanded={open.files}
             onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
