@@ -66,6 +66,30 @@ jest.mock("../../components/auth/PrimaryButton", () => {
   };
 });
 
+jest.mock("../../components/layout/PageShell", () => {
+  return function MockPageShell({ children }) {
+    return <div data-testid="page-shell">{children}</div>;
+  };
+});
+
+jest.mock("../../components/table/TableSurface", () => {
+  return function MockTableSurface({ children }) {
+    return <div data-testid="table-surface">{children}</div>;
+  };
+});
+
+jest.mock("../../components/table/TableSkeleton", () => {
+  return function MockTableSkeleton({ rows, cols }) {
+    return (
+      <div
+        data-testid="table-skeleton"
+        data-rows={rows}
+        data-cols={cols}
+      />
+    );
+  };
+});
+
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
@@ -138,15 +162,20 @@ describe("SignupPage (additional coverage)", () => {
       throw new Error("Storage quota exceeded");
     });
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        access_token: "test-token",
-        user_id: "user123",
-        org_id: "org123",
-        job_id: "job123",
-      }),
-    });
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: "test-token",
+          user_id: "user123",
+          org_id: "org123",
+          job_id: "job123",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ error: "Stripe unavailable" }),
+      });
 
     renderSignupPage();
     fillValidForm();
@@ -157,7 +186,7 @@ describe("SignupPage (additional coverage)", () => {
     });
   });
 
-  it("navigates even if JSON parsing fails", async () => {
+  it("shows a form error when signup response JSON cannot be parsed", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => {
@@ -170,7 +199,19 @@ describe("SignupPage (additional coverage)", () => {
     fireEvent.click(screen.getByTestId("primary-button"));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/provisioning", { replace: true });
+      expect(
+        screen.getByText("Unexpected error during signup. Please try again.")
+      ).toBeInTheDocument();
     });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("renders inside PageShell and keeps the signup card visible", () => {
+    renderSignupPage();
+
+    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("signup-card")).toBeInTheDocument();
+    expect(screen.getByText("Your Plan Overview")).toBeInTheDocument();
   });
 });
