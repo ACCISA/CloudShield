@@ -1,142 +1,255 @@
-import { useState, useEffect } from "react";
-import { Box, Typography, Tabs, Tab } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Box, Tab, Tabs, Typography } from "@mui/material";
 import { useAuth } from "../context/AuthContext.jsx";
+
+import PageShell from "../components/layout/PageShell.jsx";
+import Skeleton from "../components/ui/Skeleton.jsx";
+
 import BasicInfoTab from "../components/settings/BasicInfoTab.jsx";
 import BillingTab from "../components/settings/BillingTab.jsx";
 import NotificationsTab from "../components/settings/NotificationsTab.jsx";
 import AppearanceTab from "../components/settings/AppearanceTab.jsx";
+
+import { safeAsync } from "../lib/safeAsync.js";
+
+const API_BASE = "http://127.0.0.1:5050";
+const TABS = ["Basic Info", "Plan & Billing", "Notifications", "Appearance"];
 
 const getAuthHeader = () => {
   const token = localStorage.getItem("jwt");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const TABS = ["Basic Info", "Plan & Billing", "Notifications", "Appearance"];
+async function buildApiError(res, fallbackMessage) {
+  const body = await res.json().catch(() => ({}));
+  const err = new Error(body?.message || body?.error || fallbackMessage);
+  err.response = {
+    status: res.status,
+    data: body,
+  };
+  return err;
+}
+
+function SettingsLoading() {
+  return (
+    <Box
+      role="status"
+      aria-live="polite"
+      data-testid="settings-loading"
+      sx={{ mt: 2 }}
+    >
+      <Typography sx={{ color: "#9E9E9E", mb: 2 }}>
+        Loading settings...
+      </Typography>
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <Skeleton height={24} width="24%" />
+        <Skeleton height={14} width="100%" />
+        <Skeleton height={14} width="72%" />
+        <Skeleton height={220} width="100%" style={{ borderRadius: 16 }} />
+      </Box>
+    </Box>
+  );
+}
 
 export default function SettingsPage() {
   const { currentUser } = useAuth();
+
   const [activeTab, setActiveTab] = useState(0);
-
   const [userData, setUserData] = useState(null);
-  const [orgData, setOrgData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState({
+    open: false,
+    msg: "",
+    type: "success",
+  });
 
-  const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
+  const toastTimerRef = useRef(null);
+
+  const closeToast = () => {
+    setToast((prev) => ({ ...prev, open: false }));
+  };
 
   const openToast = (msg, type = "success") => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
     setToast({ open: true, msg, type });
-    setTimeout(() => setToast((p) => ({ ...p, open: false })), 2500);
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast((prev) => ({ ...prev, open: false }));
+      toastTimerRef.current = null;
+    }, 2500);
   };
 
   useEffect(() => {
-    if (!currentUser?.id) return;
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!currentUser?.id) {
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const fetchData = async () => {
       setLoading(true);
+
       try {
-        const userRes = await fetch(`http://127.0.0.1:5050/api/users/${currentUser.id}`, {
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        const response = await safeAsync(async () => {
+          const userRes = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeader(),
+            },
+          });
+
+          if (!userRes.ok) {
+            throw await buildApiError(userRes, "Failed to load settings");
+          }
+
+          return userRes.json();
         });
 
-        if (userRes.ok) {
-          const response = await userRes.json();
+        if (!cancelled) {
           setUserData(response.user || response);
         }
       } catch (e) {
         console.error("Failed to load settings data", e);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
+
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser?.id]);
 
   const handleUserUpdate = async (payload) => {
+    if (!currentUser?.id) return false;
+
     try {
-      const res = await fetch(`http://127.0.0.1:5050/api/users/${currentUser.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to update");
-      }
-      const response = await res.json();
-      const updatedUser = response.user || response;
-      setUserData(updatedUser);
+      const response = await safeAsync(
+        async () => {
+          const res = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeader(),
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            throw await buildApiError(res, "Failed to update");
+          }
+
+          return res.json();
+        },
+        {
+          toast: {
+            error: (msg) => openToast(msg, "error"),
+          },
+        }
+      );
+
+      setUserData(response.user || response);
       openToast("Settings saved successfully", "success");
       return true;
-    } catch (e) {
-      openToast(e.message || "Failed to save changes", "error");
+    } catch {
       return false;
     }
   };
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 0:
+        return <BasicInfoTab userData={userData} onSave={handleUserUpdate} />;
+      case 1:
+        return <BillingTab />;
+      case 2:
+        return (
+          <NotificationsTab userData={userData} onSave={handleUserUpdate} />
+        );
+      case 3:
+        return <AppearanceTab />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <Box sx={{ minHeight: "100vh", backgroundColor: "#0A0A0A", padding: "40px 48px" }}>
-      {/* Header */}
-      <Typography
-        variant="h4"
-        sx={{ fontWeight: 700, color: "#fff", mb: 1, fontSize: "2rem", letterSpacing: "-0.5px" }}
-      >
-        Settings
-      </Typography>
+    <>
+      <Box sx={{ minHeight: "100vh", backgroundColor: "#0A0A0A" }}>
+        <PageShell>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              color: "#fff",
+              mb: 1,
+              fontSize: "2rem",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            Settings
+          </Typography>
 
-      {/* Tab Navigation */}
-      <Tabs
-        value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
-        sx={{
-          mb: 4,
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          "& .MuiTab-root": {
-            textTransform: "none",
-            fontWeight: 500,
-            fontSize: "0.95rem",
-            minWidth: "auto",
-            padding: "12px 0",
-            marginRight: "32px",
-          },
-          "& .Mui-selected": { color: "#fff" },
-          "& .MuiTabs-indicator": { backgroundColor: "#fff", height: "2px" },
-        }}
-      >
-        {TABS.map((label, i) => (
-          <Tab key={label} label={label} disableRipple />
-        ))}
-      </Tabs>
+          <Tabs
+            value={activeTab}
+            onChange={(_, value) => setActiveTab(value)}
+            sx={{
+              mb: 2,
+              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontWeight: 500,
+                fontSize: "0.95rem",
+                minWidth: "auto",
+                padding: "12px 0",
+                marginRight: "32px",
+              },
+              "& .Mui-selected": { color: "#fff" },
+              "& .MuiTabs-indicator": { backgroundColor: "#fff", height: "2px" },
+            }}
+          >
+            {TABS.map((label) => (
+              <Tab key={label} label={label} disableRipple />
+            ))}
+          </Tabs>
 
-      {/* Tab Panels */}
-      {!loading && (
-        <>
-          {activeTab === 0 && (
-            <BasicInfoTab userData={userData} onSave={handleUserUpdate} />
-          )}
-          {activeTab === 1 && <BillingTab />}
-          {activeTab === 2 && (
-            <NotificationsTab userData={userData} onSave={handleUserUpdate} />
-          )}
-          {activeTab === 3 && <AppearanceTab />}
-        </>
-      )}
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            {loading ? <SettingsLoading /> : renderActiveTab()}
+          </Box>
+        </PageShell>
+      </Box>
 
-      {loading && (
-        <Box sx={{ color: "#9E9E9E", mt: 4 }}>Loading settings...</Box>
-      )}
-
-      {/* Toast */}
       {toast.open && (
         <div
           role="alert"
-          onClick={() => setToast((p) => ({ ...p, open: false }))}
+          tabIndex={0}
+          onClick={closeToast}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setToast((p) => ({ ...p, open: false }));
+              closeToast();
             }
           }}
-          tabIndex={0}
           style={{
             position: "fixed",
             bottom: "24px",
@@ -155,6 +268,6 @@ export default function SettingsPage() {
           {toast.msg}
         </div>
       )}
-    </Box>
+    </>
   );
 }

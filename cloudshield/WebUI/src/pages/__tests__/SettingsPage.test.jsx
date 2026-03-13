@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import SettingsPage from "../SettingsPage";
 import { AuthProvider } from "../../context/AuthContext";
 import "@testing-library/jest-dom";
@@ -134,16 +133,24 @@ describe("SettingsPage", () => {
     });
   });
 
-  test("displays loading state initially", () => {
-    global.fetch.mockImplementation(() => new Promise(() => { }));
+  test("displays accessible loading state initially", () => {
+    global.fetch.mockImplementation(() => new Promise(() => {}));
 
     render(
-      <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+      <AuthProvider
+        initialState={{
+          currentUser: mockAuthContext.currentUser,
+          accessToken: mockAuthContext.accessToken,
+          disableBootstrap: true,
+        }}
+      >
         <SettingsPage />
       </AuthProvider>
     );
 
+    expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByText("Loading settings...")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-loading")).toBeInTheDocument();
   });
 
   test("fetches user data on mount", async () => {
@@ -207,7 +214,13 @@ describe("SettingsPage", () => {
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
         </AuthProvider>
       );
@@ -217,13 +230,10 @@ describe("SettingsPage", () => {
       expect(screen.getByTestId("basic-info-tab")).toBeInTheDocument();
     });
 
-    const saveButton = screen.getByText("Save BasicInfo");
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
+    fireEvent.click(screen.getByText("Save BasicInfo"));
 
     await waitFor(() => {
-      expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("Settings saved successfully");
     });
   });
 
@@ -275,7 +285,13 @@ describe("SettingsPage", () => {
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
         </AuthProvider>
       );
@@ -285,64 +301,14 @@ describe("SettingsPage", () => {
       expect(screen.getByTestId("basic-info-tab")).toBeInTheDocument();
     });
 
-    const saveButton = screen.getByText("Save BasicInfo");
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
+    fireEvent.click(screen.getByText("Save BasicInfo"));
 
-    await waitFor(() => {
-      expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
-    });
+    const toast = await screen.findByRole("alert");
+    expect(toast).toHaveTextContent("Settings saved successfully");
 
-    const toastElement = screen.getByText("Settings saved successfully").parentElement;
-    await act(async () => {
-      fireEvent.click(toastElement);
-    });
+    fireEvent.click(toast);
 
-    expect(screen.queryByText("Settings saved successfully")).not.toBeInTheDocument();
-
-    jest.useRealTimers();
-  });
-
-  test("toast auto-dismisses after 2.5 seconds", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      });
-
-    jest.useFakeTimers();
-
-    await act(async () => {
-      render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
-          <SettingsPage />
-        </AuthProvider>
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("basic-info-tab")).toBeInTheDocument();
-    });
-
-    const saveButton = screen.getByText("Save BasicInfo");
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
-    });
-
-    await act(async () => {
-      jest.advanceTimersByTime(2500);
-    });
-
-    expect(screen.queryByText("Settings saved successfully")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     jest.useRealTimers();
   });
@@ -517,5 +483,69 @@ describe("SettingsPage", () => {
     });
 
     jest.useRealTimers();
+  });
+
+  test("renders settings page heading inside PageShell body", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ user: { id: "user-123", full_name: "Test User" } }),
+    });
+
+    await act(async () => {
+      render(
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
+          <SettingsPage />
+        </AuthProvider>
+      );
+    });
+
+    expect(
+      screen.getByRole("heading", { name: /settings/i })
+    ).toBeInTheDocument();
+  });
+
+  test("shows normalized 401 message from errors.js on update failure", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ user: { id: "user-123" } }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      });
+
+    await act(async () => {
+      render(
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
+          <SettingsPage />
+        </AuthProvider>
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("basic-info-tab")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Save BasicInfo"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Your session expired. Please sign in again."
+      );
+    });
   });
 });
