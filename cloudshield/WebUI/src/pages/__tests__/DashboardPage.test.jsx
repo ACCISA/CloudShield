@@ -39,6 +39,18 @@ jest.mock("../../components/dashboard/StatCard.jsx", () => {
   };
 });
 
+jest.mock("../../components/layout/PageShell.jsx", () => {
+  return function MockPageShell({ children }) {
+    return <div data-testid="page-shell">{children}</div>;
+  };
+});
+
+jest.mock("../../components/table/TableSurface.jsx", () => {
+  return function MockTableSurface({ children }) {
+    return <div data-testid="table-surface">{children}</div>;
+  };
+});
+
 jest.mock("../../components/dashboard/ActivityPanel.jsx", () => {
   return function MockActivityPanel(props) {
     return (
@@ -133,17 +145,20 @@ describe("DashboardPage activity fetching and normalization", () => {
     });
   });
 
-  it("returns early and does not fetch when org_id cannot be resolved", async () => {
-    useAuth.mockReturnValueOnce({ currentUser: null, user: null });
+  it("falls back to auth org_id when localStorage org_id is missing", async () => {
+    localStorage.removeItem("org_id");
 
-    renderDashboard();
+    useAuth.mockReturnValue({
+      currentUser: { org_id: "auth-current-org" },
+    });
+
+    apiGet.mockResolvedValueOnce({ items: [], total: 0 });
+
+    render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("activity-panel")).toBeInTheDocument();
+      expect(apiGet).toHaveBeenCalledWith("/activity/auth-current-org?page=1&limit=10");
     });
-    expect(apiGet).not.toHaveBeenCalled();
-    expect(screen.getByTestId("initial-count")).toHaveTextContent("0");
-    expect(screen.getByTestId("total-items")).toHaveTextContent("0");
   });
 
   it("normalizes activity items from mixed payload fields", async () => {
