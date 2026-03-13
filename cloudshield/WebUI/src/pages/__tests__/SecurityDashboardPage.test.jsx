@@ -9,8 +9,16 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import SecurityDashboardPage from "../SecurityDashboardPage";
 
-// Mock child components
-jest.mock("../../components/security/SecurityChartsPanel", () => {
+const mockPageShell = jest.fn(({ children }) => (
+  <div data-testid="page-shell">{children}</div>
+));
+
+jest.mock("../../components/layout/PageShell.jsx", () => ({
+  __esModule: true,
+  default: (props) => mockPageShell(props),
+}));
+
+jest.mock("../../components/security/SecurityChartsPanel.jsx", () => {
   return function SecurityChartsPanel({ alerts }) {
     return (
       <div data-testid="security-charts-panel">
@@ -20,13 +28,12 @@ jest.mock("../../components/security/SecurityChartsPanel", () => {
   };
 });
 
-jest.mock("../../components/security/SecurityAlertsPanel", () => {
+jest.mock("../../components/security/SecurityAlertsPanel.jsx", () => {
   return function SecurityAlertsPanel() {
     return <div data-testid="security-alerts-panel">Alerts Panel</div>;
   };
 });
 
-// Mock the mock data
 jest.mock("../../data/mockData.js", () => ({
   MOCK_SECURITY_ALERTS: [
     {
@@ -54,10 +61,19 @@ jest.mock("../../data/mockData.js", () => ({
 }));
 
 describe("SecurityDashboardPage Component", () => {
+  beforeEach(() => {
+    mockPageShell.mockClear();
+  });
+
   describe("Basic Rendering", () => {
     it("renders without crashing", () => {
       const { container } = render(<SecurityDashboardPage />);
       expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it("renders inside PageShell", () => {
+      render(<SecurityDashboardPage />);
+      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
     });
 
     it("renders SecurityChartsPanel component", () => {
@@ -77,11 +93,24 @@ describe("SecurityDashboardPage Component", () => {
     });
   });
 
+  describe("PageShell Integration", () => {
+    it("uses PageShell without title, subtitle, or actions", () => {
+      render(<SecurityDashboardPage />);
+
+      expect(mockPageShell).toHaveBeenCalled();
+
+      const props = mockPageShell.mock.calls[0][0];
+      expect(props.title).toBeUndefined();
+      expect(props.subtitle).toBeUndefined();
+      expect(props.actions).toBeUndefined();
+    });
+  });
+
   describe("Component Integration", () => {
     it("passes MOCK_SECURITY_ALERTS to SecurityChartsPanel", () => {
       render(<SecurityDashboardPage />);
       const alertsCount = screen.getByTestId("charts-alerts-count");
-      expect(alertsCount).toHaveTextContent("3"); // 3 mock alerts
+      expect(alertsCount).toHaveTextContent("3");
     });
 
     it("SecurityAlertsPanel renders correctly", () => {
@@ -90,53 +119,49 @@ describe("SecurityDashboardPage Component", () => {
     });
 
     it("renders components in correct order", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const children = container.firstChild.children;
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      const children = content.children;
 
-      expect(children[0]).toHaveAttribute(
-        "data-testid",
-        "security-charts-panel",
-      );
-      expect(children[1]).toHaveAttribute(
-        "data-testid",
-        "security-alerts-panel",
-      );
+      expect(children[0]).toHaveAttribute("data-testid", "security-charts-panel");
+      expect(children[1]).toHaveAttribute("data-testid", "security-alerts-panel");
     });
   });
 
   describe("Layout and Styling", () => {
-    it("applies container styles", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const mainContainer = container.firstChild;
+    it("applies content container styles", () => {
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
 
-      expect(mainContainer).toHaveStyle({
+      expect(content).toHaveStyle({
         display: "flex",
         flexDirection: "column",
       });
     });
 
     it("has correct gap styling", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const mainContainer = container.firstChild;
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
 
-      expect(mainContainer).toHaveStyle({
-        gap: "0px",
+      expect(content).toHaveStyle({
+        gap: "0",
       });
     });
 
     it("has correct width styling", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const mainContainer = container.firstChild;
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
 
-      expect(mainContainer).toHaveStyle({
+      expect(content).toHaveStyle({
         minWidth: "1150px",
         width: "100%",
       });
     });
 
-    it("renders as a div element", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      expect(container.firstChild.tagName).toBe("DIV");
+    it("dashboard content renders as a div element", () => {
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      expect(content.tagName).toBe("DIV");
     });
   });
 
@@ -151,8 +176,9 @@ describe("SecurityDashboardPage Component", () => {
     });
 
     it("maintains structure with no props", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      expect(container.firstChild.children).toHaveLength(2);
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      expect(content.children).toHaveLength(2);
     });
   });
 
@@ -162,27 +188,26 @@ describe("SecurityDashboardPage Component", () => {
       expect(container.children).toHaveLength(1);
     });
 
-    it("root container has exactly two children", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      expect(container.firstChild.children).toHaveLength(2);
+    it("dashboard content has exactly two children", () => {
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      expect(content.children).toHaveLength(2);
     });
 
     it("SecurityChartsPanel is the first child", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const firstChild = container.firstChild.children[0];
-      expect(firstChild).toHaveAttribute(
-        "data-testid",
-        "security-charts-panel",
-      );
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      const firstChild = content.children[0];
+
+      expect(firstChild).toHaveAttribute("data-testid", "security-charts-panel");
     });
 
     it("SecurityAlertsPanel is the second child", () => {
-      const { container } = render(<SecurityDashboardPage />);
-      const secondChild = container.firstChild.children[1];
-      expect(secondChild).toHaveAttribute(
-        "data-testid",
-        "security-alerts-panel",
-      );
+      render(<SecurityDashboardPage />);
+      const content = screen.getByTestId("security-dashboard-content");
+      const secondChild = content.children[1];
+
+      expect(secondChild).toHaveAttribute("data-testid", "security-alerts-panel");
     });
   });
 
@@ -190,7 +215,7 @@ describe("SecurityDashboardPage Component", () => {
     it("passes mock alerts data correctly", () => {
       render(<SecurityDashboardPage />);
       const alertsCount = screen.getByTestId("charts-alerts-count");
-      expect(parseInt(alertsCount.textContent)).toBe(3);
+      expect(parseInt(alertsCount.textContent, 10)).toBe(3);
     });
 
     it("SecurityChartsPanel receives alerts prop", () => {
@@ -199,14 +224,17 @@ describe("SecurityDashboardPage Component", () => {
     });
   });
 
-  describe("Snapshot Consistency", () => {
+  describe("Render Consistency", () => {
     it("maintains consistent structure across renders", () => {
-      const { container: container1 } = render(<SecurityDashboardPage />);
-      const { container: container2 } = render(<SecurityDashboardPage />);
+      const { unmount } = render(<SecurityDashboardPage />);
+      const firstContent = screen.getByTestId("security-dashboard-content");
+      expect(firstContent.children.length).toBe(2);
 
-      expect(container1.firstChild.children.length).toBe(
-        container2.firstChild.children.length,
-      );
+      unmount();
+
+      render(<SecurityDashboardPage />);
+      const secondContent = screen.getByTestId("security-dashboard-content");
+      expect(secondContent.children.length).toBe(2);
     });
 
     it("renders the same components on re-render", () => {
