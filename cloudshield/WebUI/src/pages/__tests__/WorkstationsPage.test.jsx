@@ -217,6 +217,40 @@ jest.mock("../../components/common/RefreshButton/RefreshButton", () => {
   };
 });
 
+// Mock standardized layout/wrappers so tests stay focused on page logic
+jest.mock("../../components/layout/PageShell", () => ({
+  __esModule: true,
+  default: function MockPageShell({ title, subtitle, actions, children }) {
+    return (
+      <div data-testid="page-shell">
+        {title ? <h1>{title}</h1> : null}
+        {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
+        {actions ? <div data-testid="page-actions">{actions}</div> : null}
+        <div data-testid="page-content">{children}</div>
+      </div>
+    );
+  },
+}));
+
+jest.mock("../../components/table/TableSurface", () => ({
+  __esModule: true,
+  default: function MockTableSurface({ children }) {
+    return <div data-testid="table-surface">{children}</div>;
+  },
+}));
+
+jest.mock("../../components/table/TableSkeleton", () => ({
+  __esModule: true,
+  default: function MockTableSkeleton() {
+    return <div data-testid="table-skeleton">Loading...</div>;
+  },
+}));
+
+jest.mock("../../lib/safeAsync", () => ({
+  __esModule: true,
+  safeAsync: jest.fn(async (fn) => await fn()),
+}));
+
 describe("WorkstationsPage Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -664,11 +698,16 @@ describe("WorkstationsPage Component", () => {
       const consoleSpy = jest.spyOn(console, "log").mockImplementation();
 
       renderPage();
-      const refreshButton = screen.getByTestId("refresh-button");
+      await userEvent.click(screen.getByTestId("refresh-button"));
 
-      await userEvent.click(refreshButton);
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith("refresh");
+      });
 
-      expect(consoleSpy).toHaveBeenCalledWith("refresh");
+      await waitFor(() => {
+        expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+      });
+
       consoleSpy.mockRestore();
     });
   });
@@ -777,5 +816,29 @@ describe("WorkstationsPage Component", () => {
     });
   });
 
-  // Analytics tests removed - useClickLogger mock doesn't trigger trackButton
+  test("renders inside PageShell and TableSurface", () => {
+    renderPage();
+
+    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("page-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("page-content")).toBeInTheDocument();
+    expect(screen.getByTestId("table-surface")).toBeInTheDocument();
+  });
+
+  test("refresh uses safeAsync", async () => {
+    const { safeAsync } = require("../../lib/safeAsync");
+
+    renderPage();
+    await userEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(safeAsync).toHaveBeenCalled();
+  });
+
+  test("does not render title or subtitle in PageShell", () => {
+    renderPage();
+
+    expect(screen.queryByTestId("page-subtitle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
+
 });
