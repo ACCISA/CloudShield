@@ -2,8 +2,6 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
-import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
-import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -27,7 +25,7 @@ import { safeAsync } from "../lib/safeAsync";
 import { getUserErrorMessage } from "../lib/errors";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
-
+import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 const styles = {
   container: {
     display: "flex",
@@ -58,13 +56,55 @@ const styles = {
   },
 };
 
-const seed = MOCK_WORKSTATIONS_FULL;
+/**
+ * Creates a workstation for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {string} name - The name of the workstation
+ * @param {string} ip - The IP address of the workstation
+ * @returns {string} The created workstation id
+ */
+ 
+
+export const createWorkstation = async (orgId, name, ip, groups) => {
+  try {
+    const token = localStorage.getItem("jwt");
+    const res = await fetch(`/api/workstations`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        org_id: orgId,
+        name,
+        ip,
+        groups: groups?.map((g) => g.id) || [],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err?.error || `Failed to create workstation: ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (e) {
+    console.error("Error creating workstation:", e);
+    return null;
+  }
+};
+
+
+/* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
-
-  const [rows, setRows] = useState(seed);
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
   const [showUsersCol, setShowUsersCol] = useState(true);
@@ -89,6 +129,16 @@ export default function WorkstationsPage() {
     }
   }, [location]);
 
+  // Fetch workstations on mount
+  useEffect(() => {
+    const loadWorkstations = async () => {
+      const orgId = localStorage.getItem("org_id");
+      const token = localStorage.getItem("jwt");
+      const data = await fetchWorkstations(orgId, token);
+      setRows(data);
+    };
+    loadWorkstations();
+  }, []);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let data = rows;
@@ -186,7 +236,7 @@ export default function WorkstationsPage() {
     });
   };
 
-  const handleCreate = (payload) => {
+  const handleCreate = async (payload) => {
     trackButton("workstations/create/save", {
       page: "workstations",
       control: "create_dialog",
@@ -211,7 +261,15 @@ export default function WorkstationsPage() {
       allGroups: payload.allGroups || false,
       allSoftware: payload.allSoftware || false,
     };
-
+    const created = await createWorkstation(
+      payload.orgId,
+      payload.name,
+      payload.ip,
+      payload.groups,
+    );
+    if (!created) {
+      return;
+    }
     setRows((prev) => [newRow, ...prev]);
   };
 
