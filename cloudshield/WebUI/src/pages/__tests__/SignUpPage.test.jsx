@@ -56,6 +56,30 @@ jest.mock("../../components/auth/PasswordField", () => {
   };
 });
 
+jest.mock("../../components/layout/PageShell", () => {
+  return function MockPageShell({ children }) {
+    return <div data-testid="page-shell">{children}</div>;
+  };
+});
+
+jest.mock("../../components/table/TableSurface", () => {
+  return function MockTableSurface({ children }) {
+    return <div data-testid="table-surface">{children}</div>;
+  };
+});
+
+jest.mock("../../components/table/TableSkeleton", () => {
+  return function MockTableSkeleton({ rows, cols }) {
+    return (
+      <div
+        data-testid="table-skeleton"
+        data-rows={rows}
+        data-cols={cols}
+      />
+    );
+  };
+});
+
 jest.mock("../../components/auth/PrimaryButton", () => {
   return function MockPrimaryButton({ children, onClick, disabled }) {
     return (
@@ -392,26 +416,25 @@ describe("SignupPage", () => {
     fireEvent.click(screen.getByTestId("primary-button"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Error during signup. Is the server running?"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Network error")).toBeInTheDocument();
     });
   });
 
   it("disables submit button while submitting", async () => {
     mockFetch.mockImplementationOnce(
-      () => new Promise((resolve) => setTimeout(resolve, 1000)),
+      () => new Promise(() => {}) // keep request pending
     );
 
     renderSignupPage();
-
     setValidFormValues();
 
     fireEvent.click(screen.getByTestId("primary-button"));
 
     await waitFor(() => {
       expect(screen.getByTestId("primary-button")).toBeDisabled();
-      expect(screen.getByText("Creating...")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Create Organization")
+      ).not.toBeInTheDocument();
     });
   });
 

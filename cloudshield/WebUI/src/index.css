@@ -1,18 +1,32 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
+  /* Keep if you truly support both themes; otherwise remove and enforce one */
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
-  font-synthesis: none;
+  /* App defaults */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Full-height app shell */
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+
+  /* IMPORTANT: allow scrolling unless your layout handles it */
+  overflow: auto;
+}
+
+/* Links */
 a {
   font-weight: 500;
   color: #646cff;
@@ -22,34 +36,27 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  min-width: 320px;
-  height: 100vh;
-  overflow: hidden;
-}
-
-html {
-  overflow: hidden;
-  height: 100vh;
-}
-
-#root {
-  height: 100vh;
-  overflow: hidden;
-}
-
+/* Headings: normalized (avoid giant Vite default) */
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  margin: 0;
+}
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.25;
+  margin: 0;
+}
+p {
+  margin: 0;
 }
 
+/* Buttons: keep your base but ensure consistency */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
-  font-size: 1em;
+  font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
@@ -64,26 +71,42 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Truncation utilities */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
 /* Custom scrollbar styling - dark overlay */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   transition: background 0.2s;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
-
 ::-webkit-scrollbar-thumb:active {
   background: rgba(255, 255, 255, 0.4);
 }
@@ -94,6 +117,7 @@ button:focus-visible {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
+/* Optional: keep your prefers-color-scheme block if you truly want automatic theme switching */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

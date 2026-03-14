@@ -238,6 +238,39 @@ jest.mock("../../assets/CreateGroupIcon.jsx", () => {
   };
 });
 
+jest.mock("../../components/layout/PageShell.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyPageShell({ title, subtitle, actions, children }) {
+      return (
+        <div data-testid="page-shell">
+          {title ? <div data-testid="page-title">{title}</div> : null}
+          {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
+          <div data-testid="page-actions">{actions}</div>
+          <div data-testid="page-content">{children}</div>
+        </div>
+      );
+    },
+  };
+});
+
+jest.mock("../../components/table/TableSurface.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyTableSurface({ children }) {
+      return <div data-testid="table-surface">{children}</div>;
+    },
+  };
+});
+
+jest.mock("../../components/table/TableSkeleton.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyTableSkeleton() {
+      return <div data-testid="table-skeleton">Loading…</div>;
+    },
+  };
+});
 // Mock data
 // jest.mock("../../data/mockData.js", () => ({
 //   MOCK_GROUPS_FULL: [
@@ -1592,5 +1625,23 @@ describe("GroupsPage Component", () => {
     expect(screen.getByTestId("groups-list")).toBeInTheDocument();
 
     global.fetch.mockRestore();
+  });
+
+  test("renders inside PageShell without title and subtitle", () => {
+    renderPage();
+
+    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(screen.queryByTestId("page-title")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-subtitle")).not.toBeInTheDocument();
+    expect(screen.getByTestId("table-surface")).toBeInTheDocument();
+  });
+  
+  test("shows the loading skeleton without unmounting the list", () => {
+    global.fetch = jest.fn(() => new Promise(() => {}));
+
+    renderPage();
+
+    expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
   });
 });
