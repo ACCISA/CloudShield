@@ -24,6 +24,13 @@ import FileShareWizardModal from "../components/files/FileShareWizardModal";
 import AvatarPill from "../components/files/AvatarPill";
 import FolderPlusIcon from "../assets/FolderPlusIcon";
 
+import PageShell from "../components/layout/PageShell";
+import TableSurface from "../components/table/TableSurface";
+import TableSkeleton from "../components/table/TableSkeleton";
+import { getUserErrorMessage } from "../lib/errors";
+import { safeAsync } from "../lib/safeAsync";
+import { formatShares } from "../lib/format";
+
 import {
   createFileShare,
   updateFileShare,
@@ -35,7 +42,6 @@ import {
 } from "../api/filesApi";
 
 import {
-  HARD_CODED_TREE,
   NODE_KIND,
   formatDateTime,
   buildIndex,
@@ -95,7 +101,7 @@ function StorageCell({ currentSize, maxSize }) {
   if (!Number.isFinite(max) || max <= 0) {
     return (
       <div className="storageCell" aria-label="Storage usage">
-        <div className="storageMiniLabel">-</div>
+        <div className="storageMiniLabel">{formatShares(0)}</div>
       </div>
     );
   }
@@ -153,9 +159,9 @@ export default function FilesPage() {
 
   const [layout, setLayout] = useState("list");
 
-  // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
-  // If HARD_CODED_TREE causes issues, initialize as []
-  const [tree, setTree] = useState(HARD_CODED_TREE || []);
+  const [tree, setTree] = useState([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Lookup maps for enriching hover cards
   const [userLookup, setUserLookup] = useState(new Map());
@@ -186,7 +192,7 @@ export default function FilesPage() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const usersData = await fetchUsers(orgId);
+        const usersData = await safeAsync(() => fetchUsers(orgId));
         const lookup = new Map();
         usersData.forEach((user) => {
           const email = user.email || "";
@@ -200,12 +206,9 @@ export default function FilesPage() {
             role: user.role,
             active: user.active !== undefined ? user.active : true,
           };
-          // Keep lookups simple and aligned with the DB shape.
           if (normalized.username) lookup.set(normalized.username, normalized);
           if (email) lookup.set(email, normalized);
-          if (normalized.full_name)
-            lookup.set(normalized.full_name, normalized);
-          // Legacy fallback: some shares store email prefixes like "samir".
+          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
           if (emailPrefix) lookup.set(emailPrefix, normalized);
         });
         setUserLookup(lookup);
@@ -220,7 +223,7 @@ export default function FilesPage() {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        const groupsData = await fetchGroups(orgId);
+        const groupsData = await safeAsync(() => fetchGroups(orgId));
         const lookup = new Map();
         groupsData.forEach((group) => {
           const groupName = group.group_name || group.name || "";
@@ -236,7 +239,6 @@ export default function FilesPage() {
             file_shares: group.file_shares || [],
             created_at: group.created_at,
           };
-          // Map by name for lookup
           if (normalized.name) {
             lookup.set(normalized.name, normalized);
           }
@@ -269,18 +271,31 @@ export default function FilesPage() {
     return [];
   };
 
-  // --- CORRECTED FETCH LOGIC ---
-  const fetchTree = useCallback(async () => {
-    console.log("fetchTree - Starting fetch with orgId:", orgId);
-    try {
-      const shares = await fetchFileShares(orgId);
-      const nodes = transformSharesToTree(shares);
-      console.log("fetchTree - Extracted shares:", nodes);
-      setTree(nodes);
-    } catch (e) {
-      console.error("fetchTree - Failed to fetch files:", e);
-    }
-  }, [orgId]);
+  const fetchTree = useCallback(
+    async ({ initial = false } = {}) => {
+      if (initial) {
+        setIsInitialLoading(true);
+      }
+
+      setLoadError("");
+      console.log("fetchTree - Starting fetch with orgId:", orgId);
+
+      try {
+        const shares = await safeAsync(() => fetchFileShares(orgId));
+        const nodes = transformSharesToTree(shares);
+        console.log("fetchTree - Extracted shares:", nodes);
+        setTree(Array.isArray(nodes) ? nodes : []);
+      } catch (e) {
+        console.error("fetchTree - Failed to fetch files:", e);
+        setLoadError(getUserErrorMessage(e));
+      } finally {
+        if (initial) {
+          setIsInitialLoading(false);
+        }
+      }
+    },
+    [orgId],
+  );
 
   // Handle creating a new file share
   const handleCreateShare = useCallback(
@@ -347,7 +362,7 @@ export default function FilesPage() {
           newSet.delete(data.shareName);
           return newSet;
         });
-        alert(`Failed to create share: ${err.message}`);
+        alert(`Failed to create share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, fetchTree],
@@ -370,7 +385,7 @@ export default function FilesPage() {
         alert("File share updated successfully!");
       } catch (err) {
         console.error("Failed to update share:", err);
-        alert(`Failed to update share: ${err.message}`);
+        alert(`Failed to update share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, editTarget, fetchTree],
@@ -394,13 +409,13 @@ export default function FilesPage() {
       alert("File share deleted successfully!");
     } catch (err) {
       console.error("Failed to delete share:", err);
-      alert(`Failed to delete share: ${err.message}`);
+      alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
     }
   }, [orgId, editTarget, fetchTree]);
 
   // Trigger fetch on mount
   useEffect(() => {
-    fetchTree();
+    fetchTree({ initial: true });
   }, [fetchTree]);
 
   const listFilteredTree = useMemo(() => {
@@ -563,7 +578,7 @@ export default function FilesPage() {
           newSet.delete(node.name);
           return newSet;
         });
-        alert(`Failed to delete share: ${err.message}`);
+        alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, fetchTree],
@@ -835,7 +850,7 @@ export default function FilesPage() {
               <div className="iconStorageLine">
                 <span className="iconMetaLabel">Storage</span>
                 <span className="iconMetaValue">
-                  {hasStorage ? `${currentSize} / ${maxSize} GB` : "-"}
+                  {hasStorage ? `${currentSize} / ${maxSize} GB` : formatShares(0)}
                 </span>
               </div>
 
@@ -855,12 +870,20 @@ export default function FilesPage() {
     </>
   );
 
-  return (
-    <div className="filesPage">
-      {/* StoragePill temporarily hidden until global storage is defined */}
-      {/* <StoragePill usedGB={62} totalGB={100} /> */}
+  const renderMainContent = () => {
+    if (isInitialLoading) {
+      return <TableSkeleton rows={8} cols={6} />;
+    }
 
-      <div className="toolbar">
+    return layout === "list" ? renderList() : renderIcons();
+  };
+
+
+
+  return (
+    <PageShell>
+      <div className="filesPage">
+        <div className="toolbar">
         <div className="leftTools">
           <SearchField
             value={searchQuery}
@@ -868,10 +891,10 @@ export default function FilesPage() {
             placeholder="Search files"
             showIcon={true}
             style={{
-              flex: "1 1 200px",
-              minWidth: "200px",
-              maxWidth: "680px",
-              width: "100%",
+              flex: "0 1 420px",
+              minWidth: "220px",
+              maxWidth: "420px",
+              width: "auto",
             }}
           />
           <DisplayButton
@@ -926,8 +949,17 @@ export default function FilesPage() {
         </div>
       )}
 
-      {layout === "list" && renderList()}
-      {layout === "icons" && renderIcons()}
+        {loadError ? (
+          <div className="filesErrorBanner" role="alert">
+            {loadError}
+          </div>
+        ) : null}
+
+        <div className="contentSurface">
+          <TableSurface>
+            {renderMainContent()}
+          </TableSurface>
+        </div>
 
       {/* New Wizard Modal for Create */}
       <FileShareWizardModal
@@ -951,8 +983,26 @@ export default function FilesPage() {
           color: #fff;
           display: flex;
           flex-direction: column;
-          height: 100vh;
+          gap: 12px;
+          height: 100%;
+          min-height: 0;
           overflow: hidden;
+        }
+
+        .contentSurface {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .filesErrorBanner {
+          flex-shrink: 0;
+          border: 1px solid rgba(255, 107, 107, 0.25);
+          background: rgba(255, 107, 107, 0.08);
+          color: #ffd7d7;
+          border-radius: 10px;
+          padding: 10px 12px;
+          font-size: 0.9rem;
         }
 
         /* Top bar */
@@ -985,13 +1035,15 @@ export default function FilesPage() {
         /* Toolbar */
         .toolbar {
           display: flex;
+          align-items: center;
           justify-content: space-between;
           gap: 12px;
           flex-wrap: wrap;
           flex-shrink: 0;
           margin-bottom: 0;
         }
-        .leftTools, .rightTools {
+        .leftTools,
+        .rightTools {
           display: flex;
           align-items: center;
           gap: 10px;
@@ -1002,7 +1054,7 @@ export default function FilesPage() {
           min-width: 0;
         }
         .rightTools {
-          flex-shrink: 0;
+          flex: 0 0 auto;
         }
         .selectionSummary {
           display: flex;
@@ -1343,6 +1395,17 @@ export default function FilesPage() {
           to { transform: rotate(360deg); }
         }
         
+        @media (max-width: 900px) {
+          .toolbar {
+            align-items: stretch;
+          }
+
+          .leftTools,
+          .rightTools {
+            width: 100%;
+          }
+        }
+
         @media (max-width: 820px) {
           .topBar { flex-direction: column; align-items: stretch; }
           .storagePill { width: 100%; }
@@ -1375,6 +1438,7 @@ export default function FilesPage() {
           .iconsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
       `}</style>
-    </div>
+      </div>
+    </PageShell>
   );
 }

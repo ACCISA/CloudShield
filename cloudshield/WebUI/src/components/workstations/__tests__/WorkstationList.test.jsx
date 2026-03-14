@@ -2,12 +2,67 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import WorkstationList from "../WorkstationList";
 
+jest.mock("../../../assets/ActiveIcon.jsx", () => () => <span data-testid="active-icon" />);
+jest.mock("../../common/HoverableRow.jsx", () => ({ children }) => <div>{children}</div>);
+
+jest.mock("../../common/Checkbox/Checkbox.jsx", () => {
+  return function MockCheckbox({ checked = false, indeterminate = false, onChange }) {
+    return (
+      <input
+        type="checkbox"
+        aria-label={indeterminate ? "indeterminate checkbox" : "checkbox"}
+        checked={checked}
+        onChange={onChange}
+      />
+    );
+  };
+});
+
+jest.mock("../../common/StatusButton/StatusButton.jsx", () => {
+  return function MockStatusButton({ status, onClick }) {
+    const label = status === "connected" ? "Disconnect" : "Connect";
+    return <button onClick={onClick}>{label}</button>;
+  };
+});
+
+jest.mock("../../common/EditButton/EditButton.jsx", () => {
+  return function MockEditButton({ menuItems = [] }) {
+    return (
+      <button
+        aria-label="edit"
+        onClick={() => menuItems[0]?.onClick?.()}
+      >
+        Edit
+      </button>
+    );
+  };
+});
+
+jest.mock("../../common/DisplayIcon/DisplayIcon.jsx", () => {
+  return function MockDisplayIcon({ type, data }) {
+    if (type === "user") {
+      const first = data?.firstName?.[0] || "";
+      const last = data?.lastName?.[0] || "";
+      return <span>{`${first}${last}`}</span>;
+    }
+
+    return <span>{data?.name || data?.code || "icon"}</span>;
+  };
+});
+
 describe("WorkstationList", () => {
   const mockRows = [
     {
       id: 1,
       name: "Workstation 1",
       code: "WS-001",
+      users: [
+        "John Doe",
+        "Jane Roe",
+        "Bob Smith",
+        "Alice Jones",
+        "Sam Lee",
+      ],
       usersCount: 5,
       currentUser: "John Doe",
       lastUsed: "2 hours ago",
@@ -17,6 +72,7 @@ describe("WorkstationList", () => {
       id: 2,
       name: "Workstation 2",
       code: "WS-002",
+      users: ["Jane Smith", "Mike Ross", "Amy Pond"],
       usersCount: 3,
       currentUser: "Jane Smith",
       lastUsed: "1 day ago",
@@ -25,11 +81,18 @@ describe("WorkstationList", () => {
   ];
 
   const mockOnEdit = jest.fn();
+  const mockOnDelete = jest.fn();
   const mockOnToggleStatus = jest.fn();
+  const mockOnToggleSelect = jest.fn();
+  const mockOnToggleSelectAll = jest.fn();
 
   beforeEach(() => {
-    mockOnEdit.mockClear();
-    mockOnToggleStatus.mockClear();
+    jest.clearAllMocks();
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 1280,
+    });
   });
 
   it("renders workstation rows", () => {
@@ -37,11 +100,29 @@ describe("WorkstationList", () => {
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    expect(screen.getByText("Workstation 1")).toBeInTheDocument();
-    expect(screen.getByText("Workstation 2")).toBeInTheDocument();
+
+    expect(screen.getAllByText("Workstation 1")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Workstation 2")[0]).toBeInTheDocument();
+  });
+
+  it("renders desktop headers", () => {
+    render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggleStatus={mockOnToggleStatus}
+      />,
+    );
+
+    expect(screen.getByText("Name/Number")).toBeInTheDocument();
+    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Current")).toBeInTheDocument();
+    expect(screen.getByText("Last Used")).toBeInTheDocument();
   });
 
   it("displays workstation codes", () => {
@@ -49,209 +130,167 @@ describe("WorkstationList", () => {
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
+
     expect(screen.getByText("↳ WS-001")).toBeInTheDocument();
     expect(screen.getByText("↳ WS-002")).toBeInTheDocument();
   });
 
-  it("displays user counts", () => {
+  it("displays extra user count when more than three users exist", () => {
     render(
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    // The component displays "+2" for the extra users (5 total - 3 shown = 2 extra)
+
     expect(screen.getByText("+ 2")).toBeInTheDocument();
-    // For workstation 2, 3 users total with 3 shown = no extra count displayed
   });
 
-  it("displays current users", () => {
+  it("displays current users and last used values on desktop", () => {
     render(
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    // Users are displayed as avatars with initials, not full names
-    // Check for the initials instead
-    expect(screen.getByText("JD")).toBeInTheDocument(); // John Doe
-    expect(screen.getByText("JS")).toBeInTheDocument(); // Jane Smith
-  });
 
-  it("displays last used times", () => {
-    render(
-      <WorkstationList
-        rows={mockRows}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-      />,
-    );
+    expect(screen.getAllByText("JD").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("JS").length).toBeGreaterThan(0);
     expect(screen.getByText("2 hours ago")).toBeInTheDocument();
     expect(screen.getByText("1 day ago")).toBeInTheDocument();
   });
 
-  it("renders checkboxes for each row", () => {
+  it("renders header checkbox plus row checkboxes on desktop", () => {
     render(
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes.length).toBe(mockRows.length);
+
+    expect(screen.getAllByRole("checkbox")).toHaveLength(mockRows.length + 1);
   });
 
-  it("calls onToggleStatus when connect/disconnect button is clicked", () => {
+  it("calls onToggleStatus when status button is clicked", () => {
     render(
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
 
-    // The status chips are clickable via their container Box
-    // Find the "Disconnect" chip (first workstation has status 'connected', but chip says 'Disconnect')
-    const disconnectChip = screen.getByText("Disconnect");
-    expect(disconnectChip).toBeInTheDocument();
-
-    // Click the chip
-    fireEvent.click(disconnectChip);
+    fireEvent.click(screen.getByText("Disconnect"));
     expect(mockOnToggleStatus).toHaveBeenCalledWith(1);
   });
 
-  it("calls onEdit when edit button is clicked", () => {
+  it("calls onEdit when edit is clicked", () => {
     render(
       <WorkstationList
         rows={mockRows}
         onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
-    const editButtons = screen.getAllByLabelText(/edit/i);
-    fireEvent.click(editButtons[0]);
+
+    fireEvent.click(screen.getAllByLabelText(/edit/i)[0]);
     expect(mockOnEdit).toHaveBeenCalledWith(mockRows[0]);
   });
 
-  it("renders empty list when no rows provided", () => {
-    const { container } = render(
+  it("calls onToggleSelectAll from the header checkbox", () => {
+    render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggleStatus={mockOnToggleStatus}
+        onToggleSelectAll={mockOnToggleSelectAll}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    expect(mockOnToggleSelectAll).toHaveBeenCalled();
+  });
+
+  it("calls onToggleSelect for a row checkbox", () => {
+    render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggleStatus={mockOnToggleStatus}
+        onToggleSelect={mockOnToggleSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("checkbox")[1]);
+    expect(mockOnToggleSelect).toHaveBeenCalledWith(1);
+  });
+
+  it("respects showUsers/showCurrent/showLastUsed props", () => {
+    render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggleStatus={mockOnToggleStatus}
+        showUsers={false}
+        showCurrent={false}
+        showLastUsed={false}
+      />,
+    );
+
+    expect(screen.queryByText("Users")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current")).not.toBeInTheDocument();
+    expect(screen.queryByText("Last Used")).not.toBeInTheDocument();
+    expect(screen.queryByText("2 hours ago")).not.toBeInTheDocument();
+  });
+
+  it("hides header and selection column on mobile", () => {
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 500,
+    });
+
+    render(
+      <WorkstationList
+        rows={mockRows}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        onToggleStatus={mockOnToggleStatus}
+      />,
+    );
+
+    expect(screen.queryByText("Name/Number")).not.toBeInTheDocument();
+    expect(screen.queryByText("Users")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current")).not.toBeInTheDocument();
+    expect(screen.queryByText("Last Used")).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  it("renders safely with empty rows", () => {
+    render(
       <WorkstationList
         rows={[]}
         onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-      />,
-    );
-    const listItems = container.querySelectorAll('[role="checkbox"]');
-    expect(listItems.length).toBe(0);
-  });
-
-  it("displays status chip for connected workstation", () => {
-    render(
-      <WorkstationList
-        rows={[mockRows[0]]}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-      />,
-    );
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
-  });
-
-  it("displays status chip for busy workstation", () => {
-    render(
-      <WorkstationList
-        rows={[mockRows[1]]}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-      />,
-    );
-    expect(screen.getByText("Connect")).toBeInTheDocument();
-  });
-
-  it("handles column visibility props correctly", () => {
-    const { rerender } = render(
-      <WorkstationList
-        rows={mockRows}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-        showUsersCol={true}
-        showCurrentCol={true}
-        showLastUsedCol={true}
-      />,
-    );
-
-    // All columns should be visible
-    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
-
-    // Hide columns
-    rerender(
-      <WorkstationList
-        rows={mockRows}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-        showUsersCol={false}
-        showCurrentCol={false}
-        showLastUsedCol={false}
-      />,
-    );
-
-    // Columns should still render but component adjusts layout
-    expect(screen.getByText("Workstation 1")).toBeInTheDocument();
-  });
-
-  it("renders workstations with different statuses correctly", () => {
-    const rowsWithStatuses = [
-      { ...mockRows[0], status: "connected" },
-      { ...mockRows[1], status: "busy" },
-      {
-        id: 3,
-        name: "WS3",
-        code: "WS-003",
-        status: "idle",
-        usersCount: 0,
-        currentUser: "",
-        lastUsed: "Never",
-      },
-    ];
-
-    render(
-      <WorkstationList
-        rows={rowsWithStatuses}
-        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
         onToggleStatus={mockOnToggleStatus}
       />,
     );
 
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
-    expect(screen.getByText("Connect")).toBeInTheDocument();
-  });
-
-  it("handles workstations with zero users", () => {
-    const rowWithNoUsers = [
-      {
-        id: 1,
-        name: "Empty WS",
-        code: "WS-000",
-        usersCount: 0,
-        currentUser: "",
-        lastUsed: "Never",
-        status: "idle",
-      },
-    ];
-
-    render(
-      <WorkstationList
-        rows={rowWithNoUsers}
-        onEdit={mockOnEdit}
-        onToggleStatus={mockOnToggleStatus}
-      />,
-    );
-
-    expect(screen.getByText("Empty WS")).toBeInTheDocument();
+    expect(screen.getByText("Name/Number")).toBeInTheDocument();
   });
 });

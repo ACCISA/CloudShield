@@ -5,7 +5,7 @@
  * Tests rendering, responsive behavior, and user interactions
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GroupsList from "../GroupsList";
 
@@ -203,8 +203,9 @@ describe("GroupsList Component", () => {
     });
 
     test("shows files column when showFiles is true", () => {
+      window.innerWidth = 1920;
       render(<GroupsList rows={mockGroups} showFiles={true} />);
-      expect(screen.getByText("Files")).toBeInTheDocument();
+      expect(screen.getByText("Shares")).toBeInTheDocument();
     });
 
     test("hides files column when showFiles is false", () => {
@@ -252,15 +253,16 @@ describe("GroupsList Component", () => {
     test("displays file counts", () => {
       render(<GroupsList rows={mockGroups} showFiles={true} />);
 
-      expect(screen.getByText("+ 5")).toBeInTheDocument();
-      expect(screen.getByText("+ 3")).toBeInTheDocument();
-      expect(screen.getByText("+ 8")).toBeInTheDocument();
+      expect(screen.getByText("5")).toBeInTheDocument();
+      expect(screen.getByText("3")).toBeInTheDocument();
+      expect(screen.getByText("8")).toBeInTheDocument();
     });
 
-    test("shows 0 for groups with no files", () => {
+    test("shows '-' for groups with no files", () => {
       const noFilesGroup = [{ ...mockGroups[0], files: 0 }];
       render(<GroupsList rows={noFilesGroup} showFiles={true} />);
-      expect(screen.getByText("+ 0")).toBeInTheDocument();
+
+      expect(screen.getByText("-")).toBeInTheDocument();
     });
   });
 
@@ -442,7 +444,7 @@ describe("GroupsList Component", () => {
       ];
 
       render(<GroupsList rows={groupWithNoFiles} showFiles={true} />);
-      expect(screen.getByText("+ 0")).toBeInTheDocument();
+      expect(screen.getByText("-")).toBeInTheDocument();
     });
   });
 });

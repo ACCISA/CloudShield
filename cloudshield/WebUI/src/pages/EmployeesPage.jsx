@@ -25,6 +25,14 @@ import ActiveIcon from "../assets/ActiveIcon.jsx";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+import TableSkeleton from "../components/table/TableSkeleton.jsx";
+
+import { getUserErrorMessage } from "../lib/errors.js";
+import { formatShares } from "../lib/format.js";
+import { safeAsync } from "../lib/safeAsync.js";
+
 // Backend & Context
 import {
   listUsers,
@@ -77,6 +85,23 @@ const CustomToast = ({ msg, type, onClose }) => {
   );
 };
 
+  const normalizeErrorMessage = (error, fallback) => {
+    const msg = getUserErrorMessage(error);
+    return !msg || msg === "Something went wrong. Please try again."
+      ? fallback
+      : msg;
+  };
+
+  const makeToastAdapter = (fallback) => ({
+    error: (msg) =>
+      openToast(
+        !msg || msg === "Something went wrong. Please try again."
+          ? fallback
+          : msg,
+        "error"
+      ),
+  });
+  
 CustomToast.propTypes = {
   msg: PropTypes.string.isRequired,
   type: PropTypes.oneOf(["success", "error", "info", "warning"]),
@@ -145,6 +170,8 @@ function enrichUser(user, allGroups) {
     groupCount: userGroups.length,
     files: userFileShares,
     fileCount: userFileShares.length,
+    fileCountDisplay: formatShares(userFileShares.length),
+    sharesDisplay: formatShares(userFileShares.length),
     status: user.status || "offline",
     profileImage: user.profile_image || null,
     _original: user,
@@ -315,21 +342,24 @@ export default function EmployeesPage() {
   };
 
   // API Actions
-  const fetchUsers = useCallback(async () => {
+ const fetchUsers = useCallback(async () => {
     const token = resolveAuthToken();
     if (!token) return;
 
     setLoading(true);
-    try {
-      // Fetch users
-      const data = await listUsers({
-        token,
-        search: search,
-        limit: 100,
-        offset: 0,
-      });
 
-      // Fetch groups to calculate membership counts
+    try {
+      const data = await safeAsync(
+        () =>
+          listUsers({
+            token,
+            search,
+            limit: 100,
+            offset: 0,
+          }),
+        { toast: makeToastAdapter("Failed to load users") }
+      );
+
       let allGroups = [];
       try {
         const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", {
@@ -337,6 +367,7 @@ export default function EmployeesPage() {
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeader() },
         });
+
         if (groupsRes.ok) {
           const groupsData = await groupsRes.json();
           allGroups = groupsData.access_groups || [];
@@ -345,21 +376,13 @@ export default function EmployeesPage() {
         console.warn("Failed to fetch groups for enrichment:", e);
       }
 
-      // Map users and enrich with group/workstation/file data
       const mappedUsers = Array.isArray(data)
         ? data.map((user) => enrichUser(user, allGroups))
         : [];
 
-      if (mappedUsers.length > 0) {
-        console.log(
-          "Sample user org_id format:",
-          mappedUsers[0]._original.org_id,
-        );
-      }
       setUsers(mappedUsers);
     } catch (error) {
       console.error("Failed to fetch users", error);
-      openToast(error.message || "Failed to load users", "error");
     } finally {
       setLoading(false);
     }
@@ -442,8 +465,8 @@ export default function EmployeesPage() {
         }
       } else if (error.payload?.error) {
         msg = error.payload.error;
-      } else if (error.message) {
-        msg = error.message;
+      } else {
+        msg = normalizeErrorMessage(error, "Failed to save user");
       }
       openToast(msg, "error");
     }
@@ -480,17 +503,21 @@ export default function EmployeesPage() {
         id: userToDelete.id,
         control: user ? "table_row" : "edit_dialog",
       });
-      await deleteUser(userToDelete.id, { token });
+
+      await safeAsync(
+        () => deleteUser(userToDelete.id, { token }),
+        { toast: makeToastAdapter("Failed to delete user") }
+      );
+
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
 
-      // Only close modal if we were deleting from modal context
       if (!user && modalEmployee) {
         setModalOpen(false);
         setModalEmployee(null);
       }
     } catch (error) {
-      openToast(error.message || "Failed to delete user", "error");
+      console.error("Failed to delete user", error);
     }
   };
 
@@ -639,9 +666,32 @@ export default function EmployeesPage() {
     },
   ];
 
+const pageActions = (
+  <>
+    <RefreshButton
+      onClick={withClickLog({
+        name: "employees/toolbar/refresh",
+        control: "refresh_button",
+      })(fetchUsers)}
+      isLoading={loading}
+    />
+
+    <CreateButton
+      icon={<CreateUserIcon width={16} height={16} color="#fff" />}
+      buttonText="Create"
+      onClick={withClickLog({
+        name: "employees/toolbar/open-create",
+        control: "create_button",
+      })(() => {
+        setModalEmployee(null);
+        setModalOpen(true);
+      })}
+    />
+  </>
+);
+
   return (
-    <div className="page-layout">
-      {/* Toolbar */}
+    <PageShell actions={pageActions}>
       <div style={styles.toolbar}>
         <div style={styles.leftActions}>
           <SearchField
@@ -702,67 +752,50 @@ export default function EmployeesPage() {
                 style={styles.clearSelectionButton}
                 onClick={clearSelection}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.08)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.03)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
                 }}
               >
                 Clear selection
               </button>
             </div>
           )}
-          <RefreshButton
-            onClick={withClickLog({
-              name: "employees/toolbar/refresh",
-              control: "refresh_button",
-            })(fetchUsers)}
-            isLoading={loading}
-          />
-
-          <CreateButton
-            icon={<CreateUserIcon width={16} height={16} color="#fff" />}
-            buttonText="Create"
-            onClick={withClickLog({
-              name: "employees/toolbar/open-create",
-              control: "create_button",
-            })(() => {
-              setModalEmployee(null);
-              setModalOpen(true);
-            })}
-          />
         </div>
       </div>
 
       {layout === "list" ? (
-        <div className="page-list-wrapper">
-          <UsersTable
-            users={filtered}
-            showTitle={showTitle}
-            showWorkstations={showWorkstations}
-            showGroups={showGroups}
-            showFiles={showFiles}
-            selectedIds={selectedIds}
-            allVisibleSelected={allVisibleSelected}
-            isIndeterminate={isIndeterminate}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAllVisible}
-            onSort={toggleSort}
-            sortField={sortField}
-            sortDir={sortDir}
-            onEdit={(u) => {
-              trackButton("employees/table/open-edit", {
-                page: "employees",
-                id: u.id,
-              });
-              setModalEmployee(u);
-              setModalOpen(true);
-            }}
-            onDelete={handleDelete}
-          />
-        </div>
+        <TableSurface>
+          {loading ? (
+            <TableSkeleton rows={6} cols={5} />
+          ) : (
+            <UsersTable
+              users={filtered}
+              showTitle={showTitle}
+              showWorkstations={showWorkstations}
+              showGroups={showGroups}
+              showFiles={showFiles}
+              selectedIds={selectedIds}
+              allVisibleSelected={allVisibleSelected}
+              isIndeterminate={isIndeterminate}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onSort={toggleSort}
+              sortField={sortField}
+              sortDir={sortDir}
+              onEdit={(u) => {
+                trackButton("employees/table/open-edit", {
+                  page: "employees",
+                  id: u.id,
+                });
+                setModalEmployee(u);
+                setModalOpen(true);
+              }}
+              onDelete={handleDelete}
+            />
+          )}
+        </TableSurface>
       ) : (
         <div style={styles.iconsWrapper}>
           <IconSelectionBar
@@ -806,6 +839,7 @@ export default function EmployeesPage() {
                       <span style={styles.iconMetaValue}>{user.title || "—"}</span>
                     </div>
                   )}
+
                   {showWorkstations && (
                     <div style={styles.iconMetaRow}>
                       <span style={styles.iconMetaLabel}>Workstations</span>
@@ -814,6 +848,7 @@ export default function EmployeesPage() {
                       </span>
                     </div>
                   )}
+
                   {showGroups && (
                     <div style={styles.iconMetaRow}>
                       <span style={styles.iconMetaLabel}>Groups</span>
@@ -822,17 +857,21 @@ export default function EmployeesPage() {
                       </span>
                     </div>
                   )}
+
                   {showFiles && (
                     <div style={styles.iconMetaRow}>
                       <span style={styles.iconMetaLabel}>Shares</span>
                       <span style={styles.iconMetaValue}>
-                        {user.fileCount ?? user.files?.length ?? 0}
+                        {user.fileCountDisplay ??
+                          formatShares(user.fileCount ?? user.files?.length ?? 0)}
                       </span>
                     </div>
                   )}
 
                   <div style={styles.iconFooter}>
-                    <span style={styles.iconMetaLabel}>{user.status || "offline"}</span>
+                    <span style={styles.iconMetaLabel}>
+                      {user.status || "offline"}
+                    </span>
                     <ActiveIcon
                       width={12}
                       height={12}
@@ -847,7 +886,6 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Modal */}
       <EmployeesModal
         open={modalOpen}
         onClose={() => {
@@ -870,6 +908,6 @@ export default function EmployeesPage() {
           onClose={() => setToast({ ...toast, open: false })}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

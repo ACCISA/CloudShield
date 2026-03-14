@@ -342,12 +342,19 @@ describe("Sidebar", () => {
     });
 
     it("does NOT render count labels when collapsed (counts are undefined in collapsed mode)", () => {
+      useOrgMetrics.mockReturnValue({
+        stats: { workstations: 6, users: 6, groups: 6, shares: 0 },
+        loading: false,
+      });
+
       renderSidebar({ collapsed: true });
-      // In collapsed mode Sidebar passes count={undefined}, so there should not be a '6' badge.
+
       expect(screen.queryByText("6")).not.toBeInTheDocument();
+      expect(screen.queryByText("-")).not.toBeInTheDocument();
     });
   });
 
+  
   describe("Active Route Marking", () => {
     it("marks workstations as active when on workstations route", () => {
       renderSidebar({}, { route: "/workstations" });
@@ -378,5 +385,30 @@ describe("Sidebar", () => {
       const icon = screen.getByTestId("workstations-icon");
       expect(icon).toHaveAttribute("data-selected", "true");
     });
+  });
+
+  it('displays "-" for Shares when shares count is 0 (not collapsed)', () => {
+    useOrgMetrics.mockReturnValue({
+      stats: { workstations: 6, users: 6, groups: 6, shares: 0 },
+      loading: false,
+    });
+
+    renderSidebar({ collapsed: false });
+
+    const shares = screen.getByRole("button", { name: "Shares" });
+    expect(shares.textContent).toContain("-");
+    expect(shares.textContent).not.toContain("0");
+  });
+
+  it("displays numeric badge for Shares when shares count is greater than 0", () => {
+    useOrgMetrics.mockReturnValue({
+      stats: { workstations: 6, users: 6, groups: 6, shares: 33 },
+      loading: false,
+    });
+
+    renderSidebar({ collapsed: false });
+
+    const shares = screen.getByRole("button", { name: "Shares" });
+    expect(shares.textContent).toContain("33");
   });
 });

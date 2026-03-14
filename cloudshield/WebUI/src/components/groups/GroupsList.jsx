@@ -12,9 +12,14 @@
  *   - showUsers: boolean (Display control)
  *   - showWorkstations: boolean (Display control)
  *   - showFiles: boolean (Display control)
+ *   - selectedIds: Set of selected row ids
+ *   - allVisibleSelected: boolean
+ *   - isIndeterminate: boolean
+ *   - onToggleSelect(id)
+ *   - onToggleSelectAll()
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -29,29 +34,47 @@ const styles = {
     display: "grid",
     alignItems: "center",
     gap: "12px",
-    padding: "24px 24px 4px 24px",
+    padding: "16px 16px 8px 16px",
     position: "sticky",
     top: 0,
     backgroundColor: "#0D0D0D",
     zIndex: 10,
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
   headerLabel: {
     fontSize: "0.85rem",
     opacity: 0.7,
     color: "#fff",
+    minWidth: 0,
   },
+
+  // IMPORTANT: make the panel fill available height and scroll internally
   listPanel: {
+    height: "100%",
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
     borderRadius: "18px",
     border: "1px solid rgba(255,255,255,0.16)",
     backgroundColor: "#0F0F0F",
     boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-    padding: "16px",
+    overflow: "hidden",
   },
+
+  // Scrollable content area
+  scrollArea: {
+    flex: 1,
+    minHeight: 0,
+    overflow: "auto",
+    padding: "12px 16px",
+  },
+
   container: {
     display: "flex",
     flexDirection: "column",
     gap: "14px",
   },
+
   row: {
     display: "grid",
     alignItems: "center",
@@ -61,25 +84,34 @@ const styles = {
     borderRadius: "12px",
     position: "relative",
     zIndex: 1,
+    minWidth: 0,
   },
+
   nameSection: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
+    minWidth: 0,
   },
   nameContainer: {
     display: "flex",
     flexDirection: "column",
+    minWidth: 0,
   },
+
+  // Truncation lives in CSS via .truncate, but we keep minWidth:0 to enable it
   name: {
     fontWeight: 600,
     lineHeight: 1.15,
+    minWidth: 0,
   },
   description: {
     fontSize: "0.85rem",
     opacity: 0.85,
     marginTop: "2px",
+    minWidth: 0,
   },
+
   countBadge: {
     display: "inline-flex",
     alignItems: "center",
@@ -90,6 +122,7 @@ const styles = {
     fontSize: "0.85rem",
     color: "#fff",
     whiteSpace: "nowrap",
+    justifySelf: "start",
   },
   editContainer: {
     display: "flex",
@@ -109,6 +142,26 @@ const styles = {
     opacity: 0.85,
     whiteSpace: "nowrap",
   },
+
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+    padding: "32px",
+    color: "rgba(255,255,255,0.7)",
+    gap: "8px",
+    textAlign: "center",
+  },
+  emptyTitle: {
+    fontWeight: 600,
+    color: "rgba(255,255,255,0.9)",
+  },
+  emptySubtitle: {
+    fontSize: "0.9rem",
+    maxWidth: 460,
+  },
 };
 
 // Responsive breakpoints
@@ -118,14 +171,18 @@ const getResponsiveStyles = () => {
   // Mobile (< 768px)
   if (width < 768) {
     return {
+      ...styles,
       tableHeaders: {
         ...styles.tableHeaders,
-        padding: "16px 16px 4px 16px",
+        padding: "12px 12px 8px 12px",
       },
       listPanel: {
         ...styles.listPanel,
         borderRadius: "12px",
-        padding: "12px",
+      },
+      scrollArea: {
+        ...styles.scrollArea,
+        padding: "10px 12px",
       },
       row: {
         ...styles.row,
@@ -150,14 +207,18 @@ const getResponsiveStyles = () => {
   // Tablet (768px - 1024px)
   if (width < 1024) {
     return {
+      ...styles,
       tableHeaders: {
         ...styles.tableHeaders,
-        padding: "20px 20px 4px 20px",
+        padding: "14px 14px 8px 14px",
       },
       listPanel: {
         ...styles.listPanel,
         borderRadius: "16px",
-        padding: "14px",
+      },
+      scrollArea: {
+        ...styles.scrollArea,
+        padding: "12px 14px",
       },
       row: {
         ...styles.row,
@@ -209,7 +270,7 @@ function ItemsPill({ items, type, totalCount, getKey }) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
       <div style={styles.avatarsContainer}>
         {show.map((item, idx) => (
           <div
@@ -251,6 +312,15 @@ function WorkstationsPill({ row }) {
   );
 }
 
+function formatSharesDisplay(row) {
+  // Prefer precomputed display field from GroupsPage (filesDisplay)
+  if (row?.filesDisplay != null) return row.filesDisplay;
+
+  const n = Number(row?.files ?? 0);
+  if (!Number.isFinite(n) || n === 0) return "-";
+  return String(n);
+}
+
 function GroupRow({
   r,
   cols,
@@ -261,16 +331,17 @@ function GroupRow({
   onDelete,
   isLast,
   isMobile,
-  isTablet,
   isSelected,
   onToggleSelect,
   rowId,
 }) {
   const responsiveStyles = getResponsiveStyles();
 
+  const nameText = r?.name || "";
+  const descText = r?.description || "";
+
   return (
     <>
-      {/* Row */}
       <HoverableRow
         style={{
           ...responsiveStyles.row,
@@ -279,18 +350,27 @@ function GroupRow({
       >
         {/* Checkbox - hide on mobile */}
         {!isMobile && (
-          <Checkbox
-            checked={isSelected}
-            onChange={() => onToggleSelect(rowId)}
-          />
+          <Checkbox checked={isSelected} onChange={() => onToggleSelect(rowId)} />
         )}
 
         {/* name + description + DisplayIcon */}
         <div style={responsiveStyles.nameSection}>
           <DisplayIcon type="group" data={r} size="small" />
           <div style={styles.nameContainer}>
-            <span style={responsiveStyles.name}>{r.name}</span>
-            <span style={responsiveStyles.description}>↳ {r.description}</span>
+            <span
+              className="truncate"
+              style={responsiveStyles.name}
+              title={nameText}
+            >
+              {nameText || "—"}
+            </span>
+            <span
+              className="truncate"
+              style={responsiveStyles.description}
+              title={descText}
+            >
+              {descText ? `↳ ${descText}` : "↳ —"}
+            </span>
           </div>
         </div>
 
@@ -300,10 +380,10 @@ function GroupRow({
         {/* workstations */}
         {showWorkstations && <WorkstationsPill row={r} />}
 
-        {/* files count */}
+        {/* files count (Shares) */}
         {showFiles && (
           <div style={styles.countBadge}>
-            <span>+ {r.files || 0}</span>
+            <span>{formatSharesDisplay(r)}</span>
           </div>
         )}
 
@@ -341,8 +421,7 @@ export default function GroupsList({
   }, []);
 
   const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  const responsiveStyles = getResponsiveStyles();
+  const responsiveStyles = useMemo(() => getResponsiveStyles(), [windowWidth]);
 
   // Hide some columns on smaller screens
   const showUsersColumn = showUsers && !isMobile;
@@ -352,31 +431,25 @@ export default function GroupsList({
   // Build grid template dynamically based on which columns are visible.
   const cols = [
     !isMobile ? "28px" : null, // checkbox - hidden on mobile
-    isMobile ? "1fr" : "1.2fr", // name/description with icon - takes full width on mobile
+    isMobile ? "1fr" : "1.2fr", // name/description
     showUsersColumn ? (isMobile ? "0.8fr" : "0.6fr") : null,
     showWorkstationsColumn ? "0.8fr" : null,
     showFilesColumn ? "0.8fr" : null,
     "0.25fr", // edit
   ].filter(Boolean);
 
+  const list = Array.isArray(rows) ? rows : [];
+
   return (
-    <>
+    <div style={responsiveStyles.listPanel}>
       {/* Table Headers - hide on mobile */}
       {!isMobile && (
         <div
           style={{
             ...responsiveStyles.tableHeaders,
             gridTemplateColumns: cols.join(" "),
-            paddingLeft: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-            paddingRight: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
+            paddingLeft: windowWidth < 1024 ? "14px" : "16px",
+            paddingRight: windowWidth < 1024 ? "14px" : "16px",
           }}
         >
           <Checkbox
@@ -384,27 +457,42 @@ export default function GroupsList({
             indeterminate={isIndeterminate}
             onChange={onToggleSelectAll}
           />
-          <span style={styles.headerLabel}>Name/Description</span>
-          {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
-          {showWorkstationsColumn && (
-            <span style={styles.headerLabel}>Workstations</span>
+          <span className="truncate" style={styles.headerLabel} title="Name / Description">
+            Name/Description
+          </span>
+          {showUsersColumn && (
+            <span className="truncate" style={styles.headerLabel} title="Users">
+              Users
+            </span>
           )}
-          {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
+          {showWorkstationsColumn && (
+            <span className="truncate" style={styles.headerLabel} title="Workstations">
+              Workstations
+            </span>
+          )}
+          {showFilesColumn && (
+            <span className="truncate" style={styles.headerLabel} title="Shares">
+              Shares
+            </span>
+          )}
           <div />
         </div>
       )}
 
-      {/* List panel */}
-      <div style={responsiveStyles.listPanel}>
-        <div
-          style={{
-            padding: isMobile ? "0 4px" : "0 8px",
-          }}
-        >
+      {/* Scrollable content area (keeps panel full-height) */}
+      <div style={responsiveStyles.scrollArea}>
+        {list.length === 0 ? (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyTitle}>No groups found</div>
+            <div style={styles.emptySubtitle}>
+              Try adjusting your search or filters, or create a new group.
+            </div>
+          </div>
+        ) : (
           <div style={styles.container}>
-            {rows.map((r, idx) => (
+            {list.map((r, idx) => (
               <GroupRow
-                key={r.id}
+                key={r.id || r._id || idx}
                 r={r}
                 cols={cols}
                 showUsers={showUsersColumn}
@@ -412,17 +500,16 @@ export default function GroupsList({
                 showFiles={showFilesColumn}
                 onEdit={onEdit}
                 onDelete={onDelete}
-                isLast={idx === rows.length - 1}
+                isLast={idx === list.length - 1}
                 isMobile={isMobile}
-                isTablet={isTablet}
                 isSelected={selectedIds.has(r._id)}
                 onToggleSelect={onToggleSelect}
                 rowId={r._id}
               />
             ))}
           </div>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
