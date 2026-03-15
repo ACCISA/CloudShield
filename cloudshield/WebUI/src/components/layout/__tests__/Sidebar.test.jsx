@@ -24,6 +24,11 @@ jest.mock("../../../api/useOrgMetrics.js", () => ({
   useOrgMetrics: jest.fn(),
 }));
 
+const mockLogout = jest.fn();
+jest.mock("../../../context/AuthContext.jsx", () => ({
+  useAuth: () => ({ logout: mockLogout }),
+}));
+
 // Mock icons to test that they receive the correct props without rendering the actual SVGs
 jest.mock("../../../assets/NavBar/DashboardIcon", () => ({
   __esModule: true,
@@ -98,6 +103,7 @@ describe("Sidebar", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNavigate.mockClear();
+    mockLogout.mockClear();
     mockPathname = "/";
 
     // Keep Sidebar stable: use default labels by returning matching data
@@ -270,10 +276,10 @@ describe("Sidebar", () => {
   });
 
   describe("Bottom Actions", () => {
-    it("renders Settings + Get support in full mode", () => {
+    it("renders Settings + Sign out in full mode", () => {
       renderSidebar({ mode: "full" });
       expect(screen.getByLabelText("Settings")).toBeInTheDocument();
-      expect(screen.getByLabelText("Get support")).toBeInTheDocument();
+      expect(screen.getByLabelText("Sign out")).toBeInTheDocument();
     });
 
     it("navigates to settings when clicked", () => {
@@ -282,10 +288,11 @@ describe("Sidebar", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/settings");
     });
 
-    it("navigates to support when clicked", () => {
+    it("logs out and navigates to login when sign out is clicked", () => {
       renderSidebar({ mode: "full" });
-      fireEvent.click(screen.getByLabelText("Get support"));
-      expect(mockNavigate).toHaveBeenCalledWith("/support");
+      fireEvent.click(screen.getByLabelText("Sign out"));
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
 
     it("supports keyboard navigation for settings (Enter + Space)", () => {
@@ -298,20 +305,21 @@ describe("Sidebar", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/settings");
     });
 
-    it("supports keyboard navigation for support (Enter + Space)", () => {
+    it("supports keyboard navigation for sign out (Enter + Space)", () => {
       renderSidebar({ mode: "full" });
-      const support = screen.getByLabelText("Get support");
+      const signOut = screen.getByLabelText("Sign out");
 
-      fireEvent.keyDown(support, { key: "Enter" });
-      fireEvent.keyDown(support, { key: " " });
+      fireEvent.keyDown(signOut, { key: "Enter" });
+      fireEvent.keyDown(signOut, { key: " " });
 
-      expect(mockNavigate).toHaveBeenCalledWith("/support");
+      expect(mockLogout).toHaveBeenCalledTimes(2);
+      expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
 
-    it("hides Settings and Get support in provisioning mode", () => {
+    it("hides Settings and Sign out in provisioning mode", () => {
       renderSidebar({ mode: "provisioning" });
       expect(screen.queryByLabelText("Settings")).not.toBeInTheDocument();
-      expect(screen.queryByLabelText("Get support")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Sign out")).not.toBeInTheDocument();
     });
 
     it("hides text labels when collapsed", () => {

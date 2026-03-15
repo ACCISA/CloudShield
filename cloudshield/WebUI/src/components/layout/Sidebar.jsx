@@ -27,23 +27,21 @@ import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 function NavItem({
   collapsed,
   icon,
   label,
-  to,
   active,
   count,
   countColor,
-  expanded,
-  onToggleExpand,
   onNavigate,
 }) {
   const showCountChip = typeof count === "number" || count === "-";
@@ -197,6 +195,7 @@ export default function Sidebar({
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { logout } = useAuth();
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
@@ -211,7 +210,6 @@ export default function Sidebar({
   
   const [me, setMe] = useState(null);            // { id, email, org_id, role }
   const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
-  const [meErr, setMeErr] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -227,9 +225,10 @@ export default function Sidebar({
         const orgRes = await apiGet("/organizations/me");
         if (!mounted) return;
         setMyOrg(orgRes.organization);
-      } catch (e) {
+      } catch {
         if (!mounted) return;
-        setMeErr(e.message || "Failed to load user");
+        setMe(null);
+        setMyOrg(null);
       }
     }
 
@@ -249,6 +248,11 @@ export default function Sidebar({
 
   const showNav = mode === "full";
   const showBottom = mode === "full";
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <Box
@@ -596,7 +600,7 @@ export default function Sidebar({
           <Box
             role="button"
             tabIndex={0}
-            aria-label="Get support"
+            aria-label="Sign out"
             sx={{
               display: "flex",
               alignItems: "center",
@@ -609,9 +613,9 @@ export default function Sidebar({
               padding: collapsed ? "8px" : "8px 12px",
               "&:hover": { backgroundColor: "#2a2a2a" },
             }}
-            onClick={() => navigate("/support")}
+            onClick={handleSignOut}
             onKeyDown={(e) =>
-              (e.key === "Enter" || e.key === " ") && navigate("/support")
+              (e.key === "Enter" || e.key === " ") && handleSignOut()
             }
           >
             <Box
@@ -625,11 +629,11 @@ export default function Sidebar({
                 mr: collapsed ? 0 : "10px",
               }}
             >
-              <HelpOutlineOutlinedIcon sx={{ fontSize: "1.1rem" }} />
+              <LogoutOutlinedIcon sx={{ fontSize: "1.1rem" }} />
             </Box>
             {!collapsed && (
               <Typography sx={{ fontSize: "0.9rem", fontWeight: 500 }}>
-                Get support
+                Sign out
               </Typography>
             )}
           </Box>

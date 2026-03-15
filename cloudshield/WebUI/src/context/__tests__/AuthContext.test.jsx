@@ -45,7 +45,10 @@ describe('AuthContext', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ claims: { sub: 'user-1', role: 'admin', org_id: 'org-1' } }),
+        json: () => Promise.resolve({
+          user: { email: 'env@example.com' },
+          claims: { sub: 'user-1', role: 'admin', org_id: 'org-1' },
+        }),
       });
 
     globalThis.__APP_ENV__ = {
@@ -167,6 +170,8 @@ describe('AuthContext', () => {
       const initialState = {
         accessToken: 'token123',
         currentUser: { id: 'user-1', role: 'admin', org_id: 'org-1' },
+        bootstrapEmail: 'user@example.com',
+        bootstrapPassword: 'refresh-test-password',
       };
       const { result } = renderWithProvider(initialState);
 
@@ -192,6 +197,43 @@ describe('AuthContext', () => {
       });
 
       await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+    });
+
+    it('clears localStorage, sessionStorage, and cookies on logout', async () => {
+      localStorage.setItem('jwt', 'token123');
+      localStorage.setItem('org_id', 'org-1');
+      sessionStorage.setItem('temp_key', 'temp_value');
+      document.cookie = 'session_id=test_cookie';
+
+      const { result } = renderWithProvider({
+        disableBootstrap: true,
+        accessToken: 'token123',
+        currentUser: { id: 'user-1', role: 'admin', org_id: 'org-1' },
+      });
+
+      await act(async () => {
+        result.current.logout();
+      });
+
+      expect(localStorage.length).toBe(0);
+      expect(sessionStorage.length).toBe(0);
+      expect(document.cookie).not.toContain('session_id=');
+    });
+
+    it('dispatches auth:logout event on logout', async () => {
+      const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+      const { result } = renderWithProvider({
+        disableBootstrap: true,
+        accessToken: 'token123',
+        currentUser: { id: 'user-1', role: 'admin', org_id: 'org-1' },
+      });
+
+      await act(async () => {
+        result.current.logout();
+      });
+
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'auth:logout' }));
+      dispatchSpy.mockRestore();
     });
   });
 
@@ -455,8 +497,11 @@ describe('AuthContext', () => {
       };
       const { result } = renderWithProvider(initialState);
 
-      expect(result.current.currentUser).toBeNull();
-      expect(result.current.isAuthenticated).toBe(false);
+      expect(result.current.currentUser).toMatchObject({
+        id: 'admin-001',
+        email: 'admin@company.com',
+      });
+      expect(result.current.isAuthenticated).toBe(true);
     });
 
     it('handles malformed server response', async () => {
