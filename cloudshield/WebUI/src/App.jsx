@@ -33,6 +33,12 @@ function AppWithAuth() {
     return devBypass || !!localStorage.getItem("jwt");
   });
 
+  useEffect(() => {
+    const handleLogout = () => setIsAuthed(false);
+    window.addEventListener("auth:logout", handleLogout);
+    return () => window.removeEventListener("auth:logout", handleLogout);
+  }, []);
+
   // 2. Provisioning Check
   // We check if a job ID exists AND we haven't explicitly marked it as done
   const needsProvisioning = useMemo(() => {
