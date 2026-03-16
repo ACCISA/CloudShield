@@ -24,7 +24,6 @@ try:
 except Exception:
     _HAS_THREAT = False
 
-agents = get_agents()
 heartbeats = {}
 
 
@@ -59,7 +58,10 @@ class ClientIPInterceptor(grpc.ServerInterceptor):
                     ip = peer.split("]:")[0][5:]
                 else:
                     ip = "unknown"
-                if not is_valid_agent(agents, ip, agent_id):
+                # Re-read agents.json on every call so newly provisioned
+                # workstations are admitted without a server restart.
+                current_agents = get_agents()
+                if not is_valid_agent(current_agents, ip, agent_id):
                     interceptor_logger.warning("invalid agent tried to talk to grpc")
                     context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid Agent")
 

@@ -5,6 +5,7 @@ import base64
 import uuid
 import json
 import re
+import shutil
 from datetime import datetime, timezone
 import subprocess
 from pathlib import Path
@@ -133,6 +134,153 @@ def create_auto_configure_scripts(variables: dict, container_id: str, server_log
 
             if not copy_file_container(server_logger, container_id, output_path, "/oem/" + filename):
                 return
+
+
+def _stage_agent_binary_into_oem(server_logger) -> str | None:
+    """Ensure cloudshield_agent.exe is available in docker/workstation/oem.
+
+    Priority:
+      1) Existing OEM binary (/app/docker/workstation/oem/cloudshield_agent.exe)
+      2) Built binary from agent dist (/app/cloudshield/Agent/dist/cloudshield_agent.exe)
+
+    If only dist exists, copy it into OEM so future builds/provisions reuse it.
+    """
+    oem_binary = Path("/app/docker/workstation/oem/cloudshield_agent.exe")
+    dist_binary = Path("/app/cloudshield/Agent/dist/cloudshield_agent.exe")
+
+    if oem_binary.exists():
+        server_logger.info(f"Using OEM agent binary: {oem_binary}")
+        return str(oem_binary)
+
+    if dist_binary.exists():
+        try:
+            oem_binary.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(dist_binary, oem_binary)
+            server_logger.info(f"Staged agent binary from dist to OEM: {oem_binary}")
+            return str(oem_binary)
+        except Exception as exc:
+            server_logger.error(f"Failed to stage agent binary into OEM: {exc}")
+            return None
+
+    server_logger.error(
+        "cloudshield_agent.exe not found in OEM or dist. Build it first with cloudshield/Agent/build_agent.ps1"
+    )
+    return None
+
+
+def _upsert_threat_detection_agent(server_logger, agent_id: str, agent_ip: str, hostname: str) -> None:
+    """Ensure the ThreatDetection allowlist contains the provisioned workstation agent.
+
+    ThreatDetection currently authenticates agents by matching both source IP and
+    agent_id from cloudshield/ThreatDetection/agents.json.
+    """
+    agents_file = Path("/app/cloudshield/ThreatDetection/agents.json")
+
+    if not agent_id or not agent_ip:
+        server_logger.warning("Skipping ThreatDetection allowlist update: missing agent_id or agent_ip")
+        return
+
+    if not agents_file.exists():
+        server_logger.warning(f"ThreatDetection agents file not found: {agents_file}")
+        return
+
+    payload = _load_td_agents_payload(server_logger, agents_file)
+    if payload is None:
+        return
+
+    agents = _ensure_td_agents_list(payload)
+    existing = _find_td_agent_entry(agents, agent_id, agent_ip)
+    if existing is not None:
+        if not existing.get("hostname") and hostname:
+            existing["hostname"] = hostname
+            _persist_td_agents_payload(server_logger, agents_file, payload, "hostname update")
+        server_logger.info(f"ThreatDetection allowlist already has agent {agent_id}@{agent_ip}")
+        return
+
+    agents.append({"agent_id": agent_id, "ip": agent_ip, "hostname": hostname})
+    _persist_td_agents_payload(server_logger, agents_file, payload, "agent add")
+    server_logger.info(f"Added workstation agent to ThreatDetection allowlist: {agent_id}@{agent_ip}")
+
+
+def _load_td_agents_payload(server_logger, agents_file: Path) -> dict | None:
+    try:
+        payload = json.loads(agents_file.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            return payload
+        server_logger.error("ThreatDetection agents file must contain a JSON object")
+        return None
+    except Exception as exc:
+        server_logger.error(f"Unable to read ThreatDetection agents file: {exc}")
+        return None
+
+
+def _ensure_td_agents_list(payload: dict) -> list:
+    agents = payload.get("agents")
+    if isinstance(agents, list):
+        return agents
+    payload["agents"] = []
+    return payload["agents"]
+
+
+def _find_td_agent_entry(agents: list, agent_id: str, agent_ip: str) -> dict | None:
+    for entry in agents:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("agent_id") == agent_id and entry.get("ip") == agent_ip:
+            return entry
+    return None
+
+
+def _persist_td_agents_payload(server_logger, agents_file: Path, payload: dict, action: str) -> None:
+    try:
+        agents_file.write_text(json.dumps(payload, indent=4), encoding="utf-8")
+        _sync_td_agents_to_runtime_containers(server_logger, agents_file)
+    except Exception as exc:
+        server_logger.error(f"Failed to persist ThreatDetection allowlist {action}: {exc}")
+
+
+def _sync_td_agents_to_runtime_containers(server_logger, agents_file: Path) -> None:
+    """Propagate ThreatDetection allowlist updates to running server containers.
+
+    In docker mode, provisioning runs in the API container and updates the local
+    checkout file at /app/cloudshield/ThreatDetection/agents.json. The runtime
+    gRPC server may run in a different container (e.g., server-dev), so copy the
+    file there as well to keep authentication state in sync.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception as exc:
+        server_logger.warning(f"Skipping ThreatDetection allowlist sync: cannot list containers ({exc})")
+        return
+
+    names = [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+    targets = [name for name in names if re.match(r"^server(?:-|$)", name)]
+    if not targets:
+        return
+
+    for container_name in targets:
+        try:
+            subprocess.run(
+                [
+                    "docker",
+                    "cp",
+                    str(agents_file),
+                    f"{container_name}:/app/cloudshield/ThreatDetection/agents.json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            server_logger.info(f"Synced ThreatDetection allowlist into container: {container_name}")
+        except Exception as exc:
+            server_logger.warning(
+                f"Failed to sync ThreatDetection allowlist into {container_name}: {exc}"
+            )
 
 
 def _docker_network_exists(name: str) -> bool:
@@ -373,7 +521,24 @@ def provision_workstation_docker(
     container_id_ws = container_ws.id
     container_ws.reload()
 
-    container_ws_ip = container_ws.network_settings.networks[org_network_name].ip_address
+    ws_networks = container_ws.network_settings.networks
+    container_ws_ip = ws_networks[org_network_name].ip_address
+    cloudshield_ws_ip = None
+    if "cloudshield_net" in ws_networks:
+        cloudshield_ws_ip = ws_networks["cloudshield_net"].ip_address
+
+    agent_id = f"ws-{org_id}-{container_id_ws[:8]}"
+    _upsert_threat_detection_agent(
+        server_logger,
+        agent_id=agent_id,
+        agent_ip=cloudshield_ws_ip or container_ws_ip,
+        hostname=f"{org_id}-workstation",
+    )
+
+    agent_binary_path = _stage_agent_binary_into_oem(server_logger)
+    if not agent_binary_path:
+        server_logger.error("Cannot provision workstation without CloudShield agent binary")
+        return
 
     server_logger.info("Creating OEM scripts")
     create_auto_configure_scripts(
@@ -383,10 +548,19 @@ def provision_workstation_docker(
             "ADMIN_PASS": "letmein123%",
             "SAMBA_IP": samba_ip,
             "THREAT_DETECTION_IP": threat_detection_ip,
+            "__AGENT_ID__": agent_id,
         },
         container_id_ws,
         server_logger,
     )
+
+    if not copy_file_container(
+        server_logger,
+        container_id_ws,
+        agent_binary_path,
+        "/oem/cloudshield_agent.exe",
+    ):
+        return
 
     if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
         return
@@ -412,6 +586,7 @@ def provision_workstation_docker(
         "status": "running",
         "private_ip": container_ws_ip,
         "public_ip": container_ws_ip,
+        "agent_id": agent_id,
     }
 
 
@@ -553,7 +728,8 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         samba_ip=container_dc_ip,
         org_subnet_cidr=org_subnet_cidr,
         # ThreatDetection gRPC server — defaults to 172.28.0.10 (cloudshield_net).
-        # Override when the server runs elsewhere.
+        # Override with THREAT_DETECTION_IP when the server runs elsewhere.
+        threat_detection_ip=os.environ.get("THREAT_DETECTION_IP", "172.28.0.10"),
     )
     if workstation_meta:
         wait_workstation_completion(workstation_meta["instance_id"], server_logger)

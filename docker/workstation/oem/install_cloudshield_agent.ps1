@@ -25,16 +25,20 @@ $InstallDir     = "$env:ProgramFiles\CloudShield\Agent"
 $DataDir        = "$env:ProgramData\CloudShield\Agent"
 $LogDir         = "$DataDir\logs"
 $CacheDir       = "$DataDir\cache"
+$RegisterTaskScript = Join-Path $PSScriptRoot "register_cloudshield_agent_task.ps1"
 
 # ── Configurable connection details ─────────────────────────────────────────
 # These can be overridden with environment variables set by the provisioner.
+$ProvisionedAgentId = "__AGENT_ID__"
 $ServerAddr = if ($env:SERVER_ADDR) { $env:SERVER_ADDR } else { "THREAT_DETECTION_IP" }
 $ServerPort = if ($env:SERVER_PORT) { $env:SERVER_PORT } else { "50051" }
-$AgentId    = if ($env:AGENT_ID)    { $env:AGENT_ID }    else { $env:COMPUTERNAME }
-
-# ── Task settings ───────────────────────────────────────────────────────────
-$TaskName        = "CloudShieldAgent"
-$TaskDescription = "CloudShield endpoint monitoring agent — starts on boot and restarts on failure."
+$AgentId    = if ($env:AGENT_ID) {
+    $env:AGENT_ID
+} elseif ($ProvisionedAgentId -match '^__.+__$') {
+    $env:COMPUTERNAME
+} else {
+    $ProvisionedAgentId
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Host "[CloudShield] Installing agent..."
@@ -55,53 +59,16 @@ if (-not (Test-Path $OemAgentPath)) {
 Copy-Item -Path $OemAgentPath -Destination "$InstallDir\$AgentExeName" -Force
 Write-Host "  Agent binary copied to $InstallDir\$AgentExeName"
 
-# 3. Remove any previous scheduled task with the same name
-$existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($existing) {
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-    Write-Host "  Removed previous scheduled task '$TaskName'"
+# 3. Register startup scheduled task using dedicated script.
+if (-not (Test-Path $RegisterTaskScript)) {
+    Write-Host "[CloudShield] ERROR: task registration script missing: $RegisterTaskScript"
+    exit 1
 }
 
-# 4. Build the scheduled task
-#    - Trigger: AtStartup (runs when Windows boots)
-#    - Principal: SYSTEM (no user logon required)
-#    - Settings: RestartOnFailure every 60s, up to 3 retries;
-#                the task never expires and is allowed to run indefinitely.
-$action = New-ScheduledTaskAction `
-    -Execute "$InstallDir\$AgentExeName" `
-    -WorkingDirectory $InstallDir `
-    -Argument "-AgentId $AgentId -ServerAddr $ServerAddr -ServerPort $ServerPort"
+& $RegisterTaskScript `
+    -AgentExePath "$InstallDir\$AgentExeName" `
+    -ServerAddr $ServerAddr `
+    -ServerPort $ServerPort `
+    -AgentId $AgentId
 
-# We set env vars in the action argument line AND via a wrapper so the
-# binary can read them from either source.  The agent reads SERVER_ADDR,
-# SERVER_PORT and AGENT_ID from os.getenv().
-$action = New-ScheduledTaskAction `
-    -Execute "cmd.exe" `
-    -Argument "/c set AGENT_ID=$AgentId && set SERVER_ADDR=$ServerAddr && set SERVER_PORT=$ServerPort && `"$InstallDir\$AgentExeName`"" `
-    -WorkingDirectory $InstallDir
-
-$trigger  = New-ScheduledTaskTrigger -AtStartup
-$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-
-$settings = New-ScheduledTaskSettingsSet `
-    -AllowStartIfOnBatteries `
-    -DontStopIfGoingOnBatteries `
-    -StartWhenAvailable `
-    -RestartCount 9999 `
-    -RestartInterval (New-TimeSpan -Seconds 60) `
-    -ExecutionTimeLimit (New-TimeSpan -Days 0)
-
-Register-ScheduledTask `
-    -TaskName $TaskName `
-    -Description $TaskDescription `
-    -Action $action `
-    -Trigger $trigger `
-    -Principal $principal `
-    -Settings $settings `
-    -Force | Out-Null
-
-Write-Host "  Scheduled task '$TaskName' registered (runs at startup as SYSTEM)."
-
-# 5. Start the task immediately so the agent is running right away
-Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 Write-Host "[CloudShield] Agent installation complete."
