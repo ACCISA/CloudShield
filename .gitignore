@@ -91,6 +91,9 @@ cloudshield/Server/.env
 **/.terraform/
 cloudshield/Cloud/terraform/generated/**
 cloudshield/Agent/build
+cloudshield/Agent/dist/
+# Compiled agent binary staged into OEM folder for workstation image
+docker/workstation/oem/cloudshield_agent.exe
 **.exe
 coverage.xml
 .coverage
