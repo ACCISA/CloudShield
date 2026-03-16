@@ -93,7 +93,10 @@ try:
         print(f"[database.py] Note: shares index creation skipped: {e}")
 
     # Create a unique index on email for users collection
-    users_admin.create_index("email", unique=True)
+    try:
+        users_admin.create_index("email", unique=True)
+    except Exception as e:
+        pass
     
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)

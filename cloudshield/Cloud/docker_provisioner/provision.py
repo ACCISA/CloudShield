@@ -72,6 +72,23 @@ def setup_container(server_logger, container_id):
         server_logger.error("Failed to setup container")
         return False
 
+def attach_api_to_network(server_logger, network_name):
+    try:
+        hostname = open("/etc/hostname", "r").read()
+        
+        result = subprocess.run(
+                ["docker", "network", "connect", network_name, hostname],
+                capture_output=True,
+                text=True,
+                check=True,
+        )
+        server_logger.info(result.stdout)
+        server_logger.info("Successfully attached API to Infra network")
+    except subprocess.CalledProcessError as e:
+        server_logger.error(e)
+        server_logger.error(e.stderr)
+        server_logger.error("Failed to attach API to Infra network")
+
 
 def setup_ssh_keys(server_logger, private_key_path):
     server_logger.info("Generating ssh keys for samba-test container...")
@@ -355,9 +372,6 @@ def provision_workstation_docker(
     samba_ip: str,
     org_subnet_cidr: str,
 ):
-    global PRAGMA_ONCE
-    if PRAGMA_ONCE is False:
-        PRAGMA_ONCE = True
 
     host_port = _pick_workstation_host_port(org_subnet_cidr)
 
@@ -552,6 +566,8 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     )
     if workstation_meta:
         wait_workstation_completion(workstation_meta["instance_id"], server_logger)
+
+    attach_api_to_network(server_logger, org_network_name)
 
     metadata = [
         {

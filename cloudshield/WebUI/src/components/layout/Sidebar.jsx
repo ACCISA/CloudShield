@@ -217,7 +217,7 @@ export default function Sidebar({
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me"); // expects { user: {...} }
+        const meRes = await apiGet("/users/me").json(); // expects { user: {...} }
         if (!mounted) return;
         setMe(meRes.user);
 

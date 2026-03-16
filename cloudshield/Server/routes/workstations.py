@@ -9,11 +9,12 @@ from pydantic import ValidationError
 
 from utils.logging_setup import get_logger
 
-from services import (
-    service_dispatcher
-)
+from services import service_dispatcher
 
 from cloudshield.Server.security.guards import require_auth
+
+from repos import get_workstations
+from utils import db
 
 
 # Collection handle. In production this is resolved lazily.
@@ -28,8 +29,34 @@ ERROR_ORG_ID_REQUIRED = "org_id is required"
 ERROR_TEMPLATE_ID_REQUIRED = "template_id is required"
 ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
 ERROR_STATUS_REQUIRED = "status is required"
+ERROR_USER_ID_REQUIRED = "user_id is required"
 
-@workstations_bp.route("/workstations/create-default", methods=["POST"])
+@workstations_bp.route("/workstation/available", methods=["GET"])
+@require_auth
+def get_available_workstations():
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error":ERROR_USER_ID_REQUIRED}), 400
+
+    workstations = get_available_workstation(user_id=user_id)
+
+    return {"workstations": workstations}, 200
+
+@workstations_bp.route("/workstations", methods=["GET"])
+@require_auth
+def get_workstations_api():
+    org_id = request.args.get("org_id")
+
+    if not org_id:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 400
+
+    workstations = get_workstations(db, org_id)
+    
+    return {"workstations": workstations}
+
+
+@workstations_bp.route("/workstations/create", methods=["POST"])
 @require_auth
 def create_default():
     """
@@ -52,8 +79,6 @@ def create_default():
         if val is None:
             logger.warning(f"WORKSTATIONS create_default request missing {arg}")
             return jsonify({"error":f"{arg} is required"}), 400
-
-
 
     job = service_dispatcher(
             service_name="ws_create_default",

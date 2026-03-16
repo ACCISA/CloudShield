@@ -1,3 +1,5 @@
+import {apiPost, apiPatch, apiDelete, apiGet} from "../api/client";
+
 const API_PREFIX = '/api';
 
 function buildHeaders(token) {
@@ -36,8 +38,7 @@ export async function listUsers({
   params.set("limit", String(limit));
   params.set("offset", String(offset));
 
-  const response = await fetch(`${API_PREFIX}/users?${params.toString()}`, {
-    method: "GET",
+  const response = await apiGet(`/users?${params.toString()}`, {
     headers: buildHeaders(token),
     signal,
   });
@@ -47,10 +48,9 @@ export async function listUsers({
 }
 
 export async function deleteUser(userId, { reason, token } = {}) {
-  const response = await fetch(
-    `${API_PREFIX}/users/${encodeURIComponent(userId)}`,
+  const response = await apiDelete(
+    `/users/${encodeURIComponent(userId)}`,
     {
-      method: "DELETE",
       headers: buildHeaders(token),
       body: reason ? JSON.stringify({ reason }) : undefined,
     }
@@ -60,18 +60,15 @@ export async function deleteUser(userId, { reason, token } = {}) {
 }
 
 export async function createUser(user, { token } = {}) {
-  const response = await fetch(`${API_PREFIX}/users`, {
-    method: "POST",
+  const response = await apiPost("/users", user, {
     headers: buildHeaders(token),
-    body: JSON.stringify(user),
   });
 
   return parseResponse(response);
 }
 
 export async function updateUser(userId, payload, { token } = {}) {
-  const response = await fetch(`${API_PREFIX}/users/${encodeURIComponent(userId)}`, {
-    method: 'PATCH', 
+  const response = await apiPatch(`/users/${encodeURIComponent(userId)}`, {
     headers: buildHeaders(token),
     body: JSON.stringify(payload),
   });

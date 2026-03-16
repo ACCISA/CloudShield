@@ -88,3 +88,37 @@ def update_workstation(db, workstation_id: str, **updates):
     )
 
     return result.modified_count
+
+def get_workstations(db, org_id: str):
+    """
+    Get all the workstations of an organization
+    """
+
+    ws_db = db.workstation_templates
+
+    workstations = list(ws_db.find({"org_id": org_id}))
+
+    return workstations
+
+def get_available_workstation(user_id):
+    """
+    Get workstations that are available to a user
+    """
+
+    groups_db = db.access_groups
+
+    user_groups = groups_db.find({"_id": 1, "members":user_id})
+    
+    workstation_template_cursor = db.workstation_tempaltes.find({
+        "access_groups":{"$in":user_groups}
+    })
+
+    template_ids = list(workstation_template_cursor)
+
+    workstations_cursor = db.workstations.find({
+        "template_id": {"$in":template_ids},
+        "status": "ACTIVE"
+    })
+
+    available_workstations = list(workstations_cursor)
+

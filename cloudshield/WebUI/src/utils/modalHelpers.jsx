@@ -3,6 +3,7 @@
  */
 
 import { listUsers } from "../services/usersApi.js";
+import { apiGet } from "../api/client";
 
 /**
  * Resolves the organization ID from currentUser or localStorage
@@ -44,10 +45,9 @@ export const fetchFileShares = async (
       return [];
     }
 
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/file_shares?org_id=${encodeURIComponent(orgId)}`,
       {
-        method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       },
@@ -114,8 +114,8 @@ export const fetchGroups = async (
   if (!accessToken) return _resetGroups(setAllGroups);
 
   try {
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/access-groups?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/access-groups?org_id=${encodeURIComponent(orgId)}`,
       {
         method: "GET",
         credentials: "include",
@@ -245,10 +245,9 @@ export const fetchWorkstations = async (
       return [];
     }
 
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/workstations?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/workstations?org_id=${encodeURIComponent(orgId)}`,
       {
-        method: "GET",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -305,10 +304,9 @@ export const fetchSoftware = async (
       return [];
     }
 
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/software?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/software?org_id=${encodeURIComponent(orgId)}`,
       {
-        method: "GET",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",

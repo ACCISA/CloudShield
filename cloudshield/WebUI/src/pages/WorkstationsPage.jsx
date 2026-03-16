@@ -210,6 +210,19 @@ export default function WorkstationsPage() {
       allGroups: payload.allGroups || false,
       allSoftware: payload.allSoftware || false,
     };
+    console.log("creating workstation");
+    const res = apiPost("/workstations/create",
+	{
+		org_id: localStorage.getItem("org_id"),
+		name: payload.name,
+		description: "",
+		access_groups : payload.groups,
+		software: payload.software
+	});
+
+
+    console.log(res)
+
     setRows((prev) => [newRow, ...prev]);
   };
 

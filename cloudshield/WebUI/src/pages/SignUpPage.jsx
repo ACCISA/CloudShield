@@ -10,6 +10,8 @@ import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
+import { apiPost } from "../api/client";
+
 // to be updated later with real plans
 const PLAN_OPTIONS = [
   {
@@ -172,20 +174,16 @@ export default function SignupPage({ onSignupSuccess }) {
 
     try {
       // 1. Create the User and Organization in MongoDB
-      const createUserRes = await fetch(
-        "/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password,
-            full_name: company,
-            company_name: company,
-            package_type: plan,
-          }),
-        }
-      );
+      const createUserRes = await apiPost(
+        "/auth/signup",
+       	{
+		email: email,
+            	password: password,
+            	full_name: company,
+            	company_name: company,
+            	package_type: plan,
+          },
+        );
 
       let createUserData = {};
       try {
@@ -193,7 +191,7 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-
+      console.log(createUserRes)
       const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));

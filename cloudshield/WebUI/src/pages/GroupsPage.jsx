@@ -14,6 +14,8 @@ import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx"
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
 
+import {apiPatch, apiDelete, apiGet, apiPost} from "../api/client";
+
 const styles = {
   toolbar: {
     display: "flex",
@@ -150,8 +152,7 @@ export default function GroupsPage() {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch("/api/access-groups", {
-        method: "GET",
+      const res = await apiGet("/access-groups", {
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
@@ -334,13 +335,12 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch(
-          `/api/access-groups/${editingGroup.id}`,
+        const res = await apiPatch(
+          `/access-groups/${editingGroup.id}`,
+	  payload,
           {
-            method: "PATCH",
             credentials: "include",
             headers: { "Content-Type": "application/json", ...getAuthHeader() },
-            body: JSON.stringify(payload),
           },
         );
 
@@ -362,11 +362,11 @@ export default function GroupsPage() {
           file_shares,
         };
 
-        const res = await fetch("/api/access-groups", {
-          method: "POST",
+        const res = await apiPost("/access-groups",
+	  payload,
+	  {
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeader() },
-          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -393,10 +393,9 @@ export default function GroupsPage() {
     }
 
     try {
-      const res = await fetch(
-        `/api/access-groups/${groupId}`,
+      const res = await apiDelete(
+        `/access-groups/${groupId}`,
         {
-          method: "DELETE",
           credentials: "include",
           headers: { ...getAuthHeader() },
         },

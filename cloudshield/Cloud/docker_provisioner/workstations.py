@@ -38,7 +38,6 @@ def copy_with_status(src, dst):
 
     return True
 
-
 def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger = None):
 
     template_path = template_vm_path / org_id / template_id
@@ -194,21 +193,24 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
 
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "templates" / org_id / template_id
     host_oem_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "software" / org_id / template_id
+    host_iso_path = Path(os.getenv("WINDOWS_ISO_PATH"))
     
     logger.info(f"mounting storage path {str(host_vm_storage_path/'storage')}")
-    logger.info(f"mounting oem path {str(oem_path)}")
+    logger.info(f"mounting oem path {str(oem_path)} from {str(host_oem_storage_path)}")
 
     container_ws = docker.compose.run(
             service="workstation",
             volumes=[
                 (str(host_vm_storage_path),"/storage","rw"),
-                (str(host_oem_storage_path), "/oem", "rw")
+                (str(host_oem_storage_path), "/oem", "rw"),
+                (str(host_iso_path), "/boot.iso", "rw")
             ],
             detach=True,
             tty=False
     )
     
     container_ws_id = container_ws.id
+    logger.info(container_ws.network_settings.networks.keys())
     container_ws_ip = container_ws.network_settings.networks["vpc_net"].ip_address
 
     PROVISIONING_STATE[update_id] = container_ws_id
@@ -218,7 +220,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     updater(job, "initializing image")
 
     wait_for_rdp(container_ws_ip, logger=logger)
-
+    
+    docker.kill(container_ws_id)
 
     updater(job, "workstation image created")
 

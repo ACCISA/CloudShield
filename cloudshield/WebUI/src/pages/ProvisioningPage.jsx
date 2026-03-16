@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import cloudshieldLogo from "../assets/cloudshield_logo_white.png"; 
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
 
+import {apiGet, apiPost} from "../api/client"
+
 // 1. Backend Poll (Checks for true success/failure) - Every 2 seconds
 const POLL_INTERVAL_MS = 2000;
 
@@ -90,11 +92,8 @@ export default function ProvisioningPage() {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/task/provision`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ org_id: orgId }),
-        });
+        const res = await apiPost(`/task/provision`, {
+        org_id: orgId });
 
         if (!res.ok) throw new Error("Failed to start provisioning task.");
 
@@ -148,7 +147,7 @@ export default function ProvisioningPage() {
       if (successHandled.current) return;
 
       try {
-        const res = await fetch(`${API_BASE}/status/${encodeURIComponent(jobId)}`);
+        const res = await apiGet(`/status/${encodeURIComponent(jobId)}`);
         
         if (res.status === 404 || res.status >= 500) return;
 
