@@ -54,9 +54,13 @@ def get_agents():
     if not os.getenv("CLOUDSHIELD_RUNTIME"):
         return [{"ip": "127.0.0.1", "agent_id": "agent-test"}]
     agents_path = BASE_DIR / "agents.json"
-    with open(agents_path, "r") as f:
-        data = json.load(f)
-    return data["agents"]
+    try:
+        with open(agents_path, "r") as f:
+            data = json.load(f)
+        return data["agents"]
+    except Exception as exc:
+        server_logger.warning(f"Could not read agents.json: {exc}")
+        return []
 
 def is_valid_agent(agents, ip, agent_id):
 

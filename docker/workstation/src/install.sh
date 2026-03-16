@@ -173,12 +173,27 @@ startInstall() {
     ISO="$TMP/$ISO"
 
     if [ -f "$BOOT" ] && [ -s "$BOOT" ]; then
-      mv -f "$BOOT" "$ISO"
+      if ! mv -f "$BOOT" "$ISO" 2>/dev/null; then
+        if ! cp -f "$BOOT" "$ISO"; then
+          error "Failed to prepare ISO from $BOOT"
+          return 1
+        fi
+        info "Using mounted ISO source, copied to temporary path."
+      fi
     fi
 
   fi
 
-  rm -f "$BOOT"
+  rm -f "$BOOT" 2>/dev/null || true
+
+  # When the source ISO is bind-mounted read-only at $BOOT, removal can fail.
+  # In that case, switch the output target so buildImage can write a new ISO.
+  if [ -f "$BOOT" ]; then
+    local generated_boot="$STORAGE/windows.generated.iso"
+    rm -f "$generated_boot" 2>/dev/null || true
+    BOOT="$generated_boot"
+    info "Using alternate output path for generated ISO: $BOOT"
+  fi
 
   find "$STORAGE" -maxdepth 1 -type f -iname 'data.*' -not -iname '*.iso' -delete
   find "$STORAGE" -maxdepth 1 -type f -iname 'windows.*' -not -iname '*.iso' -delete

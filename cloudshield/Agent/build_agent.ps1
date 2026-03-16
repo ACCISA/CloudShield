@@ -21,18 +21,26 @@ $ErrorActionPreference = "Stop"
 
 $AgentDir   = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $OemDir     = Join-Path $AgentDir "..\..\docker\workstation\oem"
+$RepoRoot   = Resolve-Path (Join-Path $AgentDir "..\..")
+$VenvPython = Join-Path $RepoRoot ".venv\Scripts\python.exe"
+
+if (Test-Path $VenvPython) {
+    $PythonExe = $VenvPython
+} else {
+    $PythonExe = "python"
+}
 
 Push-Location $AgentDir
 try {
     Write-Host "[1/4] Installing build dependencies..."
-    pip install -q pyinstaller
+    & $PythonExe -m pip install -q pyinstaller
 
     Write-Host "[2/4] Running PyInstaller..."
-    pyinstaller --clean --noconfirm main.spec
+    & $PythonExe -m PyInstaller --clean --noconfirm main.spec
 
     $ExePath = Join-Path $AgentDir "dist\cloudshield_agent.exe"
     if (-not (Test-Path $ExePath)) {
-        throw "Build failed — $ExePath not found."
+        throw "Build failed - $ExePath not found."
     }
     Write-Host "[3/4] Build succeeded: $ExePath"
 
