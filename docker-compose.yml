@@ -151,6 +151,8 @@ services:
       USERNAME: "bill"
       PASSWORD: "gates"
       VERSION: "11"
+      DISK_SIZE: "32G"
+
     devices:
       - /dev/kvm
       - /dev/net/tun

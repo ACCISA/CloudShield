@@ -1,9 +1,7 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
-import { MOCK_WORKSTATIONS_FULL } from "../data/mockData.js";
-import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
@@ -13,104 +11,158 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { trackButton } from "../lib/analytics";
-
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import StatusButton from "../components/common/StatusButton/StatusButton.jsx";
+import ActiveIcon from "../assets/ActiveIcon.jsx";
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import { safeAsync } from "../lib/safeAsync";
+import { getUserErrorMessage } from "../lib/errors";
+import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
+import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    overflow: "hidden",
+    height: "100%",
+    minHeight: 0,
   },
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-    flexWrap: "wrap",
-    flexShrink: 0,
-  },
-  leftActions: {
-    display: "flex",
-    gap: "10px",
-    flex: "1 1 auto",
-    flexWrap: "wrap",
-    minWidth: "0",
-  },
-  rightActions: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  },
+  ...managementToolbarStyles,
   listWrapper: {
     flex: 1,
-    overflow: "auto",
     minHeight: 0,
-    overscrollBehavior: "contain",
+  },
+  errorBanner: {
+    padding: "10px 12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(213, 22, 22, 0.12)",
+    color: "#fff",
+    fontSize: "0.9rem",
+  },
+  ...sharedIconViewStyles,
+  iconStatusRow: {
+    marginTop: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
   },
 };
-/* ----------------------------------- seed ---------------------------------- */
 
-const seed = MOCK_WORKSTATIONS_FULL;
+/**
+ * Creates a workstation for a given org_id
+ * @param {string} orgId - The organization ID
+ * @param {string} name - The name of the workstation
+ * @param {string} ip - The IP address of the workstation
+ * @returns {string} The created workstation id
+ */
+ 
+
+export const createWorkstation = async (orgId, name, ip, groups) => {
+  try {
+    const token = localStorage.getItem("jwt");
+    const res = await fetch(`/api/workstations`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        org_id: orgId,
+        name,
+        ip,
+        groups: groups?.map((g) => g.id) || [],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err?.error || `Failed to create workstation: ${res.statusText}`,
+      );
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (e) {
+    console.error("Error creating workstation:", e);
+    return null;
+  }
+};
+
 
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
-  const [rows, setRows] = useState(seed);
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
-
-  // Layout state
-  const [layout, setLayout] = useState("list"); // 'cards', 'list', or 'icons'
+  const [layout, setLayout] = useState("list");
   const [showUsersCol, setShowUsersCol] = useState(true);
   const [showCurrentCol, setShowCurrentCol] = useState(true);
   const [showLastUsedCol, setShowLastUsedCol] = useState(true);
-
   const [selectedIds, setSelectedIds] = useState(new Set());
-
-  // Filter state
   const [activeFilters, setActiveFilters] = useState({
     status: new Set(),
     hasUsers: new Set(),
   });
-
-  // dialogs
   const [openModal, setOpenModal] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  // Open modal if navigated from dashboard
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (location.state?.openModal) {
       setOpenModal(true);
       setEditRow(null);
-      // Clear the state to prevent reopening on subsequent renders
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
+  // Fetch workstations on mount
+  useEffect(() => {
+    const loadWorkstations = async () => {
+      const orgId = localStorage.getItem("org_id");
+      const token = localStorage.getItem("jwt");
+      const data = await fetchWorkstations(orgId, token);
+      setRows(data);
+    };
+    loadWorkstations();
+  }, []);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-
     let data = rows;
 
-    // text search
     if (q) {
       data = data.filter((r) => {
-        const currentUserName = r.currentUser
-          ? `${r.currentUser.firstName || ""} ${r.currentUser.lastName || ""}`.trim()
-          : "";
+        const currentUserName =
+          r.currentUser
+            ? typeof r.currentUser === "string"
+              ? r.currentUser
+              : `${r.currentUser.firstName || ""} ${r.currentUser.lastName || ""}`.trim()
+            : "";
+
         return [r.name, r.code, currentUserName].some((v) =>
           (v || "").toLowerCase().includes(q),
         );
       });
     }
 
-    // status filter
     const statusFilters = activeFilters.status || new Set();
     if (statusFilters.size > 0) {
       data = data.filter((r) => statusFilters.has(r.status));
     }
 
-    // active users filter
     const hasUsersFilters = activeFilters.hasUsers || new Set();
     if (hasUsersFilters.has("activeUsers")) {
       data = data.filter((r) => (r.usersCount ?? 0) > 0);
@@ -123,6 +175,7 @@ export default function WorkstationsPage() {
     const hasSelected = filtered.some((w) => selectedIds.has(w.id));
     const allAreSelected =
       filtered.length > 0 && filtered.every((w) => selectedIds.has(w.id));
+
     return {
       allVisibleSelected: allAreSelected,
       isIndeterminate: hasSelected && !allAreSelected,
@@ -145,21 +198,20 @@ export default function WorkstationsPage() {
 
     setSelectedIds((prev) => {
       if (hasSelected && !allAreSelected) {
-        // Indeterminate state - deselect all
-        const next = new Set(prev);
-        filtered.forEach((w) => next.delete(w.id));
-        return next;
-      } else if (!hasSelected) {
-        // Nothing selected - select all
-        const next = new Set(prev);
-        filtered.forEach((w) => next.add(w.id));
-        return next;
-      } else {
-        // All selected - deselect all
         const next = new Set(prev);
         filtered.forEach((w) => next.delete(w.id));
         return next;
       }
+
+      if (!hasSelected) {
+        const next = new Set(prev);
+        filtered.forEach((w) => next.add(w.id));
+        return next;
+      }
+
+      const next = new Set(prev);
+      filtered.forEach((w) => next.delete(w.id));
+      return next;
     });
   };
 
@@ -171,26 +223,25 @@ export default function WorkstationsPage() {
       active: isActive,
       control: "filter_button",
     });
+
     setActiveFilters((prev) => {
       const newFilters = { ...prev };
       const groupFilters = new Set(prev[groupId] || new Set());
 
-      if (isActive) {
-        groupFilters.add(value);
-      } else {
-        groupFilters.delete(value);
-      }
+      if (isActive) groupFilters.add(value);
+      else groupFilters.delete(value);
 
       newFilters[groupId] = groupFilters;
       return newFilters;
     });
   };
 
-  const handleCreate = (payload) => {
+  const handleCreate = async (payload) => {
     trackButton("workstations/create/save", {
       page: "workstations",
       control: "create_dialog",
     });
+
     const newRow = {
       id: `ws-${Date.now()}`,
       name: payload.name,
@@ -232,11 +283,11 @@ export default function WorkstationsPage() {
       id,
       control: "edit_dialog",
     });
+
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         const updated = { ...r, ...changes };
-        // Recalculate usersCount if users array changed
         if (changes.users) {
           updated.usersCount = changes.users.length;
           updated.currentUser = changes.users[0] || null;
@@ -260,6 +311,7 @@ export default function WorkstationsPage() {
       id,
       control: "edit_dialog",
     });
+
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
@@ -269,12 +321,13 @@ export default function WorkstationsPage() {
       id,
       control: "row_toggle",
     });
+
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
         if (r.status === "connected") return { ...r, status: "disconnected" };
         if (r.status === "disconnected") return { ...r, status: "connected" };
-        return r; // busy unchanged
+        return r;
       }),
     );
   };
@@ -288,134 +341,292 @@ export default function WorkstationsPage() {
     setLayout(newLayout);
   };
 
-  return (
-    <div style={styles.container}>
-      {/* Toolbar */}
-      <div style={styles.toolbar}>
-        {/* Left side: Search and buttons */}
-        <div style={styles.leftActions}>
-          <SearchField
-            value={search}
-            onChange={(value) => setSearch(value)}
-            placeholder="Search workstations"
-            showIcon={true}
-            style={{
-              flex: "1 1 200px",
-              minWidth: "200px",
-              maxWidth: "680px",
-              width: "100%",
-            }}
-          />
+  const selectedCount = useMemo(
+    () => filtered.filter((r) => selectedIds.has(r.id)).length,
+    [filtered, selectedIds],
+  );
 
-          {/* Display */}
-          <DisplayButton
-            layout={layout}
-            onLayoutChange={handleLayoutChange}
-            columnToggles={{
-              columns: [
-                { key: "showUsers", label: "Users", checked: showUsersCol },
-                {
-                  key: "showCurrent",
-                  label: "Current",
-                  checked: showCurrentCol,
-                },
-                {
-                  key: "showLastUsed",
-                  label: "Last Used",
-                  checked: showLastUsedCol,
-                },
-              ],
-              onToggle: (column) => {
-                if (column === "showUsers") setShowUsersCol((prev) => !prev);
-                if (column === "showCurrent")
-                  setShowCurrentCol((prev) => !prev);
-                if (column === "showLastUsed")
-                  setShowLastUsedCol((prev) => !prev);
-              },
-            }}
-          />
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
-          {/* Filter */}
-          <FilterButton
-            filterGroups={WORKSTATION_FILTERS}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
+  const handleRefresh = useCallback(async () => {
+    setError("");
+    setLoading(true);
 
-        {/* Right side: Refresh and Create buttons */}
-        <div style={styles.rightActions}>
-          <RefreshButton
-            onClick={withClickLog({
-              name: "workstations/toolbar/refresh",
-              control: "refresh_button",
-            })(() => console.log("refresh"))}
-          />
+    try {
+      await safeAsync(async () => {
+        console.log("refresh");
+        await Promise.resolve();
+        setRows([...seed]);
+      });
+    } catch (err) {
+      setError(getUserErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-          <CreateButton
-            icon={<CreateWorkstationIcon />}
-            buttonText="Create"
-            onClick={withClickLog({
-              name: "workstations/toolbar/open-create",
-              control: "create_button",
-            })(() => {
-              setEditRow(null);
-              setOpenModal(true);
-            })}
-          />
-        </div>
+  const workstationMenuItems = (row) => [
+    {
+      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      label: "edit workstation",
+      color: "#1a1a1a",
+      onClick: () => {
+        setEditRow(row);
+        setOpenModal(true);
+      },
+    },
+    {
+      icon: <TrashIcon width={12} height={14} color="#D51616" />,
+      label: "delete workstation",
+      color: "#D51616",
+      onClick: () => handleDelete(row.id),
+    },
+  ];
+
+  const toolbar = (
+    <div style={styles.toolbar}>
+      <div style={styles.leftActions}>
+        <SearchField
+          value={search}
+          onChange={(value) => setSearch(value)}
+          placeholder="Search workstations"
+          showIcon={true}
+          style={{
+            flex: "1 1 200px",
+            minWidth: "200px",
+            maxWidth: "680px",
+            width: "100%",
+          }}
+        />
+
+        <DisplayButton
+          layout={layout}
+          onLayoutChange={handleLayoutChange}
+          columnToggles={{
+            columns: [
+              { key: "showUsers", label: "Users", checked: showUsersCol },
+              { key: "showCurrent", label: "Current", checked: showCurrentCol },
+              { key: "showLastUsed", label: "Last Used", checked: showLastUsedCol },
+            ],
+            onToggle: (column) => {
+              if (column === "showUsers") setShowUsersCol((prev) => !prev);
+              if (column === "showCurrent") setShowCurrentCol((prev) => !prev);
+              if (column === "showLastUsed") setShowLastUsedCol((prev) => !prev);
+            },
+          }}
+        />
+
+        <FilterButton
+          filterGroups={WORKSTATION_FILTERS}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </div>
 
-      {/* Workstation List with Headers */}
-      <div style={styles.listWrapper}>
-        <WorkstationList
-          rows={filtered}
-          onEdit={(row) => {
-            setEditRow(row);
+      <div style={styles.rightActions}>
+        {layout === "list" && selectedCount > 0 && (
+          <div style={styles.selectionSummary}>
+            <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
+            <button
+              type="button"
+              style={styles.clearSelectionButton}
+              onClick={clearSelection}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+              }}
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
+        <RefreshButton
+          onClick={withClickLog({
+            name: "workstations/toolbar/refresh",
+            control: "refresh_button",
+          })(handleRefresh)}
+        />
+
+        <CreateButton
+          icon={<CreateWorkstationIcon />}
+          buttonText="Create"
+          onClick={withClickLog({
+            name: "workstations/toolbar/open-create",
+            control: "create_button",
+          })(() => {
+            setEditRow(null);
             setOpenModal(true);
-          }}
-          onDelete={handleDelete}
-          onToggleStatus={handleToggleStatus}
-          selectedIds={selectedIds}
-          allVisibleSelected={allVisibleSelected}
-          isIndeterminate={isIndeterminate}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllVisible}
-          showUsers={showUsersCol}
-          showCurrent={showCurrentCol}
-          showLastUsed={showLastUsedCol}
+          })}
         />
       </div>
-
-      {/* Workstation Modal */}
-      {openModal && (
-        <WorkstationModal
-          open={openModal}
-          onClose={() => {
-            setOpenModal(false);
-            setEditRow(null);
-          }}
-          workstationData={editRow}
-          onSubmit={(payload) => {
-            if (editRow) {
-              handleEditSave(editRow.id, payload);
-            } else {
-              handleCreate(payload);
-            }
-            setOpenModal(false);
-            setEditRow(null);
-          }}
-          onDelete={
-            editRow
-              ? () => {
-                  handleDelete(editRow.id);
-                  setOpenModal(false);
-                  setEditRow(null);
-                }
-              : undefined
-          }
-        />
-      )}
     </div>
+  );
+
+  return (
+    <PageShell actions={toolbar}>
+      <div style={styles.container}>
+        {error ? (
+          <div role="alert" data-testid="workstations-error" style={styles.errorBanner}>
+            {error}
+          </div>
+        ) : null}
+
+        {layout === "list" ? (
+          <TableSurface>
+            <div style={styles.listWrapper}>
+              {loading ? (
+                <TableSkeleton rows={8} cols={5} />
+              ) : (
+                <WorkstationList
+                  rows={filtered}
+                  onEdit={(row) => {
+                    setEditRow(row);
+                    setOpenModal(true);
+                  }}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleToggleStatus}
+                  selectedIds={selectedIds}
+                  allVisibleSelected={allVisibleSelected}
+                  isIndeterminate={isIndeterminate}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAllVisible}
+                  showUsers={showUsersCol}
+                  showCurrent={showCurrentCol}
+                  showLastUsed={showLastUsedCol}
+                />
+              )}
+            </div>
+          </TableSurface>
+        ) : loading ? (
+          <TableSurface>
+            <TableSkeleton rows={6} cols={3} />
+          </TableSurface>
+        ) : (
+          <div style={styles.iconsWrapper}>
+            <IconSelectionBar
+              styles={styles}
+              allVisibleSelected={allVisibleSelected}
+              isIndeterminate={isIndeterminate}
+              onToggleSelectAll={toggleSelectAllVisible}
+              selectedCount={selectedCount}
+            />
+
+            <div style={styles.iconsGrid}>
+              {filtered.map((row) => {
+                const selected = selectedIds.has(row.id);
+                const usersCount = row.usersCount ?? row.users?.length ?? 0;
+                const currentUser =
+                  row.currentUser && row.currentUser !== "—"
+                    ? typeof row.currentUser === "string"
+                      ? {
+                          firstName: row.currentUser.split(" ")[0],
+                          lastName: row.currentUser.split(" ")[1] || "",
+                        }
+                      : row.currentUser
+                    : null;
+
+                return (
+                  <div
+                    key={row.id}
+                    style={{
+                      ...styles.iconCard,
+                      ...(selected ? styles.iconCardSelected : {}),
+                    }}
+                  >
+                    <div style={styles.iconCardHeader}>
+                      <Checkbox
+                        checked={selected}
+                        onChange={() => toggleSelect(row.id)}
+                      />
+                      <EditButton menuItems={workstationMenuItems(row)} />
+                    </div>
+
+                    <div style={styles.iconTitle}>
+                      <DisplayIcon type="workstation" data={row} size="small" />
+                      <div style={styles.iconTitleText}>
+                        <span style={styles.iconName}>{row.name}</span>
+                        <span style={styles.iconSub}>↳ {row.code}</span>
+                      </div>
+                    </div>
+
+                    {showUsersCol && (
+                      <div style={styles.iconMetaRow}>
+                        <span style={styles.iconMetaLabel}>Users</span>
+                        <span style={styles.iconMetaValue}>{usersCount}</span>
+                      </div>
+                    )}
+
+                    {showCurrentCol && (
+                      <div style={styles.iconMetaRow}>
+                        <span style={styles.iconMetaLabel}>Current</span>
+                        <span style={styles.iconMetaValue}>
+                          {currentUser ? (
+                            <DisplayIcon type="user" data={currentUser} size="small" />
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {showLastUsedCol && (
+                      <div style={styles.iconMetaRow}>
+                        <span style={styles.iconMetaLabel}>Last Used</span>
+                        <span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span>
+                      </div>
+                    )}
+
+                    <div style={styles.iconStatusRow}>
+                      <StatusButton
+                        status={row.status}
+                        onClick={() => handleToggleStatus(row.id)}
+                      />
+                      <ActiveIcon
+                        width={12}
+                        height={12}
+                        outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"}
+                        innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {openModal && (
+          <WorkstationModal
+            open={openModal}
+            onClose={() => {
+              setOpenModal(false);
+              setEditRow(null);
+            }}
+            workstationData={editRow}
+            onSubmit={(payload) => {
+              if (editRow) handleEditSave(editRow.id, payload);
+              else handleCreate(payload);
+
+              setOpenModal(false);
+              setEditRow(null);
+            }}
+            onDelete={
+              editRow
+                ? () => {
+                    handleDelete(editRow.id);
+                    setOpenModal(false);
+                    setEditRow(null);
+                  }
+                : undefined
+            }
+          />
+        )}
+      </div>
+    </PageShell>
   );
 }

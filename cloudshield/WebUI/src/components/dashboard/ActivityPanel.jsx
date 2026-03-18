@@ -1,101 +1,97 @@
-/**
- * ActivityPanel.jsx
- *
- * Purpose:
- *   List recent activities with a small search and refresh control. Used on dashboard.
- *
- * Notes:
- *   - Ready for backend integration via fetchActivities prop
- *   - Fully responsive design with mobile-friendly layout
- *   - Best-effort search with relevance scoring (most relevant results first)
- */
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Box,
-  Typography,
-  Alert,
-  Avatar,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import SearchField from "../common/SearchField/SearchField";
 import RefreshButton from "../common/RefreshButton/RefreshButton";
 import Pagination from "../common/Pagination/Pagination";
 import EmptyState from "../common/EmptyState/EmptyState";
 import { searchWithRelevance } from "../../utils/searchUtils";
 
-/**
- * Displays a searchable list of recent user activities.
- * @param {Function} fetchActivities - Optional async function to fetch activities from backend
- * @param {Array} initialData - Optional initial data to display
- * @returns {JSX.Element} Activity panel with search and refresh controls
- */
+const PANEL_BG = "#0f0f0f";
+const ROW_BG = "#2a2a2a";
+
+const mockData = [
+  {
+    id: 1,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 2,
+    user: "Noah Burns",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 3,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 4,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+  {
+    id: 5,
+    user: "Michael Scott",
+    date: "10/11/2025 11:36 pm",
+    activity: "Uploaded file to group",
+  },
+];
+
+function getUserInitials(name) {
+  if (!name) return "?";
+  const parts = name.split(" ").filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 export default function ActivityPanel({
   fetchActivities,
   initialData,
   currentPage = 1,
   totalItems = 0,
-  rowsPerPage = 25,
-  rowsPerPageOptions = [10, 25, 50, 100],
+  itemsPerPage = 10,
   onPageChange,
-  onRowsPerPageChange,
+  loading: externalLoading = false,
 }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-
-  // State management
   const [search, setSearch] = useState("");
-  const [activities, setActivities] = useState(initialData || []);
-  const [loading, setLoading] = useState(false);
+  const [activities, setActivities] = useState(
+    Array.isArray(initialData) ? initialData : []
+  );
+  const [loading, setLoading] = useState(Boolean(externalLoading));
   const [error, setError] = useState(null);
+  const [sortField, setSortField] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
+  const [internalPage, setInternalPage] = useState(currentPage);
 
-  // Mock activity data (fallback when no backend is connected)
-  const mockData = [
-    {
-      id: 1,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 2,
-      user: "Noah Burns",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 3,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 4,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-    {
-      id: 5,
-      user: "Michael Scott",
-      date: "10/11/2025 11:36 pm",
-      activity: "Uploaded file to group",
-    },
-  ];
+  const isControlledPagination =
+    typeof onPageChange === "function" && totalItems > 0;
+  const activePage = isControlledPagination ? currentPage : internalPage;
+  const displayTotal = isControlledPagination ? totalItems : 0;
 
-  // Load activities on mount
   useEffect(() => {
-    if (!initialData) {
-      loadActivities();
-    }
-  }, []);
+    setLoading(Boolean(externalLoading));
+  }, [externalLoading]);
 
-  // Load activities from backend or use mock data
+  useEffect(() => {
+    if (Array.isArray(initialData)) {
+      setActivities(initialData);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (!isControlledPagination) {
+      setInternalPage(currentPage);
+    }
+  }, [currentPage, isControlledPagination]);
+
   const loadActivities = useCallback(async () => {
     if (!fetchActivities) {
-      // Use mock data if no backend function provided
       setActivities(mockData);
       return;
     }
@@ -104,210 +100,263 @@ export default function ActivityPanel({
       setLoading(true);
       setError(null);
       const data = await fetchActivities();
-      setActivities(data);
+      setActivities(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch activities:", err);
       setError("Failed to load activities. Please try again.");
-      // Fallback to mock data on error
       setActivities(mockData);
     } finally {
       setLoading(false);
     }
   }, [fetchActivities]);
 
-  // Handle refresh button click
-  const handleRefresh = () => {
-    loadActivities();
+  useEffect(() => {
+    if (!Array.isArray(initialData) && fetchActivities) {
+      loadActivities();
+    }
+  }, [fetchActivities, initialData, loadActivities]);
+
+  useEffect(() => {
+    if (!isControlledPagination) {
+      setInternalPage(1);
+    }
+  }, [search, sortField, sortDir, isControlledPagination]);
+
+  const filteredActivities =
+    searchWithRelevance(activities, search, [
+      { field: "user", weight: 2 },
+      { field: "activity", weight: 1.5 },
+      { field: "date", weight: 0.5 },
+    ]) || [];
+
+  const sortedActivities = useMemo(() => {
+    return [...filteredActivities].sort((a, b) => {
+      let left;
+      let right;
+
+      if (sortField === "date") {
+        const leftTs = Date.parse(a?.date || "");
+        const rightTs = Date.parse(b?.date || "");
+        left = Number.isNaN(leftTs) ? 0 : leftTs;
+        right = Number.isNaN(rightTs) ? 0 : rightTs;
+      } else {
+        left = String(a?.[sortField] || "").toLowerCase();
+        right = String(b?.[sortField] || "").toLowerCase();
+      }
+
+      if (left < right) return sortDir === "asc" ? -1 : 1;
+      if (left > right) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredActivities, sortField, sortDir]);
+
+  const visibleActivities = isControlledPagination
+    ? sortedActivities
+    : sortedActivities.slice(
+        (activePage - 1) * itemsPerPage,
+        activePage * itemsPerPage
+      );
+
+  const totalForPagination = isControlledPagination
+    ? displayTotal
+    : sortedActivities.length;
+
+  const handleRefresh = async () => {
+    await loadActivities();
   };
 
-  // Filter activities based on search with relevance scoring
-  // Most relevant results appear first
-  const filteredActivities = searchWithRelevance(activities, search, [
-    { field: "user", weight: 2 }, // User name is most important
-    { field: "activity", weight: 1.5 }, // Activity description is important
-    { field: "date", weight: 0.5 }, // Date is least important
-  ]) || [];
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortField(field);
+    setSortDir(field === "date" ? "desc" : "asc");
+  };
 
-  // Client-side pagination: slice the filtered list for the current page
-  const isServerPaginated = Boolean(onPageChange && onRowsPerPageChange);
-  const paginatedActivities = isServerPaginated
-    ? filteredActivities
-    : filteredActivities.slice(
-        (currentPage - 1) * rowsPerPage,
-        currentPage * rowsPerPage,
-      );
-  const displayTotal = isServerPaginated ? totalItems : filteredActivities.length;
+  const headerStyle = (field) => ({
+    appearance: "none",
+    background: "none",
+    border: "none",
+    padding: 0,
+    textAlign: "left",
+    width: "100%",
+    fontSize: "13px",
+    fontWeight: sortField === field ? 600 : 500,
+    color: sortField === field ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
+    cursor: "pointer",
+    userSelect: "none",
+  });
 
-  // Get user initials for avatar
-  const getUserInitials = (name) => {
-    if (!name) return "?";
-    const parts = name.split(" ");
-    return parts.length >= 2
-      ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-      : name.substring(0, 2).toUpperCase();
+  const styles = {
+    container: {
+      backgroundColor: PANEL_BG,
+      borderRadius: "16px",
+      padding: "16px",
+      border: "1px solid rgba(255,255,255,0.08)",
+      color: "#fff",
+      marginTop: "24px",
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "12px",
+      gap: "12px",
+      flexWrap: "wrap",
+    },
+    headerLeft: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    title: {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: "rgba(255,255,255,1)",
+      marginBottom: "12px",
+      marginTop: 0,
+    },
+    headerRight: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
+      marginLeft: "auto",
+    },
+    tableWrapper: {
+      display: "flex",
+      flexDirection: "column",
+    },
+    tableHeader: {
+      display: "grid",
+      gridTemplateColumns: "1.6fr 1.2fr 2fr",
+      gap: "12px",
+      padding: "0 8px 10px",
+    },
+    rowList: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+    },
+    row: (index) => ({
+      display: "grid",
+      gridTemplateColumns: "1.6fr 1.2fr 2fr",
+      gap: "12px",
+      alignItems: "center",
+      borderRadius: "12px",
+      padding: "12px 16px",
+      backgroundColor: index % 2 === 0 ? ROW_BG : "transparent",
+    }),
+    userCell: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      minWidth: 0,
+    },
+    avatar: {
+      width: "38px",
+      height: "38px",
+      borderRadius: "50%",
+      backgroundColor: "#fff",
+      color: "#111",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "14px",
+      fontWeight: "600",
+      flexShrink: 0,
+    },
+    userText: {
+      fontSize: "14px",
+      color: "#fff",
+      fontWeight: 500,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
+    dateText: {
+      fontSize: "14px",
+      color: "rgba(255,255,255,0.7)",
+      whiteSpace: "nowrap",
+    },
+    activityText: {
+      fontSize: "14px",
+      color: "#fff",
+      lineHeight: 1.4,
+    },
+    error: {
+      marginBottom: "12px",
+      padding: "10px 12px",
+      borderRadius: "10px",
+      border: "1px solid rgba(211,47,47,0.3)",
+      backgroundColor: "rgba(211,47,47,0.1)",
+      color: "#f44336",
+      fontSize: "13px",
+    },
+    loading: {
+      padding: "24px 12px",
+      textAlign: "center",
+      color: "rgba(255,255,255,0.6)",
+      fontSize: "13px",
+    },
+  };
+
+  const handlePageChange = (nextPage) => {
+    if (isControlledPagination) {
+      onPageChange(nextPage);
+      return;
+    }
+    setInternalPage(nextPage);
   };
 
   return (
-    <Box
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        backgroundColor: "#1a1a1a",
-        borderRadius: "16px",
-        border: "1px solid rgba(255,255,255,0.1)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-        color: "#fff",
-        padding: isMobile ? "16px" : "24px",
-        mt: "24px",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* Header row */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : "center",
-          gap: "12px",
-          mb: 3,
-        }}
-      >
-        <Typography
-          sx={{
-            color: "#fff",
-            fontSize: isMobile ? "1.25rem" : "1.5rem",
-            fontWeight: 600,
-            lineHeight: 1.2,
-            flexShrink: 0,
-          }}
-        >
-          Recent activity
-        </Typography>
-
-        <Box sx={{ flex: 1, minWidth: isMobile ? undefined : "16px" }} />
-
-        <Box
-          sx={{
-            display: "flex",
-            gap: "12px",
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: "stretch",
-            flexShrink: 0,
-          }}
-        >
-          <RefreshButton
-            onClick={handleRefresh}
-            loading={loading}
-            tooltip="Refresh activities"
-            fullWidthMobile={true}
-          />
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div style={styles.headerLeft}>
+          <h3 style={styles.title}>Recent Activity</h3>
+        </div>
+        <div style={styles.headerRight}>
+          <RefreshButton onClick={handleRefresh} disabled={loading} />
           <SearchField
+            placeholder="Search activities"
             value={search}
             onChange={setSearch}
-            placeholder="Search activities"
-            width="360px"
-            fullWidthMobile={true}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* Error message */}
-      {error && (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            backgroundColor: "rgba(211, 47, 47, 0.1)",
-            color: "#f44336",
-            border: "1px solid rgba(211, 47, 47, 0.3)",
-          }}
-        >
-          {error}
-        </Alert>
-      )}
+      {error && <div style={styles.error}>{error}</div>}
 
-      {/* Table header - hidden on mobile */}
-      {!isMobile && (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: isTablet ? "2fr 3fr" : "2fr 1.5fr 3fr",
-            gap: "16px",
-            px: "16px",
-            py: "12px",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-            mb: 1,
-          }}
-        >
-          <Typography
-            sx={{
-              color: "rgba(255,255,255,0.6)",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
+      <div style={styles.tableWrapper}>
+        <div style={styles.tableHeader}>
+          <button
+            type="button"
+            style={headerStyle("user")}
+            onClick={() => toggleSort("user")}
           >
-            User ↑
-          </Typography>
-          {!isTablet && (
-            <Typography
-              sx={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Date ↑
-            </Typography>
-          )}
-          <Typography
-            sx={{
-              color: "rgba(255,255,255,0.6)",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
+            User
+          </button>
+          <button
+            type="button"
+            style={headerStyle("date")}
+            onClick={() => toggleSort("date")}
           >
-            Activity ↑
-          </Typography>
-        </Box>
-      )}
+            Date
+          </button>
+          <button
+            type="button"
+            style={headerStyle("activity")}
+            onClick={() => toggleSort("activity")}
+          >
+            Activity
+          </button>
+        </div>
 
-      {/* Activity rows */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px",
-          overflowY: "auto",
-          maxHeight: "500px",
-          pr: 1,
-          "&::-webkit-scrollbar": {
-            width: "8px",
-          },
-          "&::-webkit-scrollbar-track": {
-            backgroundColor: "transparent",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(255,255,255,0.2)",
-            borderRadius: "4px",
-            "&:hover": {
-              backgroundColor: "rgba(255,255,255,0.3)",
-            },
-          },
-        }}
-      >
         {loading && activities.length === 0 ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress sx={{ color: "#fff" }} />
-          </Box>
-        ) : paginatedActivities.length === 0 ? (
+          <div style={styles.loading}>Loading activity…</div>
+        ) : visibleActivities.length === 0 ? (
           <EmptyState
             message="No activities found"
             description={
@@ -318,109 +367,34 @@ export default function ActivityPanel({
             testId="activity-empty-state"
           />
         ) : (
-          paginatedActivities.map((activity, index) => (
-            <Box
-              key={activity.id || activity.date + activity.user}
-              sx={{
-                display: isMobile ? "flex" : "grid",
-                flexDirection: isMobile ? "column" : undefined,
-                gridTemplateColumns:
-                  isTablet && !isMobile
-                    ? "2fr 3fr"
-                    : !isMobile
-                    ? "2fr 1.5fr 3fr"
-                    : undefined,
-                gap: isMobile ? "8px" : "16px",
-                backgroundColor: index % 2 === 0 ? "#2a2a2a" : "transparent",
-                borderRadius: "12px",
-                px: "16px",
-                py: "14px",
-                alignItems: "center",
-              }}
-            >
-              {/* User column */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    backgroundColor: "#fff",
-                    color: "#000",
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  {getUserInitials(activity.user)}
-                </Avatar>
-                <Typography
-                  sx={{
-                    fontWeight: 500,
-                    fontSize: "0.875rem",
-                    color: "#fff",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {activity.user}
-                </Typography>
-              </Box>
-
-              {/* Date column - hidden on tablet in grid, shown separately on mobile */}
-              {!isTablet && !isMobile && (
-                <Typography
-                  sx={{
-                    fontSize: "0.875rem",
-                    color: "rgba(255,255,255,0.7)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {activity.date}
-                </Typography>
-              )}
-
-              {/* Activity column with date on mobile */}
-              <Box
-                sx={{ display: "flex", flexDirection: "column", gap: "4px" }}
+          <div style={styles.rowList}>
+            {visibleActivities.map((activity, index) => (
+              <div
+                key={activity.id || `${activity.date}-${activity.user}`}
+                style={styles.row(index)}
               >
-                <Typography
-                  sx={{
-                    fontSize: "0.875rem",
-                    color: "#fff",
-                    fontWeight: 400,
-                  }}
-                >
-                  {activity.activity}
-                </Typography>
-                {(isMobile || isTablet) && (
-                  <Typography
-                    sx={{
-                      fontSize: "0.75rem",
-                      color: "rgba(255,255,255,0.5)",
-                    }}
-                  >
-                    {activity.date}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          ))
+                <div style={styles.userCell}>
+                  <div style={styles.avatar}>{getUserInitials(activity.user)}</div>
+                  <div style={styles.userText}>{activity.user}</div>
+                </div>
+                <div style={styles.dateText}>{activity.date}</div>
+                <div style={styles.activityText}>{activity.activity}</div>
+              </div>
+            ))}
+          </div>
         )}
-      </Box>
+      </div>
 
-      {/* Pagination bar */}
-      {displayTotal > 0 && (
+      {totalForPagination > 0 && (
         <Pagination
-          currentPage={currentPage}
-          totalItems={displayTotal}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={rowsPerPageOptions}
-          onPageChange={onPageChange || (() => {})}
-          onRowsPerPageChange={onRowsPerPageChange || (() => {})}
+          totalItems={totalForPagination}
+          itemsPerPage={itemsPerPage}
+          currentPage={activePage}
+          onPageChange={handlePageChange}
+          itemLabel="activities"
           testId="activity-pagination"
         />
       )}
-    </Box>
+    </div>
   );
 }

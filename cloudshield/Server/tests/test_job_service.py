@@ -310,3 +310,72 @@ def test_enqueue_employee_invite_email(monkeypatch):
     assert recorded["func"] == job_service.send_employee_invite_email
     assert recorded["args"] == ("user",)
     assert any("Enqueued send_employee_invite_email" in msg for msg, _ in logger.messages)
+
+
+def test_enqueue_org_welcome_email_if_ready_returns_none_when_not_completed(monkeypatch):
+    class FakeOrganizations:
+        def find_one(self, *_args, **_kwargs):
+            return {"provisioning_status": "in_progress", "welcome_email_enqueued": False}
+
+    monkeypatch.setattr(job_service, "organizations", FakeOrganizations())
+    monkeypatch.setattr(job_service, "db_admin", {"users": types.SimpleNamespace(find_one=lambda *_a, **_k: {"_id": "x"})})
+
+    assert job_service.enqueue_org_welcome_email_if_ready("org1") is None
+
+
+def test_enqueue_org_welcome_email_if_ready_returns_none_when_already_enqueued(monkeypatch):
+    class FakeOrganizations:
+        def find_one(self, *_args, **_kwargs):
+            return {"provisioning_status": "completed", "welcome_email_enqueued": True}
+
+    monkeypatch.setattr(job_service, "organizations", FakeOrganizations())
+    monkeypatch.setattr(job_service, "db_admin", {"users": types.SimpleNamespace(find_one=lambda *_a, **_k: {"_id": "x"})})
+
+    assert job_service.enqueue_org_welcome_email_if_ready("org1") is None
+
+
+def test_enqueue_org_welcome_email_if_ready_returns_none_when_admin_missing(monkeypatch):
+    class FakeOrganizations:
+        def find_one(self, *_args, **_kwargs):
+            return {"provisioning_status": "completed", "welcome_email_enqueued": False}
+
+    monkeypatch.setattr(job_service, "organizations", FakeOrganizations())
+    monkeypatch.setattr(job_service, "db_admin", {"users": types.SimpleNamespace(find_one=lambda *_a, **_k: None)})
+
+    assert job_service.enqueue_org_welcome_email_if_ready("org1") is None
+
+
+def test_enqueue_org_welcome_email_if_ready_enqueues_and_sets_marker(monkeypatch):
+    calls = {}
+    fake_job = DummyJob(job_id="welcome-ready")
+
+    class FakeOrganizations:
+        def find_one(self, *_args, **_kwargs):
+            return {"provisioning_status": "completed", "welcome_email_enqueued": False}
+
+        def update_one(self, filt, update):
+            calls["update_filter"] = filt
+            calls["update_doc"] = update
+
+    class FakeUsers:
+        def find_one(self, query, sort=None):
+            calls["admin_query"] = query
+            calls["admin_sort"] = sort
+            return {"_id": "admin-123"}
+
+    def fake_enqueue(org_id, admin_user_id):
+        calls["enqueue_args"] = (org_id, admin_user_id)
+        return fake_job
+
+    monkeypatch.setattr(job_service, "organizations", FakeOrganizations())
+    monkeypatch.setattr(job_service, "db_admin", {"users": FakeUsers()})
+    monkeypatch.setattr(job_service, "enqueue_org_welcome_email", fake_enqueue)
+
+    job = job_service.enqueue_org_welcome_email_if_ready("org1")
+
+    assert job is fake_job
+    assert calls["admin_query"] == {"org_id": "org1", "role": "admin"}
+    assert calls["admin_sort"] == [("created_at", 1)]
+    assert calls["enqueue_args"] == ("org1", "admin-123")
+    assert calls["update_doc"]["$set"]["welcome_email_enqueued"] is True
+    assert "welcome_email_enqueued_at" in calls["update_doc"]["$set"]

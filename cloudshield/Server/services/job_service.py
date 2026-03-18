@@ -4,9 +4,11 @@ Service layer for job enqueueing and status retrieval.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from typing import Tuple, Dict, Any
 import rq
 from utils import task_queue, redis_conn, get_logger
+from utils.database import db_admin, organizations, org_filter
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
 Job = rq.job.Job  # type: ignore[attr-defined]
@@ -441,6 +443,55 @@ def enqueue_org_welcome_email(org_id: str, admin_user_id: str) -> Job:
         job_timeout=JOB_TIMEOUT,
     )
     logger.info("Enqueued send_org_welcome_email")
+    return job
+
+
+def enqueue_org_welcome_email_if_ready(org_id: str) -> Job | None:
+    """
+    Enqueue org welcome email only after successful provisioning.
+
+    Why this exists:
+    - Signup returns before infrastructure provisioning finishes.
+    - Provisioning completion happens later in a background worker that only has org_id.
+    - We must avoid duplicate welcome emails on retried/replayed success paths.
+
+    Contract:
+    - Returns None when not ready/already sent/missing admin.
+    - Returns the queued Job when an email is enqueued.
+    """
+    # Guard 1: only send after infrastructure is truly completed.
+    org = organizations.find_one(
+        org_filter(org_id),
+        {"provisioning_status": 1, "welcome_email_enqueued": 1},
+    ) or {}
+    if org.get("provisioning_status") != "completed":
+        return None
+
+    # Guard 2: persistent duplicate-prevention across retries/restarts.
+    if org.get("welcome_email_enqueued"):
+        return None
+
+    # Resolve the primary admin for this org.
+    admin = db_admin["users"].find_one(
+        {"org_id": org_id, "role": "admin"},
+        sort=[("created_at", 1)],
+    )
+    if not admin or not admin.get("_id"):
+        return None
+
+    # Reuse the existing enqueue helper.
+    job = enqueue_org_welcome_email(org_id, str(admin["_id"]))
+
+    # Mark as sent so future successful/retried runs are no-ops for this org.
+    organizations.update_one(
+        org_filter(org_id),
+        {
+            "$set": {
+                "welcome_email_enqueued": True,
+                "welcome_email_enqueued_at": datetime.now(timezone.utc),
+            }
+        },
+    )
     return job
 
 

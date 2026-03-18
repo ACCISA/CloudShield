@@ -1,5 +1,6 @@
 #include "service/infra_service.hpp"
 #include "tasks/samba.hpp"
+#include "utils/sanitize.hpp"
 
 InfraService::InfraService()
 {
@@ -9,6 +10,7 @@ InfraService::InfraService()
 Status InfraService::AddDomainUser(ServerContext* context, const is::AddDomainUserData* request, is::AddDomainUserDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string username = request->username().c_str();
 	std::string password = request->password().c_str();
@@ -46,11 +48,16 @@ Status InfraService::AddDomainUser(ServerContext* context, const is::AddDomainUs
 	response->set_status(is::Status::SUCCESS);
 
 	return Status(grpc::StatusCode::OK, "User added to domain successfully");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::AddDomainGroup(ServerContext* context, const is::AddDomainGroupData* request, is::AddDomainGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string group_name = request->group_name().c_str();
 
@@ -89,11 +96,16 @@ Status InfraService::AddDomainGroup(ServerContext* context, const is::AddDomainG
 	response->set_result(combined_result);
 	response->set_status(is::Status::SUCCESS);
 	return Status(grpc::StatusCode::OK, "Group added and linked successfully");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::AddUserToGroup(ServerContext* context, const is::AddUserToGroupData* request, is::AddUserToGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string username = request->username();
 	std::string group_name = request->group_name();
@@ -123,11 +135,16 @@ Status InfraService::AddUserToGroup(ServerContext* context, const is::AddUserToG
 	response->set_status(is::Status::SUCCESS);
 	response->set_result(membership_result);
 	return Status(grpc::StatusCode::OK, "User added to group successfully");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::RemoveDomainGroup(ServerContext* context, const is::RemoveDomainGroupData* request, is::RemoveDomainGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string group_name = request->group_name().c_str();
 
@@ -150,11 +167,16 @@ Status InfraService::RemoveDomainGroup(ServerContext* context, const is::RemoveD
 	response->set_result(result);
 	response->set_status(is::Status::FAILED);
 	return Status(grpc::StatusCode::OK, "Failed to remove group");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::CreateDomainUserWithGroup(ServerContext* context, const is::CreateDomainUserWithGroupData* request, is::CreateDomainUserWithGroupDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string username = request->username();
 	std::string password = request->password();
@@ -231,11 +253,16 @@ Status InfraService::CreateDomainUserWithGroup(ServerContext* context, const is:
 	response->set_status(is::Status::SUCCESS);
 
 	return Status(grpc::StatusCode::OK, "User, group, and linkage created successfully");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::ResetUserPassword(ServerContext* context, const is::ResetUserPasswordData* request, is::ResetUserPasswordDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string username = request->username().c_str();
 	std::string password = request->password().c_str();
@@ -267,11 +294,16 @@ Status InfraService::ResetUserPassword(ServerContext* context, const is::ResetUs
 	response->set_status(is::Status::UNKNOWN);
 		
 	return Status(grpc::StatusCode::OK, "User password reset failed unknown");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::RemoveDomainUser(ServerContext* context, const is::RemoveDomainUserData* request, is::RemoveDomainUserDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string username = request->username().c_str();
 
@@ -294,7 +326,9 @@ Status InfraService::RemoveDomainUser(ServerContext* context, const is::RemoveDo
 
 	return Status(grpc::StatusCode::OK, "User remove failed");
 
-
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::GetUserList(ServerContext* context, const google::protobuf::Empty* request, is::GetUserListDataAck* response)
@@ -322,6 +356,7 @@ Status InfraService::GetUserList(ServerContext* context, const google::protobuf:
 Status InfraService::CreateSambaFileShare(ServerContext* context, const is::CreateSambaFileShareData* request, is::CreateSambaFileShareDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 	is::Status status;
 
 	std::string share_name = request->share_name().c_str();
@@ -338,6 +373,10 @@ Status InfraService::CreateSambaFileShare(ServerContext* context, const is::Crea
 	response->set_status(status);
 
 	return Status(grpc::StatusCode::OK, "New File share added successfully");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::RestartSambaService(ServerContext* context, const google::protobuf::Empty* request, is::RestartSambaServiceDataAck* response)
@@ -360,6 +399,7 @@ Status InfraService::DeleteSambaFileShare(ServerContext* context, const is::Dele
 {
 	// TODO implement wipe_data and rm -rf share
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string share_name = request->share_name().c_str();
 	bool wipe_data = request->wipe_data();
@@ -378,11 +418,16 @@ Status InfraService::DeleteSambaFileShare(ServerContext* context, const is::Dele
 	response->set_status(is::Status::SUCCESS);
 
 	return Status(grpc::StatusCode::OK, "Deleted samba file share");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::UpdateSambaFileShare(ServerContext* context, const is::UpdateSambaFileShareData* request, is::UpdateSambaFileShareDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 
 	std::string share_name = request->share_name().c_str();
 
@@ -412,11 +457,16 @@ Status InfraService::UpdateSambaFileShare(ServerContext* context, const is::Upda
 
 	response->set_status(is::Status::SUCCESS);
 	return Status(grpc::StatusCode::OK, "Updated samba file share ACLs");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::AddDNSRecord(ServerContext* context, const is::AddDNSRecordData* request, is::AddDNSRecordDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 	std::string result;
 
 	AddDNSRecordData dns_record = {
@@ -456,11 +506,16 @@ Status InfraService::AddDNSRecord(ServerContext* context, const is::AddDNSRecord
 	}
 
 	return Status(grpc::StatusCode::OK, "Added DNS entry");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::DeleteDNSRecord(ServerContext* context, const is::DeleteDNSRecordData* request, is::DeleteDNSRecordDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 	std::string result;
 	
 	AddDNSRecordData dns_record = {
@@ -499,17 +554,26 @@ Status InfraService::DeleteDNSRecord(ServerContext* context, const is::DeleteDNS
 
 
 	return Status(grpc::StatusCode::OK, "Deleted DNS entry");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
 
 Status InfraService::SyncNetlogonScript(ServerContext* context, const is::SyncNetlogonScriptData* request, is::SyncNetlogonScriptDataAck* response)
 {
 	std::lock_guard<std::mutex> lock(this->mutex_);
+	try {
 	std::string realm = request->realm().c_str();
 	
 	auto samba = std::make_unique<SambaTask>();
 
 	bool status = samba->SyncNetlogonScript(realm, request->groups());
 
-	return Status(grpc::StatusCode::OK, "Netlogon scripts synced");	
+	return Status(grpc::StatusCode::OK, "Netlogon scripts synced");
+
+	} catch (const Sanitize::ValidationError& e) {
+		return Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+	}
 }
   	

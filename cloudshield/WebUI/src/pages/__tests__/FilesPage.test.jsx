@@ -133,6 +133,21 @@ jest.mock("../../components/common/EditButton/EditButton", () => ({
   ),
 }));
 
+jest.mock("../../components/layout/PageShell", () => ({
+  __esModule: true,
+  default: ({ children }) => <div data-testid="page-shell">{children}</div>,
+}));
+
+jest.mock("../../components/table/TableSurface", () => ({
+  __esModule: true,
+  default: ({ children }) => <div data-testid="table-surface">{children}</div>,
+}));
+
+jest.mock("../../components/table/TableSkeleton", () => ({
+  __esModule: true,
+  default: () => <div data-testid="table-skeleton">Loading table…</div>,
+}));
+
 jest.mock("../../components/files/FileShareWizardModal", () => ({
   __esModule: true,
   default: ({ isOpen, onClose, onSubmit, onDelete, file }) => {
@@ -1699,6 +1714,48 @@ describe("FilesPage", () => {
       });
 
       jest.useRealTimers();
+    });
+
+    it("renders inside the standardized page shell and table surface", async () => {
+      renderWithRouter(<FilesPage />);
+
+      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("table-surface")).toBeInTheDocument();
+      });
+    });
+
+  it("shows the table skeleton during the initial file shares load", async () => {
+      let resolveFetch;
+
+      filesApi.fetchFileShares.mockReturnValue(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+      );
+
+      renderWithRouter(<FilesPage />);
+
+      expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+
+      await act(async () => {
+        resolveFetch(mockShares.map((share) => ({ share })));
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+      });
+    });
+
+  it("shows an inline error banner when the initial file fetch fails", async () => {
+      filesApi.fetchFileShares.mockRejectedValue(new Error("Network error"));
+
+      renderWithRouter(<FilesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent("Network error");
+      });
     });
   });
 });

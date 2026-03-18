@@ -75,6 +75,8 @@ export default function RefreshButton({ onClick, disabled = false }) {
         disabled={disabled || isLoading}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        aria-label="Refresh"
+        title="Refresh"
       >
         {isLoading ? (
           <div style={styles.spinner} />

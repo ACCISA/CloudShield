@@ -23,6 +23,27 @@ jest.mock("../../lib/analytics.js", () => ({
   trackButton: jest.fn(),
 }));
 
+jest.mock("../../components/layout/PageShell.jsx", () => ({
+  __esModule: true,
+  default: ({ title, subtitle, actions, children }) => (
+    <div data-testid="page-shell">
+      {title ? <div data-testid="page-title">{title}</div> : null}
+      {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
+      {actions ? <div data-testid="page-actions">{actions}</div> : null}
+      <div data-testid="page-content">{children}</div>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/table/TableSurface.jsx", () => ({
+  __esModule: true,
+  default: ({ children }) => <div data-testid="table-surface">{children}</div>,
+}));
+
+jest.mock("../../components/table/TableSkeleton.jsx", () => ({
+  __esModule: true,
+  default: () => <div data-testid="table-skeleton">Loading</div>,
+}));
 // --- 2. MOCK COMPONENTS ---
 
 // Mock Table: Added 'Force Delete' to test deletion when no users are loaded
@@ -1683,6 +1704,16 @@ describe("EmployeesPage Integration", () => {
           await screen.findByText("No job_id returned from user creation")
         ).toBeInTheDocument();
       });
+
+      it("renders PageShell and keeps Create/Refresh accessible", () => {
+      renderPage();
+
+      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+      expect(screen.getByTestId("page-actions")).toBeInTheDocument();
+
+      expect(screen.getByTestId("refresh-btn")).toBeInTheDocument();
+      expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
+    });
     });
   });
 });

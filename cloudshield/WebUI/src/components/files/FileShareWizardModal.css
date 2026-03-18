@@ -26,7 +26,7 @@
   border-radius: 14px;
   width: 650px;
   max-width: 95vw;
-  height: 800px;
+  height: 900px;
   max-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -176,7 +176,7 @@
   gap: 28px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Form Elements */
@@ -258,7 +258,18 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
+  text-transform: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.file-wizard-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .file-wizard-btn-primary {
@@ -271,15 +282,18 @@
   background-color: #f5f5f5;
 }
 
+.file-wizard-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
 .file-wizard-btn-primary:disabled {
   background-color: rgba(255, 255, 255, 0.3);
   color: rgba(0, 0, 0, 0.5);
-  cursor: not-allowed;
 }
 
 .file-wizard-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: #242424;
+  border: 1px solid #2e2e2e;
   color: #ffffff;
 }
 
@@ -288,14 +302,15 @@
 }
 
 .file-wizard-btn-secondary:disabled {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.3);
+  background-color: #1e1e1e;
+  color: #8a8a8a;
   cursor: not-allowed;
+  opacity: 0.3;
 }
 
 .file-wizard-btn-cancel {
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: #1f1f1f;
+  border: 1px solid #2e2e2e;
   color: #ffffff;
 }
 
@@ -304,9 +319,9 @@
 }
 
 .file-wizard-btn-delete {
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #dc2626;
+  background-color: #251313;
+  border: 1px solid #3d1616;
+  color: #f87171;
 }
 
 .file-wizard-btn-delete:hover:not(:disabled) {
@@ -359,6 +374,7 @@
     gap: 12px;
   }
 
+  .file-wizard-actions-left,
   .file-wizard-actions-right {
     width: 100%;
   }
@@ -366,4 +382,18 @@
   .file-wizard-btn {
     flex: 1;
   }
+}
+
+/* Validation error styling */
+.file-wizard-input.input-error {
+  border-color: #ef5350;
+  background-color: rgba(239, 83, 80, 0.06);
+}
+
+.file-wizard-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #ef5350;
+  line-height: 1.3;
 }

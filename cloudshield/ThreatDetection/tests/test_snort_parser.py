@@ -87,7 +87,7 @@ def test_watcher_lifecycle(tmp_path):
     def on_alert(alert):
         received.append(alert)
 
-    watcher = SnortAlertWatcher(str(alert_file), on_alert, poll_interval=0.05)
+    watcher = SnortAlertWatcher(str(alert_file), on_alert, poll_interval=0.05, seek_to_end=False)
     watcher.start()
     assert watcher.running
 

@@ -11,7 +11,8 @@ from utils.logging_setup import get_logger
 
 from services import service_dispatcher
 
-from cloudshield.Server.security.guards import require_auth
+from cloudshield.Server.security.guards import require_auth, require_role
+from cloudshield.Server.utils.database import db_admin
 
 from repos import get_workstations
 from utils import db
@@ -149,6 +150,3 @@ def update():
     return jsonify({"job_id":job.id}), 202
 
     
-
-
-

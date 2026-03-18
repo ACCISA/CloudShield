@@ -6,13 +6,20 @@ import type {
 } from "../../models/Workstations";
 import WorkstationService from "../../services/WorkstationService";
 import SoftwarePopup from "./SoftwarePopup";
-import SearchIcon from "../../assets/icons8-search.svg";
+import SearchField from "../../components/common/SearchField";
+import DisplayButton from "../../components/common/DisplayButton";
+import RefreshButton from "../../components/common/RefreshButton";
+import CreateButton from "../../components/common/CreateButton";
+import Checkbox from "../../components/common/Checkbox";
+import EmptyState from "../../components/common/EmptyState";
+import Panel from "../../components/common/Panel";
 
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
+  const [layout, setLayout] = useState<"list" | "icons">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredSoftwareIndex, setHoveredSoftwareIndex] = useState<
     number | null
@@ -23,6 +30,7 @@ export default function WorkstationsPage() {
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
   const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
+  const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -96,6 +104,12 @@ export default function WorkstationsPage() {
     setRefreshIndex((prev) => prev + 1);
   };
 
+  const toggleTemplateSelection = (key: string) => {
+    setSelectedTemplateKeys((prev) =>
+      prev.includes(key) ? prev.filter((entry) => entry !== key) : [...prev, key]
+    );
+  };
+
   const handleLogout = () => {
     window.authStore?.clearAuth();
     localStorage.removeItem("cloudshield.auth");
@@ -164,64 +178,32 @@ export default function WorkstationsPage() {
     });
   }, [listItems, searchQuery]);
 
+  const handleTemplateUse = async () => {
+    try {
+      setIsLoadingWorkstations(true);
+      const workstationspool = await WorkstationService.getWorkstations();
+      // For demo purposes, we just select the first workstation from the pool
+      const workstation = workstationspool[0] || null;
+      setSelectedWorkstation(workstation);
+    } finally {
+      setIsLoadingWorkstations(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-wrap items-center gap-3">
-            <div className="relative w-full max-w-sm">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
-                <img src={SearchIcon} alt="Search" className="h-4 w-4" />
-              </span>
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search workstation templates"
-                className="w-full rounded-xl border border-white/10 bg-[#0f0f0f] py-2 pl-9 pr-3 text-sm text-white/80 placeholder:text-white/40 focus:border-white/30 focus:outline-none"
-              />
-            </div>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#101010] px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 6h16" />
-                <path d="M4 12h16" />
-                <path d="M4 18h16" />
-              </svg>
-              Display
-            </button>
+            <SearchField
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search workstation templates"
+            />
+            <DisplayButton layout={layout} onLayoutChange={setLayout} />
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#101010] text-white/70 transition hover:bg-white/10"
-              aria-label="Refresh"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-                <path d="M21 3v6h-6" />
-              </svg>
-            </button>
+            <RefreshButton onClick={handleRefresh} />
             <button
               type="button"
               onClick={handleLogout}
@@ -229,158 +211,227 @@ export default function WorkstationsPage() {
             >
               Logout
             </button>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#101010] px-4 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 5v14" />
-                <path d="M5 12h14" />
-              </svg>
-              Create
-            </button>
+            <CreateButton />
           </div>
         </div>
 
         {isLoadingTemplates && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
+          <Panel className="bg-white/5 px-5 py-6 text-sm text-white/70 shadow-none">
             Loading workstation templates...
-          </div>
+          </Panel>
         )}
 
         {!isLoadingTemplates && error && (
-          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200">
+          <Panel className="border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200 shadow-none">
             {error}
-          </div>
+          </Panel>
         )}
 
         {!isLoadingTemplates && !error && filteredItems.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
-            No assigned workstation templates found.
-          </div>
+          <EmptyState
+            message="No assigned workstation templates found."
+            description="Workstation templates will appear here once they are assigned."
+          />
         )}
 
         {!isLoadingTemplates && !error && filteredItems.length > 0 && (
-          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
-            {filteredItems.map((item, index) => {
-              const actionClasses = item.is_ready
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                : "border-amber-500/40 bg-amber-500/10 text-amber-100";
-              const actionLabel = item.is_ready ? "Use" : "Not Ready";
-              const statusDot = item.is_ready
-                ? "bg-emerald-500"
-                : "bg-amber-500";
-              const softwareCount = item.software?.length ?? 0;
-              const accessGroupCount = item.access_groups?.length ?? 0;
-              const readyLabel = item.is_ready ? "Ready" : "Unavailable";
-              const templateId = item.org_id || "—";
+          <Panel>
+            {layout === "list" ? (
+              <div data-testid="workstations-list-view">
+                {filteredItems.map((item, index) => {
+                  const actionClasses = item.is_ready
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-100";
+                  const actionLabel = item.is_ready ? "Use" : "Not Ready";
+                  const statusDot = item.is_ready
+                    ? "bg-emerald-500"
+                    : "bg-amber-500";
+                  const softwareCount = item.software?.length ?? 0;
+                  const accessGroupCount = item.access_groups?.length ?? 0;
+                  const readyLabel = item.is_ready ? "Ready" : "Unavailable";
+                  const templateId = item.org_id || "—";
 
-              return (
-                <div
-                  key={item.key}
-                  className={`flex flex-col gap-4 border-b border-white/5 px-5 py-4 md:flex-row md:items-center md:justify-between ${
-                    index === filteredItems.length - 1 ? "border-b-0" : ""
-                  }`}
-                >
-                  <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-white/10 bg-[#0f0f0f] text-white"
-                      />
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#0f0f0f]" />
-                      <div>
-                        <div className="text-sm font-semibold text-white/90">
-                          {item.name || "Workstation"}
-                        </div>
-                        <div className="text-xs text-white/50">
-                          ↳ {templateId}
-                        </div>
-                        <div className="text-xs text-white/40">
-                          {item.description || "No description"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-6 text-xs text-white/60">
-                      <div
-                        className="relative"
-                        onMouseEnter={() => setHoveredSoftwareIndex(index)}
-                        onMouseLeave={() => setHoveredSoftwareIndex(null)}
-                      >
-                        <div className="text-[11px] uppercase text-white/40">
-                          Software
-                        </div>
-                        <div className="text-sm text-white/80">
-                          {softwareCount}
-                        </div>
-                        {hoveredSoftwareIndex === index &&
-                          softwareCount > 0 && (
-                            <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-white/10 bg-[#0f0f0f] p-3 text-xs text-white/80 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
-                              <SoftwarePopup softwares={item.software} />
-                            </div>
-                          )}
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase text-white/40">
-                          Access groups
-                        </div>
-                        <div className="text-sm text-white/80">
-                          {accessGroupCount}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase text-white/40">
-                          Status
-                        </div>
-                        <div className="text-sm text-white/80">
-                          {readyLabel}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={!item.is_ready}
-                      onClick={async () => {
-                        setIsLoadingWorkstations(true);
-                        const workstationspool =
-                          await WorkstationService.getWorkstations();
-                        // For demo purposes, we just select the first workstation from the pool
-                        const workstation = workstationspool[0] || null;
-                        setSelectedWorkstation(workstation);
-                        setIsLoadingWorkstations(false);
-                      }}
-                      className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
+                  return (
+                    <div
+                      key={item.key}
+                      className={`flex flex-col gap-4 border-b border-white/5 px-5 py-4 md:flex-row md:items-center md:justify-between ${
+                        index === filteredItems.length - 1 ? "border-b-0" : ""
+                      }`}
                     >
-                      {actionLabel}
-                    </button>
-                    <span className={`h-2.5 w-2.5 rounded-full ${statusDot}`} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={selectedTemplateKeys.includes(item.key)}
+                            onChange={() => toggleTemplateSelection(item.key)}
+                            ariaLabel={`Select ${item.name || "Workstation"}`}
+                          />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#0f0f0f]" />
+                          <div>
+                            <div className="text-sm font-semibold text-white/90">
+                              {item.name || "Workstation"}
+                            </div>
+                            <div className="text-xs text-white/50">
+                              ↳ {templateId}
+                            </div>
+                            <div className="text-xs text-white/40">
+                              {item.description || "No description"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-6 text-xs text-white/60">
+                          <div
+                            className="relative"
+                            onMouseEnter={() => setHoveredSoftwareIndex(index)}
+                            onMouseLeave={() => setHoveredSoftwareIndex(null)}
+                          >
+                            <div className="text-[11px] uppercase text-white/40">
+                              Software
+                            </div>
+                            <div className="text-sm text-white/80">
+                              {softwareCount}
+                            </div>
+                            {hoveredSoftwareIndex === index &&
+                              softwareCount > 0 && (
+                                <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-white/10 bg-[#0f0f0f] p-3 text-xs text-white/80 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+                                  <SoftwarePopup softwares={item.software} />
+                                </div>
+                              )}
+                          </div>
+                          <div>
+                            <div className="text-[11px] uppercase text-white/40">
+                              Access groups
+                            </div>
+                            <div className="text-sm text-white/80">
+                              {accessGroupCount}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] uppercase text-white/40">
+                              Status
+                            </div>
+                            <div className="text-sm text-white/80">
+                              {readyLabel}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          disabled={!item.is_ready}
+                          onClick={handleTemplateUse}
+                          className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
+                        >
+                          {actionLabel}
+                        </button>
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${statusDot}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                data-testid="workstations-icons-view"
+                className="grid gap-4 p-5 sm:grid-cols-2"
+              >
+                {filteredItems.map((item) => {
+                  const actionClasses = item.is_ready
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-100";
+                  const actionLabel = item.is_ready ? "Use" : "Not Ready";
+                  const statusDot = item.is_ready
+                    ? "bg-emerald-500"
+                    : "bg-amber-500";
+                  const softwareCount = item.software?.length ?? 0;
+                  const accessGroupCount = item.access_groups?.length ?? 0;
+                  const readyLabel = item.is_ready ? "Ready" : "Unavailable";
+                  const templateId = item.org_id || "—";
+
+                  return (
+                    <div
+                      key={item.key}
+                      className="rounded-2xl border border-white/8 bg-white/[0.02] p-4"
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <Checkbox
+                            checked={selectedTemplateKeys.includes(item.key)}
+                            onChange={() => toggleTemplateSelection(item.key)}
+                            ariaLabel={`Select ${item.name || "Workstation"}`}
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-white/90">
+                              {item.name || "Workstation"}
+                            </div>
+                            <div className="truncate text-xs text-white/50">
+                              ↳ {templateId}
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${statusDot}`}
+                        />
+                      </div>
+
+                      <p className="mb-4 min-h-10 text-xs text-white/40">
+                        {item.description || "No description"}
+                      </p>
+
+                      <div className="space-y-3 text-xs text-white/60">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="uppercase text-white/40">
+                            Software
+                          </span>
+                          <span className="text-sm text-white/80">
+                            {softwareCount}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="uppercase text-white/40">
+                            Access groups
+                          </span>
+                          <span className="text-sm text-white/80">
+                            {accessGroupCount}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="uppercase text-white/40">
+                            Status
+                          </span>
+                          <span className="text-sm text-white/80">
+                            {readyLabel}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!item.is_ready}
+                        onClick={handleTemplateUse}
+                        className={`mt-5 w-full rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
+                      >
+                        {actionLabel}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
         )}
 
         {!isLoadingWorkstations && !selectedWorkstation && (
-          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+          <Panel className="px-5 py-6">
             <h1>Not connected to a workstation</h1>
-          </div>
+          </Panel>
         )}
         {isLoadingWorkstations && (
-          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+          <Panel className="px-5 py-6">
             <h1>Searching for workstations...</h1>
             <svg
               className="mt-4 h-8 w-8 animate-spin text-white/70"
@@ -403,11 +454,11 @@ export default function WorkstationsPage() {
                 fill="none"
               />
             </svg>
-          </div>
+          </Panel>
         )}
 
         {selectedWorkstation && !isLoadingWorkstations && (
-          <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-6 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
+          <Panel className="px-5 py-6">
             <h1>Connected to workstation {selectedWorkstation.ipv4_address}</h1>
             <p className="mt-2 text-sm text-white/70">
               You are now connected to your workstation. Use the options below
@@ -438,7 +489,7 @@ export default function WorkstationsPage() {
                 Disconnect
               </button>
             </div>
-          </div>
+          </Panel>
         )}
       </div>
     </div>

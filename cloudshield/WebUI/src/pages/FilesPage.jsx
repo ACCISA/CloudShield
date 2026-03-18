@@ -3,7 +3,6 @@ import React, {
   useState,
   useCallback,
   useEffect,
-  useRef,
 } from "react";
 import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
@@ -14,6 +13,8 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton";
 import CreateButton from "../components/common/CreateButton/CreateButton";
 import Checkbox from "../components/common/Checkbox/Checkbox";
 import EditButton from "../components/common/EditButton/EditButton";
+import EditIcon from "../assets/EditIcon";
+import TrashIcon from "../assets/TrashIcon";
 import Tooltip from "@mui/material/Tooltip";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useClickLogger } from "../hooks/useClickLogger";
@@ -22,6 +23,13 @@ import { trackButton } from "../lib/analytics";
 import FileShareWizardModal from "../components/files/FileShareWizardModal";
 import AvatarPill from "../components/files/AvatarPill";
 import FolderPlusIcon from "../assets/FolderPlusIcon";
+
+import PageShell from "../components/layout/PageShell";
+import TableSurface from "../components/table/TableSurface";
+import TableSkeleton from "../components/table/TableSkeleton";
+import { getUserErrorMessage } from "../lib/errors";
+import { safeAsync } from "../lib/safeAsync";
+import { formatShares } from "../lib/format";
 
 import {
   createFileShare,
@@ -34,7 +42,6 @@ import {
 } from "../api/filesApi";
 
 import {
-  HARD_CODED_TREE,
   NODE_KIND,
   formatDateTime,
   buildIndex,
@@ -43,9 +50,6 @@ import {
   filterTreeByQuery,
   collectFolderIds,
   flattenVisibleTree,
-  getFolderChildrenByStack,
-  getBreadcrumbNodes,
-  resolveFolderByPath,
 } from "../components/files/FileHelper";
 
 const Chevron = ({ open }) => (
@@ -86,13 +90,18 @@ const FileIcon = () => (
 );
 
 function StorageCell({ currentSize, maxSize }) {
-  const max = typeof maxSize === "number" ? maxSize : null;
+  const max =
+    typeof maxSize === "number"
+      ? maxSize
+      : typeof maxSize === "string"
+        ? Number.parseFloat(maxSize)
+        : null;
   const current = Math.max(0, Number(currentSize || 0));
 
-  if (!max || max <= 0) {
+  if (!Number.isFinite(max) || max <= 0) {
     return (
       <div className="storageCell" aria-label="Storage usage">
-        <div className="storageMiniLabel">-</div>
+        <div className="storageMiniLabel">{formatShares(0)}</div>
       </div>
     );
   }
@@ -150,9 +159,9 @@ export default function FilesPage() {
 
   const [layout, setLayout] = useState("list");
 
-  // Use a fallback to prevent crash on initial render if HARD_CODED_TREE is valid
-  // If HARD_CODED_TREE causes issues, initialize as []
-  const [tree, setTree] = useState(HARD_CODED_TREE || []);
+  const [tree, setTree] = useState([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Lookup maps for enriching hover cards
   const [userLookup, setUserLookup] = useState(new Map());
@@ -161,10 +170,6 @@ export default function FilesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
-  const [cwdStack, setCwdStack] = useState([]);
-  const [pathMode, setPathMode] = useState(false);
-  const [pathValue, setPathValue] = useState("");
-  const pathInputRef = useRef(null);
 
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
@@ -187,7 +192,7 @@ export default function FilesPage() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const usersData = await fetchUsers(orgId);
+        const usersData = await safeAsync(() => fetchUsers(orgId));
         const lookup = new Map();
         usersData.forEach((user) => {
           const email = user.email || "";
@@ -201,12 +206,9 @@ export default function FilesPage() {
             role: user.role,
             active: user.active !== undefined ? user.active : true,
           };
-          // Keep lookups simple and aligned with the DB shape.
           if (normalized.username) lookup.set(normalized.username, normalized);
           if (email) lookup.set(email, normalized);
-          if (normalized.full_name)
-            lookup.set(normalized.full_name, normalized);
-          // Legacy fallback: some shares store email prefixes like "samir".
+          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
           if (emailPrefix) lookup.set(emailPrefix, normalized);
         });
         setUserLookup(lookup);
@@ -221,7 +223,7 @@ export default function FilesPage() {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        const groupsData = await fetchGroups(orgId);
+        const groupsData = await safeAsync(() => fetchGroups(orgId));
         const lookup = new Map();
         groupsData.forEach((group) => {
           const groupName = group.group_name || group.name || "";
@@ -237,7 +239,6 @@ export default function FilesPage() {
             file_shares: group.file_shares || [],
             created_at: group.created_at,
           };
-          // Map by name for lookup
           if (normalized.name) {
             lookup.set(normalized.name, normalized);
           }
@@ -270,18 +271,31 @@ export default function FilesPage() {
     return [];
   };
 
-  // --- CORRECTED FETCH LOGIC ---
-  const fetchTree = useCallback(async () => {
-    console.log("fetchTree - Starting fetch with orgId:", orgId);
-    try {
-      const shares = await fetchFileShares(orgId);
-      const nodes = transformSharesToTree(shares);
-      console.log("fetchTree - Extracted shares:", nodes);
-      setTree(nodes);
-    } catch (e) {
-      console.error("fetchTree - Failed to fetch files:", e);
-    }
-  }, [orgId]);
+  const fetchTree = useCallback(
+    async ({ initial = false } = {}) => {
+      if (initial) {
+        setIsInitialLoading(true);
+      }
+
+      setLoadError("");
+      console.log("fetchTree - Starting fetch with orgId:", orgId);
+
+      try {
+        const shares = await safeAsync(() => fetchFileShares(orgId));
+        const nodes = transformSharesToTree(shares);
+        console.log("fetchTree - Extracted shares:", nodes);
+        setTree(Array.isArray(nodes) ? nodes : []);
+      } catch (e) {
+        console.error("fetchTree - Failed to fetch files:", e);
+        setLoadError(getUserErrorMessage(e));
+      } finally {
+        if (initial) {
+          setIsInitialLoading(false);
+        }
+      }
+    },
+    [orgId],
+  );
 
   // Handle creating a new file share
   const handleCreateShare = useCallback(
@@ -348,7 +362,7 @@ export default function FilesPage() {
           newSet.delete(data.shareName);
           return newSet;
         });
-        alert(`Failed to create share: ${err.message}`);
+        alert(`Failed to create share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, fetchTree],
@@ -371,7 +385,7 @@ export default function FilesPage() {
         alert("File share updated successfully!");
       } catch (err) {
         console.error("Failed to update share:", err);
-        alert(`Failed to update share: ${err.message}`);
+        alert(`Failed to update share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, editTarget, fetchTree],
@@ -395,13 +409,13 @@ export default function FilesPage() {
       alert("File share deleted successfully!");
     } catch (err) {
       console.error("Failed to delete share:", err);
-      alert(`Failed to delete share: ${err.message}`);
+      alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
     }
   }, [orgId, editTarget, fetchTree]);
 
   // Trigger fetch on mount
   useEffect(() => {
-    fetchTree();
+    fetchTree({ initial: true });
   }, [fetchTree]);
 
   const listFilteredTree = useMemo(() => {
@@ -432,24 +446,27 @@ export default function FilesPage() {
     [listVisibleRows],
   );
 
-  const breadcrumb = useMemo(
-    () => getBreadcrumbNodes(index, cwdStack),
-    [index, cwdStack],
-  );
-  const cwdItems = useMemo(
-    () =>
-      layout === "icons" ? getFolderChildrenByStack(tree, index, cwdStack) : [],
-    [tree, index, cwdStack, layout],
-  );
-
-  const iconItems = useMemo(() => {
+  const iconRows = useMemo(() => {
     if (layout !== "icons") return [];
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return cwdItems;
-    return cwdItems.filter((n) => (n.name || "").toLowerCase().includes(q));
-  }, [cwdItems, searchQuery, layout]);
+    const filtered = filterTreeByQuery(tree, searchQuery);
+    const expandedAll = collectFolderIds(filtered);
+    return flattenVisibleTree(filtered, expandedAll);
+  }, [layout, tree, searchQuery]);
 
-  const iconVisibleIds = useMemo(() => iconItems.map((n) => n.id), [iconItems]);
+  const iconVisibleIds = useMemo(
+    () => iconRows.map(({ node }) => node.id),
+    [iconRows],
+  );
+
+  const selectedIconCount = useMemo(
+    () => iconVisibleIds.filter((id) => selectedIds.has(id)).length,
+    [iconVisibleIds, selectedIds],
+  );
+
+  const selectedListCount = useMemo(
+    () => listVisibleIds.filter((id) => selectedIds.has(id)).length,
+    [listVisibleIds, selectedIds],
+  );
 
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
@@ -486,6 +503,10 @@ export default function FilesPage() {
     }
   };
 
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   const toggleExpand = (id) => {
     trackButton("files/list/toggle-folder", { page: "files", id });
     setExpanded((prev) => {
@@ -494,23 +515,6 @@ export default function FilesPage() {
       else next.add(id);
       return next;
     });
-  };
-
-  const openFolder = (id) => {
-    trackButton("files/nav/open-folder", { page: "files", id });
-    const node = index.get(id);
-    if (!node || node.kind !== NODE_KIND.FOLDER) return;
-    setCwdStack((s) => [...s, id]);
-    setSelectedIds(new Set());
-  };
-
-  const goUp = () => {
-    trackButton("files/nav/up", { page: "files" });
-    setCwdStack((s) => s.slice(0, -1));
-  };
-  const goToCrumb = (idx) => {
-    trackButton("files/nav/crumb", { page: "files", idx });
-    setCwdStack((s) => s.slice(0, idx + 1));
   };
 
   const openEdit = (node) => setEditTarget(node);
@@ -574,268 +578,290 @@ export default function FilesPage() {
           newSet.delete(node.name);
           return newSet;
         });
-        alert(`Failed to delete share: ${err.message}`);
+        alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
       }
     },
     [orgId, fetchTree],
   );
 
-  const submitPath = (e) => {
-    e.preventDefault();
-    const { ok, stack } = resolveFolderByPath(tree, pathValue);
-    if (!ok) return;
-    trackButton("files/nav/path-go", { page: "files" });
-    setCwdStack(stack);
-    setPathMode(false);
-  };
-
   const handleLayoutChange = (next) => {
-    const resolved = next === "cards" ? "list" : next;
     trackButton("files/display/toggle", {
       page: "files",
-      layout: resolved,
+      layout: next,
       control: "display_button",
     });
-    setLayout(resolved);
+    setLayout(next);
   };
 
   const renderList = () => (
-    <div className="table">
-      <div className="header">
-        <Checkbox
-          checked={allVisibleSelected}
-          indeterminate={isIndeterminate}
-          onChange={toggleSelectAllVisible}
-        />
-        <div>Name</div>
-        <div className="metaHeader">Date Modified</div>
-        <div className="storageHeader">Storage</div>
-        <div className="usersHeader">Users</div>
-        <div className="groupsHeader">Groups</div>
-        <div />
+    <>
+      <div className="tableHeaders">
+        <div className="header">
+          <Checkbox
+            checked={allVisibleSelected}
+            indeterminate={isIndeterminate}
+            onChange={toggleSelectAllVisible}
+            style={
+              !allVisibleSelected && !isIndeterminate
+                ? {
+                    border: "2px solid rgba(255, 255, 255, 0.5)",
+                    backgroundColor: "transparent",
+                  }
+                : undefined
+            }
+          />
+          <div>Name</div>
+          <div className="metaHeader">Date Modified</div>
+          <div className="storageHeader">Storage</div>
+          <div className="usersHeader">Users</div>
+          <div className="groupsHeader">Groups</div>
+          <div />
+        </div>
       </div>
 
-      {listVisibleRows.map(({ node, depth }) => {
-        const isFolder = node.kind === NODE_KIND.FOLDER;
-        const isOpen = effectiveExpanded.has(node.id);
+      <div className="table">
+        <div className="tableRows">
+          {listVisibleRows.map(({ node, depth }, index) => {
+            const isFolder = node.kind === NODE_KIND.FOLDER;
+            const isOpen = effectiveExpanded.has(node.id);
 
-        return (
-          <div
-            className="row"
-            key={node.id}
-            style={
-              deletingShares.has(node.name)
-                ? { opacity: 0.5, pointerEvents: "none" }
-                : {}
-            }
-          >
-            <Checkbox
-              checked={selectedIds.has(node.id)}
-              onChange={() => toggleSelect(node.id)}
-            />
+            return (
+              <React.Fragment key={node.id}>
+                <div
+                  className="row"
+                  style={
+                    deletingShares.has(node.name)
+                      ? { opacity: 0.5, pointerEvents: "none" }
+                      : {}
+                  }
+                >
+                  <Checkbox
+                    checked={selectedIds.has(node.id)}
+                    onChange={() => toggleSelect(node.id)}
+                  />
 
-            <div className="nameCell">
-              <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
-                {isFolder ? (
-                  <button
-                    type="button"
-                    className="chevBtn"
-                    onClick={() => toggleExpand(node.id)}
-                    aria-label={isOpen ? "Collapse folder" : "Expand folder"}
-                  >
-                    <Chevron open={isOpen} />
-                  </button>
-                ) : (
-                  <span className="chevSpacer" />
-                )}
+                  <div className="nameCell">
+                    <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
+                      {isFolder ? (
+                        <button
+                          type="button"
+                          className="chevBtn"
+                          onClick={() => toggleExpand(node.id)}
+                          aria-label={isOpen ? "Collapse folder" : "Expand folder"}
+                        >
+                          <Chevron open={isOpen} />
+                        </button>
+                      ) : null}
 
-                <span className="iconWrap">
-                  {isFolder ? <FolderIcon /> : <FileIcon />}
-                </span>
+                      <span className="iconWrap">
+                        {isFolder ? <FolderIcon /> : <FileIcon />}
+                      </span>
 
-                <div className="nameTextWrap">
-                  <div className="nameLine">
-                    <span className="nameText">{node.name}</span>
-                    {node.kind === NODE_KIND.FILE && node.size ? (
-                      <span className="sizeText">{node.size}</span>
-                    ) : null}
+                      <div className="nameTextWrap">
+                        <div className="nameLine">
+                          <span className="nameText">{node.name}</span>
+                          {node.kind === NODE_KIND.FILE && node.size ? (
+                            <span className="sizeText">{node.size}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="meta">{formatDateTime(node.updated_at)}</div>
+
+                  <StorageCell
+                    currentSize={node.current_size}
+                    maxSize={node.max_size}
+                  />
+
+                  <div className="groups">
+                    <AvatarPill
+                      items={Array.from(new Set(ensureArray(node.users))).map(
+                        (username) =>
+                          userLookup.get(username) || { username, id: username },
+                      )}
+                      type="user"
+                      maxVisible={3}
+                    />
+                  </div>
+
+                  <div className="groups">
+                    <AvatarPill
+                      items={ensureArray(node.groups).map(
+                        (groupName) =>
+                          groupLookup.get(groupName) || {
+                            name: groupName,
+                            id: groupName,
+                          },
+                      )}
+                      type="group"
+                      maxVisible={3}
+                    />
+                  </div>
+
+                  <EditButton
+                    menuItems={[
+                      {
+                        icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                        label: "edit share",
+                        color: "#1a1a1a",
+                        onClick: () => openEdit(node),
+                      },
+                      {
+                        icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                        label: "delete share",
+                        color: "#D51616",
+                        onClick: () => handleDirectDelete(node),
+                      },
+                    ]}
+                  />
                 </div>
-              </div>
-            </div>
-
-            <div className="meta">{formatDateTime(node.updated_at)}</div>
-
-            <StorageCell
-              currentSize={node.current_size}
-              maxSize={node.max_size}
-            />
-
-            <div className="groups">
-              <AvatarPill
-                items={Array.from(new Set(ensureArray(node.users))).map(
-                  (username) =>
-                    userLookup.get(username) || { username, id: username },
-                )}
-                type="user"
-                maxVisible={3}
-              />
-            </div>
-
-            <div className="groups">
-              <AvatarPill
-                items={ensureArray(node.groups).map(
-                  (groupName) =>
-                    groupLookup.get(groupName) || {
-                      name: groupName,
-                      id: groupName,
-                    },
-                )}
-                type="group"
-                maxVisible={3}
-              />
-            </div>
-
-            <EditButton
-              menuItems={[
-                {
-                  label: isFolder ? "Edit folder" : "Edit file",
-                  onClick: () => openEdit(node),
-                },
-                {
-                  label: isFolder ? "Delete folder" : "Delete file",
-                  color: "#ff3b30",
-                  onClick: () => handleDirectDelete(node),
-                },
-              ]}
-            />
-          </div>
-        );
-      })}
-    </div>
+                {index !== listVisibleRows.length - 1 ? (
+                  <div className="rowDivider" />
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 
   const renderIcons = () => (
     <>
-      <div className="pathBar">
-        <button
-          className={`navBtn ${cwdStack.length === 0 ? "disabled" : ""}`}
-          onClick={goUp}
-        >
-          ←
-        </button>
-
-        {!pathMode ? (
-          <div className="crumbs">
-            <button
-              className={`crumb ${cwdStack.length === 0 ? "active" : ""}`}
-              onClick={() => setCwdStack([])}
-            >
-              Root
-            </button>
-            {breadcrumb.map((c, i) => (
-              <React.Fragment key={c.id}>
-                <span className="crumbSep">›</span>
-                <button
-                  className={`crumb ${i === breadcrumb.length - 1 ? "active" : ""}`}
-                  onClick={() => goToCrumb(i)}
-                >
-                  {c.name}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
-        ) : (
-          <form onSubmit={submitPath} className="pathForm">
-            <input
-              ref={pathInputRef}
-              className="pathInput"
-              value={pathValue}
-              onChange={(e) => setPathValue(e.target.value)}
-              placeholder="Type a path like /sales_docs/policies"
-            />
-            <button className="pathGo" type="submit">
-              Go
-            </button>
-            <button
-              className="pathCancel"
-              type="button"
-              onClick={() => {
-                trackButton("files/nav/path-cancel", { page: "files" });
-                setPathMode(false);
-              }}
-            >
-              Cancel
-            </button>
-          </form>
-        )}
-
-        <button
-          className="pathShortcut"
-          onClick={() => {
-            trackButton("files/nav/path-mode", { page: "files" });
-            setPathMode(true);
-          }}
-          title="Quick jump (Cmd/Ctrl+L)"
-        >
-          Path
-        </button>
+      <div className="iconsSelectionBar">
+        <div className="iconsSelectionLeft">
+          <Checkbox
+            checked={allVisibleSelected}
+            indeterminate={isIndeterminate}
+            onChange={toggleSelectAllVisible}
+          />
+          <button
+            type="button"
+            className="iconsSelectAllButton"
+            onClick={toggleSelectAllVisible}
+          >
+            {allVisibleSelected || isIndeterminate
+              ? "Clear selection"
+              : "Select all"}
+          </button>
+        </div>
+        <div className="iconsSelectedCount">{selectedIconCount} selected</div>
       </div>
 
       <div className="iconsGrid">
-        {iconItems.map((node) => {
+        {iconRows.map(({ node }) => {
           const isFolder = node.kind === NODE_KIND.FOLDER;
           const isSelected = selectedIds.has(node.id);
+          const users = Array.from(new Set(ensureArray(node.users))).map(
+            (username) => userLookup.get(username) || { username, id: username },
+          );
+          const groups = ensureArray(node.groups).map((groupName) => {
+            return groupLookup.get(groupName) || {
+              name: groupName,
+              id: groupName,
+            };
+          });
+          const maxSize = Number.parseFloat(node.max_size);
+          const hasStorage =
+            Number.isFinite(maxSize) &&
+            maxSize > 0;
+          const currentSize = Number(node.current_size || 0);
 
           const handleKeyDown = (e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              toggleSelect(node.id);
+              openEdit(node);
             }
+          };
+          const stopEventPropagation = (e) => {
+            e.stopPropagation();
           };
 
           return (
             <div
               key={node.id}
               className={`iconTile ${isSelected ? "selected" : ""}`}
-              onClick={() => toggleSelect(node.id)}
-              onDoubleClick={() =>
-                isFolder ? openFolder(node.id) : openEdit(node)
-              }
+              onClick={() => openEdit(node)}
               onKeyDown={handleKeyDown}
               role="button"
               tabIndex={0}
               aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
             >
-              <div className={`tileCheck ${isSelected ? "show" : ""}`}>
-                <Checkbox
-                  checked={isSelected}
-                  onChange={() => toggleSelect(node.id)}
-                />
+              <div className="tileHeader">
+                <div
+                  className="tileSelect"
+                  onClick={stopEventPropagation}
+                  onKeyDown={stopEventPropagation}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => toggleSelect(node.id)}
+                    style={
+                      !isSelected
+                        ? {
+                            border: "2px solid rgba(255, 255, 255, 0.5)",
+                            backgroundColor: "transparent",
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+
+                <div
+                  className="tileActions"
+                  onClick={stopEventPropagation}
+                  onKeyDown={stopEventPropagation}
+                >
+                  <EditButton
+                    menuItems={[
+                      {
+                        icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                        label: "edit share",
+                        color: "#1a1a1a",
+                        onClick: () => openEdit(node),
+                      },
+                      {
+                        icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                        label: "delete share",
+                        color: "#D51616",
+                        onClick: () => handleDirectDelete(node),
+                      },
+                    ]}
+                  />
+                </div>
               </div>
 
-              <div className="iconBig">
-                {isFolder ? <FolderIcon /> : <FileIcon />}
+              <div className="iconTitle">
+                <span className="iconKindWrap">
+                  {isFolder ? <FolderIcon /> : <FileIcon />}
+                </span>
+                <div className="iconTitleText">
+                  <div className="iconName" title={node.name}>
+                    {node.name}
+                  </div>
+                  <div className="iconSub">
+                    {formatDateTime(node.updated_at)}
+                  </div>
+                </div>
               </div>
 
-              <div className="iconName" title={node.name}>
-                {node.name}
+              <div className="iconStorageLine">
+                <span className="iconMetaLabel">Storage</span>
+                <span className="iconMetaValue">
+                  {hasStorage ? `${currentSize} / ${maxSize} GB` : formatShares(0)}
+                </span>
               </div>
 
-              <div className="iconSub">
-                {node.kind === NODE_KIND.FILE && node.size
-                  ? node.size
-                  : node.kind}
+              <div className="iconAvatarsLine">
+                <span className="iconMetaLabel">Users</span>
+                <AvatarPill items={users} type="user" maxVisible={2} />
               </div>
 
-              {/* Show directory path ONLY in icons view, when not in root */}
-              <div
-                className="iconPath"
-                title={breadcrumb.map((b) => b.name).join(" / ")}
-              >
-                {breadcrumb.length === 0
-                  ? "Root"
-                  : breadcrumb.map((b) => b.name).join(" / ")}
+              <div className="iconAvatarsLine">
+                <span className="iconMetaLabel">Groups</span>
+                <AvatarPill items={groups} type="group" maxVisible={2} />
               </div>
             </div>
           );
@@ -844,12 +870,20 @@ export default function FilesPage() {
     </>
   );
 
-  return (
-    <div className="filesPage">
-      {/* StoragePill temporarily hidden until global storage is defined */}
-      {/* <StoragePill usedGB={62} totalGB={100} /> */}
+  const renderMainContent = () => {
+    if (isInitialLoading) {
+      return <TableSkeleton rows={8} cols={6} />;
+    }
 
-      <div className="toolbar">
+    return layout === "list" ? renderList() : renderIcons();
+  };
+
+
+
+  return (
+    <PageShell>
+      <div className="filesPage">
+        <div className="toolbar">
         <div className="leftTools">
           <SearchField
             value={searchQuery}
@@ -857,20 +891,33 @@ export default function FilesPage() {
             placeholder="Search files"
             showIcon={true}
             style={{
-              flex: "1 1 260px",
-              minWidth: "260px",
-              maxWidth: "680px",
-              width: "100%",
+              flex: "0 1 420px",
+              minWidth: "220px",
+              maxWidth: "420px",
+              width: "auto",
             }}
           />
           <DisplayButton
             layout={layout}
             onLayoutChange={handleLayoutChange}
-            style={{ minWidth: 120 }}
           />
         </div>
 
         <div className="rightTools">
+          {layout === "list" && selectedListCount > 0 && (
+            <div className="selectionSummary">
+              <span className="selectionSummaryCount">
+                {selectedListCount} selected
+              </span>
+              <button
+                type="button"
+                className="clearSelectionButton"
+                onClick={clearSelection}
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           <RefreshButton
             onClick={withClickLog({
               name: "files/toolbar/refresh",
@@ -879,7 +926,7 @@ export default function FilesPage() {
           />
           <CreateButton
             icon={<FolderPlusIcon width={16} height={16} color="#fff" />}
-            buttonText="New Share"
+            buttonText="Create"
             onClick={withClickLog({
               name: "files/toolbar/open-upload",
               control: "upload_button",
@@ -902,8 +949,17 @@ export default function FilesPage() {
         </div>
       )}
 
-      {layout === "list" && renderList()}
-      {layout === "icons" && renderIcons()}
+        {loadError ? (
+          <div className="filesErrorBanner" role="alert">
+            {loadError}
+          </div>
+        ) : null}
+
+        <div className="contentSurface">
+          <TableSurface>
+            {renderMainContent()}
+          </TableSurface>
+        </div>
 
       {/* New Wizard Modal for Create */}
       <FileShareWizardModal
@@ -922,7 +978,32 @@ export default function FilesPage() {
       />
 
       <style>{`
-        .filesPage { padding: 0; color: #fff; }
+        .filesPage {
+          padding: 0;
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .contentSurface {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .filesErrorBanner {
+          flex-shrink: 0;
+          border: 1px solid rgba(255, 107, 107, 0.25);
+          background: rgba(255, 107, 107, 0.08);
+          color: #ffd7d7;
+          border-radius: 10px;
+          padding: 10px 12px;
+          font-size: 0.9rem;
+        }
 
         /* Top bar */
         .topBar {
@@ -954,13 +1035,15 @@ export default function FilesPage() {
         /* Toolbar */
         .toolbar {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
           gap: 12px;
           flex-wrap: wrap;
-          margin-bottom: 14px;
+          flex-shrink: 0;
+          margin-bottom: 0;
         }
-        .leftTools, .rightTools {
+        .leftTools,
+        .rightTools {
           display: flex;
           align-items: center;
           gap: 10px;
@@ -969,6 +1052,34 @@ export default function FilesPage() {
         .leftTools {
           flex: 1 1 auto;
           min-width: 0;
+        }
+        .rightTools {
+          flex: 0 0 auto;
+        }
+        .selectionSummary {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .selectionSummaryCount {
+          font-size: 12px;
+          color: rgba(255,255,255,0.75);
+          white-space: nowrap;
+        }
+        .clearSelectionButton {
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.03);
+          color: #fff;
+          font-size: 0.85rem;
+          font-weight: 500;
+          font-family: inherit;
+          line-height: 1;
+          border-radius: 8px;
+          padding: 7px 10px;
+          cursor: pointer;
+        }
+        .clearSelectionButton:hover {
+          background: rgba(255, 255, 255, 0.08);
         }
 
         /* Operation banner - subtle notification */
@@ -986,28 +1097,67 @@ export default function FilesPage() {
         }
 
         /* LIST (Tree) */
+        .tableHeaders {
+          display: grid;
+          align-items: center;
+          gap: 12px;
+          padding: 24px 32px 4px 32px;
+          position: sticky;
+          top: 0;
+          background-color: #0D0D0D;
+          z-index: 10;
+          flex-shrink: 0;
+        }
+
         .table {
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.16);
+          background-color: #0F0F0F;
+          box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+          padding: 16px;
           overflow: hidden;
-          background: rgba(0,0,0,0.15);
+        }
+        .tableRows {
+          padding: 0 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
         }
         .header, .row {
           display: grid;
           grid-template-columns: 40px 2.1fr 1.2fr 1.3fr 0.7fr 1.2fr 44px;
-          padding: 12px 12px;
+          padding: 12px 8px;
           align-items: center;
-          column-gap: 10px;
+          column-gap: 12px;
+          min-width: 0;
         }
         .header {
-          font-size: 12px;
-          opacity: 0.65;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
+          font-size: 0.85rem;
+          opacity: 0.7;
+          color: #fff;
+          font-weight: 400;
+          position: static;
+          background-color: transparent;
+          z-index: auto;
+          border-radius: 0;
+          padding: 0;
         }
-        .row { border-bottom: 1px solid rgba(255,255,255,0.06); }
-        .row:last-child { border-bottom: none; }
+        .header > div {
+          font-size: 0.85rem;
+          font-weight: 400;
+        }
+        .row {
+          border-radius: 12px;
+          position: relative;
+        }
+        .row:hover {
+          background: rgba(255,255,255,0.02);
+        }
+        .rowDivider {
+          border-top: 1px solid rgba(255,255,255,0.1);
+          margin: 0 8px;
+        }
 
-        .storageHeader { opacity: 0.75; }
         .storageCell {
           min-width: 0;
           display: flex;
@@ -1049,7 +1199,7 @@ export default function FilesPage() {
           min-width: 0;
         }
         .nameText {
-          font-weight: 550;
+          font-weight: 600;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1073,8 +1223,8 @@ export default function FilesPage() {
         .chevSpacer { display: inline-block; width: 28px; height: 28px; }
 
         .meta {
-          font-size: 13px;
-          opacity: 0.72;
+          font-size: 0.9rem;
+          opacity: 0.9;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1089,72 +1239,43 @@ export default function FilesPage() {
           opacity: 0.85;
         }
 
-        /* ICONS (Finder) */
-        .pathBar {
+        /* ICONS VIEW */
+        .iconsGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 12px;
+        }
+        .iconsSelectionBar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-top: 14px;
+          margin-bottom: 12px;
+        }
+        .iconsSelectionLeft {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 12px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(0,0,0,0.15);
-          border-radius: 12px;
-          margin-bottom: 14px;
         }
-        .navBtn {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
+        .iconsSelectAllButton {
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.03);
           color: #fff;
+          font-size: 0.85rem;
+          font-weight: 500;
+          font-family: inherit;
+          line-height: 1;
+          border-radius: 8px;
+          padding: 7px 10px;
           cursor: pointer;
         }
-        .navBtn.disabled { opacity: 0.35; cursor: not-allowed; }
-
-        .crumbs { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-        .crumbSep { opacity: 0.45; }
-        .crumb {
-          border: none;
-          background: transparent;
-          color: rgba(255,255,255,0.75);
-          font-size: 13px;
-          cursor: pointer;
-          white-space: nowrap;
+        .iconsSelectAllButton:hover {
+          background: rgba(255, 255, 255, 0.08);
         }
-        .crumb.active { color: #fff; font-weight: 650; }
-
-        .pathShortcut {
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
-          color: rgba(255,255,255,0.85);
-          padding: 8px 10px;
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 13px;
-        }
-        .pathForm { display: flex; gap: 8px; align-items: center; flex: 1; }
-        .pathInput {
-          flex: 1;
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
-          color: #fff;
-        }
-        .pathGo, .pathCancel {
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
-          color: #fff;
-          cursor: pointer;
-        }
-        .pathGo { background: rgba(79,140,255,0.18); border-color: rgba(79,140,255,0.35); }
-
-        .iconsGrid {
-          display: grid;
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: 12px;
+        .iconsSelectedCount {
+          font-size: 12px;
+          opacity: 0.75;
         }
         .iconTile {
           position: relative;
@@ -1162,48 +1283,95 @@ export default function FilesPage() {
           background: rgba(0,0,0,0.15);
           border-radius: 14px;
           padding: 14px;
-          min-height: 140px;
+          min-height: 180px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
           cursor: pointer;
+          min-width: 0;
+        }
+        .iconTile.selected {
+          border-color: rgba(255, 255, 255, 0.18);
+          background: rgba(255, 255, 255, 0.06);
         }
         .iconTile:hover { background: rgba(255,255,255,0.03); }
-        .iconTile.selected { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
-
-        /* checkbox appears on hover or when selected */
-        .tileCheck {
-          position: absolute;
-          top: 10px;
-          left: 10px;
-          opacity: 0;
-          transition: opacity 0.15s ease;
+        .tileHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          min-height: 28px;
+          gap: 8px;
         }
-        .iconTile:hover .tileCheck,
-        .tileCheck.show {
-          opacity: 1;
+        .tileSelect {
+          display: inline-flex;
+          align-items: center;
         }
-
-        .iconBig { transform: scale(1.35); transform-origin: left center; margin-top: 16px; }
+        .tileActions {
+          display: inline-flex;
+          align-items: center;
+        }
+        .iconKindWrap {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          border-radius: 50%;
+          background: #2a2a2a;
+          opacity: 0.9;
+        }
+        .iconKindWrap svg {
+          width: 16px;
+          height: 16px;
+        }
+        .iconTitle {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .iconTitleText {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          overflow: hidden;
+        }
         .iconName {
-          font-weight: 650;
-          font-size: 13px;
+          font-weight: 600;
+          line-height: 1.15;
+          min-width: 0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .iconSub, .iconPath {
-          font-size: 12px;
-          opacity: 0.6;
+        .iconSub {
+          font-size: 0.85rem;
+          opacity: 0.85;
+          min-width: 0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        .iconStorageLine,
+        .iconAvatarsLine {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+          font-size: 0.85rem;
+        }
+        .iconMetaLabel {
+          opacity: 0.68;
+          white-space: nowrap;
+        }
+        .iconMetaValue {
+          opacity: 0.9;
+          white-space: nowrap;
         }
 
         /* Responsive */
-        @media (max-width: 1100px) {
-          .iconsGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
         
         /* Delete spinner - subtle, in place of edit button */
         .deleteSpinner {
@@ -1227,10 +1395,30 @@ export default function FilesPage() {
           to { transform: rotate(360deg); }
         }
         
+        @media (max-width: 900px) {
+          .toolbar {
+            align-items: stretch;
+          }
+
+          .leftTools,
+          .rightTools {
+            width: 100%;
+          }
+        }
+
         @media (max-width: 820px) {
           .topBar { flex-direction: column; align-items: stretch; }
           .storagePill { width: 100%; }
           .iconsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+          .tableHeaders {
+            padding: 20px 30px 4px 30px;
+          }
+
+          .table {
+            border-radius: 12px;
+            padding: 12px;
+          }
 
           /* List: hide columns on mobile */
           .row .meta,
@@ -1244,9 +1432,13 @@ export default function FilesPage() {
           .header, .row { grid-template-columns: 40px 1fr 44px; }
         }
         @media (max-width: 520px) {
+          .tableHeaders {
+            padding: 16px 20px 4px 20px;
+          }
           .iconsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
       `}</style>
-    </div>
+      </div>
+    </PageShell>
   );
 }

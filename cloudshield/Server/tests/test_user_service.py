@@ -298,7 +298,7 @@ class TestUserService:
         assert inserted_doc["role"] == "admin"
         assert inserted_doc["org_id"] == self.TEST_ORG_ID
 
-    def test_create_user_public_signup_enqueues_welcome_email(self, setup_mocks, user_data, monkeypatch):
+    def test_create_user_public_signup_does_not_enqueue_welcome_email(self, setup_mocks, user_data, monkeypatch):
         mocks = setup_mocks
         from cloudshield.Server.services.user_service import create_user
 
@@ -322,7 +322,7 @@ class TestUserService:
         user_data.role = "admin"
         create_user(user_data, current_user=None, reason="bootstrap")
 
-        mock_job_enqueue.assert_called_once_with(self.TEST_ORG_ID, self.TEST_USER_ID)
+        mock_job_enqueue.assert_not_called()
 
     def test_create_user_admin_employee_enqueues_invite(self, setup_mocks, admin_user, user_data, monkeypatch):
         mocks = setup_mocks
@@ -884,3 +884,235 @@ class TestUserService:
             "username": "testuser"
         })
         mocks['log_audit'].assert_called_once()  # Audit was attempted
+    def test_update_user_self_edit(self, setup_mocks, admin_user):
+        """Test that users can edit their own profile without admin check."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import update_user
+        from cloudshield.Server.models import UserUpdate
+
+        update_data = UserUpdate(full_name="Updated Name")
+        
+        mocks['users_admin'].find_one.side_effect = [
+            {"_id": ObjectId(admin_user["id"]), "email": "admin@example.com", "full_name": "Old"},
+            {"_id": ObjectId(admin_user["id"]), "email": "admin@example.com", "full_name": "Updated Name"}
+        ]
+        
+        result = update_user(admin_user["id"], update_data, admin_user)
+        
+        assert result is True
+        mocks['users_admin'].update_one.assert_called_once()
+
+    def test_update_user_other_user_requires_admin(self, setup_mocks, employee_user):
+        """Test that editing another user requires admin role."""
+        from cloudshield.Server.services.user_service import update_user
+        from cloudshield.Server.models import UserUpdate
+
+        update_data = UserUpdate(full_name="Updated Name")
+        
+        with pytest.raises(PermissionError):
+            update_user("507f1f77bcf86cd799439000", update_data, employee_user)
+
+    def test_update_user_password_hashing(self, setup_mocks, admin_user):
+        """Test that passwords are hashed when updated."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import update_user
+        from cloudshield.Server.models import UserUpdate
+
+        update_data = UserUpdate(password="NewPassword123!")
+        
+        mocks['users_admin'].find_one.side_effect = [
+            {"_id": ObjectId("507f1f77bcf86cd799439000"), "email": "user@example.com"},
+            {"_id": ObjectId("507f1f77bcf86cd799439000"), "email": "user@example.com", "password": "hashed::NewPassword123!"}
+        ]
+        
+        result = update_user("507f1f77bcf86cd799439000", update_data, admin_user)
+        
+        assert result is True
+        mocks['hash_password'].assert_called_with("NewPassword123!")
+        mocks['users_admin'].update_one.assert_called_once()
+
+    def test_update_user_no_fields_raises_error(self, setup_mocks, admin_user):
+        """Test that updating with no fields raises ValueError."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import update_user
+        from cloudshield.Server.models import UserUpdate
+
+        update_data = UserUpdate()
+        
+        mocks['users_admin'].find_one.return_value = {
+            "_id": ObjectId("507f1f77bcf86cd799439000"),
+            "email": "user@example.com"
+        }
+        
+        with pytest.raises(ValueError, match="No fields to update"):
+            update_user("507f1f77bcf86cd799439000", update_data, admin_user)
+
+    def test_deactivate_user_sets_inactive_status(self, setup_mocks, admin_user):
+        """Test that deactivate_user sets status to inactive."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import deactivate_user
+
+        oid = "507f1f77bcf86cd799439000"
+        mocks['users_admin'].find_one.side_effect = [
+            {"_id": ObjectId(oid), "email": "user@example.com", "status": "active"},
+            {"_id": ObjectId(oid), "email": "user@example.com", "status": "inactive"}
+        ]
+        
+        result = deactivate_user(oid, admin_user)
+        
+        assert result is True
+        mocks['users_admin'].update_one.assert_called_once()
+        call_args = mocks['users_admin'].update_one.call_args
+        assert call_args[0][1]["$set"]["status"] == "inactive"
+
+    def test_deactivate_user_requires_admin(self, setup_mocks, employee_user):
+        """Test that deactivate_user requires admin role."""
+        from cloudshield.Server.services.user_service import deactivate_user
+
+        with pytest.raises(PermissionError):
+            deactivate_user("507f1f77bcf86cd799439000", employee_user)
+
+    def test_delete_user_prevents_self_deletion(self, setup_mocks, admin_user):
+        """Test that users cannot delete themselves."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        oid = admin_user["id"]
+        mocks['users_admin'].find_one.return_value = {
+            "_id": ObjectId(oid),
+            "email": "admin@example.com",
+            "role": "admin",
+            "org_id": self.TEST_ORG_ID
+        }
+        
+        with pytest.raises(PermissionError, match="cannot_delete_self"):
+            delete_user(oid, admin_user)
+
+    def test_delete_user_prevents_last_admin_deletion(self, setup_mocks, admin_user):
+        """Test that the last admin in org cannot be deleted."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        oid = "507f1f77bcf86cd799439000"
+        mocks['users_admin'].find_one.return_value = {
+            "_id": ObjectId(oid),
+            "email": "admin@example.com",
+            "role": "admin",
+            "org_id": self.TEST_ORG_ID
+        }
+        mocks['users_admin'].count_documents.return_value = 0
+        
+        with pytest.raises(ValueError, match="last admin"):
+            delete_user(oid, admin_user)
+
+    def test_delete_user_successful_deletion(self, setup_mocks, admin_user):
+        """Test successful user deletion."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import delete_user
+
+        oid = "507f1f77bcf86cd799439000"
+        mocks['users_admin'].find_one.return_value = {
+            "_id": ObjectId(oid),
+            "email": "user@example.com",
+            "role": "employee",
+            "org_id": self.TEST_ORG_ID,
+            "status": "active"
+        }
+        mocks['users_admin'].count_documents.return_value = 1
+        mock_delete_result = unittest.mock.MagicMock()
+        mock_delete_result.acknowledged = True
+        mock_delete_result.deleted_count = 1
+        mocks['users_admin'].delete_one.return_value = mock_delete_result
+        
+        result = delete_user(oid, admin_user, "Testing deletion")
+        
+        assert result is True
+        mocks['users_admin'].delete_one.assert_called_once()
+
+    def test_list_users_filters_by_org(self, setup_mocks, admin_user):
+        """Test that list_users only returns users from the admin's org."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import list_users
+
+        oid1 = ObjectId()
+        oid2 = ObjectId()
+        mocks['users_admin'].find.return_value = [
+            {"_id": oid1, "email": "user1@example.com", "org_id": self.TEST_ORG_ID},
+            {"_id": oid2, "email": "user2@example.com", "org_id": self.TEST_ORG_ID}
+        ]
+        
+        result = list_users(admin_user)
+        
+        assert len(result) == 2
+        mocks['users_admin'].find.assert_called_once()
+        call_args = mocks['users_admin'].find.call_args
+        assert call_args[0][0]["org_id"] == self.TEST_ORG_ID
+
+    def test_get_user_self_access(self, setup_mocks, employee_user):
+        """Test that users can access their own profile."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import get_user
+
+        oid = employee_user["id"]
+        mocks['users_admin'].find_one.return_value = {
+            "_id": ObjectId(oid),
+            "email": "employee@example.com",
+            "full_name": "Employee"
+        }
+        
+        result = get_user(oid, employee_user)
+        
+        assert result["email"] == "employee@example.com"
+        assert "password" not in result
+
+    def test_get_user_other_user_requires_admin(self, setup_mocks, employee_user):
+        """Test that accessing another user requires admin role."""
+        from cloudshield.Server.services.user_service import get_user
+
+        with pytest.raises(PermissionError):
+            get_user("507f1f77bcf86cd799439000", employee_user)
+
+    def test_get_user_formats_response(self, setup_mocks, admin_user):
+        """Test that get_user properly formats the response."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import get_user
+
+        oid = ObjectId("507f1f77bcf86cd799439000")
+        now = datetime.now(timezone.utc)
+        mocks['users_admin'].find_one.return_value = {
+            "_id": oid,
+            "email": "user@example.com",
+            "full_name": "Test User",
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        result = get_user(str(oid), admin_user)
+        
+        assert result["id"] == str(oid)
+        assert "_id" not in result
+        assert isinstance(result["created_at"], str)
+        assert isinstance(result["updated_at"], str)
+
+    def test_persist_domain_user_creates_user(self, setup_mocks):
+        """Test that persist_domain_user creates a user document."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import persist_domain_user
+
+        oid = ObjectId()
+        mocks['users_admin'].insert_one.return_value.inserted_id = oid
+        
+        result = persist_domain_user(
+            org_id=self.TEST_ORG_ID,
+            username="testuser",
+            password="TestPass123!",
+            email="test@example.com"
+        )
+        
+        assert result == str(oid)
+        mocks['users_admin'].insert_one.assert_called_once()
+        inserted_doc = mocks['users_admin'].insert_one.call_args[0][0]
+        assert inserted_doc["username"] == "testuser"
+        assert inserted_doc["email"] == "test@example.com"
+        assert inserted_doc["role"] == "employee"
+        assert inserted_doc["status"] == "active"
