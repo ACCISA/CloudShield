@@ -43,6 +43,7 @@ services:
       # Pass through paths so the provisioner knows where to mount from the host
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
+      - KVM=Y
     depends_on:
       redis:
         condition: service_healthy
@@ -150,18 +151,19 @@ services:
     profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-workstation-template:latest
     build:
-      context: .
-      dockerfile: docker/workstation/Dockerfile.workstation_test
+      context: ./docker/workstation
+      dockerfile: Dockerfile.workstation_test
     environment:
       USERNAME: "bill"
       PASSWORD: "gates"
       VERSION: "11"
-      KVM: "N"
+      KVM: "Y"
       DISK_SIZE: "${WORKSTATION_DISK_SIZE:-32G}"
       RAM_SIZE: "${WORKSTATION_RAM_SIZE:-1.5G}"
     devices:
       - /dev/kvm
       - /dev/net/tun
+      - /dev/kvm
     cap_add:
       - NET_ADMIN
     restart: "no"

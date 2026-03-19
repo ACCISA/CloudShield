@@ -174,11 +174,10 @@ startInstall() {
 
     if [ -f "$BOOT" ] && [ -s "$BOOT" ]; then
       if ! mv -f "$BOOT" "$ISO" 2>/dev/null; then
-        if ! cp -f "$BOOT" "$ISO"; then
-          error "Failed to prepare ISO from $BOOT"
-          return 1
-        fi
-        info "Using mounted ISO source, copied to temporary path."
+        # BOOT can be a bind-mounted read-only ISO. Use it directly to avoid
+        # duplicating large files into /storage and running out of space.
+        ISO="$BOOT"
+        info "Using mounted ISO source directly."
       fi
     fi
 
@@ -1162,7 +1161,14 @@ removeImage() {
   [ ! -f "$iso" ] && return 0
   [ -n "$CUSTOM" ] && return 0
 
-  rm -f "$iso" 2> /dev/null || warn "failed to remove $iso !"
+  if ! rm -f "$iso" 2> /dev/null; then
+    # A file-level bind mount for the source ISO cannot be deleted from here.
+    if awk -v p="$iso" '$5==p {found=1} END{exit(found?0:1)}' /proc/self/mountinfo 2>/dev/null; then
+      info "Keeping mounted source ISO at $iso"
+    else
+      warn "failed to remove $iso !"
+    fi
+  fi
 
   return 0
 }
