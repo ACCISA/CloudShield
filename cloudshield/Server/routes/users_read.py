@@ -176,6 +176,11 @@ def get_user(user_id: str):
 
     try:
         oid = ObjectId(user_id)
+        print(oid)
+        print(ObjectId)
+        print(type(ObjectId))
+        print(type(oid))
+        print(user_id)
     except (ValueError, TypeError, InvalidId):
         return jsonify({"error": "Not found"}), 404
 

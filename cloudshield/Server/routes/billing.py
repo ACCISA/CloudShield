@@ -257,6 +257,7 @@ def create_portal_session():
         )
         return jsonify({"url": session.url})
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 400
 
 def update_org_subscription(org_id, package, stripe_cust_id, status):

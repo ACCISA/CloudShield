@@ -27,7 +27,7 @@ from unittest.mock import patch, MagicMock
 
 @pytest.fixture()
 def client(monkeypatch):
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
 
@@ -64,7 +64,7 @@ def auth_client(client, monkeypatch):
     import cloudshield.Server.routes.api as api_mod
     import cloudshield.Server.services as services
 
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
         mock_redis_instance.ping.return_value = True
@@ -482,7 +482,7 @@ def signup_admin_client(monkeypatch):
     Dedicated fixture for signup_admin tests that patches create_user
     BEFORE the Flask app is created.
     """
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
         mock_redis_instance.ping.return_value = True

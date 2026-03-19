@@ -562,6 +562,7 @@ def destroy_environment(org_id: str, force: bool = False):
         return {"message": "Destroy complete", "removed_dir": True}
 
     except Exception as e:
+        logger.error(e)
         set_progress(f"failed destroy: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         # tests expect None on exception

@@ -57,14 +57,9 @@ def get_workstations_api():
     return {"workstations": workstations}
 
 
-@workstations_bp.route("/workstations/create", methods=["POST"])
+@workstations_bp.route("/workstations", methods=["POST"])
 @require_auth
 def create_default():
-    """
-    Debug route, this should not be used in our WebUI
-
-    This will create an image of a workstations with no customization
-    """
     data = request.get_json() or {}
     
     logger.info("[API] Received /workstations/create-default POST request")
@@ -74,7 +69,6 @@ def create_default():
     description = data.get("description")
     software = data.get("software")
     access_groups = data.get("access_groups")
-
 
     for arg, val in {"org_id":org_id, "name":name, "description":description, "software":software, "access_groups":access_groups}.items():
         if val is None:

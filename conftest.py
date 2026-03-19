@@ -356,6 +356,11 @@ def _provision_default_workstation(*args, **kwargs):
 def _destroy_stub(*args, **kwargs):
     return {"status": "success", "message": "Destroyed (test stub)"}
 
+def _provision_workstation_vm(*args, **kwargs):
+    return {}
+
+def _init_cloud(*args, **kwargs):
+    return
 
 def _get_target_dir_stub(org_id: str, generated_dir: str | None = None) -> str:
     import os
@@ -371,6 +376,8 @@ _stub_module(
             "destroy_infra": _destroy_stub,
             "get_target_dir": _get_target_dir_stub,
             "provision_default_workstation": _provision_default_workstation,
-            "provision_custom_workstation": _provision_default_workstation
+            "provision_custom_workstation": _provision_default_workstation,
+            "provision_workstation_vm": _provision_workstation_vm,
+            "init_cloud": _init_cloud
     },
 )
