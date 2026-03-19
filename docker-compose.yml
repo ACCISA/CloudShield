@@ -55,6 +55,9 @@ services:
       - type: bind
         source: ${WORKSTATIONS_MOUNT_DIR}
         target: /data
+      - type: bind
+        source: ${CLOUDSHIELD_DATA_MOUNT_DIR}
+        target: /var/lib/cloudshield
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -159,7 +162,6 @@ services:
     cap_add:
       - NET_ADMIN
     restart: "no"
-    stop_grace_period: 2m
     networks:
       vpc_net:
 

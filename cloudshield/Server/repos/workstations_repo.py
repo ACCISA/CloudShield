@@ -97,6 +97,9 @@ def get_workstations(db, org_id: str):
     ws_db = db.workstation_templates
 
     workstations = list(ws_db.find({"org_id": org_id}))
+    
+    for ws in workstations:
+        ws["_id"] = str(ws["_id"])
 
     return workstations
 

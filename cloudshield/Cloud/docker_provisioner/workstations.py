@@ -8,6 +8,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from python_on_whales import DockerClient
+from python_on_whales import docker as docker_whales
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -18,6 +19,9 @@ docker = DockerClient(compose_files=["/app/docker-compose.yml"])
 storage_path = Path("/data/workstations/")
 template_vm_path = Path("/data/workstations/templates")
 default_oem_path = Path("/app/docker/workstation/oem")
+BASE_PATH = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
+COMPOSE_FILE = os.path.join(BASE_PATH, "docker-compose.yml")
+
 
 PROVISIONING_STATE = {}
 
@@ -227,6 +231,29 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
 
     return True
 
+def _write_compose_override_for_vm(
+    override_path: Path,
+    external_network_name: str,
+) -> None:
+    override_yaml = f"""\
+services:
+  workstation:
+    networks: [org_net]
+
+networks:
+  org_net:
+    external: true
+    name: {external_network_name}
+"""
+    # from kevinj's code
+    # It doesnt seem like there is a better way to attach a network to a container with docker-on-whales
+    # another option was to call docker network connect but we would have to disconnect from the network it was already on which could
+    # cause issues during the vm initliazation and would be more code than just overriding the .yml
+    override_path.parent.mkdir(parents=True, exist_ok=True)
+    override_path.write_text(override_yaml, encoding="utf-8")
+
+
+
 def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = None, logger = None):
 
     if updater is None:
@@ -249,11 +276,33 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
 
     updater(job, "starting workstation vm")
 
-    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
-
     name = "ws-"+str(vm_id)
 
-    container_ws = docker.compose.run(
+    cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/" + org_id)
+
+    if not cloudshield_path.exists():
+        reason = f"Failed to find cloudshield data path for org_id {org_id} at /var/lib/cloudshield/terraform/generated"
+        logger.error(reason)
+        failed_status["reason"] = reason
+        return failed_status
+    
+    external_network_name = org_id+"-net"
+
+    if not docker_whales.network.exists(external_network_name):
+        reason = f"Failed to find docker network {external_network_name}"
+        logger.error(reason)
+        failed_status["reason"] = reason
+        return failed_status
+
+    override_path = cloudshield_path / str("docker-compose."+name+".override.yml")
+
+    _write_compose_override_for_vm(override_path, external_network_name)
+
+    org_docker = DockerClient(compose_files=[COMPOSE_FILE, str(override_path)])
+
+    host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
+
+    container_ws = org_docker.compose.run(
             service="workstation",
             command=["skip"],
             name=name,
@@ -263,7 +312,7 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
     )
 
     container_ws_id = container_ws.id
-    container_ws_ip = container_ws.network_settings.networks["vpc_net"].ip_address
+    container_ws_ip = container_ws.network_settings.networks[external_network_name].ip_address
 
     updater(job, "waiting for workstation startup completion")
 

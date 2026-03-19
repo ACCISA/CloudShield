@@ -146,7 +146,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
     
     def gen_password():
-        friendly_punctuation = "!@#$%^&*()-_=+[]{};:,.<>?"
+        friendly_punctuation = "!@#%^&()-_=+[]{};:,.<>?"
         alphabet = string.ascii_letters + string.digits + friendly_punctuation
         password = ''.join(secrets.choice(alphabet) for _ in range(16))
         return password
