@@ -292,6 +292,49 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
 
     set_progress("starting")
 
+    # In api-test we intentionally use docker-backed provisioning, not terraform.
+    mode = (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower()
+    if mode == "docker":
+        base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+        templates_dir = base_dir / "templates"
+        generated_dir = base_dir / "terraform" / "generated" / org_id
+
+        org_doc = organizations.find_one(org_filter(org_id)) or {}
+        docker_org_data = {
+            "org_id": org_id,
+            "domain_name": org_doc.get("domain_name"),
+            "realm_name": org_doc.get("realm_name"),
+            "dc_admin_password": org_doc.get("dc_admin_password"),
+        }
+
+        try:
+            set_progress("provisioning docker workstations")
+            docker_fn = provision_network_docker or _import_provision_network_docker()
+            metadata = docker_fn(
+                org_data=docker_org_data,
+                region=region,
+                templates_dir=str(templates_dir),
+                generated_dir=str(generated_dir),
+                count=count,
+                server_logger=logger,
+            )
+
+            if not metadata:
+                set_progress("failed")
+                return {
+                    "message": "Docker workstation provisioning returned no metadata",
+                    "metadata": [],
+                }
+
+            set_progress("completed")
+            return {
+                "message": "Provisioning workstations complete",
+                "metadata": metadata,
+            }
+        except Exception as e:
+            set_progress(f"failed: {e}")
+            raise
+
     tf_get_target_dir = get_target_dir
     if tf_get_target_dir is None:
         _, tf_get_target_dir, _, _ = _import_terraform_provisioner()

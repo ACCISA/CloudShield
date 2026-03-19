@@ -38,12 +38,12 @@ if (-not (Test-Path $DataDir)) {
 
 $LauncherCmdPath = Join-Path $DataDir "launch_cloudshield_agent.cmd"
 $launcherContent = @(
-    "@echo off",
-    "setlocal",
-    "set \"AGENT_ID=$AgentId\"",
-    "set \"SERVER_ADDR=$ServerAddr\"",
-    "set \"SERVER_PORT=$ServerPort\"",
-    "\"$AgentExePath\""
+    '@echo off',
+    'setlocal',
+    ('set "AGENT_ID={0}"' -f $AgentId),
+    ('set "SERVER_ADDR={0}"' -f $ServerAddr),
+    ('set "SERVER_PORT={0}"' -f $ServerPort),
+    ('"{0}"' -f $AgentExePath)
 ) -join "`r`n"
 
 Set-Content -Path $LauncherCmdPath -Value $launcherContent -Encoding ASCII -Force
