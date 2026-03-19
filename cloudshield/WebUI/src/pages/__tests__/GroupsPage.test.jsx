@@ -238,6 +238,39 @@ jest.mock("../../assets/CreateGroupIcon.jsx", () => {
   };
 });
 
+jest.mock("../../components/layout/PageShell.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyPageShell({ title, subtitle, actions, children }) {
+      return (
+        <div data-testid="page-shell">
+          {title ? <div data-testid="page-title">{title}</div> : null}
+          {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
+          <div data-testid="page-actions">{actions}</div>
+          <div data-testid="page-content">{children}</div>
+        </div>
+      );
+    },
+  };
+});
+
+jest.mock("../../components/table/TableSurface.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyTableSurface({ children }) {
+      return <div data-testid="table-surface">{children}</div>;
+    },
+  };
+});
+
+jest.mock("../../components/table/TableSkeleton.jsx", () => {
+  return {
+    __esModule: true,
+    default: function DummyTableSkeleton() {
+      return <div data-testid="table-skeleton">Loading…</div>;
+    },
+  };
+});
 // Mock data
 // jest.mock("../../data/mockData.js", () => ({
 //   MOCK_GROUPS_FULL: [
@@ -271,6 +304,18 @@ jest.mock("../../assets/CreateGroupIcon.jsx", () => {
 describe("GroupsPage Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ access_groups: [] }),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    if (global.fetch?.mockClear) {
+      global.fetch.mockClear();
+    }
   });
 
   // Basic rendering tests
@@ -660,12 +705,49 @@ describe("GroupsPage Component", () => {
   });
 
   describe("Layout and Display Coverage", () => {
+    test("renders icon cards and selection state in grid layout", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                id: "g-1",
+                group_name: "Team Alpha",
+                description: "Core team",
+                members: ["u-1"],
+                members_info: [
+                  { _id: "u-1", full_name: "Alice Smith", email: "a@test.com" },
+                ],
+                workstations: ["ws-1"],
+                file_shares: ["share-1"],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Team Alpha")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Grid"));
+
+      const selectAllButton = screen.getByRole("button", { name: /select all/i });
+      await userEvent.click(selectAllButton);
+      expect(screen.getByText("1 selected")).toBeInTheDocument();
+
+      await userEvent.click(selectAllButton);
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
+      expect(screen.getByText(/Core team/)).toBeInTheDocument();
+    });
+
     test("changes layout to grid", () => {
       renderPage();
       const gridButton = screen.getByText("Grid");
 
       fireEvent.click(gridButton);
-      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
     });
 
     test("changes layout to list", () => {
@@ -735,10 +817,10 @@ describe("GroupsPage Component", () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          "/api/access-groups",
+          expect.stringContaining("/api/access-groups"),
           expect.objectContaining({
             method: "GET",
-            credentials: "include",
+            headers: expect.any(Object),
           }),
         );
       });
@@ -1543,5 +1625,23 @@ describe("GroupsPage Component", () => {
     expect(screen.getByTestId("groups-list")).toBeInTheDocument();
 
     global.fetch.mockRestore();
+  });
+
+  test("renders inside PageShell without title and subtitle", () => {
+    renderPage();
+
+    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(screen.queryByTestId("page-title")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-subtitle")).not.toBeInTheDocument();
+    expect(screen.getByTestId("table-surface")).toBeInTheDocument();
+  });
+  
+  test("shows the loading skeleton without unmounting the list", () => {
+    global.fetch = jest.fn(() => new Promise(() => {}));
+
+    renderPage();
+
+    expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
   });
 });

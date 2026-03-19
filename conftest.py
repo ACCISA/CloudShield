@@ -350,6 +350,9 @@ def _provision_workstation(*args, **kwargs):
         "updated_at": "2025-01-01",
     }
 
+def _provision_default_workstation(*args, **kwargs):
+    return {}
+
 def _destroy_stub(*args, **kwargs):
     return {"status": "success", "message": "Destroyed (test stub)"}
 
@@ -367,5 +370,7 @@ _stub_module(
         "provision_workstation":_provision_workstation,
             "destroy_infra": _destroy_stub,
             "get_target_dir": _get_target_dir_stub,
+            "provision_default_workstation": _provision_default_workstation,
+            "provision_custom_workstation": _provision_default_workstation
     },
 )

@@ -17,3 +17,6 @@ grpcio
 protobuf
 flask-cors
 jinja2
+stripe
+google-genai
+grpcio-tools

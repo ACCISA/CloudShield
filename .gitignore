@@ -102,5 +102,8 @@ cloudshield/WebUI/package-lock.json
 
 cloudshield/WebUI/coverage/
 
+# Worksations folder
+worksations/
+
 .scannerwork/
 *.iso

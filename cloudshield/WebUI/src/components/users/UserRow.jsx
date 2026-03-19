@@ -1,7 +1,5 @@
 import React from "react";
-import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
-import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
@@ -17,12 +15,20 @@ const styles = {
     color: "#fff",
     padding: "12px 8px",
     borderRadius: "12px",
+    minWidth: 0,
   },
   nameSection: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
     minWidth: 0,
+  },
+  leadingCircle: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "50%",
+    backgroundColor: "#2A2A2A",
+    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
@@ -36,6 +42,7 @@ const styles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    minWidth: 0,
   },
   email: {
     fontSize: "0.85rem",
@@ -44,18 +51,29 @@ const styles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    minWidth: 0,
   },
+
+  // Generic single-line truncated cell
   textCell: {
     opacity: 0.9,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    minWidth: 0,
   },
+
   bubblesPill: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    minWidth: 0,
+    overflow: "hidden",
   },
   avatarsContainer: {
     display: "flex",
     alignItems: "center",
+    minWidth: 0,
   },
   avatar: {
     width: "18px",
@@ -68,19 +86,26 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 600,
+    flexShrink: 0,
   },
   extraCount: {
     fontSize: "0.85rem",
     opacity: 0.9,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    minWidth: 0,
   },
   statusContainer: {
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
+    flexShrink: 0,
   },
   editContainer: {
     display: "flex",
     justifyContent: "flex-end",
+    flexShrink: 0,
   },
   divider: {
     borderTop: "1px solid rgba(255,255,255,0.1)",
@@ -132,54 +157,53 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers ---------------------------- */
 
-/**
- * Renders a pill with hoverable DisplayIcon items (groups, workstations, or files)
- */
-function ItemsPill({ items, type, totalCount }) {
-  const itemsList = Array.isArray(items) ? items : [];
-  const show = itemsList.slice(0, 3);
-  const count = totalCount !== undefined ? totalCount : itemsList.length;
-  const extra = Math.max(count - show.length, 0);
+// Accepts either an array (preferred) or a number.
+// Returns a bubble UI for up to 3, and "—" when empty.
+function renderBubbles(value) {
+  const count = Array.isArray(value) ? value.length : Number(value || 0);
 
-  if (count === 0) {
-    return <span style={{ opacity: 0.5 }}>—</span>;
+  if (!Number.isFinite(count) || count <= 0) {
+    return <span style={{ opacity: 0.5, ...styles.textCell }}>—</span>;
   }
 
-  if (show.length === 0) {
-    return (
-      <div style={styles.bubblesPill}>
-        <span style={styles.extraCount}>+ {count}</span>
-      </div>
-    );
-  }
+  const bubbles = Math.min(count, 3);
 
   return (
-    <div style={styles.bubblesPill}>
+    <div style={styles.bubblesPill} title={`${count}`}>
       <div style={styles.avatarsContainer}>
-        {show.map((item, idx) => (
+        {Array.from({ length: bubbles }).map((_, i) => (
           <div
-            key={item.id || item.name || idx}
+            key={i}
             style={{
-              marginLeft: idx === 0 ? 0 : "-8px",
-              zIndex: show.length - idx,
-              display: "flex",
-              alignItems: "center",
+              ...styles.avatar,
+              marginLeft: i === 0 ? 0 : "-6px",
             }}
-          >
-            <DisplayIcon type={type} data={item} size="small" />
-          </div>
+          />
         ))}
       </div>
-      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
+      {count > 3 && <span style={styles.extraCount}>+ {count - 3}</span>}
     </div>
   );
 }
 
-ItemsPill.propTypes = {
-  items: PropTypes.arrayOf(PropTypes.object),
-  type: PropTypes.string.isRequired,
-  totalCount: PropTypes.number,
-};
+// For Shares specifically: show "-" instead of 0
+function renderShares(data) {
+  // Prefer normalized display fields if UsersTable provides them
+  const display =
+    data.fileCountDisplay ??
+    data.sharesDisplay ??
+    (Array.isArray(data.files) ? (data.files.length === 0 ? "-" : String(data.files.length)) : null);
+
+  if (display === "-" || display === "—") {
+    return <span style={{ opacity: 0.5, ...styles.textCell }}>—</span>;
+  }
+
+  // If you still want the bubbles look for non-zero shares, keep bubbles based on files array/count
+  if (Array.isArray(data.files)) return renderBubbles(data.files);
+
+  // Fallback: if only a count exists
+  return renderBubbles(Number(display));
+}
 
 /* --------------------------------- component -------------------------------- */
 
@@ -194,7 +218,7 @@ export default function UserRow({
   isLast,
   cols,
   isMobile,
-  isTablet,
+  isTablet, // kept (even if unused) for signature compatibility
   isSelected,
   onToggleSelect,
 }) {
@@ -211,53 +235,41 @@ export default function UserRow({
         onMouseEnter={(e) =>
           (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)")
         }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "transparent")
-        }
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
       >
         {/* select - hide on mobile */}
-        {isMobile ? null : (
+        {!isMobile && (
           <Checkbox checked={isSelected} onChange={onToggleSelect} />
         )}
 
-        {/* name + email + profile icon */}
+        {/* name + email + leading circle */}
         <div style={responsiveStyles.nameSection}>
-          <DisplayIcon type="user" data={data} size="small" showHoverCard={false} />
+          <div style={styles.leadingCircle} />
           <div style={styles.nameContainer}>
-            <span style={responsiveStyles.name}>{data.name}</span>
-            <span style={responsiveStyles.email}>↳ {data.email}</span>
+            <span style={responsiveStyles.name} title={data.name}>
+              {data.name}
+            </span>
+            <span style={responsiveStyles.email} title={data.email}>
+              ↳ {data.email}
+            </span>
           </div>
         </div>
 
-        {/* title */}
-        {showTitle && <span style={styles.textCell}>{data.title}</span>}
+        {/* title (truncate) */}
+        {showTitle && (
+          <span style={styles.textCell} title={data.title}>
+            {data.title}
+          </span>
+        )}
 
         {/* workstations */}
-        {showWorkstations && (
-          <ItemsPill
-            items={data.workstations}
-            type="workstation"
-            totalCount={data.workstationCount}
-          />
-        )}
+        {showWorkstations && renderBubbles(data.workstations)}
 
         {/* groups */}
-        {showGroups && (
-          <ItemsPill
-            items={data.groups}
-            type="group"
-            totalCount={data.groupCount}
-          />
-        )}
+        {showGroups && renderBubbles(data.groups)}
 
-        {/* files */}
-        {showFiles && (
-          <ItemsPill
-            items={data.files}
-            type="workstation"
-            totalCount={data.fileCount}
-          />
-        )}
+        {/* files / shares */}
+        {showFiles && renderShares(data)}
 
         {/* status indicator */}
         <div style={{ ...styles.statusContainer, marginRight: "-16px" }}>
@@ -295,32 +307,3 @@ export default function UserRow({
     </>
   );
 }
-
-UserRow.propTypes = {
-  data: PropTypes.shape({
-    id: PropTypes.string,
-    name: PropTypes.string,
-    email: PropTypes.string,
-    title: PropTypes.string,
-    status: PropTypes.string,
-    profileImage: PropTypes.string,
-    workstations: PropTypes.arrayOf(PropTypes.object),
-    workstationCount: PropTypes.number,
-    groups: PropTypes.arrayOf(PropTypes.object),
-    groupCount: PropTypes.number,
-    files: PropTypes.arrayOf(PropTypes.object),
-    fileCount: PropTypes.number,
-  }).isRequired,
-  showTitle: PropTypes.bool,
-  showWorkstations: PropTypes.bool,
-  showGroups: PropTypes.bool,
-  showFiles: PropTypes.bool,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  isLast: PropTypes.bool,
-  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
-  isMobile: PropTypes.bool,
-  isTablet: PropTypes.bool,
-  isSelected: PropTypes.bool,
-  onToggleSelect: PropTypes.func,
-};

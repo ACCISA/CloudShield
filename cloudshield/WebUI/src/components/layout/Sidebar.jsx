@@ -21,31 +21,31 @@ import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import DashboardIcon from "../../assets/NavBar/DashboardIcon";
+import ShieldIcon from "../../assets/NavBar/shieldIcon.jsx";
 import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 function NavItem({
   collapsed,
   icon,
   label,
-  to,
   active,
   count,
   countColor,
-  expanded,
-  onToggleExpand,
   onNavigate,
 }) {
+  const showCountChip = typeof count === "number" || count === "-";
+
   return (
     <Box
       sx={{
@@ -93,43 +93,42 @@ function NavItem({
         </Box>
 
         {!collapsed && (
-          <>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                minWidth: 0,
-              }}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              sx={{ fontSize: "0.95rem", fontWeight: 500, lineHeight: 1.3 }}
             >
-              <Typography
-                sx={{ fontSize: "0.95rem", fontWeight: 500, lineHeight: 1.3 }}
-              >
-                {label}
-              </Typography>
-              {typeof count === "number" && (
-                <Chip
-                  label={count}
-                  size="small"
-                  sx={{
-                    height: "20px",
-                    minWidth: "20px",
-                    fontSize: "0.7rem",
-                    fontWeight: 500,
-                    borderRadius: "6px",
-                    px: "4px",
-                    lineHeight: 1.2,
-                    color: "#fff",
-                    backgroundColor: countColor || "#444",
-                  }}
-                />
-              )}
-            </Box>
-          </>
+              {label}
+            </Typography>
+
+            {showCountChip && (
+              <Chip
+                label={count}
+                size="small"
+                sx={{
+                  height: "20px",
+                  minWidth: "20px",
+                  fontSize: "0.7rem",
+                  fontWeight: 500,
+                  borderRadius: "6px",
+                  px: "4px",
+                  lineHeight: 1.2,
+                  color: "#fff",
+                  backgroundColor: countColor || "#444",
+                }}
+              />
+            )}
+          </Box>
         )}
 
-        {collapsed && typeof count === "number" && (
+        {collapsed && showCountChip && (
           <Chip
             label={count}
             size="small"
@@ -189,6 +188,253 @@ function AccordionGrid({ items }) {
   );
 }
 
+function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
+  const handleCompanyNavigate = () => {
+    if (!showNav) return;
+    navigate("/organizations");
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      handleCompanyNavigate();
+    }
+  };
+
+  return (
+    <Box
+      role="button"
+      tabIndex={0}
+      aria-label="Switch company"
+      onClick={handleCompanyNavigate}
+      onKeyDown={onKeyDown}
+      sx={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: collapsed ? "center" : "flex-start",
+        gap: collapsed ? "0px" : "12px",
+        paddingRight: collapsed ? 0 : "48px",
+        paddingTop: "40px",
+        paddingBottom: "16px",
+        cursor: showNav ? "pointer" : "default",
+      }}
+    >
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: "999px",
+          flexShrink: 0,
+          background:
+            "radial-gradient(circle at 30% 30%, #b9ff9f 0%, #4b5b3a 70%)",
+          border: "2px solid #fff",
+          position: "relative",
+        }}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            right: -2,
+            bottom: -2,
+            width: 8,
+            height: 8,
+            borderRadius: "999px",
+            backgroundColor: "#5aff3d",
+            border: "2px solid #0F0F0F",
+          }}
+        />
+      </Box>
+
+      {!collapsed && (
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                }}
+              >
+                {myOrg?.name || "Company Inc."}
+              </Typography>
+              <Typography
+                sx={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: "0.8rem",
+                  lineHeight: 1.3,
+                  wordBreak: "break-all",
+                }}
+              >
+                {me?.email || "admin@company.com"}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function SidebarBottomAction({
+  collapsed,
+  label,
+  ariaLabel,
+  icon,
+  onActivate,
+}) {
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      onActivate();
+    }
+  };
+
+  return (
+    <Box
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: collapsed ? "center" : "flex-start",
+        color: "#fff",
+        fontSize: "0.9rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        borderRadius: "8px",
+        padding: collapsed ? "8px" : "8px 12px",
+        "&:hover": { backgroundColor: "#2a2a2a" },
+      }}
+      onClick={onActivate}
+      onKeyDown={onKeyDown}
+    >
+      <Box
+        sx={{
+          width: 28,
+          height: 28,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          mr: collapsed ? 0 : "10px",
+        }}
+      >
+        {icon}
+      </Box>
+      {!collapsed && (
+        <Typography sx={{ fontSize: "0.9rem", fontWeight: 500 }}>
+          {label}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function SidebarNavigation({
+  collapsed,
+  isActive,
+  navigate,
+  stats,
+  statsLoading,
+}) {
+  const usersPill = "#6a4fcf";
+  const workstationPill = "#c94b4b";
+  const groupsPill = "#2656d8";
+  const sharesPill = "#c57a1c";
+
+  const getSharesCount = () => {
+    if (collapsed || statsLoading) return undefined;
+    if (stats.shares === 0) return "-";
+    return stats.shares ?? 0;
+  };
+
+  return (
+    <Box
+      sx={{
+        flexGrow: 1,
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+        overflowY: "auto",
+        overflowX: "hidden",
+        overscrollBehavior: "contain",
+        minHeight: 0,
+      }}
+    >
+      <NavItem
+        collapsed={collapsed}
+        icon={<DashboardIcon width={20} height={20} />}
+        label="Dashboard"
+        active={isActive("/dashboard")}
+        onNavigate={() => navigate("/dashboard")}
+      />
+
+      <NavItem
+        collapsed={collapsed}
+        icon={<ShieldIcon width={20} height={20} />}
+        label="Security dashboard"
+        active={isActive("/security-dashboard")}
+        onNavigate={() => navigate("/security-dashboard")}
+      />
+
+      <NavItem
+        collapsed={collapsed}
+        icon={<WorkstationsIcon width={20} height={20} />}
+        label="Workstations"
+        active={isActive("/workstations")}
+        count={collapsed ? undefined : stats.workstations ?? (statsLoading ? "…" : 0)}
+        countColor={workstationPill}
+        onNavigate={() => navigate("/workstations")}
+      />
+
+      <NavItem
+        collapsed={collapsed}
+        icon={<UsersIcon width={20} height={20} />}
+        label="Employees"
+        active={isActive("/employees") || isActive("/users")}
+        count={collapsed ? undefined : stats.users ?? (statsLoading ? "…" : 0)}
+        countColor={usersPill}
+        onNavigate={() => navigate("/employees")}
+      />
+
+      <NavItem
+        collapsed={collapsed}
+        icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
+        label="Groups"
+        active={isActive("/groups")}
+        count={collapsed ? undefined : stats.groups ?? (statsLoading ? "…" : 0)}
+        countColor={groupsPill}
+        onNavigate={() => navigate("/groups")}
+      />
+
+      <NavItem
+        collapsed={collapsed}
+        icon={<FilesIcon width={20} height={20} />}
+        label="Shares"
+        active={isActive("/files")}
+        count={getSharesCount()}
+        countColor={sharesPill}
+        onNavigate={() => navigate("/files")}
+      />
+    </Box>
+  );
+}
+
 export default function Sidebar({
   mode = "full",
   collapsed,
@@ -196,28 +442,20 @@ export default function Sidebar({
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { logout } = useAuth();
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
-
-  // accordion open states
-  const [open, setOpen] = useState({
-    workstations: false,
-    employees: false,
-    groups: false,
-    files: false,
-  });
   
   const [me, setMe] = useState(null);            // { id, email, org_id, role }
   const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
-  const [meErr, setMeErr] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me"); // expects { user: {...} }
+        const meRes = await apiGet("/users/me").json(); // expects { user: {...} }
         if (!mounted) return;
         setMe(meRes.user);
 
@@ -226,9 +464,10 @@ export default function Sidebar({
         const orgRes = await apiGet("/organizations/me");
         if (!mounted) return;
         setMyOrg(orgRes.organization);
-      } catch (e) {
+      } catch {
         if (!mounted) return;
-        setMeErr(e.message || "Failed to load user");
+        setMe(null);
+        setMyOrg(null);
       }
     }
 
@@ -240,14 +479,13 @@ export default function Sidebar({
   
   const { stats, loading: statsLoading } = useOrgMetrics();
 
-  // colors for the little count pills (matching dashboard StatCard gradients)
-  const usersPill = "#6a4fcf";
-  const workstationPill = "#c94b4b";
-  const groupsPill = "#2656d8";
-  const sharesPill = "#c57a1c";
-
   const showNav = mode === "full";
   const showBottom = mode === "full";
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <Box
@@ -298,184 +536,25 @@ export default function Sidebar({
       </Box>
 
       {/* Company block (clickable org switcher) */}
-      <Box
-        role="button"
-        tabIndex={0}
-        aria-label="Switch company"
-        onClick={() => showNav && navigate("/organizations")}
-        onKeyDown={(e) =>
-          (e.key === "Enter" || e.key === " ") &&
-          showNav &&
-          navigate("/organizations")
-        }
-        sx={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: collapsed ? "center" : "flex-start",
-          gap: collapsed ? "0px" : "12px",
-          paddingRight: collapsed ? 0 : "48px",
-          paddingTop: "40px",
-          paddingBottom: "16px",
-          cursor: showNav ? "pointer" : "default",
-        }}
-      >
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: "999px",
-            flexShrink: 0,
-            background:
-              "radial-gradient(circle at 30% 30%, #b9ff9f 0%, #4b5b3a 70%)",
-            border: "2px solid #fff",
-            position: "relative",
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              right: -2,
-              bottom: -2,
-              width: 8,
-              height: 8,
-              borderRadius: "999px",
-              backgroundColor: "#5aff3d",
-              border: "2px solid #0F0F0F",
-            }}
-          />
-        </Box>
-
-        {!collapsed && (
-          <Box
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                width: "100%",
-              }}
-            >
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    color: "#fff",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {myOrg?.name || "Company Inc."}
-                </Typography>
-                <Typography
-                  sx={{
-                    color: "rgba(255,255,255,0.7)",
-                    fontSize: "0.8rem",
-                    lineHeight: 1.3,
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {me?.email || "admin@company.com"}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        )}
-      </Box>
+      <CompanySwitcher
+        collapsed={collapsed}
+        showNav={showNav}
+        navigate={navigate}
+        myOrg={myOrg}
+        me={me}
+      />
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.18)", mb: 2 }} />
 
       {/* Navigation + accordions (hidden in provisioning mode) */}
       {showNav ? (
-        <Box
-          sx={{
-            flexGrow: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            overflowY: "auto",
-            overflowX: "hidden",
-            overscrollBehavior: "contain",
-            minHeight: 0,
-          }}
-        >
-          <NavItem
-            collapsed={collapsed}
-            icon={<DashboardIcon width={20} height={20} />}
-            label="Dashboard"
-            to="/dashboard"
-            active={isActive("/dashboard")}
-            onNavigate={() => navigate("/dashboard")}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={<WorkstationsIcon width={20} height={20} />}
-            label="Workstations"
-            to="/workstations"
-            active={isActive("/workstations")}
-            // count={collapsed ? undefined : 6}
-            count={collapsed ? undefined : (stats.workstations ?? (statsLoading ? "…" : 0))}
-            countColor={workstationPill}
-            expanded={open.workstations}
-            onToggleExpand={() =>
-              setOpen((s) => ({ ...s, workstations: !s.workstations }))
-            }
-            onNavigate={() => navigate("/workstations")}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={<UsersIcon width={20} height={20} />}
-            label="Employees"
-            to="/employees"
-            active={isActive("/employees") || isActive("/users")}
-            // count={collapsed ? undefined : 6}
-            count={collapsed ? undefined : (stats.users ?? (statsLoading ? "…" : 0))}
-            countColor={usersPill}
-            expanded={open.employees}
-            onToggleExpand={() =>
-              setOpen((s) => ({ ...s, employees: !s.employees }))
-            }
-            onNavigate={() => navigate("/employees")}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={
-              <GroupsIcon
-                width={20}
-                height={20}
-                selected={isActive("/groups")}
-              />
-            }
-            label="Groups"
-            to="/groups"
-            active={isActive("/groups")}
-            // count={collapsed ? undefined : 6}
-            count={collapsed ? undefined : (stats.groups ?? (statsLoading ? "…" : 0))}
-            countColor={groupsPill}
-            expanded={open.groups}
-            onToggleExpand={() => setOpen((s) => ({ ...s, groups: !s.groups }))}
-            onNavigate={() => navigate("/groups")}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={<FilesIcon width={20} height={20} />}
-            label="Shares"
-            to="/files"
-            active={isActive("/files")}
-            //count={collapsed ? undefined : 33}
-            count={collapsed ? undefined : (stats.shares ?? (statsLoading ? "…" : 0))}
-            countColor={sharesPill}
-            expanded={open.files}
-            onToggleExpand={() => setOpen((s) => ({ ...s, files: !s.files }))}
-            onNavigate={() => navigate("/files")}
-          />
-        </Box>
+        <SidebarNavigation
+          collapsed={collapsed}
+          isActive={isActive}
+          navigate={navigate}
+          stats={stats}
+          statsLoading={statsLoading}
+        />
       ) : (
         // Provisioning mode filler to push bottom area down nicely
         <Box sx={{ flexGrow: 1 }} />
@@ -494,87 +573,27 @@ export default function Sidebar({
             pb: "16px",
           }}
         >
-          <Box
-            role="button"
-            tabIndex={0}
-            aria-label="Settings"
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: collapsed ? "center" : "flex-start",
-              color: "#fff",
-              fontSize: "0.9rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              borderRadius: "8px",
-              padding: collapsed ? "8px" : "8px 12px",
-              "&:hover": { backgroundColor: "#2a2a2a" },
-            }}
-            onClick={() => navigate("/settings")}
-            onKeyDown={(e) =>
-              (e.key === "Enter" || e.key === " ") && navigate("/settings")
-            }
-          >
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mr: collapsed ? 0 : "10px",
-              }}
-            >
-              <SettingsOutlinedIcon sx={{ fontSize: "1.1rem" }} />
-            </Box>
-            {!collapsed && (
-              <Typography sx={{ fontSize: "0.9rem", fontWeight: 500 }}>
-                Settings
-              </Typography>
-            )}
-          </Box>
-
-          <Box
-            role="button"
-            tabIndex={0}
-            aria-label="Get support"
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: collapsed ? "center" : "flex-start",
-              color: "#fff",
-              fontSize: "0.9rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              borderRadius: "8px",
-              padding: collapsed ? "8px" : "8px 12px",
-              "&:hover": { backgroundColor: "#2a2a2a" },
-            }}
-            onClick={() => navigate("/support")}
-            onKeyDown={(e) =>
-              (e.key === "Enter" || e.key === " ") && navigate("/support")
-            }
-          >
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mr: collapsed ? 0 : "10px",
-              }}
-            >
-              <HelpOutlineOutlinedIcon sx={{ fontSize: "1.1rem" }} />
-            </Box>
-            {!collapsed && (
-              <Typography sx={{ fontSize: "0.9rem", fontWeight: 500 }}>
-                Get support
-              </Typography>
-            )}
-          </Box>
+          <SidebarBottomAction
+            collapsed={collapsed}
+            label="Settings"
+            ariaLabel="Settings"
+            icon={<SettingsOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            onActivate={() => navigate("/settings")}
+          />
+          <SidebarBottomAction
+            collapsed={collapsed}
+            label="Tickets"
+            ariaLabel="Tickets"
+            icon={<ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            onActivate={() => navigate("/tickets")}
+          />
+          <SidebarBottomAction
+            collapsed={collapsed}
+            label="Sign out"
+            ariaLabel="Sign out"
+            icon={<LogoutOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            onActivate={handleSignOut}
+          />
         </Box>
       ) : null}
     </Box>

@@ -22,12 +22,6 @@ jest.mock("../../common/EditButton/EditButton.jsx", () => {
   };
 });
 
-jest.mock("../../common/DisplayIcon/DisplayIcon.jsx", () => {
-  return function MockDisplayIcon({ type, data }) {
-    return <div data-testid={`display-icon-${type}`}>{data?.name}</div>;
-  };
-});
-
 jest.mock("../../common/Checkbox/Checkbox.jsx", () => {
   return function MockCheckbox({ checked, onChange }) {
     return (
@@ -101,26 +95,23 @@ describe("UserRow", () => {
   it("renders user name and email", () => {
     render(<UserRow {...defaultProps} />);
 
-    // Use getAllByText since name appears in both DisplayIcon and the span
-    expect(screen.getAllByText("John Doe").length).toBeGreaterThan(0);
+    // Name now appears only once (no DisplayIcon)
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("↳ john@example.com")).toBeInTheDocument();
   });
 
   it("renders title when showTitle is true", () => {
     render(<UserRow {...defaultProps} />);
-
     expect(screen.getByText("Engineer")).toBeInTheDocument();
   });
 
   it("hides title when showTitle is false", () => {
     render(<UserRow {...defaultProps} showTitle={false} />);
-
     expect(screen.queryByText("Engineer")).not.toBeInTheDocument();
   });
 
   it("shows online status indicator with correct colors", () => {
     render(<UserRow {...defaultProps} />);
-
     const icon = screen.getByTestId("active-icon");
     expect(icon.dataset.inner).toBe("#04C40A");
   });
@@ -135,67 +126,59 @@ describe("UserRow", () => {
 
   it("calls onEdit when edit button is clicked", () => {
     render(<UserRow {...defaultProps} />);
-
     fireEvent.click(screen.getByTestId("menu-item-edit-user"));
     expect(defaultProps.onEdit).toHaveBeenCalled();
   });
 
   it("calls onDelete when delete button is clicked", () => {
     render(<UserRow {...defaultProps} />);
-
     fireEvent.click(screen.getByTestId("menu-item-delete-user"));
     expect(defaultProps.onDelete).toHaveBeenCalled();
   });
 
   it("calls onToggleSelect when checkbox is clicked", () => {
     render(<UserRow {...defaultProps} />);
-
     fireEvent.click(screen.getByTestId("row-checkbox"));
     expect(defaultProps.onToggleSelect).toHaveBeenCalled();
   });
 
   it("hides checkbox on mobile", () => {
     render(<UserRow {...defaultProps} isMobile={true} />);
-
     expect(screen.queryByTestId("row-checkbox")).not.toBeInTheDocument();
   });
 
   it("renders divider when not last row", () => {
     const { container } = render(<UserRow {...defaultProps} isLast={false} />);
-
-    expect(
-      container.querySelector('[style*="border-top"]')
-    ).toBeInTheDocument();
+    expect(container.querySelector('[style*="border-top"]')).toBeInTheDocument();
   });
 
   it("does not render divider when last row", () => {
     const { container } = render(<UserRow {...defaultProps} isLast={true} />);
-
     const dividers = container.querySelectorAll('[style*="border-top: 1px"]');
     expect(dividers.length).toBe(0);
   });
 
   it("displays dash when no workstations", () => {
     render(<UserRow {...defaultProps} />);
-
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("displays workstation count when items exist", () => {
     const dataWithWorkstations = {
       ...defaultProps.data,
-      workstations: [{ id: "ws1", name: "WS1" }],
-      workstationCount: 5,
+      // Pass a number so renderBubbles uses that as the count
+      workstations: 5,
     };
     render(<UserRow {...defaultProps} data={dataWithWorkstations} />);
 
-    expect(screen.getByText("+ 4")).toBeInTheDocument();
+    // 5 => shows 3 bubbles and "+ 2"
+    expect(screen.getByText("+ 2")).toBeInTheDocument();
   });
 
   it("applies hover styles on mouse enter/leave", () => {
     const { container } = render(<UserRow {...defaultProps} />);
-
     const row = container.firstChild;
+
     fireEvent.mouseEnter(row);
     expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.02)");
 
@@ -203,50 +186,50 @@ describe("UserRow", () => {
     expect(row.style.backgroundColor).toBe("transparent");
   });
 
-  // Additional tests for ItemsPill component coverage
   it("displays only count when items array is empty but totalCount exists", () => {
-    const dataWithCount = {
+    const dataWithCountOnly = {
       ...defaultProps.data,
-      workstations: [],
-      workstationCount: 10,
+      // Count-only representation
+      workstations: 10,
     };
-    render(<UserRow {...defaultProps} data={dataWithCount} />);
+    render(<UserRow {...defaultProps} data={dataWithCountOnly} />);
 
-    expect(screen.getByText("+ 10")).toBeInTheDocument();
+    // 10 => "+ 7" (since 3 shown, 7 extra)
+    expect(screen.getByText("+ 7")).toBeInTheDocument();
   });
 
   it("displays items with extra count when more than 3 items", () => {
-    const dataWithItems = {
+    const dataWithManyGroups = {
       ...defaultProps.data,
-      groups: [
-        { id: "g1", name: "Group 1" },
-        { id: "g2", name: "Group 2" },
-        { id: "g3", name: "Group 3" },
-      ],
-      groupCount: 7,
+      groups: Array.from({ length: 7 }, (_, i) => ({ id: `g${i + 1}`, name: `Group ${i + 1}` })),
     };
-    render(<UserRow {...defaultProps} data={dataWithItems} />);
+    render(<UserRow {...defaultProps} data={dataWithManyGroups} />);
 
     expect(screen.getByText("+ 4")).toBeInTheDocument();
   });
 
-  it("renders DisplayIcon for each visible item", () => {
-    const dataWithItems = {
+  it("renders avatar bubbles for each visible item", () => {
+    const dataWithTwoWorkstations = {
       ...defaultProps.data,
       workstations: [
         { id: "ws1", name: "WS1" },
         { id: "ws2", name: "WS2" },
       ],
-      workstationCount: 2,
     };
-    render(<UserRow {...defaultProps} data={dataWithItems} />);
 
-    expect(screen.getAllByTestId("display-icon-workstation").length).toBeGreaterThanOrEqual(1);
+    const { container } = render(<UserRow {...defaultProps} data={dataWithTwoWorkstations} />);
+
+    // Avatar bubbles are divs styled to 18x18
+    const avatars = container.querySelectorAll(
+      'div[style*="width: 18px"][style*="height: 18px"]'
+    );
+
+    // Should render exactly 2 bubbles for count=2
+    expect(avatars.length).toBe(2);
   });
 
   it("shows correct outer color for online status", () => {
     render(<UserRow {...defaultProps} />);
-
     const icon = screen.getByTestId("active-icon");
     expect(icon.dataset.outer).toBe("#1F381F");
   });
@@ -262,41 +245,36 @@ describe("UserRow", () => {
   it("hides workstations column when showWorkstations is false", () => {
     const dataWithWorkstations = {
       ...defaultProps.data,
-      workstations: [{ id: "ws1", name: "WS1" }],
-      workstationCount: 1,
+      workstations: 5, // would render "+ 2" if visible
     };
     render(<UserRow {...defaultProps} data={dataWithWorkstations} showWorkstations={false} />);
 
-    // Should not show workstation icons when hidden
-    expect(screen.queryAllByTestId("display-icon-workstation").filter(
-      el => el.textContent === "WS1"
-    ).length).toBe(0);
+    expect(screen.queryByText("+ 2")).not.toBeInTheDocument();
   });
 
   it("hides groups column when showGroups is false", () => {
     const dataWithGroups = {
       ...defaultProps.data,
-      groups: [{ id: "g1", name: "G1" }],
-      groupCount: 1,
+      groups: 6, // would render "+ 3" if visible
     };
     render(<UserRow {...defaultProps} data={dataWithGroups} showGroups={false} />);
 
-    expect(screen.queryAllByTestId("display-icon-group").filter(
-      el => el.textContent === "G1"
-    ).length).toBe(0);
+    expect(screen.queryByText("+ 3")).not.toBeInTheDocument();
   });
 
   it("hides files column when showFiles is false", () => {
     const dataWithFiles = {
       ...defaultProps.data,
       files: [{ id: "f1", name: "F1" }],
-      fileCount: 1,
     };
     render(<UserRow {...defaultProps} data={dataWithFiles} showFiles={false} />);
 
-    // Files use "workstation" type in the original component
-    const fileIcons = screen.queryAllByTestId("display-icon-workstation");
-    expect(fileIcons.filter(el => el.textContent === "F1").length).toBe(0);
+    // shares column is hidden => should not show bubbles or dash from that column
+    // easiest stable check: file-based bubbles would include title attr or avatar bubbles beyond other columns;
+    // we assert that the shares "—" isn't present due to files column when hidden.
+    // (Other columns may still show "—" so we avoid asserting absence of "—" globally.)
+    // Instead, assert that the text "F1" is not rendered anywhere.
+    expect(screen.queryByText("F1")).not.toBeInTheDocument();
   });
 
   it("uses gridTemplateColumns from cols prop", () => {
@@ -307,10 +285,14 @@ describe("UserRow", () => {
     expect(row.style.gridTemplateColumns).toBe("50px 2fr 1fr");
   });
 
-  it("renders user display icon", () => {
-    render(<UserRow {...defaultProps} />);
+  it("renders user leading circle icon", () => {
+    const { container } = render(<UserRow {...defaultProps} />);
 
-    expect(screen.getByTestId("display-icon-user")).toBeInTheDocument();
+    const leadingCircle = container.querySelector(
+      'div[style*="width: 28px"][style*="height: 28px"][style*="border-radius: 50%"]'
+    );
+
+    expect(leadingCircle).toBeInTheDocument();
   });
 
   describe("responsive breakpoints (getResponsiveStyles)", () => {
@@ -333,7 +315,6 @@ describe("UserRow", () => {
     }
 
     // ---- Mobile (< 768) ----
-
     it("applies mobile row styles when width < 768", () => {
       setWidth(500);
       const { container } = render(<UserRow {...defaultProps} />);
@@ -364,10 +345,7 @@ describe("UserRow", () => {
       setWidth(600);
       const { container } = render(<UserRow {...defaultProps} />);
 
-      // The nameSection div wraps the DisplayIcon and name container
-      const nameSections = container.querySelectorAll(
-        '[style*="align-items: center"]'
-      );
+      const nameSections = container.querySelectorAll('[style*="align-items: center"]');
       const nameSection = Array.from(nameSections).find(
         (el) => el.style.gap === "8px" && el.style.display === "flex"
       );
@@ -384,7 +362,6 @@ describe("UserRow", () => {
     });
 
     // ---- Tablet (768 – 1023) ----
-
     it("applies tablet row styles when width is 768", () => {
       setWidth(768);
       const { container } = render(<UserRow {...defaultProps} />);
@@ -407,14 +384,11 @@ describe("UserRow", () => {
       setWidth(900);
       render(<UserRow {...defaultProps} />);
 
-      // At tablet width the responsive branch only overrides `row` —
-      // name / email style objects are undefined so React applies no inline style.
       const emailEl = screen.getByText("↳ john@example.com");
       expect(emailEl.style.fontSize).not.toBe("0.8rem");
     });
 
     // ---- Desktop (>= 1024) ----
-
     it("applies default desktop styles when width >= 1024", () => {
       setWidth(1440);
       const { container } = render(<UserRow {...defaultProps} />);
@@ -438,7 +412,6 @@ describe("UserRow", () => {
       render(<UserRow {...defaultProps} />);
 
       const emailEl = screen.getByText("↳ john@example.com");
-      // Desktop keeps the original 0.85rem email size
       expect(emailEl.style.fontSize).toBe("0.85rem");
     });
   });

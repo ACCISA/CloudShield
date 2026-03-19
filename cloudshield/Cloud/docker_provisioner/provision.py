@@ -6,6 +6,7 @@ import uuid
 import json
 import re
 import shutil
+import concurrent.futures
 from datetime import datetime, timezone
 import subprocess
 from pathlib import Path
@@ -14,15 +15,13 @@ from python_on_whales import DockerClient
 
 from .keygen import generate_ssh_key_pair
 
+OVPN_VOLUME_NAME = "opvn-data-cloudshield"
+PKI_INPUT = b"\n\n\n"
 BASE_PATH = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
 COMPOSE_FILE = os.path.join(BASE_PATH, "docker-compose.yml")
 
 try:
     docker = DockerClient(compose_files=[COMPOSE_FILE])
-    PRAGMA_ONCE = False
-    if PRAGMA_ONCE is False:
-        docker.compose.build(services=["samba-test", "openvpn-test", "workstation"])
-        PRAGMA_ONCE = True
 except TypeError:
     # Fallback for pytest FakeDockerClient mock
     docker = DockerClient()
@@ -35,6 +34,12 @@ except Exception:
 def short_uuid():
     return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("ascii")
 
+def init_docker():
+    # In our test env, to be efficient we will build our infra now. We can assume that during testing
+    # we are probably going to be provisioning infra. When we provision we will just docker compose up.
+    docker.compose.build(
+        services=["samba-test", "openvpn-test","workstation"]
+    )
 
 def copy_file_container(server_logger, container_id, path_in, path_out):
     try:
@@ -68,6 +73,54 @@ def setup_container(server_logger, container_id):
         server_logger.error(e.stderr)
         server_logger.error("Failed to setup container")
         return False
+
+def run_concurrent_tasks(server_logger, task_list):
+    """
+    Runs a list of tasks concurrently. Fails fast if any task returns False.
+
+    task_list should be a list of dictionaries:
+    [
+        {"func": my_function, "args": (arg1, arg2), "error_msg": "Custom error string"}
+    ]
+    """
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(task_list))
+    futures_map = {}
+
+    for task in task_list:
+        func = task["func"]
+        args = task.get("args", ())
+
+        future = executor.submit(func, *args)
+        futures_map[future] = task["error_msg"]
+
+    for completed_task in concurrent.futures.as_completed(futures_map):
+        success = completed_task.result()
+
+        if not success:
+            error_message = futures_map[completed_task]
+            server_logger.error(error_message)
+            executor.shutdown(wait=False)
+            return False
+
+    executor.shutdown(wait=False)
+    return True
+
+def attach_api_to_network(server_logger, network_name):
+    try:
+        hostname = open("/etc/hostname", "r").read()
+        
+        result = subprocess.run(
+                ["docker", "network", "connect", network_name, hostname],
+                capture_output=True,
+                text=True,
+                check=True,
+        )
+        server_logger.info(result.stdout)
+        server_logger.info("Successfully attached API to Infra network")
+    except subprocess.CalledProcessError as e:
+        server_logger.error(e)
+        server_logger.error(e.stderr)
+        server_logger.error("Failed to attach API to Infra network")
 
 
 def setup_ssh_keys(server_logger, private_key_path):
@@ -405,7 +458,7 @@ def _workstation_storage_dir(org_id: str) -> str:
         return os.path.join(str(base).strip(), org_id)
 
     mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "/home/cena")
-    return os.path.join(mount, "cloudshield_workstations", org_id)
+    return os.path.join(mount, "workstations", org_id)
 
 
 def _workstation_oem_dir(org_id: str) -> str:
@@ -505,9 +558,6 @@ def provision_workstation_docker(
     org_subnet_cidr: str,
     threat_detection_ip: str = "172.28.0.10",
 ):
-    global PRAGMA_ONCE
-    if PRAGMA_ONCE is False:
-        PRAGMA_ONCE = True
 
     host_port = _pick_workstation_host_port(org_subnet_cidr)
 
@@ -563,6 +613,7 @@ def provision_workstation_docker(
         return
 
     if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
+        server_logger.error("Workstation startup canceled")
         return
 
     server_logger.info("Windows workstation installation has started, this will take some time")
@@ -630,9 +681,11 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         dc_admin_password = str(dc_admin_password)
 
     cloudshield_path = Path("/var/lib/cloudshield/terraform/generated/" + org_id)
+    cloudshield_gen_path = Path(generated_dir)
 
     try:
         cloudshield_path.mkdir(parents=True, exist_ok=True)
+        cloudshield_gen_path.mkdir(parents=True, exist_ok=True)
         server_logger.info("Cloudshield data directory created (or already exists)")
     except Exception:
         server_logger.error("Failed to create cloudshield work directory")
@@ -684,10 +737,10 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         },
     )
 
-    container_id = container_dc.id
+    container_id_samba = container_dc.id
     container_dc.reload()
     container_dc_ip = container_dc.network_settings.networks[org_network_name].ip_address
-    server_logger.info(f"samba-test container id: {container_id} | IP: {container_dc_ip}")
+    server_logger.info(f"samba-test container id: {container_id_samba} | IP: {container_dc_ip}")
 
     container_vpn = org_docker.compose.run(
         name="openvpn-test-"+str(org_id),
@@ -708,17 +761,42 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     container_vpn_ip = container_vpn.network_settings.networks[org_network_name].ip_address
     server_logger.info(f"openvpn-test container id: {container_id_vpn} | IP: {container_vpn_ip}")
 
-    if not setup_container(server_logger, container_id):
-        server_logger.error("Failed to run samba setup script")
-        return
-    if not setup_container(server_logger, container_id_vpn):
-        server_logger.error("Failed to run openvpn setup script")
+    # run container setup scripts concurrently
+    setup_container_tasks = [
+        {
+            "func": setup_container,
+            "args": (server_logger, container_id_samba),
+            "error_msg": "failed to run setup script for samba container"
+        },
+        {
+            "func": setup_container,
+            "args": (server_logger, container_id_vpn),
+            "error_msg": "failed to run setup script for vpn container"
+        }
+    ]
+
+    if not run_concurrent_tasks(server_logger, setup_container_tasks):
         return
 
-    if not copy_file_container(server_logger, container_id, public_key_path, "/root/.ssh/authorized_keys"):
+
+
+    copy_files_tasks = [
+            {
+                "func": copy_file_container,
+                "args": (server_logger, container_id_samba, public_key_path, "/root/.ssh/authorized_keys"),
+                "error_msg": "failed to copy public key to samba container"
+            },
+            {
+                "func": copy_file_container,
+                "args": (server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"),
+                "error_msg": "failed to copy public key to vpn container"
+            }
+    ]
+
+    if not run_concurrent_tasks(server_logger, copy_files_tasks):
         return
-    if not copy_file_container(server_logger, container_id_vpn, public_key_path, "/root/.ssh/authorized_keys"):
-        return
+
+    attach_api_to_network(server_logger, org_network_name)
 
     workstation_meta = provision_workstation_docker(
         org_id,
@@ -727,9 +805,10 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         org_network_name=org_network_name,
         samba_ip=container_dc_ip,
         org_subnet_cidr=org_subnet_cidr,
-        # ThreatDetection gRPC server — defaults to 172.28.0.10 (cloudshield_net).
-        # Override with THREAT_DETECTION_IP when the server runs elsewhere.
-        threat_detection_ip=os.environ.get("THREAT_DETECTION_IP", "172.28.0.10"),
+        # ThreatDetection gRPC server from the Windows guest perspective.
+        # Default to host.lan since container-only IPs are not always reachable
+        # from inside the nested Windows VM.
+        threat_detection_ip=os.environ.get("THREAT_DETECTION_IP", "host.lan"),
     )
     if workstation_meta:
         wait_workstation_completion(workstation_meta["instance_id"], server_logger)
@@ -739,7 +818,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "port": "50055",
             "org_id": org_id,
             "name": org_id + "_samba",
-            "instance_id": container_id,
+            "instance_id": container_id_samba,
             "vpc_id": org_network_name,
             "subnet_id": org_subnet_cidr,
             "ssh_key": org_id + "_key",
@@ -776,9 +855,6 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "public_ip": container_vpn_ip,
         },
     ]
-
-    if workstation_meta:
-        metadata.append(workstation_meta)
 
     return metadata
 
