@@ -124,8 +124,9 @@ def test_start_workstations_success(mock_dependencies):
     org_id = "org-1"
     template_id = "template-1"
     access_groups = ["group1", "group2"]
+    members=[]
 
-    workstations_module.start_workstations(org_id, template_id, access_groups, logger)
+    workstations_module.start_workstations(org_id, template_id, access_groups, members,logger)
 
     # Verify we got unique members
     workstations_module.get_unique_members_by_ids.assert_called_once_with(
@@ -151,7 +152,7 @@ def test_start_workstations_no_members(mock_dependencies):
     template_id = "template-1"
     access_groups = []
 
-    workstations_module.start_workstations(org_id, template_id, access_groups, logger)
+    workstations_module.start_workstations(org_id, template_id, access_groups, [],logger)
 
     # Verify service_dispatcher was not called when there are no members
     workstations_module.service_dispatcher.assert_not_called()
@@ -166,7 +167,8 @@ def test_ws_create_default_org_not_found(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     # Verify result is None when org is not found
@@ -192,7 +194,8 @@ def test_ws_create_default_template_insert_fails(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     assert result is None
@@ -218,7 +221,8 @@ def test_ws_create_default_get_nodes_fails(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     assert result is None
@@ -246,7 +250,8 @@ def test_ws_create_default_domain_controller_not_found(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     assert result is None
@@ -278,7 +283,8 @@ def test_ws_create_default_provision_fails(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=["group1"]
+        access_groups=["group1"],
+        members=[]
     )
 
     assert result is None
@@ -314,7 +320,8 @@ def test_ws_create_default_success(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=access_groups
+        access_groups=access_groups,
+        members=[]
     )
 
     # Verify result
@@ -475,7 +482,7 @@ def test_start_workstations_with_larger_member_count(mock_dependencies):
     template_id = "template-1"
     access_groups = ["group1", "group2", "group3"]
 
-    workstations_module.start_workstations(org_id, template_id, access_groups, logger)
+    workstations_module.start_workstations(org_id, template_id, access_groups,[], logger)
 
     # Verify service_dispatcher was called 5 times
     assert workstations_module.service_dispatcher.call_count == 5
@@ -510,7 +517,8 @@ def test_ws_create_default_with_no_access_groups(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     assert result is not None
@@ -549,7 +557,8 @@ def test_ws_create_default_sets_org_id_and_samba_ip(mock_dependencies):
         name="Test WS",
         description="Test",
         software=software,
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     # Verify org_doc was modified with id and samba_ip
@@ -630,7 +639,8 @@ def test_ws_create_default_with_none_job(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     assert result is not None
@@ -697,7 +707,8 @@ def test_ws_create_default_marks_template_ready(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     # Verify update_workstation_template was called with is_ready=True

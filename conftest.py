@@ -374,11 +374,11 @@ _stub_module(
     {
         "provision_network_terraform": _provision_network_terraform_stub,
         "provision_workstation":_provision_workstation,
-            "destroy_infra": _destroy_stub,
-            "get_target_dir": _get_target_dir_stub,
-            "provision_default_workstation": _provision_default_workstation,
-            "provision_custom_workstation": _provision_default_workstation,
-            "provision_workstation_vm": _provision_workstation_vm,
-            "init_cloud": _init_cloud
+        "destroy_infra": _destroy_stub,
+        "get_target_dir": _get_target_dir_stub,
+        "provision_default_workstation": _provision_default_workstation,
+        "provision_custom_workstation": _provision_default_workstation,
+        "provision_workstation_vm": _provision_workstation_vm,
+        "init_cloud": _init_cloud
     },
 )

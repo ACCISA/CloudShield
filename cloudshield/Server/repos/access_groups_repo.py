@@ -28,9 +28,13 @@ def get_unique_members_by_ids(db, group_ids: List[str]) -> int:
     object_ids = [ObjectId(_id) if isinstance(_id, str) else _id for _id in group_ids]
 
     cursor = access_groups.find({"_id": {"$in": object_ids}})
+    
+    unique_members = set()
+   
+    for doc in cursor:
+        for member_id in doc.get("members", []):
+            unique_members.add(str(member_id))
 
-    members = [str(doc["members"]) for doc in cursor]
-
-    return list(set(members))
+    return list(unique_members)
 
 

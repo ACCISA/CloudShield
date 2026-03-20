@@ -65,6 +65,7 @@ def create_default():
     description = data.get("description")
     software = data.get("software")
     access_groups = data.get("access_groups")
+    members = data.get("members")
 
     for arg, val in {"org_id":org_id, "name":name, "description":description, "software":software, "access_groups":access_groups}.items():
         if val is None:
@@ -77,7 +78,8 @@ def create_default():
             name=name,
             description=description,
             software=software,
-            access_groups=access_groups)
+            access_groups=access_groups,
+            members=members)
 
     return jsonify({"job_id":job.id}), 202
 
