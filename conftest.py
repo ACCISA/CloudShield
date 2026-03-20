@@ -289,6 +289,11 @@ except Exception:
 
         def get_status(self):
             return "queued"
+        
+        def get_redis_server_version(self):
+            return (4, 0, 0)
+
+        
 
 
     class _FakeQueue:

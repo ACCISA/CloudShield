@@ -451,9 +451,12 @@ class TestDestroyEndpoint:
 class TestSignupAdminEndpoint:
     """Tests for /api/signup_admin"""
 
-    @patch("rq.job.Job.get_redis_server_version", return_value=(5, 0, 0))
-    def test_signup_admin_success_returns_org_id(self, mock_redis_version, client, monkeypatch):
+    def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
         """Covers: success path, role forced to admin, org_id returned for provisioning"""
+        monkeypatch.setattr(
+            "rq.job.Job.get_redis_server_version",
+            MagicMock(return_value=(5, 0, 0))
+        )
         import cloudshield.Server.routes.users as users_mod
 
         captured = {}
