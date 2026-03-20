@@ -566,10 +566,6 @@ def signup_admin_client(monkeypatch):
         yield app.test_client(), mock_create_user
 
 def test_signup_admin_success_returns_org_id(signup_admin_client, monkeypatch):
-    monkeypatch.setattr(
-        "rq.job.Job.get_redis_server_version",
-        MagicMock(return_value=(5, 0, 0))
-    )
     client, mock_create_user = signup_admin_client
     
     def success_create_user(user_data, current_user=None, reason=None):

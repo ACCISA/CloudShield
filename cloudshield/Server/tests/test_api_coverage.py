@@ -453,10 +453,6 @@ class TestSignupAdminEndpoint:
 
     def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
         """Covers: success path, role forced to admin, org_id returned for provisioning"""
-        monkeypatch.setattr(
-            "rq.job.Job.get_redis_server_version",
-            MagicMock(return_value=(5, 0, 0))
-        )
         import cloudshield.Server.routes.users as users_mod
 
         captured = {}
