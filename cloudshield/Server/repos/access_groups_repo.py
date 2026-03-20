@@ -17,7 +17,8 @@ def get_access_group_by_id(db, group_id: str) -> Optional[dict]:
     if not doc:
         return None
 
-    return access_group_to_json(doc)
+    doc["_id"] = str(doc["_id"])
+    return doc
 
 def get_members_amount_by_id(db, group_id: str) -> int:
     pass

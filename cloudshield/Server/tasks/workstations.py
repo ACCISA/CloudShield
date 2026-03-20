@@ -11,7 +11,7 @@ def start_workstations(org_id, template_id, access_groups, logger):
     amount = len(get_unique_members_by_ids(db, access_groups))
 
     logger.info(f"Starting {amount}")
-    jobs = [service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id) for _ in range(amount)]
+    [service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id) for _ in range(amount)]
 
 
 def ws_create_default(org_id, name, description, software, access_groups):

@@ -10,7 +10,7 @@ from services import service_dispatcher
 
 from cloudshield.Server.security.guards import require_auth
 
-from repos import get_workstations
+from repos import get_workstations, get_available_workstations
 from utils import db
 
 
@@ -30,13 +30,13 @@ ERROR_USER_ID_REQUIRED = "user_id is required"
 
 @workstations_bp.route("/workstation/available", methods=["GET"])
 @require_auth
-def get_available_workstations():
+def get_available_workstations_api():
     user_id = request.args.get("user_id")
 
     if not user_id:
         return jsonify({"error":ERROR_USER_ID_REQUIRED}), 400
 
-    workstations = get_available_workstation(user_id=user_id)
+    workstations = get_available_workstations(user_id=user_id)
 
     return {"workstations": workstations}, 200
 
