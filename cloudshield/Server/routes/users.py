@@ -355,7 +355,7 @@ def delete_user_endpoint(user_id):
                 {"_id": ObjectId(user_id)},
                 {"email": 1, "org_id": 1, "full_name": 1},
             )
-        except Exception as e:
+        except Exception:
             pass  # Non-critical: DC dispatch will simply be skipped
 
         reason = _extract_reason()

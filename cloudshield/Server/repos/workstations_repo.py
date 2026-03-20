@@ -1,7 +1,7 @@
 from __future__ import annotations
 from bson import ObjectId
 from typing import List
-from models import Workstation,WorkstationTemplate,Software,WorkstationStatus
+from models import Workstation,WorkstationTemplate,WorkstationStatus
 
 def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str]):
     """
@@ -29,7 +29,7 @@ def get_workstation_template(*, db, org_id: str, template_id: str):
         if not result:
             return None
         return result
-    except Exception as e:
+    except Exception:
         return None
 
 def get_workstation(*, db, org_id: str, vm_id: str):
@@ -41,7 +41,7 @@ def get_workstation(*, db, org_id: str, vm_id: str):
         if not result:
             return None
         return result
-    except Exception as e:
+    except Exception:
         return None
 
 def insert_workstation(*, db, org_id: str, template_id: str):

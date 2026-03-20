@@ -1,4 +1,3 @@
-import rq
 
 from utils import get_logger, workstations_queue
 

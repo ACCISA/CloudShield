@@ -62,10 +62,6 @@ def default_message_to_dict(obj, *args, **kwargs):
 
 
 json_format_module.MessageToDict = default_message_to_dict
-sys.modules["google.protobuf.json_format"] = json_format_module
-setattr(protobuf_module, "json_format", json_format_module)
-setattr(google_module, "protobuf", protobuf_module)
-
 # Stub utils module used by servicer
 utils_module = types.ModuleType("utils")
 utils_module.get_ip = lambda peer: peer

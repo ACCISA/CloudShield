@@ -1,18 +1,14 @@
 """Access Groups API endpoints."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 
-from bson import ObjectId
-from flask import Blueprint, request, jsonify, g
-from pydantic import ValidationError
+from flask import Blueprint, request, jsonify
 
 from utils.logging_setup import get_logger
 
 from services import service_dispatcher
 
-from cloudshield.Server.security.guards import require_auth, require_role
-from cloudshield.Server.utils.database import db_admin
+from cloudshield.Server.security.guards import require_auth
 
 from repos import get_workstations
 from utils import db
