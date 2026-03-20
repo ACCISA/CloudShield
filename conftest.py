@@ -267,6 +267,7 @@ def _get_current_job_stub():
     job.is_finished = False
     job.result = None
     job.get_status = lambda: "queued"
+    job.get_redis_server_version = lambda: (4, 0, 0)
     return job
 
 

@@ -224,6 +224,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/<user_id>", methods=["GET"])
@@ -406,9 +407,9 @@ def signup_admin_endpoint():
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
-
-    logger.error(e)
-    return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
+    except Exception as e:
+        logger.error(e)
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/me", methods=["GET"])
 @require_auth

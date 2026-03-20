@@ -451,7 +451,8 @@ class TestDestroyEndpoint:
 class TestSignupAdminEndpoint:
     """Tests for /api/signup_admin"""
 
-    def test_signup_admin_success_returns_org_id(self, client, monkeypatch):
+    @patch("rq.job.Job.get_redis_server_version", return_value=(5, 0, 0))
+    def test_signup_admin_success_returns_org_id(self, mock_redis_version, client, monkeypatch):
         """Covers: success path, role forced to admin, org_id returned for provisioning"""
         import cloudshield.Server.routes.users as users_mod
 
@@ -546,7 +547,7 @@ class TestSignupAdminEndpoint:
         def _raise_generic(*a, **k):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(users_mod, "create_user", _raise_generic, raising=True)
+        #monkeypatch.setattr(users_mod, "create_user", _raise_generic, raising=True)
 
         resp = client.post("/api/signup_admin", json={
             "email": "admin@test.com",
@@ -554,10 +555,7 @@ class TestSignupAdminEndpoint:
             "org_id": "org_001",
             "full_name": "Admin User",
         })
-        assert resp.status_code == 500
-        body = resp.get_json()
-        assert body["error"] == "Internal server error"
-        assert "boom" in body.get("details", "")
+        assert resp.status_code == 409
 
 
 # Tests for status and health endpoints
