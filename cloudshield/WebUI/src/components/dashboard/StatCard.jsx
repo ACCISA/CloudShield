@@ -25,6 +25,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * Dashboard statistic card showing a metric value with gradient background.
@@ -52,6 +53,7 @@ export default function StatCard({
   error,
   onAdd,
 }) {
+  const themeColors = useThemeColors();
   return (
     <Box
       sx={{
@@ -98,12 +100,12 @@ export default function StatCard({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          color: "#fff",
+          color: themeColors.text,
         }}
       >
         <Typography
           sx={{
-            color: "#fff",
+            color: themeColors.text,
             fontSize: {
               xs: "0.95rem",
               sm: "1rem",
@@ -115,7 +117,7 @@ export default function StatCard({
           }}
         >
           {loading ? (
-            <Skeleton width={80} sx={{ bgcolor: "rgba(255,255,255,0.3)" }} />
+            <Skeleton width={80} sx={{ bgcolor: themeColors.bgHover }} />
           ) : (
             title
           )}
@@ -126,8 +128,8 @@ export default function StatCard({
             size="small"
             onClick={onAdd}
             sx={{
-              color: "#fff",
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              color: themeColors.text,
+              backgroundColor: themeColors.bgHover,
               borderRadius: "8px",
               width: {
                 xs: 32,
@@ -138,7 +140,7 @@ export default function StatCard({
                 sm: 36,
               },
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.3)",
+                backgroundColor: themeColors.lightOverlaySubtle,
               },
             }}
           >
@@ -150,7 +152,7 @@ export default function StatCard({
       {/* Big number */}
       <Typography
         sx={{
-          color: "#fff",
+          color: themeColors.text,
           fontSize: {
             xs: "2.5rem",
             sm: "3rem",
@@ -166,7 +168,7 @@ export default function StatCard({
         }}
       >
         {loading ? (
-          <CircularProgress size={40} sx={{ color: "rgba(255,255,255,0.8)" }} />
+          <CircularProgress size={40} sx={{ color: themeColors.textSecondary }} />
         ) : error ? (
           "—"
         ) : (

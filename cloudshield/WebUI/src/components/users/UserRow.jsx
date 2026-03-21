@@ -4,6 +4,7 @@ import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /* ---------------------------- styles ---------------------------- */
 
@@ -12,7 +13,7 @@ const styles = {
     display: "grid",
     alignItems: "center",
     gap: "12px",
-    color: "#fff",
+    color: "var(--text-primary)",
     padding: "12px 8px",
     borderRadius: "12px",
     minWidth: 0,
@@ -223,6 +224,7 @@ export default function UserRow({
   onToggleSelect,
 }) {
   const responsiveStyles = getResponsiveStyles();
+  const themeColors = useThemeColors();
 
   return (
     <>
@@ -233,7 +235,7 @@ export default function UserRow({
           gridTemplateColumns: cols.join(" "),
         }}
         onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)")
+          (e.currentTarget.style.backgroundColor = themeColors.lightOverlay)
         }
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
       >

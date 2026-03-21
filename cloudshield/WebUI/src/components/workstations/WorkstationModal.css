@@ -20,9 +20,9 @@
 }
 
 .workstation-modal-dialog {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
   border-radius: 14px;
   width: 650px;
   max-width: 95vw;
@@ -109,7 +109,7 @@
 /* Progress Bar */
 .workstation-modal-stepper {
   padding: 24px 32px;
-  background-color: #0a0a0a;
+  background-color: var(--bg-primary);
   flex-shrink: 0;
 }
 
@@ -410,7 +410,7 @@
   border-radius: 50%;
   background-color: #7c1d1d;
   color: #ffffff;
-  border: 2px solid #0a0a0a;
+  border: 2px solid var(--border-light);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -758,7 +758,7 @@
   align-items: center;
   padding: 20px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: #111111;
+  background-color: var(--bg-secondary);
   flex-shrink: 0;
 }
 

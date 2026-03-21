@@ -20,9 +20,9 @@
 }
 
 .groups-modal-dialog {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
   border-radius: 14px;
   width: 650px;
   max-width: 95vw;
@@ -73,22 +73,22 @@
 
 .groups-modal-breadcrumb-item.active {
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .groups-modal-breadcrumb-item.inactive {
-  color: #9e9e9e;
+  color: var(--text-tertiary);
 }
 
 .groups-modal-breadcrumb-separator {
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   user-select: none;
 }
 
 .groups-modal-close-btn {
   background-color: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px;
   width: 36px;
@@ -103,20 +103,20 @@
 }
 
 .groups-modal-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-hover);
 }
 
 /* Progress Bar */
 .groups-modal-stepper {
   padding: 24px 32px;
-  background-color: #0a0a0a;
+  background-color: var(--bg-primary);
   flex-shrink: 0;
 }
 
 .groups-modal-progress-track {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-light);
   border-radius: 3px;
   overflow: hidden;
   position: relative;
@@ -124,10 +124,10 @@
 
 .groups-modal-progress-fill {
   height: 100%;
-  background: #ffffff;
+  background: var(--primary);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px var(--primary-transparent);
 }
 
 .groups-modal-step-labels {
@@ -140,7 +140,7 @@
 .groups-modal-step-label {
   font-size: 13px;
   font-weight: 400;
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   transition: color 0.3s ease;
   font-family:
     system-ui,
@@ -151,12 +151,12 @@
 }
 
 .groups-modal-step-label.active {
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .groups-modal-step-label.completed {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
 }
 
 /* Content */
@@ -189,7 +189,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 8px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family:
     system-ui,
     -apple-system,
@@ -201,10 +201,10 @@
 .groups-modal-search {
   width: 100%;
   padding: 12px 14px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-family:
     system-ui,
@@ -218,14 +218,14 @@
 .groups-modal-textarea:focus,
 .groups-modal-search:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.3);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+  background-color: var(--input-bg-focus);
 }
 
 .groups-modal-input::placeholder,
 .groups-modal-textarea::placeholder,
 .groups-modal-search::placeholder {
-  color: #9e9e9e;
+  color: var(--text-tertiary);
 }
 
 .groups-modal-textarea {
@@ -248,21 +248,21 @@
   width: 100%;
   height: 130px;
   border-radius: 12px;
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px dashed var(--border-light);
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .groups-modal-image-placeholder:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-strong);
+  background-color: var(--bg-hover);
 }
 
 .groups-modal-image-icon {
@@ -282,7 +282,7 @@
   height: 100%;
   object-fit: cover;
   border-radius: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-light);
 }
 
 .groups-modal-image-remove {
@@ -292,9 +292,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #7c1d1d;
-  color: #ffffff;
-  border: 2px solid #0a0a0a;
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 2px solid var(--bg-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -305,7 +305,7 @@
 }
 
 .groups-modal-image-remove:hover {
-  background-color: #a02626;
+  background-color: var(--error-hover);
 }
 
 /* Search & Dropdown */
@@ -317,11 +317,11 @@
 .groups-modal-dropdown {
   max-height: 210px;
   overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background-color: #0a0a0a;
+  background-color: var(--bg-primary);
   margin-top: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 24px var(--shadow-default);
 }
 
 .groups-modal-dropdown-item {
@@ -330,7 +330,7 @@
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color 0.2s ease;
 }
 
@@ -339,12 +339,12 @@
 }
 
 .groups-modal-dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-hover);
 }
 
 .groups-modal-dropdown-item.selected {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-left: 2px solid #ffffff;
+  background-color: var(--bg-selected);
+  border-left: 2px solid var(--primary);
 }
 
 .groups-modal-dropdown-item-info {
@@ -358,7 +358,7 @@
 .groups-modal-dropdown-item-name {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -366,14 +366,14 @@
 
 .groups-modal-dropdown-item-detail {
   font-size: 12px;
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .groups-modal-checkmark {
-  color: #ffffff;
+  color: var(--primary);
   font-size: 18px;
   font-weight: bold;
   flex-shrink: 0;
@@ -386,7 +386,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -404,7 +404,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family:
     system-ui,
     -apple-system,
@@ -430,22 +430,22 @@
   align-items: center;
   gap: 10px;
   padding: 20px 16px 18px;
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   cursor: default;
   transition: all 0.2s ease;
 }
 
 .groups-modal-selected-card:hover {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-hover);
   transform: translateY(-1px);
 }
 
 .groups-modal-selected-card-name {
   font-size: 13px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   text-align: center;
   line-height: 1.3;
   word-break: break-word;
@@ -472,9 +472,9 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--error-bg);
   border: none;
-  color: #ffffff;
+  color: var(--error-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -485,7 +485,7 @@
 }
 
 .groups-modal-card-remove-btn:hover {
-  background-color: #7c1d1d;
+  background-color: var(--error-hover);
 }
 
 /* Footer Actions */
@@ -494,8 +494,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: #111111;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--bg-secondary);
   flex-shrink: 0;
 }
 
@@ -531,13 +531,13 @@
 }
 
 .groups-modal-btn-primary {
-  background-color: #ffffff;
-  color: #000000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary);
+  color: var(--primary-text);
+  box-shadow: 0 2px 8px var(--shadow-default);
 }
 
 .groups-modal-btn-primary:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  background-color: var(--primary-hover);
 }
 
 .groups-modal-btn-primary:active:not(:disabled) {
@@ -545,39 +545,39 @@
 }
 
 .groups-modal-btn-secondary {
-  background-color: #242424;
-  border: 1px solid #2e2e2e;
-  color: #ffffff;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .groups-modal-btn-secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-hover);
 }
 
 .groups-modal-btn-secondary:disabled {
-  background-color: #1e1e1e;
-  color: #8a8a8a;
+  background-color: var(--bg-secondary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
 .groups-modal-btn-cancel {
-  background-color: #1f1f1f;
-  border: 1px solid #2e2e2e;
-  color: #ffffff;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .groups-modal-btn-cancel:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-hover);
 }
 
 .groups-modal-btn-delete {
-  background-color: #251313;
-  border: 1px solid #3d1616;
-  color: #f87171;
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--error-text);
 }
 
 .groups-modal-btn-delete:hover:not(:disabled) {
-  background-color: rgba(220, 38, 38, 0.2);
+  background-color: var(--error-hover);
 }
 
 /* Scrollbar */

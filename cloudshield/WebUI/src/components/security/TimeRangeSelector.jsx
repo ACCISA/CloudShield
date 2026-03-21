@@ -12,10 +12,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import ChevronIcon from "../../assets/ChevronIcon";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function TimeRangeSelector({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const themeColors = useThemeColors();
 
   const timeRanges = [
     { value: "7d", label: "Last 7 days" },
@@ -50,12 +52,12 @@ function TimeRangeSelector({ value, onChange }) {
       display: "inline-block",
     },
     button: {
-      backgroundColor: "rgba(255,255,255,0.05)",
-      border: "1px solid rgba(255,255,255,0.12)",
+      backgroundColor: themeColors.lightOverlaySubtle,
+      border: `1px solid ${themeColors.borderLight}`,
       borderRadius: "8px",
       padding: "8px 16px",
       fontSize: "13px",
-      color: "#fff",
+      color: themeColors.text,
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
@@ -65,15 +67,15 @@ function TimeRangeSelector({ value, onChange }) {
       justifyContent: "space-between",
     },
     buttonHover: {
-      backgroundColor: "rgba(255,255,255,0.08)",
-      borderColor: "rgba(255,255,255,0.2)",
+      backgroundColor: themeColors.bgHover,
+      borderColor: themeColors.border,
     },
     dropdown: {
       position: "absolute",
       top: "calc(100% + 4px)",
       right: 0,
-      backgroundColor: "#1a1a1a",
-      border: "1px solid rgba(255,255,255,0.12)",
+      backgroundColor: themeColors.bgSecondary,
+      border: `1px solid ${themeColors.borderLight}`,
       borderRadius: "8px",
       minWidth: "100%",
       zIndex: 1000,
@@ -84,23 +86,23 @@ function TimeRangeSelector({ value, onChange }) {
       width: "100%",
       padding: "10px 16px",
       fontSize: "13px",
-      color: "rgba(255,255,255,0.9)",
+      color: themeColors.text,
       cursor: "pointer",
       transition: "background-color 0.15s",
       background: "none",
       border: "none",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      borderBottom: `1px solid ${themeColors.borderLight}`,
       textAlign: "left",
     },
     optionLast: {
       borderBottom: "none",
     },
     optionHover: {
-      backgroundColor: "rgba(255,255,255,0.08)",
+      backgroundColor: themeColors.bgHover,
     },
     optionSelected: {
-      backgroundColor: "rgba(255,255,255,0.12)",
-      color: "#fff",
+      backgroundColor: themeColors.lightOverlay,
+      color: themeColors.text,
       fontWeight: "500",
     },
   };
@@ -111,11 +113,12 @@ function TimeRangeSelector({ value, onChange }) {
         style={styles.button}
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={(e) => {
-          Object.assign(e.currentTarget.style, styles.buttonHover);
+          e.currentTarget.style.backgroundColor = themeColors.bgHover;
+          e.currentTarget.style.borderColor = themeColors.border;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)";
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+          e.currentTarget.style.backgroundColor = themeColors.lightOverlaySubtle;
+          e.currentTarget.style.borderColor = themeColors.borderLight;
         }}
       >
         <span>{selectedLabel}</span>

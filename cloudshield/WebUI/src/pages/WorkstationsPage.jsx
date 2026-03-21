@@ -10,6 +10,7 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
@@ -41,9 +42,9 @@ const styles = {
   errorBanner: {
     padding: "10px 12px",
     borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.12)",
+    border: "1px solid var(--border)",
     background: "rgba(213, 22, 22, 0.12)",
-    color: "#fff",
+    color: "text.primary",
     fontSize: "0.9rem",
   },
   ...sharedIconViewStyles,
@@ -104,6 +105,7 @@ export const createWorkstation = async (orgId, name, ip, groups) => {
 export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
+  const themeColors = useThemeColors();
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
@@ -365,9 +367,9 @@ export default function WorkstationsPage() {
 
   const workstationMenuItems = (row) => [
     {
-      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      icon: <EditIcon width={15} height={16} color={themeColors.text} />,
       label: "edit workstation",
-      color: "#1a1a1a",
+      color: themeColors.text,
       onClick: () => {
         setEditRow(row);
         setOpenModal(true);
@@ -430,10 +432,10 @@ export default function WorkstationsPage() {
               style={styles.clearSelectionButton}
               onClick={clearSelection}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.background = themeColors.lightOverlay;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                e.currentTarget.style.background = themeColors.lightOverlaySubtle;
               }}
             >
               Clear selection

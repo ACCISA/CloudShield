@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 
 // Import dynamic components
@@ -19,7 +20,7 @@ import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
-import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
 import PageShell from "../components/layout/PageShell.jsx";
@@ -28,13 +29,17 @@ import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { safeAsync } from "../lib/safeAsync.js";
 import { formatShares } from "../lib/format.js";
 
-const styles = {
+const baseStyles = {
   ...managementToolbarStyles,
-  ...sharedIconViewStyles,
 };
 
 export default function GroupsPage() {
   const location = useLocation();
+  const themeColors = useThemeColors();
+  
+  // Generate dynamic icon view styles based on theme
+  const iconViewStyles = getSharedIconViewStyles(themeColors);
+  const styles = { ...baseStyles, ...iconViewStyles };
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -393,9 +398,9 @@ export default function GroupsPage() {
 
   const getGroupMenuItems = (group) => [
     {
-      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      icon: <EditIcon width={15} height={16} color={themeColors.text} />,
       label: "edit group",
-      color: "#1a1a1a",
+      color: themeColors.text,
       onClick: () => handleOpenEditModal(group),
     },
     {
@@ -484,11 +489,11 @@ export default function GroupsPage() {
                   onClick={clearSelection}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.08)";
+                      themeColors.lightOverlay;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.03)";
+                      themeColors.lightOverlaySubtle;
                   }}
                 >
                   Clear selection
@@ -499,7 +504,7 @@ export default function GroupsPage() {
             <RefreshButton onClick={fetchGroups} />
 
             <CreateButton
-              icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
+              icon={<CreateGroupIcon width={24} height={24} color={themeColors.text} />}
               buttonText="Create"
               onClick={handleOpenCreateModal}
             />

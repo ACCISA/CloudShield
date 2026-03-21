@@ -111,7 +111,7 @@ function PopoverMenuButton({
               position: "fixed",
               top: `${position.top}px`,
               left: `${position.left}px`,
-              backgroundColor: "#ffffff",
+              backgroundColor: "var(--text-primary)",
               border: "1px solid #e0e0e0",
               borderRadius: "16px",
               padding: "8px",

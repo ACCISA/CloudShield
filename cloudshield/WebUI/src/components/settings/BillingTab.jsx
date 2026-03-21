@@ -13,6 +13,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useAuth } from "../../context/AuthContext";
+import { useAppTheme } from "../../context/ThemeContext";
 
 const API_BASE_URL = "http://localhost:5050";
 
@@ -25,11 +26,12 @@ const PLAN_OPTIONS = [
 ];
 
 function BillingDisabled() {
+  const theme = useAppTheme();
   return (
     <Box sx={{ pb: 4 }}>
       <Box sx={{ mb: 4 }}>
-        <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
+        <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
       </Box>
       <Box
         sx={{
@@ -47,7 +49,7 @@ function BillingDisabled() {
         <Typography sx={{ color: "#facc15", fontWeight: 700, fontSize: "1rem" }}>
           Billing is disabled
         </Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: "0.875rem", maxWidth: 480 }}>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.875rem", maxWidth: 480 }}>
           Stripe integration is currently bypassed (<code style={{ color: "rgba(255,255,255,0.6)" }}>VITE_BYPASS_STRIPE_CONFIRMATION=true</code>).
           Set it to <code style={{ color: "rgba(255,255,255,0.6)" }}>false</code> and configure your Stripe keys and webhook to enable billing.
         </Typography>
@@ -57,6 +59,7 @@ function BillingDisabled() {
 }
 
 export default function BillingTab() {
+  const theme = useAppTheme();
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
@@ -142,27 +145,27 @@ export default function BillingTab() {
   return (
     <Box sx={{ pb: 4 }}>
       <Box sx={{ mb: 4 }}>
-        <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
+        <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "1.3rem", mb: 0.5 }}>Billing Centre</Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>Manage your plan and billing details</Typography>
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
 
         <Grid item xs={12} md={6}>
           <Paper sx={{
-              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)",
+              p: 3, bgcolor: "background.paper", borderRadius: "16px", border: "1px solid", borderColor: "divider",
               height: "100%", display: "flex", flexDirection: "column", position: 'relative', overflow: 'hidden'
           }}>
             {isSyncing && (
                 <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, bgcolor: 'rgba(10,10,10,0.85)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
                     <SyncIcon sx={{ color: '#4ade80', fontSize: '2.5rem', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
-                    <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>Syncing with Stripe...</Typography>
+                    <Typography sx={{ color: 'text.primary', fontWeight: 700, fontSize: '1.1rem' }}>Syncing with Stripe...</Typography>
                 </Box>
             )}
 
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-                <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700 }}>{currentPlan.name} plan</Typography>
+                <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 700 }}>{currentPlan.name} plan</Typography>
                 <Chip
                     label={subStatus === "canceled" ? "Canceled" : "Active"}
                     size="small"
@@ -181,7 +184,7 @@ export default function BillingTab() {
                       Your subscription was canceled. Access remains until {cancelDate || "the end of the billing period"}. Upgrade to reactivate.
                   </Typography>
               ) : (
-                  <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", lineHeight: 1.5 }}>
+                  <Typography sx={{ color: "text.secondary", fontSize: "0.85rem", lineHeight: 1.5 }}>
                       {currentPlan.description}
                   </Typography>
               )}
@@ -189,8 +192,8 @@ export default function BillingTab() {
 
             <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'flex-start', sm: 'flex-end' }, mt: 'auto', pt: 3, gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
-                <Typography variant="h3" sx={{ color: "#fff", fontWeight: 800, lineHeight: 1 }}>${currentPlan.price}</Typography>
-                <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)", fontWeight: 500, ml: 1 }}>/ month</Typography>
+                <Typography variant="h3" sx={{ color: "text.primary", fontWeight: 800, lineHeight: 1 }}>${currentPlan.price}</Typography>
+                <Typography sx={{ fontSize: "0.85rem", color: "text.secondary", fontWeight: 500, ml: 1 }}>/ month</Typography>
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' }, gap: 1 }}>
@@ -226,29 +229,29 @@ export default function BillingTab() {
 
         <Grid item xs={12} md={6}>
           <Paper sx={{
-              p: 3, bgcolor: "#0A0A0A", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)",
+              p: 3, bgcolor: "background.paper", borderRadius: "16px", border: "1px solid", borderColor: "divider",
               height: "100%", display: "flex", flexDirection: "column"
           }}>
             <Box>
-                <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700, mb: 0.5 }}>Payment method</Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", mb: 2 }}>Change how you pay for your plan</Typography>
+                <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 700, mb: 0.5 }}>Payment method</Typography>
+                <Typography sx={{ color: "text.secondary", fontSize: "0.85rem", mb: 2 }}>Change how you pay for your plan</Typography>
             </Box>
 
             <Box sx={{
-                p: 2, borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)",
+                p: 2, borderRadius: "12px", border: "1px solid", borderColor: "divider",
                 display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' },
-                justifyContent: "space-between", bgcolor: 'rgba(255,255,255,0.02)', mt: 'auto', gap: 2
+                justifyContent: "space-between", bgcolor: 'background.default', mt: 'auto', gap: 2
             }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'rgba(255,255,255,0.8)', bgcolor: 'rgba(255,255,255,0.05)', p: 1, borderRadius: '8px' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'text.secondary', bgcolor: 'action.hover', p: 1, borderRadius: '8px' }}>
                     <CreditCardOutlinedIcon sx={{ fontSize: '1.6rem' }} />
                 </Box>
                 <Box>
-                  <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem", display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                  <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem", display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                     {card && card.brand ? `Card •••• ${card.last4}` : "No card on file"}
-                    {card && card.brand && <Chip label="Default" size="small" sx={{ height: 20, fontSize: "0.6rem", bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 600 }} />}
+                    {card && card.brand && <Chip label="Default" size="small" sx={{ height: 20, fontSize: "0.6rem", bgcolor: 'action.hover', color: 'text.primary', fontWeight: 600 }} />}
                   </Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", mt: 0.3 }}>
+                  <Typography sx={{ color: "text.secondary", fontSize: "0.75rem", mt: 0.3 }}>
                     {card && card.brand ? `Expires ${card.exp_month}/${card.exp_year}` : "Update in billing portal"}
                   </Typography>
                 </Box>
@@ -256,7 +259,7 @@ export default function BillingTab() {
               <Button
                 onClick={handleManageBilling}
                 disabled={portalLoading}
-                sx={{ height: 36, minWidth: 70, color: "#000", bgcolor: '#fff', borderRadius: "8px", textTransform: "none", fontWeight: 700, px: 2, '&:hover': { bgcolor: '#e5e5e5' } }}
+                sx={{ height: 36, minWidth: 70, color: "background.default", bgcolor: 'text.primary', borderRadius: "8px", textTransform: "none", fontWeight: 700, px: 2, '&:hover': { bgcolor: 'text.secondary' } }}
               >
                 {portalLoading ? "..." : "Edit"}
               </Button>
@@ -265,18 +268,18 @@ export default function BillingTab() {
         </Grid>
       </Grid>
 
-      <Box sx={{ bgcolor: "#0A0A0A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
+      <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: "16px", overflow: "hidden" }}>
 
-        <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, p: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, p: "16px 24px", borderBottom: "1px solid", borderBottomColor: "divider", gap: 2 }}>
            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-             <AccessTimeOutlinedIcon sx={{ fontSize: "1.2rem", mr: 1.5, color: "rgba(255,255,255,0.5)" }} />
-             <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: '0.95rem' }}>Billing History</Typography>
+             <AccessTimeOutlinedIcon sx={{ fontSize: "1.2rem", mr: 1.5, color: "text.secondary" }} />
+             <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: '0.95rem' }}>Billing History</Typography>
            </Box>
            <Box sx={{ ml: { xs: 0, sm: 'auto' }, display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
                 <TextField
                     placeholder="Search Invoices" size="small"
                     InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlinedIcon sx={{ color: "#555", fontSize: '1.1rem' }} /></InputAdornment> }}
-                    sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { bgcolor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '0.85rem' }}}
+                    sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { bgcolor: 'transparent', border: '1px solid', borderColor: 'divider', borderRadius: '8px', color: 'text.primary', fontSize: '0.85rem' }}}
                 />
                 <Button startIcon={<FilterListOutlinedIcon />} sx={{ border: '1px solid rgba(255,255,255,0.1)', color: '#ccc', textTransform: 'none', borderRadius: '8px', px: 2, fontSize: '0.85rem' }}>Filter</Button>
            </Box>

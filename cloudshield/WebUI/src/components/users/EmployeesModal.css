@@ -20,9 +20,9 @@
 }
 
 .employees-modal-dialog {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
   border-radius: 14px;
   width: 650px;
   max-width: 95vw;
@@ -73,7 +73,7 @@
 
 .employees-modal-breadcrumb-item.active {
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .employees-modal-breadcrumb-item.inactive {
@@ -88,7 +88,7 @@
 .employees-modal-close-btn {
   background-color: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px;
   width: 36px;
@@ -109,14 +109,14 @@
 /* Progress Bar */
 .employees-modal-stepper {
   padding: 24px 32px;
-  background-color: #0a0a0a;
+  background-color: var(--bg-primary);
   flex-shrink: 0;
 }
 
 .employees-modal-progress-track {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-light);
   border-radius: 3px;
   overflow: hidden;
   position: relative;
@@ -124,10 +124,10 @@
 
 .employees-modal-progress-fill {
   height: 100%;
-  background: #ffffff;
+  background: var(--primary);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 10px var(--primary-transparent);
 }
 
 .employees-modal-step-labels {
@@ -140,7 +140,7 @@
 .employees-modal-step-label {
   font-size: 13px;
   font-weight: 400;
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   transition: color 0.3s ease;
   font-family:
     system-ui,
@@ -151,12 +151,12 @@
 }
 
 .employees-modal-step-label.active {
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .employees-modal-step-label.completed {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
 }
 
 /* Content */
@@ -200,7 +200,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 8px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family:
     system-ui,
     -apple-system,
@@ -212,10 +212,10 @@
 .employees-modal-search {
   width: 100%;
   padding: 12px 14px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-family:
     system-ui,
@@ -229,14 +229,14 @@
 .employees-modal-textarea:focus,
 .employees-modal-search:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.3);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+  background-color: var(--input-bg-focus);
 }
 
 .employees-modal-input::placeholder,
 .employees-modal-textarea::placeholder,
 .employees-modal-search::placeholder {
-  color: #9e9e9e;
+  color: var(--text-tertiary);
 }
 
 .employees-modal-textarea {
@@ -303,9 +303,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #7c1d1d;
-  color: #ffffff;
-  border: 2px solid #0a0a0a;
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 2px solid var(--bg-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -316,7 +316,7 @@
 }
 
 .employees-modal-image-remove:hover {
-  background-color: #a02626;
+  background-color: var(--error-hover);
 }
 
 /* Search & Dropdown */
@@ -328,11 +328,11 @@
 .employees-modal-dropdown {
   max-height: 210px;
   overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  background-color: #0a0a0a;
+  background-color: var(--bg-primary);
   margin-top: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 24px var(--shadow-default);
 }
 
 .employees-modal-dropdown-item {
@@ -341,7 +341,7 @@
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color 0.2s ease;
 }
 
@@ -350,12 +350,12 @@
 }
 
 .employees-modal-dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-hover);
 }
 
 .employees-modal-dropdown-item.selected {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-left: 2px solid #ffffff;
+  background-color: var(--bg-selected);
+  border-left: 2px solid var(--primary);
 }
 
 .employees-modal-dropdown-item-info {
@@ -369,7 +369,7 @@
 .employees-modal-dropdown-item-name {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -377,14 +377,14 @@
 
 .employees-modal-dropdown-item-detail {
   font-size: 12px;
-  color: #9e9e9e;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .employees-modal-checkmark {
-  color: #ffffff;
+  color: var(--primary);
   font-size: 18px;
   font-weight: bold;
   flex-shrink: 0;
@@ -397,7 +397,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -415,7 +415,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family:
     system-ui,
     -apple-system,
@@ -441,22 +441,22 @@
   align-items: center;
   gap: 10px;
   padding: 20px 16px 18px;
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   cursor: default;
   transition: all 0.2s ease;
 }
 
 .employees-modal-selected-card:hover {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-hover);
   transform: translateY(-1px);
 }
 
 .employees-modal-selected-card-name {
   font-size: 13px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   text-align: center;
   line-height: 1.3;
   word-break: break-word;
@@ -483,9 +483,9 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--error-bg);
   border: none;
-  color: #ffffff;
+  color: var(--error-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -496,7 +496,7 @@
 }
 
 .employees-modal-card-remove-btn:hover {
-  background-color: #7c1d1d;
+  background-color: var(--error-hover);
 }
 
 /* Footer Actions */
@@ -505,8 +505,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: #111111;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--bg-secondary);
   flex-shrink: 0;
 }
 
@@ -542,13 +542,13 @@
 }
 
 .employees-modal-btn-primary {
-  background-color: #ffffff;
-  color: #000000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary);
+  color: var(--primary-text);
+  box-shadow: 0 2px 8px var(--shadow-default);
 }
 
 .employees-modal-btn-primary:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  background-color: var(--primary-hover);
 }
 
 .employees-modal-btn-primary:active:not(:disabled) {
@@ -556,13 +556,13 @@
 }
 
 .employees-modal-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .employees-modal-btn-secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-hover);
 }
 
 .employees-modal-btn-secondary:disabled {
@@ -570,23 +570,23 @@
 }
 
 .employees-modal-btn-cancel {
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .employees-modal-btn-cancel:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-hover);
 }
 
 .employees-modal-btn-delete {
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #dc2626;
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  color: var(--error-text);
 }
 
 .employees-modal-btn-delete:hover:not(:disabled) {
-  background-color: rgba(220, 38, 38, 0.2);
+  background-color: var(--error-hover);
 }
 
 /* Scrollbar */

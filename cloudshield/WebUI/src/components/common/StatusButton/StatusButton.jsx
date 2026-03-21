@@ -31,7 +31,7 @@ const styles = {
     gap: "8px",
     padding: "6px 16px",
     borderRadius: "22px",
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   buttonIconOnly: {
     padding: "8px",
@@ -81,9 +81,9 @@ export default function StatusButton({
     >
       <span style={styles.iconWrapper}>
         {isConnected ? (
-          <ConnectIcon width={14} height={14} color="#fff" />
+          <ConnectIcon width={14} height={14} color="var(--text-primary)" />
         ) : (
-          <DisconnectIcon width={14} height={14} color="#fff" />
+          <DisconnectIcon width={14} height={14} color="var(--text-primary)" />
         )}
       </span>
       {!showIconOnly && <span>{isConnected ? "Connect" : "Disconnect"}</span>}

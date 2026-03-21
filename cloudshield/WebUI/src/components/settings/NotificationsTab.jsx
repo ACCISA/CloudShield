@@ -6,6 +6,7 @@ import {
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const MOCK_ALERTS = Array.from({ length: 5 }, (_, i) => ({
   id: `alert-${i}`,
@@ -13,21 +14,22 @@ const MOCK_ALERTS = Array.from({ length: 5 }, (_, i) => ({
   date: "10/11/2025 11:36 pm",
 }));
 
-const inputSx = {
+const getInputSx = (themeColors) => ({
   "& .MuiOutlinedInput-root": {
-    backgroundColor: "#161616",
+    backgroundColor: themeColors.inputBg,
     borderRadius: "8px",
-    color: "#fff",
-    "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
-    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.25)" },
-    "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+    color: themeColors.text,
+    "& fieldset": { borderColor: themeColors.borderLight },
+    "&:hover fieldset": { borderColor: themeColors.border },
+    "&.Mui-focused fieldset": { borderColor: themeColors.borderStrong },
   },
-  "& .MuiInputLabel-root": { color: "#9E9E9E" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
-  "& input::placeholder": { color: "#666" },
-};
+  "& .MuiInputLabel-root": { color: themeColors.textSecondary },
+  "& .MuiInputLabel-root.Mui-focused": { color: themeColors.text },
+  "& input::placeholder": { color: themeColors.textSecondary },
+});
 
 export default function NotificationsTab({ userData, onSave }) {
+  const themeColors = useThemeColors();
   const prefs = userData?.notification_preferences || {};
 
   const [emailAlerts, setEmailAlerts] = useState(prefs.email_alerts ?? false);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 import { useClickLogger } from "../hooks/useClickLogger";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import { trackButton } from "../lib/analytics";
 
 // UI Components
@@ -22,7 +23,7 @@ import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
 import ActiveIcon from "../assets/ActiveIcon.jsx";
-import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
 import PageShell from "../components/layout/PageShell.jsx";
@@ -54,7 +55,7 @@ const CustomToast = ({ msg, type, onClose }) => {
     padding: "12px 24px",
     borderRadius: "12px",
     backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
-    color: "#fff",
+    color: "text.primary",
     fontSize: "1rem",
     boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
     zIndex: 9999,
@@ -85,23 +86,6 @@ const CustomToast = ({ msg, type, onClose }) => {
   );
 };
 
-  const normalizeErrorMessage = (error, fallback) => {
-    const msg = getUserErrorMessage(error);
-    return !msg || msg === "Something went wrong. Please try again."
-      ? fallback
-      : msg;
-  };
-
-  const makeToastAdapter = (fallback) => ({
-    error: (msg) =>
-      openToast(
-        !msg || msg === "Something went wrong. Please try again."
-          ? fallback
-          : msg,
-        "error"
-      ),
-  });
-  
 CustomToast.propTypes = {
   msg: PropTypes.string.isRequired,
   type: PropTypes.oneOf(["success", "error", "info", "warning"]),
@@ -180,7 +164,6 @@ function enrichUser(user, allGroups) {
 
 const styles = {
   ...managementToolbarStyles,
-  ...sharedIconViewStyles,
   iconFooter: {
     marginTop: "auto",
     display: "flex",
@@ -193,6 +176,11 @@ export default function EmployeesPage() {
   const location = useLocation();
   const { accessToken, currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "employees" });
+  const themeColors = useThemeColors();
+  
+  // Generate dynamic icon view styles based on theme
+  const iconViewStyles = getSharedIconViewStyles(themeColors);
+  const dynamicStyles = { ...styles, ...iconViewStyles };
   
   // Job creation task hook
   const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
@@ -253,6 +241,23 @@ export default function EmployeesPage() {
     setToast({ open: true, msg, type });
     setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
   };
+
+  const normalizeErrorMessage = (error, fallback) => {
+    const msg = getUserErrorMessage(error);
+    return !msg || msg === "Something went wrong. Please try again."
+      ? fallback
+      : msg;
+  };
+
+  const makeToastAdapter = (fallback) => ({
+    error: (msg) =>
+      openToast(
+        !msg || msg === "Something went wrong. Please try again."
+          ? fallback
+          : msg,
+        "error"
+      ),
+  });
 
   // Resolve auth token at call-time (handles post-login context lag safely).
   const resolveAuthToken = () => {
@@ -650,9 +655,9 @@ export default function EmployeesPage() {
 
   const getUserMenuItems = (user) => [
     {
-      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      icon: <EditIcon width={15} height={16} color={themeColors.text} />,
       label: "edit user",
-      color: "#1a1a1a",
+      color: themeColors.text,
       onClick: () => {
         setModalEmployee(user);
         setModalOpen(true);
@@ -677,7 +682,7 @@ const pageActions = (
     />
 
     <CreateButton
-      icon={<CreateUserIcon width={16} height={16} color="#fff" />}
+      icon={<CreateUserIcon width={16} height={16} color={themeColors.text} />}
       buttonText="Create"
       onClick={withClickLog({
         name: "employees/toolbar/open-create",
@@ -752,10 +757,10 @@ const pageActions = (
                 style={styles.clearSelectionButton}
                 onClick={clearSelection}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                  e.currentTarget.style.background = themeColors.lightOverlay;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                  e.currentTarget.style.background = themeColors.lightOverlaySubtle;
                 }}
               >
                 Clear selection
@@ -797,27 +802,27 @@ const pageActions = (
           )}
         </TableSurface>
       ) : (
-        <div style={styles.iconsWrapper}>
+        <div style={dynamicStyles.iconsWrapper}>
           <IconSelectionBar
-            styles={styles}
+            styles={dynamicStyles}
             allVisibleSelected={allVisibleSelected}
             isIndeterminate={isIndeterminate}
             onToggleSelectAll={toggleSelectAllVisible}
             selectedCount={selectedCount}
           />
 
-          <div style={styles.iconsGrid}>
+          <div style={dynamicStyles.iconsGrid}>
             {filtered.map((user) => {
               const selected = selectedIds.has(user.id);
               return (
                 <div
                   key={user.id}
                   style={{
-                    ...styles.iconCard,
-                    ...(selected ? styles.iconCardSelected : {}),
+                    ...dynamicStyles.iconCard,
+                    ...(selected ? dynamicStyles.iconCardSelected : {}),
                   }}
                 >
-                  <div style={styles.iconCardHeader}>
+                  <div style={dynamicStyles.iconCardHeader}>
                     <Checkbox
                       checked={selected}
                       onChange={() => toggleSelect(user.id)}
@@ -825,51 +830,51 @@ const pageActions = (
                     <EditButton menuItems={getUserMenuItems(user)} />
                   </div>
 
-                  <div style={styles.iconTitle}>
+                  <div style={dynamicStyles.iconTitle}>
                     <DisplayIcon type="user" data={user} size="small" />
-                    <div style={styles.iconTitleText}>
-                      <span style={styles.iconName}>{user.name}</span>
-                      <span style={styles.iconSub}>↳ {user.email}</span>
+                    <div style={dynamicStyles.iconTitleText}>
+                      <span style={dynamicStyles.iconName}>{user.name}</span>
+                      <span style={dynamicStyles.iconSub}>↳ {user.email}</span>
                     </div>
                   </div>
 
                   {showTitle && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Title</span>
-                      <span style={styles.iconMetaValue}>{user.title || "—"}</span>
+                    <div style={dynamicStyles.iconMetaRow}>
+                      <span style={dynamicStyles.iconMetaLabel}>Title</span>
+                      <span style={dynamicStyles.iconMetaValue}>{user.title || "—"}</span>
                     </div>
                   )}
 
                   {showWorkstations && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Workstations</span>
-                      <span style={styles.iconMetaValue}>
+                    <div style={dynamicStyles.iconMetaRow}>
+                      <span style={dynamicStyles.iconMetaLabel}>Workstations</span>
+                      <span style={dynamicStyles.iconMetaValue}>
                         {user.workstationCount ?? user.workstations?.length ?? 0}
                       </span>
                     </div>
                   )}
 
                   {showGroups && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Groups</span>
-                      <span style={styles.iconMetaValue}>
+                    <div style={dynamicStyles.iconMetaRow}>
+                      <span style={dynamicStyles.iconMetaLabel}>Groups</span>
+                      <span style={dynamicStyles.iconMetaValue}>
                         {user.groupCount ?? user.groups?.length ?? 0}
                       </span>
                     </div>
                   )}
 
                   {showFiles && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Shares</span>
-                      <span style={styles.iconMetaValue}>
+                    <div style={dynamicStyles.iconMetaRow}>
+                      <span style={dynamicStyles.iconMetaLabel}>Shares</span>
+                      <span style={dynamicStyles.iconMetaValue}>
                         {user.fileCountDisplay ??
                           formatShares(user.fileCount ?? user.files?.length ?? 0)}
                       </span>
                     </div>
                   )}
 
-                  <div style={styles.iconFooter}>
-                    <span style={styles.iconMetaLabel}>
+                  <div style={dynamicStyles.iconFooter}>
+                    <span style={dynamicStyles.iconMetaLabel}>
                       {user.status || "offline"}
                     </span>
                     <ActiveIcon

@@ -14,7 +14,7 @@ function EditButton({ menuItems = [], disabled = false }) {
         style={{
           padding: "0",
           backgroundColor: "transparent",
-          color: "#fff",
+          color: "var(--text-primary)",
           border: "none",
           cursor: disabled ? "not-allowed" : "pointer",
           display: "flex",

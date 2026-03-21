@@ -7,6 +7,7 @@ import React, {
 import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import SearchField from "../components/common/SearchField/SearchField";
 import DisplayButton from "../components/common/DisplayButton/DisplayButton";
 import RefreshButton from "../components/common/RefreshButton/RefreshButton";
@@ -141,6 +142,7 @@ StorageCell.defaultProps = {
 export default function FilesPage() {
   const { currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "files" });
+  const themeColors = useThemeColors();
 
   // Get orgId from currentUser or localStorage
   const orgId = useMemo(() => {
@@ -703,9 +705,9 @@ export default function FilesPage() {
                   <EditButton
                     menuItems={[
                       {
-                        icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                        icon: <EditIcon width={15} height={16} color={themeColors.text} />,
                         label: "edit share",
-                        color: "#1a1a1a",
+                        color: themeColors.text,
                         onClick: () => openEdit(node),
                       },
                       {
@@ -801,7 +803,7 @@ export default function FilesPage() {
                     style={
                       !isSelected
                         ? {
-                            border: "2px solid rgba(255, 255, 255, 0.5)",
+                            border: "2px solid var(--text-primary)",
                             backgroundColor: "transparent",
                           }
                         : undefined
@@ -817,9 +819,9 @@ export default function FilesPage() {
                   <EditButton
                     menuItems={[
                       {
-                        icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                        icon: <EditIcon width={15} height={16} color={themeColors.text} />,
                         label: "edit share",
-                        color: "#1a1a1a",
+                        color: themeColors.text,
                         onClick: () => openEdit(node),
                       },
                       {
@@ -925,7 +927,7 @@ export default function FilesPage() {
             })(fetchTree)}
           />
           <CreateButton
-            icon={<FolderPlusIcon width={16} height={16} color="#fff" />}
+            icon={<FolderPlusIcon width={16} height={16} color="var(--text-primary)" />}
             buttonText="Create"
             onClick={withClickLog({
               name: "files/toolbar/open-upload",
@@ -980,7 +982,7 @@ export default function FilesPage() {
       <style>{`
         .filesPage {
           padding: 0;
-          color: #fff;
+          color: var(--text-primary);
           display: flex;
           flex-direction: column;
           gap: 12px;
@@ -1018,8 +1020,8 @@ export default function FilesPage() {
 
         .storagePill {
           min-width: 220px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: var(--action-hover);
+          border: 1px solid var(--border-light);
           border-radius: 14px;
           padding: 10px 12px;
           display: flex;
@@ -1029,7 +1031,7 @@ export default function FilesPage() {
         .storageText { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
         .storageLabel { font-size: 12px; opacity: 0.7; }
         .storageValue { font-size: 12px; opacity: 0.85; }
-        .storageBar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+        .storageBar { height: 6px; background: var(--border-light); border-radius: 999px; overflow: hidden; }
         .storageFill { height: 100%; background: #4f8cff; border-radius: 999px; }
 
         /* Toolbar */
@@ -1063,13 +1065,14 @@ export default function FilesPage() {
         }
         .selectionSummaryCount {
           font-size: 12px;
-          color: rgba(255,255,255,0.75);
+          color: var(--text-primary);
+          opacity: 0.75;
           white-space: nowrap;
         }
         .clearSelectionButton {
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.03);
-          color: #fff;
+          border: 1px solid var(--border);
+          background: var(--lightOverlaySubtle);
+          color: var(--text-primary);
           font-size: 0.85rem;
           font-weight: 500;
           font-family: inherit;
@@ -1079,7 +1082,7 @@ export default function FilesPage() {
           cursor: pointer;
         }
         .clearSelectionButton:hover {
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--action-hover);
         }
 
         /* Operation banner - subtle notification */
@@ -1093,7 +1096,8 @@ export default function FilesPage() {
           border: 1px solid rgba(79, 140, 255, 0.15);
           border-radius: 8px;
           font-size: 13px;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--text-primary);
+          opacity: 0.85;
         }
 
         /* LIST (Tree) */
@@ -1104,15 +1108,15 @@ export default function FilesPage() {
           padding: 24px 32px 4px 32px;
           position: sticky;
           top: 0;
-          background-color: #0D0D0D;
+          background-color: var(--bg-primary);
           z-index: 10;
           flex-shrink: 0;
         }
 
         .table {
           border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.16);
-          background-color: #0F0F0F;
+          border: 1px solid var(--border);
+          background-color: var(--bg-primary);
           box-shadow: 0 24px 64px rgba(0,0,0,0.6);
           padding: 16px;
           overflow: hidden;
@@ -1134,7 +1138,7 @@ export default function FilesPage() {
         .header {
           font-size: 0.85rem;
           opacity: 0.7;
-          color: #fff;
+          color: var(--text-primary);
           font-weight: 400;
           position: static;
           background-color: transparent;
@@ -1151,10 +1155,10 @@ export default function FilesPage() {
           position: relative;
         }
         .row:hover {
-          background: rgba(255,255,255,0.02);
+          background: var(--action-hover);
         }
         .rowDivider {
-          border-top: 1px solid rgba(255,255,255,0.1);
+          border-top: 1px solid var(--border-light);
           margin: 0 8px;
         }
 
@@ -1172,7 +1176,7 @@ export default function FilesPage() {
         }
         .storageMiniBar {
           height: 4px;
-          background: rgba(255,255,255,0.1);
+          background: var(--border-light);
           border-radius: 999px;
           overflow: hidden;
           max-width: 140px;
@@ -1216,10 +1220,10 @@ export default function FilesPage() {
           border-radius: 8px;
           border: none;
           background: transparent;
-          color: rgba(255,255,255,0.85);
+          color: var(--text-primary);
           cursor: pointer;
         }
-        .chevBtn:hover { background: rgba(255,255,255,0.06); }
+        .chevBtn:hover { background: var(--action-hover); }
         .chevSpacer { display: inline-block; width: 28px; height: 28px; }
 
         .meta {
@@ -1231,8 +1235,8 @@ export default function FilesPage() {
         }
         .groups { display: flex; flex-wrap: wrap; gap: 6px; }
         .groups span {
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: var(--action-hover);
+          border: 1px solid var(--border-light);
           padding: 2px 8px;
           border-radius: 999px;
           font-size: 12px;
@@ -1259,9 +1263,9 @@ export default function FilesPage() {
           gap: 10px;
         }
         .iconsSelectAllButton {
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: rgba(255, 255, 255, 0.03);
-          color: #fff;
+          border: 1px solid var(--border);
+          background: var(--action-hover);
+          color: var(--text-primary);
           font-size: 0.85rem;
           font-weight: 500;
           font-family: inherit;
@@ -1271,7 +1275,7 @@ export default function FilesPage() {
           cursor: pointer;
         }
         .iconsSelectAllButton:hover {
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--lightOverlay);
         }
         .iconsSelectedCount {
           font-size: 12px;
@@ -1279,7 +1283,7 @@ export default function FilesPage() {
         }
         .iconTile {
           position: relative;
-          border: 1px solid rgba(255,255,255,0.08);
+          border: 1px solid var(--border-light);
           background: rgba(0,0,0,0.15);
           border-radius: 14px;
           padding: 14px;
@@ -1291,10 +1295,10 @@ export default function FilesPage() {
           min-width: 0;
         }
         .iconTile.selected {
-          border-color: rgba(255, 255, 255, 0.18);
-          background: rgba(255, 255, 255, 0.06);
+          border-color: var(--border);
+          background: var(--action-hover);
         }
-        .iconTile:hover { background: rgba(255,255,255,0.03); }
+        .iconTile:hover { background: var(--lightOverlaySubtle); }
         .tileHeader {
           display: flex;
           align-items: center;
@@ -1318,7 +1322,7 @@ export default function FilesPage() {
           height: 32px;
           min-width: 32px;
           border-radius: 50%;
-          background: #2a2a2a;
+          background: var(--bg-secondary);
           opacity: 0.9;
         }
         .iconKindWrap svg {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import UserRow from "./UserRow.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const styles = {
   tableHeaders: {
@@ -10,18 +11,18 @@ const styles = {
     padding: "24px 24px 4px 24px",
     position: "sticky",
     top: 0,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "var(--bg-secondary)",
     zIndex: 10,
   },
   headerLabel: {
     fontSize: "0.85rem",
     opacity: 0.7,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   listPanel: {
     borderRadius: "18px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    backgroundColor: "#0F0F0F",
+    border: `1px solid var(--border)`,
+    backgroundColor: "var(--bg-secondary)",
     boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
     padding: "16px",
   },
@@ -82,6 +83,7 @@ export default function UsersTable({
   onEdit,
   onDelete,
 }) {
+  const themeColors = useThemeColors();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {

@@ -26,10 +26,11 @@ import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import HoverableRow from "../common/HoverableRow.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /* ---------------------------- styles ---------------------------- */
 
-const styles = {
+const getStyles = (themeColors) => ({
   tableHeaders: {
     display: "grid",
     alignItems: "center",
@@ -37,14 +38,14 @@ const styles = {
     padding: "16px 16px 8px 16px",
     position: "sticky",
     top: 0,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "var(--bg-secondary)",
     zIndex: 10,
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    borderBottom: "1px solid var(--border-light)",
   },
   headerLabel: {
     fontSize: "0.85rem",
     opacity: 0.7,
-    color: "#fff",
+    color: "var(--text-primary)",
     minWidth: 0,
   },
 
@@ -55,8 +56,8 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     borderRadius: "18px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    backgroundColor: "#0F0F0F",
+    border: "1px solid var(--border)",
+    backgroundColor: "var(--bg-secondary)",
     boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
     overflow: "hidden",
   },
@@ -79,7 +80,7 @@ const styles = {
     display: "grid",
     alignItems: "center",
     gap: "12px",
-    color: "#fff",
+    color: "var(--text-primary)",
     padding: "12px 8px",
     borderRadius: "12px",
     position: "relative",
@@ -118,9 +119,9 @@ const styles = {
     gap: "6px",
     padding: "6px 12px",
     borderRadius: "20px",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: themeColors.bgHover,
     fontSize: "0.85rem",
-    color: "#fff",
+    color: themeColors.text,
     whiteSpace: "nowrap",
     justifySelf: "start",
   },
@@ -150,26 +151,24 @@ const styles = {
     justifyContent: "center",
     height: "100%",
     padding: "32px",
-    color: "rgba(255,255,255,0.7)",
+    color: themeColors.textSecondary,
     gap: "8px",
     textAlign: "center",
   },
   emptyTitle: {
     fontWeight: 600,
-    color: "rgba(255,255,255,0.9)",
+    color: themeColors.text,
   },
   emptySubtitle: {
     fontSize: "0.9rem",
     maxWidth: 460,
   },
-};
+});
 
 // Responsive breakpoints
-const getResponsiveStyles = () => {
-  const width = window.innerWidth;
-
+const getResponsiveStyles = (windowWidth, styles) => {
   // Mobile (< 768px)
-  if (width < 768) {
+  if (windowWidth < 768) {
     return {
       ...styles,
       tableHeaders: {
@@ -205,7 +204,7 @@ const getResponsiveStyles = () => {
   }
 
   // Tablet (768px - 1024px)
-  if (width < 1024) {
+  if (windowWidth < 1024) {
     return {
       ...styles,
       tableHeaders: {
@@ -251,7 +250,16 @@ function getGroupMenuItems(group, onEdit, onDelete) {
   ];
 }
 
-function ItemsPill({ items, type, totalCount, getKey }) {
+function formatSharesDisplay(row) {
+  // Prefer precomputed display field from GroupsPage (filesDisplay)
+  if (row?.filesDisplay != null) return row.filesDisplay;
+
+  const n = Number(row?.files ?? 0);
+  if (!Number.isFinite(n) || n === 0) return "-";
+  return String(n);
+}
+
+function ItemsPill({ items, type, totalCount, getKey, styles }) {
   const itemsList = Array.isArray(items) ? items : [];
   const show = itemsList.slice(0, 3);
   const count = totalCount || itemsList.length;
@@ -291,34 +299,27 @@ function ItemsPill({ items, type, totalCount, getKey }) {
   );
 }
 
-function UsersPill({ row }) {
+function UsersPill({ row, styles }) {
   return (
     <ItemsPill
       items={row.users}
       type="user"
       totalCount={row.memberCount}
       getKey={(user, idx) => `${user.firstName}-${idx}`}
+      styles={styles}
     />
   );
 }
 
-function WorkstationsPill({ row }) {
+function WorkstationsPill({ row, styles }) {
   return (
     <ItemsPill
       items={row.workstations}
       type="workstation"
       getKey={(workstation, idx) => `${workstation.name}-${idx}`}
+      styles={styles}
     />
   );
-}
-
-function formatSharesDisplay(row) {
-  // Prefer precomputed display field from GroupsPage (filesDisplay)
-  if (row?.filesDisplay != null) return row.filesDisplay;
-
-  const n = Number(row?.files ?? 0);
-  if (!Number.isFinite(n) || n === 0) return "-";
-  return String(n);
 }
 
 function GroupRow({
@@ -334,9 +335,9 @@ function GroupRow({
   isSelected,
   onToggleSelect,
   rowId,
+  styles,
+  responsiveStyles,
 }) {
-  const responsiveStyles = getResponsiveStyles();
-
   const nameText = r?.name || "";
   const descText = r?.description || "";
 
@@ -375,10 +376,10 @@ function GroupRow({
         </div>
 
         {/* users */}
-        {showUsers && <UsersPill row={r} />}
+        {showUsers && <UsersPill row={r} styles={styles} />}
 
         {/* workstations */}
-        {showWorkstations && <WorkstationsPill row={r} />}
+        {showWorkstations && <WorkstationsPill row={r} styles={styles} />}
 
         {/* files count (Shares) */}
         {showFiles && (
@@ -412,6 +413,8 @@ export default function GroupsList({
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
 }) {
+  const themeColors = useThemeColors();
+  const styles = getStyles(themeColors);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -421,7 +424,10 @@ export default function GroupsList({
   }, []);
 
   const isMobile = windowWidth < 768;
-  const responsiveStyles = useMemo(() => getResponsiveStyles(), [windowWidth]);
+  const responsiveStyles = useMemo(
+    () => getResponsiveStyles(windowWidth, styles),
+    [windowWidth, styles]
+  );
 
   // Hide some columns on smaller screens
   const showUsersColumn = showUsers && !isMobile;
@@ -505,6 +511,8 @@ export default function GroupsList({
                 isSelected={selectedIds.has(r._id)}
                 onToggleSelect={onToggleSelect}
                 rowId={r._id}
+                styles={styles}
+                responsiveStyles={responsiveStyles}
               />
             ))}
           </div>

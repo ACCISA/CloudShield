@@ -4,7 +4,7 @@ export default function DashboardIcon({
   height = 13,
   className = "",
 }) {
-  const color = selected ? "#fff" : "#BCBCBC";
+  const color = selected ? "var(--text-primary)" : "#BCBCBC";
   const fillOpacity = selected ? "1" : "0";
 
   return (

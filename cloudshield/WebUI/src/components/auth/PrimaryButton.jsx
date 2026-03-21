@@ -11,6 +11,7 @@
  */
 import React from 'react';
 import { Button } from '@mui/material';
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * Styled primary action button for auth forms.
@@ -21,13 +22,14 @@ import { Button } from '@mui/material';
  * @returns {JSX.Element} Styled button component
  */
 export default function PrimaryButton({ children, fullWidth = true, ...rest }) {
+  const themeColors = useThemeColors();
   return (
     <Button
       {...rest}
       fullWidth={fullWidth}
       sx={{
-        backgroundColor: '#FFFFFF',
-        color: '#000000',
+        backgroundColor: themeColors.primary,
+        color: themeColors.primaryText,
         fontSize: '1rem',
         fontWeight: 500,
         textTransform: 'none',
@@ -37,7 +39,7 @@ export default function PrimaryButton({ children, fullWidth = true, ...rest }) {
         paddingX: '16px',
         boxShadow: '0 24px 64px rgba(0,0,0,0.75)',
         '&:hover': {
-          backgroundColor: '#f5f5f5',
+          backgroundColor: themeColors.primaryHover,
         },
       }}
     >

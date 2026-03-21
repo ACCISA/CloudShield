@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import TicketsItem from "./TicketsItem";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const GRID_COLUMNS = "2fr 1.4fr 1fr 1fr 40px";
 const GRID_COLUMNS_ADMIN = "1.2fr 2fr 1.4fr 1fr 1fr 40px";
@@ -11,6 +12,7 @@ function TicketsTable({
     hasNoTickets = false,
     hasNoResults = false,
 }) {
+    const themeColors = useThemeColors();
     const styles = {
         tableHeaders: {
             display: "grid",
@@ -21,11 +23,11 @@ function TicketsTable({
             position: "sticky",
             top: 0,
             zIndex: 10,
-            backgroundColor: "#0f0f0f",
+            backgroundColor: themeColors.bgSecondary,
         },
         headerLabel: {
             fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.7)",
+            color: themeColors.textSecondary,
             fontWeight: "500",
             display: "flex",
             alignItems: "center",
@@ -48,18 +50,18 @@ function TicketsTable({
             alignItems: "center",
             justifyContent: "center",
             minHeight: "300px",
-            color: "rgba(255,255,255,0.5)",
+            color: themeColors.textTertiary,
             textAlign: "center",
             gap: "8px",
         },
         emptyStateTitle: {
             fontSize: "16px",
             fontWeight: "500",
-            color: "rgba(255,255,255,0.7)",
+            color: themeColors.text,
         },
         emptyStateSubtitle: {
             fontSize: "14px",
-            color: "rgba(255,255,255,0.5)",
+            color: themeColors.textSecondary,
         },
     };
 
