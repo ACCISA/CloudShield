@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
 
+from cloudshield.Server.utils.ai_explainer import generate_alert_explanation
+
 from services.threat_service import (
     get_recent_alerts,
     get_recent_anomalies,
@@ -149,3 +151,17 @@ def dashboard_summary():
     hours = request.args.get("hours", 24, type=int)
     summary = get_dashboard_summary(hours=hours)
     return jsonify(summary), 200
+
+@threat_bp.route('/alerts/explain', methods=['POST'])
+def explain_alert():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No alert data provided"}), 400
+            
+        explanation_text = generate_alert_explanation(data)
+        
+        return jsonify({"explanation": explanation_text}), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Internal server error during AI analysis"}), 500
