@@ -22,14 +22,51 @@ process.env.APP_ROOT = path.join(__dirname, "..");
 export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+const VITE_PORT = process.env["VITE_PORT"] || "5174";
+const DEV_RENDERER_URL_FALLBACK = `http://127.0.0.1:${VITE_PORT}`;
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, "public")
   : RENDERER_DIST;
 
+// Containers often have no usable GPU/X11 acceleration path.
+// Force software rendering to prevent blank/white windows.
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("disable-gpu");
+app.commandLine.appendSwitch("use-gl", "swiftshader");
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+
 let win: BrowserWindow | null;
 let appIcon: Tray | null = null;
 let isQuitting = false;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function loadRendererWithRetry(targetWindow: BrowserWindow) {
+  const devRendererUrl =
+    VITE_DEV_SERVER_URL || (!app.isPackaged ? DEV_RENDERER_URL_FALLBACK : "");
+
+  if (!devRendererUrl) {
+    await targetWindow.loadFile(path.join(RENDERER_DIST, "index.html"));
+    return;
+  }
+
+  const maxAttempts = 20;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await targetWindow.loadURL(devRendererUrl);
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isRetryable = /ERR_CONNECTION_REFUSED|ERR_FAILED/i.test(message);
+      if (!isRetryable || attempt === maxAttempts) {
+        throw error;
+      }
+      await delay(300);
+    }
+  }
+}
+
 const showMainWindow = () => {
   if (!win || win.isDestroyed()) {
     createWindow();
@@ -65,12 +102,9 @@ function createWindow() {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
   });
 
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+  loadRendererWithRetry(win).catch((error) => {
+    console.error("[DesktopUI] Failed to load renderer:", error);
+  });
 
   win.on("close", (event) => {
     if (isQuitting) return;
@@ -82,6 +116,8 @@ function createWindow() {
 let vpnState: VPNState = {
   status: "disconnected",
 };
+let activeVPNProcess: ReturnType<typeof spawn> | null = null;
+let activeVPNPidFile: string | null = null;
 
 const getVPNStatusLabel = (): string => {
   switch (vpnState.status) {
@@ -208,7 +244,27 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     return;
   }
 
-  let command = "openvpn";
+  const vpnRuntimeDir = path.join(app.getPath("userData"), "vpn");
+  fs.mkdirSync(vpnRuntimeDir, { recursive: true });
+  const pidFilePath = path.join(vpnRuntimeDir, "openvpn.pid");
+  activeVPNPidFile = pidFilePath;
+  if (fs.existsSync(pidFilePath)) {
+    try {
+      fs.unlinkSync(pidFilePath);
+    } catch {
+      // Ignore stale pid file cleanup errors.
+    }
+  }
+
+  let command = process.platform === "linux" ? "/usr/sbin/openvpn" : "openvpn";
+  const args: string[] = ["--config", ovpnPath, "--writepid", pidFilePath];
+
+  // Linux desktop/dev environments may lack permissions for OpenVPN DCO.
+  // Disable DCO to avoid immediate fatal exits on systems without usable DCO.
+  if (process.platform === "linux") {
+    args.push("--disable-dco");
+  }
+
   if (process.platform === "win32") {
     const winOVPN = await getWinOVPNPath();
     if (!winOVPN.success) {
@@ -218,47 +274,162 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     command = winOVPN.path!;
   }
 
-  const child = spawn(command, [ovpnPath], {
-    stdio: "inherit",
+  // Optional Linux elevation path via pkexec (disabled by default in container/dev).
+  // Enable only when OPENVPN_USE_PKEXEC=true is explicitly set.
+  if (
+    process.platform === "linux" &&
+    process.env.OPENVPN_USE_PKEXEC === "true" &&
+    typeof process.getuid === "function" &&
+    process.getuid() !== 0
+  ) {
+    command = "pkexec";
+    args.unshift("/usr/sbin/openvpn");
+  }
+
+  const child = spawn(command, args, {
+    stdio: ["ignore", "pipe", "pipe"],
   }); //NOSONAR typescript:S4036
+  activeVPNProcess = child;
 
-  child.on("spawn", () => {
-    updateVPNState({ status: "connecting", pid: child.pid });
-  });
+  let latestOutput = "";
+  let detailedError: string | null = null;
+  let launchError: string | null = null;
+  let fatalRuntimeErrorSignaled = false;
 
-  child.stdout?.on("data", (data) => {
-    const output = data.toString();
+  const handleOpenVPNOutput = (chunk: Buffer, isStdErr = false) => {
+    const output = chunk.toString();
+    latestOutput += output;
+
+    if (isStdErr) {
+      process.stderr.write(output);
+    } else {
+      process.stdout.write(output);
+    }
+
     if (output.includes("Initialization Sequence Completed")) {
       updateVPNState({
         status: "connected",
         pid: child.pid,
         connectedAt: Date.now(),
       });
+      return;
     }
+
+    const permissionIssue =
+      /Operation not permitted|Cannot allocate DCO dev dynamically|TUNSETIFF|Cannot ioctl TUNSETIFF|cannot open TUN\/TAP/i.test(
+        output,
+      );
+    const tlsNegotiationFailed =
+      /TLS key negotiation failed|TLS handshake failed|Inactivity timeout/i.test(
+        output,
+      );
+    const authFailed = /AUTH_FAILED|auth failed/i.test(output);
+
+    if (permissionIssue) {
+      detailedError =
+        "OpenVPN needs elevated network privileges on Linux (CAP_NET_ADMIN). Run the app/OpenVPN with required privileges.";
+    }
+
+    if (!fatalRuntimeErrorSignaled && (tlsNegotiationFailed || authFailed)) {
+      fatalRuntimeErrorSignaled = true;
+      detailedError = authFailed
+        ? "OpenVPN authentication failed. Refresh credentials/config and try again."
+        : "OpenVPN TLS handshake timed out. VPN endpoint is unreachable from this container/network.";
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        // Ignore shutdown race.
+      }
+    }
+  };
+
+  child.on("spawn", () => {
+    updateVPNState({ status: "connecting", pid: child.pid });
   });
+
+  child.stdout?.on("data", (data) => handleOpenVPNOutput(data));
+  child.stderr?.on("data", (data) => handleOpenVPNOutput(data, true));
+
   child.on("error", (err) => {
+    if (activeVPNProcess?.pid === child.pid) {
+      activeVPNProcess = null;
+    }
+    if (process.platform === "linux" && command === "pkexec") {
+      const msg = /ENOENT/i.test(err.message)
+        ? "pkexec not found. Install polkit or run OpenVPN with CAP_NET_ADMIN/root."
+        : `Failed to start elevated OpenVPN: ${err.message}`;
+      launchError = msg;
+      updateVPNState({ status: "error", error: msg });
+      return;
+    }
+    launchError = err.message;
     updateVPNState({ status: "error", error: err.message });
   });
 
   child.on("close", (code) => {
+    if (activeVPNProcess?.pid === child.pid) {
+      activeVPNProcess = null;
+    }
+    if (launchError) {
+      return;
+    }
     if (code === 0) {
       updateVPNState({ status: "disconnected" });
     } else {
       updateVPNState({
         status: "error",
-        error: `OpenVPN exited with code ${code ?? "unknown"}`,
+        error:
+          detailedError ||
+          `OpenVPN exited with code ${code ?? "unknown"}${latestOutput ? ". Check logs for details." : ""}`,
       });
     }
   });
 });
 
 const disconnectVPN = () => {
-  if (vpnState.status !== "connected" || !vpnState.pid) {
+  if (
+    vpnState.status === "disconnected" &&
+    !vpnState.pid &&
+    !activeVPNProcess?.pid &&
+    !activeVPNPidFile
+  ) {
     return;
   }
+
+  const pidsToKill = new Set<number>();
+  if (vpnState.pid) {
+    pidsToKill.add(vpnState.pid);
+  }
+  if (activeVPNProcess?.pid) {
+    pidsToKill.add(activeVPNProcess.pid);
+  }
+  if (activeVPNPidFile && fs.existsSync(activeVPNPidFile)) {
+    const pidRaw = fs.readFileSync(activeVPNPidFile, "utf8").trim();
+    const pid = Number.parseInt(pidRaw, 10);
+    if (Number.isInteger(pid) && pid > 0) {
+      pidsToKill.add(pid);
+    }
+  }
+
   try {
     updateVPNState({ status: "disconnecting" });
-    process.kill(vpnState.pid);
+    for (const pid of pidsToKill) {
+      try {
+        process.kill(pid);
+      } catch {
+        // Process may already be gone.
+      }
+    }
+
+    if (activeVPNPidFile && fs.existsSync(activeVPNPidFile)) {
+      try {
+        fs.unlinkSync(activeVPNPidFile);
+      } catch {
+        // Ignore pid file cleanup errors.
+      }
+    }
+
+    activeVPNProcess = null;
     updateVPNState({ status: "disconnected" });
   } catch (err: any) {
     updateVPNState({ status: "error", error: err.message });
