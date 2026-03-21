@@ -236,6 +236,7 @@ export default function EmployeesModal({
       }
     } catch (error) {
       console.error("Failed to submit employee:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
