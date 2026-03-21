@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import ReactMarkdown from "react-markdown"; 
 import HighAlertIcon from "../../assets/security/HighAlertIcon";
 import ModerateAlertIcon from "../../assets/security/ModerateAlertIcon";
 import LowAlertIcon from "../../assets/security/LowAlertIcon";
 import DownloadButton from "../common/DownloadButton/DownloadButton";
 import CheckmarkIcon from "../../assets/CheckmarkIcon";
 import AiIcon from "../../assets/AiIcon";
+// IMPORT YOUR NEW API WRAPPER HERE
+import { explainSecurityAlert } from "../../api/threatsApi";
 
 const RISK_CONFIG = {
   high: {
@@ -27,6 +30,20 @@ const RISK_CONFIG = {
 
 function SecurityAlertModal({ alert, isOpen, onClose }) {
   const [isHoveredResolve, setIsHoveredResolve] = useState(false);
+  
+  // AI State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiError, setAiError] = useState(null);
+
+  // Reset AI state when modal closes or alert changes
+  useEffect(() => {
+    if (!isOpen) {
+      setAiAnalysis(null);
+      setAiError(null);
+      setIsAnalyzing(false);
+    }
+  }, [isOpen, alert]);
 
   if (!isOpen || !alert) return null;
 
@@ -34,24 +51,46 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
 
   const handleMarkFalsePositive = () => {
     console.log("Mark as false positive:", alert.id);
-    // Backend integration: API call to mark as false positive
     onClose();
   };
 
   const handleDownload = () => {
     console.log("Download alert:", alert.id);
-    // Backend integration: API call to download alert details
   };
 
   const handleMarkResolved = () => {
     console.log("Mark as resolved:", alert.id);
-    // Backend integration: API call to mark as resolved
     onClose();
   };
 
-  const handleExpandAI = () => {
-    console.log("Expand with AI:", alert.id);
-    // Backend integration: API call to get AI analysis
+  // Triggers the backend explanation route using the API wrapper
+  const handleExpandAI = async () => {
+    setIsAnalyzing(true);
+    setAiError(null);
+
+    try {
+      const payload = {
+        risk: alert.risk,
+        type: alert.type,
+        category: alert.category,
+        source: alert.source,
+        description: alert.description
+      };
+      
+      const response = await explainSecurityAlert(payload);
+      
+      // Assuming apiPost automatically parses JSON and returns the body
+      if (response && response.explanation) {
+        setAiAnalysis(response.explanation);
+      } else {
+        throw new Error("Invalid response format from server.");
+      }
+    } catch (err) {
+      console.error("Error expanding with AI:", err);
+      setAiError("Failed to generate AI explanation. Please check your connection or try again later.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const styles = {
@@ -183,8 +222,8 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       position: "relative",
       backgroundColor: "#1a1a1a",
       borderRadius: "12px",
-      padding: "16px",
-      minHeight: "200px",
+      padding: "24px",
+      minHeight: "120px",
       border: "1px solid rgba(255,255,255,0.08)",
     },
     expandButton: {
@@ -203,10 +242,23 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       fontWeight: "600",
       cursor: "pointer",
       transition: "all 0.2s",
+      opacity: isAnalyzing ? 0.5 : 1,
     },
-    expandIcon: {
-      width: "14px",
-      height: "14px",
+    markdownContainer: {
+      color: "rgba(255,255,255,0.9)",
+      fontSize: "14px",
+      lineHeight: "1.6",
+    },
+    loadingText: {
+      color: "rgba(255,255,255,0.6)",
+      fontSize: "14px",
+      display: "flex",
+      alignItems: "center",
+      height: "100%",
+    },
+    errorText: {
+      color: "#EB6560",
+      fontSize: "14px",
     },
     footer: {
       display: "flex",
@@ -335,20 +387,41 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
               {alert.description ||
                 "A potentially malicious file was uploaded to a group. The file executed a background process shortly after upload."}
             </p>
+            
+            {/* AI Explanation Box */}
             <div style={styles.aiBox}>
-              <button
-                style={styles.expandButton}
-                onClick={handleExpandAI}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f0f0f0";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#fff";
-                }}
-              >
-                <AiIcon width={14} height={14} color="#1a1a1a" />
-                Expand with AI
-              </button>
+              {!aiAnalysis && (
+                <button
+                  style={styles.expandButton}
+                  onClick={handleExpandAI}
+                  disabled={isAnalyzing}
+                  onMouseEnter={(e) => {
+                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = "#f0f0f0";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = "#fff";
+                  }}
+                >
+                  <AiIcon width={14} height={14} color="#1a1a1a" />
+                  {isAnalyzing ? "Analyzing..." : "Expand with AI"}
+                </button>
+              )}
+
+              {isAnalyzing && !aiAnalysis && (
+                <div style={styles.loadingText}>
+                  Querying Cortex AI engine...
+                </div>
+              )}
+
+              {aiError && (
+                <div style={styles.errorText}>{aiError}</div>
+              )}
+
+              {aiAnalysis && (
+                <div style={styles.markdownContainer}>
+                  <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -387,7 +460,7 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
 
 SecurityAlertModal.propTypes = {
   alert: PropTypes.shape({
-    id: PropTypes.number,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     type: PropTypes.string,
     date: PropTypes.string,
     displayDate: PropTypes.string,
