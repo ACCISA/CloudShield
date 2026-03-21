@@ -30,6 +30,10 @@ if [ -z "${openvpn_address}" ]; then
   openvpn_address="${eth0_ip}"
 fi
 
+if [ -z "${openvpn_public_address}" ]; then
+  openvpn_public_address="${openvpn_address}"
+fi
+
 if [ -z "${openvpn_dns}" ] && [ -n "${org_net}" ] && [ "${org_prefix}" = "24" ]; then
   openvpn_dns="$(echo "${org_net}" | awk -F. '{print $1"."$2"."$3".10"}')"
 fi
