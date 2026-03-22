@@ -1,6 +1,8 @@
 """Access Groups API endpoints."""
 from __future__ import annotations
 
+import csv
+import io
 from datetime import datetime, timezone
 
 from bson import ObjectId
@@ -395,4 +397,153 @@ def add_members_to_access_group():
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
     except Exception as e:
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+
+def _get_users_collection():
+    """Get the users collection for member email lookup."""
+    try:
+        from utils.database import users_admin
+    except Exception:
+        from cloudshield.Server.utils.database import users_admin
+    return users_admin
+
+
+@access_groups_bp.route("/access-groups/import-csv", methods=["POST"])
+@require_auth
+def import_groups_csv():
+    """
+    Bulk import access groups from a CSV file.
+
+    Endpoint:
+        POST /api/access-groups/import-csv
+
+    Request:
+        - Content-Type: multipart/form-data
+        - file: CSV file with columns: group_name,description,member_emails
+        - member_emails is a semicolon-separated list of user emails
+
+    CSV Format:
+        group_name,description,member_emails
+        marketing,Marketing team group,john@example.com;jane@example.com
+        engineering,Engineering department,dev1@example.com;dev2@example.com
+
+    Responses:
+        200: { "created": N, "errors": [...] }
+        400: { "error": "No file provided" }
+        500: { "error": "Internal server error" }
+    """
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files["file"]
+        if not file.filename:
+            return jsonify({"error": "No file selected"}), 400
+
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({"error": "File must be a CSV"}), 400
+
+        # Read and decode CSV content
+        content = file.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+
+        org_id = _require_org_id()
+        coll = _get_access_groups_collection()
+        users_coll = _get_users_collection()
+
+        # Build email -> user_id mapping for the org
+        email_to_id = {}
+        org_users = list(users_coll.find({"org_id": org_id}, {"_id": 1, "email": 1}))
+        for u in org_users:
+            email = (u.get("email") or "").strip().lower()
+            if email:
+                email_to_id[email] = str(u["_id"])
+
+        created_count = 0
+        errors = []
+        dc_job_ids = []
+
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 (row 1 is header)
+            try:
+                group_name = (row.get("group_name") or "").strip()
+                description = (row.get("description") or "").strip()
+                member_emails_raw = (row.get("member_emails") or "").strip()
+
+                if not group_name:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing required field: group_name"
+                    })
+                    continue
+
+                # Check for duplicate group name within org
+                existing = coll.find_one({"name": group_name.lower(), "org_id": org_id}, {"_id": 1})
+                if existing:
+                    errors.append({
+                        "row": row_num,
+                        "error": f"Group '{group_name}' already exists"
+                    })
+                    continue
+
+                # Parse member emails (semicolon-separated)
+                member_ids = []
+                missing_emails = []
+                if member_emails_raw:
+                    for email in member_emails_raw.split(";"):
+                        email = email.strip().lower()
+                        if not email:
+                            continue
+                        user_id = email_to_id.get(email)
+                        if user_id:
+                            member_ids.append(user_id)
+                        else:
+                            missing_emails.append(email)
+
+                # Create the group
+                group_data = AccessGroupCreate(
+                    group_name=group_name,
+                    description=description or None,
+                    members=member_ids,
+                )
+
+                doc = create_access_group_doc(group_data)
+                doc["org_id"] = org_id
+                coll.insert_one(doc)
+
+                # Dispatch DC group creation
+                try:
+                    job = service_dispatcher(
+                        service_name="dc_add_group",
+                        org_id=org_id,
+                        group_name=group_name,
+                    )
+                    dc_job_ids.append(job.id)
+                except Exception as dc_err:
+                    logger.warning("DC sync failed for group '%s' (non-blocking): %s", group_name, dc_err)
+
+                created_count += 1
+
+                # Report any missing member emails as warnings
+                if missing_emails:
+                    errors.append({
+                        "row": row_num,
+                        "warning": f"Group created but some members not found: {', '.join(missing_emails)}"
+                    })
+
+            except ValidationError as e:
+                errors.append({"row": row_num, "error": e.errors()})
+            except Exception as e:
+                errors.append({"row": row_num, "error": str(e)})
+
+        return jsonify({
+            "created": created_count,
+            "dc_job_ids": dc_job_ids,
+            "errors": errors
+        }), 200
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error("CSV import failed: %s", e)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500

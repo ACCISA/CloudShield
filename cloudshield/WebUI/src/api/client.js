@@ -45,3 +45,32 @@ export const apiGet = (path, opts) => request(path, { ...opts, method: "GET" });
 export const apiPost = (path, body, opts) => request(path, { ...opts, method: "POST", body });
 export const apiPatch = (path, body, opts) => request(path, { ...opts, method: "PATCH", body });
 export const apiDelete = (path, opts) => request(path, { ...opts, method: "DELETE" });
+
+// File upload function for multipart/form-data (CSV imports)
+export async function apiUploadFile(path, file, fieldName = "file") {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append(fieldName, file);
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      msg = data?.error || data?.details || msg;
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(msg);
+  }
+
+  if (res.status === 204) return null;
+  return res.json();
+}

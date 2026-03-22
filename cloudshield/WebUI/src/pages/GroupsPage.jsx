@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -13,7 +13,8 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
+import UploadFileIcon from "../assets/UploadFileIcon.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from "../api/client.js";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
@@ -53,6 +54,10 @@ export default function GroupsPage() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  // CSV import state
+  const csvInputRef = useRef(null);
+  const [csvImporting, setCsvImporting] = useState(false);
 
   // Open modal if navigated from dashboard
   useEffect(() => {
@@ -355,6 +360,46 @@ export default function GroupsPage() {
     }
   };
 
+  // CSV import handler
+  const handleCsvImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be selected again
+    event.target.value = "";
+
+    setCsvImporting(true);
+    try {
+      const result = await apiUploadFile("/access-groups/import-csv", file);
+
+      const created = result.created || 0;
+      const errorCount = result.errors?.length || 0;
+
+      if (created > 0) {
+        openToast(`Successfully imported ${created} group(s)${errorCount > 0 ? ` (${errorCount} warnings)` : ""}`, "success");
+        fetchGroups();
+      } else if (errorCount > 0) {
+        const firstError = result.errors[0];
+        openToast(`Import failed: ${firstError.error || firstError.warning || "Unknown error"}`, "error");
+      } else {
+        openToast("No groups imported", "info");
+      }
+
+      // Log detailed errors to console for debugging
+      if (result.errors?.length > 0) {
+        console.warn("CSV import errors:", result.errors);
+      }
+    } catch (error) {
+      openToast(error.message || "CSV import failed", "error");
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
+  const handleCsvButtonClick = () => {
+    csvInputRef.current?.click();
+  };
+
   const selectedCount = useMemo(
     () => filtered.filter((g) => selectedIds.has(g._id)).length,
     [filtered, selectedIds],
@@ -452,6 +497,23 @@ export default function GroupsPage() {
             </div>
           )}
           <RefreshButton onClick={fetchGroups} />
+
+          {/* Hidden file input for CSV import */}
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCsvImport}
+            style={{ display: "none" }}
+          />
+
+          <CreateButton
+            icon={<UploadFileIcon width={16} height={16} color="#fff" />}
+            buttonText={csvImporting ? "Importing..." : "Import CSV"}
+            onClick={handleCsvButtonClick}
+            disabled={csvImporting}
+            title="CSV Format: group_name,description,member_emails (use semicolons between emails, e.g. john@example.com;jane@example.com)"
+          />
 
           <CreateButton
             icon={<CreateGroupIcon width={24} height={24} color="#fff" />}

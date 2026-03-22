@@ -1,6 +1,6 @@
 import React from "react";
 
-const CreateButton = ({ icon, buttonText, onClick, disabled = false }) => {
+const CreateButton = ({ icon, buttonText, onClick, disabled = false, title }) => {
   const buttonContainerStyle = {
     display: "flex",
     flexDirection: "row",
@@ -27,6 +27,7 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false }) => {
       style={buttonContainerStyle}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
+      title={title}
       aria-label={buttonText}
       onMouseEnter={(e) => {
         if (!disabled) {

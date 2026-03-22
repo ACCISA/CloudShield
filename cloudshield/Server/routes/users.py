@@ -1,4 +1,6 @@
 """User management API endpoints."""
+import csv
+import io
 import json
 from collections.abc import Mapping
 
@@ -458,10 +460,176 @@ def get_current_user_endpoint():
     # 2. Fallback to the JWT token claims if DB fetch wasn't possible
     safe_user = dict(u)
     safe_user.pop("password", None)
-    
+
     if real_id:
         safe_user["id"] = str(real_id)
         safe_user.pop("_id", None)
         safe_user.pop("sub", None)
 
     return jsonify({"user": safe_user}), 200
+
+
+@users_bp.route("/users/import-csv", methods=["POST"])
+@require_auth
+@require_role("admin")
+def import_users_csv():
+    """
+    Bulk import users from a CSV file.
+
+    Endpoint:
+        POST /api/users/import-csv
+
+    Request:
+        - Content-Type: multipart/form-data
+        - file: CSV file with columns: email,full_name,password_hash,role
+        - password_hash: bcrypt hash from previous system (recommended for migrations)
+        - role column is optional (defaults to "employee")
+
+    CSV Format (with pre-hashed passwords - recommended for migrations):
+        email,full_name,password_hash,role
+        john@example.com,John Doe,$2b$12$LQv3c1yqBw...,employee
+        jane@example.com,Jane Smith,$2b$12$abc123...,admin
+
+    Responses:
+        200: { "created": N, "errors": [...] }
+        400: { "error": "No file provided" }
+        500: { "error": "Internal server error" }
+    """
+    try:
+        from security import hash_password, is_bcrypt_string
+        from datetime import datetime, timezone
+        from utils import users_admin, log_audit
+        import secrets
+        import string
+
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files["file"]
+        if not file.filename:
+            return jsonify({"error": "No file selected"}), 400
+
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({"error": "File must be a CSV"}), 400
+
+        # Read and decode CSV content
+        content = file.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+
+        # Get org_id from current user
+        org_id = (g.user or {}).get("org_id")
+        if not org_id:
+            return jsonify({"error": "Missing org_id for authenticated user"}), 400
+
+        def generate_secure_password():
+            """Generate a secure random password."""
+            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+            return ''.join(secrets.choice(alphabet) for _ in range(16))
+
+        created_count = 0
+        errors = []
+        job_ids = []
+
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 (row 1 is header)
+            try:
+                email = (row.get("email") or "").strip()
+                full_name = (row.get("full_name") or "").strip()
+                password_hash = (row.get("password_hash") or "").strip()
+                role = (row.get("role") or "employee").strip().lower()
+
+                if not email or not full_name:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing required fields (email, full_name)"
+                    })
+                    continue
+
+                if role not in ("admin", "employee"):
+                    role = "employee"
+
+                # Check for duplicate email
+                if users_admin.find_one({"email": email}):
+                    errors.append({
+                        "row": row_num,
+                        "error": f"User with email {email} already exists"
+                    })
+                    continue
+
+                # Handle password: use provided hash if valid bcrypt, otherwise generate
+                plain_password_for_dc = None
+                if password_hash and is_bcrypt_string(password_hash):
+                    # Use the pre-hashed password directly (migration from another system)
+                    final_password_hash = password_hash
+                else:
+                    # Generate a secure random password
+                    plain_password_for_dc = generate_secure_password()
+                    final_password_hash = hash_password(plain_password_for_dc)
+
+                # Insert user directly (bypassing create_user to handle pre-hashed passwords)
+                user_doc = {
+                    "email": email,
+                    "password": final_password_hash,
+                    "org_id": org_id,
+                    "role": role,
+                    "full_name": full_name,
+                    "status": "active",
+                    "profile_image": None,
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc),
+                }
+                res = users_admin.insert_one(user_doc)
+                user_id = str(res.inserted_id)
+
+                # Audit log
+                try:
+                    log_audit(
+                        action="create",
+                        actor={
+                            "id": g.user.get("id"),
+                            "role": g.user.get("role"),
+                            "org_id": org_id,
+                        },
+                        resource="users",
+                        target={"id": user_id, "email": email},
+                        reason="CSV import",
+                        before=None,
+                        after={"role": role, "status": "active", "org_id": org_id},
+                    )
+                except Exception:
+                    pass  # Don't fail import due to audit log issues
+
+                # Dispatch DC user creation only if we have a plain text password
+                # (for pre-hashed imports, users keep their existing DC credentials)
+                if plain_password_for_dc:
+                    try:
+                        username = email.split("@")[0]
+                        job = service_dispatcher(
+                            service_name="dc_add_user",
+                            org_id=org_id,
+                            username=username,
+                            password=plain_password_for_dc,
+                            email=email,
+                        )
+                        job_ids.append(job.id)
+                    except Exception as dc_err:
+                        logger.warning("DC sync failed for user %s: %s", email, dc_err)
+
+                created_count += 1
+
+            except ValidationError as e:
+                safe_errors = [_make_json_safe(err) for err in e.errors()]
+                errors.append({"row": row_num, "error": safe_errors})
+            except ValueError as e:
+                errors.append({"row": row_num, "error": str(e)})
+            except Exception as e:
+                errors.append({"row": row_num, "error": str(e)})
+
+        return jsonify({
+            "created": created_count,
+            "job_ids": job_ids,
+            "errors": errors
+        }), 200
+
+    except Exception as e:
+        logger.error("CSV import failed: %s", e)
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
