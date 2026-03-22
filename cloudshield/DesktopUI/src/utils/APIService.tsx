@@ -1,5 +1,22 @@
 type ApiRequestOptions = RequestInit & { skipAuth?: boolean };
 
+function normalizeApiRoot(raw: string): string {
+  try {
+    const u = new URL(raw);
+    const normalizedPath = u.pathname.replace(/\/+$/, "");
+    u.pathname = !normalizedPath || normalizedPath === "/" ? "/api" : normalizedPath;
+    return u.toString().replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function resolveNonHttpFallback(): string {
+  const proxyTarget = (import.meta.env.VITE_API_PROXY_TARGET || "").trim();
+  const normalized = proxyTarget ? normalizeApiRoot(proxyTarget) : "";
+  return normalized || "http://127.0.0.1:5050/api";
+}
+
 function resolveApiBaseUrl(): string {
   const raw = (import.meta.env.VITE_API_BASE_URL || "").trim();
 
@@ -13,13 +30,13 @@ function resolveApiBaseUrl(): string {
       u.pathname = !normalizedPath || normalizedPath === "/" ? "/api" : normalizedPath;
       return u.toString().replace(/\/+$/, "");
     } catch {
-      return "http://127.0.0.1:5050/api";
+      return resolveNonHttpFallback();
     }
   }
 
   const isHttpOrigin =
     typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol);
-  return isHttpOrigin ? "/api" : "http://127.0.0.1:5050/api";
+  return isHttpOrigin ? "/api" : resolveNonHttpFallback();
 }
 
 class APIService {

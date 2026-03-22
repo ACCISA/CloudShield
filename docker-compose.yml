@@ -90,6 +90,7 @@ services:
       - VITE_PORT=5174
       - CHOKIDAR_USEPOLLING=true
       - VITE_API_PROXY_TARGET=http://api-test:5050
+      - VITE_API_BASE_URL=http://api-test:5050/api
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/tmp/.docker.xauth
       - ELECTRON_DISABLE_SANDBOX=true
