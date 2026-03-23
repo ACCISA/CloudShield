@@ -612,6 +612,7 @@ export default function GroupsPage() {
               buttonText={csvImporting ? "Importing..." : "Import CSV"}
               onClick={handleCsvButtonClick}
               disabled={csvImporting}
+              data-testid="import-csv-button"
             />
             <div
               style={{

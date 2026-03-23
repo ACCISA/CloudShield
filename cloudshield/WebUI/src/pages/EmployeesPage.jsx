@@ -786,6 +786,7 @@ export default function EmployeesPage() {
               buttonText={csvImporting ? "Importing..." : "Import CSV"}
               onClick={handleCsvButtonClick}
               disabled={csvImporting}
+              data-testid="import-csv-btn"
             />
             <div
               style={{
