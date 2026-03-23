@@ -13,6 +13,8 @@ def hash_password(plain: str) -> str:
     Returns:
         str: A bcrypt hash string.
     """
+    if len(plain) > 72:
+        raise ValueError("password cannot be longer than 72 bytes")
     return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 

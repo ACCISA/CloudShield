@@ -14,6 +14,8 @@ import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 import PageShell from "../components/layout/PageShell.jsx";
 
+import {apiPost} from "../api/client";
+
 /**
  * Safely parse JSON if the response body is JSON, otherwise return {}.
  */
@@ -82,14 +84,11 @@ export default function AuthPage({ onLoginSuccess }) {
 
     try {
       // 2) Call the Flask API
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await apiPost("/auth/login",
+        {
           email: email.trim(),
           password,
-        }),
-      });
+        });
 
       const data = await safeReadJson(response);
 

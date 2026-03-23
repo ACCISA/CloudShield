@@ -27,12 +27,6 @@ _log_mod = types.ModuleType("cloudshield.Server.utils.logging_setup")
 _log_mod.get_logger = lambda name: __import__("logging").getLogger(name)
 sys.modules["cloudshield.Server.utils.logging_setup"] = _log_mod
 
-# Stub google.genai so import doesn't fail
-_google = types.ModuleType("google")
-_genai = types.ModuleType("google.genai")
-_genai.Client = object
-sys.modules.setdefault("google", _google)
-sys.modules.setdefault("google.genai", _genai)
 
 # Now import the module under test
 from cloudshield.Server.utils.ai_agent import (

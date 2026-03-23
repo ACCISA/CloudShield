@@ -1279,13 +1279,8 @@ def test_import_terraform_provisioner_spec_loader_none(monkeypatch):
     mock_spec = SimpleNamespace(loader=None)
     monkeypatch.setattr(importlib.util, "spec_from_file_location", lambda *a: mock_spec)
     
-    # Since existing imports are tried first, force fail them
-    def fail_import(name, *args, **kwargs):
-        raise ModuleNotFoundError("Force file load")
-    
-    with unittest.mock.patch("builtins.__import__", side_effect=fail_import):
-        with pytest.raises(ModuleNotFoundError) as exc:
-            np._import_terraform_provisioner()
+    with pytest.raises(ModuleNotFoundError) as exc:
+        np._import_terraform_provisioner()
         assert "Terraform provisioner not found" in str(exc.value)
 
 
