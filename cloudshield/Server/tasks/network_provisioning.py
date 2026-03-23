@@ -455,6 +455,21 @@ def provision_network(
                     job.meta["details"] = "Docker provisioning returned no metadata"
                 return {"status": "error", "message": "Docker provisioning returned no metadata"}
 
+            # Link Docker container IDs back to seeded workstation documents
+            # so the workstation callback can find them by container_id.
+            try:
+                workstations_col = db_admin["workstations"]
+                for entry in metadata:
+                    if entry.get("os") == "windows11" and entry.get("instance_id"):
+                        workstations_col.update_one(
+                            {"org_id": org_id, "status": "provisioning", "container_id": {"$exists": False}},
+                            {"$set": {"container_id": entry["instance_id"]}},
+                        )
+                        logger.info("Linked container_id=%s to seeded workstation for org %s",
+                                    entry["instance_id"], org_id)
+            except Exception as link_err:
+                logger.error("Failed to link container IDs to workstation docs: %s", link_err)
+
             try:
                 assets_raw = map_metadata_to_ec2_instances(metadata)
                 assets = _validate_inventory_assets(logger, org_id, assets_raw)
@@ -530,31 +545,6 @@ def provision_network(
         # Same post-success behavior for the terraform path.
         _enqueue_welcome_email_post_success(org_id, logger)
         return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
-
-
-        logger.info("Metadata from provisioner: %s", metadata)
-
-        assets = map_metadata_to_ec2_instances(metadata)
-
-        res = insert_inventory(db=db, org_id=org_id, assets=assets)
-
-        logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
-
-        logger.info("Provisioning complete for org %s", org_id)
-
-
-
-        return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
-
-        
-
-        return {
-            "message": "Provisioning complete",
-            "org_id": org_id,
-            "region": region,
-            "work_dir": str(generated_dir),
-            "metadata": metadata
-        }
     except Exception as e:
         set_progress(f"failed: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)

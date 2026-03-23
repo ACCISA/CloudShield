@@ -38,7 +38,7 @@ def init_docker():
     # In our test env, to be efficient we will build our infra now. We can assume that during testing
     # we are probably going to be provisioning infra. When we provision we will just docker compose up.
     docker.compose.build(
-        services=["samba-test", "openvpn-test","workstation"]
+        services=["samba-test", "openvpn-test", "workstation", "threat-detection"]
     )
 
 def copy_file_container(server_logger, container_id, path_in, path_out):
@@ -124,22 +124,50 @@ def run_concurrent_tasks(server_logger, task_list):
     executor.shutdown(wait=False)
     return True
 
-def attach_api_to_network(server_logger, network_name):
+def attach_api_to_network(server_logger, network_name) -> str | None:
+    """Attach the API container to *network_name* and return its IP on that network."""
     try:
-        hostname = open("/etc/hostname", "r").read()
-        
+        hostname = open("/etc/hostname", "r").read().strip()
+
         result = subprocess.run(
                 ["docker", "network", "connect", network_name, hostname],
                 capture_output=True,
                 text=True,
-                check=True,
         )
-        server_logger.info(result.stdout)
-        server_logger.info("Successfully attached API to Infra network")
-    except subprocess.CalledProcessError as e:
-        server_logger.error(e)
-        server_logger.error(e.stderr)
-        server_logger.error("Failed to attach API to Infra network")
+        if result.returncode != 0:
+            stderr_lower = (result.stderr or "").lower()
+            if "already" in stderr_lower:
+                # Container is already connected — this is fine on retry
+                server_logger.info(f"API container already connected to {network_name}")
+            else:
+                server_logger.error(result.stderr)
+                server_logger.error("Failed to attach API to Infra network")
+                return None
+        else:
+            server_logger.info("Successfully attached API to Infra network")
+    except Exception as e:
+        server_logger.error(f"Failed to attach API to network: {e}")
+        return None
+
+    # Retrieve the IP assigned to the API container on the org network
+    try:
+        ip_result = subprocess.run(
+            ["docker", "inspect", "-f",
+             f"{{{{index .NetworkSettings.Networks \"{network_name}\"}}}}",
+             hostname],
+            capture_output=True, text=True, check=True,
+        )
+        # The output contains the full struct; extract IPAddress with json.
+        import re as _re
+        m = _re.search(r"(\d+\.\d+\.\d+\.\d+)", ip_result.stdout or "")
+        if m:
+            api_ip = m.group(1)
+            server_logger.info(f"API container IP on {network_name}: {api_ip}")
+            return api_ip
+    except Exception as exc:
+        server_logger.warning(f"Could not determine API IP on {network_name}: {exc}")
+
+    return None
 
 
 def setup_ssh_keys(server_logger, private_key_path):
@@ -201,6 +229,7 @@ def create_auto_configure_scripts(variables: dict, container_id: str, server_log
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
+    # ── Process top-level .ps1 files ──────────────────────────────────────
     for filename in os.listdir(source_folder):
         if filename.endswith(".ps1"):
             source_path = os.path.join(source_folder, filename)
@@ -219,6 +248,112 @@ def create_auto_configure_scripts(variables: dict, container_id: str, server_log
             if not copy_file_container(server_logger, container_id, output_path, "/oem/" + filename):
                 return
 
+    # ── Process helpers/ sub-folder .ps1 files ────────────────────────────
+    helpers_source = os.path.join(source_folder, "helpers")
+    if os.path.isdir(helpers_source):
+        helpers_output = os.path.join(output_folder, "helpers")
+        os.makedirs(helpers_output, exist_ok=True)
+
+        # Ensure /oem/helpers/ exists inside the container before docker cp
+        subprocess.run(
+            ["docker", "exec", container_id, "mkdir", "-p", "/oem/helpers"],
+            check=True,
+        )
+
+        for filename in os.listdir(helpers_source):
+            if filename.endswith(".ps1"):
+                source_path = os.path.join(helpers_source, filename)
+                output_path = os.path.join(helpers_output, filename)
+
+                with open(source_path, "r", encoding="utf-8") as file:
+                    content = file.read()
+
+                new_content = content
+                for key, value in variables.items():
+                    new_content = new_content.replace(key, str(value))
+
+                with open(output_path, "w", encoding="utf-8") as file:
+                    file.write(new_content)
+
+                if not copy_file_container(server_logger, container_id, output_path, "/oem/helpers/" + filename):
+                    return
+
+
+def _download_agent_from_github(dest: Path, server_logger) -> bool:
+    """Download the latest cloudshield_agent.exe from GitHub Releases.
+
+    Reads GITHUB_REPO (default: ACCISA/CloudShield) and optionally
+    GITHUB_TOKEN for private repos or to avoid rate-limiting.
+    """
+    import urllib.request
+    import urllib.error
+
+    repo = os.environ.get("GITHUB_REPO", "ACCISA/CloudShield")
+    api_url = f"https://api.github.com/repos/{repo}/releases/latest"
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            import json as _json
+            release = _json.loads(resp.read())
+    except Exception as exc:
+        server_logger.error(f"Failed to fetch GitHub release metadata: {exc}")
+        return False
+
+    asset_url = None
+    for asset in release.get("assets", []):
+        if asset.get("name") == "cloudshield_agent.exe":
+            asset_url = asset["browser_download_url"]
+            break
+
+    # Fall back to the zip artifact if the bare .exe is not a direct asset
+    if asset_url is None:
+        for asset in release.get("assets", []):
+            if asset.get("name", "").startswith("cloudshield-agent") and asset.get("name", "").endswith(".zip"):
+                asset_url = asset["browser_download_url"]
+                break
+
+    if asset_url is None:
+        server_logger.error(
+            f"No cloudshield_agent.exe asset found in latest release of {repo}. "
+            "Tag a release after merging to main to publish one."
+        )
+        return False
+
+    server_logger.info(f"Downloading agent binary from GitHub Releases: {asset_url}")
+    try:
+        dl_headers = {}
+        if token:
+            dl_headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(asset_url, headers=dl_headers)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        # If the asset is a zip, extract the .exe from it
+        if asset_url.endswith(".zip"):
+            import io, zipfile
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = resp.read()
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                names = [n for n in zf.namelist() if n.endswith("cloudshield_agent.exe")]
+                if not names:
+                    server_logger.error("cloudshield_agent.exe not found inside release zip")
+                    return False
+                with zf.open(names[0]) as src, open(dest, "wb") as out:
+                    out.write(src.read())
+        else:
+            with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
+                out.write(resp.read())
+
+        server_logger.info(f"Agent binary downloaded to {dest}")
+        return True
+    except Exception as exc:
+        server_logger.error(f"Failed to download agent binary: {exc}")
+        return False
+
 
 def _stage_agent_binary_into_oem(server_logger) -> str | None:
     """Ensure cloudshield_agent.exe is available in docker/workstation/oem.
@@ -226,6 +361,7 @@ def _stage_agent_binary_into_oem(server_logger) -> str | None:
     Priority:
       1) Existing OEM binary (/app/docker/workstation/oem/cloudshield_agent.exe)
       2) Built binary from agent dist (/app/cloudshield/Agent/dist/cloudshield_agent.exe)
+      3) Download latest release from GitHub Releases
 
     If only dist exists, copy it into OEM so future builds/provisions reuse it.
     """
@@ -246,27 +382,46 @@ def _stage_agent_binary_into_oem(server_logger) -> str | None:
             server_logger.error(f"Failed to stage agent binary into OEM: {exc}")
             return None
 
+    server_logger.warning(
+        "cloudshield_agent.exe not found locally — attempting download from GitHub Releases"
+    )
+    if _download_agent_from_github(oem_binary, server_logger):
+        return str(oem_binary)
+
     server_logger.error(
-        "cloudshield_agent.exe not found in OEM or dist. Build it first with cloudshield/Agent/build_agent.ps1"
+        "cloudshield_agent.exe unavailable. Either:\n"
+        "  • Run cloudshield/Agent/build_agent.ps1 on Windows and copy the .exe here, or\n"
+        "  • Push a tagged release to GitHub so the CI build publishes it."
     )
     return None
 
 
-def _upsert_threat_detection_agent(server_logger, agent_id: str, agent_ip: str, hostname: str) -> None:
-    """Ensure the ThreatDetection allowlist contains the provisioned workstation agent.
+def _upsert_threat_detection_agent(
+    server_logger,
+    agent_id: str,
+    agent_ip: str,
+    hostname: str,
+    agents_file: Path | None = None,
+    td_container_id: str | None = None,
+) -> None:
+    """Ensure the per-org ThreatDetection allowlist contains the provisioned workstation agent.
 
-    ThreatDetection currently authenticates agents by matching both source IP and
-    agent_id from cloudshield/ThreatDetection/agents.json.
+    The org-specific *agents_file* is updated and synced into the org's
+    ThreatDetection container identified by *td_container_id*.
     """
-    agents_file = Path("/app/cloudshield/ThreatDetection/agents.json")
+    if agents_file is None:
+        server_logger.error("No per-org agents file provided; cannot update ThreatDetection allowlist")
+        return
 
     if not agent_id or not agent_ip:
         server_logger.warning("Skipping ThreatDetection allowlist update: missing agent_id or agent_ip")
         return
 
+    # For per-org files that don't exist yet, seed them with an empty list.
     if not agents_file.exists():
-        server_logger.warning(f"ThreatDetection agents file not found: {agents_file}")
-        return
+        agents_file.parent.mkdir(parents=True, exist_ok=True)
+        agents_file.write_text(json.dumps({"agents": []}, indent=4), encoding="utf-8")
+        server_logger.info(f"Created new ThreatDetection agents file: {agents_file}")
 
     payload = _load_td_agents_payload(server_logger, agents_file)
     if payload is None:
@@ -277,12 +432,12 @@ def _upsert_threat_detection_agent(server_logger, agent_id: str, agent_ip: str, 
     if existing is not None:
         if not existing.get("hostname") and hostname:
             existing["hostname"] = hostname
-            _persist_td_agents_payload(server_logger, agents_file, payload, "hostname update")
+            _persist_td_agents_payload(server_logger, agents_file, payload, "hostname update", td_container_id)
         server_logger.info(f"ThreatDetection allowlist already has agent {agent_id}@{agent_ip}")
         return
 
     agents.append({"agent_id": agent_id, "ip": agent_ip, "hostname": hostname})
-    _persist_td_agents_payload(server_logger, agents_file, payload, "agent add")
+    _persist_td_agents_payload(server_logger, agents_file, payload, "agent add", td_container_id)
     server_logger.info(f"Added workstation agent to ThreatDetection allowlist: {agent_id}@{agent_ip}")
 
 
@@ -315,21 +470,38 @@ def _find_td_agent_entry(agents: list, agent_id: str, agent_ip: str) -> dict | N
     return None
 
 
-def _persist_td_agents_payload(server_logger, agents_file: Path, payload: dict, action: str) -> None:
+def _persist_td_agents_payload(
+    server_logger, agents_file: Path, payload: dict, action: str, td_container_id: str | None = None,
+) -> None:
     try:
         agents_file.write_text(json.dumps(payload, indent=4), encoding="utf-8")
-        _sync_td_agents_to_runtime_containers(server_logger, agents_file)
+        if td_container_id:
+            # Per-org mode: sync directly into the org's TD container via bind mount path
+            _sync_td_agents_to_container(server_logger, agents_file, td_container_id)
+        else:
+            # Legacy global mode: broadcast to all server-* containers
+            _sync_td_agents_to_runtime_containers(server_logger, agents_file)
     except Exception as exc:
         server_logger.error(f"Failed to persist ThreatDetection allowlist {action}: {exc}")
+
+
+def _sync_td_agents_to_container(server_logger, agents_file: Path, container_id: str) -> None:
+    """Copy agents.json into a specific org ThreatDetection container."""
+    dest = f"{container_id}:/app/cloudshield/ThreatDetection/org_agents/agents.json"
+    try:
+        subprocess.run(
+            ["docker", "cp", str(agents_file), dest],
+            check=True, capture_output=True, text=True,
+        )
+        server_logger.info(f"Synced ThreatDetection allowlist into org TD container: {container_id[:12]}")
+    except Exception as exc:
+        server_logger.warning(f"Failed to sync allowlist into TD container {container_id[:12]}: {exc}")
 
 
 def _sync_td_agents_to_runtime_containers(server_logger, agents_file: Path) -> None:
     """Propagate ThreatDetection allowlist updates to running server containers.
 
-    In docker mode, provisioning runs in the API container and updates the local
-    checkout file at /app/cloudshield/ThreatDetection/agents.json. The runtime
-    gRPC server may run in a different container (e.g., server-dev), so copy the
-    file there as well to keep authentication state in sync.
+    Legacy fallback for the global ThreatDetection instance.
     """
     try:
         result = subprocess.run(
@@ -542,18 +714,106 @@ def _workstation_oem_dir(org_id: str) -> str:
     return os.path.join(_workstation_storage_dir(org_id), "oem")
 
 
+def _td_agents_dir(org_id: str) -> str:
+    """Return the host-side directory for the org's ThreatDetection agents.json."""
+    return os.path.join(_workstation_storage_dir(org_id), "td_agents")
+
+
+def _host_path_to_container(host_path: str) -> str:
+    """Remap a host-side WORKSTATIONS_MOUNT_DIR path to the container bind-mount at /data.
+
+    The API container mounts WORKSTATIONS_MOUNT_DIR at /data, but environment
+    variables still hold the original host path (e.g. C:/Users/... on Windows).
+    File I/O inside the container must use the /data/... equivalent.
+    """
+    host_mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "")
+    if not host_mount:
+        return host_path
+    # Normalise separators for comparison
+    norm_host = host_mount.replace("\\", "/").rstrip("/")
+    norm_path = host_path.replace("\\", "/")
+    if norm_path.startswith(norm_host):
+        return "/data" + norm_path[len(norm_host):]
+    return host_path
+
+
+def _ensure_td_agents_dir(org_id: str, server_logger) -> str:
+    """Create the org-specific TD agents directory and seed agents.json if needed."""
+    d = _host_path_to_container(_td_agents_dir(org_id))
+    os.makedirs(d, exist_ok=True)
+    agents_file = os.path.join(d, "agents.json")
+    if not os.path.exists(agents_file):
+        with open(agents_file, "w", encoding="utf-8") as f:
+            json.dump({"agents": []}, f, indent=4)
+        server_logger.info(f"Seeded empty agents.json for org {org_id} at {agents_file}")
+    return d
+
+
+def provision_threat_detection_docker(
+    org_id: str,
+    server_logger,
+    org_docker: DockerClient,
+    org_network_name: str,
+) -> tuple[str, str] | None:
+    """Spin up a per-org ThreatDetection container and return (container_id, ip).
+
+    The container reuses the same 'server' image (Dockerfile.server) but runs
+    on the org network only, with its own agents.json bind-mounted in.
+    """
+    container_name = f"threat-detection-{org_id}"
+    server_logger.info(f"Starting per-org ThreatDetection container: {container_name}")
+
+    try:
+        container_td = org_docker.compose.run(
+            name=container_name,
+            service="threat-detection",
+            detach=True,
+            tty=False,
+        )
+    except Exception as exc:
+        server_logger.error(f"Failed to start ThreatDetection container for org {org_id}: {exc}")
+        return None
+
+    container_td.reload()
+    td_ip = container_td.network_settings.networks[org_network_name].ip_address
+    server_logger.info(f"ThreatDetection for org {org_id}: id={container_td.id[:12]} ip={td_ip}")
+    return container_td.id, td_ip
+
+
 def _resolve_windows_iso_path(server_logger) -> str:
-    # Notice we skip python Path().exists() checking because this script 
-    # runs inside the api container but the docker daemon evaluates paths
-    # from the context of the host machine.
+    # The docker daemon evaluates paths from the host, so we can't use
+    # os.path.exists() on the host path directly. However, WORKSTATIONS_MOUNT_DIR
+    # is bind-mounted into this container at /data, so we can validate the ISO
+    # exists and is non-zero by remapping the prefix.
     p = os.environ.get("WINDOWS_ISO_PATH")
     if p and str(p).strip():
         iso = str(p).strip()
     else:
         mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "/home/cena")
         iso = os.path.join(mount, "win11x64.iso")
-    
+
     server_logger.info(f"WINDOWS_ISO_PATH resolved to: {iso} (will be evaluated by Host Docker Daemon)")
+
+    # Validate the ISO is reachable and non-empty via the container bind mount.
+    host_mount = os.environ.get("WORKSTATIONS_MOUNT_DIR", "")
+    container_mount = "/data"
+    if host_mount and iso.startswith(host_mount):
+        container_iso = container_mount + iso[len(host_mount):].replace("\\", "/")
+        if not os.path.exists(container_iso):
+            server_logger.error(
+                f"Windows ISO not found at {container_iso} (host: {iso}). "
+                "Download it with install_iso.sh or set WINDOWS_ISO_PATH to a valid path."
+            )
+            raise FileNotFoundError(f"Windows ISO missing: {iso}")
+        size = os.path.getsize(container_iso)
+        if size < 1_000_000_000:
+            server_logger.error(
+                f"Windows ISO at {container_iso} is only {size} bytes — likely a placeholder. "
+                "Re-download with install_iso.sh."
+            )
+            raise ValueError(f"Windows ISO too small ({size} bytes): {iso}")
+        server_logger.info(f"Windows ISO validated: {size / 1e9:.1f} GB")
+
     return iso
 
 
@@ -563,6 +823,7 @@ def _write_compose_override_for_org(
     storage_dir: str,
     oem_dir: str,
     iso_path: str,
+    td_agents_dir: str = "",
 ) -> None:
     def _yaml_quote(value: str) -> str:
         return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"') + '"'
@@ -576,16 +837,33 @@ def _write_compose_override_for_org(
             "        target: \"/dev/kvm\"\n"
         )
 
+    # Per-org ThreatDetection service — each org gets its own isolated instance.
+    # It needs both org_net (to receive agent gRPC) and cloudshield_net (to reach ES).
+    td_service = ""
+    if td_agents_dir:
+        td_service = (
+            "  threat-detection:\n"
+            "    networks: [org_net, cloudshield_net]\n"
+            "    volumes:\n"
+            "      - type: bind\n"
+            f"        source: {_yaml_quote(td_agents_dir)}\n"
+            "        target: /app/cloudshield/ThreatDetection/org_agents\n"
+            "    environment:\n"
+            "      CLOUDSHIELD_RUNTIME: '1'\n"
+            "      AGENTS_FILE: /app/cloudshield/ThreatDetection/org_agents/agents.json\n"
+            "      ES_URL: 'http://elasticsearch:9200'\n"
+        )
+
     override_yaml = (
         "services:\n"
         "  samba-test:\n"
         "    networks: [org_net]\n"
         "  openvpn-test:\n"
         "    networks: [org_net]\n"
+        f"{td_service}"
         "  workstation:\n"
         "    networks:\n"
         "      - org_net\n"
-        "      - cloudshield_net\n"
         "    volumes:\n"
         f"{kvm_volume}"
         "      - type: bind\n"
@@ -605,7 +883,7 @@ def _write_compose_override_for_org(
         f"    name: {_yaml_quote(external_network_name)}\n"
         "  cloudshield_net:\n"
         "    external: true\n"
-        "    name: \"cloudshield_net\"\n"
+        "    name: cloudshield_net\n"
     )
 
     override_path.parent.mkdir(parents=True, exist_ok=True)
@@ -647,7 +925,13 @@ def provision_workstation_docker(
     org_network_name: str,
     samba_ip: str,
     org_subnet_cidr: str,
-    threat_detection_ip: str = "host.lan",
+    threat_detection_ip: str,
+    td_agents_file: Path | None = None,
+    td_container_id: str | None = None,
+    domain_name: str = "cloudshield.local",
+    admin_user: str = "Administrator",
+    admin_pass: str = "Password123!",
+    api_server_ip: str = "",
 ):
 
     host_port = _pick_workstation_host_port(org_subnet_cidr)
@@ -664,16 +948,15 @@ def provision_workstation_docker(
 
     ws_networks = container_ws.network_settings.networks
     container_ws_ip = ws_networks[org_network_name].ip_address
-    cloudshield_ws_ip = None
-    if "cloudshield_net" in ws_networks:
-        cloudshield_ws_ip = ws_networks["cloudshield_net"].ip_address
 
     agent_id = f"ws-{org_id}-{container_id_ws[:8]}"
     _upsert_threat_detection_agent(
         server_logger,
         agent_id=agent_id,
-        agent_ip=cloudshield_ws_ip or container_ws_ip,
+        agent_ip=container_ws_ip,
         hostname=f"{org_id}-workstation",
+        agents_file=td_agents_file,
+        td_container_id=td_container_id,
     )
 
     agent_binary_path = _stage_agent_binary_into_oem(server_logger)
@@ -682,15 +965,18 @@ def provision_workstation_docker(
         return
 
     server_logger.info("Creating OEM scripts")
+    substitution_vars = {
+        "DOMAIN_NAME": domain_name,
+        "ADMIN_USER": admin_user,
+        "ADMIN_PASS": admin_pass,
+        "SAMBA_IP": samba_ip,
+        "THREAT_DETECTION_IP": threat_detection_ip,
+        "__AGENT_ID__": agent_id,
+        "API_SERVER_IP": api_server_ip or "127.0.0.1",
+        "WORKSTATION_UPDATE_ID_PLACEHOLDER": container_id_ws,
+    }
     create_auto_configure_scripts(
-        {
-            "DOMAIN_NAME": "samdom.example.com",
-            "ADMIN_USER": "Administrator",
-            "ADMIN_PASS": "letmein123%",
-            "SAMBA_IP": samba_ip,
-            "THREAT_DETECTION_IP": threat_detection_ip,
-            "__AGENT_ID__": agent_id,
-        },
+        substitution_vars,
         container_id_ws,
         server_logger,
     )
@@ -703,8 +989,32 @@ def provision_workstation_docker(
     ):
         return
 
-    if not copy_file_container(server_logger, container_id_ws, "/app/docker/workstation/oem/install.bat", "/oem/install.bat"):
+    # ── Substitute variables in install.bat and copy it ─────────────────
+    install_bat_src = "/app/docker/workstation/oem/install.bat"
+    install_bat_out = os.path.join("/app/docker/workstation/oem/scripts", "install.bat")
+    try:
+        with open(install_bat_src, "r", encoding="utf-8") as f:
+            bat_content = f.read()
+        for key, value in substitution_vars.items():
+            bat_content = bat_content.replace(key, str(value))
+        os.makedirs(os.path.dirname(install_bat_out), exist_ok=True)
+        with open(install_bat_out, "w", encoding="utf-8") as f:
+            f.write(bat_content)
+    except Exception as exc:
+        server_logger.error(f"Failed to substitute install.bat variables: {exc}")
+        return
+
+    if not copy_file_container(server_logger, container_id_ws, install_bat_out, "/oem/install.bat"):
         server_logger.error("Workstation startup canceled")
+        return
+
+    # ── Signal the container that all OEM files are in place ──────────────
+    # The addFolder() function in define.sh polls for this sentinel before
+    # baking the OEM directory into the Windows ISO.
+    ready_file = "/tmp/.oem_ready"
+    Path(ready_file).write_text("ok\n", encoding="utf-8")
+    if not copy_file_container(server_logger, container_id_ws, ready_file, "/oem/.ready"):
+        server_logger.error("Failed to write OEM .ready sentinel")
         return
 
     server_logger.info("Windows workstation installation has started, this will take some time")
@@ -791,9 +1101,11 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
 
     storage_dir = _workstation_storage_dir(org_id)
     oem_dir = _workstation_oem_dir(org_id)
+    td_agents_dir = _ensure_td_agents_dir(org_id, server_logger)
 
     server_logger.info(f"WORKSTATION_STORAGE_DIR={storage_dir}")
     server_logger.info(f"WORKSTATION_OEM_DIR={oem_dir}")
+    server_logger.info(f"TD_AGENTS_DIR={td_agents_dir}")
 
     override_path = cloudshield_path / "docker-compose.org.override.yml"
     _write_compose_override_for_org(
@@ -802,6 +1114,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         storage_dir=storage_dir,
         oem_dir=oem_dir,
         iso_path=iso_path,
+        td_agents_dir=td_agents_dir,
     )
 
     org_docker = DockerClient(compose_files=[COMPOSE_FILE, str(override_path)])
@@ -890,7 +1203,21 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     if not run_concurrent_tasks(server_logger, copy_files_tasks):
         return
 
-    attach_api_to_network(server_logger, org_network_name)
+    api_ip = attach_api_to_network(server_logger, org_network_name)
+
+    # ── Per-org ThreatDetection container ───────────────────────────────────
+    td_result = provision_threat_detection_docker(
+        org_id, server_logger, org_docker, org_network_name,
+    )
+    td_ip = None
+    td_container_id = None
+    td_agents_file = Path(_host_path_to_container(td_agents_dir)) / "agents.json"
+    if not td_result:
+        server_logger.error("Per-org ThreatDetection failed to start; aborting provisioning")
+        return
+
+    td_container_id, td_ip = td_result
+    server_logger.info(f"Per-org ThreatDetection running at {td_ip}")
 
     workstation_meta = provision_workstation_docker(
         org_id,
@@ -899,10 +1226,13 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         org_network_name=org_network_name,
         samba_ip=container_dc_ip,
         org_subnet_cidr=org_subnet_cidr,
-        # ThreatDetection gRPC server from the Windows guest perspective.
-        # Default to host.lan since container-only IPs (e.g., 172.28.x.x) are
-        # not always reachable from inside the nested Windows VM.
-        threat_detection_ip=os.environ.get("THREAT_DETECTION_IP", "host.lan"),
+        threat_detection_ip=td_ip,
+        td_agents_file=td_agents_file,
+        td_container_id=td_container_id,
+        domain_name=domain_name,
+        admin_user="Administrator",
+        admin_pass=dc_admin_password,
+        api_server_ip=api_ip or "",
     )
     if workstation_meta:
         wait_workstation_completion(workstation_meta["instance_id"], server_logger)
@@ -949,6 +1279,31 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "public_ip": container_vpn_ip,
         },
     ]
+
+    if workstation_meta:
+        metadata.append(workstation_meta)
+
+    if td_result:
+        metadata.append({
+            "port": "50051",
+            "org_id": org_id,
+            "name": org_id + "_threat_detection",
+            "instance_id": td_container_id,
+            "vpc_id": org_network_name,
+            "subnet_id": org_subnet_cidr,
+            "ssh_key": "",
+            "ami_id": "threat_detection_ami_id",
+            "os": "python:3.10-slim",
+            "cpu": "1",
+            "ram_gb": "2",
+            "storage_size_gb": 5,
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "ports": ["50051"],
+            "status": "running",
+            "private_ip": td_ip,
+            "public_ip": td_ip,
+        })
 
     return metadata
 

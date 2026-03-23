@@ -20,7 +20,7 @@ def ws_start(org_id, template_id):
 def ws_provision_update(workstation_id, status):
     from cloudshield.Server.tasks import ws_provision_update as _task # type: ignore
 
-    return _task
+    return _task(workstation_id, status)
 
 def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
     enqueue_args = [

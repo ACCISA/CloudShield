@@ -25,20 +25,20 @@ $InstallDir     = "$env:ProgramFiles\CloudShield\Agent"
 $DataDir        = "$env:ProgramData\CloudShield\Agent"
 $LogDir         = "$DataDir\logs"
 $CacheDir       = "$DataDir\cache"
-$RegisterTaskScript = Join-Path $PSScriptRoot "register_cloudshield_agent_task.ps1"
+$RegisterTaskScript = Join-Path $PSScriptRoot "helpers\register_cloudshield_agent_task.ps1"
 
 # ── Configurable connection details ─────────────────────────────────────────
 # These can be overridden with environment variables set by the provisioner.
 $ProvisionedAgentId = "__AGENT_ID__"
-$ServerAddr = if ($env:SERVER_ADDR) { $env:SERVER_ADDR } else { "THREAT_DETECTION_IP" }
-$ServerPort = if ($env:SERVER_PORT) { $env:SERVER_PORT } else { "50051" }
-$AgentId    = if ($env:AGENT_ID) {
+$ServerAddr = $(if ($env:SERVER_ADDR) { $env:SERVER_ADDR } else { "THREAT_DETECTION_IP" })
+$ServerPort = $(if ($env:SERVER_PORT) { $env:SERVER_PORT } else { "50051" })
+$AgentId    = $(if ($env:AGENT_ID) {
     $env:AGENT_ID
 } elseif ($ProvisionedAgentId -match '^__.+__$') {
     $env:COMPUTERNAME
 } else {
     $ProvisionedAgentId
-}
+})
 
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Host "[CloudShield] Installing agent..."

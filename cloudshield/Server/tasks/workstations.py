@@ -1,10 +1,10 @@
-import time
+from datetime import datetime, timezone
 
 from rq import get_current_job
 
-from provisioner import provision_default_workstation, provision_workstation_vm
-from utils import get_logger, update_job, db, organizations, org_filter
-from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation_template, get_unique_members_by_ids
+from provisioner import provision_default_workstation, provision_custom_workstation, provision_workstation_vm
+from utils import get_logger, update_job, db, db_admin, organizations, org_filter
+from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation, get_workstation_template, get_unique_members_by_ids
 from models import WorkstationStatus
 from .task import get_server_nodes
 from services import service_dispatcher
@@ -189,6 +189,20 @@ def ws_create_custom():
 
 def ws_provision_update(workstation_id, status):
     """
-    Update the provisioning status of a workstation
+    Update a workstation's status after it reports back from provisioning.
+    The workstation_id here is the Docker container ID stored as 'container_id'
+    on the workstation document.
     """
-    pass
+    logger = get_logger("workstations")
+    workstations = db_admin["workstations"]
+
+    result = workstations.update_one(
+        {"container_id": workstation_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc)}},
+    )
+
+    if result.modified_count == 0:
+        logger.warning(f"No workstation found with container_id={workstation_id}")
+    else:
+        logger.info(f"Updated workstation container_id={workstation_id} to status={status}")
+
