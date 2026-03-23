@@ -500,9 +500,19 @@ def import_users_csv():
     try:
         from security import hash_password, is_bcrypt_string
         from datetime import datetime, timezone
-        from utils import users_admin, log_audit
+        from utils import users_admin, log_audit, organizations
+        from utils.terraform import get_workstation_count
+        from bson import ObjectId
         import secrets
         import string
+
+        def _coerce_int(val) -> int | None:
+            """Convert numeric values to int; ignore non-numeric."""
+            if isinstance(val, bool):
+                return None
+            if isinstance(val, (int, float)):
+                return int(val)
+            return None
 
         if "file" not in request.files:
             return jsonify({"error": "No file provided"}), 400
@@ -523,6 +533,18 @@ def import_users_csv():
         if not org_id:
             return jsonify({"error": "Missing org_id for authenticated user"}), 400
 
+        # Get organization user limit (same logic as user_service.create_user)
+        try:
+            org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
+        except Exception:
+            org_doc = {}
+
+        user_limit = _coerce_int(org_doc.get("user_limit"))
+        if user_limit is None:
+            user_limit = _coerce_int(get_workstation_count(org_id))
+
+        existing_user_count = users_admin.count_documents({"org_id": org_id})
+
         def generate_secure_password():
             """Generate a secure random password."""
             alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
@@ -534,7 +556,8 @@ def import_users_csv():
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (row 1 is header)
             try:
-                email = (row.get("email") or "").strip()
+                # Normalize email to lowercase (consistent with UserCreate model)
+                email = (row.get("email") or "").strip().lower()
                 full_name = (row.get("full_name") or "").strip()
                 password_hash = (row.get("password_hash") or "").strip()
                 role = (row.get("role") or "employee").strip().lower()
@@ -544,6 +567,14 @@ def import_users_csv():
                     errors.append({
                         "row": row_num,
                         "error": "Missing required fields (email, full_name)"
+                    })
+                    continue
+
+                # Basic email format validation
+                if "@" not in email or email.startswith("@") or email.endswith("@"):
+                    errors.append({
+                        "row": row_num,
+                        "error": f"Invalid email format: {email}"
                     })
                     continue
 
@@ -563,6 +594,14 @@ def import_users_csv():
                     errors.append({
                         "row": row_num,
                         "error": f"User with email {email} already exists"
+                    })
+                    continue
+
+                # Enforce user limit (same logic as user_service.create_user)
+                if user_limit is not None and (existing_user_count + created_count + 1) > user_limit:
+                    errors.append({
+                        "row": row_num,
+                        "error": "User limit reached for this organization"
                     })
                     continue
 
