@@ -448,24 +448,43 @@ def import_groups_csv():
         # Read and decode CSV content
         content = file.read().decode("utf-8-sig")
         reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
 
         org_id = _require_org_id()
         coll = _get_access_groups_collection()
         users_coll = _get_users_collection()
 
-        # Build email -> user_id mapping for the org
+        # Build email -> user_id mapping for the org using only emails present in the CSV
         email_to_id = {}
-        org_users = list(users_coll.find({"org_id": org_id}, {"_id": 1, "email": 1}))
-        for u in org_users:
-            email = (u.get("email") or "").strip().lower()
-            if email:
-                email_to_id[email] = str(u["_id"])
+        unique_emails = set()
+        for row in rows:
+            member_emails_raw = (row.get("member_emails") or "").strip()
+            if not member_emails_raw:
+                continue
+            # Support both comma- and semicolon-separated email lists
+            normalized = member_emails_raw.replace(";", ",")
+            for part in normalized.split(","):
+                email = part.strip().lower()
+                if email:
+                    unique_emails.add(email)
+
+        if unique_emails:
+            org_users = list(
+                users_coll.find(
+                    {"org_id": org_id, "email": {"$in": list(unique_emails)}},
+                    {"_id": 1, "email": 1},
+                )
+            )
+            for u in org_users:
+                email = (u.get("email") or "").strip().lower()
+                if email:
+                    email_to_id[email] = str(u["_id"])
 
         created_count = 0
         errors = []
         dc_job_ids = []
 
-        for row_num, row in enumerate(reader, start=2):  # Start at 2 (row 1 is header)
+        for row_num, row in enumerate(rows, start=2):  # Start at 2 (row 1 is header)
             try:
                 group_name = (row.get("group_name") or "").strip()
                 description = (row.get("description") or "").strip()
