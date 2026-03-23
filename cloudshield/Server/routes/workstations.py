@@ -10,7 +10,7 @@ from services import service_dispatcher
 
 from cloudshield.Server.security.guards import require_auth
 
-from repos import get_workstations, get_available_workstations
+from repos import get_workstations, get_available_workstations, get_workstation_templates
 from utils import db
 
 
@@ -50,15 +50,14 @@ def get_workstations_api():
 
     workstations = get_workstations(db, org_id)
     
-    return {"workstations": workstations}
+    return jsonify({"workstations": workstations}), 200
 
-
-@workstations_bp.route("/workstations", methods=["POST"])
+@workstations_bp.route("/workstations/templates", methods=["POST"])
 @require_auth
 def create_default():
     data = request.get_json() or {}
     
-    logger.info("[API] Received /workstations/create-default POST request")
+    logger.info("[API] Received /workstations/templates POST request")
 
     org_id = data.get("org_id")
     name = data.get("name")
@@ -67,7 +66,7 @@ def create_default():
     access_groups = data.get("access_groups")
     members = data.get("members")
 
-    for arg, val in {"org_id":org_id, "name":name, "description":description, "software":software, "access_groups":access_groups}.items():
+    for arg, val in {"org_id":org_id, "name":name, "description":description, "software":software, "access_groups":access_groups, "members":members}.items():
         if val is None:
             logger.warning(f"WORKSTATIONS create_default request missing {arg}")
             return jsonify({"error":f"{arg} is required"}), 400
@@ -83,6 +82,20 @@ def create_default():
 
     return jsonify({"job_id":job.id}), 202
 
+@workstations_bp.route("/workstations/templates", methods=["GET"])
+@require_auth
+def list_templates():
+    org_id = request.args.get('org_id')
+
+    if not org_id:
+        return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 400
+
+    templates = get_workstation_templates(db=db, org_id=org_id)
+
+    # fetch other doucments from the ids stored in templates
+
+    return jsonify({"templates":templates}), 200
+
 @workstations_bp.route("/workstations/start", methods=["POST"])
 @require_auth
 def start():
@@ -93,7 +106,7 @@ def start():
     """
     data = request.get_json() or {}
 
-    logger.info("[API] Received /workstations/create-default POST request")
+    logger.info("[API] Received /workstations/start POST request")
 
     org_id = data.get("org_id")
     template_id = data.get("template_id")
@@ -104,7 +117,6 @@ def start():
     if template_id is None:
         logger.warning("Workstation default workstation provisioning request missing org_id")
         return jsonify({"error":ERROR_TEMPLATE_ID_REQUIRED}), 400
-
 
     job = service_dispatcher(
             service_name="ws_start",
@@ -133,12 +145,9 @@ def update():
     if not status:
         return jsonify({"error":ERROR_STATUS_REQUIRED})
 
-
     job = service_dispatcher(
             service_name="ws_provision_update",
             workstation_id=workstation_id,
             status=status)
 
     return jsonify({"job_id":job.id}), 202
-
-    

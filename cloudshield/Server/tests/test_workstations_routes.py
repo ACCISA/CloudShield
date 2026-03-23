@@ -108,7 +108,7 @@ class TestCreateDefaultRoute:
             'software': ['app1'],
             'access_groups': ['group-1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
     def test_route_missing_name_validates_and_returns_400(self, client):
@@ -119,7 +119,7 @@ class TestCreateDefaultRoute:
             'software': ['app1'],
             'access_groups': ['group-1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
     def test_route_missing_description_validates_and_returns_400(self, client):
@@ -130,7 +130,7 @@ class TestCreateDefaultRoute:
             'software': ['app1'],
             'access_groups': ['group-1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
     def test_route_missing_software_validates_and_returns_400(self, client):
@@ -141,7 +141,7 @@ class TestCreateDefaultRoute:
             'description': 'test',
             'access_groups': ['group-1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
     def test_route_missing_access_groups_validates_and_returns_400(self, client):
@@ -152,7 +152,7 @@ class TestCreateDefaultRoute:
             'description': 'test',
             'software': ['app1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
     def test_route_with_all_fields_dispatches_service(self, client):
@@ -167,9 +167,9 @@ class TestCreateDefaultRoute:
                 'name': 'new-ws',
                 'description': 'Test workstation',
                 'software': ['app1', 'app2'],
-                'access_groups': ['group-1', 'group-2']
+                'access_groups': ['group-1', 'group-2'],"members":[]
             }
-            response = client.post('/api/workstations', json=payload)
+            response = client.post('/api/workstations/templates', json=payload)
             assert response.status_code == 202
             data = response.get_json()
             assert data['job_id'] == 'job-12345'
@@ -186,9 +186,9 @@ class TestCreateDefaultRoute:
                 'name': 'ws-test',
                 'description': 'Desc',
                 'software': ['s1'],
-                'access_groups': ['ag-1']
+                'access_groups': ['ag-1'],"members":[]
             }
-            response = client.post('/api/workstations', json=payload)
+            response = client.post('/api/workstations/templates', json=payload)
             
             assert mock_dispatch.called
             kwargs = mock_dispatch.call_args[1]
@@ -210,12 +210,12 @@ class TestCreateDefaultRoute:
                 mock_job.id = 'job-123'
                 mock_dispatch.return_value = mock_job
                 
-                response = client.post('/api/workstations', json=payload)
+                response = client.post('/api/workstations/templates', json=payload)
                 assert mock_logger.info.called
 
     def test_route_with_empty_json_returns_400(self, client):
         """Test line 65: empty JSON body is detected as missing fields."""
-        response = client.post('/api/workstations', json={})
+        response = client.post('/api/workstations/templates', json={})
         assert response.status_code == 400
 
     def test_route_validation_chain_each_field_required(self, client):
@@ -230,7 +230,7 @@ class TestCreateDefaultRoute:
                 'access_groups': ['group-1']
             }
             del payload[field_to_omit]
-            response = client.post('/api/workstations', json=payload)
+            response = client.post('/api/workstations/templates', json=payload)
             assert response.status_code == 400, f"Missing {field_to_omit} should return 400"
 
     def test_route_with_none_org_id_returns_400(self, client):
@@ -242,7 +242,7 @@ class TestCreateDefaultRoute:
             'software': ['app1'],
             'access_groups': ['group-1']
         }
-        response = client.post('/api/workstations', json=payload)
+        response = client.post('/api/workstations/templates', json=payload)
         assert response.status_code == 400
 
 
@@ -498,7 +498,7 @@ class TestLineSpecificCoverage:
         for field in ['org_id', 'name', 'description', 'software', 'access_groups']:
             payload = base_payload.copy()
             del payload[field]
-            response = client.post('/api/workstations', json=payload)
+            response = client.post('/api/workstations/templates', json=payload)
             assert response.status_code == 400
 
     def test_line_102_start_org_id_none_check(self, client):
