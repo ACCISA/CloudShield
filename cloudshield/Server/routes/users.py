@@ -8,7 +8,8 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
-from utils import get_logger
+from utils import get_logger, db_admin
+from bson import ObjectId
 
 logger = get_logger("tasks")
 
@@ -225,6 +226,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/<user_id>", methods=["GET"])
@@ -345,15 +347,12 @@ def delete_user_endpoint(user_id):
         200: { "message": "User deleted" }
         403: { "error": "..." }    # Authorization/role guard
         404: { "error": "..." }    # User not found
-        500: { "error": "Internal server error" }
     """
     try:
         # Try to look up user info before deletion for DC username derivation.
         # This is best-effort; failure here must not block the actual deletion.
         user_doc = None
         try:
-            from utils.database import db_admin
-            from bson import ObjectId
             user_doc = db_admin["users"].find_one(
                 {"_id": ObjectId(user_id)},
                 {"email": 1, "org_id": 1, "full_name": 1},
@@ -365,6 +364,7 @@ def delete_user_endpoint(user_id):
         delete_user(user_id, current_user=g.user, reason=reason)
 
         resp = {"message": "User deleted"}
+
 
         # After DB deletion, dispatch DC removal
         if user_doc:
@@ -390,7 +390,8 @@ def delete_user_endpoint(user_id):
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception:
+    except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 
@@ -408,8 +409,8 @@ def signup_admin_endpoint():
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
-
     except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/me", methods=["GET"])

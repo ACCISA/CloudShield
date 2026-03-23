@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage from "../WorkstationsPage";
+import WorkstationsPage, { createWorkstation } from "../WorkstationsPage";
 
 // Mock analytics
 jest.mock("../../lib/analytics", () => ({
@@ -215,6 +215,132 @@ jest.mock("../../components/common/RefreshButton/RefreshButton", () => {
       </button>
     );
   };
+});
+
+// Mock standardized layout/wrappers so tests stay focused on page logic
+jest.mock("../../components/layout/PageShell", () => ({
+  __esModule: true,
+  default: function MockPageShell({ title, subtitle, actions, children }) {
+    return (
+      <div data-testid="page-shell">
+        {title ? <h1>{title}</h1> : null}
+        {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
+        {actions ? <div data-testid="page-actions">{actions}</div> : null}
+        <div data-testid="page-content">{children}</div>
+      </div>
+    );
+  },
+}));
+
+jest.mock("../../components/table/TableSurface", () => ({
+  __esModule: true,
+  default: function MockTableSurface({ children }) {
+    return <div data-testid="table-surface">{children}</div>;
+  },
+}));
+
+jest.mock("../../components/table/TableSkeleton", () => ({
+  __esModule: true,
+  default: function MockTableSkeleton() {
+    return <div data-testid="table-skeleton">Loading...</div>;
+  },
+}));
+
+jest.mock("../../lib/safeAsync", () => ({
+  __esModule: true,
+  safeAsync: jest.fn(async (fn) => await fn()),
+}));
+
+describe("createWorkstation", () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    global.fetch = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    global.fetch = originalFetch;
+  });
+
+  test("posts workstation payload with mapped group ids and auth token", async () => {
+    localStorage.setItem("jwt", "token-123");
+    const createdResponse = { id: "ws-123", name: "WS-Alpha" };
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValueOnce(createdResponse),
+    });
+
+    const result = await createWorkstation(
+      "org-1",
+      "WS-Alpha",
+      "10.0.0.1",
+      [{ id: "group-1" }, { id: "group-2" }],
+    );
+
+    expect(result).toEqual(createdResponse);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/workstations",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+      }),
+    );
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(options.headers).toEqual(
+      expect.objectContaining({
+        "Content-Type": "application/json",
+        Authorization: "Bearer token-123",
+      }),
+    );
+    expect(JSON.parse(options.body)).toEqual({
+      org_id: "org-1",
+      name: "WS-Alpha",
+      ip: "10.0.0.1",
+      groups: ["group-1", "group-2"],
+    });
+  });
+
+  test("omits authorization header and defaults groups to empty array", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValueOnce({ id: "ws-456" }),
+    });
+
+    await createWorkstation("org-2", "WS-Beta", "10.0.0.2");
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(options.headers).toEqual({
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(options.body)).toEqual({
+      org_id: "org-2",
+      name: "WS-Beta",
+      ip: "10.0.0.2",
+      groups: [],
+    });
+  });
+
+  test("returns null and logs when API responds with error", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      statusText: "Bad Request",
+      json: jest.fn().mockResolvedValueOnce({ error: "Workstation already exists" }),
+    });
+
+    const result = await createWorkstation("org-3", "WS-Gamma", "10.0.0.3", []);
+
+    expect(result).toBeNull();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Error creating workstation:",
+      expect.any(Error),
+    );
+  });
 });
 
 describe("WorkstationsPage Component", () => {
@@ -664,11 +790,16 @@ describe("WorkstationsPage Component", () => {
       const consoleSpy = jest.spyOn(console, "log").mockImplementation();
 
       renderPage();
-      const refreshButton = screen.getByTestId("refresh-button");
+      await userEvent.click(screen.getByTestId("refresh-button"));
 
-      await userEvent.click(refreshButton);
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith("refresh");
+      });
 
-      expect(consoleSpy).toHaveBeenCalledWith("refresh");
+      await waitFor(() => {
+        expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+      });
+
       consoleSpy.mockRestore();
     });
   });
@@ -777,5 +908,29 @@ describe("WorkstationsPage Component", () => {
     });
   });
 
-  // Analytics tests removed - useClickLogger mock doesn't trigger trackButton
+  test("renders inside PageShell and TableSurface", () => {
+    renderPage();
+
+    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("page-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("page-content")).toBeInTheDocument();
+    expect(screen.getByTestId("table-surface")).toBeInTheDocument();
+  });
+
+  test("refresh uses safeAsync", async () => {
+    const { safeAsync } = require("../../lib/safeAsync");
+
+    renderPage();
+    await userEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(safeAsync).toHaveBeenCalled();
+  });
+
+  test("does not render title or subtitle in PageShell", () => {
+    renderPage();
+
+    expect(screen.queryByTestId("page-subtitle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
+
 });

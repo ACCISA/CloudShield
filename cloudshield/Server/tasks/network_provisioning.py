@@ -226,6 +226,17 @@ def _update_org_provisioning_status(org_id: str, status: str, job_id: str | None
             logger.warning("Failed to update provisioning status for org %s: %s", org_id, exc)
 
 
+def _enqueue_welcome_email_post_success(org_id: str, logger) -> None:
+    """
+    Trigger post-provision welcome email with centralized import/error handling.
+    """
+    try:
+        from cloudshield.Server.services.job_service import enqueue_org_welcome_email_if_ready  # type: ignore
+        enqueue_org_welcome_email_if_ready(org_id)
+    except Exception as exc:
+        logger.warning("Post-provision welcome email enqueue failed for org %s: %s", org_id, exc)
+
+
 def _detect_mode(logger) -> str:
     mode = (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower()
     docker_sock = Path("/var/run/docker.sock")
@@ -411,6 +422,9 @@ def provision_network(
 
             set_progress("completed")
             _update_org_provisioning_status(org_id, "completed", job_id, logger)
+            # Post-success trigger only:
+            # welcome email is intentionally deferred until provisioning completes.
+            _enqueue_welcome_email_post_success(org_id, logger)
             return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
 
         set_progress("provisioning infrastructure")
@@ -470,8 +484,34 @@ def provision_network(
 
         set_progress("completed")
         _update_org_provisioning_status(org_id, "completed", job_id, logger)
+        # Same post-success behavior for the terraform path.
+        _enqueue_welcome_email_post_success(org_id, logger)
         return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
 
+
+        logger.info("Metadata from provisioner: %s", metadata)
+
+        assets = map_metadata_to_ec2_instances(metadata)
+
+        res = insert_inventory(db=db, org_id=org_id, assets=assets)
+
+        logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
+
+        logger.info("Provisioning complete for org %s", org_id)
+
+
+
+        return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
+
+        
+
+        return {
+            "message": "Provisioning complete",
+            "org_id": org_id,
+            "region": region,
+            "work_dir": str(generated_dir),
+            "metadata": metadata
+        }
     except Exception as e:
         set_progress(f"failed: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
@@ -522,6 +562,7 @@ def destroy_environment(org_id: str, force: bool = False):
         return {"message": "Destroy complete", "removed_dir": True}
 
     except Exception as e:
+        logger.error(e)
         set_progress(f"failed destroy: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         # tests expect None on exception

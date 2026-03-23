@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
@@ -21,8 +22,35 @@ const parseJwt = (token) => {
       }).join('')
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
+  }
+};
+
+const clearBrowserSession = () => {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.clear();
+    }
+  } catch {
+    // ignore storage cleanup failures
+  }
+
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.clear();
+    }
+  } catch {
+    // ignore storage cleanup failures
+  }
+
+  if (typeof document !== "undefined" && typeof document.cookie === "string") {
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const name = cookie.split("=")[0]?.trim();
+      if (!name) continue;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+    }
   }
 };
 
@@ -32,7 +60,7 @@ export function AuthProvider({ children, initialState = {} }) {
     if (typeof globalThis !== 'undefined' && globalThis.__APP_ENV__) {
       return globalThis.__APP_ENV__;
     }
-    return typeof process === "undefined" ? {} : process.env;
+    return typeof globalThis.process === "undefined" ? {} : globalThis.process.env;
   })();
   
   const bootstrapEmail = initialState.bootstrapEmail ?? env?.VITE_AUTH_EMAIL ?? env?.VITE_API_EMAIL ?? '';
@@ -105,13 +133,16 @@ export function AuthProvider({ children, initialState = {} }) {
           const user = mePayload?.user || {};
           const claims = mePayload?.claims || {};
           
-          setCurrentUser((prev) => ({
-            id: user.id ?? user._id ?? claims.sub ?? prev.id,
-            email: user.email ?? claims.email ?? prev.email,
-            full_name: user.full_name ?? prev.full_name,
-            role: user.role ?? claims.role ?? prev.role,
-            org_id: user.org_id ?? claims.org_id ?? prev.org_id,
-          }));
+          setCurrentUser((prev) => {
+            const safePrev = prev || DEFAULT_USER;
+            return {
+              id: user.id ?? user._id ?? claims.sub ?? safePrev.id,
+              email: user.email ?? claims.email ?? safePrev.email,
+              full_name: user.full_name ?? safePrev.full_name,
+              role: user.role ?? claims.role ?? safePrev.role,
+              org_id: user.org_id ?? claims.org_id ?? safePrev.org_id,
+            };
+          });
         }
       } catch (err) {
         if (err?.name === 'AbortError') return;
@@ -150,6 +181,17 @@ export function AuthProvider({ children, initialState = {} }) {
     setRefreshTick((tick) => tick + 1);
   }, []);
 
+  const logout = useCallback(() => {
+    clearBrowserSession();
+    setAccessToken(null);
+    setCurrentUser(null);
+    setAuthError(null);
+    setAuthLoading(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth:logout"));
+    }
+  }, []);
+
   const value = useMemo(() => ({
     currentUser,
     accessToken,
@@ -157,7 +199,8 @@ export function AuthProvider({ children, initialState = {} }) {
     authLoading,
     isAuthenticated: Boolean(accessToken),
     refreshAuth,
-  }), [currentUser, accessToken, authError, authLoading, refreshAuth]);
+    logout,
+  }), [currentUser, accessToken, authError, authLoading, refreshAuth, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

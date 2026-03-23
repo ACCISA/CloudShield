@@ -1,78 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import EditIcon from "../../../assets/EditIcon";
+import PopoverMenuButton from "../PopoverMenuButton/PopoverMenuButton";
 
-const MENU_MIN_WIDTH = 200;
-const MENU_HEIGHT_ESTIMATE = 220;
-const VIEWPORT_PADDING = 12;
-const TRIGGER_GAP = 8;
-
-export default function EditButton({ menuItems = [], disabled = false }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-
-  const calculatePosition = () => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      let left = rect.right - MENU_MIN_WIDTH;
-      left = Math.max(
-        VIEWPORT_PADDING,
-        Math.min(left, viewportWidth - MENU_MIN_WIDTH - VIEWPORT_PADDING),
-      );
-
-      let top = rect.bottom + TRIGGER_GAP;
-      top = Math.max(
-        VIEWPORT_PADDING,
-        Math.min(top, viewportHeight - MENU_HEIGHT_ESTIMATE - VIEWPORT_PADDING),
-      );
-
-      setPosition({
-        top,
-        left,
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      calculatePosition();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (isOpen) {
-        calculatePosition();
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen]);
-
-  const handleButtonClick = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const handleBackdropClick = () => {
-    setIsOpen(false);
-  };
-
-  const handleMenuItemClick = (onClick) => {
-    if (onClick) {
-      onClick();
-    }
-    setIsOpen(false);
-  };
-
+function EditButton({ menuItems = [], disabled = false }) {
   return (
-    <>
+    <PopoverMenuButton
+      menuItems={menuItems}
+      disabled={disabled}
+      ariaLabel="Edit menu"
+    >
       <button
-        ref={buttonRef}
-        onClick={handleButtonClick}
         disabled={disabled}
         style={{
           padding: "0",
@@ -88,110 +25,25 @@ export default function EditButton({ menuItems = [], disabled = false }) {
       >
         <EditIcon width={15} height={16} color="#BCBCBC" />
       </button>
-
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={handleBackdropClick}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                handleBackdropClick();
-              }
-            }}
-            role="button"
-            tabIndex={-1}
-            aria-label="Close menu"
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "transparent",
-              zIndex: 999,
-            }}
-          />
-
-          {/* Popover */}
-          <div
-            style={{
-              position: "fixed",
-              top: `${position.top}px`,
-              left: `${position.left}px`,
-              backgroundColor: "#ffffff",
-              border: "1px solid #e0e0e0",
-              borderRadius: "16px",
-              padding: "8px",
-              zIndex: 1000,
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-              minWidth: `${MENU_MIN_WIDTH}px`,
-            }}
-          >
-            {menuItems.map((item, index) => (
-              <div key={index}>
-                <div
-                  onClick={() => handleMenuItemClick(item.onClick)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleMenuItemClick(item.onClick);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={item.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    borderRadius: "10px",
-                    transition: "background-color 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f5f5f5";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "24px",
-                      height: "24px",
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "400",
-                      color: item.color || "#1a1a1a",
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                </div>
-                {index < menuItems.length - 1 && (
-                  <div
-                    style={{
-                      height: "1px",
-                      backgroundColor: "#e0e0e0",
-                      margin: "4px 12px",
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </>
+    </PopoverMenuButton>
   );
 }
+
+EditButton.propTypes = {
+  menuItems: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      icon: PropTypes.node,
+      color: PropTypes.string,
+      onClick: PropTypes.func,
+    }),
+  ),
+  disabled: PropTypes.bool,
+};
+
+EditButton.defaultProps = {
+  menuItems: [],
+  disabled: false,
+};
+
+export default EditButton;

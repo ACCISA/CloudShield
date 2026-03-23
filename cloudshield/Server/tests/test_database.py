@@ -48,35 +48,41 @@ class TestDatabase:
         assert database.MONGO_URL_FALLBACK is not None
         assert len(database.MONGO_URL_FALLBACK) > 0
 
-    @patch.dict(os.environ, {
-        'MONGO_DB': 'test_db',
-        'MONGO_URL': 'mongodb://test:27017/',
-        'MONGO_URL_ADMIN': 'mongodb://admin:27017/',
-        'MONGO_URL_EMP': 'mongodb://emp:27017/'
-    })
-    def test_custom_environment_variables(self):
-        if 'cloudshield.Server.utils.database' in sys.modules:
-            importlib.reload(sys.modules['cloudshield.Server.utils.database'])
-        
+    def test_custom_environment_variables(self, monkeypatch):
         from cloudshield.Server.utils import database
+        monkeypatch.setenv('MONGO_DB', 'test_db')
+        monkeypatch.setenv('MONGO_URL', 'mongodb://test:27017/')
+        monkeypatch.setenv('MONGO_URL_ADMIN', 'mongodb://admin:27017/')
+        monkeypatch.setenv('MONGO_URL_EMP', 'mongodb://emp:27017/')
+
+        import sys
+        monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.database", raising=False)
+        monkeypatch.delitem(sys.modules, "utils.database", raising=False) # Catch the shorter alias
+
+        import importlib
+        database = importlib.import_module("cloudshield.Server.utils.database")
         
         assert database.DB_NAME == "test_db"
         assert database.MONGO_URL_FALLBACK == "mongodb://test:27017/"
         assert database.MONGO_URL_ADMIN == "mongodb://admin:27017/"
         assert database.MONGO_URL_EMP == "mongodb://emp:27017/"
 
-    def test_mk_client_function(self):
+    def test_mk_client_function(self, monkeypatch):
         from cloudshield.Server.utils import database
+        from unittest.mock import MagicMock
+
+        mock_client_class = MagicMock()
         
         # Test that _mk_client is callable
         assert callable(database._mk_client)
+
+        monkeypatch.setattr(database, "MongoClient", mock_client_class)
         
         # Test with a mock URL
-        with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
-            database._mk_client("mongodb://test:27017/")
+        database._mk_client("mongodb://test:27017/")
             
-            # Verify MongoClient was called with correct parameters
-            mock_client.assert_called_once_with("mongodb://test:27017/", serverSelectionTimeoutMS=5000)
+        # Verify MongoClient was called with correct parameters
+        mock_client_class.assert_called_once_with("mongodb://test:27017/", serverSelectionTimeoutMS=5000)
 
     def test_database_exports(self):
         from cloudshield.Server.utils import database
@@ -260,19 +266,19 @@ def test_database_collections_accessible():
     assert database.users_public is not None
 
 
-def test_mk_client_timeout_parameter():
+def test_mk_client_timeout_parameter(monkeypatch):
     """Test that _mk_client uses correct timeout"""
     from cloudshield.Server.utils import database
-    
-    with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
-        test_url = "mongodb://localhost:27017/"
-        database._mk_client(test_url)
-        
-        # Verify it was called with serverSelectionTimeoutMS
-        call_args = mock_client.call_args
-        assert call_args[0][0] == test_url
-        assert call_args[1]['serverSelectionTimeoutMS'] == 5000
+    from unittest.mock import MagicMock
 
+    test_url = "mongodb://localhost:27017/"
+    mock_client_class = MagicMock()
+
+    monkeypatch.setattr(database, "MongoClient", mock_client_class)
+
+    database._mk_client(test_url)
+
+    mock_client_class.assert_called_once_with(test_url, serverSelectionTimeoutMS=5000)
 
 def test_database_constants():
     """Test that database constants are set correctly"""
@@ -283,7 +289,7 @@ def test_database_constants():
     assert len(database.DB_NAME) > 0
     
     assert isinstance(database.MONGO_URL_FALLBACK, str)
-    assert "mongodb://" in database.MONGO_URL_FALLBACK
+    assert "mongodb://" in database.MONGO_URL_FALLBACK or "mongodb+srv://" in database.MONGO_URL_FALLBACK
 
 
 @patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
@@ -374,3 +380,112 @@ def test_organizations_collection_and_indexes(monkeypatch):
     # assert any(args == ("org_id",) and kwargs.get("unique") for args, kwargs in calls), "org_id unique index missing"
     assert any(args == ("package",) for args, kwargs in calls)
     assert any(args == ("provisioning_status",) for args, kwargs in calls)
+
+
+def _import_database_with_custom_users(monkeypatch, users_admin_mock):
+    """
+    Import database module with a controlled users_admin collection mock so
+    import-time index migration branches can be tested deterministically.
+    """
+    class _FakeAdmin:
+        def command(self, *_args, **_kwargs):
+            return None
+
+    class _FakeClient:
+        def __init__(self, db_obj):
+            self._db = db_obj
+            self.admin = _FakeAdmin()
+
+        def __getitem__(self, _name):
+            return self._db
+
+    # Other collections used during module import.
+    orgs = unittest.mock.MagicMock()
+    access_groups = unittest.mock.MagicMock()
+    vpn_configs = unittest.mock.MagicMock()
+    shares = unittest.mock.MagicMock()
+    organizations = unittest.mock.MagicMock()
+    audit = unittest.mock.MagicMock()
+    activity = unittest.mock.MagicMock()
+    users_public = unittest.mock.MagicMock()
+    itam = unittest.mock.MagicMock()
+
+    db_admin = {
+        "users": users_admin_mock,
+        "orgs": orgs,
+        "audit": audit,
+        "activity": activity,
+        "organizations": organizations,
+        "access_groups": access_groups,
+        "vpn_configs": vpn_configs,
+        "shares": shares,
+    }
+    db_emp = {"users_public": users_public}
+    db_client = {"itam": itam}
+
+    admin_client = _FakeClient(db_admin)
+    emp_client = _FakeClient(db_emp)
+    client = _FakeClient(db_client)
+
+    call_count = {"n": 0}
+
+    def _mongo_client(*_args, **_kwargs):
+        # database.py creates three clients at import-time:
+        # admin_client, emp_client, then generic client.
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return admin_client
+        if call_count["n"] == 2:
+            return emp_client
+        return client
+
+    fake_pymongo = types.ModuleType("pymongo")
+    fake_pymongo.MongoClient = _mongo_client
+    fake_errors = types.ModuleType("pymongo.errors")
+    fake_errors.PyMongoError = Exception
+    fake_pymongo.errors = fake_errors
+
+    monkeypatch.setitem(sys.modules, "pymongo", fake_pymongo)
+    monkeypatch.setitem(sys.modules, "pymongo.errors", fake_errors)
+
+    sys.modules.pop("cloudshield.Server.utils.database", None)
+    import cloudshield.Server.utils.database as db_module
+    return db_module
+
+
+def test_database_drops_legacy_global_email_index(monkeypatch):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.return_value = {
+        "email_1": {"key": [("email", 1)]}
+    }
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    users_admin.drop_index.assert_called_once_with("email_1")
+
+
+def test_database_legacy_email_index_migration_exception_is_handled(monkeypatch, capsys):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.side_effect = RuntimeError("legacy migration boom")
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    out = capsys.readouterr().out
+    assert "legacy users email index migration skipped" in out
+
+
+def test_database_users_email_org_indexes_exception_is_handled(monkeypatch, capsys):
+    users_admin = unittest.mock.MagicMock()
+    users_admin.index_information.return_value = {}
+
+    def _create_index_side_effect(*args, **kwargs):
+        if args and args[0] == [("org_id", 1), ("email", 1)] and kwargs.get("unique") is True:
+            raise RuntimeError("compound index boom")
+        return "ok"
+
+    users_admin.create_index.side_effect = _create_index_side_effect
+
+    _import_database_with_custom_users(monkeypatch, users_admin)
+
+    out = capsys.readouterr().out
+    assert "users email/org indexes creation skipped" in out

@@ -92,16 +92,21 @@ try:
     except Exception as e:
         print(f"[database.py] Note: shares index creation skipped: {e}")
 
-    # Create a unique index on email for users collection
+    # Users may share the same email across different orgs.
+    # Replace legacy global unique email index with org-scoped uniqueness.
     try:
-        users_admin.create_index("email", unique=True)
-    except Exception as e:
-        # Index may already exist - try to drop and recreate if specs differ
-        try:
+        index_info = users_admin.index_information()
+        legacy_email_index = index_info.get("email_1")
+        if legacy_email_index and legacy_email_index.get("key") == [("email", 1)]:
             users_admin.drop_index("email_1")
-            users_admin.create_index("email", unique=True)
-        except Exception:
-            print(f"[database.py] Note: email index creation skipped: {e}")
+    except Exception as e:
+        print(f"[database.py] Note: legacy users email index migration skipped: {e}")
+
+    try:
+        users_admin.create_index([("org_id", 1), ("email", 1)], unique=True)
+        users_admin.create_index("email")
+    except Exception as e:
+        print(f"[database.py] Note: users email/org indexes creation skipped: {e}")
     
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)
@@ -185,6 +190,5 @@ def get_inventory_from_org_id(org_id: str):
 
     if doc is None:
         return None
-    print(doc)
-
+        
     return Inventory(org_id=str(doc["org_id"]), assets=doc["assets"])

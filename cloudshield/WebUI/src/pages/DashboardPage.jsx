@@ -1,20 +1,20 @@
-/**
- * DashboardPage.jsx
- *
- * Purpose:
- * Dashboard page assembling StatCard(s) and the ActivityTable.
- * Includes data fetching logic and state management for backend integration.
- */
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, LinearProgress, Paper, Typography } from "@mui/material";
+import { Alert, Box, LinearProgress, Paper, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { trackButton } from "../lib/analytics";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
-import { useAuth } from "../context/AuthContext.jsx"; // Assuming you have AuthContext for org_id
-import { useOrgMetrics } from "../api/useOrgMetrics.js"; // Custom hook to fetch org metrics
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+
+import { useAuth } from "../context/AuthContext.jsx";
+import { useOrgMetrics } from "../api/useOrgMetrics.js";
 import { apiGet } from "../api/client.js";
+
+import { safeAsync } from "../lib/safeAsync.js";
+import { getUserErrorMessage } from "../lib/errors.js";
+import { formatShares } from "../lib/format.js";
 
 function normalizeActivityItem(item, index) {
   const createdAt = item?.created_at || item?.date || item?.timestamp;
@@ -40,7 +40,11 @@ function normalizeActivityItem(item, index) {
     id: item?.id || item?._id || `activity-${index}`,
     user: item?.user || item?.actor || "System",
     date,
-    activity: item?.activity || item?.description || item?.action || "Performed an action",
+    activity:
+      item?.activity ||
+      item?.description ||
+      item?.action ||
+      "Performed an action",
   };
 }
 
@@ -48,14 +52,13 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const auth = useAuth();
 
-  const [provisioningStatus, setProvisioningStatus] = useState("pending");
-  const [loadingText, setLoadingText] = useState("Initializing infrastructure...");
+  const [provisioningStatus] = useState("pending");
+  const [loadingText] = useState("Initializing infrastructure...");
 
-  const { stats, loading: statsLoading } = useOrgMetrics();
+  const { stats = {}, loading: statsLoading } = useOrgMetrics();
 
-  // Polling logic to check provisioning status
-   
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState("");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -68,69 +71,49 @@ export default function DashboardPage() {
     auth?.user?.org_id ||
     null;
 
-  // useEffect(() => {
-  //   if (!org_id) return;
-
-  //   const checkStatus = async () => {
-  //     try {
-  //       const response = await fetch(`/api/organization/${org_id}`);
-  //       const data = await response.json();
-
-  //       setProvisioningStatus(data.provisioning_status || "completed");
-
-  //       if (data.provisioning_status === "in_progress") {
-  //         setLoadingText("Provisioning cloud infrastructure. This may take a few minutes.");
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch provisioning status", error);
-  //     }
-  //   };
-
-  //   checkStatus();
-
-  //   let intervalId;
-  //   if (provisioningStatus === "in_progress") {
-  //     intervalId = setInterval(checkStatus, 10000);
-  //   }
-
-  //   return () => clearInterval(intervalId);
-  // }, [user?.org_id, provisioningStatus]);
-
-
   const fetchActivities = useCallback(async () => {
-    if (!org_id) return [];
+    if (!org_id) {
+      setActivities([]);
+      setTotalActivities(0);
+      setActivityError("");
+      return [];
+    }
 
     setActivityLoading(true);
+    setActivityError("");
+
     try {
-      const data = await apiGet(
-        `/activity/${org_id}?page=${page}&limit=${itemsPerPage}`
+      const data = await safeAsync(() =>
+        apiGet(`/activity/${org_id}?page=${page}&limit=${itemsPerPage}`)
       );
+
       const items = Array.isArray(data?.items) ? data.items : [];
-      const normalized = items.map((item, idx) => normalizeActivityItem(item, idx));
+      const normalized = items.map((item, idx) =>
+        normalizeActivityItem(item, idx)
+      );
+
       setActivities(normalized);
-      setTotalActivities(data?.total || 0);
+      setTotalActivities(data?.total ?? 0);
       return normalized;
     } catch (error) {
       console.error("Error fetching activities:", error);
+
+      setActivityError(getUserErrorMessage(error));
+      setActivities([]);
+      setTotalActivities(0);
       return [];
     } finally {
       setActivityLoading(false);
     }
-  }, [org_id, page, itemsPerPage]);
-
-  const handleRefreshActivities = () => {
-    fetchActivities();
-  };
+  }, [org_id, page]);
 
   useEffect(() => {
     fetchActivities();
   }, [fetchActivities]);
 
-
   const handleChangePage = (newPage) => {
     setPage(newPage);
   };
-
 
   const handleAddUser = () => {
     trackButton("dashboard/statcard/add", {
@@ -165,97 +148,106 @@ export default function DashboardPage() {
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "24px",
-        color: "#fff",
-        height: "100%",
-        minHeight: 0,
-        overflowY: "auto",
-        overflowX: "hidden",
-        pr: "4px",
-      }}
-    >
-      {/* CONDITIONAL PROVISIONING PROGRESS BAR */}
-      {provisioningStatus === "in_progress" && (
-        <Paper
-          sx={{
-            p: 3,
-            bgcolor: "#1E1E1E",
-            border: "1px solid #333",
-            borderRadius: 2,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
-              Cloud Infrastructure Provisioning
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#aaa" }}>
-              In Progress
-            </Typography>
-          </Box>
-          <Typography variant="body2" sx={{ color: "#aaa" }}>
-            {loadingText}
-          </Typography>
-          <LinearProgress
+    <PageShell>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          color: "#fff",
+          height: "100%",
+          minHeight: 0,
+        }}
+      >
+        {provisioningStatus === "in_progress" && (
+          <Paper
             sx={{
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: "#333",
-              "& .MuiLinearProgress-bar": {
-                background: "linear-gradient(90deg, #6a4fcf 0%, #ad8bff 100%)",
-              },
+              p: 3,
+              bgcolor: "#1E1E1E",
+              border: "1px solid #333",
+              borderRadius: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
             }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
+                Cloud Infrastructure Provisioning
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#aaa" }}>
+                In Progress
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" sx={{ color: "#aaa" }}>
+              {loadingText}
+            </Typography>
+
+            <LinearProgress
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: "#333",
+                "& .MuiLinearProgress-bar": {
+                  background: "linear-gradient(90deg, #6a4fcf 0%, #ad8bff 100%)",
+                },
+              }}
+            />
+          </Paper>
+        )}
+
+        {activityError ? <Alert severity="error">{activityError}</Alert> : null}
+
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+          <StatCard
+            title="Users"
+            value={stats.users ?? (statsLoading ? "…" : 0)}
+            gradientFrom="#6a4fcf"
+            gradientTo="#ad8bff"
+            onAdd={handleAddUser}
           />
-        </Paper>
-      )}
+          <StatCard
+            title="Workstations"
+            value={stats.workstations ?? (statsLoading ? "…" : 0)}
+            gradientFrom="#c94b4b"
+            gradientTo="#de6f6f"
+            onAdd={handleAddWorkstation}
+          />
+          <StatCard
+            title="Groups"
+            value={stats.groups ?? (statsLoading ? "…" : 0)}
+            gradientFrom="#2656d8"
+            gradientTo="#4d7fff"
+            onAdd={handleAddGroup}
+          />
+          <StatCard
+            title="Shares"
+            value={formatShares(stats.shares ?? (statsLoading ? "…" : 0))}
+            gradientFrom="#c57a1c"
+            gradientTo="#f0a24f"
+            onAdd={handleAddFile}
+          />
+        </Box>
 
-      {/* Stat cards row */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
-        <StatCard
-          title="Users"
-          value={stats.users ?? (statsLoading ? "…" : 0)}
-          gradientFrom="#6a4fcf"
-          gradientTo="#ad8bff"
-          onAdd={handleAddUser}
-        />
-        <StatCard
-          title="Workstations"
-          value={stats.workstations ?? (statsLoading ? "…" : 0)}
-          gradientFrom="#c94b4b"
-          gradientTo="#de6f6f"
-          onAdd={handleAddWorkstation}
-        />
-        <StatCard
-          title="Groups"
-          value={stats.groups ?? (statsLoading ? "…" : 0)}
-          gradientFrom="#2656d8"
-          gradientTo="#4d7fff"
-          onAdd={handleAddGroup}
-        />
-        <StatCard
-          title="Shares"
-          value={stats.shares ?? (statsLoading ? "…" : 0)}
-          gradientFrom="#c57a1c"
-          gradientTo="#f0a24f"
-          onAdd={handleAddFile}
-        />
+        <TableSurface>
+          <ActivityPanel
+            fetchActivities={fetchActivities}
+            initialData={activities}
+            currentPage={page}
+            totalItems={totalActivities}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handleChangePage}
+            loading={activityLoading}
+          />
+        </TableSurface>
       </Box>
-
-      <ActivityPanel
-        fetchActivities={fetchActivities}
-        initialData={activities}
-        currentPage={page}
-        totalItems={totalActivities}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handleChangePage}
-        loading={activityLoading}
-      />
-    </Box>
+    </PageShell>
   );
 }

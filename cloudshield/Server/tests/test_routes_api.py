@@ -27,7 +27,7 @@ from unittest.mock import patch, MagicMock
 
 @pytest.fixture()
 def client(monkeypatch):
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
 
@@ -64,7 +64,7 @@ def auth_client(client, monkeypatch):
     import cloudshield.Server.routes.api as api_mod
     import cloudshield.Server.services as services
 
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
         mock_redis_instance.ping.return_value = True
@@ -482,7 +482,7 @@ def signup_admin_client(monkeypatch):
     Dedicated fixture for signup_admin tests that patches create_user
     BEFORE the Flask app is created.
     """
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_redis_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_redis_cls:
         mock_redis_instance = MagicMock()
         mock_redis_cls.return_value = mock_redis_instance
         mock_redis_instance.ping.return_value = True
@@ -500,6 +500,7 @@ def signup_admin_client(monkeypatch):
         import cloudshield.Server.services as services_mod
         import cloudshield.Server.services.user_service as user_service_mod
         from cloudshield.Server.services import job_service
+        from cloudshield.Server.services import dispatcher
 
         # Create a configurable mock that tests can modify
         mock_create_user = MagicMock()
@@ -514,7 +515,7 @@ def signup_admin_client(monkeypatch):
         monkeypatch.setattr(users_mod, "create_user", mock_create_user)
         monkeypatch.setattr(services_mod, "create_user", mock_create_user)
         monkeypatch.setattr(user_service_mod, "create_user", mock_create_user)
-        monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+        monkeypatch.setattr(dispatcher, "service_dispatcher", lambda *args, **kwargs: DummyJob())
 
         # Also patch alternative import paths used by `cloudshield/Server/server.py`
         # when it falls back to `from routes import ...`.
@@ -564,8 +565,7 @@ def signup_admin_client(monkeypatch):
                 break
         yield app.test_client(), mock_create_user
 
-
-def test_signup_admin_success(signup_admin_client):
+def test_signup_admin_success_returns_org_id(signup_admin_client, monkeypatch):
     client, mock_create_user = signup_admin_client
     
     def success_create_user(user_data, current_user=None, reason=None):

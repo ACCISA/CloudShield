@@ -37,7 +37,7 @@ async function request(path, { method = "GET", body, headers } = {}) {
 
   // handle empty responses (204 etc.)
   if (res.status === 204) return null;
-  return res.json();
+  return res;
 }
 
 // Convenience methods for common HTTP verbs

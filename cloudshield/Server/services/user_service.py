@@ -4,7 +4,7 @@ import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, users_public, log_audit, organizations
+from utils import users_admin, log_audit, organizations
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 from security import hash_password
@@ -131,8 +131,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         ValueError: If email already exists or org user limit is exceeded
 
     Side Effects:
-        - Enqueues a welcome email for public signups.
         - Enqueues an invite email when an admin creates an employee.
+        - Public-signup welcome email is sent after successful provisioning.
     """
 
     # Determine package for this signup
@@ -146,7 +146,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
     
     def gen_password():
-        alphabet = string.ascii_letters + string.digits + string.punctuation
+        friendly_punctuation = "!@#%^&()-_=+[]{};:,.<>?"
+        alphabet = string.ascii_letters + string.digits + friendly_punctuation
         password = ''.join(secrets.choice(alphabet) for _ in range(16))
         return password
 
@@ -179,7 +180,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Uniqueness / limits
     # -----------------------------
-    if users_admin.find_one({"email": user_data.email}):
+    if users_admin.find_one({"org_id": org_id, "email": user_data.email}):
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
@@ -243,11 +244,9 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # Async email notifications
     # -----------------------------
     try:
-        from services.job_service import enqueue_org_welcome_email, enqueue_employee_invite_email
+        from services.job_service import enqueue_employee_invite_email
 
-        if current_user is None:
-            enqueue_org_welcome_email(org_id, user_id)
-        elif user_data.role == "employee":
+        if current_user is not None and user_data.role == "employee":
             enqueue_employee_invite_email(user_id)
     except Exception:
         # Keep email dispatch failures from impacting user creation.

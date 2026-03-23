@@ -3,6 +3,7 @@
  */
 
 import { listUsers } from "../services/usersApi.js";
+import { apiGet } from "../api/client";
 
 /**
  * Resolves the organization ID from currentUser or localStorage
@@ -44,10 +45,9 @@ export const fetchFileShares = async (
       return [];
     }
 
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/file_shares?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/file_shares?org_id=${encodeURIComponent(orgId)}`,
       {
-        method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       },
@@ -114,8 +114,8 @@ export const fetchGroups = async (
   if (!accessToken) return _resetGroups(setAllGroups);
 
   try {
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/access-groups?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/access-groups?org_id=${encodeURIComponent(orgId)}`,
       {
         method: "GET",
         credentials: "include",
@@ -246,16 +246,8 @@ export const fetchWorkstations = async (
   if (!accessToken) return _resetWorkstations(setAllWorkstations);
 
   try {
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/workstations?org_id=${encodeURIComponent(orgId)}`,
-      {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
+    const res = await apiGet(
+      `/workstations?org_id=${encodeURIComponent(orgId)}`,
     );
 
     if (!res.ok) {
@@ -266,9 +258,17 @@ export const fetchWorkstations = async (
     }
 
     const data = await res.json();
-    const workstations = Array.isArray(data) ? data : data.workstations || [];
+    const workstations = Array.isArray(data)
+      ? data
+      : data.items || data.workstations || [];
 
     const normalized = workstations.map((w) => ({
+      status:
+        (w.status || "").toLowerCase() === "online"
+          ? "connected"
+          : (w.status || "").toLowerCase() === "offline"
+            ? "disconnected"
+            : w.status || "disconnected",
       id: String(w.id || w._id || ""),
       _id: String(w._id || w.id || ""),
       name: w.name || "Untitled Workstation",
@@ -305,10 +305,9 @@ export const fetchSoftware = async (
 
   try {
 
-    const res = await fetch(
-      `http://127.0.0.1:5050/api/software?org_id=${encodeURIComponent(orgId)}`,
+    const res = await apiGet(
+      `/software?org_id=${encodeURIComponent(orgId)}`,
       {
-        method: "GET",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
