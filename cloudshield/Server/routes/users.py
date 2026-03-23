@@ -22,7 +22,8 @@ from services import (  # noqa: E402
     delete_user,
     list_users,
     service_dispatcher,
-    get_user
+    get_user,
+    enforce_org_user_limit,
 )
 from utils.logging_setup import get_logger  # noqa: E402
 
@@ -498,21 +499,9 @@ def import_users_csv():
         500: { "error": "Internal server error" }
     """
     try:
-        from security import hash_password, is_bcrypt_string
+        from security import is_bcrypt_string
         from datetime import datetime, timezone
-        from utils import users_admin, log_audit, organizations
-        from utils.terraform import get_workstation_count
-        from bson import ObjectId
-        import secrets
-        import string
-
-        def _coerce_int(val) -> int | None:
-            """Convert numeric values to int; ignore non-numeric."""
-            if isinstance(val, bool):
-                return None
-            if isinstance(val, (int, float)):
-                return int(val)
-            return None
+        from utils import users_admin, log_audit
 
         if "file" not in request.files:
             return jsonify({"error": "No file provided"}), 400
@@ -532,23 +521,6 @@ def import_users_csv():
         org_id = (g.user or {}).get("org_id")
         if not org_id:
             return jsonify({"error": "Missing org_id for authenticated user"}), 400
-
-        # Get organization user limit (same logic as user_service.create_user)
-        try:
-            org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
-        except Exception:
-            org_doc = {}
-
-        user_limit = _coerce_int(org_doc.get("user_limit"))
-        if user_limit is None:
-            user_limit = _coerce_int(get_workstation_count(org_id))
-
-        existing_user_count = users_admin.count_documents({"org_id": org_id})
-
-        def generate_secure_password():
-            """Generate a secure random password."""
-            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-            return ''.join(secrets.choice(alphabet) for _ in range(16))
 
         created_count = 0
         errors = []
@@ -589,20 +561,18 @@ def import_users_csv():
                         if ws:
                             workstations.append(ws)
 
-                # Check for duplicate email
-                if users_admin.find_one({"email": email}):
+                # Check for duplicate email within organization.
+                if users_admin.find_one({"org_id": org_id, "email": email}):
                     errors.append({
                         "row": row_num,
                         "error": f"User with email {email} already exists"
                     })
                     continue
 
-                # Enforce user limit (same logic as user_service.create_user)
-                if user_limit is not None and (existing_user_count + created_count + 1) > user_limit:
-                    errors.append({
-                        "row": row_num,
-                        "error": "User limit reached for this organization"
-                    })
+                try:
+                    enforce_org_user_limit(org_id, additional_users=1)
+                except ValueError as limit_err:
+                    errors.append({"row": row_num, "error": str(limit_err)})
                     continue
 
                 # Handle password: use provided hash if valid bcrypt, otherwise generate

@@ -21,6 +21,27 @@ def _coerce_int(val) -> int | None:
     return None
 
 
+def enforce_org_user_limit(org_id: str, additional_users: int = 1) -> None:
+    """Raise ValueError when adding users would exceed the org limit."""
+    try:
+        org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
+    except InvalidId as exc:
+        raise ValueError("Invalid organization ID format") from exc
+    except Exception:
+        org_doc = {}
+
+    user_limit = _coerce_int(org_doc.get("user_limit"))
+    if user_limit is None:
+        user_limit = _coerce_int(get_workstation_count(org_id))
+    if user_limit is None:
+        return
+
+    add_count = max(int(additional_users), 0)
+    existing_db_count = users_admin.count_documents({"org_id": org_id})
+    if existing_db_count + add_count > user_limit:
+        raise ValueError("User limit reached for this organization")
+
+
 def _create_org_for_signup(org_name: Optional[str], package: str, domain_name, realm_name, dc_admin_password) -> tuple[str, dict]:
     """Create an organization and return its auto-generated MongoDB ObjectId string."""
     org_model = OrganizationCreate(
@@ -184,12 +205,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
-    existing_db_count = users_admin.count_documents({"org_id": org_id})
-    user_limit = _coerce_int(org_doc.get("user_limit"))
-    if user_limit is None:
-        user_limit = _coerce_int(get_workstation_count(org_id))
-    if user_limit is not None and existing_db_count + 1 > user_limit:
-        raise ValueError("User limit reached for this organization")
+    enforce_org_user_limit(org_id, additional_users=1)
 
     # -----------------------------
     # Insert user

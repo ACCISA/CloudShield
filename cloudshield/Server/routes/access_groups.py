@@ -498,15 +498,6 @@ def import_groups_csv():
                     })
                     continue
 
-                # Check for duplicate group name within org
-                existing = coll.find_one({"name": group_name.lower(), "org_id": org_id}, {"_id": 1})
-                if existing:
-                    errors.append({
-                        "row": row_num,
-                        "error": f"Group '{group_name}' already exists"
-                    })
-                    continue
-
                 # Parse member emails (semicolon-separated)
                 member_ids = []
                 missing_emails = []
@@ -537,6 +528,15 @@ def import_groups_csv():
                     workstations=workstations,
                 )
 
+                # Check for duplicate group name within org using normalized value.
+                existing = coll.find_one({"name": group_data.group_name, "org_id": org_id}, {"_id": 1})
+                if existing:
+                    errors.append({
+                        "row": row_num,
+                        "error": f"Group '{group_name}' already exists"
+                    })
+                    continue
+
                 doc = create_access_group_doc(group_data)
                 doc["org_id"] = org_id
                 coll.insert_one(doc)
@@ -546,7 +546,7 @@ def import_groups_csv():
                     job = service_dispatcher(
                         service_name="dc_add_group",
                         org_id=org_id,
-                        group_name=group_name,
+                        group_name=group_data.group_name,
                     )
                     dc_job_ids.append(job.id)
                 except Exception as dc_err:
