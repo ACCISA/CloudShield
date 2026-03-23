@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
-from utils import get_logger
+from utils import get_logger, derive_username
 
 logger = get_logger("tasks")
 
@@ -114,8 +114,8 @@ def _handle_user_create(current_user):
     user_data = UserCreate(**body)
 
     create_user(user_data, current_user=current_user, reason=reason)
-    # Generate username from email if not provided
-    username = user_data.username or user_data.email.split("@")[0]
+    # Generate the DC username from the user's full name unless explicitly provided.
+    username = user_data.username or derive_username(user_data.full_name)
     logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
     # Queue DC user creation task via service dispatcher
     job = service_dispatcher(
@@ -195,8 +195,8 @@ def create_user_endpoint():
                 org_id = resp_json.get("org_id") or body.get("org_id")
                 email = body.get("email", "")
                 full_name = body.get("full_name", "")
-                # Derive a DC username from the email prefix
-                dc_username = email.split("@")[0] if "@" in email else full_name.replace(" ", "").lower()
+                requested_username = body.get("username")
+                dc_username = requested_username or derive_username(full_name)
                 dc_password = body.get("password", "")
 
                 if org_id and dc_username and dc_password:
@@ -354,7 +354,7 @@ def delete_user_endpoint(user_id):
             from bson import ObjectId
             user_doc = db_admin["users"].find_one(
                 {"_id": ObjectId(user_id)},
-                {"email": 1, "org_id": 1, "full_name": 1},
+                {"email": 1, "org_id": 1, "full_name": 1, "username": 1},
             )
         except Exception:
             pass  # Non-critical: DC dispatch will simply be skipped
@@ -368,8 +368,7 @@ def delete_user_endpoint(user_id):
         if user_doc:
             try:
                 org_id = user_doc.get("org_id") or g.user.get("org_id")
-                email = user_doc.get("email", "")
-                dc_username = email.split("@")[0] if "@" in email else ""
+                dc_username = user_doc.get("username") or derive_username(user_doc.get("full_name", ""))
 
                 if org_id and dc_username:
                     job = service_dispatcher(

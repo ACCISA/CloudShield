@@ -15,6 +15,7 @@ from typing import Any
 
 _EXPORTS: dict[str, tuple[str, str]] = {
     "get_logger": (".logging_setup", "get_logger"),
+    "derive_username": (".usernames", "derive_username"),
 
     # Database / collections
     "users_admin": (".database", "users_admin"),
