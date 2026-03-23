@@ -18,10 +18,7 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "24px 24px 4px 24px",
-    position: "sticky",
-    top: 0,
-    backgroundColor: "var(--bg-secondary)",
-    zIndex: 10,
+    backgroundColor: "transparent", // FIX: Made transparent
   },
   headerLabel: {
     fontSize: "0.85rem",

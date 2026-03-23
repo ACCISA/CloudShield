@@ -10,10 +10,8 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "24px 24px 4px 24px",
-    position: "sticky",
-    top: 0,
-    backgroundColor: "var(--bg-secondary)",
-    zIndex: 10,
+    backgroundColor: "transparent", // FIX: Made transparent
+    // Removed sticky, top, and zIndex properties
   },
   headerLabel: {
     fontSize: "0.85rem",
@@ -33,7 +31,6 @@ const styles = {
 const getResponsiveStyles = () => {
   const width = window.innerWidth;
 
-  // Mobile (< 768px)
   if (width < 768) {
     return {
       tableHeaders: {
@@ -48,7 +45,6 @@ const getResponsiveStyles = () => {
     };
   }
 
-  // Tablet (768px - 1024px)
   if (width < 1024) {
     return {
       tableHeaders: {
@@ -63,7 +59,6 @@ const getResponsiveStyles = () => {
     };
   }
 
-  // Desktop - return original styles
   return styles;
 };
 
@@ -97,27 +92,24 @@ export default function UsersTable({
   const isTablet = windowWidth >= 768 && windowWidth < 1024;
   const responsiveStyles = getResponsiveStyles();
 
-  // Hide some columns on smaller screens
   const showTitleColumn = showTitle && !isMobile;
   const showWorkstationsColumn = showWorkstations && windowWidth >= 1024;
   const showGroupsColumn = showGroups && windowWidth >= 1024;
   const showFilesColumn = showFiles && windowWidth >= 1024;
 
-  // Build grid template dynamically based on which columns are visible.
   const cols = [
-    !isMobile ? "28px" : null, // checkbox - hidden on mobile
-    isMobile ? "1fr" : "1.2fr", // name/email - takes full width on mobile
+    !isMobile ? "28px" : null,
+    isMobile ? "1fr" : "1.2fr",
     showTitleColumn ? "0.9fr" : null,
     showWorkstationsColumn ? "0.6fr" : null,
     showGroupsColumn ? "0.8fr" : null,
     showFilesColumn ? "0.8fr" : null,
-    "24px", // status
-    "0.25fr", // edit
+    "24px",
+    "0.25fr",
   ].filter(Boolean);
 
   return (
     <>
-      {/* Table Headers - hide on mobile */}
       {!isMobile && (
         <div
           style={{
@@ -152,7 +144,6 @@ export default function UsersTable({
         </div>
       )}
 
-      {/* List panel */}
       <div style={responsiveStyles.listPanel}>
         {users.length === 0 ? (
           <EmptyState 

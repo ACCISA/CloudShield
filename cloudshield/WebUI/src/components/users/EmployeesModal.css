@@ -221,30 +221,33 @@
   min-height: 90px;
 }
 
-/* Image Upload */
+/* Image Upload (Centered & Circular) */
 .employees-modal-image-upload {
   margin-top: 10px;
+  display: flex;
+  justify-content: center;
 }
 
 .employees-modal-image-upload-label {
   cursor: pointer;
   display: block;
-  width: 100%;
+  width: 130px;
+  position: relative;
 }
 
 .employees-modal-image-placeholder {
-  width: 100%;
+  width: 130px;
   height: 130px;
-  border-radius: 12px;
+  border-radius: 50%;
   border: 2px dashed var(--border);
   background-color: var(--input-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
 }
 
@@ -261,22 +264,23 @@
 
 .employees-modal-image-preview {
   position: relative;
-  width: 100%;
+  width: 130px;
   height: 130px;
+  border-radius: 50%;
 }
 
 .employees-modal-image-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 50%;
   border: 2px solid var(--border-light);
 }
 
 .employees-modal-image-remove {
   position: absolute;
-  top: -10px;
-  right: -10px;
+  top: 0px;
+  right: 0px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -290,6 +294,7 @@
   font-size: 20px;
   font-weight: bold;
   transition: background-color 0.2s ease;
+  z-index: 2;
 }
 
 .employees-modal-image-remove:hover {
