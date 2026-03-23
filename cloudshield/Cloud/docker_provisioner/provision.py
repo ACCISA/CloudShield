@@ -334,7 +334,8 @@ def _download_agent_from_github(dest: Path, server_logger) -> bool:
 
         # If the asset is a zip, extract the .exe from it
         if asset_url.endswith(".zip"):
-            import io, zipfile
+            import io
+            import zipfile
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = resp.read()
             with zipfile.ZipFile(io.BytesIO(data)) as zf:
