@@ -17,8 +17,13 @@ import cloudshield.Server.utils.logging_setup as ls
 def test_get_logger_api(tmp_path, monkeypatch):
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
     # Reimport module to pick up env var for BASE_LOG_DIR
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
-    importlib.reload(ls)
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
+
 
     # Ensure any pre-existing logger for this name is reset so get_logger can reconfigure
     pre = logging.getLogger("cloudshield.api")
@@ -40,8 +45,13 @@ def test_get_logger_api(tmp_path, monkeypatch):
 
 def test_get_logger_job_and_helpers(tmp_path, monkeypatch):
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
-    importlib.reload(ls)
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
+
 
     lg = ls.get_logger("job", job_id="abc")
     lg.debug("x")
@@ -58,8 +68,13 @@ def test_cleanup_old_logs(tmp_path, monkeypatch, capsys):
     """Ensure cleanup_old_logs removes only logs older than N days."""
     # Point log directories to a temporary location
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
-    importlib.reload(ls)
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
 
     # Create a mix of old and recent job logs
     old_log = ls.JOB_LOG_DIR / "job_old.log"
@@ -96,9 +111,13 @@ def test_get_logger_permission_error_falls_back_to_console(
     logger and a warning should be printed (exercise the except branch).
     """
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
 
-    importlib.reload(ls)
 
     logger_name = "cloudshield.service"
     pre = logging.getLogger(logger_name)
@@ -125,8 +144,12 @@ def test_summarize_job_log_missing_file(tmp_path, monkeypatch):
     (exercise the FileNotFoundError branch).
     """
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
-    importlib.reload(ls)
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
 
     summary = ls.summarize_job_log(job_id="does_not_exist", org_id="orgX")
     assert summary["job_id"] == "does_not_exist"
@@ -142,9 +165,12 @@ def test_cleanup_old_logs_handles_unlink_errors(tmp_path, monkeypatch, capsys):
     generic Exception branch).
     """
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
+    import sys
+    monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
+    monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
+        
     import importlib
-    importlib.reload(ls)
-
+    ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
     # Create an old log file that should be deleted
     old_log = ls.JOB_LOG_DIR / "job_err.log"
     old_log.write_text("test")

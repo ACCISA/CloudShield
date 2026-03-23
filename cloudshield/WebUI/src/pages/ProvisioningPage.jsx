@@ -3,6 +3,7 @@ import cloudshieldLogo from "../assets/cloudshield_logo_white.png";
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
 import { useAppTheme } from "../context/ThemeContext.jsx";
 
+import {apiGet, apiPost} from "../api/client"
 // UI standardization
 import PageShell from "../components/layout/PageShell.jsx";
 import { Box, Button, Typography } from "@mui/material";
@@ -105,15 +106,9 @@ export default function ProvisioningPage() {
       }
 
       try {
-        const json = await safeAsync(
-          () =>
-            fetchJson(`${API_BASE}/task/provision`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ org_id: orgId }),
-            }),
-          {}
-        );
+        const json = await apiPost(`/task/provision`, {
+        org_id: orgId }).json();
+
 
         if (mounted && json?.job_id) {
           localStorage.setItem("provision_job_id", json.job_id);
@@ -160,11 +155,8 @@ export default function ProvisioningPage() {
       if (successHandled.current) return;
 
       try {
-        const res = await safeAsync(
-          () => fetch(`${API_BASE}/status/${encodeURIComponent(jobId)}`),
-          {}
-        );
-
+        const res = await apiGet(`/status/${encodeURIComponent(jobId)}`);
+        
         if (res.status === 404 || res.status >= 500) return;
 
         const data = await res.json();

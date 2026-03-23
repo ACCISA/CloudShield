@@ -7,9 +7,6 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from flask import g
 
-# Stub stripe so billing.py can be imported without the package installed
-sys.modules.setdefault("stripe", types.ModuleType("stripe"))
-
 FAKE_OID = ObjectId("65f1a2b3c4d5e6f7a8b9c0d1")
 FAKE_OID_STR = str(FAKE_OID)
 

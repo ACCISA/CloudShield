@@ -3,6 +3,7 @@ from .provision import provision_network_terraform as provision_network_terrafor
 from .provision import get_target_dir as get_target_dir
 
 from .provision import provision_workstation as provision_workstation
+from .provision import init_cloud as init_cloud
 
 from .destroyer import destroy_infra as destroy_infra
 from .destroyer import GENERATED_DIR as GENERATED_DIR

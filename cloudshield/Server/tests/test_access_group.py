@@ -412,7 +412,7 @@ def mock_access_groups_collection():
 def client(monkeypatch, mock_access_groups_collection):
     """Create Flask test client with mocked database"""
     # Mock redis before imports
-    with patch("cloudshield.Server.redis_client.redis.Redis"):
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis"):
         # Make auth guard always accept a deterministic JWT payload for tests.
         # NOTE: guards.py imports verify_token at module import time, so patch the symbol there.
         monkeypatch.setattr(
