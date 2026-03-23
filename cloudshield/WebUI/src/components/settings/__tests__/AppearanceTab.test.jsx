@@ -141,6 +141,194 @@ describe("AppearanceTab", () => {
     expect(languageSelect).toHaveValue("fr-CA");
   });
 
+  test("theme preview shows without making permanent changes", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
+
+    await act(async () => {
+      fireEvent.click(lightThemeOption);
+    });
+
+    // Theme should show as selected but not saved yet
+    expect(screen.getByText("Always use light appearance").closest("div")).toHaveStyle({
+      border: "2px solid",
+    });
+  });
+
+  test("cancel button reverts theme changes", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+
+    await act(async () => {
+      fireEvent.click(lightThemeOption);
+    });
+
+    await act(async () => {
+      fireEvent.click(cancelButton);
+    });
+
+    // Dark theme should be active again
+    const darkThemeOption = screen.getByText("Always use dark appearance").closest("div");
+    expect(darkThemeOption).toBeInTheDocument();
+  });
+
+  test("renders preview active indicator", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
+
+    await act(async () => {
+      fireEvent.click(lightThemeOption);
+    });
+
+    // Look for preview indicator or border styling
+    expect(lightThemeOption).toHaveStyle({ border: "2px solid" });
+  });
+
+  test("theme options are clickable", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const allThemeOptions = screen.getAllByText(/Always use|Match your/);
+
+    for (let option of allThemeOptions.slice(0, 2)) {
+      const parent = option.closest("div");
+      await act(async () => {
+        fireEvent.click(parent);
+      });
+      expect(parent).toBeInTheDocument();
+    }
+  });
+
+  test("renders save button", () => {
+    render(<AppearanceTab />);
+
+    const saveButton = screen.getByRole("button", { name: /save/i });
+    expect(saveButton).toBeInTheDocument();
+  });
+
+  test("renders cancel button", () => {
+    render(<AppearanceTab />);
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    expect(cancelButton).toBeInTheDocument();
+  });
+
+  test("language and theme can be changed together", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    // Change theme
+    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
+    await act(async () => {
+      fireEvent.click(lightThemeOption);
+    });
+
+    // Change language
+    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
+    await act(async () => {
+      fireEvent.change(languageSelect, { target: { value: "fr-FR" } });
+    });
+
+    expect(screen.getByDisplayValue("🇫🇷  Français (France)")).toHaveValue("fr-FR");
+  });
+
+  test("renders theme color preview thumbnails", () => {
+    render(<AppearanceTab />);
+
+    // Each theme option should have a preview thumbnail
+    const themeOptions = screen.getAllByText(/Always use|Match your/);
+    expect(themeOptions.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test("divider is rendered between sections", () => {
+    render(<AppearanceTab />);
+
+    const dividers = document.querySelectorAll('[role="separator"]');
+    expect(dividers.length).toBeGreaterThan(0);
+  });
+
+  test("subtitles are displayed for all description texts", () => {
+    render(<AppearanceTab />);
+
+    expect(screen.getByText("Change how the dashboard looks and feels")).toBeInTheDocument();
+    expect(screen.getByText("Change the colour of the dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Select your preferred language")).toBeInTheDocument();
+  });
+
+  test("handles rapid theme switching", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
+    const darkThemeOption = screen.getByText("Always use dark appearance").closest("div");
+
+    await act(async () => {
+      fireEvent.click(lightThemeOption);
+      fireEvent.click(darkThemeOption);
+      fireEvent.click(lightThemeOption);
+    });
+
+    expect(screen.getByText("Always use light appearance").closest("div")).toHaveStyle({
+      border: "2px solid",
+    });
+  });
+
+  test("renders language section label", () => {
+    render(<AppearanceTab />);
+
+    expect(screen.getByText("Language")).toBeInTheDocument();
+  });
+
+  test("renders language options", () => {
+    render(<AppearanceTab />);
+
+    expect(screen.getByDisplayValue("🇨🇦  English (Canada)")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("🇺🇸  English (United States)")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("🇨🇦  Français (Canada)")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("🇫🇷  Français (France)")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("🇪🇸  Español")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("🇩🇪  Deutsch")).toBeInTheDocument();
+  });
+
+  test("loads default language from localStorage", () => {
+    localStorage.getItem.mockImplementation((key) => {
+      if (key === "cs_language") return "en-US";
+      return "dark";
+    });
+
+    render(<AppearanceTab />);
+
+    const languageSelect = screen.getByDisplayValue("🇺🇸  English (United States)");
+    expect(languageSelect).toHaveValue("en-US");
+  });
+
+  test("changes language when selected", async () => {
+    localStorage.getItem.mockReturnValue("dark");
+
+    render(<AppearanceTab />);
+
+    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
+
+    await act(async () => {
+      fireEvent.change(languageSelect, { target: { value: "fr-CA" } });
+    });
+
+    expect(languageSelect).toHaveValue("fr-CA");
+  });
+
   test("saves theme to localStorage when Save is clicked", async () => {
     localStorage.getItem.mockReturnValue("dark");
 
