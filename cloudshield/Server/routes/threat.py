@@ -28,6 +28,8 @@ from services.threat_service import (
     check_threat_intel,
     check_geo,
     get_dashboard_summary,
+    get_unified_alerts,
+    ingest_threat_alerts,
 )
 
 threat_bp = Blueprint("threat", __name__)
@@ -158,10 +160,59 @@ def explain_alert():
         data = request.json
         if not data:
             return jsonify({"error": "No alert data provided"}), 400
-            
+
         explanation_text = generate_alert_explanation(data)
-        
+
         return jsonify({"explanation": explanation_text}), 200
-        
+
     except Exception:
         return jsonify({"error": "Internal server error during AI analysis"}), 500
+
+
+@threat_bp.route("/unified", methods=["GET"])
+def list_unified_alerts():
+    """
+    Return the most recent deduplicated alerts from the unified_alerts index.
+
+    These are the normalised, cross-source alerts produced by the
+    ThreatDetection AlertDeduplicator.
+
+    Query params:
+        limit (int, default 50): max number of alerts to return
+    """
+    limit = request.args.get("limit", 50, type=int)
+    alerts = get_unified_alerts(limit=limit)
+    return jsonify({"alerts": alerts, "count": len(alerts)}), 200
+
+
+@threat_bp.route("/ingest", methods=["POST"])
+def ingest_alerts():
+    """
+    Receive a batch of unified alerts from ThreatDetection and persist them
+    to MongoDB (activity log + audit log for CRITICAL/HIGH).
+
+    This endpoint is called by the ThreatDetection scheduled flush task so
+    that security events are recorded alongside infrastructure activity logs.
+
+    Body (JSON):
+        {
+            "org_id": "org-123",          // optional, defaults to "system"
+            "alerts": [ { ...Alert... }, ... ]
+        }
+
+    Returns:
+        {
+            "ingested": <int>,
+            "audit_written": <int>,
+            "errors": <int>
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    alerts = data.get("alerts", [])
+    org_id = data.get("org_id", "system")
+
+    if not alerts:
+        return jsonify({"error": "alerts list is required"}), 400
+
+    result = ingest_threat_alerts(alerts, org_id=org_id)
+    return jsonify(result), 200

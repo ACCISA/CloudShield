@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 # ── Lazy-loaded singletons ──────────────────────────────────────────────────
@@ -187,6 +188,112 @@ def check_geo(ips: list[str]) -> list[dict]:
     checker = _get_geo_checker()
     results = checker.check_many(ips)
     return [r.to_dict() for r in results]
+
+
+def get_unified_alerts(limit: int = 50) -> list[dict]:
+    """
+    Return the most recent deduplicated alerts from the unified_alerts index.
+
+    These are the cross-source, normalised alerts produced by the
+    ThreatDetection AlertDeduplicator.
+
+    Index: ``unified_alerts``
+    """
+    return _es_recent("unified_alerts", size=limit)
+
+
+# ── Alert ingestion (records alerts into MongoDB activity + audit logs) ────
+
+def ingest_threat_alerts(alerts: list[dict], org_id: str = "system") -> dict:
+    """
+    Persist a batch of unified alert dicts into MongoDB.
+
+    For every alert:
+      - An activity log entry is written to the ``activity`` collection so the
+        event surfaces in ``GET /api/activity/<org_id>``.
+      - CRITICAL and HIGH severity alerts are also written to the audit log so
+        they appear in ``GET /api/audit``.
+
+    Args:
+        alerts: List of unified alert dicts (as produced by
+            ``Alert.to_dict()`` in ThreatDetection).
+        org_id: The organisation that owns the monitored infrastructure.
+            Defaults to ``"system"`` when unknown.
+
+    Returns:
+        Summary dict with ``ingested``, ``audit_written``, and ``errors`` counts.
+    """
+    try:
+        from cloudshield.Server.utils.database import activity as activity_col
+        from cloudshield.Server.utils.audit import log_audit
+    except ImportError:
+        try:
+            from utils.database import activity as activity_col  # type: ignore[no-redef]
+            from utils.audit import log_audit  # type: ignore[no-redef]
+        except ImportError:
+            return {"ingested": 0, "audit_written": 0, "errors": len(alerts)}
+
+    from cloudshield.Server.models.activity import RPC_METHOD_MAPPING
+
+    ingested = 0
+    audit_written = 0
+    errors = 0
+
+    for alert in alerts:
+        source = alert.get("source", "unknown")
+        severity = alert.get("severity", "MEDIUM")
+        event_type = f"threat.{source}"
+        description = RPC_METHOD_MAPPING.get(event_type, f"Threat event: {source}")
+        agent_id = alert.get("agent_id", "unknown")
+
+        # ── Activity log ────────────────────────────────────────────────
+        activity_doc = {
+            "org_id": org_id,
+            "event_type": event_type,
+            "description": alert.get("title") or description,
+            "actor": f"ThreatDetection/{agent_id}",
+            "metadata": {
+                "alert_id": alert.get("alert_id"),
+                "severity": severity,
+                "src_ip": alert.get("src_ip"),
+                "dst_ip": alert.get("dst_ip"),
+                "rule_id": alert.get("rule_id"),
+                "agent_id": agent_id,
+            },
+            "created_at": datetime.now(timezone.utc),
+        }
+        try:
+            activity_col.insert_one(activity_doc)
+            ingested += 1
+        except Exception:
+            errors += 1
+            continue
+
+        # ── Audit log for CRITICAL / HIGH ───────────────────────────────
+        if severity in ("CRITICAL", "HIGH"):
+            audit_severity = "critical" if severity == "CRITICAL" else "warning"
+            try:
+                log_audit(
+                    action="detect",
+                    resource="threat",
+                    actor={"id": "threat-detection", "role": "system"},
+                    target={"type": "alert", "id": alert.get("alert_id", "")},
+                    reason=alert.get("description", ""),
+                    severity=audit_severity,
+                    meta={
+                        "source": source,
+                        "agent_id": agent_id,
+                        "src_ip": alert.get("src_ip"),
+                        "dst_ip": alert.get("dst_ip"),
+                        "rule_id": alert.get("rule_id"),
+                        "org_id": org_id,
+                    },
+                )
+                audit_written += 1
+            except Exception:
+                pass
+
+    return {"ingested": ingested, "audit_written": audit_written, "errors": errors}
 
 
 # ── Dashboard summary ──────────────────────────────────────────────────────

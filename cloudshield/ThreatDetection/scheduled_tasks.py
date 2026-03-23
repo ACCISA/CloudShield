@@ -88,8 +88,36 @@ def _retrain_anomaly_model(detector, es_client, logger=None):
 
 # ── 3. Alert dedup flush ───────────────────────────────────────────────────
 
-def _flush_alerts(deduplicator, es_log_fn, logger=None):
-    """Write buffered unified alerts to Elasticsearch."""
+def _push_alerts_to_server(alerts: list, server_url: str, org_id: str, logger=None):
+    """
+    POST a batch of unified alert dicts to the CloudShield Server ingest
+    endpoint so they are recorded in MongoDB (activity + audit logs).
+
+    Failures are silently swallowed so a Server outage never blocks the
+    ThreatDetection gRPC process.
+    """
+    try:
+        import requests as _requests
+        payload = {
+            "org_id": org_id,
+            "alerts": [a.to_dict() if hasattr(a, "to_dict") else a for a in alerts],
+        }
+        resp = _requests.post(
+            f"{server_url.rstrip('/')}/api/threat/ingest",
+            json=payload,
+            timeout=10,
+        )
+        if logger:
+            logger.info(
+                "Pushed %d alerts to Server (status=%s)", len(alerts), resp.status_code
+            )
+    except Exception as exc:
+        if logger:
+            logger.warning("Failed to push alerts to Server: %s", exc)
+
+
+def _flush_alerts(deduplicator, es_log_fn, logger=None, server_url: str = "", org_id: str = "system"):
+    """Write buffered unified alerts to Elasticsearch and push to the Server."""
     alerts = deduplicator.flush()
     if not alerts:
         return
@@ -97,6 +125,8 @@ def _flush_alerts(deduplicator, es_log_fn, logger=None):
         es_log_fn("unified_alerts", alert.to_dict())
     if logger:
         logger.info("Flushed %d unified alerts to ES", len(alerts))
+    if server_url:
+        _push_alerts_to_server(alerts, server_url, org_id, logger=logger)
 
 
 # ── 4. Fail2ban status poll ─────────────────────────────────────────────────
@@ -151,6 +181,7 @@ def start_scheduled_tasks(
     es_client=None,
     es_log_fn=None,
     logger=None,
+    server_config: dict | None = None,
     threat_intel_interval: float = 3600 * 6,   # 6 hours
     retrain_interval: float = 3600 * 4,        # 4 hours
     flush_interval: float = 60,                # 1 minute
@@ -186,10 +217,15 @@ def start_scheduled_tasks(
         threads.append(t)
 
     if alert_deduplicator is not None and es_log_fn is not None:
+        _srv = server_config or {}
         t = threading.Thread(
             target=_safe_loop,
             args=("alert_flush", flush_interval,
-                  lambda: _flush_alerts(alert_deduplicator, es_log_fn, logger)),
+                  lambda: _flush_alerts(
+                      alert_deduplicator, es_log_fn, logger,
+                      server_url=_srv.get("url", ""),
+                      org_id=_srv.get("org_id", "system"),
+                  )),
             daemon=True,
         )
         t.start()

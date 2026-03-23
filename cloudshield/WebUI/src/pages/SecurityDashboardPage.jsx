@@ -3,7 +3,7 @@ import React from "react";
 import PageShell from "../components/layout/PageShell.jsx";
 import SecurityChartsPanel from "../components/security/SecurityChartsPanel.jsx";
 import SecurityAlertsPanel from "../components/security/SecurityAlertsPanel.jsx";
-import { MOCK_SECURITY_ALERTS } from "../data/mockData.js";
+import { useSecurityAlerts } from "../api/threatApi.js";
 
 const contentStyles = {
   display: "flex",
@@ -15,14 +15,21 @@ const contentStyles = {
 };
 
 function SecurityDashboardPage() {
+  const { alerts, loading, error, refresh } = useSecurityAlerts();
+
   return (
     <PageShell>
       <div
         data-testid="security-dashboard-content"
         style={contentStyles}
       >
-        <SecurityChartsPanel alerts={MOCK_SECURITY_ALERTS} />
-        <SecurityAlertsPanel />
+        <SecurityChartsPanel alerts={alerts} />
+        <SecurityAlertsPanel
+          alerts={alerts}
+          loading={loading}
+          error={error}
+          onRefresh={refresh}
+        />
       </div>
     </PageShell>
   );

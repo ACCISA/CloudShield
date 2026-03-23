@@ -147,6 +147,25 @@ def _start_threat_subsystems():
     server_logger.info("Snort alert watcher started (file=%s)", snort_log)
 
     # 3. Scheduled tasks
+    # CLOUDSHIELD_SERVER_URL  – base URL of the Flask API server
+    #   e.g. "http://localhost:5000" or "http://api.internal"
+    # CLOUDSHIELD_ORG_ID      – org that owns this ThreatDetection deployment
+    _server_config: dict | None = None
+    _server_url = os.environ.get("CLOUDSHIELD_SERVER_URL", "").strip()
+    if _server_url:
+        _server_config = {
+            "url": _server_url,
+            "org_id": os.environ.get("CLOUDSHIELD_ORG_ID", "system"),
+        }
+        server_logger.info(
+            "Server push enabled: alerts will be forwarded to %s (org=%s)",
+            _server_url, _server_config["org_id"],
+        )
+    else:
+        server_logger.info(
+            "CLOUDSHIELD_SERVER_URL not set — alert push to Server disabled"
+        )
+
     start_scheduled_tasks(
         threat_intel=_threat_intel,
         anomaly_detector=_anomaly_detector,
@@ -154,6 +173,7 @@ def _start_threat_subsystems():
         es_client=es,
         es_log_fn=es_log,
         logger=server_logger,
+        server_config=_server_config,
     )
 
 

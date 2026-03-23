@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 
 import SecurityAlertsTable from "./SecurityAlertsTable";
 import SearchField from "../common/SearchField/SearchField";
@@ -12,12 +13,8 @@ import FalsePositiveIcon from "../../assets/security/FalsePositiveIcon";
 import DownloadIcon from "../../assets/DownloadIcon";
 import { SECURITY_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
-import { MOCK_SECURITY_ALERTS } from "../../data/mockData";
-import { useThemeColors } from "../../hooks/useThemeColors.js";
 
-function SecurityAlertsPanel() {
-  const themeColors = useThemeColors();
-  const [alerts] = useState(MOCK_SECURITY_ALERTS); // Replace with API call later
+function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRefresh }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,9 +95,7 @@ function SecurityAlertsPanel() {
   };
 
   const handleRefresh = () => {
-    // Backend integration: Call API endpoint to refresh alerts
-    // Example: fetchSecurityAlerts().then(data => setAlerts(data));
-    console.log("Refreshing alerts...");
+    if (onRefresh) onRefresh();
   };
 
   const handleBulkMarkResolved = () => {
@@ -231,6 +226,11 @@ function SecurityAlertsPanel() {
           <RefreshButton onClick={handleRefresh} />
         </div>
       </div>
+      {error && (
+        <p style={{ color: "#EF4444", fontSize: "13px", margin: "0 0 8px" }}>
+          Failed to load alerts: {error.message}
+        </p>
+      )}
       <div style={styles.tableWrapper}>
         <SecurityAlertsTable
           securityAlerts={paginatedAlerts}
@@ -239,8 +239,8 @@ function SecurityAlertsPanel() {
           isIndeterminate={isIndeterminate}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}
-          hasNoAlerts={alerts.length === 0}
-          hasNoResults={filteredAlerts.length === 0}
+          hasNoAlerts={!loading && alerts.length === 0}
+          hasNoResults={!loading && filteredAlerts.length === 0}
         />
       </div>
 
@@ -255,5 +255,12 @@ function SecurityAlertsPanel() {
     </div>
   );
 }
+
+SecurityAlertsPanel.propTypes = {
+  alerts:    PropTypes.array,
+  loading:   PropTypes.bool,
+  error:     PropTypes.instanceOf(Error),
+  onRefresh: PropTypes.func,
+};
 
 export default SecurityAlertsPanel;

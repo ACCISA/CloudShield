@@ -176,3 +176,79 @@ def test_geo_check_success(client, monkeypatch):
     resp = client.post("/api/threat/geo-check", json={"ips": ["10.0.0.1"]})
     assert resp.status_code == 200
     assert resp.get_json()["count"] == 1
+
+
+# ── GET /api/threat/unified ────────────────────────────────────────────────
+
+def test_unified_alerts_empty(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    monkeypatch.setattr(threat_mod, "get_unified_alerts", lambda limit: [])
+    resp = client.get("/api/threat/unified")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["alerts"] == []
+    assert data["count"] == 0
+
+
+def test_unified_alerts_with_limit(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    captured = {}
+    def fake_unified(limit):
+        captured["limit"] = limit
+        return [{"alert_id": "abc", "source": "snort", "severity": "HIGH"}]
+    monkeypatch.setattr(threat_mod, "get_unified_alerts", fake_unified)
+    resp = client.get("/api/threat/unified?limit=25")
+    assert resp.status_code == 200
+    assert captured["limit"] == 25
+    assert resp.get_json()["count"] == 1
+
+
+# ── POST /api/threat/ingest ────────────────────────────────────────────────
+
+def test_ingest_missing_alerts(client):
+    resp = client.post("/api/threat/ingest", json={"org_id": "org-1"})
+    assert resp.status_code == 400
+    assert "error" in resp.get_json()
+
+
+def test_ingest_empty_alerts_list(client):
+    resp = client.post("/api/threat/ingest", json={"org_id": "org-1", "alerts": []})
+    assert resp.status_code == 400
+
+
+def test_ingest_success(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    captured = {}
+    def fake_ingest(alerts, org_id):
+        captured["org_id"] = org_id
+        captured["count"] = len(alerts)
+        return {"ingested": len(alerts), "audit_written": 1, "errors": 0}
+    monkeypatch.setattr(threat_mod, "ingest_threat_alerts", fake_ingest)
+    payload = {
+        "org_id": "org-abc",
+        "alerts": [
+            {"alert_id": "x1", "source": "snort", "severity": "CRITICAL",
+             "timestamp": 1700000000, "title": "Test alert"},
+        ],
+    }
+    resp = client.post("/api/threat/ingest", json=payload)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["ingested"] == 1
+    assert data["errors"] == 0
+    assert captured["org_id"] == "org-abc"
+    assert captured["count"] == 1
+
+
+def test_ingest_defaults_org_to_system(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    captured = {}
+    def fake_ingest(alerts, org_id):
+        captured["org_id"] = org_id
+        return {"ingested": 1, "audit_written": 0, "errors": 0}
+    monkeypatch.setattr(threat_mod, "ingest_threat_alerts", fake_ingest)
+    resp = client.post("/api/threat/ingest", json={
+        "alerts": [{"alert_id": "y1", "source": "anomaly", "severity": "MEDIUM"}],
+    })
+    assert resp.status_code == 200
+    assert captured["org_id"] == "system"
