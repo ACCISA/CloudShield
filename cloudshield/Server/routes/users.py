@@ -566,15 +566,17 @@ def import_users_csv():
                     })
                     continue
 
-                # Handle password: use provided hash if valid bcrypt, otherwise generate
-                plain_password_for_dc = None
+                # Handle password: require a valid bcrypt hash for imports.
+                # For security and usability, we do not create users with unknown random passwords.
                 if password_hash and is_bcrypt_string(password_hash):
                     # Use the pre-hashed password directly (migration from another system)
                     final_password_hash = password_hash
                 else:
-                    # Generate a secure random password
-                    plain_password_for_dc = generate_secure_password()
-                    final_password_hash = hash_password(plain_password_for_dc)
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing or invalid password_hash for user import; user not created"
+                    })
+                    continue
 
                 # Insert user directly (bypassing create_user to handle pre-hashed passwords)
                 user_doc = {
