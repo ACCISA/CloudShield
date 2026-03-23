@@ -53,13 +53,16 @@ def get_agents():
     # TODO replace with mongodb later
     if not os.getenv("CLOUDSHIELD_RUNTIME"):
         return [{"ip": "127.0.0.1", "agent_id": "agent-test"}]
-    agents_path = BASE_DIR / "agents.json"
+    # AGENTS_FILE is injected by the provisioner for per-org TD containers;
+    # fall back to the static agents.json baked into the image.
+    agents_file_env = os.getenv("AGENTS_FILE")
+    agents_path = Path(agents_file_env) if agents_file_env else BASE_DIR / "agents.json"
     try:
         with open(agents_path, "r") as f:
             data = json.load(f)
         return data["agents"]
     except Exception as exc:
-        server_logger.warning(f"Could not read agents.json: {exc}")
+        server_logger.warning(f"Could not read agents.json ({agents_path}): {exc}")
         return []
 
 def is_valid_agent(agents, ip, agent_id):

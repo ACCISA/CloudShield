@@ -21,6 +21,4 @@ for %%F in ("%target_dir%*.ps1") do (
     echo -------------------------------------------
 )
 
-set WORKSTATION_ID=WORKSTATION_UPDATE_ID_PLACEHOLDER
-
-curl 172.23.0.2:5050/workstations/update/?id=
+REM API callback moved to setup_workstation.ps1 (runs after domain-join reboot)

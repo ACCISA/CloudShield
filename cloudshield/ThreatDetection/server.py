@@ -124,7 +124,7 @@ def _start_threat_subsystems():
     try:
         from elasticsearch import Elasticsearch
         es = Elasticsearch(
-            ["http://localhost:9200"],
+            [os.environ.get("ES_URL", "http://localhost:9200")],
             basic_auth=("elastic", os.environ.get("ES_PASSWORD", "enKPRIhK")),
         )
         ensure_index_templates(es, server_logger)

@@ -170,6 +170,14 @@ services:
     networks:
       vpc_net:
 
+  threat-detection:
+    profiles: ["template"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    environment:
+      CLOUDSHIELD_RUNTIME: "1"
+
   api:
     build:
       context: .
@@ -216,64 +224,7 @@ services:
     ports:
       - "9200:9200"
 
-  server:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.server
-    container_name: "server-${ORG_TAG:-dev}"
-    environment:
-      ES_URL: "http://elasticsearch:9200"
-      CLOUDSHIELD_RUNTIME: "1"
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.10
-    ports:
-      - "50051:50051"
 
-  agent1:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent1-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-1"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.11
-
-  agent2:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent2-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-2"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.12
-
-  agent3:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent3-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-3"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.13
 
 networks:
   vpc_net:
