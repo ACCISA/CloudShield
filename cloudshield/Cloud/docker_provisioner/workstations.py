@@ -4,7 +4,6 @@ import socket
 import time
 import shutil
 import random
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from python_on_whales import DockerClient
@@ -46,10 +45,6 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
 
     template_path = template_vm_path / org_id / template_id
 
-    failed_status = {
-            "status":False,
-            "reason":""
-    }
 
     files = [
         (str(template_path / 'data.img'), str(vm_path / 'data.img')),
@@ -161,7 +156,7 @@ def prepare_software(org_id, templated_id, software,oem_path,logger):
     import_oem(oem_path)
     for soft in software:
         logger.info(f"Importing software (software_id={soft}")
-        import_software(org_id, template_id, soft)
+        import_software(org_id, templated_id, soft)
 
 
 
@@ -170,7 +165,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     global PROVISIONING_STATE
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     org_id = org_data["id"]
 
@@ -257,7 +253,8 @@ networks:
 def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = None, logger = None):
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     vm_path = Path("/data/workstations/") / org_id / vm_id
     vm_path.mkdir(parents=True, exist_ok=True)
@@ -311,7 +308,6 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
             tty=False
     )
 
-    container_ws_id = container_ws.id
     container_ws_ip = container_ws.network_settings.networks[external_network_name].ip_address
 
     updater(job, "waiting for workstation startup completion")
@@ -331,7 +327,8 @@ def provision_update(workstation_id, status, job = None, updater = None, logger 
     global PROVISIONING_STATE
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     if status == 1:
         container_id = PROVISIONING_STATE.get(workstation_id)

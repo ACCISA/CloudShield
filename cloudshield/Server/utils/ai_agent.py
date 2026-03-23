@@ -4,7 +4,10 @@ import time
 import threading
 import datetime
 from bson import ObjectId
-from google import genai
+try:
+    from google import genai
+except Exception:  # pragma: no cover - optional dependency in tests/local dev
+    genai = None
 
 from cloudshield.Server.utils.database import db_admin
 from cloudshield.Server.utils.logging_setup import get_logger
@@ -513,6 +516,10 @@ def enrich_ticket_metadata(ticket_id: ObjectId, category: str, urgency: str):
 
 def generate_ai_reply(ticket_id: str):
     try:
+        if genai is None:
+            logger.warning("google-genai package not available. AI agent disabled.")
+            return
+
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             logger.warning("GEMINI_API_KEY not set. AI agent disabled.")

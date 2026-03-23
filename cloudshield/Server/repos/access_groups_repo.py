@@ -1,6 +1,7 @@
 from typing import Optional, List
 from bson import ObjectId
 from utils import access_groups
+from models.access_groups import access_group_to_json
 
 def get_access_group_by_id(db, group_id: str) -> Optional[dict]:
     """

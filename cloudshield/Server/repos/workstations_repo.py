@@ -115,23 +115,23 @@ def get_workstations(db, org_id: str):
 
     return workstations
 
-def get_available_workstations(db, user_id: str):
+def get_available_workstation(db, user_id):
     """
     Get workstations that are available to a user
     """
 
     groups_db = db.access_groups
 
-    user_groups = groups_db.find({"_id": 1, "members":user_id}) # Get the groups the user is in
-    
-    workstation_template_cursor = db.workstation_tempaltes.find({ # Get the templates that these groups have access to
-        "access_groups":{"$in":user_groups}
+    user_groups = list(groups_db.find({"_id": 1, "members": user_id}))
+
+    workstation_template_cursor = db.workstation_templates.find({
+        "access_groups": {"$in": user_groups}
     })
 
-    template_ids = list(workstation_template_cursor)
+    template_ids = [str(doc["_id"]) for doc in workstation_template_cursor]
 
-    workstations_cursor = db.workstations.find({ # find active workstations that use the workstation templates
-        "template_id": {"$in":template_ids},
+    workstations_cursor = db.workstations.find({
+        "template_id": {"$in": template_ids},
         "status": "ACTIVE"
     })
 

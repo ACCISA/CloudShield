@@ -7,8 +7,11 @@ from datetime import datetime, timezone
 from utils import users_admin, log_audit, organizations, derive_username
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
-from security import hash_password
-from pymongo.errors import PyMongoError, DuplicateKeyError
+try:
+    from cloudshield.Server.security import hash_password
+except Exception:
+    from security import hash_password
+from pymongo.errors import PyMongoError
 from bson.errors import InvalidId
 
 
