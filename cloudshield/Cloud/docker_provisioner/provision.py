@@ -251,6 +251,53 @@ def ensure_org_network_with_subnet(org_id: str, server_logger) -> tuple[str, str
     raise RuntimeError("No free 172.23.X.0/24 subnet left for org networks (X=2..254)")
 
 
+def _connect_container_to_network(network_name: str, container_name: str, server_logger) -> None:
+    """Best-effort network connect for a running container."""
+    if not container_name or not str(container_name).strip():
+        return
+
+    container_name = str(container_name).strip()
+
+    # Skip missing containers (e.g., optional desktop UI not running)
+    inspect = subprocess.run(
+        ["docker", "inspect", container_name],
+        capture_output=True,
+        text=True,
+    )
+    if inspect.returncode != 0:
+        server_logger.info(f"Skipping network attach: container not found ({container_name})")
+        return
+
+    try:
+        subprocess.run(
+            ["docker", "network", "connect", network_name, container_name],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        server_logger.info(f"Connected container to org network: {container_name} -> {network_name}")
+    except subprocess.CalledProcessError as e:
+        msg = ((e.stdout or "") + "\n" + (e.stderr or "")).lower()
+        if "already exists" in msg or "already connected" in msg:
+            server_logger.info(f"Container already connected: {container_name} -> {network_name}")
+            return
+        server_logger.warning(
+            f"Failed to connect container '{container_name}' to network '{network_name}': {e}"
+        )
+
+
+def connect_runtime_containers_to_org_network(network_name: str, server_logger) -> None:
+    """Attach app runtime containers to the org network so API proxying can reach org nodes."""
+    target_containers = [
+        os.environ.get("CS_API_CONTAINER", "cs-api-test-dev"),
+        os.environ.get("CS_UI_CONTAINER", "cs-ui-dev"),
+        os.environ.get("CS_DESKTOP_CONTAINER", "cs-desktop-ui-dev"),
+    ]
+
+    for container_name in target_containers:
+        _connect_container_to_network(network_name, container_name, server_logger)
+
+
 def _workstation_storage_dir(org_id: str) -> str:
     base = os.environ.get("WORKSTATION_STORAGE_BASE")
     if base and str(base).strip():
@@ -459,6 +506,9 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     iso_path = _resolve_windows_iso_path(server_logger)
 
     org_network_name, org_subnet_cidr, org_gateway = ensure_org_network_with_subnet(org_id, server_logger)
+
+    # Required for task proxying (api -> openvpn -> samba) and UI/Desktop access.
+    connect_runtime_containers_to_org_network(org_network_name, server_logger)
 
     storage_dir = _workstation_storage_dir(org_id)
     oem_dir = _workstation_oem_dir(org_id)
