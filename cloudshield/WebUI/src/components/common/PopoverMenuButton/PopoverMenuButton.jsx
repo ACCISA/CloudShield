@@ -43,17 +43,21 @@ function PopoverMenuButton({
     return () => window.removeEventListener("resize", handleResize);
   }, [isOpen]);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = (e) => {
+    // Prevent the click from bubbling up and triggering row selection
+    e.stopPropagation();
     if (!disabled) {
       setIsOpen(!isOpen);
     }
   };
 
-  const handleBackdropClick = () => {
+  const handleBackdropClick = (e) => {
+    e.stopPropagation();
     setIsOpen(false);
   };
 
-  const handleMenuItemClick = (onClick) => {
+  const handleMenuItemClick = (e, onClick) => {
+    e.stopPropagation();
     if (onClick) {
       onClick();
     }
@@ -68,13 +72,15 @@ function PopoverMenuButton({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            handleButtonClick();
+            e.stopPropagation();
+            handleButtonClick(e);
           }
         }}
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-expanded={isOpen}
         aria-haspopup="true"
+        style={{ display: "flex" }}
       >
         {typeof children === "function"
           ? children({ isOpen, disabled })
@@ -88,7 +94,7 @@ function PopoverMenuButton({
             onClick={handleBackdropClick}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
-                handleBackdropClick();
+                handleBackdropClick(e);
               }
             }}
             role="button"
@@ -107,27 +113,28 @@ function PopoverMenuButton({
 
           {/* Popover */}
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "fixed",
               top: `${position.top}px`,
               left: `${position.left}px`,
-              backgroundColor: "var(--text-primary)",
-              border: "1px solid #e0e0e0",
+              backgroundColor: "var(--bg-secondary)", // Fixed background
+              border: "1px solid var(--border)", // Fixed border
               borderRadius: "16px",
               padding: "8px",
               zIndex: 1000,
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)", // Slightly enhanced shadow for depth
               minWidth: "200px",
             }}
           >
-            {menuItems.map((item) => (
-              <div key={item.label}>
+            {menuItems.map((item, index) => (
+              <div key={item.label || index}>
                 <div
-                  onClick={() => handleMenuItemClick(item.onClick)}
+                  onClick={(e) => handleMenuItemClick(e, item.onClick)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handleMenuItemClick(item.onClick);
+                      handleMenuItemClick(e, item.onClick);
                     }
                   }}
                   role="button"
@@ -143,7 +150,7 @@ function PopoverMenuButton({
                     transition: "background-color 0.2s ease",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f5f5f5";
+                    e.currentTarget.style.backgroundColor = "var(--action-hover)"; // Fixed hover
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = "transparent";
@@ -163,18 +170,18 @@ function PopoverMenuButton({
                   <span
                     style={{
                       fontSize: "14px",
-                      fontWeight: "400",
-                      color: item.color || "#1a1a1a",
+                      fontWeight: "500",
+                      color: item.color || "var(--text-primary)", // Fixed text color fallback
                     }}
                   >
                     {item.label}
                   </span>
                 </div>
-                {menuItems.indexOf(item) < menuItems.length - 1 && (
+                {index < menuItems.length - 1 && (
                   <div
                     style={{
                       height: "1px",
-                      backgroundColor: "#e0e0e0",
+                      backgroundColor: "var(--border-light)", // Fixed separator
                       margin: "4px 12px",
                     }}
                   />

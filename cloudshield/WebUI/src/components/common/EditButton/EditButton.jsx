@@ -11,8 +11,9 @@ function EditButton({ menuItems = [], disabled = false }) {
     >
       <button
         disabled={disabled}
+        type="button"
         style={{
-          padding: "0",
+          padding: "8px", // Added slight padding for a better click target
           backgroundColor: "transparent",
           color: "var(--text-primary)",
           border: "none",
@@ -21,9 +22,17 @@ function EditButton({ menuItems = [], disabled = false }) {
           alignItems: "center",
           justifyContent: "center",
           opacity: disabled ? 0.5 : 1,
+          borderRadius: "8px",
+          transition: "background-color 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          if (!disabled) e.currentTarget.style.backgroundColor = "var(--action-hover)";
+        }}
+        onMouseLeave={(e) => {
+          if (!disabled) e.currentTarget.style.backgroundColor = "transparent";
         }}
       >
-        <EditIcon width={15} height={16} color="#BCBCBC" />
+        <EditIcon width={16} height={16} color="var(--text-secondary)" />
       </button>
     </PopoverMenuButton>
   );
