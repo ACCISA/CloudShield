@@ -7,8 +7,7 @@ import os
 from datetime import datetime, timezone
 from typing import Tuple, Dict, Any
 import rq
-from redis_client import task_queue, redis_conn
-from utils import get_logger
+from utils import task_queue, redis_conn, get_logger
 from utils.database import db_admin, organizations, org_filter
 
 JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
@@ -527,30 +526,3 @@ SERVICES = {
     "send_employee_invite_email": enqueue_employee_invite_email,
 }
 
-def service_dispatcher(service_name: str, *args, **kwargs):
-    """
-    Dynamically dispatch a service request to the appropriate enqueue function.
-
-    Args:
-        service_name (str): Name of the service to invoke (must exist in SERVICES map).
-        *args: Positional arguments passed through to the service.
-        **kwargs: Keyword arguments forwarded to the target enqueue function.
-
-    Returns:
-        Job: The RQ job object returned by the enqueue function.
-
-    Raises:
-        Exception: If 'service_name' does not exist in the SERVICES registry.
-
-    Behaviour:
-        - Validates that the requested service is registered.
-        - Logs the service dispatch event (without sensitive payloads).
-        - Calls the corresponding 'enqueue_*' function to queue the job.
-    """
-    if service_name not in SERVICES:
-        raise ValueError(f"Unknown service called: {service_name}")
-
-    logger.info(f"Service dispatched to {service_name}")
-
-    service = SERVICES[service_name]
-    return service(*args, **kwargs)

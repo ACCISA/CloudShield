@@ -1,6 +1,6 @@
 import os
-from redis_client import redis_conn
 from utils.logging_setup import cleanup_old_logs
+from utils.redis_client import redis_conn
 from rq import Worker, Queue
 from rq_scheduler import Scheduler
 from datetime import datetime, timezone
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         repeat=None
     )
 
-    queue = Queue(connection=redis_conn)
+    queue = Queue('api',connection=redis_conn)
     queues = [queue]
     # On Windows, use SimpleWorker (no fork). Else, use standard Worker.
     if os.name == "nt" and SimpleWorker is not None:

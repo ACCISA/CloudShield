@@ -53,6 +53,8 @@ class TestPasswords:
         password = "a" * 1000  
         
         with pytest.raises(ValueError, match="password cannot be longer than 72 bytes"):
+            print(hash_password)
+            print(type(hash_password))
             hash_password(password)
 
     def test_verify_password_correct_password(self):
