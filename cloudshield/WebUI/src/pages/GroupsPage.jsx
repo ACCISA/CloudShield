@@ -75,6 +75,12 @@ import TrashIcon from "../assets/TrashIcon.jsx";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import { safeAsync } from "../lib/safeAsync.js";
+import { formatShares } from "../lib/format.js";
+
 const styles = {
   ...managementToolbarStyles,
   ...sharedIconViewStyles,
@@ -83,7 +89,7 @@ const styles = {
 export default function GroupsPage() {
   const location = useLocation();
   const [groups, setGroups] = useState([]);
-
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
 
@@ -167,6 +173,7 @@ export default function GroupsPage() {
     }));
 
     const shareIds = Array.isArray(g.file_shares) ? g.file_shares : [];
+    const filesCount = shareIds.length;
 
     return {
       id: g._id || g.id,
@@ -182,7 +189,8 @@ export default function GroupsPage() {
       workstations: wsObjects,
       workstationIds: wsIds,
 
-      files: shareIds.length,
+      files: filesCount,
+      filesDisplay: formatShares(filesCount),
       fileShareIds: shareIds,
 
       type: "Custom",
@@ -193,17 +201,28 @@ export default function GroupsPage() {
   };
 
   const fetchGroups = async () => {
-    try {
-      const data = await apiGet("/access-groups");
-      const apiGroups = Array.isArray(data.access_groups)
-        ? data.access_groups
-        : [];
-      const uiGroups = apiGroups.map(mapApiGroupToUi);
+    setLoading(true);
 
-      setGroups(uiGroups);
+    try {
+      await safeAsync(
+        async () => {
+          const data = await apiGet("/access-groups");
+          const apiGroups = Array.isArray(data.access_groups)
+            ? data.access_groups
+            : [];
+          const uiGroups = apiGroups.map(mapApiGroupToUi);
+          setGroups(uiGroups);
+        },
+        {
+          toast: {
+            error: (msg) => openToast(msg, "error"),
+          },
+        },
+      );
     } catch (e) {
       console.error(e);
-      openToast(e.message || "Failed to fetch groups", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -351,65 +370,73 @@ export default function GroupsPage() {
   };
 
   const handleSubmitGroup = async (groupData) => {
+    const members = normalizeMembersFromUsers(groupData.users);
+    const workstations = normalizeIdsFromObjects(groupData.workstations);
+    const file_shares = normalizeIdsFromObjects(groupData.files);
+
+    const payload = {
+      group_name: groupData.name,
+      description: groupData.description,
+      group_image: groupData.image || null,
+      members,
+      workstations,
+      file_shares,
+    };
+
     try {
-      const members = normalizeMembersFromUsers(groupData.users);
-      const workstations = normalizeIdsFromObjects(groupData.workstations);
-      const file_shares = normalizeIdsFromObjects(groupData.files);
+      await safeAsync(
+        async () => {
+          if (editingGroup) {
+            await apiPatch(`/access-groups/${editingGroup.id}`, payload);
+          } else {
+            await apiPost("/access-groups", payload);
+          }
+        },
+        {
+          toast: {
+            error: (msg) => openToast(msg, "error"),
+          },
+        },
+      );
 
-      if (editingGroup) {
-        // Update (PATCH)
-        const payload = {
-          group_name: groupData.name,
-          description: groupData.description,
-          group_image: groupData.image || null,
-          members,
-          workstations,
-          file_shares,
-        };
+      openToast(
+        editingGroup
+          ? "Group updated successfully"
+          : "Group created successfully",
+      );
 
-        await apiPatch(`/access-groups/${editingGroup.id}`, payload);
-
-        openToast("Group updated successfully");
-        await fetchGroups();
-      } else {
-        // Create (POST)
-        const payload = {
-          group_name: groupData.name,
-          description: groupData.description,
-          group_image: groupData.image || null,
-          members,
-          workstations,
-          file_shares,
-        };
-
-        await apiPost("/access-groups", payload);
-
-        openToast("Group created successfully");
-        await fetchGroups();
-      }
+      await fetchGroups();
     } catch (e) {
       console.error(e);
-      openToast(e.message || "Group action failed", "error");
     }
   };
 
   const handleDeleteGroup = async (groupId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this group? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
+    const confirmed =
+      typeof window.confirm === "function"
+        ? window.confirm(
+            "Are you sure you want to delete this group? This action cannot be undone.",
+          )
+        : true;
+
+    if (!confirmed) return;
 
     try {
-      await apiDelete(`/access-groups/${groupId}`);
+      await safeAsync(
+        async () => {
+          await apiDelete(`/access-groups/${groupId}`);
+        },
+        {
+          toast: {
+            error: (msg) => openToast(msg, "error"),
+          },
+        },
+      );
 
       openToast("Group deleted");
       await fetchGroups();
     } catch (e) {
       console.error(e);
-      openToast(e.message || "Delete failed", "error");
     }
   };
 
@@ -477,44 +504,62 @@ export default function GroupsPage() {
     },
   ];
 
-  return (
-    <div className="page-layout">
-      {/* Toolbar */}
-      <div style={styles.toolbar}>
-        {/* Left side: Search and buttons */}
-        <div style={styles.leftActions}>
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            placeholder="Search groups"
-            showIcon={true}
-            style={{
-              flex: "1 1 200px",
-              minWidth: "200px",
-              maxWidth: "680px",
-              width: "100%",
-            }}
-          />
+  const pageContentStyle = {
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: 24,
+    minHeight: 0,
+  };
 
-          <DisplayButton
-            layout={layout}
-            onLayoutChange={setLayout}
-            columnToggles={{
-              columns: [
-                { key: "showUsers", label: "Users", checked: showUsers },
-                {
-                  key: "showWorkstations",
-                  label: "Workstations",
-                  checked: showWorkstations,
+  const loadingOverlayStyle = {
+    position: "absolute",
+    inset: 0,
+    padding: 16,
+    background: "rgba(13, 13, 13, 0.55)",
+    backdropFilter: "blur(2px)",
+    zIndex: 2,
+    pointerEvents: "none",
+  };
+  
+  return (
+    <PageShell>
+      <div style={pageContentStyle}>
+        {/* Toolbar */}
+        <div style={styles.toolbar}>
+          <div style={styles.leftActions}>
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Search groups"
+              showIcon={true}
+              style={{
+                flex: "1 1 200px",
+                minWidth: "200px",
+                maxWidth: "680px",
+                width: "100%",
+              }}
+            />
+
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={setLayout}
+              columnToggles={{
+                columns: [
+                  { key: "showUsers", label: "Users", checked: showUsers },
+                  {
+                    key: "showWorkstations",
+                    label: "Workstations",
+                    checked: showWorkstations,
+                  },
+                  { key: "showFiles", label: "Shares", checked: showFiles },
+                ],
+                onToggle: (column) => {
+                  if (column === "showUsers") setShowUsers((prev) => !prev);
+                  if (column === "showWorkstations")
+                    setShowWorkstations((prev) => !prev);
+                  if (column === "showFiles") setShowFiles((prev) => !prev);
                 },
-                { key: "showFiles", label: "Shares", checked: showFiles },
-              ],
-              onToggle: (column) => {
-                if (column === "showUsers") setShowUsers((prev) => !prev);
-                if (column === "showWorkstations")
-                  setShowWorkstations((prev) => !prev);
-                if (column === "showFiles") setShowFiles((prev) => !prev);
-              },
             }}
           />
 
@@ -627,84 +672,116 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      {layout === "list" ? (
-        <GroupsList
-          rows={filtered}
-          showUsers={showUsers}
-          showWorkstations={showWorkstations}
-          showFiles={showFiles}
-          selectedIds={selectedIds}
-          allVisibleSelected={allVisibleSelected}
-          isIndeterminate={isIndeterminate}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllVisible}
-          onEdit={handleOpenEditModal}
-          onDelete={handleDeleteGroup}
-        />
-      ) : (
-        <div style={styles.iconsWrapper}>
-          <IconSelectionBar
-            styles={styles}
-            allVisibleSelected={allVisibleSelected}
-            isIndeterminate={isIndeterminate}
-            onToggleSelectAll={toggleSelectAllVisible}
-            selectedCount={selectedCount}
-          />
+        <TableSurface>
+          <div style={{ position: "relative", height: "100%", minHeight: 0 }}>
+            {layout === "list" ? (
+              <GroupsList
+                rows={filtered}
+                showUsers={showUsers}
+                showWorkstations={showWorkstations}
+                showFiles={showFiles}
+                selectedIds={selectedIds}
+                allVisibleSelected={allVisibleSelected}
+                isIndeterminate={isIndeterminate}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAllVisible}
+                onEdit={handleOpenEditModal}
+                onDelete={handleDeleteGroup}
+              />
+            ) : (
+              <div style={{ height: "100%", minHeight: 0 }}>
+                <div style={styles.iconsWrapper}>
+                  <IconSelectionBar
+                    styles={styles}
+                    allVisibleSelected={allVisibleSelected}
+                    isIndeterminate={isIndeterminate}
+                    onToggleSelectAll={toggleSelectAllVisible}
+                    selectedCount={selectedCount}
+                  />
 
-          <div style={styles.iconsGrid}>
-            {filtered.map((group) => {
-              const selected = selectedIds.has(group._id);
-              const usersCount = group.memberCount ?? group.users?.length ?? 0;
-              const workstationsCount = group.workstations?.length ?? 0;
-              const filesCount = group.files ?? 0;
-              return (
-                <div
-                  key={group.id}
-                  style={{
-                    ...styles.iconCard,
-                    ...(selected ? styles.iconCardSelected : {}),
-                  }}
-                >
-                  <div style={styles.iconCardHeader}>
-                    <Checkbox
-                      checked={selected}
-                      onChange={() => toggleSelect(group._id)}
-                    />
-                    <EditButton menuItems={getGroupMenuItems(group)} />
+                  <div style={styles.iconsGrid}>
+                    {filtered.map((group) => {
+                      const selected = selectedIds.has(group._id);
+                      const usersCount =
+                        group.memberCount ?? group.users?.length ?? 0;
+                      const workstationsCount =
+                        group.workstations?.length ?? 0;
+                      const filesCount = group.files ?? 0;
+
+                      return (
+                        <div
+                          key={group.id}
+                          style={{
+                            ...styles.iconCard,
+                            ...(selected ? styles.iconCardSelected : {}),
+                          }}
+                        >
+                          <div style={styles.iconCardHeader}>
+                            <Checkbox
+                              checked={selected}
+                              onChange={() => toggleSelect(group._id)}
+                            />
+                            <EditButton menuItems={getGroupMenuItems(group)} />
+                          </div>
+
+                          <div style={styles.iconTitle}>
+                            <DisplayIcon
+                              type="group"
+                              data={group}
+                              size="small"
+                            />
+                            <div style={styles.iconTitleText}>
+                              <span style={styles.iconName}>{group.name}</span>
+                              <span style={styles.iconSub}>
+                                ↳ {group.description || "—"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {showUsers && (
+                            <div style={styles.iconMetaRow}>
+                              <span style={styles.iconMetaLabel}>Users</span>
+                              <span style={styles.iconMetaValue}>
+                                {usersCount}
+                              </span>
+                            </div>
+                          )}
+
+                          {showWorkstations && (
+                            <div style={styles.iconMetaRow}>
+                              <span style={styles.iconMetaLabel}>
+                                Workstations
+                              </span>
+                              <span style={styles.iconMetaValue}>
+                                {workstationsCount}
+                              </span>
+                            </div>
+                          )}
+
+                          {showFiles && (
+                            <div style={styles.iconMetaRow}>
+                              <span style={styles.iconMetaLabel}>Shares</span>
+                              <span style={styles.iconMetaValue}>
+                                {filesCount}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  <div style={styles.iconTitle}>
-                    <DisplayIcon type="group" data={group} size="small" />
-                    <div style={styles.iconTitleText}>
-                      <span style={styles.iconName}>{group.name}</span>
-                      <span style={styles.iconSub}>↳ {group.description || "—"}</span>
-                    </div>
-                  </div>
-
-                  {showUsers && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Users</span>
-                      <span style={styles.iconMetaValue}>{usersCount}</span>
-                    </div>
-                  )}
-                  {showWorkstations && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Workstations</span>
-                      <span style={styles.iconMetaValue}>{workstationsCount}</span>
-                    </div>
-                  )}
-                  {showFiles && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Shares</span>
-                      <span style={styles.iconMetaValue}>{filesCount}</span>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {loading && (
+              <div style={loadingOverlayStyle}>
+                <TableSkeleton rows={8} cols={5} />
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </TableSurface>
+      </div>
 
       <GroupsModal
         open={modalOpen}
@@ -722,6 +799,6 @@ export default function GroupsPage() {
           onClose={() => setToast({ ...toast, open: false })}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
