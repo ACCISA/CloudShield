@@ -4,6 +4,7 @@ import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import ActiveIcon from "../../assets/ActiveIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /* ---------------------------- styles ---------------------------- */
@@ -17,19 +18,13 @@ const styles = {
     padding: "12px 8px",
     borderRadius: "12px",
     minWidth: 0,
+    transition: "background-color 0.2s ease",
   },
   nameSection: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
     minWidth: 0,
-  },
-  leadingCircle: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    backgroundColor: "#2A2A2A",
-    flexShrink: 0,
   },
   nameContainer: {
     display: "flex",
@@ -67,29 +62,16 @@ const styles = {
   bubblesPill: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
     minWidth: 0,
-    overflow: "hidden",
+    overflow: "visible", // Allowed to overflow for stacking effect
   },
   avatarsContainer: {
     display: "flex",
     alignItems: "center",
     minWidth: 0,
   },
-  avatar: {
-    width: "18px",
-    height: "18px",
-    fontSize: "0.65rem",
-    border: "2px solid #0F0F0F",
-    borderRadius: "50%",
-    backgroundColor: "#2A2A2A",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 600,
-    flexShrink: 0,
-  },
   extraCount: {
+    marginLeft: "8px",
     fontSize: "0.85rem",
     opacity: 0.9,
     overflow: "hidden",
@@ -109,7 +91,7 @@ const styles = {
     flexShrink: 0,
   },
   divider: {
-    borderTop: "1px solid rgba(255,255,255,0.1)",
+    borderTop: "1px solid var(--border-light)",
     margin: "0 8px",
   },
 };
@@ -158,38 +140,40 @@ const getResponsiveStyles = () => {
 
 /* ---------------------------- helpers ---------------------------- */
 
-// Accepts either an array (preferred) or a number.
-// Returns a bubble UI for up to 3, and "—" when empty.
-function renderBubbles(value) {
-  const count = Array.isArray(value) ? value.length : Number(value || 0);
+// Replaces the fake placeholders with actual DisplayIcons stacked
+function ItemsPill({ items, type }) {
+  const itemsList = Array.isArray(items) ? items : [];
+  const show = itemsList.slice(0, 3);
+  const extra = Math.max(itemsList.length - show.length, 0);
 
-  if (!Number.isFinite(count) || count <= 0) {
+  if (itemsList.length === 0) {
     return <span style={{ opacity: 0.5, ...styles.textCell }}>—</span>;
   }
 
-  const bubbles = Math.min(count, 3);
-
   return (
-    <div style={styles.bubblesPill} title={`${count}`}>
+    <div style={styles.bubblesPill}>
       <div style={styles.avatarsContainer}>
-        {Array.from({ length: bubbles }).map((_, i) => (
+        {show.map((item, idx) => (
           <div
-            key={i}
+            key={item.id || item._id || idx}
             style={{
-              ...styles.avatar,
-              marginLeft: i === 0 ? 0 : "-6px",
+              marginLeft: idx === 0 ? 0 : "-8px",
+              zIndex: show.length - idx,
+              display: "flex",
+              alignItems: "center",
             }}
-          />
+          >
+            <DisplayIcon type={type} data={item} size="small" />
+          </div>
         ))}
       </div>
-      {count > 3 && <span style={styles.extraCount}>+ {count - 3}</span>}
+      {extra > 0 && <span style={styles.extraCount}>+ {extra}</span>}
     </div>
   );
 }
 
 // For Shares specifically: show "-" instead of 0
 function renderShares(data) {
-  // Prefer normalized display fields if UsersTable provides them
   const display =
     data.fileCountDisplay ??
     data.sharesDisplay ??
@@ -199,11 +183,19 @@ function renderShares(data) {
     return <span style={{ opacity: 0.5, ...styles.textCell }}>—</span>;
   }
 
-  // If you still want the bubbles look for non-zero shares, keep bubbles based on files array/count
-  if (Array.isArray(data.files)) return renderBubbles(data.files);
-
-  // Fallback: if only a count exists
-  return renderBubbles(Number(display));
+  return (
+    <div style={{
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "4px 10px",
+      borderRadius: "20px",
+      backgroundColor: "var(--action-hover)",
+      fontSize: "0.85rem",
+      whiteSpace: "nowrap",
+    }}>
+      {display}
+    </div>
+  );
 }
 
 /* --------------------------------- component -------------------------------- */
@@ -219,7 +211,7 @@ export default function UserRow({
   isLast,
   cols,
   isMobile,
-  isTablet, // kept (even if unused) for signature compatibility
+  isTablet,
   isSelected,
   onToggleSelect,
 }) {
@@ -235,7 +227,7 @@ export default function UserRow({
           gridTemplateColumns: cols.join(" "),
         }}
         onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = themeColors.lightOverlay)
+          (e.currentTarget.style.backgroundColor = "var(--action-hover)")
         }
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
       >
@@ -244,9 +236,9 @@ export default function UserRow({
           <Checkbox checked={isSelected} onChange={onToggleSelect} />
         )}
 
-        {/* name + email + leading circle */}
+        {/* name + email + TRUE profile picture icon */}
         <div style={responsiveStyles.nameSection}>
-          <div style={styles.leadingCircle} />
+          <DisplayIcon type="user" data={data} size="small" />
           <div style={styles.nameContainer}>
             <span style={responsiveStyles.name} title={data.name}>
               {data.name}
@@ -265,10 +257,10 @@ export default function UserRow({
         )}
 
         {/* workstations */}
-        {showWorkstations && renderBubbles(data.workstations)}
+        {showWorkstations && <ItemsPill items={data.workstations} type="workstation" />}
 
         {/* groups */}
-        {showGroups && renderBubbles(data.groups)}
+        {showGroups && <ItemsPill items={data.groups} type="group" />}
 
         {/* files / shares */}
         {showFiles && renderShares(data)}
@@ -288,9 +280,9 @@ export default function UserRow({
           <EditButton
             menuItems={[
               {
-                icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+                icon: <EditIcon width={15} height={16} color="var(--text-primary)" />,
                 label: "edit user",
-                color: "#1a1a1a",
+                color: "var(--text-primary)",
                 onClick: onEdit,
               },
               {
