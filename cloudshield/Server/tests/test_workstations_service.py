@@ -88,7 +88,8 @@ def test_enqueue_ws_create_default(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=["group1"]
+        access_groups=["group1"],
+        members=[]
     )
 
     # Verify queue.enqueue was called
@@ -98,7 +99,7 @@ def test_enqueue_ws_create_default(mock_dependencies):
         "Test WS",
         "Test",
         ["software1"],
-        ["group1"]
+        ["group1"],[]
     )
 
     # Verify logger was called
@@ -171,7 +172,8 @@ def test_services_dict_ws_create_default(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=["group1"]
+        access_groups=["group1"],
+        members=[]
     )
 
     # Verify queue.enqueue was called
@@ -212,7 +214,8 @@ def test_enqueue_ws_create_default_logs_correct_message(mock_dependencies):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=[]
+        access_groups=[],
+        members=[]
     )
 
     # Verify the exact log message
@@ -252,12 +255,13 @@ def test_ws_create_default_with_empty_software(mock_dependencies, monkeypatch):
         name="Test WS",
         description="Test",
         software=[],
-        access_groups=["group1"]
+        access_groups=["group1"],
+        members=[]
     )
 
     # Verify task was called with empty software
     mock_task.assert_called_once_with(
-        "org-1", "Test WS", "Test", [], ["group1"]
+        "org-1", "Test WS", "Test", [], ["group1"],[]
     )
 
 
@@ -275,12 +279,13 @@ def test_ws_create_default_with_multiple_access_groups(mock_dependencies, monkey
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=access_groups
+        access_groups=access_groups,
+        members=[]
     )
 
     # Verify task was called with all access groups
     mock_task.assert_called_once_with(
-        "org-1", "Test WS", "Test", ["software1"], access_groups
+        "org-1", "Test WS", "Test", ["software1"], access_groups, []
     )
 
 
@@ -309,7 +314,8 @@ def test_enqueue_ws_create_default_returns_job_object(mock_dependencies):
         name="Test WS",
         description="Test",
         software=["software1"],
-        access_groups=["group1"]
+        access_groups=["group1"],
+        members=[]
     )
 
     # Verify we get the job object back
@@ -375,7 +381,8 @@ def test_enqueue_ws_create_default_forwards_all_parameters(mock_dependencies):
         name=name,
         description=description,
         software=software,
-        access_groups=access_groups
+        access_groups=access_groups,
+        members=[]
     )
 
     # Verify all parameters were forwarded
