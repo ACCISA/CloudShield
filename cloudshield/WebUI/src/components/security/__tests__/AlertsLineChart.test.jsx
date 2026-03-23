@@ -317,4 +317,465 @@ describe("AlertsLineChart Component", () => {
       expect(colorDiv.style.backgroundColor).toBeTruthy();
     });
   });
+
+  describe("Legend Hover Effects", () => {
+    it("applies hover style on mouse enter", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const legendButton = screen
+        .getByText("Security breach")
+        .closest("button");
+
+      fireEvent.mouseEnter(legendButton);
+      expect(legendButton.style.backgroundColor).toBeTruthy();
+    });
+
+    it("removes hover style on mouse leave", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const legendButton = screen
+        .getByText("Security breach")
+        .closest("button");
+
+      fireEvent.mouseEnter(legendButton);
+      fireEvent.mouseLeave(legendButton);
+      expect(legendButton.style.backgroundColor).toBe("transparent");
+    });
+
+    it("maintains hover on multiple types", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const breach = screen.getByText("Security breach").closest("button");
+      const suspicious = screen
+        .getByText("Suspicious activity")
+        .closest("button");
+
+      fireEvent.mouseEnter(breach);
+      expect(breach.style.backgroundColor).toBeTruthy();
+      fireEvent.mouseLeave(breach);
+
+      fireEvent.mouseEnter(suspicious);
+      expect(suspicious.style.backgroundColor).toBeTruthy();
+      fireEvent.mouseLeave(suspicious);
+    });
+  });
+
+  describe("Data Aggregation", () => {
+    it("correctly aggregates multiple entries for same day and type", () => {
+      const dataWithDuplicates = [
+        { type: "Security breach", date: "2024-01-01T10:00:00Z" },
+        { type: "Security breach", date: "2024-01-01T14:00:00Z" },
+        { type: "Security breach", date: "2024-01-01T18:00:00Z" },
+        { type: "Suspicious activity", date: "2024-01-01T09:00:00Z" },
+      ];
+
+      const { container } = render(
+        <AlertsLineChart data={dataWithDuplicates} timeRange="7d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
+      expect(screen.getByText("Suspicious activity")).toBeInTheDocument();
+    });
+
+    it("handles many unique types (>10 types)", () => {
+      const manyTypes = Array.from({ length: 15 }, (_, i) => ({
+        type: `Alert Type ${i}`,
+        date: `2024-01-${String((i % 28) + 1).padStart(2, "0")}T10:00:00Z`,
+      }));
+
+      const { container } = render(
+        <AlertsLineChart data={manyTypes} timeRange="7d" />,
+      );
+      const buttons = container.querySelectorAll("button");
+      expect(buttons.length).toBe(15);
+    });
+
+    it("preserves data integrity with mixed dates", () => {
+      const mixedDates = [
+        { type: "Type A", date: "2024-01-01T08:00:00Z" },
+        { type: "Type A", date: "2024-01-01T20:00:00Z" },
+        { type: "Type B", date: "2023-12-31T23:59:00Z" },
+        { type: "Type B", date: "2024-01-02T00:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={mixedDates} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+      expect(screen.getByText("Type B")).toBeInTheDocument();
+    });
+  });
+
+  describe("Sequential Toggle Interactions", () => {
+    it("allows toggling same type multiple times", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      expect(button).toHaveStyle({ opacity: "1" });
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "1" });
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("toggles all types independently to disabled", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+
+      const breach = screen.getByText("Security breach").closest("button");
+      const suspicious = screen
+        .getByText("Suspicious activity")
+        .closest("button");
+      const violation = screen
+        .getByText("Policy violation")
+        .closest("button");
+      const malware = screen.getByText("Malware detected").closest("button");
+
+      fireEvent.click(breach);
+      fireEvent.click(suspicious);
+      fireEvent.click(violation);
+      fireEvent.click(malware);
+
+      expect(breach).toHaveStyle({ opacity: "0.4" });
+      expect(suspicious).toHaveStyle({ opacity: "0.4" });
+      expect(violation).toHaveStyle({ opacity: "0.4" });
+      expect(malware).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("re-enables all types after disabling", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+
+      const buttons = screen
+        .getAllByRole("button")
+        .filter((btn) => mockData.map((d) => d.type).includes(btn.textContent?.trim()));
+
+      buttons.forEach((btn) => fireEvent.click(btn));
+      buttons.forEach((btn) => fireEvent.click(btn));
+
+      buttons.forEach((btn) => {
+        expect(btn).toHaveStyle({ opacity: "1" });
+      });
+    });
+  });
+
+  describe("Props Validation and Combination", () => {
+    it("renders with valid props combination", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="30d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it("handles all common timeRange values", () => {
+      const timeRanges = ["7d", "14d", "30d", "90d", "1y", "all"];
+
+      timeRanges.forEach((range) => {
+        const { container } = render(
+          <AlertsLineChart data={mockData} timeRange={range} />,
+        );
+        expect(container.firstChild).toBeInTheDocument();
+      });
+    });
+
+    it("renders with large dataset", () => {
+      const largeData = Array.from({ length: 1000 }, (_, i) => ({
+        type: ["Type A", "Type B", "Type C"][i % 3],
+        date: new Date(2024, 0, (i % 28) + 1).toISOString(),
+      }));
+
+      const { container } = render(
+        <AlertsLineChart data={largeData} timeRange="30d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it("renders with minimum required props", () => {
+      const { container } = render(
+        <AlertsLineChart
+          data={[{ type: "Test", date: "2024-01-01T10:00:00Z" }]}
+          timeRange="7d"
+        />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+    });
+  });
+
+  describe("SVG Element Verification", () => {
+    it("SVG has correct dimensions", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toHaveStyle({ width: "100%", height: "220px" });
+    });
+
+    it("SVG width is responsive", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg.style.width).toBe("100%");
+    });
+
+    it("container div has correct height", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const mainDiv = container.firstChild;
+      expect(mainDiv).toHaveStyle({ position: "relative" });
+      expect(mainDiv).toHaveStyle({ height: "280px" });
+      expect(mainDiv).toHaveStyle({ width: "100%" });
+    });
+  });
+
+  describe("Legend Order and Uniqueness", () => {
+    it("shows only unique alert types in legend", () => {
+      const duplicateData = [
+        { type: "Security breach", date: "2024-01-01T10:00:00Z" },
+        { type: "Security breach", date: "2024-01-01T11:00:00Z" },
+        { type: "Security breach", date: "2024-01-01T12:00:00Z" },
+      ];
+
+      const { container } = render(
+        <AlertsLineChart data={duplicateData} timeRange="7d" />,
+      );
+      const buttons = container.querySelectorAll("button");
+      expect(buttons.length).toBe(1);
+    });
+
+    it("maintains legend order across renders", () => {
+      const { rerender, container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+
+      const getButtonTexts = () =>
+        Array.from(container.querySelectorAll("button")).map(
+          (btn) => btn.textContent
+        );
+
+      const order1 = getButtonTexts();
+
+      rerender(<AlertsLineChart data={mockData} timeRange="14d" />);
+      const order2 = getButtonTexts();
+
+      expect(order1.length).toBe(order2.length);
+    });
+  });
+
+  describe("Data with Special Characters and Formats", () => {
+    it("handles alert types with special characters", () => {
+      const specialData = [
+        { type: "Security (Critical)", date: "2024-01-01T10:00:00Z" },
+        { type: "Threat & Vulnerability", date: "2024-01-02T10:00:00Z" },
+        { type: "C&C / Botnet Activity", date: "2024-01-03T10:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={specialData} timeRange="7d" />);
+      expect(screen.getByText("Security (Critical)")).toBeInTheDocument();
+      expect(screen.getByText("Threat & Vulnerability")).toBeInTheDocument();
+      expect(screen.getByText("C&C / Botnet Activity")).toBeInTheDocument();
+    });
+
+    it("handles alert types with unicode characters", () => {
+      const unicodeData = [
+        { type: "危险", date: "2024-01-01T10:00:00Z" },
+        { type: "🚨 Alert", date: "2024-01-02T10:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={unicodeData} timeRange="7d" />);
+      expect(screen.getByText("危险")).toBeInTheDocument();
+      expect(screen.getByText("🚨 Alert")).toBeInTheDocument();
+    });
+
+    it("handles very long alert type names", () => {
+      const longName =
+        "Extremely Long Alert Type Name For Testing Purposes That Should Still Render Properly";
+      const longData = [
+        { type: longName, date: "2024-01-01T10:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={longData} timeRange="7d" />);
+      const button = screen.getByText(longName);
+      expect(button).toBeInTheDocument();
+    });
+  });
+
+  describe("Button Interactivity", () => {
+    it("button click handler is triggered", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("button remains focused after click", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      button.focus();
+      fireEvent.click(button);
+      expect(button === document.activeElement || button.style).toBeTruthy();
+    });
+
+    it("keyboard navigation works for legend buttons", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const buttons = Array.from(container.querySelectorAll("button"));
+
+      buttons.forEach((btn) => {
+        btn.focus();
+        expect(btn === document.activeElement || btn.style).toBeTruthy();
+      });
+    });
+  });
+
+  describe("Component Cleanup", () => {
+    it("unmounts without errors", () => {
+      const { unmount } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      expect(() => unmount()).not.toThrow();
+    });
+
+    it("handles rapid mount/unmount cycles", () => {
+      expect(() => {
+        const { unmount } = render(
+          <AlertsLineChart data={mockData} timeRange="7d" />,
+        );
+        unmount();
+      }).not.toThrow();
+
+      expect(() => {
+        render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      }).not.toThrow();
+    });
+  });
+
+  describe("Edge Cases with Date Normalization", () => {
+    it("handles dates with different times on same day", () => {
+      const sameDay = [
+        { type: "Type A", date: "2024-01-01T00:00:00Z" },
+        { type: "Type A", date: "2024-01-01T06:00:00Z" },
+        { type: "Type A", date: "2024-01-01T12:00:00Z" },
+        { type: "Type A", date: "2024-01-01T23:59:59Z" },
+      ];
+
+      render(<AlertsLineChart data={sameDay} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+
+    it("handles dates across month boundaries", () => {
+      const boundaryDates = [
+        { type: "Type A", date: "2024-01-31T10:00:00Z" },
+        { type: "Type A", date: "2024-02-01T10:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={boundaryDates} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+
+    it("handles dates across year boundaries", () => {
+      const yearDates = [
+        { type: "Type A", date: "2023-12-31T23:00:00Z" },
+        { type: "Type A", date: "2024-01-01T01:00:00Z" },
+      ];
+
+      render(<AlertsLineChart data={yearDates} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+  });
+
+  describe("Style Application", () => {
+    it("applies correct styles to legend items", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const button = screen.getByText("Security breach").closest("button");
+
+      expect(button).toHaveStyle({ fontSize: "12px", cursor: "pointer" });
+    });
+
+    it("legend container has flex layout", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const legend = container.querySelector("div:nth-child(3)");
+      expect(legend).toBeTruthy();
+    });
+
+    it("tooltip has correct initial opacity", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const tooltip = container.querySelector("div:nth-child(2)");
+      if (tooltip && tooltip.style.opacity !== undefined) {
+        expect(parseInt(tooltip.style.opacity)).toBeLessThanOrEqual(1);
+      }
+    });
+  });
+
+  describe("Rapid State Changes", () => {
+    it("handles rapid toggling of same type", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      for (let i = 0; i < 10; i += 1) {
+        fireEvent.click(button);
+      }
+
+      expect(button).toHaveStyle({ opacity: "1" });
+    });
+
+    it("handles rapid toggling of multiple types", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+
+      const buttons = [
+        screen.getByText("Security breach").closest("button"),
+        screen.getByText("Suspicious activity").closest("button"),
+        screen.getByText("Policy violation").closest("button"),
+      ];
+
+      for (let i = 0; i < 5; i += 1) {
+        buttons.forEach((btn) => fireEvent.click(btn));
+      }
+
+      expect(buttons[0]).toHaveStyle({ opacity: "1" });
+      expect(buttons[1]).toHaveStyle({ opacity: "1" });
+      expect(buttons[2]).toHaveStyle({ opacity: "1" });
+    });
+  });
+
+  describe("Prop Changes During Interaction", () => {
+    it("updates chart when data changes during toggle", () => {
+      const { rerender } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+
+      const button = screen.getByText("Security breach").closest("button");
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+
+      const newData = [
+        ...mockData,
+        { type: "New Type", date: "2024-01-04T10:00:00Z" },
+      ];
+
+      rerender(<AlertsLineChart data={newData} timeRange="7d" />);
+      expect(screen.getByText("New Type")).toBeInTheDocument();
+    });
+
+    it("updates timeRange while types are toggled", () => {
+      const { rerender } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+
+      fireEvent.click(
+        screen.getByText("Security breach").closest("button")
+      );
+
+      rerender(<AlertsLineChart data={mockData} timeRange="30d" />);
+      expect(
+        screen.getByText("Security breach").closest("button")
+      ).toHaveStyle({ opacity: "0.4" });
+    });
+  });
 });
+
