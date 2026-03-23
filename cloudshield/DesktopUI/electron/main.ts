@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Tray, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { list } from "regedit-rs";
 import { OVPNPathResult } from "./models/OVPNPathResult.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -274,11 +274,12 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     command = winOVPN.path!;
   }
 
-  // Optional Linux elevation path via pkexec (disabled by default in container/dev).
-  // Enable only when OPENVPN_USE_PKEXEC=true is explicitly set.
+  // On Linux, OpenVPN needs elevated privileges to create/use TUN interfaces.
+  // Use pkexec by default for non-root users so the OS can prompt for admin auth.
+  // Set OPENVPN_USE_PKEXEC=false to bypass this behavior.
   if (
     process.platform === "linux" &&
-    process.env.OPENVPN_USE_PKEXEC === "true" &&
+    process.env.OPENVPN_USE_PKEXEC !== "false" &&
     typeof process.getuid === "function" &&
     process.getuid() !== 0
   ) {
@@ -373,6 +374,14 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     if (launchError) {
       return;
     }
+    if (process.platform === "linux" && command === "pkexec" && code === 126) {
+      updateVPNState({
+        status: "error",
+        error:
+          "OpenVPN elevation was denied or canceled. Please authorize admin access to connect.",
+      });
+      return;
+    }
     if (code === 0) {
       updateVPNState({ status: "disconnected" });
     } else {
@@ -416,8 +425,18 @@ const disconnectVPN = () => {
     for (const pid of pidsToKill) {
       try {
         process.kill(pid);
-      } catch {
-        // Process may already be gone.
+      } catch (err: any) {
+        // If OpenVPN was started elevated (pkexec), killing can require elevation too.
+        if (
+          process.platform === "linux" &&
+          typeof process.getuid === "function" &&
+          process.getuid() !== 0 &&
+          (err?.code === "EPERM" || err?.code === "EACCES")
+        ) {
+          spawnSync("pkexec", ["kill", String(pid)], {
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+        }
       }
     }
 
