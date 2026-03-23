@@ -9,6 +9,7 @@ __all__ = [
 	"require_auth",
 	"require_role",
 	"hash_password",
+	"is_bcrypt_string",
 	"verify_token",
 ]
 
@@ -18,6 +19,11 @@ def __getattr__(name: str) -> Any:
 		from .passwords import hash_password as _hash_password
 
 		return _hash_password
+
+	if name == "is_bcrypt_string":
+		from .passwords import is_bcrypt_string as _is_bcrypt_string
+
+		return _is_bcrypt_string
 
 	if name == "verify_token":
 		from .jwt_utils import verify_token as _verify_token

@@ -1,10 +1,62 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import PropTypes from "prop-types";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
 import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
+
+// Toast Notification Component
+const CustomToast = ({ msg, type, onClose }) => {
+  if (!msg) return null;
+
+  const toastStyles = {
+    position: "fixed",
+    bottom: "24px",
+    right: "24px",
+    padding: "12px 24px",
+    borderRadius: "12px",
+    backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
+    color: "#fff",
+    fontSize: "1rem",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    cursor: "pointer",
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      style={toastStyles}
+      onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      aria-label="Close notification"
+    >
+      {msg}
+    </div>
+  );
+};
+
+CustomToast.propTypes = {
+  msg: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(["success", "error", "info", "warning"]),
+  onClose: PropTypes.func.isRequired,
+};
+
+CustomToast.defaultProps = {
+  type: "success",
+};
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -58,6 +110,7 @@ export default function GroupsPage() {
   // CSV import state
   const csvInputRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
+  const [showCsvHelp, setShowCsvHelp] = useState(false);
 
   // Open modal if navigated from dashboard
   useEffect(() => {
@@ -507,13 +560,62 @@ export default function GroupsPage() {
             style={{ display: "none" }}
           />
 
-          <CreateButton
-            icon={<UploadFileIcon width={16} height={16} color="#fff" />}
-            buttonText={csvImporting ? "Importing..." : "Import CSV"}
-            onClick={handleCsvButtonClick}
-            disabled={csvImporting}
-            title="CSV Format: group_name,description,member_emails (use semicolons between emails, e.g. john@example.com;jane@example.com)"
-          />
+          {/* CSV Import with help indicator */}
+          <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <CreateButton
+              icon={<UploadFileIcon width={16} height={16} color="#fff" />}
+              buttonText={csvImporting ? "Importing..." : "Import CSV"}
+              onClick={handleCsvButtonClick}
+              disabled={csvImporting}
+            />
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "18px",
+                height: "18px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                color: "#fff",
+                fontSize: "11px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+              onClick={() => setShowCsvHelp(!showCsvHelp)}
+              onMouseEnter={() => setShowCsvHelp(true)}
+              onMouseLeave={() => setShowCsvHelp(false)}
+            >
+              ?
+            </div>
+            {showCsvHelp && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: "8px",
+                  padding: "12px 16px",
+                  backgroundColor: "#1a1a2e",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontSize: "12px",
+                  lineHeight: "1.5",
+                  whiteSpace: "pre-line",
+                  zIndex: 1000,
+                  minWidth: "320px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                }}
+              >
+                <strong>CSV Format:</strong>{"\n"}
+                group_name,description,member_emails{"\n\n"}
+                <strong>Note:</strong> Separate multiple emails with semicolons{"\n\n"}
+                <strong>Example:</strong>{"\n"}
+                Engineering,Dev team,john@co.com;jane@co.com
+              </div>
+            )}
+          </div>
 
           <CreateButton
             icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
@@ -610,6 +712,14 @@ export default function GroupsPage() {
         onDelete={handleDeleteGroup}
         onRefresh={fetchGroups}
       />
+
+      {toast.open && (
+        <CustomToast
+          msg={toast.msg}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, open: false })}
+        />
+      )}
     </div>
   );
 }

@@ -175,6 +175,7 @@ export default function EmployeesPage() {
   // CSV import file input ref
   const csvInputRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
+  const [showCsvHelp, setShowCsvHelp] = useState(false);
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -778,13 +779,64 @@ export default function EmployeesPage() {
             style={{ display: "none" }}
           />
 
-          <CreateButton
-            icon={<UploadFileIcon width={16} height={16} color="#fff" />}
-            buttonText={csvImporting ? "Importing..." : "Import CSV"}
-            onClick={handleCsvButtonClick}
-            disabled={csvImporting}
-            title="CSV Format: email,full_name,password_hash,role. Use bcrypt hashes from your previous system. Role is optional (defaults to 'employee')."
-          />
+          {/* CSV Import with help indicator */}
+          <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <CreateButton
+              icon={<UploadFileIcon width={16} height={16} color="#fff" />}
+              buttonText={csvImporting ? "Importing..." : "Import CSV"}
+              onClick={handleCsvButtonClick}
+              disabled={csvImporting}
+            />
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "18px",
+                height: "18px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                color: "#fff",
+                fontSize: "11px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+              onClick={() => setShowCsvHelp(!showCsvHelp)}
+              onMouseEnter={() => setShowCsvHelp(true)}
+              onMouseLeave={() => setShowCsvHelp(false)}
+            >
+              ?
+            </div>
+            {showCsvHelp && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: "8px",
+                  padding: "12px 16px",
+                  backgroundColor: "#1a1a2e",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontSize: "12px",
+                  lineHeight: "1.5",
+                  whiteSpace: "pre-line",
+                  zIndex: 1000,
+                  minWidth: "280px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                }}
+              >
+                <strong>CSV Format:</strong>{"\n"}
+                email,full_name,password_hash,role{"\n\n"}
+                <strong>Columns:</strong>{"\n"}
+                - password_hash: bcrypt hash from previous system{"\n"}
+                - role: optional (defaults to &apos;employee&apos;){"\n\n"}
+                <strong>Example:</strong>{"\n"}
+                john@company.com,John Doe,$2b$12$...,employee
+              </div>
+            )}
+          </div>
 
           <CreateButton
             icon={<CreateUserIcon width={16} height={16} color="#fff" />}
