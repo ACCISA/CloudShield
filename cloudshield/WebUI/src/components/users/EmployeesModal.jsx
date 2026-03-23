@@ -420,7 +420,6 @@ export default function EmployeesModal({
                   className="employees-modal-btn employees-modal-btn-primary"
                   onClick={() => handleNavigate(1)}
                   disabled={isNextDisabled}
-                  style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
                 >
                   Next
                 </button>
@@ -429,7 +428,6 @@ export default function EmployeesModal({
                   className="employees-modal-btn employees-modal-btn-primary"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
                 >
                   {isSubmitting
                     ? "Saving..."
@@ -552,7 +550,7 @@ function BasicInfoStep({
               />
               <div className="employees-modal-image-placeholder">
                 <span className="employees-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon width={48} height={48} fill="var(--text-secondary)" />
                 </span>
                 <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
               </div>

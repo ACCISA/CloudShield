@@ -6,6 +6,7 @@ import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import { useThemeColors } from "../hooks/useThemeColors.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
+import EmptyState from "../components/common/EmptyState/EmptyState.jsx"; // Imported EmptyState
 
 // Import dynamic components
 import SearchField from "../components/common/SearchField/SearchField.jsx";
@@ -539,75 +540,84 @@ export default function GroupsPage() {
                   />
 
                   <div style={styles.iconsGrid}>
-                    {filtered.map((group) => {
-                      const selected = selectedIds.has(group._id);
-                      const usersCount =
-                        group.memberCount ?? group.users?.length ?? 0;
-                      const workstationsCount =
-                        group.workstations?.length ?? 0;
-                      const filesCount = group.files ?? 0;
+                    {filtered.length === 0 && !loading ? (
+                      <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
+                        <EmptyState 
+                          message="No groups found" 
+                          description="Try adjusting your search or filters, or create a new group." 
+                        />
+                      </div>
+                    ) : (
+                      filtered.map((group) => {
+                        const selected = selectedIds.has(group._id);
+                        const usersCount =
+                          group.memberCount ?? group.users?.length ?? 0;
+                        const workstationsCount =
+                          group.workstations?.length ?? 0;
+                        const filesCount = group.files ?? 0;
 
-                      return (
-                        <div
-                          key={group.id}
-                          style={{
-                            ...styles.iconCard,
-                            ...(selected ? styles.iconCardSelected : {}),
-                          }}
-                        >
-                          <div style={styles.iconCardHeader}>
-                            <Checkbox
-                              checked={selected}
-                              onChange={() => toggleSelect(group._id)}
-                            />
-                            <EditButton menuItems={getGroupMenuItems(group)} />
+                        return (
+                          <div
+                            key={group.id}
+                            style={{
+                              ...styles.iconCard,
+                              ...(selected ? styles.iconCardSelected : {}),
+                            }}
+                          >
+                            <div style={styles.iconCardHeader}>
+                              <Checkbox
+                                checked={selected}
+                                onChange={() => toggleSelect(group._id)}
+                              />
+                              <EditButton menuItems={getGroupMenuItems(group)} />
+                            </div>
+
+                            <div style={styles.iconTitle}>
+                              <DisplayIcon
+                                type="group"
+                                data={group}
+                                size="small"
+                              />
+                              <div style={styles.iconTitleText}>
+                                <span style={styles.iconName}>{group.name}</span>
+                                <span style={styles.iconSub}>
+                                  ↳ {group.description || "—"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {showUsers && (
+                              <div style={styles.iconMetaRow}>
+                                <span style={styles.iconMetaLabel}>Users</span>
+                                <span style={styles.iconMetaValue}>
+                                  {usersCount}
+                                </span>
+                              </div>
+                            )}
+
+                            {showWorkstations && (
+                              <div style={styles.iconMetaRow}>
+                                <span style={styles.iconMetaLabel}>
+                                  Workstations
+                                </span>
+                                <span style={styles.iconMetaValue}>
+                                  {workstationsCount}
+                                </span>
+                              </div>
+                            )}
+
+                            {showFiles && (
+                              <div style={styles.iconMetaRow}>
+                                <span style={styles.iconMetaLabel}>Shares</span>
+                                <span style={styles.iconMetaValue}>
+                                  {filesCount}
+                                </span>
+                              </div>
+                            )}
                           </div>
-
-                          <div style={styles.iconTitle}>
-                            <DisplayIcon
-                              type="group"
-                              data={group}
-                              size="small"
-                            />
-                            <div style={styles.iconTitleText}>
-                              <span style={styles.iconName}>{group.name}</span>
-                              <span style={styles.iconSub}>
-                                ↳ {group.description || "—"}
-                              </span>
-                            </div>
-                          </div>
-
-                          {showUsers && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>Users</span>
-                              <span style={styles.iconMetaValue}>
-                                {usersCount}
-                              </span>
-                            </div>
-                          )}
-
-                          {showWorkstations && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>
-                                Workstations
-                              </span>
-                              <span style={styles.iconMetaValue}>
-                                {workstationsCount}
-                              </span>
-                            </div>
-                          )}
-
-                          {showFiles && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>Shares</span>
-                              <span style={styles.iconMetaValue}>
-                                {filesCount}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>

@@ -14,6 +14,7 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton";
 import CreateButton from "../components/common/CreateButton/CreateButton";
 import Checkbox from "../components/common/Checkbox/Checkbox";
 import EditButton from "../components/common/EditButton/EditButton";
+import EmptyState from "../components/common/EmptyState/EmptyState";
 import EditIcon from "../assets/EditIcon";
 import TrashIcon from "../assets/TrashIcon";
 import Tooltip from "@mui/material/Tooltip";
@@ -136,61 +137,46 @@ StorageCell.defaultProps = {
 
 /**
  * Main file shares management page for viewing, creating, editing, and deleting organization file shares.
- * Displays shares in list or icon view with search, selection, and real-time operation tracking.
- * Implements non-blocking async operations with polling for create/delete completion.
  */
 export default function FilesPage() {
   const { currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "files" });
   const themeColors = useThemeColors();
 
-  // Get orgId from currentUser or localStorage
   const orgId = useMemo(() => {
     try {
       const stored = localStorage.getItem("org_id");
-      console.log("localStorage org_id:", stored);
       if (stored) return stored;
     } catch (e) {
       console.error("Error reading localStorage:", e);
     }
-
-    const finalOrgId = currentUser?.org_id || "default-org";
-
-    return finalOrgId;
+    return currentUser?.org_id || "default-org";
   }, [currentUser]);
 
   const [layout, setLayout] = useState("list");
-
   const [tree, setTree] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-
-  // Lookup maps for enriching hover cards
   const [userLookup, setUserLookup] = useState(new Map());
   const [groupLookup, setGroupLookup] = useState(new Map());
-
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
-
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [deletingShares, setDeletingShares] = useState(new Set()); // Track which shares are being deleted
-  const [creatingShares, setCreatingShares] = useState(new Set()); // Track which shares are being created
+  const [deletingShares, setDeletingShares] = useState(new Set());
+  const [creatingShares, setCreatingShares] = useState(new Set());
 
   const location = useLocation();
 
-  // Open modal if navigated from dashboard
   useEffect(() => {
     if (location.state?.openModal) {
       setUploadOpen(true);
       setEditTarget(null);
-      // Clear the state to prevent reopening on subsequent renders
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  // Fetch user data for enriching hover cards
   useEffect(() => {
     const loadUsers = async () => {
       try {
@@ -221,7 +207,6 @@ export default function FilesPage() {
     loadUsers();
   }, [orgId]);
 
-  // Fetch group data for enriching hover cards
   useEffect(() => {
     const loadGroups = async () => {
       try {
@@ -253,15 +238,11 @@ export default function FilesPage() {
     loadGroups();
   }, [orgId]);
 
-  // Safe-guard index building: ensure tree is an array if buildIndex expects one
   const index = useMemo(() => {
-    // If tree is null or invalid, return empty map
     if (!tree) return new Map();
-    // If buildIndex expects array but we have object (and logic wasn't fixed in FileHelper), wrap it or fix input
-    // Assuming buildIndex iterates over the input:
     return buildIndex(tree);
   }, [tree]);
-  // Helper function to ensure value is always an array
+
   const ensureArray = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -275,39 +256,27 @@ export default function FilesPage() {
 
   const fetchTree = useCallback(
     async ({ initial = false } = {}) => {
-      if (initial) {
-        setIsInitialLoading(true);
-      }
-
+      if (initial) setIsInitialLoading(true);
       setLoadError("");
-      console.log("fetchTree - Starting fetch with orgId:", orgId);
-
       try {
         const shares = await safeAsync(() => fetchFileShares(orgId));
         const nodes = transformSharesToTree(shares);
-        console.log("fetchTree - Extracted shares:", nodes);
         setTree(Array.isArray(nodes) ? nodes : []);
       } catch (e) {
         console.error("fetchTree - Failed to fetch files:", e);
         setLoadError(getUserErrorMessage(e));
       } finally {
-        if (initial) {
-          setIsInitialLoading(false);
-        }
+        if (initial) setIsInitialLoading(false);
       }
     },
     [orgId],
   );
 
-  // Handle creating a new file share
   const handleCreateShare = useCallback(
     async (data) => {
       try {
-        // Add to creating state
         setCreatingShares((prev) => new Set(prev).add(data.shareName));
-
-        // Send create request
-        const result = await createFileShare({
+        await createFileShare({
           orgId,
           name: data.shareName,
           users: data.users,
@@ -315,26 +284,18 @@ export default function FilesPage() {
           description: data.description,
           maxSize: data.maxSize,
         });
-        console.log("Create job queued:", result);
-
-        // Close modal immediately so user can continue working
         setUploadOpen(false);
 
-        // Poll for the new share to appear - check every 2 seconds for up to 30 seconds
         let attempts = 0;
         const maxAttempts = 15;
-
         const pollInterval = setInterval(async () => {
           attempts++;
-
-          // Fetch current shares to check if new one exists
           const currentShares = await fetchFileShares(orgId);
           const shareExists = currentShares?.some(
             (s) => s.share?.name === data.shareName,
           );
 
           if (shareExists) {
-            // Share created successfully - refresh UI
             clearInterval(pollInterval);
             setCreatingShares((prev) => {
               const newSet = new Set(prev);
@@ -342,9 +303,7 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            console.log(`File share "${data.shareName}" created successfully!`);
           } else if (attempts >= maxAttempts) {
-            // Timeout - give up polling but still refresh
             clearInterval(pollInterval);
             setCreatingShares((prev) => {
               const newSet = new Set(prev);
@@ -352,9 +311,7 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            alert(
-              `File share "${data.shareName}" is taking longer than expected to create. Please refresh if it doesn't appear.`,
-            );
+            alert(`File share "${data.shareName}" is taking longer than expected. Please refresh.`);
           }
         }, 2000);
       } catch (err) {
@@ -370,7 +327,6 @@ export default function FilesPage() {
     [orgId, fetchTree],
   );
 
-  // Handle editing a file share
   const handleEditShare = useCallback(
     async (data) => {
       try {
@@ -378,11 +334,9 @@ export default function FilesPage() {
           users: data.users,
           groups: data.groups,
           description: data.description,
-          max_size: data.maxSize ? parseInt(data.maxSize, 10) : undefined, // Store as GB
+          max_size: data.maxSize ? parseInt(data.maxSize, 10) : undefined,
         });
-        console.log("Share updated");
         setEditTarget(null);
-        // Refresh the list
         fetchTree();
         alert("File share updated successfully!");
       } catch (err) {
@@ -393,10 +347,8 @@ export default function FilesPage() {
     [orgId, editTarget, fetchTree],
   );
 
-  // Handle deleting a file share
   const handleDeleteShare = useCallback(async () => {
     if (!editTarget) return;
-
     const confirmed = window.confirm(
       `Are you sure you want to delete "${editTarget.name}"? This action cannot be undone.`,
     );
@@ -404,9 +356,7 @@ export default function FilesPage() {
 
     try {
       await deleteFileShare(orgId, editTarget.name);
-      console.log("Share deleted");
       setEditTarget(null);
-      // Refresh the list
       fetchTree();
       alert("File share deleted successfully!");
     } catch (err) {
@@ -415,32 +365,25 @@ export default function FilesPage() {
     }
   }, [orgId, editTarget, fetchTree]);
 
-  // Trigger fetch on mount
   useEffect(() => {
     fetchTree({ initial: true });
   }, [fetchTree]);
 
   const listFilteredTree = useMemo(() => {
     if (layout !== "list") return tree;
-    const filtered = filterTreeByQuery(tree, searchQuery);
-    console.log("listFilteredTree - filtered:", filtered);
-    return filtered;
+    return filterTreeByQuery(tree, searchQuery);
   }, [tree, searchQuery, layout]);
 
   const effectiveExpanded = useMemo(() => {
     if (layout !== "list") return expanded;
     if (!searchQuery.trim()) return expanded;
-
     const auto = collectFolderIds(listFilteredTree);
     return new Set([...expanded, ...auto]);
   }, [expanded, listFilteredTree, searchQuery, layout]);
 
   const listVisibleRows = useMemo(() => {
     if (layout !== "list") return [];
-    const rows = flattenVisibleTree(listFilteredTree, effectiveExpanded);
-    console.log("listVisibleRows - rows:", rows);
-    console.log("listVisibleRows - rows.length:", rows?.length);
-    return rows;
+    return flattenVisibleTree(listFilteredTree, effectiveExpanded);
   }, [listFilteredTree, effectiveExpanded, layout]);
 
   const listVisibleIds = useMemo(
@@ -473,8 +416,7 @@ export default function FilesPage() {
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     const hasSelected = ids.some((id) => selectedIds.has(id));
-    const allAreSelected =
-      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const allAreSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id));
     return {
       allVisibleSelected: allAreSelected,
       isIndeterminate: hasSelected && !allAreSelected,
@@ -491,14 +433,11 @@ export default function FilesPage() {
     trackButton("files/list/select-all", { page: "files", layout });
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     const hasSelected = ids.some((id) => selectedIds.has(id));
-    const allAreSelected =
-      ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const allAreSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id));
 
     if (hasSelected && !allAreSelected) {
-      // Indeterminate state - deselect all
       setSelectedIds(new Set());
     } else {
-      // Use existing toggleSelectAllInView for select all / deselect all
       setSelectedIds((prev) =>
         toggleSelectAllInView({ ids, selectedIds: prev }),
       );
@@ -521,7 +460,6 @@ export default function FilesPage() {
 
   const openEdit = (node) => setEditTarget(node);
 
-  // Direct delete without opening edit modal
   const handleDirectDelete = useCallback(
     async (node) => {
       const confirmed = window.confirm(
@@ -530,28 +468,17 @@ export default function FilesPage() {
       if (!confirmed) return;
 
       try {
-        // Mark this share as being deleted (shows spinner)
         setDeletingShares((prev) => new Set(prev).add(node.name));
+        await deleteFileShare(orgId, node.name);
 
-        // Send delete request and get job ID
-        const result = await deleteFileShare(orgId, node.name);
-        console.log("Delete job queued:", result);
-
-        // Poll for completion - check every 2 seconds for up to 30 seconds
         let attempts = 0;
         const maxAttempts = 15;
-
         const pollInterval = setInterval(async () => {
           attempts++;
-
-          // Refresh to check if share is gone
           const currentShares = await fetchFileShares(orgId);
-          const shareStillExists = currentShares?.some(
-            (s) => s.share?.name === node.name,
-          );
+          const shareStillExists = currentShares?.some((s) => s.share?.name === node.name);
 
           if (!shareStillExists) {
-            // Share is deleted - refresh UI and remove from deleting state
             clearInterval(pollInterval);
             setDeletingShares((prev) => {
               const newSet = new Set(prev);
@@ -560,7 +487,6 @@ export default function FilesPage() {
             });
             await fetchTree();
           } else if (attempts >= maxAttempts) {
-            // Timeout - give up polling but still refresh
             clearInterval(pollInterval);
             setDeletingShares((prev) => {
               const newSet = new Set(prev);
@@ -568,9 +494,7 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            alert(
-              "Delete is taking longer than expected. Please refresh if the share is still visible.",
-            );
+            alert("Delete is taking longer than expected. Please refresh.");
           }
         }, 2000);
       } catch (err) {
@@ -587,11 +511,7 @@ export default function FilesPage() {
   );
 
   const handleLayoutChange = (next) => {
-    trackButton("files/display/toggle", {
-      page: "files",
-      layout: next,
-      control: "display_button",
-    });
+    trackButton("files/display/toggle", { page: "files", layout: next, control: "display_button" });
     setLayout(next);
   };
 
@@ -605,10 +525,7 @@ export default function FilesPage() {
             onChange={toggleSelectAllVisible}
             style={
               !allVisibleSelected && !isIndeterminate
-                ? {
-                    border: "2px solid rgba(255, 255, 255, 0.5)",
-                    backgroundColor: "transparent",
-                  }
+                ? { border: "2px solid rgba(255, 255, 255, 0.5)", backgroundColor: "transparent" }
                 : undefined
             }
           />
@@ -623,108 +540,113 @@ export default function FilesPage() {
 
       <div className="table">
         <div className="tableRows">
-          {listVisibleRows.map(({ node, depth }, index) => {
-            const isFolder = node.kind === NODE_KIND.FOLDER;
-            const isOpen = effectiveExpanded.has(node.id);
+          {listVisibleRows.length === 0 && !isInitialLoading ? (
+            <div style={{ padding: "32px 0" }}>
+              <EmptyState 
+                message="No shares found" 
+                description="Try adjusting your search or create a new share." 
+              />
+            </div>
+          ) : (
+            listVisibleRows.map(({ node, depth }, index) => {
+              const isFolder = node.kind === NODE_KIND.FOLDER;
+              const isOpen = effectiveExpanded.has(node.id);
 
-            return (
-              <React.Fragment key={node.id}>
-                <div
-                  className="row"
-                  style={
-                    deletingShares.has(node.name)
-                      ? { opacity: 0.5, pointerEvents: "none" }
-                      : {}
-                  }
-                >
-                  <Checkbox
-                    checked={selectedIds.has(node.id)}
-                    onChange={() => toggleSelect(node.id)}
-                  />
+              return (
+                <React.Fragment key={node.id}>
+                  <div
+                    className="row"
+                    style={
+                      deletingShares.has(node.name)
+                        ? { opacity: 0.5, pointerEvents: "none" }
+                        : {}
+                    }
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(node.id)}
+                      onChange={() => toggleSelect(node.id)}
+                    />
 
-                  <div className="nameCell">
-                    <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
-                      {isFolder ? (
-                        <button
-                          type="button"
-                          className="chevBtn"
-                          onClick={() => toggleExpand(node.id)}
-                          aria-label={isOpen ? "Collapse folder" : "Expand folder"}
-                        >
-                          <Chevron open={isOpen} />
-                        </button>
-                      ) : null}
+                    <div className="nameCell">
+                      <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
+                        {isFolder ? (
+                          <button
+                            type="button"
+                            className="chevBtn"
+                            onClick={() => toggleExpand(node.id)}
+                            aria-label={isOpen ? "Collapse folder" : "Expand folder"}
+                          >
+                            <Chevron open={isOpen} />
+                          </button>
+                        ) : null}
 
-                      <span className="iconWrap">
-                        {isFolder ? <FolderIcon /> : <FileIcon />}
-                      </span>
+                        <span className="iconWrap">
+                          {isFolder ? <FolderIcon /> : <FileIcon />}
+                        </span>
 
-                      <div className="nameTextWrap">
-                        <div className="nameLine">
-                          <span className="nameText">{node.name}</span>
-                          {node.kind === NODE_KIND.FILE && node.size ? (
-                            <span className="sizeText">{node.size}</span>
-                          ) : null}
+                        <div className="nameTextWrap">
+                          <div className="nameLine">
+                            <span className="nameText">{node.name}</span>
+                            {node.kind === NODE_KIND.FILE && node.size ? (
+                              <span className="sizeText">{node.size}</span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="meta">{formatDateTime(node.updated_at)}</div>
+                    <div className="meta">{formatDateTime(node.updated_at)}</div>
 
-                  <StorageCell
-                    currentSize={node.current_size}
-                    maxSize={node.max_size}
-                  />
+                    <StorageCell
+                      currentSize={node.current_size}
+                      maxSize={node.max_size}
+                    />
 
-                  <div className="groups">
-                    <AvatarPill
-                      items={Array.from(new Set(ensureArray(node.users))).map(
-                        (username) =>
-                          userLookup.get(username) || { username, id: username },
-                      )}
-                      type="user"
-                      maxVisible={3}
+                    <div className="groups">
+                      <AvatarPill
+                        items={Array.from(new Set(ensureArray(node.users))).map(
+                          (username) => userLookup.get(username) || { username, id: username },
+                        )}
+                        type="user"
+                        maxVisible={3}
+                      />
+                    </div>
+
+                    <div className="groups">
+                      <AvatarPill
+                        items={ensureArray(node.groups).map(
+                          (groupName) =>
+                            groupLookup.get(groupName) || { name: groupName, id: groupName },
+                        )}
+                        type="group"
+                        maxVisible={3}
+                      />
+                    </div>
+
+                    <EditButton
+                      menuItems={[
+                        {
+                          icon: <EditIcon width={15} height={16} color={themeColors.text} />,
+                          label: "edit share",
+                          color: themeColors.text,
+                          onClick: () => openEdit(node),
+                        },
+                        {
+                          icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                          label: "delete share",
+                          color: "#D51616",
+                          onClick: () => handleDirectDelete(node),
+                        },
+                      ]}
                     />
                   </div>
-
-                  <div className="groups">
-                    <AvatarPill
-                      items={ensureArray(node.groups).map(
-                        (groupName) =>
-                          groupLookup.get(groupName) || {
-                            name: groupName,
-                            id: groupName,
-                          },
-                      )}
-                      type="group"
-                      maxVisible={3}
-                    />
-                  </div>
-
-                  <EditButton
-                    menuItems={[
-                      {
-                        icon: <EditIcon width={15} height={16} color={themeColors.text} />,
-                        label: "edit share",
-                        color: themeColors.text,
-                        onClick: () => openEdit(node),
-                      },
-                      {
-                        icon: <TrashIcon width={12} height={14} color="#D51616" />,
-                        label: "delete share",
-                        color: "#D51616",
-                        onClick: () => handleDirectDelete(node),
-                      },
-                    ]}
-                  />
-                </div>
-                {index !== listVisibleRows.length - 1 ? (
-                  <div className="rowDivider" />
-                ) : null}
-              </React.Fragment>
-            );
-          })}
+                  {index !== listVisibleRows.length - 1 ? (
+                    <div className="rowDivider" />
+                  ) : null}
+                </React.Fragment>
+              );
+            })
+          )}
         </div>
       </div>
     </>
@@ -752,123 +674,110 @@ export default function FilesPage() {
         <div className="iconsSelectedCount">{selectedIconCount} selected</div>
       </div>
 
-      <div className="iconsGrid">
-        {iconRows.map(({ node }) => {
-          const isFolder = node.kind === NODE_KIND.FOLDER;
-          const isSelected = selectedIds.has(node.id);
-          const users = Array.from(new Set(ensureArray(node.users))).map(
-            (username) => userLookup.get(username) || { username, id: username },
-          );
-          const groups = ensureArray(node.groups).map((groupName) => {
-            return groupLookup.get(groupName) || {
-              name: groupName,
-              id: groupName,
+      {iconRows.length === 0 && !isInitialLoading ? (
+        <div style={{ padding: "32px 0" }}>
+          <EmptyState 
+            message="No shares found" 
+            description="Try adjusting your search or create a new share." 
+          />
+        </div>
+      ) : (
+        <div className="iconsGrid">
+          {iconRows.map(({ node }) => {
+            const isFolder = node.kind === NODE_KIND.FOLDER;
+            const isSelected = selectedIds.has(node.id);
+            const users = Array.from(new Set(ensureArray(node.users))).map(
+              (username) => userLookup.get(username) || { username, id: username },
+            );
+            const groups = ensureArray(node.groups).map((groupName) => {
+              return groupLookup.get(groupName) || { name: groupName, id: groupName };
+            });
+            const maxSize = Number.parseFloat(node.max_size);
+            const hasStorage = Number.isFinite(maxSize) && maxSize > 0;
+            const currentSize = Number(node.current_size || 0);
+
+            const handleKeyDown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openEdit(node);
+              }
             };
-          });
-          const maxSize = Number.parseFloat(node.max_size);
-          const hasStorage =
-            Number.isFinite(maxSize) &&
-            maxSize > 0;
-          const currentSize = Number(node.current_size || 0);
+            const stopEventPropagation = (e) => e.stopPropagation();
 
-          const handleKeyDown = (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openEdit(node);
-            }
-          };
-          const stopEventPropagation = (e) => {
-            e.stopPropagation();
-          };
-
-          return (
-            <div
-              key={node.id}
-              className={`iconTile ${isSelected ? "selected" : ""}`}
-              onClick={() => openEdit(node)}
-              onKeyDown={handleKeyDown}
-              role="button"
-              tabIndex={0}
-              aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
-            >
-              <div className="tileHeader">
-                <div
-                  className="tileSelect"
-                  onClick={stopEventPropagation}
-                  onKeyDown={stopEventPropagation}
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    onChange={() => toggleSelect(node.id)}
-                    style={
-                      !isSelected
-                        ? {
-                            border: "2px solid var(--text-primary)",
-                            backgroundColor: "transparent",
-                          }
-                        : undefined
-                    }
-                  />
-                </div>
-
-                <div
-                  className="tileActions"
-                  onClick={stopEventPropagation}
-                  onKeyDown={stopEventPropagation}
-                >
-                  <EditButton
-                    menuItems={[
-                      {
-                        icon: <EditIcon width={15} height={16} color={themeColors.text} />,
-                        label: "edit share",
-                        color: themeColors.text,
-                        onClick: () => openEdit(node),
-                      },
-                      {
-                        icon: <TrashIcon width={12} height={14} color="#D51616" />,
-                        label: "delete share",
-                        color: "#D51616",
-                        onClick: () => handleDirectDelete(node),
-                      },
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="iconTitle">
-                <span className="iconKindWrap">
-                  {isFolder ? <FolderIcon /> : <FileIcon />}
-                </span>
-                <div className="iconTitleText">
-                  <div className="iconName" title={node.name}>
-                    {node.name}
+            return (
+              <div
+                key={node.id}
+                className={`iconTile ${isSelected ? "selected" : ""}`}
+                onClick={() => openEdit(node)}
+                onKeyDown={handleKeyDown}
+                role="button"
+                tabIndex={0}
+                aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
+              >
+                <div className="tileHeader">
+                  <div className="tileSelect" onClick={stopEventPropagation} onKeyDown={stopEventPropagation}>
+                    <Checkbox
+                      checked={isSelected}
+                      onChange={() => toggleSelect(node.id)}
+                      style={
+                        !isSelected
+                          ? { border: "2px solid var(--text-primary)", backgroundColor: "transparent" }
+                          : undefined
+                      }
+                    />
                   </div>
-                  <div className="iconSub">
-                    {formatDateTime(node.updated_at)}
+
+                  <div className="tileActions" onClick={stopEventPropagation} onKeyDown={stopEventPropagation}>
+                    <EditButton
+                      menuItems={[
+                        {
+                          icon: <EditIcon width={15} height={16} color={themeColors.text} />,
+                          label: "edit share",
+                          color: themeColors.text,
+                          onClick: () => openEdit(node),
+                        },
+                        {
+                          icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                          label: "delete share",
+                          color: "#D51616",
+                          onClick: () => handleDirectDelete(node),
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div className="iconStorageLine">
-                <span className="iconMetaLabel">Storage</span>
-                <span className="iconMetaValue">
-                  {hasStorage ? `${currentSize} / ${maxSize} GB` : formatShares(0)}
-                </span>
-              </div>
+                <div className="iconTitle">
+                  <span className="iconKindWrap">
+                    {isFolder ? <FolderIcon /> : <FileIcon />}
+                  </span>
+                  <div className="iconTitleText">
+                    <div className="iconName" title={node.name}>{node.name}</div>
+                    <div className="iconSub">{formatDateTime(node.updated_at)}</div>
+                  </div>
+                </div>
 
-              <div className="iconAvatarsLine">
-                <span className="iconMetaLabel">Users</span>
-                <AvatarPill items={users} type="user" maxVisible={2} />
-              </div>
+                <div className="iconStorageLine">
+                  <span className="iconMetaLabel">Storage</span>
+                  <span className="iconMetaValue">
+                    {hasStorage ? `${currentSize} / ${maxSize} GB` : formatShares(0)}
+                  </span>
+                </div>
 
-              <div className="iconAvatarsLine">
-                <span className="iconMetaLabel">Groups</span>
-                <AvatarPill items={groups} type="group" maxVisible={2} />
+                <div className="iconAvatarsLine">
+                  <span className="iconMetaLabel">Users</span>
+                  <AvatarPill items={users} type="user" maxVisible={2} />
+                </div>
+
+                <div className="iconAvatarsLine">
+                  <span className="iconMetaLabel">Groups</span>
+                  <AvatarPill items={groups} type="group" maxVisible={2} />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 
@@ -876,11 +785,8 @@ export default function FilesPage() {
     if (isInitialLoading) {
       return <TableSkeleton rows={8} cols={6} />;
     }
-
     return layout === "list" ? renderList() : renderIcons();
   };
-
-
 
   return (
     <PageShell>
@@ -937,16 +843,13 @@ export default function FilesPage() {
         </div>
       </div>
 
-      {/* Subtle notification banner for operations in progress */}
       {(creatingShares.size > 0 || deletingShares.size > 0) && (
         <div className="operationBanner">
           <CircularProgress size={14} style={{ color: "#4f8cff" }} />
           <span>
-            {creatingShares.size > 0 &&
-              `Creating ${Array.from(creatingShares).join(", ")}...`}
+            {creatingShares.size > 0 && `Creating ${Array.from(creatingShares).join(", ")}...`}
             {creatingShares.size > 0 && deletingShares.size > 0 && " • "}
-            {deletingShares.size > 0 &&
-              `Deleting ${Array.from(deletingShares).join(", ")}...`}
+            {deletingShares.size > 0 && `Deleting ${Array.from(deletingShares).join(", ")}...`}
           </span>
         </div>
       )}
@@ -963,14 +866,12 @@ export default function FilesPage() {
           </TableSurface>
         </div>
 
-      {/* New Wizard Modal for Create */}
       <FileShareWizardModal
         isOpen={isUploadOpen}
         onClose={() => setUploadOpen(false)}
         onSubmit={handleCreateShare}
       />
 
-      {/* New Wizard Modal for Edit */}
       <FileShareWizardModal
         isOpen={!!editTarget}
         file={editTarget}
@@ -1007,7 +908,6 @@ export default function FilesPage() {
           font-size: 0.9rem;
         }
 
-        /* Top bar */
         .topBar {
           display: flex;
           justify-content: space-between;
@@ -1034,7 +934,6 @@ export default function FilesPage() {
         .storageBar { height: 6px; background: var(--border-light); border-radius: 999px; overflow: hidden; }
         .storageFill { height: 100%; background: #4f8cff; border-radius: 999px; }
 
-        /* Toolbar */
         .toolbar {
           display: flex;
           align-items: center;
@@ -1085,7 +984,6 @@ export default function FilesPage() {
           background: var(--action-hover);
         }
 
-        /* Operation banner - subtle notification */
         .operationBanner {
           display: flex;
           align-items: center;
@@ -1100,7 +998,6 @@ export default function FilesPage() {
           opacity: 0.85;
         }
 
-        /* LIST (Tree) */
         .tableHeaders {
           display: grid;
           align-items: center;
@@ -1117,7 +1014,7 @@ export default function FilesPage() {
           border-radius: 18px;
           border: 1px solid var(--border);
           background-color: var(--bg-primary);
-          box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* FIX: Reduced heavy shadow */
           padding: 16px;
           overflow: hidden;
         }
@@ -1243,7 +1140,6 @@ export default function FilesPage() {
           opacity: 0.85;
         }
 
-        /* ICONS VIEW */
         .iconsGrid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1374,10 +1270,7 @@ export default function FilesPage() {
           opacity: 0.9;
           white-space: nowrap;
         }
-
-        /* Responsive */
         
-        /* Delete spinner - subtle, in place of edit button */
         .deleteSpinner {
           display: flex;
           align-items: center;
@@ -1424,7 +1317,6 @@ export default function FilesPage() {
             padding: 12px;
           }
 
-          /* List: hide columns on mobile */
           .row .meta,
           .row .groups,
           .storageCell,

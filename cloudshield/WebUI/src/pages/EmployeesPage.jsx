@@ -8,6 +8,7 @@ import { trackButton } from "../lib/analytics";
 // UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
+import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
 
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
@@ -178,14 +179,11 @@ export default function EmployeesPage() {
   const withClickLog = useClickLogger({ page: "employees" });
   const themeColors = useThemeColors();
   
-  // Generate dynamic icon view styles based on theme
   const iconViewStyles = getSharedIconViewStyles(themeColors);
   const dynamicStyles = { ...styles, ...iconViewStyles };
   
-  // Job creation task hook
   const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
-  // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
     if (currentUser?.org_id && currentUser.org_id !== "default-org") {
       return currentUser.org_id;
@@ -199,34 +197,25 @@ export default function EmployeesPage() {
     return null;
   }, [currentUser]);
 
-  // UI State
   const [modalOpen, setModalOpen] = useState(false);
   const [modalEmployee, setModalEmployee] = useState(null);
 
-  // Open modal if navigated from dashboard
   useEffect(() => {
     if (location.state?.openModal) {
       setModalOpen(true);
       setModalEmployee(null);
-      // Clear the state to prevent reopening on subsequent renders
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
   const [layout, setLayout] = useState("list");
-
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
-
-  // Column visibility toggles
   const [showTitle, setShowTitle] = useState(true);
   const [showWorkstations, setShowWorkstations] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
   const [showFiles, setShowFiles] = useState(true);
-
   const [selectedIds, setSelectedIds] = useState(new Set());
-
-  // Data State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -259,7 +248,6 @@ export default function EmployeesPage() {
       ),
   });
 
-  // Resolve auth token at call-time (handles post-login context lag safely).
   const resolveAuthToken = () => {
     try {
       return localStorage.getItem("jwt") || accessToken || null;
@@ -268,22 +256,14 @@ export default function EmployeesPage() {
     }
   };
 
-  // Helper for auth headers
   const getAuthHeader = () => {
     const token = resolveAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  /**
-   * Update group memberships for a user.
-   * Fetches all groups, determines current membership, and updates accordingly.
-   * @param {string} userId - The user ID to update group memberships for
-   * @param {Array} newGroups - Array of new group objects {id, name, ...} to be members of
-   */
   const updateUserGroupMemberships = async (userId, newGroups) => {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
 
-    // Fetch all groups to determine current membership and update
     const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
       method: "GET",
       credentials: "include",
@@ -298,7 +278,6 @@ export default function EmployeesPage() {
     const data = await res.json();
     const allGroups = data.access_groups || [];
 
-    // Determine current group membership
     const currentGroupIds = allGroups
       .filter((g) => {
         const members = Array.isArray(g.members) ? g.members : [];
@@ -306,12 +285,9 @@ export default function EmployeesPage() {
       })
       .map((g) => String(g.id || g._id));
 
-    // Groups to add user to (in newGroups but not in currentGroups)
     const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
-    // Groups to remove user from (in currentGroups but not in newGroups)
     const toRemove = currentGroupIds.filter((id) => !newGroupIds.includes(id));
 
-    // Update groups that need the user added
     for (const groupId of toAdd) {
       const group = allGroups.find((g) => String(g.id || g._id) === groupId);
       if (!group) continue;
@@ -328,7 +304,6 @@ export default function EmployeesPage() {
       }
     }
 
-    // Update groups that need the user removed
     for (const groupId of toRemove) {
       const group = allGroups.find((g) => String(g.id || g._id) === groupId);
       if (!group) continue;
@@ -346,7 +321,6 @@ export default function EmployeesPage() {
     }
   };
 
-  // API Actions
  const fetchUsers = useCallback(async () => {
     const token = resolveAuthToken();
     if (!token) return;
@@ -408,7 +382,6 @@ export default function EmployeesPage() {
       const isEdit = Boolean(modalEmployee);
 
       if (isEdit) {
-        // Edit mode
         trackButton("employees/edit/submit", {
           page: "employees",
           id: modalEmployee.id,
@@ -423,7 +396,6 @@ export default function EmployeesPage() {
 
         await updateUser(modalEmployee.id, apiPayload, { token });
 
-        // Update group memberships if groups were provided
         if (payload.groups) {
           await updateUserGroupMemberships(modalEmployee.id, payload.groups);
         }
@@ -433,7 +405,6 @@ export default function EmployeesPage() {
         setModalEmployee(null);
         fetchUsers();
       } else {
-        // Create mode - queue DC user creation task and poll for completion
         trackButton("employees/create/submit", {
           page: "employees",
           control: "create_dialog",
@@ -449,7 +420,6 @@ export default function EmployeesPage() {
           profile_image: payload.profileImage || null,
         };
 
-        // Start async task to create user
         await startCreation(async () => {
           const response = await createUser(apiPayload, { token });
           if (!response?.job_id) {
@@ -459,7 +429,6 @@ export default function EmployeesPage() {
         });
       }
     } catch (error) {
-      // Show detailed validation errors if available
       let msg = "Failed to save user";
       if (error.payload?.details && Array.isArray(error.payload.details)) {
         const passwordError = error.payload.details.find((d) =>
@@ -477,7 +446,6 @@ export default function EmployeesPage() {
     }
   };
   
-  // Handle job completion
   useEffect(() => {
     if (status === "succeeded") {
       openToast("User created successfully");
@@ -491,7 +459,6 @@ export default function EmployeesPage() {
   }, [status, message]);
 
   const handleDelete = async (user) => {
-    // Use provided user or fall back to modalEmployee for modal context
     const userToDelete = user || modalEmployee;
     const token = resolveAuthToken();
 
@@ -534,10 +501,8 @@ export default function EmployeesPage() {
     setLayout(value);
   };
 
-  // Logic: Filter & Sort
   const filtered = useMemo(() => {
     let out = [...users];
-
     const q = search.trim().toLowerCase();
 
     if (q) {
@@ -590,17 +555,14 @@ export default function EmployeesPage() {
 
     setSelectedIds((prev) => {
       if (hasSelected && !allAreSelected) {
-        // Indeterminate state - deselect all
         const next = new Set(prev);
         filtered.forEach((u) => next.delete(u.id));
         return next;
       } else if (!hasSelected) {
-        // Nothing selected - select all
         const next = new Set(prev);
         filtered.forEach((u) => next.add(u.id));
         return next;
       } else {
-        // All selected - deselect all
         const next = new Set(prev);
         filtered.forEach((u) => next.delete(u.id));
         return next;
@@ -671,225 +633,232 @@ export default function EmployeesPage() {
     },
   ];
 
-const pageActions = (
-  <>
-    <RefreshButton
-      onClick={withClickLog({
-        name: "employees/toolbar/refresh",
-        control: "refresh_button",
-      })(fetchUsers)}
-      isLoading={loading}
-    />
-
-    <CreateButton
-      icon={<CreateUserIcon width={16} height={16} color={themeColors.text} />}
-      buttonText="Create"
-      onClick={withClickLog({
-        name: "employees/toolbar/open-create",
-        control: "create_button",
-      })(() => {
-        setModalEmployee(null);
-        setModalOpen(true);
-      })}
-    />
-  </>
-);
-
   return (
-    <PageShell actions={pageActions}>
-      <div style={styles.toolbar}>
-        <div style={styles.leftActions}>
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") fetchUsers();
-            }}
-            placeholder="Search users"
-            showIcon={true}
-            style={{
-              flex: "1 1 200px",
-              minWidth: "200px",
-              maxWidth: "680px",
-              width: "100%",
-            }}
-          />
-
-          <DisplayButton
-            layout={layout}
-            onLayoutChange={handleLayoutChange}
-            columnToggles={{
-              columns: [
-                { key: "showTitle", label: "Title", checked: showTitle },
-                {
-                  key: "showWorkstations",
-                  label: "Workstations",
-                  checked: showWorkstations,
-                },
-                { key: "showGroups", label: "Groups", checked: showGroups },
-                { key: "showFiles", label: "Shares", checked: showFiles },
-              ],
-              onToggle: (column) => {
-                if (column === "showTitle") setShowTitle((prev) => !prev);
-                if (column === "showWorkstations")
-                  setShowWorkstations((prev) => !prev);
-                if (column === "showGroups") setShowGroups((prev) => !prev);
-                if (column === "showFiles") setShowFiles((prev) => !prev);
-              },
-            }}
-          />
-
-          <FilterButton
-            filterGroups={filterGroups}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-
-        <div style={styles.rightActions}>
-          {layout === "list" && selectedCount > 0 && (
-            <div style={styles.selectionSummary}>
-              <span style={styles.selectionSummaryCount}>
-                {selectedCount} selected
-              </span>
-              <button
-                type="button"
-                style={styles.clearSelectionButton}
-                onClick={clearSelection}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = themeColors.lightOverlay;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = themeColors.lightOverlaySubtle;
-                }}
-              >
-                Clear selection
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {layout === "list" ? (
-        <TableSurface>
-          {loading ? (
-            <TableSkeleton rows={6} cols={5} />
-          ) : (
-            <UsersTable
-              users={filtered}
-              showTitle={showTitle}
-              showWorkstations={showWorkstations}
-              showGroups={showGroups}
-              showFiles={showFiles}
-              selectedIds={selectedIds}
-              allVisibleSelected={allVisibleSelected}
-              isIndeterminate={isIndeterminate}
-              onToggleSelect={toggleSelect}
-              onToggleSelectAll={toggleSelectAllVisible}
-              onSort={toggleSort}
-              sortField={sortField}
-              sortDir={sortDir}
-              onEdit={(u) => {
-                trackButton("employees/table/open-edit", {
-                  page: "employees",
-                  id: u.id,
-                });
-                setModalEmployee(u);
-                setModalOpen(true);
+    <PageShell>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 24, minHeight: 0 }}>
+        <div style={styles.toolbar}>
+          <div style={styles.leftActions}>
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") fetchUsers();
               }}
-              onDelete={handleDelete}
+              placeholder="Search users"
+              showIcon={true}
+              style={{
+                flex: "1 1 200px",
+                minWidth: "200px",
+                maxWidth: "680px",
+                width: "100%",
+              }}
             />
-          )}
-        </TableSurface>
-      ) : (
-        <div style={dynamicStyles.iconsWrapper}>
-          <IconSelectionBar
-            styles={dynamicStyles}
-            allVisibleSelected={allVisibleSelected}
-            isIndeterminate={isIndeterminate}
-            onToggleSelectAll={toggleSelectAllVisible}
-            selectedCount={selectedCount}
-          />
 
-          <div style={dynamicStyles.iconsGrid}>
-            {filtered.map((user) => {
-              const selected = selectedIds.has(user.id);
-              return (
-                <div
-                  key={user.id}
-                  style={{
-                    ...dynamicStyles.iconCard,
-                    ...(selected ? dynamicStyles.iconCardSelected : {}),
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={handleLayoutChange}
+              columnToggles={{
+                columns: [
+                  { key: "showTitle", label: "Title", checked: showTitle },
+                  {
+                    key: "showWorkstations",
+                    label: "Workstations",
+                    checked: showWorkstations,
+                  },
+                  { key: "showGroups", label: "Groups", checked: showGroups },
+                  { key: "showFiles", label: "Shares", checked: showFiles },
+                ],
+                onToggle: (column) => {
+                  if (column === "showTitle") setShowTitle((prev) => !prev);
+                  if (column === "showWorkstations")
+                    setShowWorkstations((prev) => !prev);
+                  if (column === "showGroups") setShowGroups((prev) => !prev);
+                  if (column === "showFiles") setShowFiles((prev) => !prev);
+                },
+              }}
+            />
+
+            <FilterButton
+              filterGroups={filterGroups}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+
+          <div style={styles.rightActions}>
+            {layout === "list" && selectedCount > 0 && (
+              <div style={styles.selectionSummary}>
+                <span style={styles.selectionSummaryCount}>
+                  {selectedCount} selected
+                </span>
+                <button
+                  type="button"
+                  style={styles.clearSelectionButton}
+                  onClick={clearSelection}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = themeColors.lightOverlay;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = themeColors.lightOverlaySubtle;
                   }}
                 >
-                  <div style={dynamicStyles.iconCardHeader}>
-                    <Checkbox
-                      checked={selected}
-                      onChange={() => toggleSelect(user.id)}
-                    />
-                    <EditButton menuItems={getUserMenuItems(user)} />
-                  </div>
+                  Clear selection
+                </button>
+              </div>
+            )}
 
-                  <div style={dynamicStyles.iconTitle}>
-                    <DisplayIcon type="user" data={user} size="small" />
-                    <div style={dynamicStyles.iconTitleText}>
-                      <span style={dynamicStyles.iconName}>{user.name}</span>
-                      <span style={dynamicStyles.iconSub}>↳ {user.email}</span>
-                    </div>
-                  </div>
+            <RefreshButton
+              onClick={withClickLog({
+                name: "employees/toolbar/refresh",
+                control: "refresh_button",
+              })(fetchUsers)}
+              isLoading={loading}
+            />
 
-                  {showTitle && (
-                    <div style={dynamicStyles.iconMetaRow}>
-                      <span style={dynamicStyles.iconMetaLabel}>Title</span>
-                      <span style={dynamicStyles.iconMetaValue}>{user.title || "—"}</span>
-                    </div>
-                  )}
-
-                  {showWorkstations && (
-                    <div style={dynamicStyles.iconMetaRow}>
-                      <span style={dynamicStyles.iconMetaLabel}>Workstations</span>
-                      <span style={dynamicStyles.iconMetaValue}>
-                        {user.workstationCount ?? user.workstations?.length ?? 0}
-                      </span>
-                    </div>
-                  )}
-
-                  {showGroups && (
-                    <div style={dynamicStyles.iconMetaRow}>
-                      <span style={dynamicStyles.iconMetaLabel}>Groups</span>
-                      <span style={dynamicStyles.iconMetaValue}>
-                        {user.groupCount ?? user.groups?.length ?? 0}
-                      </span>
-                    </div>
-                  )}
-
-                  {showFiles && (
-                    <div style={dynamicStyles.iconMetaRow}>
-                      <span style={dynamicStyles.iconMetaLabel}>Shares</span>
-                      <span style={dynamicStyles.iconMetaValue}>
-                        {user.fileCountDisplay ??
-                          formatShares(user.fileCount ?? user.files?.length ?? 0)}
-                      </span>
-                    </div>
-                  )}
-
-                  <div style={dynamicStyles.iconFooter}>
-                    <span style={dynamicStyles.iconMetaLabel}>
-                      {user.status || "offline"}
-                    </span>
-                    <ActiveIcon
-                      width={12}
-                      height={12}
-                      outerColor={user.status === "online" ? "#1F381F" : "#381F1F"}
-                      innerColor={user.status === "online" ? "#04C40A" : "#ff5252"}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+            <CreateButton
+              icon={<CreateUserIcon width={16} height={16} color={themeColors.text} />}
+              buttonText="Create"
+              onClick={withClickLog({
+                name: "employees/toolbar/open-create",
+                control: "create_button",
+              })(() => {
+                setModalEmployee(null);
+                setModalOpen(true);
+              })}
+            />
           </div>
         </div>
-      )}
+
+        {layout === "list" ? (
+          <TableSurface>
+            {loading ? (
+              <TableSkeleton rows={6} cols={5} />
+            ) : (
+              <UsersTable
+                users={filtered}
+                showTitle={showTitle}
+                showWorkstations={showWorkstations}
+                showGroups={showGroups}
+                showFiles={showFiles}
+                selectedIds={selectedIds}
+                allVisibleSelected={allVisibleSelected}
+                isIndeterminate={isIndeterminate}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAllVisible}
+                onSort={toggleSort}
+                sortField={sortField}
+                sortDir={sortDir}
+                onEdit={(u) => {
+                  trackButton("employees/table/open-edit", {
+                    page: "employees",
+                    id: u.id,
+                  });
+                  setModalEmployee(u);
+                  setModalOpen(true);
+                }}
+                onDelete={handleDelete}
+              />
+            )}
+          </TableSurface>
+        ) : (
+          <div style={dynamicStyles.iconsWrapper}>
+            <IconSelectionBar
+              styles={dynamicStyles}
+              allVisibleSelected={allVisibleSelected}
+              isIndeterminate={isIndeterminate}
+              onToggleSelectAll={toggleSelectAllVisible}
+              selectedCount={selectedCount}
+            />
+
+            <div style={dynamicStyles.iconsGrid}>
+              {filtered.length === 0 && !loading ? (
+                <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
+                  <EmptyState 
+                    message="No users found" 
+                    description="Try adjusting your search or filters, or create a new user." 
+                  />
+                </div>
+              ) : (
+                filtered.map((user) => {
+                  const selected = selectedIds.has(user.id);
+                  return (
+                    <div
+                      key={user.id}
+                      style={{
+                        ...dynamicStyles.iconCard,
+                        ...(selected ? dynamicStyles.iconCardSelected : {}),
+                      }}
+                    >
+                      <div style={dynamicStyles.iconCardHeader}>
+                        <Checkbox
+                          checked={selected}
+                          onChange={() => toggleSelect(user.id)}
+                        />
+                        <EditButton menuItems={getUserMenuItems(user)} />
+                      </div>
+
+                      <div style={dynamicStyles.iconTitle}>
+                        <DisplayIcon type="user" data={user} size="small" />
+                        <div style={dynamicStyles.iconTitleText}>
+                          <span style={dynamicStyles.iconName}>{user.name}</span>
+                          <span style={dynamicStyles.iconSub}>↳ {user.email}</span>
+                        </div>
+                      </div>
+
+                      {showTitle && (
+                        <div style={dynamicStyles.iconMetaRow}>
+                          <span style={dynamicStyles.iconMetaLabel}>Title</span>
+                          <span style={dynamicStyles.iconMetaValue}>{user.title || "—"}</span>
+                        </div>
+                      )}
+
+                      {showWorkstations && (
+                        <div style={dynamicStyles.iconMetaRow}>
+                          <span style={dynamicStyles.iconMetaLabel}>Workstations</span>
+                          <span style={dynamicStyles.iconMetaValue}>
+                            {user.workstationCount ?? user.workstations?.length ?? 0}
+                          </span>
+                        </div>
+                      )}
+
+                      {showGroups && (
+                        <div style={dynamicStyles.iconMetaRow}>
+                          <span style={dynamicStyles.iconMetaLabel}>Groups</span>
+                          <span style={dynamicStyles.iconMetaValue}>
+                            {user.groupCount ?? user.groups?.length ?? 0}
+                          </span>
+                        </div>
+                      )}
+
+                      {showFiles && (
+                        <div style={dynamicStyles.iconMetaRow}>
+                          <span style={dynamicStyles.iconMetaLabel}>Shares</span>
+                          <span style={dynamicStyles.iconMetaValue}>
+                            {user.fileCountDisplay ??
+                              formatShares(user.fileCount ?? user.files?.length ?? 0)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div style={dynamicStyles.iconFooter}>
+                        <span style={dynamicStyles.iconMetaLabel}>
+                          {user.status || "offline"}
+                        </span>
+                        <ActiveIcon
+                          width={12}
+                          height={12}
+                          outerColor={user.status === "online" ? "#1F381F" : "#381F1F"}
+                          innerColor={user.status === "online" ? "#04C40A" : "#ff5252"}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <EmployeesModal
         open={modalOpen}

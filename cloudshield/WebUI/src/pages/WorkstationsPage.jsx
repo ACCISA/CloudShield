@@ -19,6 +19,7 @@ import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
 import StatusButton from "../components/common/StatusButton/StatusButton.jsx";
 import ActiveIcon from "../assets/ActiveIcon.jsx";
+import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
@@ -27,13 +28,8 @@ import { getUserErrorMessage } from "../lib/errors";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
+
 const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    minHeight: 0,
-  },
   ...managementToolbarStyles,
   listWrapper: {
     flex: 1,
@@ -64,8 +60,6 @@ const styles = {
  * @param {string} ip - The IP address of the workstation
  * @returns {string} The created workstation id
  */
- 
-
 export const createWorkstation = async (orgId, name, ip, groups) => {
   try {
     const token = localStorage.getItem("jwt");
@@ -99,7 +93,6 @@ export const createWorkstation = async (orgId, name, ip, groups) => {
   }
 };
 
-
 /* ---------------------------------- page ----------------------------------- */
 
 export default function WorkstationsPage() {
@@ -131,7 +124,6 @@ export default function WorkstationsPage() {
     }
   }, [location]);
 
-  // Fetch workstations on mount
   useEffect(() => {
     const loadWorkstations = async () => {
       const orgId = localStorage.getItem("org_id");
@@ -141,6 +133,7 @@ export default function WorkstationsPage() {
     };
     loadWorkstations();
   }, []);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let data = rows;
@@ -356,7 +349,10 @@ export default function WorkstationsPage() {
       await safeAsync(async () => {
         console.log("refresh");
         await Promise.resolve();
-        setRows([...seed]);
+        const orgId = localStorage.getItem("org_id");
+        const token = localStorage.getItem("jwt");
+        const data = await fetchWorkstations(orgId, token);
+        setRows(data);
       });
     } catch (err) {
       setError(getUserErrorMessage(err));
@@ -383,91 +379,89 @@ export default function WorkstationsPage() {
     },
   ];
 
-  const toolbar = (
-    <div style={styles.toolbar}>
-      <div style={styles.leftActions}>
-        <SearchField
-          value={search}
-          onChange={(value) => setSearch(value)}
-          placeholder="Search workstations"
-          showIcon={true}
-          style={{
-            flex: "1 1 200px",
-            minWidth: "200px",
-            maxWidth: "680px",
-            width: "100%",
-          }}
-        />
-
-        <DisplayButton
-          layout={layout}
-          onLayoutChange={handleLayoutChange}
-          columnToggles={{
-            columns: [
-              { key: "showUsers", label: "Users", checked: showUsersCol },
-              { key: "showCurrent", label: "Current", checked: showCurrentCol },
-              { key: "showLastUsed", label: "Last Used", checked: showLastUsedCol },
-            ],
-            onToggle: (column) => {
-              if (column === "showUsers") setShowUsersCol((prev) => !prev);
-              if (column === "showCurrent") setShowCurrentCol((prev) => !prev);
-              if (column === "showLastUsed") setShowLastUsedCol((prev) => !prev);
-            },
-          }}
-        />
-
-        <FilterButton
-          filterGroups={WORKSTATION_FILTERS}
-          activeFilters={activeFilters}
-          onFilterChange={handleFilterChange}
-        />
-      </div>
-
-      <div style={styles.rightActions}>
-        {layout === "list" && selectedCount > 0 && (
-          <div style={styles.selectionSummary}>
-            <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
-            <button
-              type="button"
-              style={styles.clearSelectionButton}
-              onClick={clearSelection}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = themeColors.lightOverlay;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = themeColors.lightOverlaySubtle;
-              }}
-            >
-              Clear selection
-            </button>
-          </div>
-        )}
-
-        <RefreshButton
-          onClick={withClickLog({
-            name: "workstations/toolbar/refresh",
-            control: "refresh_button",
-          })(handleRefresh)}
-        />
-
-        <CreateButton
-          icon={<CreateWorkstationIcon />}
-          buttonText="Create"
-          onClick={withClickLog({
-            name: "workstations/toolbar/open-create",
-            control: "create_button",
-          })(() => {
-            setEditRow(null);
-            setOpenModal(true);
-          })}
-        />
-      </div>
-    </div>
-  );
-
   return (
-    <PageShell actions={toolbar}>
-      <div style={styles.container}>
+    <PageShell>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 24, minHeight: 0 }}>
+        <div style={styles.toolbar}>
+          <div style={styles.leftActions}>
+            <SearchField
+              value={search}
+              onChange={(value) => setSearch(value)}
+              placeholder="Search workstations"
+              showIcon={true}
+              style={{
+                flex: "1 1 200px",
+                minWidth: "200px",
+                maxWidth: "680px",
+                width: "100%",
+              }}
+            />
+
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={handleLayoutChange}
+              columnToggles={{
+                columns: [
+                  { key: "showUsers", label: "Users", checked: showUsersCol },
+                  { key: "showCurrent", label: "Current", checked: showCurrentCol },
+                  { key: "showLastUsed", label: "Last Used", checked: showLastUsedCol },
+                ],
+                onToggle: (column) => {
+                  if (column === "showUsers") setShowUsersCol((prev) => !prev);
+                  if (column === "showCurrent") setShowCurrentCol((prev) => !prev);
+                  if (column === "showLastUsed") setShowLastUsedCol((prev) => !prev);
+                },
+              }}
+            />
+
+            <FilterButton
+              filterGroups={WORKSTATION_FILTERS}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+
+          <div style={styles.rightActions}>
+            {layout === "list" && selectedCount > 0 && (
+              <div style={styles.selectionSummary}>
+                <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
+                <button
+                  type="button"
+                  style={styles.clearSelectionButton}
+                  onClick={clearSelection}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = themeColors.lightOverlay;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = themeColors.lightOverlaySubtle;
+                  }}
+                >
+                  Clear selection
+                </button>
+              </div>
+            )}
+
+            <RefreshButton
+              onClick={withClickLog({
+                name: "workstations/toolbar/refresh",
+                control: "refresh_button",
+              })(handleRefresh)}
+            />
+
+            <CreateButton
+              icon={<CreateWorkstationIcon color={themeColors.text} />}
+              buttonText="Create"
+              onClick={withClickLog({
+                name: "workstations/toolbar/open-create",
+                control: "create_button",
+              })(() => {
+                setEditRow(null);
+                setOpenModal(true);
+              })}
+            />
+          </div>
+        </div>
+
         {error ? (
           <div role="alert" data-testid="workstations-error" style={styles.errorBanner}>
             {error}
@@ -515,85 +509,94 @@ export default function WorkstationsPage() {
             />
 
             <div style={styles.iconsGrid}>
-              {filtered.map((row) => {
-                const selected = selectedIds.has(row.id);
-                const usersCount = row.usersCount ?? row.users?.length ?? 0;
-                const currentUser =
-                  row.currentUser && row.currentUser !== "—"
-                    ? typeof row.currentUser === "string"
-                      ? {
-                          firstName: row.currentUser.split(" ")[0],
-                          lastName: row.currentUser.split(" ")[1] || "",
-                        }
-                      : row.currentUser
-                    : null;
+              {filtered.length === 0 && !loading ? (
+                <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
+                  <EmptyState 
+                    message="No workstations found" 
+                    description="Try adjusting your search or filters, or create a new workstation." 
+                  />
+                </div>
+              ) : (
+                filtered.map((row) => {
+                  const selected = selectedIds.has(row.id);
+                  const usersCount = row.usersCount ?? row.users?.length ?? 0;
+                  const currentUser =
+                    row.currentUser && row.currentUser !== "—"
+                      ? typeof row.currentUser === "string"
+                        ? {
+                            firstName: row.currentUser.split(" ")[0],
+                            lastName: row.currentUser.split(" ")[1] || "",
+                          }
+                        : row.currentUser
+                      : null;
 
-                return (
-                  <div
-                    key={row.id}
-                    style={{
-                      ...styles.iconCard,
-                      ...(selected ? styles.iconCardSelected : {}),
-                    }}
-                  >
-                    <div style={styles.iconCardHeader}>
-                      <Checkbox
-                        checked={selected}
-                        onChange={() => toggleSelect(row.id)}
-                      />
-                      <EditButton menuItems={workstationMenuItems(row)} />
-                    </div>
+                  return (
+                    <div
+                      key={row.id}
+                      style={{
+                        ...styles.iconCard,
+                        ...(selected ? styles.iconCardSelected : {}),
+                      }}
+                    >
+                      <div style={styles.iconCardHeader}>
+                        <Checkbox
+                          checked={selected}
+                          onChange={() => toggleSelect(row.id)}
+                        />
+                        <EditButton menuItems={workstationMenuItems(row)} />
+                      </div>
 
-                    <div style={styles.iconTitle}>
-                      <DisplayIcon type="workstation" data={row} size="small" />
-                      <div style={styles.iconTitleText}>
-                        <span style={styles.iconName}>{row.name}</span>
-                        <span style={styles.iconSub}>↳ {row.code}</span>
+                      <div style={styles.iconTitle}>
+                        <DisplayIcon type="workstation" data={row} size="small" />
+                        <div style={styles.iconTitleText}>
+                          <span style={styles.iconName}>{row.name}</span>
+                          <span style={styles.iconSub}>↳ {row.code}</span>
+                        </div>
+                      </div>
+
+                      {showUsersCol && (
+                        <div style={styles.iconMetaRow}>
+                          <span style={styles.iconMetaLabel}>Users</span>
+                          <span style={styles.iconMetaValue}>{usersCount}</span>
+                        </div>
+                      )}
+
+                      {showCurrentCol && (
+                        <div style={styles.iconMetaRow}>
+                          <span style={styles.iconMetaLabel}>Current</span>
+                          <span style={styles.iconMetaValue}>
+                            {currentUser ? (
+                              <DisplayIcon type="user" data={currentUser} size="small" />
+                            ) : (
+                              "—"
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      {showLastUsedCol && (
+                        <div style={styles.iconMetaRow}>
+                          <span style={styles.iconMetaLabel}>Last Used</span>
+                          <span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span>
+                        </div>
+                      )}
+
+                      <div style={styles.iconStatusRow}>
+                        <StatusButton
+                          status={row.status}
+                          onClick={() => handleToggleStatus(row.id)}
+                        />
+                        <ActiveIcon
+                          width={12}
+                          height={12}
+                          outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"}
+                          innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"}
+                        />
                       </div>
                     </div>
-
-                    {showUsersCol && (
-                      <div style={styles.iconMetaRow}>
-                        <span style={styles.iconMetaLabel}>Users</span>
-                        <span style={styles.iconMetaValue}>{usersCount}</span>
-                      </div>
-                    )}
-
-                    {showCurrentCol && (
-                      <div style={styles.iconMetaRow}>
-                        <span style={styles.iconMetaLabel}>Current</span>
-                        <span style={styles.iconMetaValue}>
-                          {currentUser ? (
-                            <DisplayIcon type="user" data={currentUser} size="small" />
-                          ) : (
-                            "—"
-                          )}
-                        </span>
-                      </div>
-                    )}
-
-                    {showLastUsedCol && (
-                      <div style={styles.iconMetaRow}>
-                        <span style={styles.iconMetaLabel}>Last Used</span>
-                        <span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span>
-                      </div>
-                    )}
-
-                    <div style={styles.iconStatusRow}>
-                      <StatusButton
-                        status={row.status}
-                        onClick={() => handleToggleStatus(row.id)}
-                      />
-                      <ActiveIcon
-                        width={12}
-                        height={12}
-                        outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"}
-                        innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         )}

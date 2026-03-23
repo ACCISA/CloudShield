@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import UserRow from "./UserRow.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import EmptyState from "../common/EmptyState/EmptyState.jsx";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const styles = {
@@ -23,7 +24,7 @@ const styles = {
     borderRadius: "18px",
     border: `1px solid var(--border)`,
     backgroundColor: "var(--bg-secondary)",
-    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
     padding: "16px",
   },
 };
@@ -153,38 +154,45 @@ export default function UsersTable({
 
       {/* List panel */}
       <div style={responsiveStyles.listPanel}>
-        <div
-          style={{
-            padding: isMobile ? "0 4px" : "0 8px",
-          }}
-        >
+        {users.length === 0 ? (
+          <EmptyState 
+            message="No users found" 
+            description="Try adjusting your search or filters, or create a new user." 
+          />
+        ) : (
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "14px",
+              padding: isMobile ? "0 4px" : "0 8px",
             }}
           >
-            {users.map((u, idx) => (
-              <UserRow
-                key={u.id}
-                data={u}
-                showTitle={showTitleColumn}
-                showWorkstations={showWorkstationsColumn}
-                showGroups={showGroupsColumn}
-                showFiles={showFilesColumn}
-                onEdit={() => onEdit(u)}
-                onDelete={() => onDelete(u)}
-                isLast={idx === users.length - 1}
-                cols={cols}
-                isMobile={isMobile}
-                isTablet={isTablet}
-                isSelected={selectedIds.has(u.id)}
-                onToggleSelect={() => onToggleSelect(u.id)}
-              />
-            ))}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+              }}
+            >
+              {users.map((u, idx) => (
+                <UserRow
+                  key={u.id}
+                  data={u}
+                  showTitle={showTitleColumn}
+                  showWorkstations={showWorkstationsColumn}
+                  showGroups={showGroupsColumn}
+                  showFiles={showFilesColumn}
+                  onEdit={() => onEdit(u)}
+                  onDelete={() => onDelete(u)}
+                  isLast={idx === users.length - 1}
+                  cols={cols}
+                  isMobile={isMobile}
+                  isTablet={isTablet}
+                  isSelected={selectedIds.has(u.id)}
+                  onToggleSelect={() => onToggleSelect(u.id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

@@ -216,7 +216,7 @@ export default function SettingsPage() {
             sx={{
               mb: 2,
               borderBottom: "1px solid",
-              borderBottomColor: "divider",
+              borderBottomColor: "var(--divider)", // Use variable
               "& .MuiTab-root": {
                 textTransform: "none",
                 fontWeight: 500,
@@ -224,15 +224,15 @@ export default function SettingsPage() {
                 minWidth: "auto",
                 padding: "12px 0",
                 marginRight: "32px",
-                color: "text.secondary",
+                color: "var(--text-secondary)", // Use variable
                 transition: "color 0.2s ease",
               },
               "& .Mui-selected": { 
-                color: "text.primary",
+                color: "var(--text-primary) !important", // Force text primary
                 fontWeight: 600,
               },
               "& .MuiTabs-indicator": { 
-                backgroundColor: "text.primary",
+                backgroundColor: "var(--text-primary)", // Force text primary
                 height: "2px",
               },
             }}

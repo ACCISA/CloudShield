@@ -11,12 +11,8 @@
 }
 
 @keyframes modalFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .employees-modal-dialog {
@@ -36,14 +32,8 @@
 }
 
 @keyframes modalSlide {
-  from {
-    transform: translateY(30px) scale(0.96);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
+  from { transform: translateY(30px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 /* Header */
@@ -52,7 +42,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -64,10 +54,7 @@
 
 .employees-modal-breadcrumb-item {
   font-size: 1rem;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.4;
 }
 
@@ -77,11 +64,11 @@
 }
 
 .employees-modal-breadcrumb-item.inactive {
-  color: #9e9e9e;
+  color: var(--text-secondary);
 }
 
 .employees-modal-breadcrumb-separator {
-  color: #9e9e9e;
+  color: var(--text-secondary);
   user-select: none;
 }
 
@@ -103,7 +90,7 @@
 }
 
 .employees-modal-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--action-hover);
 }
 
 /* Progress Bar */
@@ -124,10 +111,9 @@
 
 .employees-modal-progress-fill {
   height: 100%;
-  background: var(--primary);
+  background: var(--text-primary);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px var(--primary-transparent);
 }
 
 .employees-modal-step-labels {
@@ -140,12 +126,9 @@
 .employees-modal-step-label {
   font-size: 13px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   transition: color 0.3s ease;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   text-align: center;
   white-space: nowrap;
 }
@@ -156,7 +139,8 @@
 }
 
 .employees-modal-step-label.completed {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  opacity: 0.5;
 }
 
 /* Content */
@@ -201,10 +185,7 @@
   font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-primary);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 .employees-modal-input,
@@ -217,10 +198,7 @@
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 0.95rem;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
@@ -229,14 +207,13 @@
 .employees-modal-textarea:focus,
 .employees-modal-search:focus {
   outline: none;
-  border-color: var(--primary);
-  background-color: var(--input-bg-focus);
+  border-color: var(--text-primary);
 }
 
 .employees-modal-input::placeholder,
 .employees-modal-textarea::placeholder,
 .employees-modal-search::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .employees-modal-textarea {
@@ -259,21 +236,21 @@
   width: 100%;
   height: 130px;
   border-radius: 12px;
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px dashed var(--border);
+  background-color: var(--input-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #9e9e9e;
+  color: var(--text-secondary);
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .employees-modal-image-placeholder:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-primary);
+  background-color: var(--action-hover);
 }
 
 .employees-modal-image-icon {
@@ -293,7 +270,7 @@
   height: 100%;
   object-fit: cover;
   border-radius: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-light);
 }
 
 .employees-modal-image-remove {
@@ -303,8 +280,8 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: var(--error-bg);
-  color: var(--error-text);
+  background-color: #dc2626;
+  color: #ffffff;
   border: 2px solid var(--bg-primary);
   cursor: pointer;
   display: flex;
@@ -316,7 +293,7 @@
 }
 
 .employees-modal-image-remove:hover {
-  background-color: var(--error-hover);
+  background-color: #b91c1c;
 }
 
 /* Search & Dropdown */
@@ -328,11 +305,11 @@
 .employees-modal-dropdown {
   max-height: 210px;
   overflow-y: auto;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   margin-top: 8px;
-  box-shadow: 0 8px 24px var(--shadow-default);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .employees-modal-dropdown-item {
@@ -341,7 +318,7 @@
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-light);
   transition: background-color 0.2s ease;
 }
 
@@ -350,12 +327,12 @@
 }
 
 .employees-modal-dropdown-item:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--action-hover);
 }
 
 .employees-modal-dropdown-item.selected {
-  background-color: var(--bg-selected);
-  border-left: 2px solid var(--primary);
+  background-color: var(--action-selected);
+  border-left: 2px solid var(--text-primary);
 }
 
 .employees-modal-dropdown-item-info {
@@ -377,14 +354,14 @@
 
 .employees-modal-dropdown-item-detail {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .employees-modal-checkmark {
-  color: var(--primary);
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: bold;
   flex-shrink: 0;
@@ -397,7 +374,7 @@
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  background-color: var(--bg-secondary);
+  background-color: var(--input-bg);
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -416,10 +393,7 @@
   font-weight: 500;
   margin-bottom: 16px;
   color: var(--text-primary);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   flex-shrink: 0;
 }
 
@@ -449,7 +423,7 @@
 }
 
 .employees-modal-selected-card:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--action-hover);
   transform: translateY(-1px);
 }
 
@@ -483,9 +457,9 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background-color: var(--error-bg);
+  background-color: rgba(0, 0, 0, 0.7);
   border: none;
-  color: var(--error-text);
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -496,7 +470,7 @@
 }
 
 .employees-modal-card-remove-btn:hover {
-  background-color: var(--error-hover);
+  background-color: #dc2626;
 }
 
 /* Footer Actions */
@@ -505,7 +479,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--border);
   background-color: var(--bg-secondary);
   flex-shrink: 0;
 }
@@ -528,10 +502,7 @@
   font-weight: 500;
   cursor: pointer;
   text-transform: none;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
@@ -542,13 +513,13 @@
 }
 
 .employees-modal-btn-primary {
-  background-color: var(--primary);
-  color: var(--primary-text);
-  box-shadow: 0 2px 8px var(--shadow-default);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .employees-modal-btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  opacity: 0.9;
 }
 
 .employees-modal-btn-primary:active:not(:disabled) {
@@ -556,37 +527,33 @@
 }
 
 .employees-modal-btn-secondary {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-light);
+  background-color: transparent;
+  border: 1px solid var(--border);
   color: var(--text-primary);
 }
 
 .employees-modal-btn-secondary:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-}
-
-.employees-modal-btn-secondary:disabled {
-  opacity: 0.3;
+  background-color: var(--action-hover);
 }
 
 .employees-modal-btn-cancel {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-light);
+  background-color: transparent;
+  border: 1px solid var(--border);
   color: var(--text-primary);
 }
 
 .employees-modal-btn-cancel:hover:not(:disabled) {
-  background-color: var(--bg-hover);
+  background-color: var(--action-hover);
 }
 
 .employees-modal-btn-delete {
-  background-color: var(--error-bg);
-  border: 1px solid var(--error-border);
-  color: var(--error-text);
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
 }
 
 .employees-modal-btn-delete:hover:not(:disabled) {
-  background-color: var(--error-hover);
+  background-color: rgba(220, 38, 38, 0.2);
 }
 
 /* Scrollbar */
@@ -599,21 +566,21 @@
 .employees-modal-dropdown::-webkit-scrollbar-track,
 .employees-modal-content::-webkit-scrollbar-track,
 .employees-modal-selected-cards::-webkit-scrollbar-track {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: transparent;
   border-radius: 4px;
 }
 
 .employees-modal-dropdown::-webkit-scrollbar-thumb,
 .employees-modal-content::-webkit-scrollbar-thumb,
 .employees-modal-selected-cards::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--border-light);
   border-radius: 4px;
 }
 
 .employees-modal-dropdown::-webkit-scrollbar-thumb:hover,
 .employees-modal-content::-webkit-scrollbar-thumb:hover,
 .employees-modal-selected-cards::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--border);
 }
 
 /* Responsive */
@@ -624,48 +591,26 @@
     max-height: 100vh;
     border-radius: 0;
   }
-
-  .employees-modal-stepper {
-    padding: 20px 16px;
-  }
-
-  .employees-modal-step-label {
-    font-size: 11px;
-  }
-
-  .employees-modal-content {
-    padding: 24px 20px;
-  }
-
-  .employees-modal-selected-cards {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
-
-  .employees-modal-actions {
-    flex-direction: column;
-    gap: 12px;
-  }
-
+  .employees-modal-stepper { padding: 20px 16px; }
+  .employees-modal-step-label { font-size: 11px; }
+  .employees-modal-content { padding: 24px 20px; }
+  .employees-modal-selected-cards { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .employees-modal-actions { flex-direction: column; gap: 12px; }
   .employees-modal-actions-left,
-  .employees-modal-actions-right {
-    width: 100%;
-  }
-
-  .employees-modal-btn {
-    flex: 1;
-  }
+  .employees-modal-actions-right { width: 100%; }
+  .employees-modal-btn { flex: 1; }
 }
 
 /* Validation error styling */
 .employees-modal-input.input-error {
-  border-color: #ef5350;
-  background-color: rgba(239, 83, 80, 0.06);
+  border-color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.05);
 }
 
 .employees-modal-field-error {
   display: block;
   margin-top: 4px;
   font-size: 0.8rem;
-  color: #ef5350;
+  color: #dc2626;
   line-height: 1.3;
 }
