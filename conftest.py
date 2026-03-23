@@ -335,6 +335,7 @@ def _get_current_job_stub():
     job.is_finished = False
     job.result = None
     job.get_status = lambda: "queued"
+    job.get_redis_server_version = lambda: (4, 0, 0)
     return job
 
 
@@ -356,6 +357,11 @@ except Exception:
 
         def get_status(self):
             return "queued"
+        
+        def get_redis_server_version(self):
+            return (4, 0, 0)
+
+        
 
 
     class _FakeQueue:
@@ -425,6 +431,11 @@ def _provision_default_workstation(*args, **kwargs):
 def _destroy_stub(*args, **kwargs):
     return {"status": "success", "message": "Destroyed (test stub)"}
 
+def _provision_workstation_vm(*args, **kwargs):
+    return {}
+
+def _init_cloud(*args, **kwargs):
+    return
 
 def _get_target_dir_stub(org_id: str, generated_dir: str | None = None) -> str:
     import os
@@ -437,11 +448,11 @@ _stub_module(
     {
         "provision_network_terraform": _provision_network_terraform_stub,
         "provision_workstation": _provision_workstation,
-        "provision_workstation_vm": _provision_workstation,
+        "provision_workstation_vm": _provision_workstation_vm,
         "destroy_infra": _destroy_stub,
         "get_target_dir": _get_target_dir_stub,
         "provision_default_workstation": _provision_default_workstation,
         "provision_custom_workstation": _provision_default_workstation,
-        "init_cloud": lambda: None,
+        "init_cloud": _init_cloud,
     },
 )

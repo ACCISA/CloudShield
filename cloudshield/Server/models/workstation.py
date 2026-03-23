@@ -18,6 +18,7 @@ class WorkstationTemplate(BaseModel):
     software: List[str]
     is_ready: bool
     access_groups: List[str]
+    members: List[str]
 
 class Workstation(BaseModel):
     org_id: str

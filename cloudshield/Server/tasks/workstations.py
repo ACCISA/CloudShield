@@ -9,15 +9,18 @@ from models import WorkstationStatus
 from .task import get_server_nodes
 from services import service_dispatcher
 
-def start_workstations(org_id, template_id, access_groups, logger):
-    amount = len(get_unique_members_by_ids(db, access_groups))
+def start_workstations(org_id, template_id, access_groups, members, logger):
+    group_members = get_unique_members_by_ids(db, access_groups)
+    all_members = group_members + members
+    unique_members = set(all_members)
+    amount = len(unique_members)
 
     logger.info(f"Starting {amount}")
     for _ in range(amount):
         service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id)
 
 
-def ws_create_default(org_id, name, description, software, access_groups):
+def ws_create_default(org_id, name, description, software, access_groups, members):
     """
     Create a default workstation
     """
@@ -41,7 +44,8 @@ def ws_create_default(org_id, name, description, software, access_groups):
         description=description,
         software=software,
         is_ready=True,
-        access_groups=access_groups
+        access_groups=access_groups,
+        members=members
     )
 
     if ws_template is None:
@@ -88,7 +92,7 @@ def ws_create_default(org_id, name, description, software, access_groups):
 
     logger.info("Successfully created workstation template")
 
-    start_workstations(org_id, template_id, access_groups, logger)
+    start_workstations(org_id, template_id, access_groups, members, logger)
 
     return {"result":{"template_id":template_id}}
 

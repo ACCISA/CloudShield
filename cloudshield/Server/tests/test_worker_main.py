@@ -26,7 +26,7 @@ def test_worker_main_invokes_work(monkeypatch):
 
     fake_rq = types.SimpleNamespace(
         Worker=FakeWorker,
-        Queue=lambda connection: types.SimpleNamespace(),
+        Queue=lambda *args, **kwargs: types.SimpleNamespace(),
         SimpleWorker=FakeSimpleWorker,
         get_current_job=lambda: None,
     )
@@ -42,6 +42,51 @@ def test_worker_main_invokes_work(monkeypatch):
 
     fake_rq_scheduler = types.SimpleNamespace(Scheduler=FakeScheduler)
     monkeypatch.setitem(sys.modules, "rq_scheduler", fake_rq_scheduler)
+
+    runpy.run_module("cloudshield.Server.api_worker", run_name="__main__")
+    assert worked["count"] == 1
+
+
+def test_legacy_worker_main_invokes_work(monkeypatch):
+    """Covers cloudshield/Server/worker.py __main__ block."""
+    fake_conn = object()
+
+    fake_redis_client = types.SimpleNamespace(redis_conn=fake_conn)
+    monkeypatch.setitem(sys.modules, "redis_client", fake_redis_client)
+
+    worked = {"count": 0}
+
+    class FakeWorker:
+        def __init__(self, queues, connection=None):
+            pass
+
+        def work(self):
+            worked["count"] += 1
+
+    class FakeSimpleWorker(FakeWorker):
+        pass
+
+    fake_rq = types.SimpleNamespace(
+        Worker=FakeWorker,
+        Queue=lambda *args, **kwargs: types.SimpleNamespace(),
+        SimpleWorker=FakeSimpleWorker,
+        get_current_job=lambda: None,
+    )
+    monkeypatch.setitem(sys.modules, "rq", fake_rq)
+
+    class FakeScheduler:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def schedule(self, *args, **kwargs):
+            # no-op: scheduling is a side effect we don't need to assert on
+            pass
+
+    fake_rq_scheduler = types.SimpleNamespace(Scheduler=FakeScheduler)
+    monkeypatch.setitem(sys.modules, "rq_scheduler", fake_rq_scheduler)
+
+    # Remove cached module so it re-executes under __main__
+    sys.modules.pop("cloudshield.Server.worker", None)
 
     runpy.run_module("cloudshield.Server.worker", run_name="__main__")
     assert worked["count"] == 1

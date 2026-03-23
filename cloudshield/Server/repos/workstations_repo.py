@@ -3,7 +3,7 @@ from bson import ObjectId
 from typing import List
 from models import Workstation,WorkstationTemplate,WorkstationStatus
 
-def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str]):
+def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str], members: List[str]):
     """
     Writes an Inventory document for org_id.
     Reusable from any workflow that generates or refreshes assets.
@@ -16,9 +16,9 @@ def insert_workstation_template(*, db, org_id: str, name: str, description: str,
         description=description,
         software=software,
         is_ready=is_ready,
-        access_groups=access_groups
-        ).model_dump(by_alias=True)
-    )
+        access_groups=access_groups,
+        members=members
+        ).model_dump(by_alias=True))
 
 def get_workstation_template(*, db, org_id: str, template_id: str):
     ws_db = db.workstation_templates
@@ -125,3 +125,5 @@ def get_available_workstation(db, user_id):
 
     return list(workstations_cursor)
 
+# Alias for backward compatibility
+get_available_workstations = get_available_workstation
