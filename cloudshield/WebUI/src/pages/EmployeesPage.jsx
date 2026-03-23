@@ -38,6 +38,13 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
 // Toast Notification
+const TOAST_BG_COLORS = {
+  error: "#d32f2f",
+  warning: "#ed6c02",
+  info: "#0288d1",
+  success: "#2e7d32",
+};
+
 const CustomToast = ({ msg, type, onClose }) => {
   if (!msg) return null;
 
@@ -47,7 +54,7 @@ const CustomToast = ({ msg, type, onClose }) => {
     right: "24px",
     padding: "12px 24px",
     borderRadius: "12px",
-    backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
+    backgroundColor: TOAST_BG_COLORS[type] ?? TOAST_BG_COLORS.success,
     color: "#fff",
     fontSize: "1rem",
     boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
