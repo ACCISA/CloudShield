@@ -823,17 +823,18 @@ export default function EmployeesPage() {
                   lineHeight: "1.5",
                   whiteSpace: "pre-line",
                   zIndex: 1000,
-                  minWidth: "280px",
+                  minWidth: "320px",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                 }}
               >
                 <strong>CSV Format:</strong>{"\n"}
-                email,full_name,password_hash,role{"\n\n"}
+                email,full_name,password_hash,role,workstations{"\n\n"}
                 <strong>Columns:</strong>{"\n"}
-                - password_hash: bcrypt hash from previous system{"\n"}
-                - role: optional (defaults to &apos;employee&apos;){"\n\n"}
+                - password_hash: bcrypt hash (optional){"\n"}
+                - role: admin or employee (optional){"\n"}
+                - workstations: semicolon-separated (optional){"\n\n"}
                 <strong>Example:</strong>{"\n"}
-                john@company.com,John Doe,$2b$12$...,employee
+                john@co.com,John Doe,$2b$12$...,employee,WS01;WS02
               </div>
             )}
           </div>

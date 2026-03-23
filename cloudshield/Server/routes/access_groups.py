@@ -420,13 +420,14 @@ def import_groups_csv():
 
     Request:
         - Content-Type: multipart/form-data
-        - file: CSV file with columns: group_name,description,member_emails
+        - file: CSV file with columns: group_name,description,member_emails,workstations
         - member_emails is a semicolon-separated list of user emails
+        - workstations is a semicolon-separated list of workstation names/IDs
 
     CSV Format:
-        group_name,description,member_emails
-        marketing,Marketing team group,john@example.com;jane@example.com
-        engineering,Engineering department,dev1@example.com;dev2@example.com
+        group_name,description,member_emails,workstations
+        marketing,Marketing team group,john@example.com;jane@example.com,WS001;WS002
+        engineering,Engineering department,dev1@example.com;dev2@example.com,WS003;WS004;WS005
 
     Responses:
         200: { "created": N, "errors": [...] }
@@ -469,6 +470,7 @@ def import_groups_csv():
                 group_name = (row.get("group_name") or "").strip()
                 description = (row.get("description") or "").strip()
                 member_emails_raw = (row.get("member_emails") or "").strip()
+                workstations_raw = (row.get("workstations") or "").strip()
 
                 if not group_name:
                     errors.append({
@@ -500,11 +502,20 @@ def import_groups_csv():
                         else:
                             missing_emails.append(email)
 
+                # Parse workstations (semicolon-separated)
+                workstations = []
+                if workstations_raw:
+                    for ws in workstations_raw.split(";"):
+                        ws = ws.strip()
+                        if ws:
+                            workstations.append(ws)
+
                 # Create the group
                 group_data = AccessGroupCreate(
                     group_name=group_name,
                     description=description or None,
                     members=member_ids,
+                    workstations=workstations,
                 )
 
                 doc = create_access_group_doc(group_data)

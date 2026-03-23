@@ -604,15 +604,17 @@ export default function GroupsPage() {
                   lineHeight: "1.5",
                   whiteSpace: "pre-line",
                   zIndex: 1000,
-                  minWidth: "320px",
+                  minWidth: "360px",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                 }}
               >
                 <strong>CSV Format:</strong>{"\n"}
-                group_name,description,member_emails{"\n\n"}
-                <strong>Note:</strong> Separate multiple emails with semicolons{"\n\n"}
+                group_name,description,member_emails,workstations{"\n\n"}
+                <strong>Columns:</strong>{"\n"}
+                - member_emails: semicolon-separated{"\n"}
+                - workstations: semicolon-separated (optional){"\n\n"}
                 <strong>Example:</strong>{"\n"}
-                Engineering,Dev team,john@co.com;jane@co.com
+                Engineering,Dev team,john@co.com;jane@co.com,WS01;WS02
               </div>
             )}
           </div>

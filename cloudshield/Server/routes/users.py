@@ -481,14 +481,15 @@ def import_users_csv():
 
     Request:
         - Content-Type: multipart/form-data
-        - file: CSV file with columns: email,full_name,password_hash,role
+        - file: CSV file with columns: email,full_name,password_hash,role,workstations
         - password_hash: bcrypt hash from previous system (recommended for migrations)
         - role column is optional (defaults to "employee")
+        - workstations: semicolon-separated workstation names/IDs (optional)
 
     CSV Format (with pre-hashed passwords - recommended for migrations):
-        email,full_name,password_hash,role
-        john@example.com,John Doe,$2b$12$LQv3c1yqBw...,employee
-        jane@example.com,Jane Smith,$2b$12$abc123...,admin
+        email,full_name,password_hash,role,workstations
+        john@example.com,John Doe,$2b$12$LQv3c1yqBw...,employee,WS001;WS002
+        jane@example.com,Jane Smith,$2b$12$abc123...,admin,WS003
 
     Responses:
         200: { "created": N, "errors": [...] }
@@ -536,6 +537,7 @@ def import_users_csv():
                 full_name = (row.get("full_name") or "").strip()
                 password_hash = (row.get("password_hash") or "").strip()
                 role = (row.get("role") or "employee").strip().lower()
+                workstations_raw = (row.get("workstations") or "").strip()
 
                 if not email or not full_name:
                     errors.append({
@@ -546,6 +548,14 @@ def import_users_csv():
 
                 if role not in ("admin", "employee"):
                     role = "employee"
+
+                # Parse workstations (semicolon-separated)
+                workstations = []
+                if workstations_raw:
+                    for ws in workstations_raw.split(";"):
+                        ws = ws.strip()
+                        if ws:
+                            workstations.append(ws)
 
                 # Check for duplicate email
                 if users_admin.find_one({"email": email}):
@@ -574,6 +584,7 @@ def import_users_csv():
                     "full_name": full_name,
                     "status": "active",
                     "profile_image": None,
+                    "workstations": workstations,
                     "created_at": datetime.now(timezone.utc),
                     "updated_at": datetime.now(timezone.utc),
                 }
@@ -593,7 +604,7 @@ def import_users_csv():
                         target={"id": user_id, "email": email},
                         reason="CSV import",
                         before=None,
-                        after={"role": role, "status": "active", "org_id": org_id},
+                        after={"role": role, "status": "active", "org_id": org_id, "workstations": workstations},
                     )
                 except Exception:
                     pass  # Don't fail import due to audit log issues
