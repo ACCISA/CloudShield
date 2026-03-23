@@ -17,15 +17,25 @@ import pytest
 
 from unittest.mock import MagicMock
 
+_ORIGINAL_MODULES = {
+    "cloudshield.Server.utils.database": sys.modules.get("cloudshield.Server.utils.database"),
+    "cloudshield.Server.utils.logging_setup": sys.modules.get("cloudshield.Server.utils.logging_setup"),
+    "google": sys.modules.get("google"),
+    "google.genai": sys.modules.get("google.genai"),
+}
+_STUB_MODULES = {}
+
 _db_mod = types.ModuleType("cloudshield.Server.utils.database")
 _db_mod.db_admin = MagicMock()
 
 _db_mod.__getattr__ = lambda name: MagicMock()
 sys.modules["cloudshield.Server.utils.database"] = _db_mod
+_STUB_MODULES["cloudshield.Server.utils.database"] = _db_mod
 
 _log_mod = types.ModuleType("cloudshield.Server.utils.logging_setup")
 _log_mod.get_logger = lambda name: __import__("logging").getLogger(name)
 sys.modules["cloudshield.Server.utils.logging_setup"] = _log_mod
+_STUB_MODULES["cloudshield.Server.utils.logging_setup"] = _log_mod
 
 # Stub google.genai so import doesn't fail
 _google = types.ModuleType("google")
@@ -33,6 +43,21 @@ _genai = types.ModuleType("google.genai")
 _genai.Client = object
 sys.modules.setdefault("google", _google)
 sys.modules.setdefault("google.genai", _genai)
+_STUB_MODULES.setdefault("google", _google)
+_STUB_MODULES.setdefault("google.genai", _genai)
+
+
+def teardown_module(_module):
+    """Restore module registry entries to avoid cross-test contamination."""
+    for name, original in _ORIGINAL_MODULES.items():
+        current = sys.modules.get(name)
+        stub = _STUB_MODULES.get(name)
+        if original is None:
+            if current is stub:
+                sys.modules.pop(name, None)
+        else:
+            if current is stub:
+                sys.modules[name] = original
 
 # Now import the module under test
 from cloudshield.Server.utils.ai_agent import (

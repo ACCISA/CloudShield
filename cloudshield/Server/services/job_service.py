@@ -15,6 +15,17 @@ Job = rq.job.Job  # type: ignore[attr-defined]
 logger = get_logger("service")
 
 
+def service_dispatcher(service_name: str, *args, **kwargs):
+    """Compatibility shim for tests that patch this symbol from job_service."""
+    if service_name in SERVICES:
+        service = SERVICES[service_name]
+        return service(*args, **kwargs)
+
+    from .dispatcher import service_dispatcher as _service_dispatcher
+
+    return _service_dispatcher(service_name, *args, **kwargs)
+
+
 # ---------------------------------------------------------------------------
 # Task wrappers
 # ---------------------------------------------------------------------------

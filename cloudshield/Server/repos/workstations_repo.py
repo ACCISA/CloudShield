@@ -1,7 +1,7 @@
 from __future__ import annotations
 from bson import ObjectId
 from typing import List
-from models import Workstation,WorkstationTemplate,Software,WorkstationStatus
+from models import Workstation,WorkstationTemplate,WorkstationStatus
 
 def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str]):
     """
@@ -29,7 +29,7 @@ def get_workstation_template(*, db, org_id: str, template_id: str):
         if not result:
             return None
         return result
-    except Exception as e:
+    except Exception:
         return None
 
 def get_workstation(*, db, org_id: str, vm_id: str):
@@ -41,7 +41,7 @@ def get_workstation(*, db, org_id: str, vm_id: str):
         if not result:
             return None
         return result
-    except Exception as e:
+    except Exception:
         return None
 
 def insert_workstation(*, db, org_id: str, template_id: str):
@@ -103,25 +103,25 @@ def get_workstations(db, org_id: str):
 
     return workstations
 
-def get_available_workstation(user_id):
+def get_available_workstation(db, user_id):
     """
     Get workstations that are available to a user
     """
 
     groups_db = db.access_groups
 
-    user_groups = groups_db.find({"_id": 1, "members":user_id})
-    
-    workstation_template_cursor = db.workstation_tempaltes.find({
-        "access_groups":{"$in":user_groups}
+    user_groups = list(groups_db.find({"_id": 1, "members": user_id}))
+
+    workstation_template_cursor = db.workstation_templates.find({
+        "access_groups": {"$in": user_groups}
     })
 
-    template_ids = list(workstation_template_cursor)
+    template_ids = [str(doc["_id"]) for doc in workstation_template_cursor]
 
     workstations_cursor = db.workstations.find({
-        "template_id": {"$in":template_ids},
+        "template_id": {"$in": template_ids},
         "status": "ACTIVE"
     })
 
-    available_workstations = list(workstations_cursor)
+    return list(workstations_cursor)
 

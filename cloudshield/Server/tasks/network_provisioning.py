@@ -179,9 +179,9 @@ def _import_terraform_provisioner():
         Path("/var/lib/cloudshield/terraform/provisioner.py"),
     ]
     for p in candidates:
-        if p.exists():
-            spec = importlib.util.spec_from_file_location("cloudshield_terraform_provisioner", str(p))
-            if spec and spec.loader:
+        spec = importlib.util.spec_from_file_location("cloudshield_terraform_provisioner", str(p))
+        if spec and spec.loader:
+            try:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)  # type: ignore[attr-defined]
                 return (
@@ -190,6 +190,8 @@ def _import_terraform_provisioner():
                     getattr(module, "destroy_infra"),
                     getattr(module, "provision_workstation"),
                 )
+            except (FileNotFoundError, OSError, AttributeError):
+                continue
 
     raise ModuleNotFoundError(
         "Terraform provisioner not found inside this container. "
@@ -381,7 +383,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         set_progress("completed")
         return {
             "message": "Provisioning workstations complete",
-            "work_dir": str(target_dir_res),
+            "work_dir": str(target_dir_res).replace("\\", "/"),
             "new_workstation_count": count + initial_count,
             "logs_tail": logs_tail,
         }
