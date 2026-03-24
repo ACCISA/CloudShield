@@ -211,6 +211,9 @@ jobs:
           mkdir -p tests/js/coverage/desktopui
           if [ -f cloudshield/DesktopUI/coverage/lcov.info ]; then
             cp cloudshield/DesktopUI/coverage/lcov.info tests/js/coverage/desktopui/lcov.info
+            # Sonar runs from repo root; normalize relative SF paths so files resolve.
+            sed -i 's|^SF:src/|SF:cloudshield/DesktopUI/src/|g' tests/js/coverage/desktopui/lcov.info
+            sed -i 's|^SF:\./src/|SF:cloudshield/DesktopUI/src/|g' tests/js/coverage/desktopui/lcov.info
           else
             echo "" > tests/js/coverage/desktopui/lcov.info
           fi
@@ -247,6 +250,9 @@ jobs:
           mkdir -p tests/js/coverage/webui
           if [ -f cloudshield/WebUI/coverage/lcov.info ]; then
             cp cloudshield/WebUI/coverage/lcov.info tests/js/coverage/webui/lcov.info
+            # Sonar runs from repo root; normalize relative SF paths so files resolve.
+            sed -i 's|^SF:src/|SF:cloudshield/WebUI/src/|g' tests/js/coverage/webui/lcov.info
+            sed -i 's|^SF:\./src/|SF:cloudshield/WebUI/src/|g' tests/js/coverage/webui/lcov.info
           else
             echo "" > tests/js/coverage/webui/lcov.info
           fi
