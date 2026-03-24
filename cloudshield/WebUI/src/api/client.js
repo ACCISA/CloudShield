@@ -13,7 +13,7 @@ export function getToken() {
   return localStorage.getItem("jwt");
 }
 
-async function request(path, { method = "GET", body, headers } = {}) {
+async function request(path, { method, body, headers }) {
   const token = getToken();
 
   const res = await fetch(`${API_BASE}${path}`, {

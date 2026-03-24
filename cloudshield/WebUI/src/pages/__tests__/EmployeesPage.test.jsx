@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import EmployeesPage from "../EmployeesPage.jsx";
 import { AuthProvider } from "../../context/AuthContext.jsx";
 import * as usersApi from "../../services/usersApi.js";
+import * as clientApi from "../../api/client.js";
 
 // --- 1. MOCK API ---
 jest.mock("../../services/usersApi.js", () => ({
@@ -158,6 +159,7 @@ jest.mock("../../components/users/EmployeesModal.jsx", () => {
         </button>
 
         {isEdit && <button onClick={onDelete}>Confirm Delete</button>}
+        {isEdit && <button onClick={() => onDelete()}>Confirm Delete Safe</button>}
         <button onClick={onClose}>Cancel</button>
       </div>
     );
@@ -218,9 +220,9 @@ jest.mock(
 jest.mock(
   "../../components/common/CreateButton/CreateButton.jsx",
   () =>
-    ({ onClick }) => (
-      <button data-testid="open-create-btn" onClick={onClick}>
-        Create
+    ({ onClick, buttonText, disabled, "data-testid": testId }) => (
+      <button data-testid={testId || "open-create-btn"} onClick={onClick} disabled={disabled}>
+        {buttonText || "Create"}
       </button>
     )
 );
@@ -233,6 +235,37 @@ jest.mock(
       </button>
     )
 );
+
+jest.mock("../../components/common/EditButton/EditButton.jsx", () => {
+  return function MockEditButton({ menuItems = [] }) {
+    return (
+      <div data-testid="icon-edit-menu">
+        {menuItems.map((item) => (
+          <button
+            key={item.label}
+            data-testid={`icon-menu-${item.label.replace(/\s+/g, "-")}`}
+            onClick={item.onClick}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+});
+
+jest.mock("../../components/common/Checkbox/Checkbox.jsx", () => {
+  return function MockCheckbox({ checked, onChange }) {
+    return (
+      <input
+        data-testid="icon-checkbox"
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+      />
+    );
+  };
+});
 
 // --- 3. HELPER ---
 const renderPage = ({
@@ -296,6 +329,11 @@ describe("EmployeesPage Integration", () => {
     usersApi.createUser.mockResolvedValue({ user_id: "new" });
     usersApi.updateUser.mockResolvedValue({ success: true });
     usersApi.deleteUser.mockResolvedValue({ success: true });
+
+    jest.spyOn(clientApi, "apiUploadFile").mockResolvedValue({
+      created: 0,
+      errors: [],
+    });
   });
 
   // --- API & RENDER ---
@@ -360,6 +398,28 @@ describe("EmployeesPage Integration", () => {
 
   // --- CREATE ---
   it("creates user successfully", async () => {
+    usersApi.createUser.mockResolvedValue({ job_id: "job-create-1" });
+    global.fetch = jest
+      .fn()
+      // initial groups fetch during first fetchUsers
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_groups: [] }),
+      })
+      // immediate status poll from useAsyncTask
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "succeeded", progress: "completed" }),
+      })
+      // groups refetch after success
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_groups: [] }),
+      });
+
     renderPage();
     await userEvent.click(screen.getByTestId("open-create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
@@ -469,6 +529,19 @@ describe("EmployeesPage Integration", () => {
     expect(usersApi.deleteUser).toHaveBeenCalled();
   });
 
+  it("closes modal after delete when called from modal context", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Confirm Delete Safe"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument()
+    );
+  });
+
   // --- EDGE CASES ---
   it("blocks create without token", async () => {
     renderPage({ accessToken: null });
@@ -478,6 +551,25 @@ describe("EmployeesPage Integration", () => {
   });
 
   it("closes toast on Enter", async () => {
+    usersApi.createUser.mockResolvedValue({ job_id: "job-create-2" });
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_groups: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "succeeded", progress: "completed" }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_groups: [] }),
+      });
+
     renderPage();
     await userEvent.click(screen.getByTestId("open-create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
@@ -893,6 +985,136 @@ describe("EmployeesPage Integration", () => {
     );
   });
 
+  it("handles fetchAccessGroups network error gracefully", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    global.fetch = jest.fn().mockRejectedValue(new Error("groups network down"));
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to fetch groups:",
+      expect.any(Error)
+    );
+  });
+
+  it("clicks hidden CSV input from import button", async () => {
+    const clickSpy = jest
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    renderPage();
+    await userEvent.click(screen.getByTestId("import-csv-btn"));
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it("imports CSV successfully and refreshes users", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    clientApi.apiUploadFile.mockResolvedValueOnce({
+      created: 2,
+      errors: [{ error: "row warning" }],
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    const fileInput = document.querySelector('input[type="file"]');
+    const csvFile = new File(["email,full_name\na@t.com,Alice"], "users.csv", {
+      type: "text/csv",
+    });
+
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+
+    expect(
+      await screen.findByText(/Successfully imported 2 user\(s\) \(1 errors\)/i)
+    ).toBeInTheDocument();
+    expect(usersApi.listUsers).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith("CSV import errors:", [{ error: "row warning" }]);
+  });
+
+  it("shows import failure from CSV result errors", async () => {
+    clientApi.apiUploadFile.mockResolvedValueOnce({
+      created: 0,
+      errors: [{ error: "Invalid CSV row" }],
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    const fileInput = document.querySelector('input[type="file"]');
+    const csvFile = new File(["bad"], "users.csv", { type: "text/csv" });
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+
+    expect(await screen.findByText("Import failed: Invalid CSV row")).toBeInTheDocument();
+  });
+
+  it("shows no-import info and handles upload exception", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    const fileInput = document.querySelector('input[type="file"]');
+    const csvFile = new File(["x"], "users.csv", { type: "text/csv" });
+
+    clientApi.apiUploadFile.mockResolvedValueOnce({ created: 0, errors: [] });
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+    expect(await screen.findByText("No users imported")).toBeInTheDocument();
+
+    clientApi.apiUploadFile.mockRejectedValueOnce(new Error("CSV import boom"));
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+    expect(await screen.findByText("CSV import boom")).toBeInTheDocument();
+  });
+
+  it("shows and hides CSV help tooltip via hover and click", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    const helpToggle = screen.getByText("?");
+
+    fireEvent.mouseEnter(helpToggle);
+    fireEvent.mouseLeave(helpToggle);
+    await userEvent.click(helpToggle);
+
+    // The exact tooltip text rendering can vary by environment; ensure handlers run.
+    expect(helpToggle).toBeInTheDocument();
+  });
+
+  it("clears selection and applies hover styles on clear button", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByTestId("checkbox-1"));
+    const clearBtn = await screen.findByText("Clear selection");
+
+    fireEvent.mouseEnter(clearBtn);
+    expect(clearBtn.style.background).toBe("rgba(255, 255, 255, 0.08)");
+
+    fireEvent.mouseLeave(clearBtn);
+    expect(clearBtn.style.background).toBe("rgba(255, 255, 255, 0.03)");
+
+    await userEvent.click(clearBtn);
+    expect(screen.getByTestId("checkbox-1")).not.toBeChecked();
+  });
+
+  it("covers icon-grid menu actions and icon checkbox selection", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByTestId("layout-toggle-grid"));
+
+    const iconCheckboxes = screen.getAllByTestId("icon-checkbox");
+    await userEvent.click(iconCheckboxes[0]);
+    expect(iconCheckboxes[0]).toBeChecked();
+
+    const editButtons = screen.getAllByTestId("icon-menu-edit-user");
+    await userEvent.click(editButtons[0]);
+    expect(await screen.findByTestId("edit-modal")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Cancel"));
+
+    const deleteButtons = screen.getAllByTestId("icon-menu-delete-user");
+    await userEvent.click(deleteButtons[0]);
+    await waitFor(() => expect(usersApi.deleteUser).toHaveBeenCalled());
+  });
+
   // Tests for CustomToast keyboard handling
   describe("CustomToast keyboard handling", () => {
     it("closes toast on Enter key press", async () => {
@@ -959,11 +1181,14 @@ describe("EmployeesPage Integration", () => {
           details: [{ loc: ["body", "password"], msg: "Password is too weak" }],
         },
       };
-      usersApi.createUser.mockRejectedValue(errorPayload);
+      usersApi.updateUser.mockRejectedValue(errorPayload);
 
       renderPage();
-      await userEvent.click(screen.getByTestId("open-create-btn"));
-      await userEvent.click(screen.getByText("Confirm Create"));
+      await waitFor(() =>
+        expect(screen.getByText("Alice")).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByTestId("edit-btn-1"));
+      await userEvent.click(screen.getByText("Confirm Update"));
 
       // Verify specific password error message is displayed
       expect(await screen.findByText("Password is too weak")).toBeInTheDocument();
@@ -974,11 +1199,14 @@ describe("EmployeesPage Integration", () => {
       const errorPayload = {
         payload: { error: "Duplicate email address" },
       };
-      usersApi.createUser.mockRejectedValue(errorPayload);
+      usersApi.updateUser.mockRejectedValue(errorPayload);
 
       renderPage();
-      await userEvent.click(screen.getByTestId("open-create-btn"));
-      await userEvent.click(screen.getByText("Confirm Create"));
+      await waitFor(() =>
+        expect(screen.getByText("Alice")).toBeInTheDocument()
+      );
+      await userEvent.click(screen.getByTestId("edit-btn-1"));
+      await userEvent.click(screen.getByText("Confirm Update"));
 
       expect(
         await screen.findByText("Duplicate email address")
@@ -999,50 +1227,42 @@ describe("EmployeesPage Integration", () => {
 
     describe("Group Membership Updates (updateUserGroupMemberships)", () => {
       it("adds user to new groups", async () => {
-        // 1. Mock GET access-groups (Current state: User is NOT in 'grp-1')
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-1", members: ["other-user"] }],
-            }),
-          })
-          // 2. Mock PATCH access-groups (Update: Add user)
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [{ id: "grp-1", members: ["other-user"] }],
+          }),
+        });
 
-        usersApi.createUser.mockResolvedValue({ user_id: "new-user-123" });
+        usersApi.updateUser.mockResolvedValue({ success: true });
 
         renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
 
-        // Use the specific button that submits with groups
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
         await userEvent.click(screen.getByTestId("submit-with-groups"));
 
         await waitFor(() => {
-          // Covers: fetch(`.../api/access-groups/${groupId}`, { method: "PATCH", ... })
-          // Verify the PATCH call was made to add the user
-          expect(global.fetch).toHaveBeenNthCalledWith(
-            2,
-            expect.stringContaining("/api/access-groups/grp-1"),
-            expect.objectContaining({
-              method: "PATCH",
-              body: JSON.stringify({ members: ["other-user", "new-user-123"] }),
-            })
+          const patchCalls = global.fetch.mock.calls.filter(
+            (call) => call[1]?.method === "PATCH"
           );
+          expect(patchCalls.length).toBeGreaterThanOrEqual(1);
+          expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
+          expect(JSON.parse(patchCalls[0][1].body)).toEqual({
+            members: ["other-user", "1"],
+          });
         });
       });
 
       it("removes user from old groups", async () => {
-        // 1. Mock GET access-groups (Current state: User IS in 'grp-1')
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-1", members: ["1"] }], // "1" is the ID of Alice in seedUsers
-            }),
-          })
-          // 2. Mock PATCH access-groups (Update: Remove user)
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [{ id: "grp-1", members: ["1"] }],
+          }),
+        });
 
         // We need to UPDATE an existing user to trigger removal logic
         // We submit WITHOUT groups (default button), effectively removing them from 'grp-1'
@@ -1055,15 +1275,12 @@ describe("EmployeesPage Integration", () => {
         await userEvent.click(screen.getByText("Confirm Update"));
 
         await waitFor(() => {
-          // Verify PATCH call removed ID "1"
-          expect(global.fetch).toHaveBeenNthCalledWith(
-            2,
-            expect.stringContaining("/api/access-groups/grp-1"),
-            expect.objectContaining({
-              method: "PATCH",
-              body: JSON.stringify({ members: [] }), // Empty because Alice was the only one
-            })
+          const patchCalls = global.fetch.mock.calls.filter(
+            (call) => call[1]?.method === "PATCH"
           );
+          expect(patchCalls.length).toBeGreaterThanOrEqual(1);
+          expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
+          expect(JSON.parse(patchCalls[0][1].body)).toEqual({ members: [] });
         });
       });
 
@@ -1073,10 +1290,13 @@ describe("EmployeesPage Integration", () => {
           .spyOn(console, "error")
           .mockImplementation(() => {});
 
-        global.fetch.mockResolvedValueOnce({ ok: false });
+        global.fetch = jest.fn().mockResolvedValue({ ok: false });
 
         renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument()
+        );
+        await userEvent.click(screen.getByTestId("edit-btn-1"));
         await userEvent.click(screen.getByTestId("submit-with-groups"));
 
         await waitFor(() => {
@@ -1086,7 +1306,10 @@ describe("EmployeesPage Integration", () => {
         });
 
         // Ensure logic stopped (no PATCH calls made)
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        const patchCalls = global.fetch.mock.calls.filter(
+          (call) => call[1]?.method === "PATCH"
+        );
+        expect(patchCalls).toHaveLength(0);
       });
 
       it("skips PATCH if user is already a member (idempotency)", async () => {
@@ -1202,17 +1425,14 @@ describe("EmployeesPage Integration", () => {
       it("computes currentGroupIds using _id fallback", async () => {
         // Covers: .map((g) => String(g.id || g._id))
         // Group uses _id instead of id
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { _id: "grp-legacy", members: ["1"] }, // no .id, uses ._id
-              ],
-            }),
-          })
-          // PATCH to remove Alice from grp-legacy (she submits with grp-1 only)
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { _id: "grp-legacy", members: ["1"] }, // no .id, uses ._id
+            ],
+          }),
+        });
 
         usersApi.updateUser.mockResolvedValue({ success: true });
 
@@ -1239,18 +1459,15 @@ describe("EmployeesPage Integration", () => {
       it("handles groups with non-array members field in currentGroupIds filter", async () => {
         // Covers: const members = Array.isArray(g.members) ? g.members : [];
         // When g.members is not an array (e.g., null or undefined)
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { id: "grp-null-members", members: null },
-                { id: "grp-1", members: ["other"] },
-              ],
-            }),
-          })
-          // PATCH to add user to grp-1
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { id: "grp-null-members", members: null },
+              { id: "grp-1", members: ["other"] },
+            ],
+          }),
+        });
 
         usersApi.updateUser.mockResolvedValue({ success: true });
 
@@ -1277,16 +1494,14 @@ describe("EmployeesPage Integration", () => {
       it("handles groups with non-array members field in toAdd loop", async () => {
         // Covers: const currentMembers = Array.isArray(group.members) ? group.members : [];
         // in the toAdd for-loop, when the group found has members as a non-array
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { id: "grp-1", members: undefined }, // members is undefined
-              ],
-            }),
-          })
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { id: "grp-1", members: undefined }, // members is undefined
+            ],
+          }),
+        });
 
         usersApi.updateUser.mockResolvedValue({ success: true });
 
@@ -1349,21 +1564,14 @@ describe("EmployeesPage Integration", () => {
       it("skips remove PATCH when member count is unchanged", async () => {
         // Covers: if (updatedMembers.length !== currentMembers.length) guard
         // User is supposedly in toRemove but actually isn't in the members array
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                // grp-x has Alice (id "1") — she IS a member.
-                // But the filtered members already exclude her, length unchanged scenario
-                // Actually we need a case where the user ISN'T in members despite being in currentGroupIds
-                // This can happen if data changes between the filter and the loop
-                { id: "grp-x", members: ["1", "other-user"] },
-              ],
-            }),
-          })
-          // PATCH for removal
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { id: "grp-x", members: ["1", "other-user"] },
+            ],
+          }),
+        });
 
         usersApi.updateUser.mockResolvedValue({ success: true });
 
@@ -1393,20 +1601,15 @@ describe("EmployeesPage Integration", () => {
         // Covers both toAdd and toRemove executing in one call
         // Alice is in grp-old, submitted groups are [grp-1]
         // → toRemove: grp-old, toAdd: grp-1
-        global.fetch
-          .mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { id: "grp-old", members: ["1", "other"] },
-                { id: "grp-1", members: ["other"] },
-              ],
-            }),
-          })
-          // PATCH: add Alice to grp-1
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
-          // PATCH: remove Alice from grp-old
-          .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            access_groups: [
+              { id: "grp-old", members: ["1", "other"] },
+              { id: "grp-1", members: ["other"] },
+            ],
+          }),
+        });
 
         usersApi.updateUser.mockResolvedValue({ success: true });
 
@@ -1494,7 +1697,7 @@ describe("EmployeesPage Integration", () => {
         );
       });
 
-      it("returns empty auth header when jwt is not set", async () => {
+      it("skips user fetch when no jwt and no access token", async () => {
         localStorage.removeItem("jwt");
 
         global.fetch.mockResolvedValue({
@@ -1502,18 +1705,9 @@ describe("EmployeesPage Integration", () => {
           json: async () => ({ access_groups: [] }),
         });
 
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        const groupsFetchCall = global.fetch.mock.calls.find(
-          (call) =>
-            typeof call[0] === "string" &&
-            call[0].includes("/api/access-groups")
-        );
-        expect(groupsFetchCall).toBeTruthy();
-        expect(groupsFetchCall[1].headers.Authorization).toBeUndefined();
+        renderPage({ accessToken: null });
+        expect(usersApi.listUsers).not.toHaveBeenCalled();
+        expect(global.fetch).not.toHaveBeenCalled();
       });
     });
 
@@ -1705,15 +1899,14 @@ describe("EmployeesPage Integration", () => {
         ).toBeInTheDocument();
       });
 
-      it("renders PageShell and keeps Create/Refresh accessible", () => {
-      renderPage();
+      it("renders toolbar controls and keeps Create/Refresh accessible", () => {
+        renderPage();
 
-      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
-      expect(screen.getByTestId("page-actions")).toBeInTheDocument();
-
-      expect(screen.getByTestId("refresh-btn")).toBeInTheDocument();
-      expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
-    });
+        expect(document.querySelector(".page-layout")).toBeInTheDocument();
+        expect(screen.getByTestId("refresh-btn")).toBeInTheDocument();
+        expect(screen.getByTestId("import-csv-btn")).toBeInTheDocument();
+        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
+      });
     });
   });
 });

@@ -299,7 +299,7 @@ except Exception:
     class _FakeQueue:
         """Minimal stand-in for rq.Queue used by redis_client/task enqueue."""
 
-        def __init__(self, connection=None, default_timeout=None, *args, **kwargs):  # noqa: ARG002
+        def __init__(self, *args, connection=None, default_timeout=None, **kwargs):  # noqa: ARG002
             self.connection = connection
             self.default_timeout = default_timeout
 

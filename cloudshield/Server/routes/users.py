@@ -621,22 +621,6 @@ def import_users_csv():
                 except Exception:
                     pass  # Don't fail import due to audit log issues
 
-                # Dispatch DC user creation only if we have a plain text password
-                # (for pre-hashed imports, users keep their existing DC credentials)
-                if plain_password_for_dc:
-                    try:
-                        username = email.split("@")[0]
-                        job = service_dispatcher(
-                            service_name="dc_add_user",
-                            org_id=org_id,
-                            username=username,
-                            password=plain_password_for_dc,
-                            email=email,
-                        )
-                        job_ids.append(job.id)
-                    except Exception as dc_err:
-                        logger.warning("DC sync failed for user %s: %s", email, dc_err)
-
                 created_count += 1
 
             except ValidationError as e:

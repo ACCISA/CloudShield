@@ -22,6 +22,16 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false, title }) =>
     opacity: disabled ? 0.4 : 1,
   };
 
+  const handleMouseEnter = (e) => {
+    e.currentTarget.style.background = "#242424";
+    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+  };
+
+  const handleMouseLeave = (e) => {
+    e.currentTarget.style.background = "#1a1a1a";
+    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+  };
+
   return (
     <button
       style={buttonContainerStyle}
@@ -29,18 +39,8 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false, title }) =>
       disabled={disabled}
       title={title}
       aria-label={buttonText}
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = "#242424";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.background = "#1a1a1a";
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-        }
-      }}
+      onMouseEnter={disabled ? undefined : handleMouseEnter}
+      onMouseLeave={disabled ? undefined : handleMouseLeave}
     >
       {icon}
       {buttonText}
