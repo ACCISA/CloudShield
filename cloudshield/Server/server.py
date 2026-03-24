@@ -17,6 +17,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
 from utils import get_logger  # type: ignore
+from provisioner import init_cloud
 
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.
@@ -230,6 +231,8 @@ def healthz():
 
 # Entrypoint
 if __name__ == "__main__":
+
+    init_cloud()
     app.run(
         debug=os.getenv("FLASK_DEBUG", "false").lower() == "true",
         host="0.0.0.0",

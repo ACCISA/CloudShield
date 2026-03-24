@@ -1,23 +1,17 @@
-/**
- * AlertsPieChart.jsx
- *
- * Purpose:
- *   Pie chart showing distribution of alert types using D3.
- *
- * Features:
- *   - Interactive donut chart with hover effects
- *   - Animated transitions
- *   - Center label showing total count
- *   - Tooltips with percentages
- *   - Dark theme matching application aesthetic
- */
 import React, { useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import * as d3 from "d3";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function AlertsPieChart({ data, timeRange }) {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
+  
+  const themeColors = useThemeColors();
+  // Extracted primitive values for safe useEffect dependencies
+  const bgSecondary = themeColors.bgSecondary;
+  const textPrimary = themeColors.textPrimary;
+  const textSecondary = themeColors.textSecondary;
 
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
@@ -25,7 +19,7 @@ function AlertsPieChart({ data, timeRange }) {
     const width = 220;
     const height = 220;
     const radius = Math.min(width, height) / 2 - 10;
-    const innerRadius = radius * 0.6; // Donut chart
+    const innerRadius = radius * 0.6; 
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
@@ -55,45 +49,20 @@ function AlertsPieChart({ data, timeRange }) {
     const colorScale = d3
       .scaleOrdinal()
       .domain([
-        "Security breach",
-        "Suspicious activity",
-        "Policy violation",
-        "Data access",
-        "Malware detected",
-        "Unauthorized access",
-        "Ransomware attempt",
-        "Phishing attempt",
-        "Data exfiltration",
+        "Security breach", "Suspicious activity", "Policy violation",
+        "Data access", "Malware detected", "Unauthorized access",
+        "Ransomware attempt", "Phishing attempt", "Data exfiltration",
         "Network intrusion",
       ])
       .range([
-        "#EF4444", // red
-        "#F59E0B", // amber
-        "#10B981", // green
-        "#3B82F6", // blue
-        "#8B5CF6", // violet
-        "#EC4899", // pink
-        "#06B6D4", // cyan
-        "#F97316", // orange
-        "#14B8A6", // teal
-        "#A855F7", // purple
+        "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+        "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#A855F7",
       ]);
 
-    // Pie layout
-    const pie = d3
-      .pie()
-      .value((d) => d.count)
-      .sort(null);
-
-    // Arc generator
+    const pie = d3.pie().value((d) => d.count).sort(null);
     const arc = d3.arc().innerRadius(innerRadius).outerRadius(radius);
+    const arcHover = d3.arc().innerRadius(innerRadius).outerRadius(radius + 8);
 
-    const arcHover = d3
-      .arc()
-      .innerRadius(innerRadius)
-      .outerRadius(radius + 8);
-
-    // Draw pie slices
     const arcs = svg
       .selectAll("arc")
       .data(pie(pieData))
@@ -105,7 +74,7 @@ function AlertsPieChart({ data, timeRange }) {
       .append("path")
       .attr("d", arc)
       .attr("fill", (d) => colorScale(d.data.type))
-      .attr("stroke", "#0f0f0f")
+      .attr("stroke", bgSecondary)
       .attr("stroke-width", 2)
       .style("opacity", 0.9)
       .style("cursor", "pointer")
@@ -152,17 +121,19 @@ function AlertsPieChart({ data, timeRange }) {
       .attr("dy", "-0.2em")
       .style("font-size", "36px")
       .style("font-weight", "700")
-      .style("fill", "#fff")
+      .style("fill", textPrimary) 
       .text(total);
 
+    // Center label subtitle
     svg
       .append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "1.4em")
       .style("font-size", "14px")
-      .style("fill", "rgba(255,255,255,0.6)")
+      .style("fill", textSecondary)
       .text("Total Alerts");
-  }, [data, timeRange]);
+
+  }, [data, timeRange, bgSecondary, textPrimary, textSecondary]);
 
   const styles = {
     container: {
@@ -178,12 +149,12 @@ function AlertsPieChart({ data, timeRange }) {
     },
     tooltip: {
       position: "fixed",
-      backgroundColor: "#1a1a1a",
-      border: "1px solid rgba(255,255,255,0.2)",
+      backgroundColor: "var(--bg-secondary)",
+      border: "1px solid var(--border-light)",
       borderRadius: "6px",
       padding: "8px 12px",
       fontSize: "12px",
-      color: "#fff",
+      color: "var(--text-primary)",
       pointerEvents: "none",
       opacity: 0,
       zIndex: 1000,
@@ -200,11 +171,7 @@ function AlertsPieChart({ data, timeRange }) {
 }
 
 AlertsPieChart.propTypes = {
-  data: PropTypes.arrayOf(
-    PropTypes.shape({
-      type: PropTypes.string.isRequired,
-    }),
-  ).isRequired,
+  data: PropTypes.array.isRequired,
   timeRange: PropTypes.string.isRequired,
 };
 

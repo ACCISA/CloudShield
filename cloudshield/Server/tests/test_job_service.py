@@ -2,6 +2,7 @@ import sys
 import types
 import pytest
 from cloudshield.Server.services import job_service
+from cloudshield.Server.services import dispatcher
 
 
 class DummyJob:
@@ -247,7 +248,7 @@ def test_enqueue_provision_exception(monkeypatch):
 
 def test_service_dispatcher_unknown():
     with pytest.raises(ValueError):
-        job_service.service_dispatcher("nope")
+        dispatcher.service_dispatcher("nope")
 
 
 def test_service_dispatcher_known(monkeypatch):
@@ -257,12 +258,12 @@ def test_service_dispatcher_known(monkeypatch):
         called["seen"] = x
         return "job-ok"
 
-    monkeypatch.setitem(job_service.SERVICES, "dummy", fake_enqueue)
-    result = job_service.service_dispatcher("dummy", 123)
+    monkeypatch.setitem(dispatcher.SERVICES, "dummy", fake_enqueue)
+    result = dispatcher.service_dispatcher("dummy", 123)
     assert result == "job-ok"
     assert called["seen"] == 123
     # cleanup
-    job_service.SERVICES.pop("dummy", None)
+    dispatcher.SERVICES.pop("dummy", None)
 
 
 def test_enqueue_dc_change_password_noop():

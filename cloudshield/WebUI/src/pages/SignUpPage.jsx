@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
+import { useAppTheme } from "../context/ThemeContext";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
@@ -15,6 +16,9 @@ import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
+import { apiPost } from "../api/client";
+
+// to be updated later with real plans
 const PLAN_OPTIONS = [
   {
     id: "basic",
@@ -114,6 +118,7 @@ function extractServerErrors(res, data) {
 }
 
 export default function SignupPage({ onSignupSuccess }) {
+  const theme = useAppTheme();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -160,17 +165,17 @@ export default function SignupPage({ onSignupSuccess }) {
     trackButton("signup/submit", { page: "signup", plan });
 
     try {
-      const createUserRes = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: company,
-          company_name: company,
-          package_type: plan,
-        }),
-      });
+      // 1. Create the User and Organization in MongoDB
+      const createUserRes = await apiPost(
+        "/auth/signup",
+       	{
+		email: email,
+            	password: password,
+            	full_name: company,
+            	company_name: company,
+            	package_type: plan,
+          },
+        );
 
       let createUserData = {};
       try {
@@ -178,7 +183,7 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-
+      console.log(createUserRes)
       const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
@@ -263,7 +268,7 @@ export default function SignupPage({ onSignupSuccess }) {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#0A0A0A",
+        bgcolor: "background.default",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -344,7 +349,7 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {errors.email && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.email}
                   </Typography>
                 )}
@@ -355,7 +360,7 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {errors.password && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.password}
                   </Typography>
                 )}
@@ -367,7 +372,7 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setCompany(e.target.value)}
                 />
                 {errors.company && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.company}
                   </Typography>
                 )}
@@ -389,11 +394,11 @@ export default function SignupPage({ onSignupSuccess }) {
                     cursor: "pointer",
                     mt: 1.5,
                     textAlign: "center",
-                    color: "#ffffffff",
+                    color: "text.primary",
                     fontSize: "0.9rem",
                     "&:hover": {
                       textDecoration: "underline",
-                      color: "#93c5fd",
+                      color: "primary.main",
                     },
                   }}
                 >
@@ -407,7 +412,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 sx={{
                   fontSize: "1.9rem",
                   fontWeight: 700,
-                  color: "#ffffff",
+                  color: "text.primary",
                   mb: 2.5,
                   textAlign: { xs: "center", md: "left" },
                 }}

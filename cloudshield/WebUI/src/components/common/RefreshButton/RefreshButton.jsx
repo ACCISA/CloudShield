@@ -1,42 +1,35 @@
 import { useState } from "react";
 import RefreshIcon from "../../../assets/RefreshIcon";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
 const styles = {
-  button: {
+  button: (themeColors, isHovered, disabled, isLoading) => ({
     width: "48px",
     height: "48px",
     padding: "0",
-    backgroundColor: "transparent",
-    color: "#fff",
+    backgroundColor: isHovered && !disabled && !isLoading ? themeColors.bgHover : "transparent",
+    color: themeColors.text,
     border: "none",
     borderRadius: "80px",
-    cursor: "pointer",
+    cursor: disabled || isLoading ? "not-allowed" : "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     transition: "background-color 0.2s ease",
-  },
-  buttonHovered: {
-    backgroundColor: "#141414",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-  buttonLoading: {
-    cursor: "not-allowed",
-  },
-  spinner: {
+    opacity: disabled || isLoading ? 0.5 : 1,
+  }),
+  spinner: (themeColors) => ({
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(255,255,255,0.3)",
-    borderTop: "2px solid #fff",
+    border: `2px solid ${themeColors.borderLight}`,
+    borderTop: `2px solid ${themeColors.text}`,
     borderRadius: "50%",
     animation: "spin 0.8s linear infinite",
-  },
+  }),
 };
 
 export default function RefreshButton({ onClick, disabled = false }) {
+  const themeColors = useThemeColors();
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,24 +46,10 @@ export default function RefreshButton({ onClick, disabled = false }) {
     }
   };
 
-  const getButtonStyle = () => {
-    let style = { ...styles.button };
-    if (isHovered && !disabled && !isLoading) {
-      style = { ...style, ...styles.buttonHovered };
-    }
-    if (disabled) {
-      style = { ...style, ...styles.buttonDisabled };
-    }
-    if (isLoading) {
-      style = { ...style, ...styles.buttonLoading };
-    }
-    return style;
-  };
-
   return (
     <>
       <button
-        style={getButtonStyle()}
+        style={styles.button(themeColors, isHovered, disabled, isLoading)}
         onClick={handleClick}
         disabled={disabled || isLoading}
         onMouseEnter={() => setIsHovered(true)}
@@ -79,9 +58,9 @@ export default function RefreshButton({ onClick, disabled = false }) {
         title="Refresh"
       >
         {isLoading ? (
-          <div style={styles.spinner} />
+          <div style={styles.spinner(themeColors)} />
         ) : (
-          <RefreshIcon width={20} height={20} color="#fff" />
+          <RefreshIcon width={20} height={20} color={themeColors.text} />
         )}
       </button>
       <style>

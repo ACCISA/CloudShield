@@ -20,7 +20,7 @@ function DownloadButton({ onClick, label = "Download", disabled = false }) {
       backgroundColor: getBackgroundColor(),
       border: "1px solid rgba(255,255,255,0.2)",
       borderRadius: "8px",
-      color: disabled ? "rgba(255,255,255,0.3)" : "#fff",
+      color: disabled ? "var(--text-tertiary)" : "var(--text-primary)",
       fontSize: "14px",
       fontWeight: "500",
       cursor: disabled ? "not-allowed" : "pointer",
@@ -38,7 +38,7 @@ function DownloadButton({ onClick, label = "Download", disabled = false }) {
       onMouseLeave={() => !disabled && setIsHovered(false)}
       type="button"
     >
-      <DownloadIcon width={16} height={16} color="#fff" />
+      <DownloadIcon width={16} height={16} color="var(--text-primary)" />
       {label}
     </button>
   );

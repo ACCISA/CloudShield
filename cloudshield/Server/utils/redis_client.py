@@ -10,6 +10,8 @@ def _first_env(*keys: str, default: str | None = None) -> str | None:
             return v
     return default
 
+
+
 REDIS_URL = _first_env("CLOUDSHIELD_REDIS_URL", "REDIS_URL")
 
 REDIS_HOST = _first_env("CLOUDSHIELD_REDIS_HOST", "REDIS_HOST", default="redis") or "redis"
@@ -24,4 +26,5 @@ if REDIS_URL:
 else:
     redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 
-task_queue = Queue(connection=redis_conn, default_timeout=DEFAULT_JOB_TIMEOUT)
+task_queue = Queue('api', connection=redis_conn, default_timeout=10000)
+workstations_queue = Queue('workstations', connection=redis_conn, default_timeout=10000)

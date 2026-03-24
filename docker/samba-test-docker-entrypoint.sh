@@ -56,7 +56,6 @@ ExecReload=/bin/kill -HUP \$MAINPID
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
 systemctl enable samba-ad-dc
 systemctl start samba-ad-dc
 
@@ -64,6 +63,5 @@ sleep 5
 
 samba-tool dns zonecreate localhost 0.0.99.in-addr.arpa -U Administrator --password=${dc_admin_password}
 samba-tool dns add localhost 0.0.99.in-addr.arpa 1 PTR dc1.${realm_name_lwr} -U Administrator --password=${dc_admin_password}
-
 systemctl enable cs_rpc
 systemctl start cs_rpc

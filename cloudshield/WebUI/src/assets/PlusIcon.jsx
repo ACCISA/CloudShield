@@ -2,7 +2,7 @@ export default function PlusIcon({
   width = 24,
   height = 24,
   className = "",
-  color = "#fff",
+  color = "var(--text-primary)",
 }) {
   return (
     <svg

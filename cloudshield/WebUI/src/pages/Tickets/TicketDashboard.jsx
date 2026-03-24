@@ -7,101 +7,104 @@ import FilterButton from "../../components/common/FilterButton/FilterButton";
 import Pagination from "../../components/common/Pagination/Pagination";
 import { TICKET_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 import { useTickets } from "../../api/ticketsApi";
 import { apiGet } from "../../api/client";
 import CreateTicketModal from "../../components/Tickets/CreateTicketModal";
 
-const styles = {
-    page: {
-        padding: "32px",
-        maxWidth: "1400px",
-        margin: "0 auto",
-        color: "#fff",
-        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    },
-    header: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "28px",
-    },
-    pageTitle: {
-        margin: 0,
-        fontSize: "1.25rem",
-        fontWeight: 600,
-    },
-    createBtn: {
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "8px 16px",
-        borderRadius: "8px",
-        border: "none",
-        backgroundColor: "#fff",
-        color: "#000",
-        fontSize: "0.875rem",
-        fontWeight: 600,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        transition: "background-color 0.15s",
-    },
-    metricsRow: {
-        display: "flex",
-        gap: "16px",
-        marginBottom: "28px",
-        flexWrap: "wrap",
-    },
-    metricCard: {
-        flex: "1 1 160px",
-        backgroundColor: "#0f0f0f",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "12px",
-        padding: "20px",
-    },
-    metricLabel: {
-        fontSize: "0.72rem",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.8px",
-        color: "rgba(255,255,255,0.4)",
-        marginBottom: "8px",
-    },
-    metricValue: {
-        fontSize: "1.75rem",
-        fontWeight: 500,
-    },
-    container: {
-        backgroundColor: "#0f0f0f",
-        borderRadius: "16px",
-        padding: "16px",
-        border: "1px solid rgba(255,255,255,0.08)",
-    },
-    containerHeader: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "12px",
-    },
-    containerTitle: {
-        fontSize: "14px",
-        fontWeight: "500",
-        color: "rgba(255,255,255,1)",
-        margin: 0,
-    },
-    headerRight: {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-    },
-    tableWrapper: {
-        height: "340px",
-        display: "flex",
-        flexDirection: "column",
-    },
-};
-
 function TicketDashboard() {
+    const themeColors = useThemeColors();
     const { tickets, loading, error, refreshTickets } = useTickets();
+    
+    const styles = {
+        page: {
+            padding: "32px",
+            maxWidth: "1400px",
+            margin: "0 auto",
+            color: themeColors.textPrimary,
+            fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+        },
+        header: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "28px",
+        },
+        pageTitle: {
+            margin: 0,
+            fontSize: "1.25rem",
+            fontWeight: 600,
+        },
+        createBtn: {
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            border: "none",
+            backgroundColor: themeColors.textPrimary,
+            color: themeColors.bgPrimary,
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            transition: "background-color 0.15s",
+        },
+        metricsRow: {
+            display: "flex",
+            gap: "16px",
+            marginBottom: "28px",
+            flexWrap: "wrap",
+        },
+        metricCard: {
+            flex: "1 1 160px",
+            backgroundColor: themeColors.bgSecondary,
+            border: `1px solid ${themeColors.borderLight}`,
+            borderRadius: "12px",
+            padding: "20px",
+        },
+        metricLabel: {
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+            color: themeColors.textSecondary,
+            marginBottom: "8px",
+        },
+        metricValue: {
+            fontSize: "1.75rem",
+            fontWeight: 500,
+            color: themeColors.textPrimary,
+        },
+        container: {
+            backgroundColor: themeColors.bgSecondary,
+            borderRadius: "16px",
+            padding: "16px",
+            border: `1px solid ${themeColors.borderLight}`,
+        },
+        containerHeader: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "12px",
+        },
+        containerTitle: {
+            fontSize: "14px",
+            fontWeight: "500",
+            color: themeColors.textPrimary,
+            margin: 0,
+        },
+        headerRight: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        },
+        tableWrapper: {
+            height: "340px",
+            display: "flex",
+            flexDirection: "column",
+        },
+    };
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [userEmail, setUserEmail] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -163,7 +166,7 @@ function TicketDashboard() {
         return filteredTickets.slice(start, start + itemsPerPage);
     }, [filteredTickets, currentPage]);
 
-    if (loading) return <div style={{ padding: "32px", color: "rgba(255,255,255,0.4)" }}>Loading support tickets...</div>;
+    if (loading) return <div style={{ padding: "32px", color: themeColors.textTertiary }}>Loading support tickets...</div>;
     if (error) return <div style={{ padding: "32px", color: "#ff4d4f" }}>Error loading tickets: {error.message}</div>;
 
     return (
@@ -177,8 +180,11 @@ function TicketDashboard() {
                     <button
                         style={styles.createBtn}
                         onClick={() => setIsModalOpen(true)}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e0e0e0"}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                        onMouseEnter={e => {
+                            const isLight = themeColors.isDark === false;
+                            e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)';
+                        }}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = themeColors.textPrimary}
                     >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

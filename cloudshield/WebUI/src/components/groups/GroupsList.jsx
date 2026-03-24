@@ -1,24 +1,3 @@
-/**
- * GroupsList.jsx
- *
- * Purpose:
- *   Render a list of group rows with actions like edit and delete,
- *   matching the workstations and users list patterns.
- *
- * Props:
- *   - rows: array of group objects to display
- *   - onEdit(row)
- *   - onDelete(id)
- *   - showUsers: boolean (Display control)
- *   - showWorkstations: boolean (Display control)
- *   - showFiles: boolean (Display control)
- *   - selectedIds: Set of selected row ids
- *   - allVisibleSelected: boolean
- *   - isIndeterminate: boolean
- *   - onToggleSelect(id)
- *   - onToggleSelectAll()
- */
-
 import React, { useState, useEffect, useMemo } from "react";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
@@ -26,67 +5,48 @@ import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import HoverableRow from "../common/HoverableRow.jsx";
+import EmptyState from "../common/EmptyState/EmptyState.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /* ---------------------------- styles ---------------------------- */
 
-const styles = {
+const getStyles = (themeColors) => ({
   tableHeaders: {
     display: "grid",
     alignItems: "center",
     gap: "12px",
-    padding: "16px 16px 8px 16px",
-    position: "sticky",
-    top: 0,
-    backgroundColor: "#0D0D0D",
-    zIndex: 10,
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    padding: "24px 24px 4px 24px",
+    backgroundColor: "transparent", // FIX: Made transparent, removed sticky logic
   },
   headerLabel: {
     fontSize: "0.85rem",
     opacity: 0.7,
-    color: "#fff",
+    color: "var(--text-primary)",
     minWidth: 0,
   },
-
-  // IMPORTANT: make the panel fill available height and scroll internally
   listPanel: {
-    height: "100%",
-    minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
     borderRadius: "18px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    backgroundColor: "#0F0F0F",
-    boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-    overflow: "hidden",
+    border: "1px solid var(--border)",
+    backgroundColor: "var(--bg-secondary)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+    padding: "16px",
   },
-
-  // Scrollable content area
-  scrollArea: {
-    flex: 1,
-    minHeight: 0,
-    overflow: "auto",
-    padding: "12px 16px",
-  },
-
   container: {
     display: "flex",
     flexDirection: "column",
     gap: "14px",
   },
-
   row: {
     display: "grid",
     alignItems: "center",
     gap: "12px",
-    color: "#fff",
+    color: "var(--text-primary)",
     padding: "12px 8px",
     borderRadius: "12px",
     position: "relative",
     zIndex: 1,
     minWidth: 0,
   },
-
   nameSection: {
     display: "flex",
     alignItems: "center",
@@ -98,8 +58,6 @@ const styles = {
     flexDirection: "column",
     minWidth: 0,
   },
-
-  // Truncation lives in CSS via .truncate, but we keep minWidth:0 to enable it
   name: {
     fontWeight: 600,
     lineHeight: 1.15,
@@ -111,16 +69,15 @@ const styles = {
     marginTop: "2px",
     minWidth: 0,
   },
-
   countBadge: {
     display: "inline-flex",
     alignItems: "center",
     gap: "6px",
     padding: "6px 12px",
     borderRadius: "20px",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: themeColors.bgHover,
     fontSize: "0.85rem",
-    color: "#fff",
+    color: themeColors.text,
     whiteSpace: "nowrap",
     justifySelf: "start",
   },
@@ -129,7 +86,7 @@ const styles = {
     justifyContent: "flex-end",
   },
   divider: {
-    borderTop: "1px solid rgba(255,255,255,0.1)",
+    borderTop: "1px solid var(--border-light)",
     margin: "0 8px",
   },
   avatarsContainer: {
@@ -141,48 +98,22 @@ const styles = {
     fontSize: "0.9rem",
     opacity: 0.85,
     whiteSpace: "nowrap",
-  },
-
-  emptyState: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    padding: "32px",
-    color: "rgba(255,255,255,0.7)",
-    gap: "8px",
-    textAlign: "center",
-  },
-  emptyTitle: {
-    fontWeight: 600,
-    color: "rgba(255,255,255,0.9)",
-  },
-  emptySubtitle: {
-    fontSize: "0.9rem",
-    maxWidth: 460,
-  },
-};
+  }
+});
 
 // Responsive breakpoints
-const getResponsiveStyles = () => {
-  const width = window.innerWidth;
-
-  // Mobile (< 768px)
-  if (width < 768) {
+const getResponsiveStyles = (windowWidth, styles) => {
+  if (windowWidth < 768) {
     return {
       ...styles,
       tableHeaders: {
         ...styles.tableHeaders,
-        padding: "12px 12px 8px 12px",
+        padding: "16px 16px 4px 16px",
       },
       listPanel: {
         ...styles.listPanel,
         borderRadius: "12px",
-      },
-      scrollArea: {
-        ...styles.scrollArea,
-        padding: "10px 12px",
+        padding: "12px",
       },
       row: {
         ...styles.row,
@@ -204,21 +135,17 @@ const getResponsiveStyles = () => {
     };
   }
 
-  // Tablet (768px - 1024px)
-  if (width < 1024) {
+  if (windowWidth < 1024) {
     return {
       ...styles,
       tableHeaders: {
         ...styles.tableHeaders,
-        padding: "14px 14px 8px 14px",
+        padding: "20px 20px 4px 20px",
       },
       listPanel: {
         ...styles.listPanel,
         borderRadius: "16px",
-      },
-      scrollArea: {
-        ...styles.scrollArea,
-        padding: "12px 14px",
+        padding: "14px",
       },
       row: {
         ...styles.row,
@@ -228,7 +155,6 @@ const getResponsiveStyles = () => {
     };
   }
 
-  // Desktop - return original styles
   return styles;
 };
 
@@ -237,9 +163,9 @@ const getResponsiveStyles = () => {
 function getGroupMenuItems(group, onEdit, onDelete) {
   return [
     {
-      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
+      icon: <EditIcon width={15} height={16} color="var(--text-primary)" />,
       label: "edit group",
-      color: "#1a1a1a",
+      color: "var(--text-primary)",
       onClick: () => onEdit?.(group),
     },
     {
@@ -251,7 +177,14 @@ function getGroupMenuItems(group, onEdit, onDelete) {
   ];
 }
 
-function ItemsPill({ items, type, totalCount, getKey }) {
+function formatSharesDisplay(row) {
+  if (row?.filesDisplay != null) return row.filesDisplay;
+  const n = Number(row?.files ?? 0);
+  if (!Number.isFinite(n) || n === 0) return "-";
+  return String(n);
+}
+
+function ItemsPill({ items, type, totalCount, getKey, styles }) {
   const itemsList = Array.isArray(items) ? items : [];
   const show = itemsList.slice(0, 3);
   const count = totalCount || itemsList.length;
@@ -291,34 +224,27 @@ function ItemsPill({ items, type, totalCount, getKey }) {
   );
 }
 
-function UsersPill({ row }) {
+function UsersPill({ row, styles }) {
   return (
     <ItemsPill
       items={row.users}
       type="user"
       totalCount={row.memberCount}
       getKey={(user, idx) => `${user.firstName}-${idx}`}
+      styles={styles}
     />
   );
 }
 
-function WorkstationsPill({ row }) {
+function WorkstationsPill({ row, styles }) {
   return (
     <ItemsPill
       items={row.workstations}
       type="workstation"
       getKey={(workstation, idx) => `${workstation.name}-${idx}`}
+      styles={styles}
     />
   );
-}
-
-function formatSharesDisplay(row) {
-  // Prefer precomputed display field from GroupsPage (filesDisplay)
-  if (row?.filesDisplay != null) return row.filesDisplay;
-
-  const n = Number(row?.files ?? 0);
-  if (!Number.isFinite(n) || n === 0) return "-";
-  return String(n);
 }
 
 function GroupRow({
@@ -334,9 +260,9 @@ function GroupRow({
   isSelected,
   onToggleSelect,
   rowId,
+  styles,
+  responsiveStyles,
 }) {
-  const responsiveStyles = getResponsiveStyles();
-
   const nameText = r?.name || "";
   const descText = r?.description || "";
 
@@ -348,12 +274,10 @@ function GroupRow({
           gridTemplateColumns: cols.join(" "),
         }}
       >
-        {/* Checkbox - hide on mobile */}
         {!isMobile && (
           <Checkbox checked={isSelected} onChange={() => onToggleSelect(rowId)} />
         )}
 
-        {/* name + description + DisplayIcon */}
         <div style={responsiveStyles.nameSection}>
           <DisplayIcon type="group" data={r} size="small" />
           <div style={styles.nameContainer}>
@@ -374,26 +298,19 @@ function GroupRow({
           </div>
         </div>
 
-        {/* users */}
-        {showUsers && <UsersPill row={r} />}
-
-        {/* workstations */}
-        {showWorkstations && <WorkstationsPill row={r} />}
-
-        {/* files count (Shares) */}
+        {showUsers && <UsersPill row={r} styles={styles} />}
+        {showWorkstations && <WorkstationsPill row={r} styles={styles} />}
         {showFiles && (
           <div style={styles.countBadge}>
             <span>{formatSharesDisplay(r)}</span>
           </div>
         )}
 
-        {/* edit */}
         <div style={styles.editContainer}>
           <EditButton menuItems={getGroupMenuItems(r, onEdit, onDelete)} />
         </div>
       </HoverableRow>
 
-      {/* divider */}
       {!isLast && <div style={styles.divider} />}
     </>
   );
@@ -412,6 +329,8 @@ export default function GroupsList({
   onToggleSelect = () => {},
   onToggleSelectAll = () => {},
 }) {
+  const themeColors = useThemeColors();
+  const styles = getStyles(themeColors);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -421,35 +340,43 @@ export default function GroupsList({
   }, []);
 
   const isMobile = windowWidth < 768;
-  const responsiveStyles = useMemo(() => getResponsiveStyles(), [windowWidth]);
+  const responsiveStyles = useMemo(
+    () => getResponsiveStyles(windowWidth, styles),
+    [windowWidth, styles]
+  );
 
-  // Hide some columns on smaller screens
   const showUsersColumn = showUsers && !isMobile;
   const showWorkstationsColumn = showWorkstations && windowWidth >= 1024;
   const showFilesColumn = showFiles && windowWidth >= 1024;
 
-  // Build grid template dynamically based on which columns are visible.
   const cols = [
-    !isMobile ? "28px" : null, // checkbox - hidden on mobile
-    isMobile ? "1fr" : "1.2fr", // name/description
+    !isMobile ? "28px" : null,
+    isMobile ? "1fr" : "1.2fr",
     showUsersColumn ? (isMobile ? "0.8fr" : "0.6fr") : null,
     showWorkstationsColumn ? "0.8fr" : null,
     showFilesColumn ? "0.8fr" : null,
-    "0.25fr", // edit
+    "0.25fr",
   ].filter(Boolean);
 
   const list = Array.isArray(rows) ? rows : [];
 
   return (
-    <div style={responsiveStyles.listPanel}>
-      {/* Table Headers - hide on mobile */}
+    <>
       {!isMobile && (
         <div
           style={{
             ...responsiveStyles.tableHeaders,
             gridTemplateColumns: cols.join(" "),
-            paddingLeft: windowWidth < 1024 ? "14px" : "16px",
-            paddingRight: windowWidth < 1024 ? "14px" : "16px",
+            paddingLeft: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : windowWidth < 1024
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
+            paddingRight: isMobile
+              ? "calc(12px + 4px + 4px)"
+              : windowWidth < 1024
+                ? "calc(14px + 8px + 8px)"
+                : "calc(16px + 8px + 8px)",
           }}
         >
           <Checkbox
@@ -479,37 +406,47 @@ export default function GroupsList({
         </div>
       )}
 
-      {/* Scrollable content area (keeps panel full-height) */}
-      <div style={responsiveStyles.scrollArea}>
+      <div
+        style={{
+          ...responsiveStyles.listPanel,
+          marginTop: isMobile ? "24px" : "0",
+        }}
+      >
         {list.length === 0 ? (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyTitle}>No groups found</div>
-            <div style={styles.emptySubtitle}>
-              Try adjusting your search or filters, or create a new group.
-            </div>
-          </div>
+          <EmptyState 
+            message="No groups found" 
+            description="Try adjusting your search or filters, or create a new group." 
+          />
         ) : (
-          <div style={styles.container}>
-            {list.map((r, idx) => (
-              <GroupRow
-                key={r.id || r._id || idx}
-                r={r}
-                cols={cols}
-                showUsers={showUsersColumn}
-                showWorkstations={showWorkstationsColumn}
-                showFiles={showFilesColumn}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                isLast={idx === list.length - 1}
-                isMobile={isMobile}
-                isSelected={selectedIds.has(r._id)}
-                onToggleSelect={onToggleSelect}
-                rowId={r._id}
-              />
-            ))}
+          <div
+            style={{
+              padding: isMobile ? "0 4px" : "0 8px",
+            }}
+          >
+            <div style={styles.container}>
+              {list.map((r, idx) => (
+                <GroupRow
+                  key={r.id || r._id || idx}
+                  r={r}
+                  cols={cols}
+                  showUsers={showUsersColumn}
+                  showWorkstations={showWorkstationsColumn}
+                  showFiles={showFilesColumn}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  isLast={idx === list.length - 1}
+                  isMobile={isMobile}
+                  isSelected={selectedIds.has(r._id)}
+                  onToggleSelect={onToggleSelect}
+                  rowId={r._id}
+                  styles={styles}
+                  responsiveStyles={responsiveStyles}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

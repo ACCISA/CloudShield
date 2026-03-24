@@ -12,11 +12,11 @@ Covers:
 """
 import json
 import pytest
+import sys
 from unittest.mock import patch, MagicMock
 
 
 # App fixture
-
 @pytest.fixture
 def app():
     """Create a minimal Flask app with the billing blueprint registered."""
@@ -120,7 +120,7 @@ class TestIsSubscriptionCanceling:
 # create_checkout
 
 class TestCreateCheckout:
-    @patch("stripe.checkout.Session.create")
+    @patch("cloudshield.Server.routes.billing.stripe.checkout.Session.create")
     def test_success_default_urls(self, mock_create, client):
         mock_create.return_value = MagicMock(url="https://checkout.stripe.com/pay/cs_test")
         res = client.post("/api/billing/create-checkout", json={
@@ -130,7 +130,7 @@ class TestCreateCheckout:
         assert res.status_code == 200
         assert res.get_json()["url"] == "https://checkout.stripe.com/pay/cs_test"
 
-    @patch("stripe.checkout.Session.create")
+    @patch("cloudshield.Server.routes.billing.stripe.checkout.Session.create")
     def test_success_custom_paths(self, mock_create, client):
         mock_create.return_value = MagicMock(url="https://checkout.stripe.com/pay/cs_test")
         res = client.post("/api/billing/create-checkout", json={
@@ -153,7 +153,7 @@ class TestCreateCheckout:
         res = client.post("/api/billing/create-checkout", json={"price_id": "price_xxx"})
         assert res.status_code == 400
 
-    @patch("stripe.checkout.Session.create", side_effect=Exception("Stripe down"))
+    @patch("cloudshield.Server.routes.billing.stripe.checkout.Session.create", side_effect=Exception("Stripe down"))
     def test_stripe_error(self, mock_create, client):
         res = client.post("/api/billing/create-checkout", json={
             "price_id": "price_1T3VQrA5QKTufQ3cRB80WIPb",
@@ -175,9 +175,9 @@ class TestGetPaymentMethod:
         except ImportError:
             return "Server.routes.billing"
 
-    @patch("stripe.PaymentMethod.retrieve")
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.PaymentMethod.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_active_subscription_with_card(self, mock_cust, mock_sub_list, mock_pm, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -202,9 +202,9 @@ class TestGetPaymentMethod:
             assert data["brand"] == "visa"
             assert data["sub_status"] == "active"
 
-    @patch("stripe.PaymentMethod.retrieve")
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.PaymentMethod.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_canceling_subscription_flexible_billing(self, mock_cust, mock_sub_list, mock_pm, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -228,8 +228,8 @@ class TestGetPaymentMethod:
             assert res.status_code == 200
             assert res.get_json()["sub_status"] == "canceled"
 
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_no_stripe_customer_returns_db_values(self, mock_cust, mock_sub_list, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -243,9 +243,9 @@ class TestGetPaymentMethod:
             data = res.get_json()
             assert "message" in data
 
-    @patch("stripe.PaymentMethod.list")
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.PaymentMethod.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_no_default_payment_method_fallback(self, mock_cust, mock_sub_list, mock_pm_list, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -270,9 +270,9 @@ class TestGetPaymentMethod:
                              headers={"Authorization": "Bearer test"})
             assert res.status_code == 200
 
-    @patch("stripe.PaymentMethod.list")
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.PaymentMethod.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_no_card_on_file(self, mock_cust, mock_sub_list, mock_pm_list, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -297,8 +297,8 @@ class TestGetPaymentMethod:
             assert res.status_code == 200
             assert "message" in res.get_json()
 
-    @patch("stripe.Subscription.list")
-    @patch("stripe.Customer.retrieve")
+    @patch("cloudshield.Server.routes.billing.stripe.Subscription.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve")
     def test_no_subscription_found(self, mock_cust, mock_sub_list, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -319,7 +319,7 @@ class TestGetPaymentMethod:
             # Should not crash
             assert res.status_code in (200, 500)
 
-    @patch("stripe.Customer.retrieve", side_effect=Exception("Stripe error"))
+    @patch("cloudshield.Server.routes.billing.stripe.Customer.retrieve", side_effect=Exception("Stripe error"))
     def test_stripe_exception_returns_500(self, mock_cust, client):
         mod = self._mock_org_module()
         with patch(f"{mod}.organizations") as mock_orgs:
@@ -339,7 +339,7 @@ class TestGetInvoices:
         except ImportError:
             return "Server.routes.billing"
 
-    @patch("stripe.Invoice.list")
+    @patch("cloudshield.Server.routes.billing.stripe.Invoice.list")
     def test_returns_invoice_list(self, mock_inv_list, client):
         with patch(f"{self._mod()}.organizations") as mock_orgs:
             mock_orgs.find_one.return_value = make_org()
@@ -374,7 +374,7 @@ class TestGetInvoices:
             assert res.status_code == 200
             assert res.get_json() == []
 
-    @patch("stripe.Invoice.list", side_effect=Exception("Stripe error"))
+    @patch("cloudshield.Server.routes.billing.stripe.Invoice.list", side_effect=Exception("Stripe error"))
     def test_stripe_error_returns_500(self, mock_inv, client):
         with patch(f"{self._mod()}.organizations") as mock_orgs:
             mock_orgs.find_one.return_value = make_org()
@@ -401,13 +401,13 @@ class TestStripeWebhook:
             headers={"STRIPE_SIGNATURE": "sig_test"}
         )
 
-    @patch("stripe.Webhook.construct_event", side_effect=Exception("bad sig"))
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event", side_effect=Exception("bad sig"))
     def test_invalid_signature_returns_400(self, mock_event, client):
         res = self._post(client, {})
         assert res.status_code == 400
         assert "error" in res.get_json()
 
-    @patch("stripe.Webhook.construct_event")
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event")
     def test_checkout_session_completed(self, mock_event, client):
         mock_event.return_value = {
             "type": "checkout.session.completed",
@@ -424,7 +424,7 @@ class TestStripeWebhook:
                 assert res.status_code == 200
                 assert res.get_json()["status"] == "success"
 
-    @patch("stripe.Webhook.construct_event")
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event")
     def test_subscription_updated_active(self, mock_event, client):
         mock_event.return_value = {
             "type": "customer.subscription.updated",
@@ -444,7 +444,7 @@ class TestStripeWebhook:
             update_call = mock_orgs.update_one.call_args[0][1]["$set"]
             assert update_call["subscription_status"] == "active"
 
-    @patch("stripe.Webhook.construct_event")
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event")
     def test_subscription_updated_canceling_flexible(self, mock_event, client):
         mock_event.return_value = {
             "type": "customer.subscription.updated",
@@ -464,7 +464,7 @@ class TestStripeWebhook:
             update_call = mock_orgs.update_one.call_args[0][1]["$set"]
             assert update_call["subscription_status"] == "canceled"
 
-    @patch("stripe.Webhook.construct_event")
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event")
     def test_subscription_deleted(self, mock_event, client):
         mock_event.return_value = {
             "type": "customer.subscription.deleted",
@@ -478,7 +478,7 @@ class TestStripeWebhook:
             assert update_call["package"] == "basic"
             assert update_call["subscription_status"] == "canceled"
 
-    @patch("stripe.Webhook.construct_event")
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event")
     def test_unknown_event_type_ignored(self, mock_event, client):
         mock_event.return_value = {
             "type": "payment_intent.created",
@@ -498,7 +498,7 @@ class TestCreatePortalSession:
         except ImportError:
             return "Server.routes.billing"
 
-    @patch("stripe.billing_portal.Session.create")
+    @patch("cloudshield.Server.routes.billing.stripe.billing_portal.Session.create", create=True)
     def test_success(self, mock_portal, client):
         mock_portal.return_value = MagicMock(url="https://billing.stripe.com/session/xyz")
         with patch(f"{self._mod()}.organizations") as mock_orgs:
@@ -510,7 +510,7 @@ class TestCreatePortalSession:
                 assert res.status_code == 200
                 assert "billing.stripe.com" in res.get_json()["url"]
 
-    @patch("stripe.billing_portal.Session.create", side_effect=Exception("Stripe error"))
+    @patch("cloudshield.Server.routes.billing.stripe.billing_portal.Session.create", side_effect=Exception("Stripe error"), create=True)
     def test_stripe_error(self, mock_portal, client):
         with patch(f"{self._mod()}.organizations") as mock_orgs:
             mock_orgs.find_one.return_value = make_org()

@@ -4,10 +4,6 @@ set -euo pipefail
 exec > /var/log/openvpn-userdata.log 2>&1
 set -x
 
-id -u | grep -q '^0$' || { echo "Must run as root"; exit 1; }
-
-timeout 10 systemctl start cs_rpc || true
-
 openvpn_address="${openvpn_address:-${OPENVPN_ADDRESS:-}}"
 openvpn_protocol="${openvpn_protocol:-${OPENVPN_PROTOCOL:-udp}}"
 openvpn_dns="${openvpn_dns:-${OPENVPN_DNS:-}}"
@@ -167,10 +163,12 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-timeout 180 apt-get update -y
-timeout 600 apt-get install -y --no-install-recommends wget expect iproute2 iptables ca-certificates
+echo "Aaaaa" > /ddd
+apt-get update -y
+apt-get install -y --no-install-recommends wget expect iproute2 iptables ca-certificates
+echo "Aaaaa" > /eee
 
-timeout 30 wget -q --tries=3 --timeout=10 https://git.io/vpn -O "${INSTALLER}"
+wget -q --tries=3 --timeout=10 https://git.io/vpn -O "${INSTALLER}"
 chmod +x "${INSTALLER}"
 
 sed -i 's/read -p "Option: " option/option=1/' "${INSTALLER}" || true
@@ -236,6 +234,9 @@ if [ -f "${SERVER_CONF}" ]; then
 fi
 
 sysctl -w net.ipv4.ip_forward=1 || true
-timeout 20 systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn || true
-
+systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn || true
+systemctl enable cs_rpc
+systemctl start cs_rpc
 touch "${MARKER}"
+
+

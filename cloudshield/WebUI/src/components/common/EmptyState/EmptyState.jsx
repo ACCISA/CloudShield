@@ -8,41 +8,44 @@
  * Features:
  *   - Optional icon above the message
  *   - Optional description below the message
- *   - Consistent dark-theme styling matching the app aesthetic
+ *   - Theme-aware styling for light and dark modes
  *   - data-testid attributes for easy testing
  */
 import React from "react";
 import PropTypes from "prop-types";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
-const styles = {
+const getStyles = (themeColors) => ({
   container: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    border: `1px solid ${themeColors.borderLight}`,
+    backgroundColor: themeColors.lightOverlaySubtle,
     padding: "40px 20px",
     textAlign: "center",
   },
   iconWrapper: {
     marginBottom: "16px",
-    color: "rgba(255, 255, 255, 0.4)",
+    color: themeColors.textSecondary,
   },
   message: {
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: "1rem",
+    fontWeight: 600,
+    color: themeColors.text,
     margin: 0,
+    marginBottom: "8px",
   },
   description: {
     marginTop: "8px",
-    fontSize: "0.75rem",
-    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: "0.9rem",
+    color: themeColors.textSecondary,
     margin: 0,
+    lineHeight: "1.5",
   },
-};
+});
 
 /**
  * EmptyState component for displaying "no data" messages.
@@ -58,10 +61,13 @@ export default function EmptyState({
   description,
   testId = "empty-state",
 }) {
+  const themeColors = useThemeColors();
+  const styles = getStyles(themeColors);
+
   return (
     <div data-testid={testId} style={styles.container}>
       {icon && (
-        <div style={styles.iconWrapper} data-testid={`${testId}-icon`}>
+        <div style={styles.iconWrapper} data-testid="empty-state-icon">
           {icon}
         </div>
       )}

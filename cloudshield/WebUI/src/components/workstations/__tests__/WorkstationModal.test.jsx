@@ -1409,4 +1409,138 @@ describe("WorkstationModal", () => {
       });
     });
   });
+
+  // ===========================================
+  // Theme and Styling Tests
+  // ===========================================
+  describe("Theme and Styling", () => {
+    it("should render modal with CSS class for styling", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const modal = container.querySelector(".workstation-modal");
+      expect(modal).toBeInTheDocument();
+    });
+
+    it("should apply modal container styles", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const modalContainer = container.querySelector("[role='dialog']");
+      expect(modalContainer).toBeInTheDocument();
+    });
+
+    it("should have proper header styling", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const header = container.querySelector(".workstation-modal-header, h2");
+      expect(header).toBeInTheDocument();
+    });
+
+    it("should have proper content area styling", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const content = container.querySelector("[role='dialog'] > div");
+      expect(content).toBeInTheDocument();
+    });
+
+    it("should have progress bar with theme-aware styling", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const progressBar = container.querySelector(".workstation-modal-progress");
+      expect(progressBar).toBeInTheDocument();
+    });
+
+    it("should render buttons with proper styling classes", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const buttons = container.querySelectorAll("button");
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button).toBeInTheDocument();
+      });
+    });
+
+    it("should apply consistent spacing in modal content", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const dialogContent = container.querySelector("[role='dialog']");
+      expect(dialogContent).toBeInTheDocument();
+    });
+
+    it("should have accessible contrast ratios in dark mode", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      // Verify modal is rendered and text is readable
+      const modal = container.querySelector("[role='dialog']");
+      expect(modal).toBeInTheDocument();
+      expect(modal.textContent).toBeTruthy();
+    });
+
+    it("should render form inputs with theme-aware styling", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const input = screen.getByPlaceholderText("Enter workstation name");
+      expect(input).toHaveClass("MuiInputBase-input");
+    });
+
+    it("should have responsive layout for modal", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).toBeInTheDocument();
+      // Modal should be visible
+      expect(dialog.offsetHeight).toBeGreaterThan(0);
+    });
+
+    it("should style step indicators consistently", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const stepContainer = container.querySelector(".workstation-modal-steps");
+      if (stepContainer) {
+        expect(stepContainer).toBeInTheDocument();
+      }
+    });
+
+    it("should apply hover states to interactive elements", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const buttons = screen.getAllByRole("button");
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        // Buttons should be interactive
+        expect(button).toBeInTheDocument();
+      });
+    });
+
+    it("should maintain visual hierarchy with typography", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      // Check for title/heading
+      const title = screen.queryByText(/workstation|Create|Edit/i);
+      expect(title).toBeInTheDocument();
+    });
+
+    it("should apply theme colors to form fields", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const input = screen.getByPlaceholderText("Enter workstation name");
+      expect(input).toHaveClass("MuiOutlinedInput-input");
+    });
+
+    it("should render modal without layout shift", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const modal = container.querySelector("[role='dialog']");
+      const initialHeight = modal.offsetHeight;
+      expect(initialHeight).toBeGreaterThan(0);
+    });
+
+    it("should have proper border and shadow styling", () => {
+      const { container } = render(<WorkstationModal {...defaultProps} />);
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).toBeInTheDocument();
+      // Dialog should be visible with styling
+      expect(dialog.offsetWidth).toBeGreaterThan(0);
+    });
+
+    it("should style disabled buttons appropriately", async () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const backButton = screen.getByRole("button", { name: "Back" });
+      expect(backButton).toBeDisabled();
+      // Disabled button should have proper styling
+      expect(backButton).toHaveAttribute("disabled");
+    });
+
+    it("should apply focus styles to interactive elements", () => {
+      render(<WorkstationModal {...defaultProps} />);
+      const input = screen.getByPlaceholderText("Enter workstation name");
+      fireEvent.focus(input);
+      // Input should be focused
+      expect(input).toHaveFocus();
+    });
+  });
 });

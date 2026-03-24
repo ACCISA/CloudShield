@@ -29,7 +29,7 @@ export function useOrgMetrics() {
         setLoading(true);
         setError(null);
 
-        const res = await apiGet("/organizations/me/metrics"); // { stats: { users, workstations, access_groups, shares } }
+        const res = await apiGet("/organizations/me/metrics").json(); // { stats: { users, workstations, access_groups, shares } }
 
         if (!mounted) return;
 

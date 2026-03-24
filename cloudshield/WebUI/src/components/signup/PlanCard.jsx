@@ -24,7 +24,7 @@ export default function PlanCard({ plan, selected, onSelect }) {
           ? "2px solid #4ade80"
           : "1px solid rgba(255,255,255,0.12)",
         padding: "16px 18px",
-        color: "#ffffff",
+        color: "text.primary",
         cursor: "pointer",
         transition: "0.2s ease-out",
         boxShadow: selected

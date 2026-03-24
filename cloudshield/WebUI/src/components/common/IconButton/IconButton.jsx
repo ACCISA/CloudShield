@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
 /**
  * IconButton Component
@@ -22,26 +23,27 @@ const IconButton = ({
   style = {},
   variant = "primary",
 }) => {
+  const themeColors = useThemeColors();
   const [isHovered, setIsHovered] = React.useState(false);
 
   const getBackgroundColor = () => {
     if (disabled) {
       return variant === "primary"
-        ? "#1a1a1a"
-        : "rgba(255,255,255,0.05)";
+        ? themeColors.bgSecondary
+        : themeColors.lightOverlaySubtle;
     }
     if (isHovered) {
       return variant === "primary"
-        ? "#242424"
-        : "rgba(255,255,255,0.12)";
+        ? themeColors.bgHover
+        : themeColors.lightOverlaySubtle;
     }
-    return variant === "primary" ? "#1a1a1a" : "transparent";
+    return variant === "primary" ? themeColors.bgSecondary : "transparent";
   };
 
   const getBorderColor = () => {
-    if (disabled) return "rgba(255, 255, 255, 0.1)";
-    if (isHovered) return "rgba(255, 255, 255, 0.2)";
-    return "rgba(255, 255, 255, 0.1)";
+    if (disabled) return themeColors.borderLight;
+    if (isHovered) return themeColors.border;
+    return themeColors.borderLight;
   };
 
   const buttonStyle = {
@@ -59,7 +61,7 @@ const IconButton = ({
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: variant === "primary" ? "16px" : "14px",
     fontWeight: "500",
-    color: disabled ? "rgba(255,255,255,0.3)" : "#ffffff",
+    color: disabled ? themeColors.textTertiary : themeColors.text,
     transition: "all 0.2s ease",
     boxShadow: variant === "primary" ? "0 2px 8px rgba(0, 0, 0, 0.3)" : "none",
     opacity: disabled ? 0.4 : 1,

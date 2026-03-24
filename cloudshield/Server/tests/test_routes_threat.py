@@ -51,7 +51,7 @@ sys.modules.setdefault("redis", _fake_redis)
 @pytest.fixture()
 def client(monkeypatch):
     """Flask test client with threat routes available."""
-    with patch("cloudshield.Server.redis_client.redis.Redis") as mock_cls:
+    with patch("cloudshield.Server.utils.redis_client.redis.Redis") as mock_cls:
         mock_inst = MagicMock()
         mock_cls.return_value = mock_inst
         mock_inst.ping.return_value = True
