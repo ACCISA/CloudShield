@@ -1,4 +1,5 @@
 """User management API endpoints."""
+import importlib
 import json
 from collections.abc import Mapping
 
@@ -43,6 +44,8 @@ Security:
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
+_IMPORTED_OBJECT_ID = ObjectId
+_IMPORTED_DB_ADMIN = db_admin
 
 
 def _make_json_safe(value):
@@ -75,6 +78,41 @@ def _json_or_empty() -> dict:
         - Helpful for methods like DELETE where a body may be absent.
     """
     return request.get_json(silent=True) or {}
+
+
+def _get_object_id_factory():
+    """Resolve ObjectId lazily so tests can monkeypatch either import location."""
+    current_object_id = globals().get("ObjectId", _IMPORTED_OBJECT_ID)
+    if current_object_id is not _IMPORTED_OBJECT_ID:
+        return current_object_id
+
+    try:
+        bson_mod = importlib.import_module("bson")
+    except Exception:
+        return current_object_id
+
+    return getattr(bson_mod, "ObjectId", current_object_id)
+
+
+def _get_db_admin_handle():
+    """Resolve db_admin lazily so tests can patch utils.database after import."""
+    current_db_admin = globals().get("db_admin", _IMPORTED_DB_ADMIN)
+    if current_db_admin is not _IMPORTED_DB_ADMIN:
+        return current_db_admin
+
+    try:
+        utils_db = importlib.import_module("utils.database")
+    except Exception:
+        return current_db_admin
+
+    return getattr(utils_db, "db_admin", current_db_admin)
+
+
+def _nonempty_str(value) -> str:
+    """Return a stripped string or an empty string for non-string values."""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
 
 
 def _extract_reason() -> str | None:
@@ -351,8 +389,8 @@ def delete_user_endpoint(user_id):
         # This is best-effort; failure here must not block the actual deletion.
         user_doc = None
         try:
-            user_doc = db_admin["users"].find_one(
-                {"_id": ObjectId(user_id)},
+            user_doc = _get_db_admin_handle()["users"].find_one(
+                {"_id": _get_object_id_factory()(user_id)},
                 {"email": 1, "org_id": 1, "full_name": 1, "username": 1},
             )
         except Exception:
@@ -367,8 +405,10 @@ def delete_user_endpoint(user_id):
         # After DB deletion, dispatch DC removal
         if user_doc:
             try:
-                org_id = user_doc.get("org_id") or g.user.get("org_id")
-                dc_username = user_doc.get("username") or derive_username(user_doc.get("full_name", ""))
+                org_id = _nonempty_str(user_doc.get("org_id")) or _nonempty_str(g.user.get("org_id"))
+                stored_username = _nonempty_str(user_doc.get("username"))
+                full_name = _nonempty_str(user_doc.get("full_name"))
+                dc_username = stored_username or derive_username(full_name)
 
                 if org_id and dc_username:
                     job = service_dispatcher(

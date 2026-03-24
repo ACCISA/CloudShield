@@ -388,6 +388,7 @@ def install_fake_services_user_service_module():
     svc_mod.update_user = update_user
     svc_mod.deactivate_user = deactivate_user
     svc_mod.delete_user = delete_user
+    svc_mod.get_user = lambda *args, **kwargs: {}
     sys.modules["services.user_service"] = svc_mod
     
     # routes/users.py imports directly from 'services' package: from services import create_user, ...
@@ -400,6 +401,7 @@ def install_fake_services_user_service_module():
     services_pkg.deactivate_user = deactivate_user
     services_pkg.delete_user = delete_user
     services_pkg.list_users = lambda *args, **kwargs: []
+    services_pkg.get_user = lambda *args, **kwargs: {}
 
 
 @pytest.fixture(autouse=True)
@@ -1651,7 +1653,7 @@ class TestDeleteUserDCDispatch:
             "email": "dcuser@test.com",
             "org_id": "org_001",
             "full_name": "DC",
-            "dc_username":"dcuser"
+            "username": "stored_user",
         }
         fake_db.__getitem__.return_value = fake_users_col
 
