@@ -73,7 +73,6 @@ def signup():
             service_name="provision_network",
             org_id=org_id, # Passes the 24-character hex string (ObjectId)
             region="ca-central-1",
-            workstation_count=1, # Default starting workstation
         )
 
         logger.info(f"[SIGNUP] Provisioning job enqueued job_id={job.id} org_id={org_id}")

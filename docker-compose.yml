@@ -43,6 +43,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
+      - ES_URL=http://elasticsearch:9200
       # Pass through paths so the provisioner knows where to mount from the host
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}

@@ -122,6 +122,7 @@ def _flush_alerts(deduplicator, es_log_fn, logger=None, server_url: str = "", or
     if not alerts:
         return
     for alert in alerts:
+        alert.org_id = org_id
         es_log_fn("unified_alerts", alert.to_dict())
     if logger:
         logger.info("Flushed %d unified alerts to ES", len(alerts))

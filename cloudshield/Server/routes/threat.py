@@ -15,10 +15,10 @@ POST /api/threat/geo-check     – GeoIP check for a list of IPs
 
 from __future__ import annotations
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from cloudshield.Server.utils.ai_explainer import generate_alert_explanation
-
+from security.guards import require_auth
 from services.threat_service import (
     get_recent_alerts,
     get_recent_anomalies,
@@ -29,6 +29,7 @@ from services.threat_service import (
     check_geo,
     get_dashboard_summary,
     get_unified_alerts,
+    update_alert_status,
     ingest_threat_alerts,
 )
 
@@ -170,19 +171,44 @@ def explain_alert():
 
 
 @threat_bp.route("/unified", methods=["GET"])
+@require_auth
 def list_unified_alerts():
     """
-    Return the most recent deduplicated alerts from the unified_alerts index.
-
-    These are the normalised, cross-source alerts produced by the
-    ThreatDetection AlertDeduplicator.
+    Return the most recent deduplicated alerts from the unified_alerts index,
+    scoped to the authenticated user's organisation.
 
     Query params:
         limit (int, default 50): max number of alerts to return
     """
     limit = request.args.get("limit", 50, type=int)
-    alerts = get_unified_alerts(limit=limit)
+    org_id = g.user.get("org_id", "")
+    alerts = get_unified_alerts(limit=limit, org_id=org_id)
     return jsonify({"alerts": alerts, "count": len(alerts)}), 200
+
+
+@threat_bp.route("/unified/<alert_id>", methods=["PATCH"])
+@require_auth
+def patch_unified_alert(alert_id):
+    """
+    Update the status of a unified alert.
+
+    Body (JSON):
+        { "status": "resolved" | "false_positive" }
+    """
+    ALLOWED = {"resolved", "false_positive", "unresolved"}
+    data = request.get_json(silent=True) or {}
+    status = data.get("status", "")
+
+    if status not in ALLOWED:
+        return jsonify({"error": f"status must be one of {sorted(ALLOWED)}"}), 400
+
+    org_id = g.user.get("org_id", "")
+    updated = update_alert_status(alert_id, status, org_id=org_id)
+
+    if not updated:
+        return jsonify({"error": "Alert not found or not modified"}), 404
+
+    return jsonify({"alert_id": alert_id, "status": status}), 200
 
 
 @threat_bp.route("/ingest", methods=["POST"])

@@ -14,7 +14,7 @@ import DownloadIcon from "../../assets/DownloadIcon";
 import { SECURITY_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
 
-function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRefresh }) {
+function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRefresh, onUpdateAlert = () => {} }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
@@ -241,6 +241,7 @@ function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRef
           onToggleSelectAll={handleToggleSelectAll}
           hasNoAlerts={!loading && alerts.length === 0}
           hasNoResults={!loading && filteredAlerts.length === 0}
+          onUpdateAlert={onUpdateAlert}
         />
       </div>
 
@@ -260,7 +261,8 @@ SecurityAlertsPanel.propTypes = {
   alerts:    PropTypes.array,
   loading:   PropTypes.bool,
   error:     PropTypes.instanceOf(Error),
-  onRefresh: PropTypes.func,
+  onRefresh:      PropTypes.func,
+  onUpdateAlert:  PropTypes.func,
 };
 
 export default SecurityAlertsPanel;

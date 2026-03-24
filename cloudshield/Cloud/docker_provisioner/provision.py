@@ -1220,24 +1220,6 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     td_container_id, td_ip = td_result
     server_logger.info(f"Per-org ThreatDetection running at {td_ip}")
 
-    workstation_meta = provision_workstation_docker(
-        org_id,
-        server_logger,
-        org_docker=org_docker,
-        org_network_name=org_network_name,
-        samba_ip=container_dc_ip,
-        org_subnet_cidr=org_subnet_cidr,
-        threat_detection_ip=td_ip,
-        td_agents_file=td_agents_file,
-        td_container_id=td_container_id,
-        domain_name=domain_name,
-        admin_user="Administrator",
-        admin_pass=dc_admin_password,
-        api_server_ip=api_ip or "",
-    )
-    if workstation_meta:
-        wait_workstation_completion(workstation_meta["instance_id"], server_logger)
-
     metadata = [
         {
             "port": "50055",
@@ -1280,9 +1262,6 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "public_ip": container_vpn_ip,
         },
     ]
-
-    if workstation_meta:
-        metadata.append(workstation_meta)
 
     if td_result:
         metadata.append({

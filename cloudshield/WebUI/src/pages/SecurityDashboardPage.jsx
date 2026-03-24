@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import SecurityChartsPanel from "../components/security/SecurityChartsPanel.jsx";
 import SecurityAlertsPanel from "../components/security/SecurityAlertsPanel.jsx";
-import { useSecurityAlerts } from "../api/threatApi.js";
+import { useSecurityAlerts, updateAlertStatus } from "../api/threatApi.js";
 
 const contentStyles = {
   display: "flex",
@@ -15,7 +15,22 @@ const contentStyles = {
 };
 
 function SecurityDashboardPage() {
-  const { alerts, loading, error, refresh } = useSecurityAlerts();
+  const { alerts: fetchedAlerts, loading, error, refresh } = useSecurityAlerts();
+  const [overrides, setOverrides] = useState({});
+
+  const alerts = fetchedAlerts.map((a) =>
+    overrides[a.id] ? { ...a, ...overrides[a.id] } : a
+  ).filter((a) => a.status !== "removed");
+
+  const handleUpdateAlert = (id, patch) => {
+    // Optimistic local update
+    setOverrides((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
+    // Persist to backend — map UI status values to backend enum
+    if (patch.status) {
+      const backendStatus = patch.status === "removed" ? "false_positive" : patch.status;
+      updateAlertStatus(id, backendStatus).catch(() => {});
+    }
+  };
 
   return (
     <PageShell>
@@ -29,6 +44,7 @@ function SecurityDashboardPage() {
           loading={loading}
           error={error}
           onRefresh={refresh}
+          onUpdateAlert={handleUpdateAlert}
         />
       </div>
     </PageShell>

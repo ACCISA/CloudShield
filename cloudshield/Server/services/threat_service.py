@@ -190,16 +190,74 @@ def check_geo(ips: list[str]) -> list[dict]:
     return [r.to_dict() for r in results]
 
 
-def get_unified_alerts(limit: int = 50) -> list[dict]:
+def update_alert_status(alert_id: str, status: str, org_id: str = "") -> bool:
+    """
+    Update the ``status`` field of a unified alert document in Elasticsearch.
+
+    Uses ``update_by_query`` to find the document by its ``alert_id`` field
+    (which is stored in the document body, not the ES ``_id``).  When *org_id*
+    is provided an extra term filter is added so users can only modify their
+    own org's alerts.
+
+    Returns ``True`` when at least one document was updated, ``False`` otherwise.
+    """
+    es = _es_client()
+    if not es:
+        return False
+
+    query: dict = {"term": {"alert_id": alert_id}}
+    if org_id:
+        query = {"bool": {"must": [query, {"term": {"org_id": org_id}}]}}
+
+    try:
+        resp = es.update_by_query(
+            index="unified_alerts",
+            body={
+                "query": query,
+                "script": {
+                    "source": "ctx._source.status = params.status",
+                    "lang": "painless",
+                    "params": {"status": status},
+                },
+            },
+            conflicts="proceed",
+        )
+        return (resp.get("updated", 0) or 0) > 0
+    except Exception:
+        return False
+
+
+def get_unified_alerts(limit: int = 50, org_id: str = "") -> list[dict]:
     """
     Return the most recent deduplicated alerts from the unified_alerts index.
 
     These are the cross-source, normalised alerts produced by the
     ThreatDetection AlertDeduplicator.
 
+    If *org_id* is provided, only alerts belonging to that organisation are
+    returned.  When absent (or empty) all alerts are returned — useful for
+    admin / dev scenarios.
+
     Index: ``unified_alerts``
     """
-    return _es_recent("unified_alerts", size=limit)
+    if not org_id:
+        return _es_recent("unified_alerts", size=limit)
+
+    es = _es_client()
+    if not es:
+        return []
+    try:
+        resp = es.search(
+            index="unified_alerts",
+            body={
+                "query": {"term": {"org_id": org_id}},
+                "sort": [{"timestamp": {"order": "desc", "unmapped_type": "date"}}],
+                "size": limit,
+            },
+        )
+        return [hit["_source"] for hit in resp["hits"]["hits"]]
+    except Exception:
+        return []
 
 
 # ── Alert ingestion (records alerts into MongoDB activity + audit logs) ────
