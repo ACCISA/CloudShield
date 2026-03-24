@@ -8,6 +8,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreateButton from "../CreateButton/CreateButton";
 
+jest.mock("../../../hooks/useThemeColors.js", () => ({
+  useThemeColors: () => ({
+    secondary: "#1a1a1a",
+    secondaryHover: "#242424",
+    secondaryBorder: "rgba(255, 255, 255, 0.1)",
+    secondaryText: "#ffffff",
+  }),
+}));
+
 // Mock icon component
 const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 
@@ -118,8 +127,10 @@ describe("CreateButton Component", () => {
       const button = screen.getByRole("button");
       fireEvent.mouseEnter(button);
 
-      expect(button.style.background).toBe("rgb(36, 36, 36)");
-      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
+      expect(button).toHaveStyle({
+        background: "rgb(36, 36, 36)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      });
     });
 
     test("restores styles on mouse leave", () => {
@@ -130,8 +141,10 @@ describe("CreateButton Component", () => {
       fireEvent.mouseEnter(button);
       fireEvent.mouseLeave(button);
 
-      expect(button.style.background).toBe("rgb(26, 26, 26)");
-      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
+      expect(button).toHaveStyle({
+        background: "rgb(26, 26, 26)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      });
     });
 
     test("does not change styles on hover when disabled", () => {

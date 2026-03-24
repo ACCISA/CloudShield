@@ -562,7 +562,7 @@ describe("EmployeesModal", () => {
         />,
       );
 
-      expect(screen.getByPlaceholderText("Enter password")).toBeInTheDocument();
+      expect(screen.getByTestId("password-input")).toBeInTheDocument();
     });
 
     it("should not show password field in edit mode", () => {
@@ -610,9 +610,7 @@ describe("EmployeesModal", () => {
         />,
       );
 
-      expect(
-        screen.queryByPlaceholderText("Enter password"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("password-input")).not.toBeInTheDocument();
     });
 
     it("should render profile image upload area", () => {
@@ -803,7 +801,7 @@ describe("EmployeesModal", () => {
       });
     });
 
-    it("should close modal after successful submission", async () => {
+    it("should keep modal open after successful create submission", async () => {
       const user = userEvent.setup();
       mockOnSubmit.mockResolvedValue(undefined);
 
@@ -831,8 +829,9 @@ describe("EmployeesModal", () => {
       await user.click(createButton);
 
       await waitFor(() => {
-        expect(mockOnClose).toHaveBeenCalled();
+        expect(mockOnSubmit).toHaveBeenCalled();
       });
+      expect(mockOnClose).not.toHaveBeenCalled();
     });
 
     it("should handle submission error gracefully", async () => {
@@ -1362,7 +1361,7 @@ describe("EmployeesModal", () => {
         />,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Enter password");
+      const passwordInput = screen.getByTestId("password-input");
       await user.type(passwordInput, "SecurePass123");
 
       expect(passwordInput).toHaveValue("SecurePass123");
@@ -1424,8 +1423,8 @@ describe("EmployeesModal", () => {
         "Senior Engineer",
       );
       await user.type(
-        screen.getByPlaceholderText("Enter password"),
-        "SecurePass123",
+        screen.getByTestId("password-input"),
+        "SecurePass123@",
       );
 
       // Navigate through all steps
@@ -1443,11 +1442,11 @@ describe("EmployeesModal", () => {
             lastName: "Johnson",
             email: "alice@company.com",
             jobTitle: "Senior Engineer",
-            password: "SecurePass123",
+            password: "SecurePass123@",
           }),
         );
-        expect(mockOnClose).toHaveBeenCalled();
       });
+      expect(mockOnClose).not.toHaveBeenCalled();
     });
 
     it("should complete full workflow in edit mode", async () => {

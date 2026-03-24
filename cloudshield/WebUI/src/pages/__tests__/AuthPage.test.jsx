@@ -2,10 +2,15 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AuthPage from "../AuthPage";
+import { apiPost } from "../../api/client";
 
 // ---- Mocks ----
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
+}));
+
+jest.mock("../../api/client", () => ({
+  apiPost: jest.fn(),
 }));
 
 // Make MUI sx testable in JSDOM by mapping `sx` -> inline `style`
@@ -90,9 +95,6 @@ jest.mock("../../components/auth/PrimaryButton.jsx", () => {
   };
 });
 
-// ---- fetch mock ----
-global.fetch = jest.fn();
-
 /**
  * Build a fetch Response-like object compatible with AuthPage.safeReadJson
  */
@@ -116,7 +118,7 @@ describe("AuthPage", () => {
 
   beforeEach(() => {
     mockOnLoginSuccess.mockClear();
-    fetch.mockReset();
+    apiPost.mockReset();
   });
 
   afterEach(() => {
@@ -159,7 +161,7 @@ describe("AuthPage", () => {
     fireEvent.click(loginButton);
 
     // Should not submit
-    expect(fetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
     expect(mockOnLoginSuccess).not.toHaveBeenCalled();
   });
 
@@ -177,7 +179,7 @@ describe("AuthPage", () => {
     fireEvent.click(loginButton);
 
     // Should not submit
-    expect(fetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
     expect(mockOnLoginSuccess).not.toHaveBeenCalled();
   });
 
@@ -195,7 +197,7 @@ describe("AuthPage", () => {
     fireEvent.click(loginButton);
 
     // Should not submit
-    expect(fetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
     expect(mockOnLoginSuccess).not.toHaveBeenCalled();
   });
 
@@ -205,7 +207,7 @@ describe("AuthPage", () => {
       user: { id: "1", email: "test@example.com", role: "admin" },
     };
 
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: JSON.stringify(mockResponse),
@@ -224,12 +226,9 @@ describe("AuthPage", () => {
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+      expect(apiPost).toHaveBeenCalledWith("/auth/login", {
+        email: "test@example.com",
+        password: "password123",
       });
     });
 
@@ -239,7 +238,7 @@ describe("AuthPage", () => {
   });
 
   it("shows error message on failed login (401)", async () => {
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: false,
         status: 401,
@@ -266,7 +265,7 @@ describe("AuthPage", () => {
   });
 
   it("shows generic error on server error (500)", async () => {
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: false,
         status: 500,
@@ -296,7 +295,7 @@ describe("AuthPage", () => {
   });
 
   it("shows default error message when response has no error field", async () => {
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: false,
         status: 400,
@@ -326,7 +325,7 @@ describe("AuthPage", () => {
   });
 
   it("handles network errors gracefully", async () => {
-    fetch.mockRejectedValueOnce(new Error("Network error"));
+    apiPost.mockRejectedValueOnce(new Error("Network error"));
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
 
@@ -351,7 +350,7 @@ describe("AuthPage", () => {
       resolveFetch = resolve;
     });
 
-    fetch.mockImplementationOnce(() => pending);
+    apiPost.mockImplementationOnce(() => pending);
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
 
@@ -387,7 +386,7 @@ describe("AuthPage", () => {
       user: { id: "1", email: "test@example.com" },
     };
 
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: JSON.stringify(mockResponse),
@@ -406,7 +405,7 @@ describe("AuthPage", () => {
     await user.type(emailInput, "{enter}");
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalled();
+      expect(apiPost).toHaveBeenCalled();
     });
   });
 
@@ -416,7 +415,7 @@ describe("AuthPage", () => {
       user: { id: "1", email: "test@example.com" },
     };
 
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: JSON.stringify(mockResponse),
@@ -435,7 +434,7 @@ describe("AuthPage", () => {
     await user.type(passwordInput, "{enter}");
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalled();
+      expect(apiPost).toHaveBeenCalled();
     });
   });
 
@@ -445,7 +444,7 @@ describe("AuthPage", () => {
       user: { id: "1", email: "test@example.com" },
     };
 
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: JSON.stringify(mockResponse),
@@ -464,7 +463,7 @@ describe("AuthPage", () => {
     fireEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalled();
+      expect(apiPost).toHaveBeenCalled();
     });
 
     // Should not throw error even without callback
@@ -487,7 +486,7 @@ describe("AuthPage", () => {
   });
 
   it("handles empty response body on success", async () => {
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: "",
@@ -511,7 +510,7 @@ describe("AuthPage", () => {
   });
 
   it("handles invalid JSON response body", async () => {
-    fetch.mockResolvedValueOnce(
+    apiPost.mockResolvedValueOnce(
       buildResponse({
         ok: true,
         text: "{bad json",
@@ -535,7 +534,7 @@ describe("AuthPage", () => {
   });
 
   it("uses fallback error message when catch receives no error message", async () => {
-    fetch.mockRejectedValueOnce(null);
+    apiPost.mockRejectedValueOnce(null);
 
     const user = userEvent.setup();
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);

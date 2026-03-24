@@ -6,9 +6,9 @@
 
 import { renderHook, waitFor } from "@testing-library/react";
 import { useOrgMetrics } from "../useOrgMetrics";
-import { apiGet } from "../client";
+import { apiGet } from "../api/client";
 
-jest.mock("../client", () => ({
+jest.mock("../api/client", () => ({
   apiGet: jest.fn(),
 }));
 
@@ -28,7 +28,9 @@ describe("useOrgMetrics", () => {
 
   it("initializes with default stats, loading=true, error=null", () => {
     // Don't resolve apiGet to keep it in loading state
-    apiGet.mockReturnValue(new Promise(() => {}));
+    apiGet.mockReturnValue({
+      json: () => new Promise(() => {}),
+    });
 
     const { result } = renderHook(() => useOrgMetrics());
 
@@ -43,8 +45,10 @@ describe("useOrgMetrics", () => {
   });
 
   it("fetches metrics successfully and maps access_groups -> groups", async () => {
-    apiGet.mockResolvedValueOnce({
-      stats: { users: 10, workstations: 5, access_groups: 2, shares: 3 },
+    apiGet.mockReturnValueOnce({
+      json: async () => ({
+        stats: { users: 10, workstations: 5, access_groups: 2, shares: 3 },
+      }),
     });
 
     const { result } = renderHook(() => useOrgMetrics());
@@ -65,13 +69,15 @@ describe("useOrgMetrics", () => {
 
   it("defaults missing stats fields to 0 (covers ?. and ?? fallbacks)", async () => {
     // Simulate API returning some missing/undefined/null fields
-    apiGet.mockResolvedValueOnce({
-      stats: {
-        users: undefined, // -> 0
-        workstations: null, // -> 0
-        // access_groups missing entirely -> groups: 0
-        shares: 7,
-      },
+    apiGet.mockReturnValueOnce({
+      json: async () => ({
+        stats: {
+          users: undefined, // -> 0
+          workstations: null, // -> 0
+          // access_groups missing entirely -> groups: 0
+          shares: 7,
+        },
+      }),
     });
 
     const { result } = renderHook(() => useOrgMetrics());
@@ -89,7 +95,7 @@ describe("useOrgMetrics", () => {
   });
 
   it("defaults everything to 0 when res.stats is missing entirely", async () => {
-    apiGet.mockResolvedValueOnce({}); // res.stats is undefined
+    apiGet.mockReturnValueOnce({ json: async () => ({}) }); // res.stats is undefined
 
     const { result } = renderHook(() => useOrgMetrics());
 
@@ -108,7 +114,11 @@ describe("useOrgMetrics", () => {
 
   it("sets error and resets stats when apiGet throws", async () => {
     const err = new Error("boom");
-    apiGet.mockRejectedValueOnce(err);
+    apiGet.mockReturnValueOnce({
+      json: async () => {
+        throw err;
+      },
+    });
 
     const { result } = renderHook(() => useOrgMetrics());
 
@@ -127,7 +137,9 @@ describe("useOrgMetrics", () => {
 
   it("does not set state if unmounted before SUCCESS resolves (covers `if (!mounted) return;` in try + finally)", async () => {
     const d = deferred();
-    apiGet.mockReturnValueOnce(d.promise);
+    apiGet.mockReturnValueOnce({
+      json: () => d.promise,
+    });
 
     const { result, unmount } = renderHook(() => useOrgMetrics());
 
@@ -153,13 +165,16 @@ describe("useOrgMetrics", () => {
 
   it("does not set error/stats/loading if unmounted before ERROR rejects (covers `if (!mounted) return;` in catch + finally)", async () => {
     const d = deferred();
-    apiGet.mockReturnValueOnce(d.promise);
+    apiGet.mockReturnValueOnce({
+      json: () => d.promise,
+    });
 
     const { unmount } = renderHook(() => useOrgMetrics());
 
     unmount();
 
     d.reject(new Error("late fail"));
+    await d.promise.catch(() => {});
 
     // flush microtasks to allow any state updates to process if they were going to
     await Promise.resolve();

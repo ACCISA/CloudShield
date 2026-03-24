@@ -163,7 +163,7 @@ describe("UsersTable Component", () => {
         />
       );
       const checkbox = screen.getByTestId("select-all-checkbox");
-      fireEvent.change(checkbox);
+      fireEvent.click(checkbox);
       expect(onToggleSelectAll).toHaveBeenCalled();
     });
 

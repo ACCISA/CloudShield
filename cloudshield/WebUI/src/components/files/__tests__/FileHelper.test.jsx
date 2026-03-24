@@ -14,6 +14,38 @@ import {
   resolveFolderByPath,
 } from '../FileHelper';
 
+const sampleTree = [
+  {
+    id: 'f-sales',
+    kind: NODE_KIND.FOLDER,
+    name: 'sales_docs',
+    children: [
+      {
+        id: 'f-policies',
+        kind: NODE_KIND.FOLDER,
+        name: 'policies',
+        children: [
+          {
+            id: 'file-policy-docx',
+            kind: NODE_KIND.FILE,
+            name: 'security_policies.docx',
+          },
+        ],
+      },
+      {
+        id: 'file-xlsx',
+        kind: NODE_KIND.FILE,
+        name: 'sales_numbers.excl',
+      },
+    ],
+  },
+  {
+    id: 'file-docx',
+    kind: NODE_KIND.FILE,
+    name: 'sales_docs.docx',
+  },
+];
+
 describe('FileHelper', () => {
   describe('NODE_KIND', () => {
     it('should have correct node kind constants', () => {
@@ -23,26 +55,13 @@ describe('FileHelper', () => {
   });
 
   describe('HARD_CODED_TREE', () => {
-    it('should be a valid tree structure', () => {
+    it('is currently an empty placeholder tree', () => {
       expect(Array.isArray(HARD_CODED_TREE)).toBe(true);
-      expect(HARD_CODED_TREE.length).toBeGreaterThan(0);
+      expect(HARD_CODED_TREE).toEqual([]);
     });
 
-    it('should have correct root structure', () => {
-      const folder = HARD_CODED_TREE.find(n => n.kind === NODE_KIND.FOLDER);
-      const file = HARD_CODED_TREE.find(n => n.kind === NODE_KIND.FILE);
-
-      expect(folder).toBeDefined();
-      expect(file).toBeDefined();
-      expect(folder.id).toBe('f-sales');
-      expect(file.id).toBe('file-docx');
-    });
-
-    it('should have nested children', () => {
-      const salesFolder = HARD_CODED_TREE.find(n => n.id === 'f-sales');
-      expect(salesFolder.children).toBeDefined();
-      expect(Array.isArray(salesFolder.children)).toBe(true);
-      expect(salesFolder.children.length).toBeGreaterThan(0);
+    it('can be flattened without errors', () => {
+      expect(flattenVisibleTree(HARD_CODED_TREE, new Set())).toEqual([]);
     });
   });
 
@@ -73,18 +92,18 @@ describe('FileHelper', () => {
 
   describe('buildIndex', () => {
     it('should create a map from tree', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       expect(index instanceof Map).toBe(true);
     });
 
     it('should index root elements', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       expect(index.has('f-sales')).toBe(true);
       expect(index.has('file-docx')).toBe(true);
     });
 
     it('should index nested children', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       expect(index.has('f-policies')).toBe(true);
       expect(index.has('file-xlsx')).toBe(true);
     });
@@ -102,7 +121,7 @@ describe('FileHelper', () => {
     });
 
     it('should map node ids to node objects', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const node = index.get('f-sales');
       expect(node.name).toBe('sales_docs');
       expect(node.kind).toBe(NODE_KIND.FOLDER);
@@ -111,7 +130,7 @@ describe('FileHelper', () => {
 
   describe('collectDescendantIds', () => {
     it('should collect all descendant ids including self', () => {
-      const folder = HARD_CODED_TREE.find(n => n.id === 'f-sales');
+      const folder = sampleTree.find(n => n.id === 'f-sales');
       const descendants = collectDescendantIds(folder);
       expect(descendants).toContain('f-sales');
       expect(descendants).toContain('f-policies');
@@ -119,7 +138,7 @@ describe('FileHelper', () => {
     });
 
     it('should return array with single id for file', () => {
-      const file = HARD_CODED_TREE.find(n => n.id === 'file-docx');
+      const file = sampleTree.find(n => n.id === 'file-docx');
       const descendants = collectDescendantIds(file);
       expect(descendants).toEqual(['file-docx']);
     });
@@ -132,7 +151,7 @@ describe('FileHelper', () => {
 
     it('should use provided accumulator', () => {
       const acc = ['existing-id'];
-      const folder = HARD_CODED_TREE.find(n => n.id === 'f-sales');
+      const folder = sampleTree.find(n => n.id === 'f-sales');
       const descendants = collectDescendantIds(folder, acc);
       expect(descendants).toContain('existing-id');
       expect(descendants).toContain('f-sales');
@@ -141,7 +160,7 @@ describe('FileHelper', () => {
 
   describe('toggleSelectCascade', () => {
     it('should select folder and all descendants', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = toggleSelectCascade({ id: 'f-sales', index, selectedIds: new Set() });
       expect(result.has('f-sales')).toBe(true);
       expect(result.has('f-policies')).toBe(true);
@@ -149,7 +168,7 @@ describe('FileHelper', () => {
     });
 
     it('should deselect folder and all descendants', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const initial = new Set(['f-sales', 'f-policies', 'file-xlsx']);
       const result = toggleSelectCascade({ id: 'f-sales', index, selectedIds: initial });
       expect(result.has('f-sales')).toBe(false);
@@ -157,20 +176,20 @@ describe('FileHelper', () => {
     });
 
     it('should toggle single file', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = toggleSelectCascade({ id: 'file-docx', index, selectedIds: new Set() });
       expect(result.has('file-docx')).toBe(true);
       expect(result.size).toBe(1);
     });
 
     it('should handle invalid id', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = toggleSelectCascade({ id: 'invalid-id', index, selectedIds: new Set() });
       expect(result.size).toBe(0);
     });
 
     it('should not select parent when selecting child', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = toggleSelectCascade({ id: 'file-xlsx', index, selectedIds: new Set() });
       expect(result.has('file-xlsx')).toBe(true);
       expect(result.has('f-sales')).toBe(false);
@@ -210,12 +229,12 @@ describe('FileHelper', () => {
 
   describe('filterTreeByQuery', () => {
     it('should return all nodes for empty query', () => {
-      const result = filterTreeByQuery(HARD_CODED_TREE, '');
-      expect(result.length).toBe(HARD_CODED_TREE.length);
+      const result = filterTreeByQuery(sampleTree, '');
+      expect(result.length).toBe(sampleTree.length);
     });
 
     it('should filter by file name', () => {
-      const result = filterTreeByQuery(HARD_CODED_TREE, 'sales_numbers');
+      const result = filterTreeByQuery(sampleTree, 'sales_numbers');
       expect(result.length).toBeGreaterThan(0);
       const flatResult = [];
       const flatten = (nodes) => {
@@ -229,18 +248,18 @@ describe('FileHelper', () => {
     });
 
     it('should filter by folder name', () => {
-      const result = filterTreeByQuery(HARD_CODED_TREE, 'sales_docs');
+      const result = filterTreeByQuery(sampleTree, 'sales_docs');
       expect(result.length).toBeGreaterThan(0);
     });
 
     it('should be case insensitive', () => {
-      const result1 = filterTreeByQuery(HARD_CODED_TREE, 'SALES');
-      const result2 = filterTreeByQuery(HARD_CODED_TREE, 'sales');
+      const result1 = filterTreeByQuery(sampleTree, 'SALES');
+      const result2 = filterTreeByQuery(sampleTree, 'sales');
       expect(result1.length).toBe(result2.length);
     });
 
     it('should keep folders with matching children', () => {
-      const result = filterTreeByQuery(HARD_CODED_TREE, 'policies');
+      const result = filterTreeByQuery(sampleTree, 'policies');
       const folder = result.find(n => n.id === 'f-sales');
       expect(folder).toBeDefined();
       expect(folder.children.length).toBeGreaterThan(0);
@@ -260,14 +279,14 @@ describe('FileHelper', () => {
 
   describe('collectFolderIds', () => {
     it('should collect all folder ids', () => {
-      const result = collectFolderIds(HARD_CODED_TREE);
+      const result = collectFolderIds(sampleTree);
       expect(result instanceof Set).toBe(true);
       expect(result.has('f-sales')).toBe(true);
       expect(result.has('f-policies')).toBe(true);
     });
 
     it('should not include file ids', () => {
-      const result = collectFolderIds(HARD_CODED_TREE);
+      const result = collectFolderIds(sampleTree);
       expect(result.has('file-docx')).toBe(false);
       expect(result.has('file-xlsx')).toBe(false);
     });
@@ -280,7 +299,7 @@ describe('FileHelper', () => {
 
     it('should use provided accumulator', () => {
       const acc = new Set(['existing-id']);
-      const result = collectFolderIds(HARD_CODED_TREE, acc);
+      const result = collectFolderIds(sampleTree, acc);
       expect(result.has('existing-id')).toBe(true);
       expect(result.has('f-sales')).toBe(true);
     });
@@ -289,14 +308,14 @@ describe('FileHelper', () => {
   describe('flattenVisibleTree', () => {
     it('should flatten with default expansion', () => {
       const expanded = new Set();
-      const result = flattenVisibleTree(HARD_CODED_TREE, expanded);
+      const result = flattenVisibleTree(sampleTree, expanded);
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     });
 
     it('should expand nested folders', () => {
       const expanded = new Set(['f-sales']);
-      const result = flattenVisibleTree(HARD_CODED_TREE, expanded);
+      const result = flattenVisibleTree(sampleTree, expanded);
       const ids = result.map(r => r.node.id);
       expect(ids).toContain('f-policies');
       expect(ids).toContain('file-xlsx');
@@ -304,7 +323,7 @@ describe('FileHelper', () => {
 
     it('should include depth information', () => {
       const expanded = new Set(['f-sales']);
-      const result = flattenVisibleTree(HARD_CODED_TREE, expanded);
+      const result = flattenVisibleTree(sampleTree, expanded);
       expect(result[0].depth).toBe(0);
       const nestedRow = result.find(r => r.node.id === 'f-policies');
       expect(nestedRow.depth).toBe(1);
@@ -312,7 +331,7 @@ describe('FileHelper', () => {
 
     it('should not expand collapsed folders', () => {
       const expanded = new Set();
-      const result = flattenVisibleTree(HARD_CODED_TREE, expanded);
+      const result = flattenVisibleTree(sampleTree, expanded);
       const ids = result.map(r => r.node.id);
       expect(ids).toContain('f-sales');
       expect(ids).not.toContain('f-policies');
@@ -327,41 +346,41 @@ describe('FileHelper', () => {
 
   describe('getFolderChildrenByStack', () => {
     it('should return root children for empty stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
-      const result = getFolderChildrenByStack(HARD_CODED_TREE, index, []);
-      expect(result).toBe(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
+      const result = getFolderChildrenByStack(sampleTree, index, []);
+      expect(result).toBe(sampleTree);
     });
 
     it('should return folder children for valid stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
-      const result = getFolderChildrenByStack(HARD_CODED_TREE, index, ['f-sales']);
+      const index = buildIndex(sampleTree);
+      const result = getFolderChildrenByStack(sampleTree, index, ['f-sales']);
       const names = result.map(n => n.name);
       expect(names).toContain('policies');
       expect(names).toContain('sales_numbers.excl');
     });
 
     it('should return empty for invalid stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
-      const result = getFolderChildrenByStack(HARD_CODED_TREE, index, ['invalid-id']);
+      const index = buildIndex(sampleTree);
+      const result = getFolderChildrenByStack(sampleTree, index, ['invalid-id']);
       expect(result).toEqual([]);
     });
 
     it('should handle file in stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
-      const result = getFolderChildrenByStack(HARD_CODED_TREE, index, ['file-docx']);
+      const index = buildIndex(sampleTree);
+      const result = getFolderChildrenByStack(sampleTree, index, ['file-docx']);
       expect(result).toEqual([]);
     });
 
     it('should handle null stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
-      const result = getFolderChildrenByStack(HARD_CODED_TREE, index, null);
-      expect(result).toBe(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
+      const result = getFolderChildrenByStack(sampleTree, index, null);
+      expect(result).toBe(sampleTree);
     });
   });
 
   describe('getBreadcrumbNodes', () => {
     it('should return breadcrumb nodes for stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = getBreadcrumbNodes(index, ['f-sales', 'f-policies']);
       expect(result.length).toBe(2);
       expect(result[0].name).toBe('sales_docs');
@@ -369,19 +388,19 @@ describe('FileHelper', () => {
     });
 
     it('should return empty for empty stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = getBreadcrumbNodes(index, []);
       expect(result).toEqual([]);
     });
 
     it('should filter out invalid ids', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = getBreadcrumbNodes(index, ['f-sales', 'invalid-id', 'f-policies']);
       expect(result.length).toBe(2);
     });
 
     it('should handle null stack', () => {
-      const index = buildIndex(HARD_CODED_TREE);
+      const index = buildIndex(sampleTree);
       const result = getBreadcrumbNodes(index, null);
       expect(result).toEqual([]);
     });
@@ -389,42 +408,42 @@ describe('FileHelper', () => {
 
   describe('resolveFolderByPath', () => {
     it('should resolve valid path', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '/sales_docs/policies');
+      const result = resolveFolderByPath(sampleTree, '/sales_docs/policies');
       expect(result.ok).toBe(true);
       expect(result.stack).toEqual(['f-sales', 'f-policies']);
     });
 
     it('should return ok with empty stack for empty path', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '');
+      const result = resolveFolderByPath(sampleTree, '');
       expect(result.ok).toBe(true);
       expect(result.stack).toEqual([]);
     });
 
     it('should handle path without leading slash', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, 'sales_docs');
+      const result = resolveFolderByPath(sampleTree, 'sales_docs');
       expect(result.ok).toBe(true);
       expect(result.stack).toEqual(['f-sales']);
     });
 
     it('should be case insensitive', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '/SALES_DOCS');
+      const result = resolveFolderByPath(sampleTree, '/SALES_DOCS');
       expect(result.ok).toBe(true);
       expect(result.stack).toEqual(['f-sales']);
     });
 
     it('should return error for invalid path', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '/invalid/path');
+      const result = resolveFolderByPath(sampleTree, '/invalid/path');
       expect(result.ok).toBe(false);
       expect(result.error).toContain('Folder not found');
     });
 
     it('should return error for file in path', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '/sales_docs.docx');
+      const result = resolveFolderByPath(sampleTree, '/sales_docs.docx');
       expect(result.ok).toBe(false);
     });
 
     it('should handle trailing slashes', () => {
-      const result = resolveFolderByPath(HARD_CODED_TREE, '/sales_docs/');
+      const result = resolveFolderByPath(sampleTree, '/sales_docs/');
       expect(result.ok).toBe(true);
       expect(result.stack).toEqual(['f-sales']);
     });

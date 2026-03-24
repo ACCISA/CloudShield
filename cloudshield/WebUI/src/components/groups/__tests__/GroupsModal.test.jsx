@@ -111,7 +111,7 @@ describe("GroupsModal Component", () => {
       expect(screen.getByText("Basic Info")).toBeInTheDocument();
       expect(screen.getByText("Users")).toBeInTheDocument();
       expect(screen.getByText("Workstations")).toBeInTheDocument();
-      expect(screen.getByText("Files")).toBeInTheDocument();
+      expect(screen.getByText("Shares")).toBeInTheDocument();
     });
 
     test("shows active state for current step", () => {
@@ -371,7 +371,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       expect(
-        screen.getByPlaceholderText("Search files..."),
+        screen.getByPlaceholderText("Search shares..."),
       ).toBeInTheDocument();
     });
   });
@@ -536,7 +536,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
       await userEvent.click(screen.getByText("Next"));
 
-      const searchInput = screen.getByPlaceholderText("Search files...");
+      const searchInput = screen.getByPlaceholderText("Search shares...");
       await userEvent.type(searchInput, "doc");
 
       expect(searchInput).toHaveValue("doc");
@@ -707,7 +707,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       expect(
-        screen.getByPlaceholderText("Search files..."),
+        screen.getByPlaceholderText("Search shares..."),
       ).toBeInTheDocument();
     });
 
@@ -720,7 +720,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
       await userEvent.click(screen.getByText("Next"));
 
-      const searchInput = screen.getByPlaceholderText("Search files...");
+      const searchInput = screen.getByPlaceholderText("Search shares...");
       await userEvent.type(searchInput, "test");
 
       expect(searchInput).toHaveValue("test");
@@ -783,7 +783,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       expect(
-        screen.getByPlaceholderText("Search files..."),
+        screen.getByPlaceholderText("Search shares..."),
       ).toBeInTheDocument();
 
       // Navigate back
@@ -1333,7 +1333,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Files")).toBeInTheDocument();
+        expect(screen.getByText("Shares")).toBeInTheDocument();
       });
     });
 
@@ -1387,7 +1387,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Files")).toBeInTheDocument();
+        expect(screen.getByText("Shares")).toBeInTheDocument();
       });
     });
 
@@ -1408,7 +1408,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Files")).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Search shares...")).toBeInTheDocument();
       });
     });
 
@@ -1434,7 +1434,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Files")).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Search shares...")).toBeInTheDocument();
       });
     });
 
@@ -1452,7 +1452,7 @@ describe("GroupsModal Component", () => {
       await userEvent.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Files")).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Search shares...")).toBeInTheDocument();
       });
     });
   });

@@ -15,16 +15,20 @@ import {
   createSelectAllHandler,
   createRenderStepContent,
 } from "../modalHelpers";
+import { apiGet } from "../../api/client";
 import { listUsers } from "../../services/usersApi";
 
 // Mock API functions
 jest.mock("../../services/usersApi");
+jest.mock("../../api/client", () => ({
+  apiGet: jest.fn(),
+}));
 
 describe("modalHelpers", () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    global.fetch = jest.fn();
+    apiGet.mockReset();
     Storage.prototype.getItem = jest.fn();
     Storage.prototype.setItem = jest.fn();
   });
@@ -91,7 +95,7 @@ describe("modalHelpers", () => {
     };
 
     it("should fetch and normalize file shares successfully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockFileShares,
       });
@@ -104,7 +108,7 @@ describe("modalHelpers", () => {
 
     it("should call state setter if provided", async () => {
       const setAllFiles = jest.fn();
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockFileShares,
       });
@@ -116,13 +120,13 @@ describe("modalHelpers", () => {
     });
 
     it("should return empty array on fetch error", async () => {
-      global.fetch.mockRejectedValue(new Error("Network error"));
+      apiGet.mockRejectedValue(new Error("Network error"));
       const result = await fetchFileShares("org123");
       expect(result).toEqual([]);
     });
 
     it("should return empty array on non-ok response", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 500,
       });
@@ -136,7 +140,7 @@ describe("modalHelpers", () => {
       const result = await fetchFileShares(null, setAllFiles);
       expect(result).toEqual([]);
       expect(setAllFiles).toHaveBeenCalledWith([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should normalize file shares data correctly", async () => {
@@ -157,7 +161,7 @@ describe("modalHelpers", () => {
         ],
       };
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => rawData,
       });
@@ -194,7 +198,7 @@ describe("modalHelpers", () => {
         ],
       };
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => rawData,
       });
@@ -223,7 +227,7 @@ describe("modalHelpers", () => {
         ],
       };
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => rawData,
       });
@@ -245,7 +249,7 @@ describe("modalHelpers", () => {
         ],
       };
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => rawData,
       });
@@ -269,7 +273,7 @@ describe("modalHelpers", () => {
     ];
 
     it("should fetch and normalize groups successfully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockGroups,
       });
@@ -282,7 +286,7 @@ describe("modalHelpers", () => {
 
     it("should call state setter if provided", async () => {
       const setAllGroups = jest.fn();
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockGroups,
       });
@@ -294,7 +298,7 @@ describe("modalHelpers", () => {
     });
 
     it("should handle 404 gracefully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 404,
       });
@@ -304,7 +308,7 @@ describe("modalHelpers", () => {
     });
 
     it("should handle 405 gracefully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 405,
       });
@@ -314,7 +318,7 @@ describe("modalHelpers", () => {
     });
 
     it("should return empty array on fetch error", async () => {
-      global.fetch.mockRejectedValue(new Error("Network error"));
+      apiGet.mockRejectedValue(new Error("Network error"));
       const result = await fetchGroups("org123", "token123");
       expect(result).toEqual([]);
     });
@@ -324,7 +328,7 @@ describe("modalHelpers", () => {
       const result = await fetchGroups(null, "token123", setAllGroups);
       expect(result).toEqual([]);
       expect(setAllGroups).toHaveBeenCalledWith([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should handle missing accessToken", async () => {
@@ -332,7 +336,7 @@ describe("modalHelpers", () => {
       const result = await fetchGroups("org123", null, setAllGroups);
       expect(result).toEqual([]);
       expect(setAllGroups).toHaveBeenCalledWith([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should normalize groups data correctly", async () => {
@@ -347,7 +351,7 @@ describe("modalHelpers", () => {
         },
       ];
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => rawData,
       });
@@ -368,7 +372,7 @@ describe("modalHelpers", () => {
         .mockImplementation(() => {});
       const setAllGroups = jest.fn();
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 404,
       });
@@ -385,7 +389,7 @@ describe("modalHelpers", () => {
     });
 
     it("should handle response with 'access_groups' wrapper key", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
           access_groups: [{ id: "g1", name: "Wrapper Test" }],
@@ -398,7 +402,7 @@ describe("modalHelpers", () => {
     });
 
     it("should handle response with 'groups' wrapper key", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
           groups: [{ id: "g2", name: "Wrapper Test 2" }],
@@ -418,7 +422,7 @@ describe("modalHelpers", () => {
       // users: g.users || [],
       // files: g.files || [],
 
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => [
           {
@@ -565,7 +569,7 @@ describe("modalHelpers", () => {
     ];
 
     it("should fetch and normalize workstations successfully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockWorkstations,
       });
@@ -582,7 +586,7 @@ describe("modalHelpers", () => {
 
     it("should call state setter if provided", async () => {
       const setAllWorkstations = jest.fn();
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockWorkstations,
       });
@@ -600,7 +604,7 @@ describe("modalHelpers", () => {
       expect(openToast).toHaveBeenCalledWith(
         "Missing org_id for workstations fetch",
       );
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should handle missing accessToken", async () => {
@@ -612,11 +616,11 @@ describe("modalHelpers", () => {
       );
       expect(result).toEqual([]);
       expect(setAllWorkstations).toHaveBeenCalledWith([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should handle 404 gracefully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 404,
       });
@@ -626,7 +630,7 @@ describe("modalHelpers", () => {
     });
 
     it("should handle 405 gracefully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 405,
       });
@@ -636,7 +640,7 @@ describe("modalHelpers", () => {
     });
 
     it("should normalize workstations data correctly", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
           workstations: [
@@ -662,7 +666,7 @@ describe("modalHelpers", () => {
     });
 
     it("should default to 'Untitled Workstation' for missing names", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => [{ id: "ws3" }],
       });
@@ -683,7 +687,7 @@ describe("modalHelpers", () => {
     ];
 
     it("should fetch and normalize software successfully", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockSoftware,
       });
@@ -700,7 +704,7 @@ describe("modalHelpers", () => {
 
     it("should call state setter if provided", async () => {
       const setAllSoftware = jest.fn();
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => mockSoftware,
       });
@@ -718,7 +722,7 @@ describe("modalHelpers", () => {
       expect(openToast).toHaveBeenCalledWith(
         "Missing org_id for software fetch",
       );
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should handle missing accessToken", async () => {
@@ -726,11 +730,11 @@ describe("modalHelpers", () => {
       const result = await fetchSoftware("org123", null, setAllSoftware);
       expect(result).toEqual([]);
       expect(setAllSoftware).toHaveBeenCalledWith([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should handle non-ok response", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: false,
         status: 500,
       });
@@ -740,7 +744,7 @@ describe("modalHelpers", () => {
     });
 
     it("should normalize software data correctly", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
           software: [
@@ -766,7 +770,7 @@ describe("modalHelpers", () => {
 
     // Additional tests for software normalization fallbacks
     it("should use fallback values for missing software fields", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -789,7 +793,7 @@ describe("modalHelpers", () => {
     });
 
     it("should prefer id over _id when both present", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -806,7 +810,7 @@ describe("modalHelpers", () => {
     });
 
     it("should fallback to _id when id is missing", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -822,7 +826,7 @@ describe("modalHelpers", () => {
     });
 
     it("should fallback to id when _id is missing", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -838,7 +842,7 @@ describe("modalHelpers", () => {
     });
 
     it("should convert numeric ids to string", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -857,7 +861,7 @@ describe("modalHelpers", () => {
     });
 
     it("should use empty string when both id and _id are missing", async () => {
-      global.fetch.mockResolvedValue({
+      apiGet.mockResolvedValue({
         ok: true,
         json: async () => ([
           {
@@ -874,7 +878,7 @@ describe("modalHelpers", () => {
 
     it("should handle fetch error", async () => {
       const openToast = jest.fn();
-      global.fetch.mockRejectedValue(new Error("Network error"));
+      apiGet.mockRejectedValue(new Error("Network error"));
 
       const result = await fetchSoftware("org123", "token123", null, openToast);
       expect(result).toEqual([]);

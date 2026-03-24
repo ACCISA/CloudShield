@@ -50,10 +50,7 @@ describe("SearchField Component", () => {
         <SearchField value="" onChange={onChange} />
       );
 
-      // Check for the search icon SVG
-      const icon = container.querySelector(
-        '[data-testid="SearchOutlinedIcon"]'
-      );
+      const icon = container.querySelector("svg");
       expect(icon).toBeInTheDocument();
     });
 
@@ -63,9 +60,7 @@ describe("SearchField Component", () => {
         <SearchField value="" onChange={onChange} showIcon={false} />
       );
 
-      const icon = container.querySelector(
-        '[data-testid="SearchOutlinedIcon"]'
-      );
+      const icon = container.querySelector("svg");
       expect(icon).not.toBeInTheDocument();
     });
 
@@ -238,8 +233,8 @@ describe("SearchField Component", () => {
         <SearchField value="" onChange={onChange} width="500px" />
       );
 
-      const input = container.querySelector(".MuiOutlinedInput-root");
-      expect(input).toHaveStyle({ width: "500px" });
+      const wrapper = container.firstChild;
+      expect(wrapper).toHaveStyle({ width: "500px" });
     });
 
     test("applies custom styles via sx prop", () => {
@@ -248,12 +243,12 @@ describe("SearchField Component", () => {
         <SearchField
           value=""
           onChange={onChange}
-          sx={{ backgroundColor: "red" }}
+          style={{ backgroundColor: "red" }}
         />
       );
 
-      const input = container.querySelector(".MuiOutlinedInput-root");
-      expect(input).toHaveStyle({ backgroundColor: "red" });
+      const wrapper = container.firstChild;
+      expect(wrapper).toHaveStyle({ backgroundColor: "red" });
     });
 
     test("uses default placeholder when not provided", () => {
@@ -269,8 +264,8 @@ describe("SearchField Component", () => {
         <SearchField value="" onChange={onChange} />
       );
 
-      const input = container.querySelector(".MuiOutlinedInput-root");
-      expect(input).toHaveStyle({ width: "360px" });
+      const wrapper = container.firstChild;
+      expect(wrapper).toHaveStyle({ width: "360px" });
     });
   });
 
