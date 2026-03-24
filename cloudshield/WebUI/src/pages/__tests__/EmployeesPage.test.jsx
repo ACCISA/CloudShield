@@ -2351,5 +2351,14 @@ describe("EmployeesPage Integration", () => {
       });
     });
   });
+  describe("CSV format help coverage", () => {
+    it("shows and hides csv help on hover", async () => {
+      renderPage();
+      const helpBtn = screen.getByLabelText("CSV format help");
+      fireEvent.mouseEnter(helpBtn);
+      expect(screen.getByText(/firstName/)).toBeInTheDocument();
+      fireEvent.mouseLeave(helpBtn);
+    });
+  });
 });
 

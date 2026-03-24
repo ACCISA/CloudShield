@@ -2555,5 +2555,14 @@ describe("GroupsPage Component", () => {
       await userEvent.click(screen.getByTestId("create-button"));
       expect(screen.getByTestId("modal-mode")).toHaveTextContent("Create Mode");
     });
+  describe("CSV format help coverage", () => {
+    it("shows and hides csv help on hover", async () => {
+      renderPage();
+      const helpBtn = screen.getByLabelText("CSV format help");
+      fireEvent.mouseEnter(helpBtn);
+      expect(screen.getByText(/group_name/)).toBeInTheDocument();
+      fireEvent.mouseLeave(helpBtn);
+    });
+  });
   });
 });

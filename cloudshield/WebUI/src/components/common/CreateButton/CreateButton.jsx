@@ -43,8 +43,14 @@ const CreateButton = ({ icon, buttonText, onClick, disabled = false, title }) =>
       disabled={disabled}
       title={title}
       aria-label={buttonText}
-      onMouseEnter={() => !disabled && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={(e) => {
+        if (!disabled) setIsHovered(true);
+        handleMouseEnter(e);
+      }}
+      onMouseLeave={(e) => {
+        setIsHovered(false);
+        handleMouseLeave(e);
+      }}
     >
       {icon}
       {buttonText}
