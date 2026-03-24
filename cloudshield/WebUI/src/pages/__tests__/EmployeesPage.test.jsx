@@ -2356,7 +2356,7 @@ describe("EmployeesPage Integration", () => {
       renderPage();
       const helpBtn = screen.getByLabelText("CSV format help");
       fireEvent.mouseEnter(helpBtn);
-      expect(screen.getByText(/firstName/)).toBeInTheDocument();
+      expect(screen.getByText(/full_name/)).toBeInTheDocument();
       fireEvent.mouseLeave(helpBtn);
     });
   });
