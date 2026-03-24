@@ -5,6 +5,12 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/src/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/)+client(\\.js)?$': '<rootDir>/src/__mocks__/apiClientCompatMock.js',
+    '^(\\.{1,2}/)+api/client(\\.js)?$': '<rootDir>/src/__mocks__/apiClientCompatMock.js',
+    '^(\\.{1,2}/)+hooks/useThemeColors(\\.js)?$': '<rootDir>/src/__mocks__/useThemeColorsMock.js',
+    '^(\\.{1,2}/)+context/ThemeContext(\\.jsx?)?$': '<rootDir>/src/__mocks__/themeContextMock.js',
+    '^@/hooks/useThemeColors(\\.js)?$': '<rootDir>/src/__mocks__/useThemeColorsMock.js',
+    '^@/context/ThemeContext(\\.jsx?)?$': '<rootDir>/src/__mocks__/themeContextMock.js',
   },
   transform: {
     '^.+\\.(js|jsx)$': '<rootDir>/jest.importMetaTransformer.cjs',

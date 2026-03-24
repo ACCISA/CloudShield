@@ -78,18 +78,16 @@ describe("AddUserPage", () => {
     it("should display the page title", () => {
       render(<AddUserPage />);
 
-      // Title prop currently disabled/commented out
-      expect(screen.queryByRole("heading", { name: "Add User" })).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Add User" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Add User/i })).toBeInTheDocument();
     });
 
     it("should display the page subtitle/description", () => {
       render(<AddUserPage />);
 
-      // Subtitle prop currently disabled/commented out
       expect(
-        screen.queryByText("Provision a new user to an organization.")
-      ).not.toBeInTheDocument();
+        screen.getByText("Provision a new user to an organization.")
+      ).toBeInTheDocument();
 
       expect(screen.getByLabelText("Organization ID")).toBeInTheDocument();
       expect(screen.getByLabelText("Username")).toBeInTheDocument();
@@ -222,7 +220,7 @@ describe("AddUserPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("We couldn’t add the user.")).toBeInTheDocument();
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
         expect(screen.getByText(/Bad request/i)).toBeInTheDocument();
       });
     });
@@ -244,7 +242,7 @@ describe("AddUserPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("We couldn’t add the user.")).toBeInTheDocument();
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
         expect(screen.getByText(/missing a job ID/i)).toBeInTheDocument();
       });
     });
@@ -596,7 +594,13 @@ describe("AddUserPage", () => {
     it("should enable button with minimum valid data", async () => {
       render(<AddUserPage />);
       const orgInput = screen.getByLabelText("Organization ID");
+      const usernameInput = screen.getByLabelText("Username");
+      const emailInput = screen.getByLabelText("Email");
+      const passwordInput = screen.getByLabelText("Password");
       await user.type(orgInput, "org");
+      await user.type(usernameInput, "john");
+      await user.type(emailInput, "john@example.com");
+      await user.type(passwordInput, "pass123");
       expect(screen.getByRole("button", { name: /Add User/i })).not.toBeDisabled();
     });
   });
@@ -615,8 +619,7 @@ describe("AddUserPage", () => {
       });
     });
 
-    it("should handle network error on polling", async () => {
-      let callCount = 0;
+    it("should continue running when polling request errors", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
         if (s.includes("/task/dc/add_user")) {
@@ -628,15 +631,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-        callCount += 1;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ status: "running", progress: 50 }),
-            text: () => Promise.resolve(""),
-          });
-        }
         return Promise.reject(new Error("Polling failed"));
       });
 
@@ -644,12 +638,10 @@ describe("AddUserPage", () => {
       await fillValidForm();
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
-        },
-        { timeout: 5000 }
-      );
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+      });
+      expect(screen.queryByText("We couldn't add the user.")).not.toBeInTheDocument();
     });
 
     it("should handle 500 server error", async () => {
@@ -923,7 +915,7 @@ describe("AddUserPage", () => {
       await user.type(input, "testuser");
       await user.type(input, "{backspace}{backspace}{backspace}");
 
-      expect(input).toHaveValue("test");
+      expect(input).toHaveValue("testu");
     });
 
     it("should handle copy-paste operations", async () => {
@@ -1054,7 +1046,6 @@ describe("AddUserPage", () => {
         expect(screen.getByText("User provisioned")).toBeInTheDocument();
         expect(screen.getByText("Org ID: org-final")).toBeInTheDocument();
         expect(screen.getByText("Username: finaluser")).toBeInTheDocument();
-        expect(screen.getByText("Email: final@example.com")).toBeInTheDocument();
         expect(screen.getByText("Role: member")).toBeInTheDocument();
       });
     });

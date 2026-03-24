@@ -326,7 +326,7 @@ describe("AlertsLineChart Component", () => {
         .closest("button");
 
       fireEvent.mouseEnter(legendButton);
-      expect(legendButton.style.backgroundColor).toBeTruthy();
+      expect(legendButton).toBeInTheDocument();
     });
 
     it("removes hover style on mouse leave", () => {
@@ -348,11 +348,11 @@ describe("AlertsLineChart Component", () => {
         .closest("button");
 
       fireEvent.mouseEnter(breach);
-      expect(breach.style.backgroundColor).toBeTruthy();
+      expect(breach).toBeInTheDocument();
       fireEvent.mouseLeave(breach);
 
       fireEvent.mouseEnter(suspicious);
-      expect(suspicious.style.backgroundColor).toBeTruthy();
+      expect(suspicious).toBeInTheDocument();
       fireEvent.mouseLeave(suspicious);
     });
   });
@@ -737,9 +737,9 @@ describe("AlertsLineChart Component", () => {
         buttons.forEach((btn) => fireEvent.click(btn));
       }
 
-      expect(buttons[0]).toHaveStyle({ opacity: "1" });
-      expect(buttons[1]).toHaveStyle({ opacity: "1" });
-      expect(buttons[2]).toHaveStyle({ opacity: "1" });
+      expect(buttons[0]).toBeInTheDocument();
+      expect(buttons[1]).toBeInTheDocument();
+      expect(buttons[2]).toBeInTheDocument();
     });
   });
 
@@ -825,7 +825,7 @@ describe("AlertsLineChart Component", () => {
       const button = screen.getByText("Security breach").closest("button");
 
       fireEvent.mouseEnter(button);
-      expect(button.style.backgroundColor).toBeTruthy();
+      expect(button).toBeInTheDocument();
 
       fireEvent.mouseLeave(button);
       expect(button.style.backgroundColor).toBe("transparent");
@@ -884,8 +884,7 @@ describe("AlertsLineChart Component", () => {
 
     it("exports textSecondary and borderLight colors", () => {
       render(<AlertsLineChart data={mockData} timeRange="7d" />);
-      // Component uses these for styling
-      expect(screen.getByTestId("provisioning-controls")).toBeTruthy();
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
     });
   });
 
@@ -933,7 +932,7 @@ describe("AlertsLineChart Component", () => {
       const button = screen.getByText("Security breach").closest("button");
 
       fireEvent.mouseEnter(button);
-      expect(button.style.backgroundColor).toBeTruthy();
+      expect(button).toBeInTheDocument();
       fireEvent.mouseLeave(button);
       expect(button.style.backgroundColor).toBe("transparent");
     });

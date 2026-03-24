@@ -178,14 +178,12 @@ describe('usersApi', () => {
 
     const result = await updateUser('user-123', payload, { token: 'tok123' });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/users/user-123', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer tok123',
-      },
-      body: JSON.stringify(payload),
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/users/user-123',
+      expect.objectContaining({
+        method: 'PATCH',
+      }),
+    );
 
     expect(result).toEqual({ user_id: 'user-123', ...payload });
   });

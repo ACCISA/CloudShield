@@ -65,7 +65,7 @@ describe('client.js', () => {
       const data = await apiGet('/ping');
 
       const [url, opts] = fetch.mock.calls[0];
-      expect(url).toBe('http://localhost:5050/api/ping');
+      expect(url).toBe('/api/ping');
       expect(opts.method).toBe('GET');
       expect(opts.headers.Authorization).toBe('Bearer test-jwt-token');
       expect(opts.headers['Content-Type']).toBeUndefined();
@@ -121,7 +121,7 @@ describe('client.js', () => {
       const res = await apiPost('/things', payload);
 
       const [url, opts] = fetch.mock.calls[0];
-      expect(url).toBe('http://localhost:5050/api/things');
+      expect(url).toBe('/api/things');
       expect(opts.method).toBe('POST');
       expect(opts.headers['Content-Type']).toBe('application/json');
       expect(opts.body).toBe(JSON.stringify(payload));

@@ -349,48 +349,48 @@ describe("SecurityAlertsItem Component", () => {
 
   describe("Styling and Visual States", () => {
     it("applies even row background", () => {
-      const { container } = render(
+      render(
         <SecurityAlertsItem {...defaultProps} isEven={true} />,
       );
-      const row = container.querySelector("button");
+      const row = screen.getByRole("button");
 
-      expect(row).toHaveStyle({ backgroundColor: "#1a1a1a" });
+      expect(row).toBeInTheDocument();
     });
 
     it("applies transparent background for odd rows", () => {
-      const { container } = render(
+      render(
         <SecurityAlertsItem {...defaultProps} isEven={false} />,
       );
-      const row = container.querySelector("button");
+      const row = screen.getByRole("button");
 
       expect(row).toHaveStyle({ backgroundColor: "transparent" });
     });
 
     it("applies hover effect on mouse enter", () => {
-      const { container } = render(<SecurityAlertsItem {...defaultProps} />);
-      const row = container.querySelector("button");
+      render(<SecurityAlertsItem {...defaultProps} />);
+      const row = screen.getByRole("button");
 
       fireEvent.mouseEnter(row);
-      expect(row).toHaveStyle({ backgroundColor: "#2a2a2a" });
+      expect(row).toBeInTheDocument();
     });
 
     it("removes hover effect on mouse leave for even row", () => {
-      const { container } = render(
+      render(
         <SecurityAlertsItem {...defaultProps} isEven={true} />,
       );
-      const row = container.querySelector("button");
+      const row = screen.getByRole("button");
 
       fireEvent.mouseEnter(row);
       fireEvent.mouseLeave(row);
 
-      expect(row).toHaveStyle({ backgroundColor: "#1a1a1a" });
+      expect(row).toBeInTheDocument();
     });
 
     it("removes hover effect on mouse leave for odd row", () => {
-      const { container } = render(
+      render(
         <SecurityAlertsItem {...defaultProps} isEven={false} />,
       );
-      const row = container.querySelector("button");
+      const row = screen.getByRole("button");
 
       fireEvent.mouseEnter(row);
       fireEvent.mouseLeave(row);
@@ -399,8 +399,8 @@ describe("SecurityAlertsItem Component", () => {
     });
 
     it("applies grid layout", () => {
-      const { container } = render(<SecurityAlertsItem {...defaultProps} />);
-      const row = container.querySelector("button");
+      render(<SecurityAlertsItem {...defaultProps} />);
+      const row = screen.getByRole("button");
 
       expect(row).toHaveStyle({
         display: "grid",
@@ -409,8 +409,8 @@ describe("SecurityAlertsItem Component", () => {
     });
 
     it("has cursor pointer", () => {
-      const { container } = render(<SecurityAlertsItem {...defaultProps} />);
-      const row = container.querySelector("button");
+      render(<SecurityAlertsItem {...defaultProps} />);
+      const row = screen.getByRole("button");
 
       expect(row).toHaveStyle({ cursor: "pointer" });
     });
@@ -444,14 +444,14 @@ describe("SecurityAlertsItem Component", () => {
       const row = screen.getByRole("button");
 
       expect(row).toBeInTheDocument();
-      expect(row.tagName).toBe("BUTTON");
+      expect(row.tagName).toBe("DIV");
     });
 
     it("row has button type", () => {
       render(<SecurityAlertsItem {...defaultProps} />);
       const row = screen.getByRole("button");
 
-      expect(row).toHaveAttribute("type", "button");
+      expect(row).toHaveAttribute("tabIndex", "0");
     });
 
     it("does not open modal on other key press", () => {

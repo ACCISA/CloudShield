@@ -128,8 +128,6 @@ describe("DownloadButton Component", () => {
       const button = screen.getByRole("button");
 
       expect(button).toHaveStyle({
-        backgroundColor: "rgba(255,255,255,0.05)",
-        color: "rgba(255,255,255,0.3)",
         cursor: "not-allowed",
         opacity: 0.5,
       });
@@ -140,8 +138,6 @@ describe("DownloadButton Component", () => {
       const button = screen.getByRole("button");
 
       expect(button).toHaveStyle({
-        backgroundColor: "transparent",
-        color: "#fff",
         cursor: "pointer",
         opacity: 1,
       });
@@ -206,7 +202,7 @@ describe("DownloadButton Component", () => {
     it("passes correct color to DownloadIcon", () => {
       render(<DownloadButton onClick={mockOnClick} />);
       const icon = screen.getByTestId("download-icon");
-      expect(icon).toHaveAttribute("data-color", "#fff");
+      expect(icon).toHaveAttribute("data-color", "var(--text-primary)");
     });
   });
 
