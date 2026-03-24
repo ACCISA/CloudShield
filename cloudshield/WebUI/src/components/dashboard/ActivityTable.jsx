@@ -13,6 +13,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { format } from "date-fns";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 export default function ActivityTable({
   activities,
@@ -24,6 +25,7 @@ export default function ActivityTable({
   onRowsPerPageChange,
   onRefresh,
 }) {
+  const themeColors = useThemeColors();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
@@ -74,8 +76,8 @@ export default function ActivityTable({
         gap: 0.5,
         cursor: "pointer",
         userSelect: "none",
-        color: "#aaa",
-        "&:hover": { color: "#fff" },
+        color: themeColors.textSecondary,
+        "&:hover": { color: themeColors.text },
       }}
     >
       <Typography fontSize={13}>{label}</Typography>
@@ -89,7 +91,7 @@ export default function ActivityTable({
   );
 
   return (
-    <Paper sx={{ bgcolor: "#121212", borderRadius: 3 }}>
+    <Paper sx={{ bgcolor: themeColors.bgSecondary, borderRadius: 3 }}>
       <Box
         sx={{
           px: 3,
@@ -97,7 +99,7 @@ export default function ActivityTable({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "1px solid #1f1f1f",
+          borderBottom: `1px solid ${themeColors.borderLight}`,
         }}
       >
         <Typography fontWeight={600}>Recent activity</Typography>
@@ -110,7 +112,7 @@ export default function ActivityTable({
           >
             <RefreshIcon
               sx={{
-                color: loading ? "#555" : "#aaa",
+                color: loading ? themeColors.textDisabled : themeColors.textSecondary,
                 animation: loading ? "spin 1s linear infinite" : "none",
               }}
             />
@@ -123,18 +125,18 @@ export default function ActivityTable({
               px: 1.5,
               py: 0.5,
               borderRadius: 2,
-              border: "1px solid rgba(255,255,255,0.4)",
+              border: `1px solid ${themeColors.border}`,
               "&:focus-within": {
-                borderColor: "#fff",
+                borderColor: themeColors.text,
               },
             }}
           >
-            <SearchIcon sx={{ fontSize: 18, color: "#bbb" }} />
+            <SearchIcon sx={{ fontSize: 18, color: themeColors.textSecondary }} />
             <InputBase
               placeholder="Search activities"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              sx={{ ml: 1, fontSize: 14, color: "#fff", width: 220 }}
+              sx={{ ml: 1, fontSize: 14, color: themeColors.text, width: 220 }}
             />
           </Box>
         </Box>
@@ -146,7 +148,7 @@ export default function ActivityTable({
           gridTemplateColumns: "220px 200px 1fr",
           px: 3,
           py: 1.5,
-          color: "#aaa",
+          color: themeColors.textSecondary,
         }}
       >
         <SortLabel label="Actor" field="actor" />
@@ -156,13 +158,13 @@ export default function ActivityTable({
 
       <Box sx={{ px: 2, pb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
         {loading && (
-          <Typography sx={{ textAlign: "center", color: "#777", py: 4 }}>
+          <Typography sx={{ textAlign: "center", color: themeColors.textSecondary, py: 4 }}>
             Loading activity…
           </Typography>
         )}
 
         {!loading && filteredAndSorted.length === 0 && (
-          <Typography sx={{ textAlign: "center", color: "#666", py: 4 }}>
+          <Typography sx={{ textAlign: "center", color: themeColors.textSecondary, py: 4 }}>
             No activity found
           </Typography>
         )}
@@ -177,8 +179,8 @@ export default function ActivityTable({
               px: 2,
               py: 1.5,
               borderRadius: 1.5,
-              bgcolor: "#1a1a1a",
-              "&:hover": { bgcolor: "#202020" },
+              bgcolor: themeColors.bgTertiary,
+              "&:hover": { bgcolor: themeColors.bgHover },
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -188,13 +190,13 @@ export default function ActivityTable({
               <Typography fontSize={14}>{row.actor}</Typography>
             </Box>
 
-            <Typography fontSize={13} sx={{ color: "#aaa" }}>
+            <Typography fontSize={13} sx={{ color: themeColors.textSecondary }}>
               {row.created_at
                 ? format(new Date(row.created_at), "dd/MM/yyyy hh:mm a")
                 : "-"}
             </Typography>
 
-            <Typography fontSize={14} sx={{ color: "#ddd" }}>
+            <Typography fontSize={14} sx={{ color: themeColors.text }}>
               {row.description}
             </Typography>
           </Box>
@@ -210,10 +212,10 @@ export default function ActivityTable({
         onRowsPerPageChange={onRowsPerPageChange}
         rowsPerPageOptions={[20, 50, 100]}
         sx={{
-          color: "#fff",
-          borderTop: "1px solid #1f1f1f",
-          ".MuiTablePagination-selectIcon": { color: "#fff" },
-          ".MuiTablePagination-actions": { color: "#fff" },
+          color: themeColors.text,
+          borderTop: `1px solid ${themeColors.borderLight}`,
+          ".MuiTablePagination-selectIcon": { color: themeColors.text },
+          ".MuiTablePagination-actions": { color: themeColors.text },
         }}
       />
     </Paper>

@@ -7,7 +7,28 @@ import GroupsModal from "../components/groups/GroupsModal.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 
-// Toast Notification Component
+import SearchField from "../components/common/SearchField/SearchField.jsx";
+import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
+import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
+import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
+import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
+import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
+import UploadFileIcon from "../assets/UploadFileIcon.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from "../api/client.js";
+import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
+import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
+import EditButton from "../components/common/EditButton/EditButton.jsx";
+import EditIcon from "../assets/EditIcon.jsx";
+import TrashIcon from "../assets/TrashIcon.jsx";
+import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
+
+import PageShell from "../components/layout/PageShell.jsx";
+import TableSurface from "../components/table/TableSurface.jsx";
+import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import { safeAsync } from "../lib/safeAsync.js";
+import { formatShares } from "../lib/format.js";
+
 const TOAST_BG_COLORS = {
   error: "#d32f2f",
   warning: "#ed6c02",
@@ -65,29 +86,6 @@ CustomToast.defaultProps = {
   type: "success",
 };
 
-// Import dynamic components
-import SearchField from "../components/common/SearchField/SearchField.jsx";
-import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
-import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx";
-import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
-import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
-import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
-import UploadFileIcon from "../assets/UploadFileIcon.jsx";
-import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from "../api/client.js";
-import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
-import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
-import EditButton from "../components/common/EditButton/EditButton.jsx";
-import EditIcon from "../assets/EditIcon.jsx";
-import TrashIcon from "../assets/TrashIcon.jsx";
-import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
-import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
-
-import PageShell from "../components/layout/PageShell.jsx";
-import TableSurface from "../components/table/TableSurface.jsx";
-import TableSkeleton from "../components/table/TableSkeleton.jsx";
-import { safeAsync } from "../lib/safeAsync.js";
-import { formatShares } from "../lib/format.js";
-
 const styles = {
   ...managementToolbarStyles,
   ...sharedIconViewStyles,
@@ -100,37 +98,27 @@ export default function GroupsPage() {
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
 
-  // Filter state using Sets for FilterButton
-  const [activeFilters, setActiveFilters] = useState({
-    size: new Set(),
-  });
+  const [activeFilters, setActiveFilters] = useState({ size: new Set() });
 
   const [showUsers, setShowUsers] = useState(true);
   const [showWorkstations, setShowWorkstations] = useState(true);
   const [showFiles, setShowFiles] = useState(true);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
-
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
-
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
-
-  // CSV import state
   const csvInputRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
   const [showCsvHelp, setShowCsvHelp] = useState(false);
 
-  // Open modal if navigated from dashboard
   useEffect(() => {
     if (location.state?.openModal) {
       setModalOpen(true);
       setEditingGroup(null);
-      // Clear the state to prevent reopening on subsequent renders
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -158,74 +146,45 @@ export default function GroupsPage() {
   const mapApiGroupToUi = (g) => {
     const membersInfo = Array.isArray(g.members_info) ? g.members_info : [];
     const users = membersInfo.map((u) => {
-      const { firstName, lastName } = safeSplitName(
-        u.full_name || u.name || "",
-      );
+      const { firstName, lastName } = safeSplitName(u.full_name || u.name || "");
       return {
-        id: u._id,
-        _id: u._id,
-        email: u.email,
-        firstName,
-        lastName,
-        title: u.role || "",
-        role: u.role,
-        org_id: u.org_id,
-        status: u.status,
-        created_at: u.created_at,
-        updated_at: u.updated_at,
-        profile_image: u.profile_image || null,
+        id: u._id, _id: u._id, email: u.email, firstName, lastName,
+        title: u.role || "", role: u.role, org_id: u.org_id,
+        status: u.status, created_at: u.created_at, updated_at: u.updated_at,
         profileImage: u.profile_image || null,
       };
     });
 
     const wsIds = Array.isArray(g.workstations) ? g.workstations : [];
-    const wsObjects = wsIds.map((x) => ({
-      id: x,
-      name: x,
-      online: false,
-      ipAddress: "",
-    }));
+    const wsObjects = wsIds.map((x) => ({ id: x, name: x, online: false, ipAddress: "" }));
 
     const shareIds = Array.isArray(g.file_shares) ? g.file_shares : [];
     const filesCount = shareIds.length;
 
     return {
-      id: g._id || g.id,
-      _id: g._id || g.id,
-      name: g.group_name || "",
-      groupName: g.group_name || "",
-      description: g.description || "",
+      id: g._id || g.id, _id: g._id || g.id,
+      name: g.group_name || "", description: g.description || "",
       image: g.group_image || null,
-
-      users,
-      memberCount: Array.isArray(g.members) ? g.members.length : users.length,
-
-      workstations: wsObjects,
-      workstationIds: wsIds,
-
-      files: filesCount,
-      filesDisplay: formatShares(filesCount),
-      fileShareIds: shareIds,
-
-      type: "Custom",
-      createdDate: g.created_at,
-      updatedDate: g.updated_at,
+      users, memberCount: Array.isArray(g.members) ? g.members.length : users.length,
+      workstations: wsObjects, workstationIds: wsIds,
+      files: filesCount, filesDisplay: formatShares(filesCount), fileShareIds: shareIds,
+      type: "Custom", createdDate: g.created_at, updatedDate: g.updated_at,
       members_missing: g.members_missing || [],
     };
   };
 
   const fetchGroups = async () => {
     setLoading(true);
-
     try {
-      await runWithErrorToast(async () => {
-        const data = await apiGet("/access-groups");
-        const apiGroups = Array.isArray(data.access_groups)
-          ? data.access_groups
-          : [];
-        const uiGroups = apiGroups.map(mapApiGroupToUi);
-        setGroups(uiGroups);
-      });
+      await safeAsync(
+        async () => {
+          const res = await apiGet("/access-groups");
+          const data = await res.json();
+          const apiGroups = Array.isArray(data.access_groups) ? data.access_groups : [];
+          setGroups(apiGroups.map(mapApiGroupToUi));
+        },
+        { toast: { error: (msg) => openToast(msg, "error") }, minDelay: 0 }
+      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -233,9 +192,7 @@ export default function GroupsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
+  useEffect(() => { fetchGroups(); }, []);
 
   const filtered = useMemo(() => {
     let out = [...groups];
@@ -243,16 +200,13 @@ export default function GroupsPage() {
 
     if (q) {
       out = out.filter((g) =>
-        [g.name, g.description].some((v) =>
-          (v || "").toLowerCase().includes(q),
-        ),
+        [g.name, g.description].some((v) => (v || "").toLowerCase().includes(q)) || selectedIds.has(g._id)
       );
     }
 
     out.sort((a, b) => {
       const va = a[sortField] ?? "";
       const vb = b[sortField] ?? "";
-
       if (typeof va === "string") {
         return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
       }
@@ -260,23 +214,18 @@ export default function GroupsPage() {
     });
 
     return out;
-  }, [groups, search, activeFilters, sortField, sortDir]);
+  }, [groups, search, activeFilters, sortField, sortDir, selectedIds]);
 
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const hasSelected = filtered.some((g) => selectedIds.has(g._id));
-    const allAreSelected =
-      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
-    return {
-      allVisibleSelected: allAreSelected,
-      isIndeterminate: hasSelected && !allAreSelected,
-    };
+    const allAreSelected = filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
+    return { allVisibleSelected: allAreSelected, isIndeterminate: hasSelected && !allAreSelected };
   }, [filtered, selectedIds]);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -285,107 +234,50 @@ export default function GroupsPage() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       const shouldSelectAll = !allVisibleSelected;
-
       for (const g of filtered) {
         if (shouldSelectAll) next.add(g._id);
         else next.delete(g._id);
       }
-
       return next;
     });
   };
 
-  const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
-  };
-
-  // Filter configuration for FilterButton
-  const filterGroups = [
-    {
-      id: "size",
-      label: "Group Size",
-      type: "checkbox",
-      options: [
-        { value: "small", label: "Small (≤5)" },
-        { value: "medium", label: "Medium (6-20)" },
-        { value: "large", label: "Large (>20)" },
-      ],
-    },
-  ];
-
   const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
-  const handleOpenCreateModal = () => {
-    setEditingGroup(null);
-    setModalOpen(true);
-  };
+  const handleOpenCreateModal = () => { setEditingGroup(null); setModalOpen(true); };
+  const handleOpenEditModal = (group) => { setEditingGroup(group); setModalOpen(true); };
+  const handleCloseModal = () => { setModalOpen(false); setEditingGroup(null); };
 
-  const handleOpenEditModal = (group) => {
-    setEditingGroup(group);
-    setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditingGroup(null);
-  };
-
-  const normalizeUniqueIds = (items, getId) => {
+  const normalizeIds = (items) => {
     const list = Array.isArray(items) ? items : [];
-    const out = [];
     const seen = new Set();
-
-    for (const item of list) {
-      const rawId = getId(item);
-      const id = rawId ? String(rawId) : "";
-      if (id && !seen.has(id)) {
-        seen.add(id);
-        out.push(id);
-      }
+    const out = [];
+    for (const it of list) {
+      const id = it && (it.id || it._id) ? String(it.id || it._id) : "";
+      if (id && !seen.has(id)) { seen.add(id); out.push(id); }
     }
     return out;
   };
 
   const handleSubmitGroup = async (groupData) => {
-    const members = normalizeUniqueIds(groupData.users, (u) =>
-      u ? u._id || u.id : null,
-    );
-    const workstations = normalizeUniqueIds(groupData.workstations, (w) =>
-      w ? w.id || w._id : null,
-    );
-    const file_shares = normalizeUniqueIds(groupData.files, (f) =>
-      f ? f.id || f._id : null,
-    );
-
     const payload = {
       group_name: groupData.name,
       description: groupData.description,
       group_image: groupData.image || null,
-      members,
-      workstations,
-      file_shares,
+      members: normalizeIds(groupData.users),
+      workstations: normalizeIds(groupData.workstations),
+      file_shares: normalizeIds(groupData.files),
     };
 
     try {
-      await runWithErrorToast(async () => {
-        if (editingGroup) {
-          await apiPatch(`/access-groups/${editingGroup.id}`, payload);
-        } else {
-          await apiPost("/access-groups", payload);
-        }
-      });
-
-      openToast(
-        editingGroup
-          ? "Group updated successfully"
-          : "Group created successfully",
+      await safeAsync(
+        async () => {
+          if (editingGroup) await apiPatch(`/access-groups/${editingGroup.id}`, payload);
+          else await apiPost("/access-groups", payload);
+        },
+        { toast: { error: (msg) => openToast(msg, "error") }, minDelay: 0 }
       );
-
+      openToast(editingGroup ? "Group updated successfully" : "Group created successfully");
       await fetchGroups();
     } catch (e) {
       console.error(e);
@@ -393,20 +285,9 @@ export default function GroupsPage() {
   };
 
   const handleDeleteGroup = async (groupId) => {
-    const confirmed =
-      typeof window.confirm === "function"
-        ? window.confirm(
-            "Are you sure you want to delete this group? This action cannot be undone.",
-          )
-        : true;
-
-    if (!confirmed) return;
-
+    if (!window.confirm("Are you sure you want to delete this group? This action cannot be undone.")) return;
     try {
-      await runWithErrorToast(async () => {
-        await apiDelete(`/access-groups/${groupId}`);
-      });
-
+      await safeAsync(async () => { await apiDelete(`/access-groups/${groupId}`); }, { toast: { error: (msg) => openToast(msg, "error") }, minDelay: 0 });
       openToast("Group deleted");
       await fetchGroups();
     } catch (e) {
@@ -414,23 +295,23 @@ export default function GroupsPage() {
     }
   };
 
-  // CSV import handler
   const handleCsvImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Reset input so same file can be selected again
     event.target.value = "";
-
     setCsvImporting(true);
+
     try {
       const result = await apiUploadFile("/access-groups/import-csv", file);
-
       const created = result.created || 0;
       const errorCount = result.errors?.length || 0;
 
       if (created > 0) {
-        openToast(`Successfully imported ${created} group(s)${errorCount > 0 ? ` (${errorCount} warnings)` : ""}`, "success");
+        openToast(
+          `Successfully imported ${created} group(s)${errorCount > 0 ? ` (${errorCount} warnings)` : ""}`,
+          "success"
+        );
         fetchGroups();
       } else if (errorCount > 0) {
         const firstError = result.errors[0];
@@ -439,7 +320,6 @@ export default function GroupsPage() {
         openToast("No groups imported", "info");
       }
 
-      // Log detailed errors to console for debugging
       if (result.errors?.length > 0) {
         console.warn("CSV import errors:", result.errors);
       }
@@ -454,55 +334,8 @@ export default function GroupsPage() {
     csvInputRef.current?.click();
   };
 
-  const selectedCount = useMemo(
-    () => filtered.filter((g) => selectedIds.has(g._id)).length,
-    [filtered, selectedIds],
-  );
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
-  const getGroupMenuItems = (group) => [
-    {
-      icon: <EditIcon width={15} height={16} color="#1a1a1a" />,
-      label: "edit group",
-      color: "#1a1a1a",
-      onClick: () => handleOpenEditModal(group),
-    },
-    {
-      icon: <TrashIcon width={12} height={14} color="#D51616" />,
-      label: "delete group",
-      color: "#D51616",
-      onClick: () => handleDeleteGroup(group.id),
-    },
-  ];
-
-  const iconMetaRows = [
-    {
-      show: showUsers,
-      label: "Users",
-      value: (group) => group.memberCount ?? group.users?.length ?? 0,
-    },
-    {
-      show: showWorkstations,
-      label: "Workstations",
-      value: (group) => group.workstations?.length ?? 0,
-    },
-    {
-      show: showFiles,
-      label: "Shares",
-      value: (group) => group.files ?? 0,
-    },
-  ];
-
-  const pageContentStyle = {
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: 24,
-    minHeight: 0,
-  };
+  const selectedCount = useMemo(() => filtered.filter((g) => selectedIds.has(g._id)).length, [filtered, selectedIds]);
+  const clearSelection = useCallback(() => { setSelectedIds(new Set()); }, []);
 
   const loadingOverlayStyle = {
     position: "absolute",
@@ -513,157 +346,128 @@ export default function GroupsPage() {
     zIndex: 2,
     pointerEvents: "none",
   };
-  
+
+  const getGroupMenuItems = (group) => [
+    { icon: <EditIcon width={15} height={16} color="#1a1a1a" />, label: "edit group", color: "#1a1a1a", onClick: () => handleOpenEditModal(group) },
+    { icon: <TrashIcon width={12} height={14} color="#D51616" />, label: "delete group", color: "#D51616", onClick: () => handleDeleteGroup(group.id) },
+  ];
+
   return (
     <PageShell>
-      <div style={pageContentStyle}>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 24, minHeight: 0 }}>
         {/* Toolbar */}
         <div style={styles.toolbar}>
           <div style={styles.leftActions}>
-            <SearchField
-              value={search}
-              onChange={setSearch}
-              placeholder="Search groups"
-              showIcon={true}
-              style={{
-                flex: "1 1 200px",
-                minWidth: "200px",
-                maxWidth: "680px",
-                width: "100%",
-              }}
-            />
-
+            <SearchField value={search} onChange={setSearch} placeholder="Search groups" showIcon={true} style={{ flex: "1 1 200px", minWidth: "200px", maxWidth: "680px", width: "100%" }} />
             <DisplayButton
-              layout={layout}
-              onLayoutChange={setLayout}
+              layout={layout} onLayoutChange={setLayout}
               columnToggles={{
                 columns: [
                   { key: "showUsers", label: "Users", checked: showUsers },
-                  {
-                    key: "showWorkstations",
-                    label: "Workstations",
-                    checked: showWorkstations,
-                  },
+                  { key: "showWorkstations", label: "Workstations", checked: showWorkstations },
                   { key: "showFiles", label: "Shares", checked: showFiles },
                 ],
-                onToggle: (column) => {
-                  if (column === "showUsers") setShowUsers((prev) => !prev);
-                  if (column === "showWorkstations")
-                    setShowWorkstations((prev) => !prev);
-                  if (column === "showFiles") setShowFiles((prev) => !prev);
+                onToggle: (col) => {
+                  if (col === "showUsers") setShowUsers((p) => !p);
+                  if (col === "showWorkstations") setShowWorkstations((p) => !p);
+                  if (col === "showFiles") setShowFiles((p) => !p);
                 },
-            }}
-          />
-
-          <FilterButton
-            filterGroups={filterGroups}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-
-        {/* Right side: Refresh and Create buttons */}
-        <div style={styles.rightActions}>
-          {layout === "list" && selectedCount > 0 && (
-            <div style={styles.selectionSummary}>
-              <span style={styles.selectionSummaryCount}>
-                {selectedCount} selected
-              </span>
-              <button
-                type="button"
-                style={styles.clearSelectionButton}
-                onClick={clearSelection}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.03)";
-                }}
-              >
-                Clear selection
-              </button>
-            </div>
-          )}
-          <RefreshButton onClick={fetchGroups} />
-
-          {/* Hidden file input for CSV import */}
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleCsvImport}
-            style={{ display: "none" }}
-          />
-
-          {/* CSV Import with help indicator */}
-          <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-            <CreateButton
-              icon={<UploadFileIcon width={16} height={16} color="#fff" />}
-              buttonText={csvImporting ? "Importing..." : "Import CSV"}
-              onClick={handleCsvButtonClick}
-              disabled={csvImporting}
-              data-testid="import-csv-button"
-            />
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "18px",
-                height: "18px",
-                borderRadius: "50%",
-                backgroundColor: "rgba(255,255,255,0.15)",
-                color: "#fff",
-                fontSize: "11px",
-                fontWeight: "600",
-                cursor: "pointer",
               }}
-              onClick={() => setShowCsvHelp(!showCsvHelp)}
-              onMouseEnter={() => setShowCsvHelp(true)}
-              onMouseLeave={() => setShowCsvHelp(false)}
-            >
-              ?
-            </div>
-            {showCsvHelp && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  marginTop: "8px",
-                  padding: "12px 16px",
-                  backgroundColor: "#1a1a2e",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: "8px",
-                  color: "#fff",
-                  fontSize: "12px",
-                  lineHeight: "1.5",
-                  whiteSpace: "pre-line",
-                  zIndex: 1000,
-                  minWidth: "360px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                }}
-              >
-                <strong>CSV Format:</strong>{"\n"}
-                group_name,description,member_emails,workstations{"\n\n"}
-                <strong>Columns:</strong>{"\n"}
-                - member_emails: semicolon-separated{"\n"}
-                - workstations: semicolon-separated (optional){"\n\n"}
-                <strong>Example:</strong>{"\n"}
-                Engineering,Dev team,john@co.com;jane@co.com,WS01;WS02
-              </div>
-            )}
+            />
+            <FilterButton filterGroups={[{ id: "size", label: "Group Size", type: "checkbox", options: [{ value: "small", label: "Small (≤5)" }, { value: "medium", label: "Medium (6-20)" }, { value: "large", label: "Large (>20)" }] }]} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
           </div>
 
-          <CreateButton
-            icon={<CreateGroupIcon width={24} height={24} color="#fff" />}
-            buttonText="Create"
-            onClick={handleOpenCreateModal}
-          />
+          <div style={styles.rightActions}>
+            {layout === "list" && selectedCount > 0 && (
+              <div style={styles.selectionSummary}>
+                <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
+                <button type="button" style={styles.clearSelectionButton} onClick={clearSelection}>Clear selection</button>
+              </div>
+            )}
+            <RefreshButton onClick={fetchGroups} />
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCsvImport}
+              style={{ display: "none" }}
+            />
+            <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <button
+                type="button"
+                onClick={handleCsvButtonClick}
+                disabled={csvImporting}
+                data-testid="import-csv-button"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                  fontWeight: 500,
+                  padding: "10px 14px",
+                  cursor: csvImporting ? "not-allowed" : "pointer",
+                }}
+              >
+                <UploadFileIcon width={16} height={16} color="#fff" />
+                {csvImporting ? "Importing..." : "Import CSV"}
+              </button>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  color: "#fff",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowCsvHelp(!showCsvHelp)}
+                onMouseEnter={() => setShowCsvHelp(true)}
+                onMouseLeave={() => setShowCsvHelp(false)}
+              >
+                ?
+              </div>
+              {showCsvHelp && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: "8px",
+                    padding: "12px 16px",
+                    backgroundColor: "#1a1a2e",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: "8px",
+                    color: "#fff",
+                    fontSize: "12px",
+                    lineHeight: "1.5",
+                    whiteSpace: "pre-line",
+                    zIndex: 1000,
+                    minWidth: "360px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  }}
+                >
+                  <strong>CSV Format:</strong>{"\n"}
+                  group_name,description,member_emails,workstations{"\n\n"}
+                  <strong>Columns:</strong>{"\n"}
+                  - member_emails: semicolon-separated{"\n"}
+                  - workstations: semicolon-separated (optional){"\n\n"}
+                  <strong>Example:</strong>{"\n"}
+                  Engineering,Dev team,john@co.com;jane@co.com,WS01;WS02
+                </div>
+              )}
+            </div>
+            <CreateButton icon={<CreateGroupIcon width={24} height={24} color="#fff" />} buttonText="Create" onClick={handleOpenCreateModal} />
+          </div>
         </div>
-      </div>
 
         <TableSurface>
           <div style={{ position: "relative", height: "100%", minHeight: 0 }}>
@@ -691,56 +495,34 @@ export default function GroupsPage() {
                     onToggleSelectAll={toggleSelectAllVisible}
                     selectedCount={selectedCount}
                   />
-
                   <div style={styles.iconsGrid}>
-                    {filtered.map((group) => {
-                      const selected = selectedIds.has(group._id);
-
-                      return (
-                        <div
-                          key={group.id}
-                          style={{
-                            ...styles.iconCard,
-                            ...(selected ? styles.iconCardSelected : {}),
-                          }}
-                        >
-                          <div style={styles.iconCardHeader}>
-                            <Checkbox
-                              checked={selected}
-                              onChange={() => toggleSelect(group._id)}
-                            />
-                            <EditButton menuItems={getGroupMenuItems(group)} />
-                          </div>
-
-                          <div style={styles.iconTitle}>
-                            <DisplayIcon
-                              type="group"
-                              data={group}
-                              size="small"
-                            />
-                            <div style={styles.iconTitleText}>
-                              <span style={styles.iconName}>{group.name}</span>
-                              <span style={styles.iconSub}>
-                                ↳ {group.description || "—"}
-                              </span>
+                    {filtered.length === 0 ? (
+                      <div style={{ gridColumn: "1 / -1", margin: "32px 0", textAlign: "center", opacity: 0.8 }}>
+                        No groups found
+                      </div>
+                    ) : (
+                      filtered.map((group) => {
+                        const selected = selectedIds.has(group._id);
+                        return (
+                          <div key={group.id} style={{ ...styles.iconCard, ...(selected ? styles.iconCardSelected : {}) }}>
+                            <div style={styles.iconCardHeader}>
+                              <Checkbox checked={selected} onChange={() => toggleSelect(group._id)} />
+                              <EditButton menuItems={getGroupMenuItems(group)} />
                             </div>
-                          </div>
-
-                          {iconMetaRows
-                            .filter((row) => row.show)
-                            .map((row) => (
-                              <div key={row.label} style={styles.iconMetaRow}>
-                                <span style={styles.iconMetaLabel}>
-                                  {row.label}
-                                </span>
-                                <span style={styles.iconMetaValue}>
-                                  {row.value(group)}
-                                </span>
+                            <div style={styles.iconTitle}>
+                              <DisplayIcon type="group" data={group} size="small" />
+                              <div style={styles.iconTitleText}>
+                                <span style={styles.iconName}>{group.name}</span>
+                                <span style={styles.iconSub}>↳ {group.description || "—"}</span>
                               </div>
-                            ))}
-                        </div>
-                      );
-                    })}
+                            </div>
+                            {showUsers && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Users</span><span style={styles.iconMetaValue}>{group.memberCount ?? group.users?.length ?? 0}</span></div>}
+                            {showWorkstations && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Workstations</span><span style={styles.iconMetaValue}>{group.workstations?.length ?? 0}</span></div>}
+                            {showFiles && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Shares</span><span style={styles.iconMetaValue}>{group.files ?? 0}</span></div>}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -755,15 +537,7 @@ export default function GroupsPage() {
         </TableSurface>
       </div>
 
-      <GroupsModal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        groupData={editingGroup}
-        onSubmit={handleSubmitGroup}
-        onDelete={handleDeleteGroup}
-        onRefresh={fetchGroups}
-      />
-
+      <GroupsModal open={modalOpen} onClose={handleCloseModal} groupData={editingGroup} onSubmit={handleSubmitGroup} onDelete={handleDeleteGroup} onRefresh={fetchGroups} />
       {toast.open && (
         <CustomToast
           msg={toast.msg}

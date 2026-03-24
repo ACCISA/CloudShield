@@ -13,6 +13,7 @@
  */
 import React from 'react';
 import { Paper, Box, Typography } from '@mui/material';
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * AuthCard component wraps auth form content in a styled card container.
@@ -21,6 +22,7 @@ import { Paper, Box, Typography } from '@mui/material';
  * @returns {JSX.Element} Styled Paper component with logo and footer
  */
 export default function AuthCard({ children }) {
+  const themeColors = useThemeColors();
   return (
     <Paper
       variant="rounded"
@@ -28,15 +30,15 @@ export default function AuthCard({ children }) {
         width: '100%',
         maxWidth: 480,
         margin: '48px auto',
-        backgroundColor: '#111111',
+        backgroundColor: themeColors.surface,
         borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: `1px solid ${themeColors.border}`,
         boxShadow: '0 24px 64px rgba(0,0,0,0.75)',
         padding: { xs: '32px', md: '48px' },
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        color: '#fff',
+        color: themeColors.text,
       }}
     >
       {/* Logo block */}
@@ -46,8 +48,8 @@ export default function AuthCard({ children }) {
           sx={{
             width: 64,
             height: 64,
-            bgcolor: '#fff',
-            color: '#000',
+            bgcolor: themeColors.text,
+            color: themeColors.surface,
             borderRadius: '8px',
             fontWeight: 600,
             fontSize: 12,
@@ -70,12 +72,12 @@ export default function AuthCard({ children }) {
           width: '100%',
           textAlign: 'center',
           mt: 6,
-          color: '#fff',
+          color: themeColors.text,
         }}
       >
         <Typography
           sx={{
-            color: '#fff',
+            color: themeColors.text,
             fontSize: '1rem',
             fontWeight: 500,
             textDecoration: 'underline',
@@ -86,7 +88,7 @@ export default function AuthCard({ children }) {
         </Typography>
         <Typography
           sx={{
-            color: 'rgba(255,255,255,0.6)',
+            color: themeColors.textSecondary,
             fontSize: '0.9rem',
             mb: 1,
           }}

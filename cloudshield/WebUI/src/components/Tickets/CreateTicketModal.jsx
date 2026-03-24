@@ -46,7 +46,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
     const textFieldSx = {
         '& .MuiOutlinedInput-root': {
             color: '#fff',
-            backgroundColor: '#1a1a1a', // Matched to dashboard inputs
+            backgroundColor: 'var(--input-bg)', // Matched to dashboard inputs
             borderRadius: '6px', // Matched to dashboard borders
             transition: 'all 0.2s ease-in-out',
             '& fieldset': { borderColor: '#333' },
@@ -54,7 +54,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
             '&.Mui-focused fieldset': { borderColor: '#888' }, // Clean grey focus, no neon
         },
         '& .MuiInputLabel-root': { color: '#888' },
-        '& .MuiInputLabel-root.Mui-focused': { color: '#fff' },
+        '& .MuiInputLabel-root.Mui-focused': { color: "text.primary" },
     };
 
     const toggleGroupSx = {
@@ -71,7 +71,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
             py: 1,
             transition: 'all 0.2s ease',
             '&.Mui-selected': {
-                backgroundColor: 'rgba(255,255,255,0.1)',
+                backgroundColor: 'var(--light-overlay)',
                 color: '#fff',
                 fontWeight: 600,
                 borderColor: '#666 !important'
@@ -92,7 +92,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
             PaperProps={{
                 sx: { 
                     backgroundColor: '#111111', // Exact match to designer's background
-                    color: '#fff',
+                    color: "text.primary",
                     borderRadius: '12px',
                     border: '1px solid #222', // Exact match to designer's border
                     boxShadow: '0 24px 48px rgba(0,0,0,0.7)'
@@ -107,7 +107,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#fff', // Removed neon green box
+                            backgroundColor: 'var(--light-overlay-subtle)', color: 'var(--text-primary)', // Removed neon green box
                             p: 1, borderRadius: '6px', display: 'flex', border: '1px solid #333'
                         }}>
                             <SupportAgentIcon fontSize="small" />
@@ -116,7 +116,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                             Submit a Request
                         </Typography>
                     </Box>
-                    <IconButton onClick={onClose} disabled={isSubmitting} sx={{ color: '#888', '&:hover': { color: '#fff' } }}>
+                    <IconButton onClick={onClose} disabled={isSubmitting} sx={{ color: '#888', '&:hover': { color: "text.primary" } }}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
@@ -204,7 +204,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                     <Button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        sx={{ color: '#888', textTransform: 'none', fontWeight: 600, transition: 'color 0.2s', '&:hover': { color: '#fff', backgroundColor: 'transparent' } }}
+                        sx={{ color: '#888', textTransform: 'none', fontWeight: 600, transition: 'color 0.2s', '&:hover': { color: "text.primary", backgroundColor: 'transparent' } }}
                     >
                         Cancel
                     </Button>
@@ -214,7 +214,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                         disabled={isSubmitting || !title.trim() || !description.trim()}
                         endIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <SendIcon sx={{ fontSize: 18 }} />}
                         sx={{ 
-                            backgroundColor: '#fff', 
+                            backgroundColor: "text.primary", 
                             color: '#000',
                             textTransform: 'none',
                             fontWeight: 600,
@@ -223,7 +223,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                             boxShadow: 'none',
                             transition: 'all 0.2s ease',
                             '&:hover': { backgroundColor: '#e0e0e0', boxShadow: 'none' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(255,255,255,0.1)', color: '#555' }
+                            '&.Mui-disabled': { backgroundColor: 'var(--light-overlay-subtle)', color: 'var(--text-secondary)' }
                         }}
                     >
                         {isSubmitting ? 'Submitting...' : 'Submit Request'}

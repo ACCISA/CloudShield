@@ -1,6 +1,8 @@
 import React from "react";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
 export default function ColumnToggle({ label, checked, onChange }) {
+  const themeColors = useThemeColors();
   return (
     <div
       onClick={onChange}
@@ -24,7 +26,7 @@ export default function ColumnToggle({ label, checked, onChange }) {
         transition: "background-color 0.2s ease",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)";
+        e.currentTarget.style.backgroundColor = themeColors.lightOverlaySubtle;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent";
@@ -33,7 +35,7 @@ export default function ColumnToggle({ label, checked, onChange }) {
       <span
         style={{
           fontSize: "14px",
-          color: "#fff",
+          color: themeColors.text,
           opacity: 0.9,
         }}
       >
@@ -45,8 +47,8 @@ export default function ColumnToggle({ label, checked, onChange }) {
           height: "20px",
           borderRadius: "10px",
           backgroundColor: checked
-            ? "rgba(255,255,255,0.9)"
-            : "rgba(255,255,255,0.2)",
+            ? themeColors.secondary
+            : themeColors.border,
           position: "relative",
           transition: "background-color 0.2s ease",
         }}
@@ -56,7 +58,7 @@ export default function ColumnToggle({ label, checked, onChange }) {
             width: "16px",
             height: "16px",
             borderRadius: "8px",
-            backgroundColor: checked ? "#000" : "rgba(255,255,255,0.6)",
+            backgroundColor: checked ? themeColors.bgPrimary : themeColors.textTertiary,
             position: "absolute",
             top: "2px",
             left: checked ? "22px" : "2px",

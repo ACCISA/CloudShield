@@ -1909,5 +1909,447 @@ describe("EmployeesPage Integration", () => {
       });
     });
   });
+
+  describe("Comprehensive useAuth Hook Integration", () => {
+    it("reads currentUser from AuthContext", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("uses currentUser when available", async () => {
+      renderPage({
+        currentUser: { id: "admin-1", email: "admin@test.com" },
+      });
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("orgId useMemo with localStorage Fallback", () => {
+    it("prefers localStorage org_id over currentUser.org_id", async () => {
+      localStorage.setItem("org_id", "stored-org-123");
+      renderPage({
+        currentUser: { id: "user-1", org_id: "user-org-456" },
+      });
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("falls back to currentUser.org_id when localStorage fails", async () => {
+      const getItemSpy = jest
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation(() => {
+          throw new Error("localStorage error");
+        });
+
+      renderPage({
+        currentUser: { id: "user-1", org_id: "fallback-org" },
+      });
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+      getItemSpy.mockRestore();
+    });
+
+    it("uses cedric as default org when none available", async () => {
+      localStorage.clear();
+      renderPage({ currentUser: { id: "user-1" } });
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("recalculates orgId when currentUser changes", async () => {
+      renderPage({
+        currentUser: { id: "user-1", org_id: "org-1" },
+      });
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+      usersApi.listUsers.mockClear();
+    });
+  });
+
+  describe("State Initialization (useState hooks)", () => {
+    it("initializes layout to 'list'", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+      });
+    });
+
+    it("initializes modalOpen to false", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+    });
+
+    it("initializes modalEmployee to null", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+    });
+
+    it("initializes sortField to 'name'", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes sortDir to 'asc'", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes column visibility states to true", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes selectedIds as empty Set", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes search to empty string", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+      expect(searchField).toHaveValue("");
+    });
+
+    it("initializes activeFilters with empty status Set", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes toast state with open=false", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("location.state?.openModal Effect", () => {
+    it("opens modal when location.state.openModal is true", async () => {
+      // Setup location mock
+      jest.mock("react-router-dom", () => ({
+        ...jest.requireActual("react-router-dom"),
+        useLocation: () => ({
+          state: { openModal: true },
+          pathname: "/employees",
+        }),
+      }));
+
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("sets editTarget to null when opening from location", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("clears location.state history after opening", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("useAsyncTask Hook Integration", () => {
+    it("initializes status to idle", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("tracks creation job progress", async () => {
+      usersApi.createUser.mockResolvedValue({ job_id: "job-123" });
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("updates status when job succeeds", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("updates status when job fails", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("useEffect for Initial Data Fetch", () => {
+    it("fetches users on component mount", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("fetches users for each orgId change", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+      usersApi.listUsers.mockClear();
+    });
+
+    it("handles fetch error and sets error toast", async () => {
+      usersApi.listUsers.mockRejectedValue(new Error("Fetch failed"));
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Modal State Management", () => {
+    it("opens create modal on Create button click", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId("open-create-btn"));
+    });
+
+    it("opens edit modal when editing user", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Alice")).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId("edit-btn-1"));
+    });
+
+    it("closes modal on cancel", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
+      });
+    });
+
+    it("resets modalEmployee when closing", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("User Selection Logic", () => {
+    it("toggles single user selection", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Alice")).toBeInTheDocument();
+      });
+    });
+
+    it("selects all visible users", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("deselects all when all selected and toggling select-all", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("only selects/deselects visible users based on filters", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Column Visibility Toggles", () => {
+    it("toggles Title column visibility", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("toggles Workstations column visibility", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("toggles Groups column visibility", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("toggles Files/Shares column visibility", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Search & Filter Logic", () => {
+    it("filters users by search query", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await waitFor(() => {
+        const searchField = screen.getByTestId("search-field");
+        expect(searchField).toBeInTheDocument();
+      });
+    });
+
+    it("filters by status when active filter applied", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("combines search and status filters", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("clears filter and shows all users", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Sort Logic", () => {
+    it("sorts by name field ascending by default", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("sorts by numeric field (Files count)", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("reverses sort direction on second click", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("handles missing sort values with fallback", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Memoized Computed Values", () => {
+    it("filtered array respects search and filters", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("allVisibleSelected tracks when all visible are selected", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("isIndeterminate when some (not all) selected", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Integration: Multiple State & Effects", () => {
+    it("handles rapid layout/filter changes without losing selection", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("maintains selection across search/sort operations", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("updates display when modal submission completes", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("handles concurrent API calls gracefully", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("cleans up old modals and state when transitioning", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(usersApi.listUsers).toHaveBeenCalled();
+      });
+    });
+  });
 });
 

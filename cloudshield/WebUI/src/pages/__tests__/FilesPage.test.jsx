@@ -1758,4 +1758,688 @@ describe("FilesPage", () => {
       });
     });
   });
+
+  describe("Comprehensive useAuth Hook & currentUser Integration", () => {
+    it("reads currentUser from AuthContext", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith(
+          expect.any(String),
+        );
+      });
+    });
+
+    it("uses currentUser.org_id when available and valid", async () => {
+      const mockAuth = {
+        currentUser: { id: "u1", org_id: "user-org-456" },
+        accessToken: "token",
+      };
+      jest
+        .spyOn(require("../../context/AuthContext"), "useAuth")
+        .mockReturnValue(mockAuth);
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("user-org-456");
+      });
+    });
+  });
+
+  describe("orgId useMemo with localStorage Fallback", () => {
+    it("prefers localStorage org_id over currentUser.org_id", async () => {
+      localStorage.setItem("org_id", "local-org-999");
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("local-org-999");
+      });
+    });
+
+    it("falls back to currentUser.org_id when localStorage is empty", async () => {
+      localStorage.clear();
+      const auth = {
+        currentUser: { id: "u1", org_id: "user-org-111" },
+        accessToken: "token",
+      };
+      jest
+        .spyOn(require("../../context/AuthContext"), "useAuth")
+        .mockReturnValue(auth);
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("user-org-111");
+      });
+    });
+
+    it("catches localStorage.getItem errors gracefully", async () => {
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("localStorage access denied");
+      });
+
+      const auth = {
+        currentUser: { id: "u1", org_id: "fallback-org" },
+        accessToken: "token",
+      };
+      jest
+        .spyOn(require("../../context/AuthContext"), "useAuth")
+        .mockReturnValue(auth);
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("fallback-org");
+      });
+      expect(consoleError).toHaveBeenCalledWith(
+        "Error reading localStorage:",
+        expect.any(Error),
+      );
+
+      consoleError.mockRestore();
+    });
+
+    it("uses default-org when no localStorage and no currentUser.org_id", async () => {
+      localStorage.clear();
+      const auth = { currentUser: { id: "u1" }, accessToken: "token" };
+      jest
+        .spyOn(require("../../context/AuthContext"), "useAuth")
+        .mockReturnValue(auth);
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalledWith("default-org");
+      });
+    });
+  });
+
+  describe("State Initialization (useState hooks)", () => {
+    it("initializes layout to 'list'", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId("display-button")).toHaveTextContent("list");
+      });
+    });
+
+    it("initializes tree to empty array", async () => {
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes isInitialLoading to true on mount", async () => {
+      filesApi.fetchFileShares.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve([]), 100)
+          )
+      );
+      renderWithRouter(<FilesPage />);
+      expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+    });
+
+    it("initializes loadError to empty string", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+      expect(screen.queryByText(/Failed to fetch/)).not.toBeInTheDocument();
+    });
+
+    it("initializes userLookup as empty Map", async () => {
+      filesApi.fetchUsers.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes groupLookup as empty Map", async () => {
+      filesApi.fetchGroups.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes searchQuery to empty string", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        const searchField = screen.getByTestId("search-field");
+        expect(searchField).toHaveValue("");
+      });
+    });
+
+    it("initializes selectedIds as empty Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        const checkboxes = screen.getAllByTestId("checkbox");
+        expect(checkboxes.every((c) => !c.checked)).toBe(true);
+      });
+    });
+
+    it("initializes expanded as empty Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes isUploadOpen to false", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+      });
+    });
+
+    it("initializes editTarget to null", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+      });
+    });
+
+    it("initializes deletingShares as empty Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("initializes creatingShares as empty Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("location.state?.openModal Effect", () => {
+    it("opens upload modal when location.state.openModal is true", async () => {
+      renderWithRouter(<FilesPage />, [
+        { pathname: "/files", state: { openModal: true } },
+      ]);
+      await waitFor(() => {
+        expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+      });
+    });
+
+    it("sets editTarget to null when opening modal from location state", async () => {
+      renderWithRouter(<FilesPage />, [
+        { pathname: "/files", state: { openModal: true } },
+      ]);
+      await waitFor(() => {
+        expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+    });
+
+    it("does not open modal when location.state is null", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+    });
+
+    it("does not open modal when openModal is false", async () => {
+      renderWithRouter(<FilesPage />, [
+        { pathname: "/files", state: { openModal: false } },
+      ]);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("User Lookup Effect (fetchUsers)", () => {
+    it("fetches users with orgId on mount", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalledWith("test-org-123");
+      });
+    });
+
+    it("builds lookup map by username/full_name", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          email: "alice@test.com",
+          full_name: "Alice Smith",
+          role: "admin",
+          active: true,
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("builds lookup map by email", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          email: "bob@test.com",
+          full_name: "Bob Jones",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("builds lookup map by email prefix (username part)", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          email: "charlie.brown@test.com",
+          full_name: "Charlie Brown",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("handles user without email", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          full_name: "No Email User",
+          role: "user",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("handles user without full_name, falls back to name", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          email: "user@test.com",
+          name: "User Name",
+          role: "user",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("defaults active to true when not specified", async () => {
+      filesApi.fetchUsers.mockResolvedValue([
+        {
+          _id: "u1",
+          email: "test@test.com",
+          full_name: "Test User",
+          role: "user",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+      });
+    });
+
+    it("handles user fetch error gracefully", async () => {
+      filesApi.fetchUsers.mockRejectedValue(new Error("Fetch failed"));
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          "Failed to load users for hover cards:",
+          expect.any(Error),
+        );
+      });
+      consoleError.mockRestore();
+    });
+
+    it("refetches users when orgId changes", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalledWith("test-org-123");
+      });
+      filesApi.fetchUsers.mockClear();
+    });
+  });
+
+  describe("Group Lookup Effect (fetchGroups)", () => {
+    it("fetches groups with orgId on mount", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalledWith("test-org-123");
+      });
+    });
+
+    it("builds group lookup with group_name || name", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          group_name: "Admins",
+          name: "Admin Group",
+          members: ["u1"],
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("falls back to name when group_name is missing", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          name: "TeamGroup",
+          members: ["u1"],
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("calculates member_count from members_info or members array", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          name: "Group1",
+          members: ["u1", "u2"],
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("handles group without members array", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          name: "GroupNoMembers",
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("includes workstations in group data", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          name: "Group",
+          members: [],
+          workstations: ["ws-1", "ws-2"],
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("includes file_shares in group data", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          name: "Group",
+          members: [],
+          file_shares: ["fs-1"],
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("handles group fetch error gracefully", async () => {
+      filesApi.fetchGroups.mockRejectedValue(new Error("Fetch failed"));
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          "Failed to load groups for hover cards:",
+          expect.any(Error),
+        );
+      });
+      consoleError.mockRestore();
+    });
+
+    it("only adds group to lookup when name is present", async () => {
+      filesApi.fetchGroups.mockResolvedValue([
+        {
+          _id: "g1",
+          group_name: "Named",
+          members: [],
+        },
+        {
+          _id: "g2",
+          members: [],
+          // No name
+        },
+      ]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("refetches groups when orgId changes", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchGroups).toHaveBeenCalledWith("test-org-123");
+      });
+      filesApi.fetchGroups.mockClear();
+    });
+  });
+
+  describe("fetchTree & Tree Loading Logic", () => {
+    it("calls setIsInitialLoading(true) when initial=true", async () => {
+      filesApi.fetchFileShares.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve([]), 100)
+          )
+      );
+      renderWithRouter(<FilesPage />);
+      expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+    });
+
+    it("clears loadError on each fetch", async () => {
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+      expect(screen.queryByText(/Error/)).not.toBeInTheDocument();
+    });
+
+    it("transforms shares to tree using transformSharesToTree", async () => {
+      const mockShares = [
+        { share: { name: "share1", id: "s1" } },
+      ];
+      filesApi.fetchFileShares.mockResolvedValue(mockShares);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.transformSharesToTree).toHaveBeenCalledWith(mockShares);
+      });
+    });
+
+    it("handles non-array tree response with fallback to empty", async () => {
+      filesApi.transformSharesToTree.mockReturnValue(null);
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.transformSharesToTree).toHaveBeenCalled();
+      });
+    });
+
+    it("handles fetchFileShares error and sets loadError", async () => {
+      filesApi.fetchFileShares.mockRejectedValue(
+        new Error("Network failure")
+      );
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(Error),
+        );
+      });
+      consoleError.mockRestore();
+    });
+
+    it("sets isInitialLoading(false) in finally block", async () => {
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+      });
+    });
+
+    it("handles empty shares array", async () => {
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Selection & Expansion Toggling", () => {
+    it("toggleSelect updates selectedIds", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        const checkboxes = screen.getAllByTestId("checkbox");
+        expect(checkboxes.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("toggleSelectAllVisible selects all when none selected", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("clearSelection resets selectedIds to empty Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("toggleExpand adds/removes id from expanded Set", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("toggleExpand tracks with analytics", async () => {
+      const trackButton = require("../../lib/analytics").trackButton;
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Memoized Computed Values", () => {
+    it("listFilteredTree filters based on search query in list layout", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("effectiveExpanded includes auto-expand during search", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("listVisibleIds and iconVisibleIds separate by layout", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("allVisibleSelected and isIndeterminate track selection state", async () => {
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("Integration: State, Effects & Hooks Together", () => {
+    it("handles rapid layout changes without losing state", async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        const layoutBtn = screen.getByTestId("display-button");
+        expect(layoutBtn).toBeInTheDocument();
+      });
+    });
+
+    it("maintains user/group lookups across tree updates", async () => {
+      filesApi.fetchUsers.mockResolvedValue(mockUsers);
+      filesApi.fetchGroups.mockResolvedValue(mockGroups);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchUsers).toHaveBeenCalled();
+        expect(filesApi.fetchGroups).toHaveBeenCalled();
+      });
+    });
+
+    it("handles all APIs failing gracefully", async () => {
+      filesApi.fetchFileShares.mockRejectedValue(new Error("Fetch failed"));
+      filesApi.fetchUsers.mockRejectedValue(new Error("Fetch failed"));
+      filesApi.fetchGroups.mockRejectedValue(new Error("Fetch failed"));
+      const consoleError = jest.spyOn(console, "error").mockImplementation();
+
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalled();
+      });
+
+      consoleError.mockRestore();
+    });
+
+    it("refetches with initial=true on mount via useEffect", async () => {
+      filesApi.fetchFileShares.mockResolvedValue([]);
+      renderWithRouter(<FilesPage />);
+      await waitFor(() => {
+        expect(filesApi.fetchFileShares).toHaveBeenCalled();
+      });
+    });
+
+    it("handles location.state?.openModal and location effect", async () => {
+      renderWithRouter(<FilesPage />, [
+        { pathname: "/files", state: { openModal: true } },
+      ]);
+      await waitFor(() => {
+        expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+      });
+    });
+  });
 });

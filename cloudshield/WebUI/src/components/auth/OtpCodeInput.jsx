@@ -13,6 +13,7 @@
  */
 import React from 'react';
 import { Box } from '@mui/material';
+import { useThemeColors } from '../../hooks/useThemeColors.js';
 
 /**
  * Renders a multi-digit OTP code input with individual digit boxes.
@@ -22,6 +23,7 @@ import { Box } from '@mui/material';
  * @returns {JSX.Element} Row of individual input boxes
  */
 export default function OtpCodeInput({ values = [], onChange }) {
+  const themeColors = useThemeColors();
   return (
     <Box
       sx={{
@@ -46,10 +48,10 @@ export default function OtpCodeInput({ values = [], onChange }) {
           sx={{
             width: '48px',
             height: '64px',
-            backgroundColor: '#161616',
+            backgroundColor: themeColors.inputBg,
             borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.18)',
-            color: '#fff',
+            border: `1px solid ${themeColors.border}`,
+            color: themeColors.text,
             fontSize: '1.5rem',
             fontWeight: 500,
             lineHeight: 1,

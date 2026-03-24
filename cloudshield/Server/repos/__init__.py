@@ -6,6 +6,7 @@ from .workstations_repo import insert_workstation as insert_workstation
 from .workstations_repo import update_workstation as update_workstation
 from .workstations_repo import update_workstation_template as update_workstation_template
 from .workstations_repo import get_workstation_template as get_workstation_template
+from .workstations_repo import get_workstation_templates as get_workstation_templates
 from .workstations_repo import get_workstation as get_workstation
 from .workstations_repo import get_workstations as get_workstations
 from .workstations_repo import get_available_workstations as get_available_workstations

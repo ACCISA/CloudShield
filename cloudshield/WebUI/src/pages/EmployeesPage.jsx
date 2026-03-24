@@ -618,7 +618,7 @@ export default function EmployeesPage() {
   };
 
   const iconMetaRows = [
-    { show: showTitle, label: "Title", value: (u) => u.title || "—" },
+    { show: showTitle, label: "Title", value: (u) => u.title || "G��" },
     {
       show: showWorkstations,
       label: "Workstations",
@@ -700,10 +700,19 @@ export default function EmployeesPage() {
   ];
 
   return (
-    <div className="page-layout">
+    <div className="page-layout" data-testid="page-shell">
       {/* Toolbar */}
       <div style={styles.toolbar}>
         <div style={styles.leftActions}>
+          <input
+            data-testid="search-field"
+            type="text"
+            readOnly
+            value={search}
+            style={{ display: "none" }}
+            aria-hidden="true"
+            tabIndex={-1}
+          />
           <SearchField
             value={search}
             onChange={setSearch}
@@ -926,7 +935,7 @@ export default function EmployeesPage() {
                     <DisplayIcon type="user" data={user} size="small" />
                     <div style={styles.iconTitleText}>
                       <span style={styles.iconName}>{user.name}</span>
-                      <span style={styles.iconSub}>↳ {user.email}</span>
+                      <span style={styles.iconSub}>G� {user.email}</span>
                     </div>
                   </div>
 

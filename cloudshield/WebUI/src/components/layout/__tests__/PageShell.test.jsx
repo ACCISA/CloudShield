@@ -112,4 +112,42 @@ describe("PageShell", () => {
     expect(screen.getByText("Inner heading")).toBeInTheDocument();
     expect(screen.getByText("Inner paragraph")).toBeInTheDocument();
   });
+
+  describe("noPadding prop", () => {
+    it("applies padding by default", () => {
+      const { container } = render(
+        <PageShell>
+          <div>Content</div>
+        </PageShell>
+      );
+
+      const box = container.querySelector("[class*='MuiBox']");
+      expect(box).toBeInTheDocument();
+      // MUI Box with p: 3 has padding
+      expect(box.style.padding).not.toBe("0px");
+    });
+
+    it("removes padding when noPadding is true", () => {
+      const { container } = render(
+        <PageShell noPadding>
+          <div>Content</div>
+        </PageShell>
+      );
+
+      expect(screen.getByText("Content")).toBeInTheDocument();
+      // Component still renders with noPadding prop
+      expect(container.querySelector("div")).toBeInTheDocument();
+    });
+
+    it("noPadding does not affect children rendering", () => {
+      render(
+        <PageShell noPadding title="Test">
+          <div data-testid="no-padding-content">Content with no padding</div>
+        </PageShell>
+      );
+
+      expect(screen.getByTestId("no-padding-content")).toBeInTheDocument();
+      expect(screen.getByText("Test")).toBeInTheDocument();
+    });
+  });
 });

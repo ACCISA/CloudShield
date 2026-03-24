@@ -1,37 +1,21 @@
-/**
- * SecurityChartsPanel.jsx
- *
- * Purpose:
- *   Analytics dashboard panel displaying alert history and distribution.
- *
- * Features:
- *   - Line chart showing alert trends over time
- *   - Pie chart showing alert type distribution
- *   - Dynamic time range selection
- *   - Live indicator with real-time clock
- *   - Dark theme matching application aesthetic
- */
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import AlertsLineChart from "./AlertsLineChart";
 import AlertsPieChart from "./AlertsPieChart";
 import TimeRangeSelector from "./TimeRangeSelector";
 import LiveIndicator from "./LiveIndicator";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
-function SecurityChartsPanel({ alerts }) {
-  const [timeRange, setTimeRange] = useState("30d");
-  const [currentTime, setCurrentTime] = useState(new Date());
+// 1. ISOLATE THE CLOCK: This prevents the ticking time from forcing 
+// the heavy D3 charts to re-render every single second.
+function Clock({ color }) {
+  const [currentTime, setCurrentTime] = React.useState(new Date());
 
-  // Update clock every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Format time for display
   const formatTime = (date) => {
     const hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, "0");
@@ -40,6 +24,17 @@ function SecurityChartsPanel({ alerts }) {
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes}:${seconds} ${ampm}`;
   };
+
+  return (
+    <span style={{ fontSize: "13px", fontWeight: "500", color, fontVariantNumeric: "tabular-nums" }}>
+      {formatTime(currentTime)}
+    </span>
+  );
+}
+
+function SecurityChartsPanel({ alerts }) {
+  const themeColors = useThemeColors();
+  const [timeRange, setTimeRange] = useState("30d");
 
   // Filter alerts based on time range
   const filteredAlerts = useMemo(() => {
@@ -122,19 +117,13 @@ function SecurityChartsPanel({ alerts }) {
     title: {
       fontSize: "20px",
       fontWeight: "600",
-      color: "#fff",
+      color: themeColors.textPrimary,
       margin: 0,
     },
     headerRight: {
       display: "flex",
       alignItems: "center",
       gap: "12px",
-    },
-    clockTime: {
-      fontSize: "13px",
-      fontWeight: "500",
-      color: "rgba(255,255,255,0.7)",
-      fontVariantNumeric: "tabular-nums",
     },
     chartsGrid: {
       display: "grid",
@@ -143,15 +132,15 @@ function SecurityChartsPanel({ alerts }) {
       alignItems: "start",
     },
     chartSection: {
-      backgroundColor: "#0f0f0f",
+      backgroundColor: themeColors.bgSecondary,
       borderRadius: "16px",
       padding: "16px",
-      border: "1px solid rgba(255,255,255,0.06)",
+      border: `1px solid ${themeColors.borderLight}`,
     },
     chartTitle: {
       fontSize: "14px",
       fontWeight: "500",
-      color: "rgba(255,255,255,1)",
+      color: themeColors.textPrimary,
       marginBottom: "12px",
       marginTop: 0,
     },
@@ -178,12 +167,11 @@ function SecurityChartsPanel({ alerts }) {
       backgroundColor: "rgba(16, 185, 129, 0.1)",
     },
     comparisonNeutral: {
-      color: "rgba(255,255,255,0.6)",
-      backgroundColor: "rgba(255,255,255,0.05)",
+      color: themeColors.textSecondary,
+      backgroundColor: themeColors.lightOverlaySubtle,
     },
   };
 
-  // Determine badge style based on comparison
   const getBadgeStyle = () => {
     if (alertComparison.percentChange === 0) {
       return styles.comparisonNeutral;
@@ -198,7 +186,7 @@ function SecurityChartsPanel({ alerts }) {
       <div style={styles.header}>
         <div style={styles.headerRight}>
           <LiveIndicator />
-          <span style={styles.clockTime}>{formatTime(currentTime)}</span>
+          <Clock color={themeColors.textSecondary} />
           <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
         </div>
       </div>

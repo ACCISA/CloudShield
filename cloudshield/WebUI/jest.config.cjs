@@ -16,7 +16,9 @@ module.exports = {
     'src/**/*.{js,jsx}',
     '!src/main.jsx',
     '!src/**/*.test.{js,jsx}',
-    '!src/**/__tests__/**',
+    '!src/**/*.spec.{js,jsx}',
+    '!src/**/__tests__/**/*.test.{js,jsx}',
+    '!src/**/__tests__/**/*.spec.{js,jsx}',
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",

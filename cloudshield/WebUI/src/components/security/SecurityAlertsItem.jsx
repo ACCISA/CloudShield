@@ -10,6 +10,7 @@ import EditButton from "../common/EditButton/EditButton";
 import SecurityAlertModal from "./SecurityAlertModal";
 import CheckmarkIcon from "../../assets/CheckmarkIcon";
 import DownloadIcon from "../../assets/DownloadIcon";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const RISK_CONFIG = {
   high: {
@@ -35,6 +36,7 @@ function SecurityAlertsItem({
   onToggleSelect = () => {},
   isEven = false,
 }) {
+  const themeColors = useThemeColors();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const riskConfig = RISK_CONFIG[securityAlert.risk] || RISK_CONFIG.low;
   const RiskIcon = riskConfig.icon;
@@ -97,7 +99,7 @@ function SecurityAlertsItem({
       alignItems: "center",
       gap: "12px",
       padding: "16px 16px",
-      backgroundColor: isEven ? "#1a1a1a" : "transparent",
+      backgroundColor: isEven ? themeColors.lightOverlaySubtle : "transparent",
       borderRadius: "8px",
       cursor: "pointer",
       transition: "background-color 0.2s",
@@ -114,16 +116,16 @@ function SecurityAlertsItem({
       height: "100%",
     },
     alertType: {
-      color: "#fff",
+      color: themeColors.textPrimary,
       fontSize: "14px",
       fontWeight: "500",
     },
     date: {
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontSize: "14px",
     },
     activity: {
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontSize: "14px",
     },
     riskBadge: {
@@ -136,7 +138,7 @@ function SecurityAlertsItem({
       width: "fit-content",
     },
     status: {
-      color: "#fff",
+      color: themeColors.textPrimary,
       fontSize: "14px",
       fontWeight: "500",
       textTransform: "capitalize",
@@ -152,8 +154,9 @@ function SecurityAlertsItem({
 
   return (
     <>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         style={styles.row}
         onClick={handleRowClick}
         onKeyDown={(e) => {
@@ -163,11 +166,11 @@ function SecurityAlertsItem({
           }
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#2a2a2a";
+          e.currentTarget.style.backgroundColor = themeColors.lightOverlay;
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.backgroundColor = isEven
-            ? "#1a1a1a"
+            ? themeColors.lightOverlaySubtle
             : "transparent";
         }}
       >
@@ -200,7 +203,7 @@ function SecurityAlertsItem({
         >
           <EditButton menuItems={editMenuItems} />
         </div>
-      </button>
+      </div>
       <SecurityAlertModal
         alert={securityAlert}
         isOpen={isModalOpen}

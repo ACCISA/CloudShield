@@ -2,6 +2,7 @@ import React from 'react';
 import PageShell from '../components/layout/PageShell.jsx';
 import LandingNavbar from '../components/landing/LandingNavbar.jsx';
 import HeroSection from '../components/landing/HeroSection.jsx';
+import DashboardCarousel from '../components/landing/DashboardCarousel.jsx';
 import PricingSection from '../components/landing/PricingSection.jsx';
 import ContactSection from '../components/landing/ContactSection.jsx';
 import Footer from '../components/landing/Footer.jsx';
@@ -9,7 +10,7 @@ import './LandingPage.css';
 
 const LandingPage = () => {
   return (
-    <PageShell>
+    <PageShell noPadding>
       <div className="landing-container" data-testid="landing-container">
         {/* Background glowing effects */}
         <div
@@ -34,7 +35,11 @@ const LandingPage = () => {
           data-testid="features-section"
         >
           <div className="landing-dashboard-mockup">
-            [ Dashboard Preview Mockup ]
+            <h2 className="preview-section-title">Explore Our Dashboard</h2>
+            <p className="preview-section-subtitle">
+              Navigate through the different features and management interfaces
+            </p>
+            <DashboardCarousel />
           </div>
         </section>
 
