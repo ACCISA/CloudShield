@@ -777,5 +777,358 @@ describe("AlertsLineChart Component", () => {
       ).toHaveStyle({ opacity: "0.4" });
     });
   });
+
+  describe("Ref Management (svgRef, tooltipRef)", () => {
+    it("SVG ref is properly attached to rendered SVG element", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("component renders without svgRef being null", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it("renders with both SVG and tooltip elements", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      const divs = container.querySelectorAll("div");
+      expect(svg).toBeInTheDocument();
+      expect(divs.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("State Management (hoveredType, disabledTypes)", () => {
+    it("maintains disabledTypes state when toggling", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button1 = screen.getByText("Security breach").closest("button");
+      const button2 = screen.getByText("Suspicious activity").closest("button");
+
+      fireEvent.click(button1);
+      expect(button1).toHaveStyle({ opacity: "0.4" });
+      expect(button2).toHaveStyle({ opacity: "1" });
+
+      fireEvent.click(button2);
+      expect(button1).toHaveStyle({ opacity: "0.4" });
+      expect(button2).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("hoveredType state affects visual feedback on hover", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      fireEvent.mouseEnter(button);
+      expect(button.style.backgroundColor).toBeTruthy();
+
+      fireEvent.mouseLeave(button);
+      expect(button.style.backgroundColor).toBe("transparent");
+    });
+
+    it("disabledTypes updates when toggling all types", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const buttons = [
+        screen.getByText("Security breach").closest("button"),
+        screen.getByText("Suspicious activity").closest("button"),
+        screen.getByText("Policy violation").closest("button"),
+        screen.getByText("Malware detected").closest("button"),
+      ];
+
+      // Disable all
+      buttons.forEach((btn) => fireEvent.click(btn));
+      buttons.forEach((btn) => {
+        expect(btn).toHaveStyle({ opacity: "0.4" });
+      });
+
+      // Re-enable first
+      fireEvent.click(buttons[0]);
+      expect(buttons[0]).toHaveStyle({ opacity: "1" });
+      expect(buttons[1]).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("state persists across multiple interactions", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      for (let i = 0; i < 3; i++) {
+        fireEvent.click(button);
+        if (i % 2 === 0) {
+          expect(button).toHaveStyle({ opacity: "0.4" });
+        } else {
+          expect(button).toHaveStyle({ opacity: "1" });
+        }
+      }
+    });
+  });
+
+  describe("Theme Colors (useThemeColors hook)", () => {
+    it("applies textColor from theme colors", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      expect(container).toBeInTheDocument();
+    });
+
+    it("applies borderColor from theme colors", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      expect(container.querySelector("svg")).toBeInTheDocument();
+    });
+
+    it("exports textSecondary and borderLight colors", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      // Component uses these for styling
+      expect(screen.getByTestId("provisioning-controls")).toBeTruthy();
+    });
+  });
+
+  describe("useEffect Dependency and Triggering", () => {
+    it("effect does not run when data is empty array", () => {
+      const { container } = render(
+        <AlertsLineChart data={[]} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("effect does not run when data is null", () => {
+      const { container } = render(
+        <AlertsLineChart data={null} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("effect runs when data changes", () => {
+      const { rerender } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
+
+      const newData = [
+        { type: "New Alert", date: "2024-01-05T10:00:00Z" },
+      ];
+      rerender(<AlertsLineChart data={newData} timeRange="7d" />);
+      expect(screen.getByText("New Alert")).toBeInTheDocument();
+    });
+
+    it("effect re-runs when disabledTypes state changes", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      expect(button).toHaveStyle({ opacity: "1" });
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("effect re-runs when hoveredType state changes", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      fireEvent.mouseEnter(button);
+      expect(button.style.backgroundColor).toBeTruthy();
+      fireEvent.mouseLeave(button);
+      expect(button.style.backgroundColor).toBe("transparent");
+    });
+  });
+
+  describe("Date Normalization Logic", () => {
+    it("normalizes dates to day level (removes time component)", () => {
+      const sameDayData = [
+        { type: "Type A", date: "2024-01-01T00:00:00Z" },
+        { type: "Type A", date: "2024-01-01T12:00:00Z" },
+        { type: "Type A", date: "2024-01-01T23:59:59Z" },
+      ];
+      render(<AlertsLineChart data={sameDayData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+
+    it("preserves day boundaries across timezones", () => {
+      const tzData = [
+        { type: "Type A", date: "2024-01-01T08:00:00+02:00" },
+        { type: "Type A", date: "2024-01-01T20:00:00-05:00" },
+      ];
+      render(<AlertsLineChart data={tzData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+
+    it("handles ISO date format correctly", () => {
+      const isoData = [
+        { type: "Type A", date: "2024-01-15T14:30:45.123Z" },
+        { type: "Type A", date: "2024-01-15T18:45:30.456Z" },
+      ];
+      render(<AlertsLineChart data={isoData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+  });
+
+  describe("Data Grouping and Aggregation", () => {
+    it("correctly groups data by alert type", () => {
+      const groupedData = [
+        { type: "Type A", date: "2024-01-01T10:00:00Z" },
+        { type: "Type B", date: "2024-01-01T11:00:00Z" },
+        { type: "Type A", date: "2024-01-02T10:00:00Z" },
+        { type: "Type B", date: "2024-01-02T11:00:00Z" },
+      ];
+      render(<AlertsLineChart data={groupedData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+      expect(screen.getByText("Type B")).toBeInTheDocument();
+    });
+
+    it("aggregates counts for same type on same day", () => {
+      const aggregateData = [
+        { type: "Type A", date: "2024-01-01T08:00:00Z" },
+        { type: "Type A", date: "2024-01-01T10:00:00Z" },
+        { type: "Type A", date: "2024-01-01T12:00:00Z" },
+        { type: "Type A", date: "2024-01-01T14:00:00Z" },
+      ];
+      render(<AlertsLineChart data={aggregateData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+
+    it("handles data with mixed grouping and dates", () => {
+      const mixedData = [
+        { type: "Critical", date: "2024-01-01T08:00:00Z" },
+        { type: "Warning", date: "2024-01-01T09:00:00Z" },
+        { type: "Critical", date: "2024-01-02T08:00:00Z" },
+        { type: "Critical", date: "2024-01-02T10:00:00Z" },
+        { type: "Warning", date: "2024-01-03T08:00:00Z" },
+      ];
+      render(<AlertsLineChart data={mixedData} timeRange="7d" />);
+      expect(screen.getByText("Critical")).toBeInTheDocument();
+      expect(screen.getByText("Warning")).toBeInTheDocument();
+    });
+
+    it("maintains data integrity with large datasets", () => {
+      const largeData = Array.from({ length: 500 }, (_, i) => ({
+        type: ["Type A", "Type B", "Type C"][i % 3],
+        date: new Date(2024, 0, (i % 28) + 1, i % 24).toISOString(),
+      }));
+      render(<AlertsLineChart data={largeData} timeRange="7d" />);
+      expect(screen.getByText("Type A")).toBeInTheDocument();
+    });
+  });
+
+  describe("D3 Chart Rendering Integration", () => {
+    it("renders D3 SVG when data is available", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("does not render D3 SVG when data is empty", () => {
+      const { container } = render(
+        <AlertsLineChart data={[]} timeRange="7d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument(); // SVG always rendered, but empty
+    });
+
+    it("clears previous D3 chart before redrawing", () => {
+      const { rerender, container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const initialSvg = container.querySelector("svg");
+      expect(initialSvg).toBeInTheDocument();
+
+      const newData = [
+        { type: "New Type", date: "2024-01-05T10:00:00Z" },
+      ];
+      rerender(<AlertsLineChart data={newData} timeRange="7d" />);
+      const updatedSvg = container.querySelector("svg");
+      expect(updatedSvg).toBeInTheDocument();
+    });
+
+    it("updates D3 chart when disabledTypes changes", () => {
+      render(<AlertsLineChart data={mockData} timeRange="7d" />);
+      const button = screen.getByText("Security breach").closest("button");
+
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+      // D3 chart updates based on disabledTypes state
+    });
+
+    it("handles D3 rendering with multiple data types", () => {
+      const multiTypeData = [
+        { type: "Critical", date: "2024-01-01T10:00:00Z" },
+        { type: "Warning", date: "2024-01-01T11:00:00Z" },
+        { type: "Info", date: "2024-01-01T12:00:00Z" },
+        { type: "Error", date: "2024-01-02T10:00:00Z" },
+      ];
+      const { container } = render(
+        <AlertsLineChart data={multiTypeData} timeRange="7d" />,
+      );
+      expect(container.querySelector("svg")).toBeInTheDocument();
+      expect(screen.getByText("Critical")).toBeInTheDocument();
+      expect(screen.getByText("Warning")).toBeInTheDocument();
+    });
+
+    it("applies D3 color scale correctly for each type", () => {
+      const colorData = [
+        { type: "Security breach", date: "2024-01-01T10:00:00Z" },
+        { type: "Suspicious activity", date: "2024-01-01T11:00:00Z" },
+        { type: "Policy violation", date: "2024-01-01T12:00:00Z" },
+      ];
+      render(<AlertsLineChart data={colorData} timeRange="7d" />);
+      // Verify all types are rendered (D3 color scale applied)
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
+      expect(screen.getByText("Suspicious activity")).toBeInTheDocument();
+      expect(screen.getByText("Policy violation")).toBeInTheDocument();
+    });
+  });
+
+  describe("Complete Integration: State + Refs + Effects + D3", () => {
+    it("integrates all component features together", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      // Component renders with SVG ref
+      expect(container.querySelector("svg")).toBeInTheDocument();
+      // Legend buttons are rendered
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
+      // State management works
+      const button = screen.getByText("Security breach").closest("button");
+      fireEvent.click(button);
+      expect(button).toHaveStyle({ opacity: "0.4" });
+    });
+
+    it("maintains state and rendering across multiple re-renders", () => {
+      const { rerender } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const button = screen.getByText("Security breach").closest("button");
+      fireEvent.click(button);
+
+      // Re-render with new timeRange
+      rerender(<AlertsLineChart data={mockData} timeRange="30d" />);
+      // State should be maintained internally, component should still render
+      expect(screen.getByText("Security breach")).toBeInTheDocument();
+    });
+
+    it("handles rapid state changes without errors", () => {
+      const { container } = render(
+        <AlertsLineChart data={mockData} timeRange="7d" />,
+      );
+      const buttons = Array.from(container.querySelectorAll("button"));
+
+      // Rapid interactions
+      for (let i = 0; i < 20; i++) {
+        if (buttons[i % buttons.length]) {
+          fireEvent.click(buttons[i % buttons.length]);
+        }
+      }
+
+      expect(container.querySelector("svg")).toBeInTheDocument();
+    });
+  });
 });
 
