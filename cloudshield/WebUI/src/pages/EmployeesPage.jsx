@@ -45,6 +45,8 @@ const TOAST_BG_COLORS = {
   success: "#2e7d32",
 };
 
+const ACCESS_GROUPS_URL = "http://127.0.0.1:5050/api/access-groups";
+
 const CustomToast = ({ msg, type, onClose }) => {
   if (!msg) return null;
 
@@ -256,6 +258,32 @@ export default function EmployeesPage() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const fetchAccessGroups = async () => {
+    try {
+      const res = await fetch(ACCESS_GROUPS_URL, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      });
+      if (!res.ok) return [];
+
+      const data = await res.json();
+      return data.access_groups || [];
+    } catch (e) {
+      console.warn("Failed to fetch groups:", e);
+      return [];
+    }
+  };
+
+  const patchAccessGroupMembers = async (groupId, members) => {
+    await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify({ members }),
+    });
+  };
+
   /**
    * Update group memberships for a user.
    * Fetches all groups, determines current membership, and updates accordingly.
@@ -266,19 +294,11 @@ export default function EmployeesPage() {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
 
     // Fetch all groups to determine current membership and update
-    const res = await fetch("http://127.0.0.1:5050/api/access-groups", {
-      method: "GET",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-
-    if (!res.ok) {
+    const allGroups = await fetchAccessGroups();
+    if (!allGroups.length) {
       console.error("Failed to fetch groups for membership update");
       return;
     }
-
-    const data = await res.json();
-    const allGroups = data.access_groups || [];
 
     // Determine current group membership
     const currentGroupIds = allGroups
@@ -301,12 +321,7 @@ export default function EmployeesPage() {
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       if (!currentMembers.some((m) => String(m) === String(userId))) {
         const updatedMembers = [...currentMembers, userId];
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-          body: JSON.stringify({ members: updatedMembers }),
-        });
+        await patchAccessGroupMembers(groupId, updatedMembers);
       }
     }
 
@@ -318,12 +333,7 @@ export default function EmployeesPage() {
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
       if (updatedMembers.length !== currentMembers.length) {
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-          body: JSON.stringify({ members: updatedMembers }),
-        });
+        await patchAccessGroupMembers(groupId, updatedMembers);
       }
     }
   };
@@ -344,20 +354,7 @@ export default function EmployeesPage() {
       });
 
       // Fetch groups to calculate membership counts
-      let allGroups = [];
-      try {
-        const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        });
-        if (groupsRes.ok) {
-          const groupsData = await groupsRes.json();
-          allGroups = groupsData.access_groups || [];
-        }
-      } catch (e) {
-        console.warn("Failed to fetch groups for enrichment:", e);
-      }
+      const allGroups = await fetchAccessGroups();
 
       // Map users and enrich with group/workstation/file data
       const mappedUsers = Array.isArray(data)
@@ -607,29 +604,37 @@ export default function EmployeesPage() {
   };
 
   const toggleSelectAllVisible = () => {
-    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
-    const allAreSelected =
-      filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
-
     setSelectedIds((prev) => {
-      if (hasSelected && !allAreSelected) {
-        // Indeterminate state - deselect all
-        const next = new Set(prev);
-        filtered.forEach((u) => next.delete(u.id));
-        return next;
-      } else if (!hasSelected) {
-        // Nothing selected - select all
-        const next = new Set(prev);
-        filtered.forEach((u) => next.add(u.id));
-        return next;
-      } else {
-        // All selected - deselect all
-        const next = new Set(prev);
-        filtered.forEach((u) => next.delete(u.id));
-        return next;
+      const next = new Set(prev);
+      const shouldSelectAll = !allVisibleSelected;
+
+      for (const u of filtered) {
+        if (shouldSelectAll) next.add(u.id);
+        else next.delete(u.id);
       }
+
+      return next;
     });
   };
+
+  const iconMetaRows = [
+    { show: showTitle, label: "Title", value: (u) => u.title || "—" },
+    {
+      show: showWorkstations,
+      label: "Workstations",
+      value: (u) => u.workstationCount ?? u.workstations?.length ?? 0,
+    },
+    {
+      show: showGroups,
+      label: "Groups",
+      value: (u) => u.groupCount ?? u.groups?.length ?? 0,
+    },
+    {
+      show: showFiles,
+      label: "Shares",
+      value: (u) => u.fileCount ?? u.files?.length ?? 0,
+    },
+  ];
 
   const toggleSort = (field) => {
     const nextDir =
@@ -925,36 +930,14 @@ export default function EmployeesPage() {
                     </div>
                   </div>
 
-                  {showTitle && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Title</span>
-                      <span style={styles.iconMetaValue}>{user.title || "—"}</span>
-                    </div>
-                  )}
-                  {showWorkstations && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Workstations</span>
-                      <span style={styles.iconMetaValue}>
-                        {user.workstationCount ?? user.workstations?.length ?? 0}
-                      </span>
-                    </div>
-                  )}
-                  {showGroups && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Groups</span>
-                      <span style={styles.iconMetaValue}>
-                        {user.groupCount ?? user.groups?.length ?? 0}
-                      </span>
-                    </div>
-                  )}
-                  {showFiles && (
-                    <div style={styles.iconMetaRow}>
-                      <span style={styles.iconMetaLabel}>Shares</span>
-                      <span style={styles.iconMetaValue}>
-                        {user.fileCount ?? user.files?.length ?? 0}
-                      </span>
-                    </div>
-                  )}
+                  {iconMetaRows
+                    .filter((row) => row.show)
+                    .map((row) => (
+                      <div key={row.label} style={styles.iconMetaRow}>
+                        <span style={styles.iconMetaLabel}>{row.label}</span>
+                        <span style={styles.iconMetaValue}>{row.value(user)}</span>
+                      </div>
+                    ))}
 
                   <div style={styles.iconFooter}>
                     <span style={styles.iconMetaLabel}>{user.status || "offline"}</span>

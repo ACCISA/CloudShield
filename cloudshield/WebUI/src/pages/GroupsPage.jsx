@@ -140,6 +140,13 @@ export default function GroupsPage() {
     setTimeout(() => setToast((p) => ({ ...p, open: false })), 2500);
   };
 
+  const runWithErrorToast = (action) =>
+    safeAsync(action, {
+      toast: {
+        error: (msg) => openToast(msg, "error"),
+      },
+    });
+
   const safeSplitName = (fullName) => {
     const raw = (fullName || "").trim();
     if (!raw) return { firstName: "Unknown", lastName: "" };
@@ -211,21 +218,14 @@ export default function GroupsPage() {
     setLoading(true);
 
     try {
-      await safeAsync(
-        async () => {
-          const data = await apiGet("/access-groups");
-          const apiGroups = Array.isArray(data.access_groups)
-            ? data.access_groups
-            : [];
-          const uiGroups = apiGroups.map(mapApiGroupToUi);
-          setGroups(uiGroups);
-        },
-        {
-          toast: {
-            error: (msg) => openToast(msg, "error"),
-          },
-        },
-      );
+      await runWithErrorToast(async () => {
+        const data = await apiGet("/access-groups");
+        const apiGroups = Array.isArray(data.access_groups)
+          ? data.access_groups
+          : [];
+        const uiGroups = apiGroups.map(mapApiGroupToUi);
+        setGroups(uiGroups);
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -282,27 +282,16 @@ export default function GroupsPage() {
   };
 
   const toggleSelectAllVisible = () => {
-    const hasSelected = filtered.some((g) => selectedIds.has(g._id));
-    const allAreSelected =
-      filtered.length > 0 && filtered.every((g) => selectedIds.has(g._id));
-
     setSelectedIds((prev) => {
-      if (hasSelected && !allAreSelected) {
-        // Indeterminate state - deselect all
-        const next = new Set(prev);
-        filtered.forEach((g) => next.delete(g._id));
-        return next;
-      } else if (!hasSelected) {
-        // Nothing selected - select all
-        const next = new Set(prev);
-        filtered.forEach((g) => next.add(g._id));
-        return next;
-      } else {
-        // All selected - deselect all
-        const next = new Set(prev);
-        filtered.forEach((g) => next.delete(g._id));
-        return next;
+      const next = new Set(prev);
+      const shouldSelectAll = !allVisibleSelected;
+
+      for (const g of filtered) {
+        if (shouldSelectAll) next.add(g._id);
+        else next.delete(g._id);
       }
+
+      return next;
     });
   };
 
@@ -346,28 +335,14 @@ export default function GroupsPage() {
     setEditingGroup(null);
   };
 
-  const normalizeMembersFromUsers = (users) => {
-    const list = Array.isArray(users) ? users : [];
-    const out = [];
-    const seen = new Set();
-
-    for (const u of list) {
-      const id = u && (u._id || u.id) ? String(u._id || u.id) : "";
-      if (id && !seen.has(id)) {
-        seen.add(id);
-        out.push(id);
-      }
-    }
-    return out;
-  };
-
-  const normalizeIdsFromObjects = (items) => {
+  const normalizeUniqueIds = (items, getId) => {
     const list = Array.isArray(items) ? items : [];
     const out = [];
     const seen = new Set();
 
-    for (const it of list) {
-      const id = it && (it.id || it._id) ? String(it.id || it._id) : "";
+    for (const item of list) {
+      const rawId = getId(item);
+      const id = rawId ? String(rawId) : "";
       if (id && !seen.has(id)) {
         seen.add(id);
         out.push(id);
@@ -377,9 +352,15 @@ export default function GroupsPage() {
   };
 
   const handleSubmitGroup = async (groupData) => {
-    const members = normalizeMembersFromUsers(groupData.users);
-    const workstations = normalizeIdsFromObjects(groupData.workstations);
-    const file_shares = normalizeIdsFromObjects(groupData.files);
+    const members = normalizeUniqueIds(groupData.users, (u) =>
+      u ? u._id || u.id : null,
+    );
+    const workstations = normalizeUniqueIds(groupData.workstations, (w) =>
+      w ? w.id || w._id : null,
+    );
+    const file_shares = normalizeUniqueIds(groupData.files, (f) =>
+      f ? f.id || f._id : null,
+    );
 
     const payload = {
       group_name: groupData.name,
@@ -391,20 +372,13 @@ export default function GroupsPage() {
     };
 
     try {
-      await safeAsync(
-        async () => {
-          if (editingGroup) {
-            await apiPatch(`/access-groups/${editingGroup.id}`, payload);
-          } else {
-            await apiPost("/access-groups", payload);
-          }
-        },
-        {
-          toast: {
-            error: (msg) => openToast(msg, "error"),
-          },
-        },
-      );
+      await runWithErrorToast(async () => {
+        if (editingGroup) {
+          await apiPatch(`/access-groups/${editingGroup.id}`, payload);
+        } else {
+          await apiPost("/access-groups", payload);
+        }
+      });
 
       openToast(
         editingGroup
@@ -429,16 +403,9 @@ export default function GroupsPage() {
     if (!confirmed) return;
 
     try {
-      await safeAsync(
-        async () => {
-          await apiDelete(`/access-groups/${groupId}`);
-        },
-        {
-          toast: {
-            error: (msg) => openToast(msg, "error"),
-          },
-        },
-      );
+      await runWithErrorToast(async () => {
+        await apiDelete(`/access-groups/${groupId}`);
+      });
 
       openToast("Group deleted");
       await fetchGroups();
@@ -508,6 +475,24 @@ export default function GroupsPage() {
       label: "delete group",
       color: "#D51616",
       onClick: () => handleDeleteGroup(group.id),
+    },
+  ];
+
+  const iconMetaRows = [
+    {
+      show: showUsers,
+      label: "Users",
+      value: (group) => group.memberCount ?? group.users?.length ?? 0,
+    },
+    {
+      show: showWorkstations,
+      label: "Workstations",
+      value: (group) => group.workstations?.length ?? 0,
+    },
+    {
+      show: showFiles,
+      label: "Shares",
+      value: (group) => group.files ?? 0,
     },
   ];
 
@@ -710,11 +695,6 @@ export default function GroupsPage() {
                   <div style={styles.iconsGrid}>
                     {filtered.map((group) => {
                       const selected = selectedIds.has(group._id);
-                      const usersCount =
-                        group.memberCount ?? group.users?.length ?? 0;
-                      const workstationsCount =
-                        group.workstations?.length ?? 0;
-                      const filesCount = group.files ?? 0;
 
                       return (
                         <div
@@ -746,34 +726,18 @@ export default function GroupsPage() {
                             </div>
                           </div>
 
-                          {showUsers && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>Users</span>
-                              <span style={styles.iconMetaValue}>
-                                {usersCount}
-                              </span>
-                            </div>
-                          )}
-
-                          {showWorkstations && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>
-                                Workstations
-                              </span>
-                              <span style={styles.iconMetaValue}>
-                                {workstationsCount}
-                              </span>
-                            </div>
-                          )}
-
-                          {showFiles && (
-                            <div style={styles.iconMetaRow}>
-                              <span style={styles.iconMetaLabel}>Shares</span>
-                              <span style={styles.iconMetaValue}>
-                                {filesCount}
-                              </span>
-                            </div>
-                          )}
+                          {iconMetaRows
+                            .filter((row) => row.show)
+                            .map((row) => (
+                              <div key={row.label} style={styles.iconMetaRow}>
+                                <span style={styles.iconMetaLabel}>
+                                  {row.label}
+                                </span>
+                                <span style={styles.iconMetaValue}>
+                                  {row.value(group)}
+                                </span>
+                              </div>
+                            ))}
                         </div>
                       );
                     })}
