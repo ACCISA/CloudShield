@@ -54,12 +54,39 @@ describe('Settings Page with Theme Integration', () => {
     return render(
       <BrowserRouter>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider
+            initialState={{
+              currentUser: { id: 'user-123', email: 'test@example.com' },
+              accessToken: 'mock-token',
+              disableBootstrap: true,
+            }}
+          >
             <SettingsPage />
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
     );
+  }
+
+  async function renderLoadedSettingsPage() {
+    let view;
+
+    await act(async () => {
+      view = renderSettingsPage();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('settings-loading')).not.toBeInTheDocument();
+    });
+
+    return view;
+  }
+
+  async function openAppearanceTab() {
+    const appearanceTab = await screen.findByRole('tab', { name: 'Appearance' });
+    await act(async () => {
+      fireEvent.click(appearanceTab);
+    });
   }
 
   it('renders settings page with theme context', async () => {
@@ -68,9 +95,7 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
     expect(screen.getByRole('heading')).toBeInTheDocument();
   });
@@ -81,10 +106,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
+    await openAppearanceTab();
     const appearanceTab = screen.getByTestId('appearance-tab-integration');
     expect(appearanceTab).toBeInTheDocument();
   });
@@ -97,9 +121,7 @@ describe('Settings Page with Theme Integration', () => {
 
     localStorage.setItem('cs_theme', 'dark');
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
     // Click on different tabs
     const tabs = screen.getAllByRole('tab');
@@ -119,11 +141,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
-    // Check for appearance tab
+    await openAppearanceTab();
     expect(screen.getByTestId('appearance-tab-integration')).toBeInTheDocument();
   });
 
@@ -133,10 +153,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
+    await openAppearanceTab();
     const themeToggle = screen.getByTestId('theme-toggle');
     expect(themeToggle).toBeInTheDocument();
 
@@ -155,9 +174,7 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    const { container } = await act(async () => {
-      return renderSettingsPage();
-    });
+    const { container } = await renderLoadedSettingsPage();
 
     // Settings page should be properly styled
     expect(container.firstChild).toBeInTheDocument();
@@ -169,11 +186,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
-    // All tabs should render without errors
+    await openAppearanceTab();
     expect(screen.getByTestId('appearance-tab-integration')).toBeInTheDocument();
   });
 
@@ -183,9 +198,7 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    const { container } = await act(async () => {
-      return renderSettingsPage();
-    });
+    const { container } = await renderLoadedSettingsPage();
 
     // Check that page is renderable and has content
     expect(container.querySelector('[role="main"], [role="tablist"]')).toBeInTheDocument();
@@ -199,9 +212,7 @@ describe('Settings Page with Theme Integration', () => {
 
     localStorage.setItem('cs_theme', 'light');
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
     const initialTheme = localStorage.getItem('cs_theme');
 
@@ -222,10 +233,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
+    await openAppearanceTab();
     expect(screen.getByText('Appearance Settings')).toBeInTheDocument();
   });
 
@@ -235,11 +245,9 @@ describe('Settings Page with Theme Integration', () => {
       json: async () => ({ user: { id: 'user-123' } }),
     });
 
-    await act(async () => {
-      renderSettingsPage();
-    });
+    await renderLoadedSettingsPage();
 
-    // Settings content should be visible
+    await openAppearanceTab();
     expect(screen.getByTestId('appearance-tab-integration')).toBeInTheDocument();
   });
 });

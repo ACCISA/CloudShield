@@ -11,49 +11,51 @@ jest.mock("../../ui/Skeleton", () => {
 });
 
 describe("TableSkeleton", () => {
-  it("renders default skeleton grid (rows=8, cols=5)", () => {
+  it("renders default skeleton grid (rows=6, cols=5)", () => {
     render(<TableSkeleton />);
 
-    // 1 header skeleton (height=36) + (rows * cols) body skeletons (height=14)
+    // headers: 5x14, body rows: first col 6x28, remaining 24x16
     const skeletons = screen.getAllByTestId("skeleton");
-    expect(skeletons).toHaveLength(1 + 8 * 5);
+    expect(skeletons).toHaveLength(35);
 
-    const header = skeletons.find((n) => n.getAttribute("data-height") === "36");
-    expect(header).toBeTruthy();
+    const headers = skeletons.filter((n) => n.getAttribute("data-height") === "14");
+    const avatars = skeletons.filter((n) => n.getAttribute("data-height") === "28");
+    const cells = skeletons.filter((n) => n.getAttribute("data-height") === "16");
 
-    const body = skeletons.filter((n) => n.getAttribute("data-height") === "14");
-    expect(body).toHaveLength(8 * 5);
+    expect(headers).toHaveLength(5);
+    expect(avatars).toHaveLength(6);
+    expect(cells).toHaveLength(24);
   });
 
   it("renders correct number of skeletons for custom rows/cols", () => {
     render(<TableSkeleton rows={3} cols={2} />);
 
-    // 1 header + 3*2 body
+    // 2 headers + (3x1 avatar) + (3x1 text cell)
     const skeletons = screen.getAllByTestId("skeleton");
-    expect(skeletons).toHaveLength(1 + 3 * 2);
+    expect(skeletons).toHaveLength(8);
 
-    const headerCount = skeletons.filter((n) => n.getAttribute("data-height") === "36").length;
-    const bodyCount = skeletons.filter((n) => n.getAttribute("data-height") === "14").length;
+    const headerCount = skeletons.filter((n) => n.getAttribute("data-height") === "14").length;
+    const avatarCount = skeletons.filter((n) => n.getAttribute("data-height") === "28").length;
+    const cellCount = skeletons.filter((n) => n.getAttribute("data-height") === "16").length;
 
-    expect(headerCount).toBe(1);
-    expect(bodyCount).toBe(3 * 2);
+    expect(headerCount).toBe(2);
+    expect(avatarCount).toBe(3);
+    expect(cellCount).toBe(3);
   });
 
-  it("renders only the header skeleton when rows=0", () => {
+  it("renders only header skeletons when rows=0", () => {
     render(<TableSkeleton rows={0} cols={5} />);
 
     const skeletons = screen.getAllByTestId("skeleton");
-    expect(skeletons).toHaveLength(1);
-
-    expect(skeletons[0]).toHaveAttribute("data-height", "36");
+    expect(skeletons).toHaveLength(5);
+    expect(
+      skeletons.every((node) => node.getAttribute("data-height") === "14")
+    ).toBe(true);
   });
 
-  it("renders only the header skeleton when cols=0 (no body cells)", () => {
+  it("renders no skeleton cells when cols=0", () => {
     render(<TableSkeleton rows={4} cols={0} />);
 
-    const skeletons = screen.getAllByTestId("skeleton");
-    expect(skeletons).toHaveLength(1);
-
-    expect(skeletons[0]).toHaveAttribute("data-height", "36");
+    expect(screen.queryAllByTestId("skeleton")).toHaveLength(0);
   });
 });

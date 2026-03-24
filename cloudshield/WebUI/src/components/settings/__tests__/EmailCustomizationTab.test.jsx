@@ -32,10 +32,18 @@ describe("EmailCustomizationTab", () => {
     mockOnSave.mockClear();
   });
 
+  const getBrandColorTextInput = () =>
+    screen
+      .getAllByDisplayValue("#1a1a2e")
+      .find((element) => element.getAttribute("type") !== "color");
+
+  const getToggleInputs = () =>
+    Array.from(document.querySelectorAll('input[type="checkbox"]'));
+
   test("renders email customization header", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    expect(screen.getByText(/email customization|branding/i)).toBeInTheDocument();
+    expect(screen.getByText("Email Customization")).toBeInTheDocument();
   });
 
   test("renders sender name input field", () => {
@@ -79,14 +87,14 @@ describe("EmailCustomizationTab", () => {
   test("renders color picker input", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    const colorInput = document.querySelector('input[type="color"]');
     expect(colorInput).toBeInTheDocument();
   });
 
   test("updates brand color when changed", async () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    const colorInput = getBrandColorTextInput();
 
     await act(async () => {
       fireEvent.change(colorInput, { target: { value: "#ff0000" } });
@@ -126,7 +134,7 @@ describe("EmailCustomizationTab", () => {
   test("toggles notification type switches", async () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    const switches = screen.getAllByRole("checkbox");
+    const switches = getToggleInputs();
     const welcomeEmailSwitch = switches[0];
 
     await act(async () => {
@@ -139,7 +147,7 @@ describe("EmailCustomizationTab", () => {
   test("loads notification toggle states from orgData", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    const switches = screen.getAllByRole("checkbox");
+    const switches = getToggleInputs();
     switches.forEach((switchEl) => {
       expect(switchEl).toBeChecked();
     });
@@ -176,7 +184,7 @@ describe("EmailCustomizationTab", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
     const senderNameInput = screen.getByDisplayValue("CloudShield Team");
-    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    const colorInput = getBrandColorTextInput();
     const saveButton = screen.getByRole("button", { name: /save/i });
 
     await act(async () => {
@@ -247,13 +255,15 @@ describe("EmailCustomizationTab", () => {
   test("preview displays welcome message", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    expect(screen.getByText(/welcome/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/welcome/i).length).toBeGreaterThan(0);
   });
 
   test("preview displays footer text", () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    expect(screen.getByText("Thank you for using CloudShield")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Thank you for using CloudShield").length,
+    ).toBeGreaterThan(0);
   });
 
   test("handles logo image upload", async () => {
@@ -278,7 +288,7 @@ describe("EmailCustomizationTab", () => {
   test("updates preview with new brand color", async () => {
     render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
 
-    const colorInput = screen.getByDisplayValue("#1a1a2e");
+    const colorInput = getBrandColorTextInput();
 
     await act(async () => {
       fireEvent.change(colorInput, { target: { value: "#007bff" } });

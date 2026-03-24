@@ -24,15 +24,10 @@ describe('ContactSection Component', () => {
     
     const submitButton = screen.getByRole('button', { name: /Send Message/i });
     const form = submitButton.closest('form');
-    
-    let defaultPrevented = false;
-    
-    // Fire the submit event and mock the preventDefault function
-    fireEvent.submit(form, {
-      preventDefault: () => { defaultPrevented = true; }
-    });
-    
-    // Verify the conditional logic for onSubmit fired correctly
-    expect(defaultPrevented).toBe(true);
+
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    form.dispatchEvent(submitEvent);
+
+    expect(submitEvent.defaultPrevented).toBe(true);
   });
 });

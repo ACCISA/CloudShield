@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import NotificationsTab from "../NotificationsTab";
 import "@testing-library/jest-dom";
 
@@ -19,6 +20,9 @@ describe("NotificationsTab", () => {
   beforeEach(() => {
     mockOnSave.mockClear();
   });
+
+  const getCheckboxes = () =>
+    Array.from(document.querySelectorAll('input[type="checkbox"]'));
 
   test("renders notification centre header", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
@@ -64,14 +68,13 @@ describe("NotificationsTab", () => {
 
   test("calls onSave when email alerts toggle is changed", async () => {
     mockOnSave.mockResolvedValue(true);
+    const user = userEvent.setup();
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const emailAlertsSwitch = screen.getAllByRole("checkbox")[0];
+    const emailAlertsSwitch = getCheckboxes()[0];
 
-    await act(async () => {
-      fireEvent.click(emailAlertsSwitch);
-    });
+    await user.click(emailAlertsSwitch);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
@@ -131,7 +134,7 @@ describe("NotificationsTab", () => {
   test("renders in-app alerts section", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    expect(screen.getByText("In-app alerts")).toBeInTheDocument();
+    expect(screen.getByText("In-App alerts")).toBeInTheDocument();
   });
 
   test("renders in-app alerts toggle switch", () => {
@@ -144,20 +147,19 @@ describe("NotificationsTab", () => {
   test("loads in-app alerts preference from userData", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const inAppAlertsSwitch = screen.getAllByRole("checkbox")[1];
+    const inAppAlertsSwitch = getCheckboxes()[1];
     expect(inAppAlertsSwitch).toBeChecked();
   });
 
   test("calls onSave when in-app alerts toggle is changed", async () => {
     mockOnSave.mockResolvedValue(true);
+    const user = userEvent.setup();
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const inAppAlertsSwitch = screen.getAllByRole("checkbox")[1];
+    const inAppAlertsSwitch = getCheckboxes()[1];
 
-    await act(async () => {
-      fireEvent.click(inAppAlertsSwitch);
-    });
+    await user.click(inAppAlertsSwitch);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
@@ -173,7 +175,8 @@ describe("NotificationsTab", () => {
   test("renders alerts history section", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    expect(screen.getByText(/alert(s)? (history|log)/i)).toBeInTheDocument();
+    expect(screen.getByText("alert")).toBeInTheDocument();
+    expect(screen.getByText("Date:")).toBeInTheDocument();
   });
 
   test("renders search input for alerts", () => {
@@ -186,8 +189,9 @@ describe("NotificationsTab", () => {
   test("renders alerts in table format", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    // Check for mock alert messages
-    expect(screen.getByText(/logged into a new device/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/logged into a new device/i).length,
+    ).toBeGreaterThan(0);
   });
 
   test("filters alerts by search term", async () => {
@@ -215,14 +219,16 @@ describe("NotificationsTab", () => {
   test("deletes individual alert when delete button is clicked", async () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const alertRow = screen.getByText(/logged into a new device/i);
-    const deleteButton = alertRow.closest("div").querySelector("[class*='delete']");
+    const initialCount = screen.getAllByText(/logged into a new device/i).length;
+    const rowDeleteButtons = screen.getAllByRole("button").slice(2);
 
-    if (deleteButton) {
-      await act(async () => {
-        fireEvent.click(deleteButton);
-      });
-    }
+    await act(async () => {
+      fireEvent.click(rowDeleteButtons[0]);
+    });
+
+    expect(screen.getAllByText(/logged into a new device/i)).toHaveLength(
+      initialCount - 1,
+    );
   });
 
   test("renders checkbox for select all alerts", () => {
@@ -235,16 +241,15 @@ describe("NotificationsTab", () => {
   test("selects all alerts when select-all checkbox is clicked", async () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const checkboxes = screen.getAllByRole("checkbox");
-    const selectAllCheckbox = checkboxes[checkboxes.length - 1];
+    const selectAllCheckbox = getCheckboxes()[2];
 
     await act(async () => {
       fireEvent.click(selectAllCheckbox);
     });
 
     // Check that multiple checkboxes are now checked
-    const checkedBoxes = screen.getAllByRole("checkbox").filter((cb) => cb.checked);
-    expect(checkedBoxes.length).toBeGreaterThan(1);
+    const checkedBoxes = getCheckboxes().filter((checkbox) => checkbox.checked);
+    expect(checkedBoxes.length).toBeGreaterThan(2);
   });
 
   test("renders delete selected button", () => {
@@ -334,23 +339,30 @@ describe("NotificationsTab", () => {
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const emailAlertsSwitch = screen.getAllByRole("checkbox")[0];
+    const emailAlertsSwitch = getCheckboxes()[0];
 
-    await act(async () => {
-      fireEvent.click(emailAlertsSwitch);
+    await userEvent.click(emailAlertsSwitch);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
+      expect(
+        screen.getByRole("button", { name: "Auto-saving..." }),
+      ).toBeDisabled();
     });
 
     await act(async () => {
       resolveSave(true);
     });
 
-    expect(mockOnSave).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Settings saved" })).toBeInTheDocument();
+    });
   });
 
   test("displays alert dates in correct format", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    expect(screen.getByText("10/11/2025 11:36 pm")).toBeInTheDocument();
+    expect(screen.getAllByText("10/11/2025 11:36 pm").length).toBeGreaterThan(0);
   });
 
   test("handles missing notification preferences", () => {

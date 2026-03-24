@@ -405,7 +405,7 @@ describe("AuthContext", () => {
     });
   });
 
-  test("extracts user from JWT claims if /api/auth/me fails", async () => {
+  test("keeps the existing fallback user if /api/auth/me fails after bootstrap login", async () => {
     const mockPayload = {
       sub: "user-456",
       email: "claims@example.com",
@@ -440,7 +440,8 @@ describe("AuthContext", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("current-user")).toHaveTextContent("user-456");
+      expect(screen.getByTestId("current-user")).toHaveTextContent("admin-001");
+      expect(screen.getByTestId("access-token")).toHaveTextContent("present");
     });
   });
 

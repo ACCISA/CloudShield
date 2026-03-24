@@ -2,8 +2,14 @@ import React from "react";
 import { render, screen, act, fireEvent } from "@testing-library/react";
 import ProvisioningPage from "../ProvisioningPage";
 import "@testing-library/jest-dom";
+import { apiGet, apiPost } from "../../api/client";
 
 jest.mock("../../assets/cloudshield_logo_white.png", () => "logo-mock.png");
+
+jest.mock("../../api/client", () => ({
+  apiGet: jest.fn(),
+  apiPost: jest.fn(),
+}));
 
 jest.mock("../../components/provisioning/ProvisioningProgressBar.jsx", () => {
   return function MockProgressBar({ percent }) {
@@ -16,7 +22,8 @@ describe("ProvisioningPage", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    global.fetch = jest.fn();
+    apiGet.mockReset();
+    apiPost.mockReset();
 
     const localStorageMock = (function () {
       let store = {};
@@ -45,6 +52,11 @@ describe("ProvisioningPage", () => {
     window.location = originalLocation;
   });
 
+  const buildResponse = (data, status = 200) => ({
+    status,
+    json: async () => data,
+  });
+
   test("Shows error if Organization ID is missing", async () => {
     window.localStorage.getItem.mockReturnValue(null);
 
@@ -61,33 +73,18 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockImplementationOnce((url, options) => {
-      if (url.includes("/api/task/provision") && options.method === "POST") {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ job_id: "new-job-id" }),
-        });
-      }
-      return Promise.reject("Unknown call");
+    apiPost.mockReturnValueOnce({
+      json: async () => ({ job_id: "new-job-id" }),
     });
-
-    global.fetch.mockImplementation((url) => {
-      if (url.includes("/api/status")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({ status: "running" }),
-        });
-      }
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/task/provision"),
-      expect.objectContaining({ method: "POST" })
+    expect(apiPost).toHaveBeenCalledWith(
+      "/task/provision",
+      { org_id: "test-org-123" }
     );
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith("provision_job_id", "new-job-id");
@@ -100,11 +97,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -118,7 +111,7 @@ describe("ProvisioningPage", () => {
     });
 
     expect(screen.getByTestId("progress-bar")).toHaveTextContent("Progress: 5%");
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/status/existing-job"));
+    expect(apiGet).toHaveBeenCalledWith("/status/existing-job");
   });
 
   test("Success State: Jumps to 100% and redirects", async () => {
@@ -128,11 +121,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "succeeded" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "succeeded" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -162,11 +151,9 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "failed", error: "Database error" }),
-    });
+    apiGet.mockResolvedValue(
+      buildResponse({ status: "failed", error: "Database error" }),
+    );
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -192,11 +179,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -212,11 +195,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -236,11 +215,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -260,11 +235,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -284,11 +255,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -308,11 +275,7 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ status: "running" }),
-    });
+    apiGet.mockResolvedValue(buildResponse({ status: "running" }));
 
     await act(async () => {
       render(<ProvisioningPage />);
@@ -331,10 +294,10 @@ describe("ProvisioningPage", () => {
       return null;
     });
 
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ message: "Server blew up" }),
+    apiPost.mockReturnValueOnce({
+      json: async () => {
+        throw new Error("Server blew up");
+      },
     });
 
     await act(async () => {

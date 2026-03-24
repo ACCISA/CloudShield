@@ -118,6 +118,7 @@ class TestUserService:
         mock_data.email = "john@example.com"
         mock_data.password = "password123"
         mock_data.org_id = self.TEST_ORG_ID
+        mock_data.username = None
         mock_data.role = "employee"
         mock_data.full_name = "John Doe"
         mock_data.company_name = None 
@@ -159,6 +160,8 @@ class TestUserService:
         mocks['users_admin'].insert_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
+        inserted_doc = mocks['users_admin'].insert_one.call_args[0][0]
+        assert inserted_doc["username"] == "j_doe"
 
     def test_create_user_with_profile_image(self, setup_mocks, admin_user, user_data):
         """Test create_user includes profile_image in the inserted document."""
@@ -295,6 +298,7 @@ class TestUserService:
 
         # Optional: ensure the inserted doc keeps the role admin (service-layer hardening)
         inserted_doc = mocks["users_admin"].insert_one.call_args[0][0]
+        assert inserted_doc["username"] == "j_doe"
         assert inserted_doc["role"] == "admin"
         assert inserted_doc["org_id"] == self.TEST_ORG_ID
 

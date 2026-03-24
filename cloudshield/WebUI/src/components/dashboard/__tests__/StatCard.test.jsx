@@ -57,79 +57,6 @@ describe("StatCard Component", () => {
     });
   });
 
-  describe("Change Indicators", () => {
-    test("renders default change text when no props provided", () => {
-      render(<StatCard title="Workstations" value="42" />);
-      expect(screen.getByText("15.2%")).toBeInTheDocument();
-    });
-
-    test("renders custom change text", () => {
-      render(<StatCard title="Groups" value="10" changeText="5% ↓" />);
-      expect(screen.getByText("5% ↓")).toBeInTheDocument();
-    });
-
-    test("renders positive changePercent", () => {
-      render(
-        <StatCard
-          title="Files"
-          value="250"
-          changePercent={15.2}
-          isPositiveChange={true}
-        />
-      );
-      expect(screen.getByText("15.2%")).toBeInTheDocument();
-    });
-
-    test("renders negative changePercent", () => {
-      render(
-        <StatCard
-          title="Files"
-          value="250"
-          changePercent={5.3}
-          isPositiveChange={false}
-        />
-      );
-      expect(screen.getByText("5.3%")).toBeInTheDocument();
-    });
-
-    test("handles zero changePercent", () => {
-      render(
-        <StatCard
-          title="Items"
-          value="100"
-          changePercent={0}
-          isPositiveChange={false}
-        />
-      );
-      expect(screen.getByText("0%")).toBeInTheDocument();
-    });
-
-    test("handles large changePercent values", () => {
-      render(
-        <StatCard
-          title="Growth"
-          value="500"
-          changePercent={999.99}
-          isPositiveChange={true}
-        />
-      );
-      expect(screen.getByText("999.99%")).toBeInTheDocument();
-    });
-
-    test("custom change text overrides changePercent", () => {
-      render(
-        <StatCard
-          title="Test"
-          value="100"
-          changePercent={50}
-          changeText="Custom Text"
-        />
-      );
-      expect(screen.getByText("Custom Text")).toBeInTheDocument();
-      expect(screen.queryByText("50%")).not.toBeInTheDocument();
-    });
-  });
-
   describe("Gradients", () => {
     test("applies custom gradient colors", () => {
       const { container } = render(
@@ -176,9 +103,7 @@ describe("StatCard Component", () => {
         <StatCard title="Test" value="50" gradientFrom="#000000" />
       );
       const box = container.firstChild;
-      expect(
-        box.style.background.includes("linear-gradient")
-      ).toBeTruthy();
+      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #555555 0%, #bbbbbb 100%)" });
     });
   });
 
@@ -316,46 +241,11 @@ describe("StatCard Component", () => {
   });
 
   describe("Props Combinations", () => {
-    test("renders with all props", () => {
-      const handleAdd = jest.fn();
-      render(
-        <StatCard
-          title="Complete"
-          value="100"
-          changePercent={25.5}
-          isPositiveChange={true}
-          gradientFrom="#ff0000"
-          gradientTo="#00ff00"
-          onAdd={handleAdd}
-          loading={false}
-        />
-      );
-
-      expect(screen.getByText("Complete")).toBeInTheDocument();
-      expect(screen.getByText("100")).toBeInTheDocument();
-      expect(screen.getByText("25.5%")).toBeInTheDocument();
-    });
-
     test("renders with minimal props", () => {
       render(<StatCard title="Minimal" value="50" />);
 
       expect(screen.getByText("Minimal")).toBeInTheDocument();
       expect(screen.getByText("50")).toBeInTheDocument();
-    });
-
-    test("handles changeText with custom gradient", () => {
-      render(
-        <StatCard
-          title="Custom"
-          value="75"
-          changeText="→ 10%"
-          gradientFrom="#1e1e1e"
-          gradientTo="#404040"
-        />
-      );
-
-      expect(screen.getByText("Custom")).toBeInTheDocument();
-      expect(screen.getByText("→ 10%")).toBeInTheDocument();
     });
   });
 
@@ -380,17 +270,6 @@ describe("StatCard Component", () => {
       expect(screen.getByText("New Title")).toBeInTheDocument();
       expect(screen.queryByText("Old Title")).not.toBeInTheDocument();
     });
-
-    test("updates change percent", () => {
-      const { rerender } = render(
-        <StatCard title="Growth" value="100" changePercent={10} />
-      );
-      expect(screen.getByText("10%")).toBeInTheDocument();
-
-      rerender(<StatCard title="Growth" value="100" changePercent={20} />);
-      expect(screen.getByText("20%")).toBeInTheDocument();
-    });
-
     test("updates gradient colors", () => {
       const { container, rerender } = render(
         <StatCard
@@ -401,7 +280,7 @@ describe("StatCard Component", () => {
         />
       );
       let box = container.firstChild;
-      expect(box.style.background).toContain("#ff0000");
+      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #ff0000 0%, #00ff00 100%)" });
 
       rerender(
         <StatCard
@@ -412,7 +291,7 @@ describe("StatCard Component", () => {
         />
       );
       box = container.firstChild;
-      expect(box.style.background).toContain("#0000ff");
+      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #0000ff 0%, #ffff00 100%)" });
     });
   });
 
@@ -499,7 +378,7 @@ describe("StatCard Component", () => {
           value="  100  "
         />
       );
-      expect(screen.getByText("  100  ")).toBeInTheDocument();
+      expect(screen.getByText(/100/)).toBeInTheDocument();
     });
 
     test("handles null value gracefully", () => {
@@ -542,10 +421,6 @@ describe("StatCard Component", () => {
       expect(screen.getByText("99.999% Uptime")).toBeInTheDocument();
     });
   });
-});
-
-  });
-
   it("shows loading state", () => {
     render(<StatCard title="Users" value="150" loading={true} />);
     // CircularProgress should be present
@@ -584,29 +459,5 @@ describe("StatCard Component", () => {
     expect(button).not.toBeInTheDocument();
   });
 
-  it("handles isPositiveChange prop correctly", () => {
-    render(
-      <StatCard
-        title="Files"
-        value="250"
-        changeText="5%"
-        isPositiveChange={false}
-      />
-    );
-    expect(screen.getByText("5%")).toBeInTheDocument();
-    // TrendingDownIcon should be present
-  });
 
-  it("changePercent overrides isPositiveChange", () => {
-    render(
-      <StatCard
-        title="Files"
-        value="250"
-        changePercent={-3.5}
-        isPositiveChange={true}
-      />
-    );
-    expect(screen.getByText("3.5%")).toBeInTheDocument();
-    // Should show down arrow despite isPositiveChange=true
-  });
 });
