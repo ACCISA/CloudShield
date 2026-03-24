@@ -23,30 +23,26 @@ const lcovPath = path.join(projectRoot, "coverage", "lcov.info");
 if (fs.existsSync(lcovPath)) {
   const lcov = fs.readFileSync(lcovPath, "utf8");
 
-  const githubWorkspace = process.env.GITHUB_WORKSPACE;
-  const ciPrefix = githubWorkspace
-    ? `${githubWorkspace.replace(/\\/g, "/")}/cloudshield/WebUI/src/`
-    : "cloudshield/WebUI/src/";
-
+  // Force all paths to be exactly relative to the repository root for Sonar
   const normalized = lcov
-    .replace(/^SF:src\//gm, `SF:${ciPrefix}`)
-    .replace(/^SF:\.\/src\//gm, `SF:${ciPrefix}`)
-    .replace(/^SF:src\\/gm, `SF:${ciPrefix}`)
-    .replace(/^SF:\.\\src\\/gm, `SF:${ciPrefix}`)
+    .replace(/^SF:.*[\\/]+cloudshield[\\/]+WebUI[\\/]+src[\\/]+/gm, "SF:cloudshield/WebUI/src/")
+    .replace(/^SF:src\//gm, "SF:cloudshield/WebUI/src/")
+    .replace(/^SF:\.\/src\//gm, "SF:cloudshield/WebUI/src/")
+    .replace(/^SF:src\\/gm, "SF:cloudshield/WebUI/src/")
+    .replace(/^SF:\.\\src\\/gm, "SF:cloudshield/WebUI/src/")
     .replace(/\\/g, "/");
 
   fs.writeFileSync(lcovPath, normalized, "utf8");
 
-  const hasNormalizedPrefix = normalized.includes(`SF:${ciPrefix}`);
+  const hasNormalizedPrefix = normalized.includes("SF:cloudshield/WebUI/src/");
   const fileDiagnostics = TARGET_FILES.map((file) => {
     const repoRelative = `SF:cloudshield/WebUI/src/${file}`;
-    const ciAbsolute = `SF:${ciPrefix}${file}`;
-    const present = normalized.includes(repoRelative) || normalized.includes(ciAbsolute);
+    const present = normalized.includes(repoRelative);
     return `${file}=${present ? "present" : "missing"}`;
   }).join(", ");
 
   console.log(
-    `[coverage] normalized lcov paths for SonarCloud (prefix=${ciPrefix}, normalized=${hasNormalizedPrefix})`
+    `[coverage] normalized lcov paths for SonarCloud (normalized=${hasNormalizedPrefix})`
   );
   console.log(`[coverage] target file entries: ${fileDiagnostics}`);
 } else {
