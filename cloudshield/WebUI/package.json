@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",
-    "test:coverage": "node scripts/testCoverage.cjs",
+    "test:coverage": "node ../../scripts/testCoverage.cjs",
     "test:watch": "jest --watch"
   },
   "dependencies": {

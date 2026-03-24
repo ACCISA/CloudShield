@@ -2,8 +2,8 @@ const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const projectRoot = path.join(__dirname, "..");
-const jestBin = require.resolve("jest/bin/jest");
+const projectRoot = path.join(__dirname, "..", "cloudshield", "WebUI");
+const jestBin = require.resolve(path.join(projectRoot, "node_modules", "jest", "bin", "jest"));
 const jestArgs = ["--coverage", ...process.argv.slice(2)];
 
 const result = spawnSync(process.execPath, [jestBin, ...jestArgs], {
