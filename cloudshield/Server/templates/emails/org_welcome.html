@@ -15,7 +15,7 @@
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
                     <td align="center">
-                      <img src="http://real.encs.concordia.ca/cloudshield_logo_white.png" alt="CloudShield" style="height:40px;max-width:200px;display:block;" />
+                      <img src="https://real.encs.concordia.ca/cloudshield_logo_white.png" alt="CloudShield" style="height:40px;max-width:200px;display:block;" />
                     </td>
                   </tr>
                 </table>
@@ -44,6 +44,27 @@
                 </a>
               </td>
             </tr>
+            {% if desktop_app_downloads %}
+            <tr>
+              <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:12px;">
+                To connect to your CloudShield workstations, download the CloudShield desktop app:
+              </td>
+            </tr>
+            {% for app in desktop_app_downloads %}
+              <tr>
+                <td style="padding-bottom:12px;">
+                  <a href="{{ app.url }}" style="display:inline-block;background:#ffffff;color:#111827;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;border:1px solid #d1d5db;">
+                    {{ app.label }}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+            <tr>
+              <td style="font-size:12px;color:#6b7280;line-height:1.5;padding-bottom:24px;">
+                Install the app on your machine, then sign in with your CloudShield account.
+              </td>
+            </tr>
+            {% endif %}
             <tr>
               <td style="font-size:12px;color:#6b7280;line-height:1.5;">
                 If you did not request this, please ignore this email.
