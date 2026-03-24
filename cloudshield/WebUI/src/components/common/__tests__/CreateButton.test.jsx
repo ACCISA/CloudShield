@@ -128,7 +128,7 @@ describe("CreateButton Component", () => {
       fireEvent.mouseEnter(button);
 
       expect(button.style.background).toBe("rgb(36, 36, 36)");
-      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
     });
 
     test("restores styles on mouse leave", () => {
