@@ -415,13 +415,17 @@ export default function GroupsPage() {
                 <UploadFileIcon width={16} height={16} color="#fff" />
                 {csvImporting ? "Importing..." : "Import CSV"}
               </button>
-              <div
+              <button
+                type="button"
+                aria-label="CSV format help"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   width: "18px",
                   height: "18px",
+                  padding: 0,
+                  border: "none",
                   borderRadius: "50%",
                   backgroundColor: "rgba(255,255,255,0.15)",
                   color: "#fff",
@@ -434,7 +438,7 @@ export default function GroupsPage() {
                 onMouseLeave={() => setShowCsvHelp(false)}
               >
                 ?
-              </div>
+              </button>
               {showCsvHelp && (
                 <div
                   style={{

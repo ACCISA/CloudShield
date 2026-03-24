@@ -424,7 +424,7 @@ export default function EmployeesPage() {
         const apiPayload = {
           email: payload.email,
           full_name: `${payload.firstName} ${payload.lastName}`,
-          password: payload.password || "DefaultPass123!",
+          password: payload.password || "",
           role: payload.jobTitle?.toLowerCase().includes("admin")
             ? "admin"
             : "employee",
@@ -809,13 +809,17 @@ export default function EmployeesPage() {
               disabled={csvImporting}
               data-testid="import-csv-btn"
             />
-            <div
+            <button
+              type="button"
+              aria-label="CSV format help"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
                 width: "18px",
                 height: "18px",
+                padding: 0,
+                border: "none",
                 borderRadius: "50%",
                 backgroundColor: "rgba(255,255,255,0.15)",
                 color: "#fff",
@@ -828,7 +832,7 @@ export default function EmployeesPage() {
               onMouseLeave={() => setShowCsvHelp(false)}
             >
               ?
-            </div>
+            </button>
             {showCsvHelp && (
               <div
                 style={{
