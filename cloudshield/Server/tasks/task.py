@@ -105,11 +105,12 @@ def proxy_rpc_request(nodes, method_name, request, actor="System"):
 
     proxy_request = vpn_pb2.RelayData(ipv4=domain_controller_node.ip, port=domain_controller_node.port, data=serialized_data, method_name=full_method_name)
     try:
-        stub.Relay(proxy_request)
+        response = stub.Relay(proxy_request)
         try: 
             log_doc = create_activity_log_doc(org_id=org_id, method_name=full_method_name, actor=actor)
             activity.insert_one(log_doc)
             logger.info(f"Activity logged: {log_doc['description']}")
+            return response
         except Exception as log_error:
             logger.error("Failed to log activity: " + str(log_error))
     except Exception as e:

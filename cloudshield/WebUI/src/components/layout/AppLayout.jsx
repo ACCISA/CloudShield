@@ -27,8 +27,8 @@ export default function AppLayout({
       sx={{
         height: "100vh",
         maxHeight: "100vh",
-        bgcolor: "#0A0A0A",
-        color: "#fff",
+        bgcolor: "background.default",
+        color: "text.primary",
         display: "flex",
         overflow: "hidden",
       }}

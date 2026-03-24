@@ -1,25 +1,18 @@
-/**
- * AlertsLineChart.jsx
- *
- * Purpose:
- *   Line chart showing alert history over time by type using D3.
- *
- * Features:
- *   - Multi-line chart with different colors for each alert type
- *   - Smooth curves with animations
- *   - Interactive hover tooltips
- *   - Legend with toggle functionality
- *   - Dark theme matching application aesthetic
- */
 import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import * as d3 from "d3";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function AlertsLineChart({ data, timeRange }) {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const [hoveredType, setHoveredType] = useState(null);
   const [disabledTypes, setDisabledTypes] = useState(new Set());
+  
+  const themeColors = useThemeColors();
+  // Extracted primitive values for safe useEffect dependencies
+  const textColor = themeColors.textSecondary;
+  const borderColor = themeColors.borderLight;
 
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
@@ -90,16 +83,8 @@ function AlertsLineChart({ data, timeRange }) {
         "Network intrusion",
       ])
       .range([
-        "#EF4444", // red
-        "#F59E0B", // amber
-        "#10B981", // green
-        "#3B82F6", // blue
-        "#8B5CF6", // violet
-        "#EC4899", // pink
-        "#06B6D4", // cyan
-        "#F97316", // orange
-        "#14B8A6", // teal
-        "#A855F7", // purple
+        "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+        "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#A855F7",
       ]);
 
     // Scales
@@ -126,14 +111,14 @@ function AlertsLineChart({ data, timeRange }) {
       .append("g")
       .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.timeFormat("%b %d")))
-      .style("color", "rgba(255,255,255,0.5)")
+      .style("color", textColor)
       .style("font-size", "12px");
 
     // Y axis
     svg
       .append("g")
       .call(d3.axisLeft(yScale).ticks(5))
-      .style("color", "rgba(255,255,255,0.5)")
+      .style("color", textColor)
       .style("font-size", "12px");
 
     // Line generator
@@ -198,46 +183,35 @@ function AlertsLineChart({ data, timeRange }) {
         .on("mouseleave", (event) => {
           d3.select(event.target).attr("r", 4);
           d3.select(tooltipRef.current).style("opacity", 0);
-        })
+        });
+
+      // Show dots animation
+      svg.selectAll("circle")
         .transition()
         .delay((d, i) => i * 50)
         .duration(500)
         .attr("r", 4);
     });
 
-    // Remove axes lines for cleaner look
+    // Clean up axes
     svg.selectAll(".domain").remove();
-    svg.selectAll(".tick line").style("stroke", "rgba(255,255,255,0.1)");
-  }, [data, disabledTypes, hoveredType, timeRange]);
+    svg.selectAll(".tick line").style("stroke", borderColor);
 
-  // Get unique alert types
+  }, [data, disabledTypes, hoveredType, timeRange, textColor, borderColor]);
+
   const alertTypes = data ? Array.from(new Set(data.map((d) => d.type))) : [];
 
   const colorScale = d3
     .scaleOrdinal()
     .domain([
-      "Security breach",
-      "Suspicious activity",
-      "Policy violation",
-      "Data access",
-      "Malware detected",
-      "Unauthorized access",
-      "Ransomware attempt",
-      "Phishing attempt",
-      "Data exfiltration",
+      "Security breach", "Suspicious activity", "Policy violation",
+      "Data access", "Malware detected", "Unauthorized access",
+      "Ransomware attempt", "Phishing attempt", "Data exfiltration",
       "Network intrusion",
     ])
     .range([
-      "#EF4444",
-      "#F59E0B",
-      "#10B981",
-      "#3B82F6",
-      "#8B5CF6",
-      "#EC4899",
-      "#06B6D4",
-      "#F97316",
-      "#14B8A6",
-      "#A855F7",
+      "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+      "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#A855F7",
     ]);
 
   const toggleType = (type) => {
@@ -251,53 +225,28 @@ function AlertsLineChart({ data, timeRange }) {
   };
 
   const styles = {
-    container: {
-      position: "relative",
-      width: "100%",
-      height: "280px",
-    },
-    svg: {
-      width: "100%",
-      height: "220px",
-    },
+    container: { position: "relative", width: "100%", height: "280px" },
+    svg: { width: "100%", height: "220px" },
     tooltip: {
       position: "fixed",
-      backgroundColor: "#1a1a1a",
-      border: "1px solid rgba(255,255,255,0.2)",
+      backgroundColor: "var(--bg-secondary)",
+      border: "1px solid var(--border-light)",
       borderRadius: "8px",
       padding: "8px 12px",
       fontSize: "12px",
-      color: "#fff",
+      color: "var(--text-primary)",
       pointerEvents: "none",
       opacity: 0,
       zIndex: 1000,
       transition: "opacity 0.2s",
     },
-    legend: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "12px",
-      marginTop: "12px",
-      justifyContent: "center",
-    },
+    legend: { display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "12px", justifyContent: "center" },
     legendItem: {
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      fontSize: "12px",
-      color: "rgba(255,255,255,0.7)",
-      cursor: "pointer",
-      transition: "opacity 0.2s",
-      background: "none",
-      border: "none",
-      padding: "4px 8px",
-      borderRadius: "4px",
+      display: "flex", alignItems: "center", gap: "6px", fontSize: "12px",
+      color: "var(--text-secondary)", cursor: "pointer", transition: "opacity 0.2s",
+      background: "none", border: "none", padding: "4px 8px", borderRadius: "4px",
     },
-    legendColor: {
-      width: "8px",
-      height: "8px",
-      borderRadius: "8px",
-    },
+    legendColor: { width: "8px", height: "8px", borderRadius: "8px" },
   };
 
   return (
@@ -317,19 +266,14 @@ function AlertsLineChart({ data, timeRange }) {
             onClick={() => toggleType(type)}
             onMouseEnter={(e) => {
               setHoveredType(type);
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.backgroundColor = themeColors.lightOverlay;
             }}
             onMouseLeave={(e) => {
               setHoveredType(null);
               e.currentTarget.style.backgroundColor = "transparent";
             }}
           >
-            <div
-              style={{
-                ...styles.legendColor,
-                backgroundColor: colorScale(type),
-              }}
-            />
+            <div style={{ ...styles.legendColor, backgroundColor: colorScale(type) }} />
             <span>{type}</span>
           </button>
         ))}
@@ -339,12 +283,7 @@ function AlertsLineChart({ data, timeRange }) {
 }
 
 AlertsLineChart.propTypes = {
-  data: PropTypes.arrayOf(
-    PropTypes.shape({
-      type: PropTypes.string.isRequired,
-      date: PropTypes.string.isRequired,
-    }),
-  ).isRequired,
+  data: PropTypes.array.isRequired,
   timeRange: PropTypes.string.isRequired,
 };
 

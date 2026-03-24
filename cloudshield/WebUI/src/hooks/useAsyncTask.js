@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { apiGet } from "../api/client";
 
 /**
  * Custom hook for handling async tasks with job polling
@@ -34,7 +35,7 @@ export function useAsyncTask({ pollInterval = 5000 } = {}) {
    * @returns {Promise<Object>} Status object
    */
   async function apiGetStatus(jid) {
-    const res = await fetch(`/api/status/${encodeURIComponent(jid)}`);
+    const res = await apiGet(`/status/${encodeURIComponent(jid)}`);
     if (!res.ok) {
       // For 404, return a queued status (job may not be in Redis yet)
       if (res.status === 404) {

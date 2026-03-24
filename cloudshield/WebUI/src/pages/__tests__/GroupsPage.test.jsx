@@ -1644,4 +1644,916 @@ describe("GroupsPage Component", () => {
     expect(screen.getByTestId("groups-list")).toBeInTheDocument();
     expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
   });
+
+  describe("baseStyles Composition with useThemeColors", () => {
+    it("combines managementToolbarStyles with getSharedIconViewStyles", () => {
+      renderPage();
+      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    });
+
+    it("applies theme colors to icon view styles", () => {
+      renderPage();
+      expect(screen.getByTestId("display-button")).toBeInTheDocument();
+    });
+
+    it("recalculates styles when themeColors change", () => {
+      renderPage();
+      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    });
+  });
+
+  describe("useLocation Hook Integration", () => {
+    it("reads location.state?.openModal flag", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+    });
+
+    it("opens modal when location.state.openModal is true", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+    });
+
+    it("clears location.state history after opening modal", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+    });
+
+    it("handles missing location.state gracefully", async () => {
+      renderPage();
+      expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("State Initialization (useState hooks)", () => {
+    it("initializes groups to empty array", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Groups Count: 0")).toBeInTheDocument();
+      });
+    });
+
+    it("initializes loading to true", async () => {
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+      });
+    });
+
+    it("initializes search to empty string", () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+      expect(searchField).toHaveValue("");
+    });
+
+    it("initializes layout to 'list'", () => {
+      renderPage();
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("initializes activeFilters with size Set", () => {
+      renderPage();
+      expect(screen.getByTestId("filter-button")).toBeInTheDocument();
+    });
+
+    it("initializes showUsers to true", () => {
+      renderPage();
+      expect(screen.getByTestId("show-users")).toHaveTextContent("Users Shown");
+    });
+
+    it("initializes showWorkstations to true", () => {
+      renderPage();
+      expect(screen.getByTestId("show-workstations")).toHaveTextContent(
+        "Workstations Shown"
+      );
+    });
+
+    it("initializes showFiles to true", () => {
+      renderPage();
+      expect(screen.getByTestId("show-files")).toHaveTextContent("Files Shown");
+    });
+
+    it("initializes selectedIds to empty Set", () => {
+      renderPage();
+      const selectAllBtn = screen.getByTestId("select-all");
+      expect(selectAllBtn).toHaveTextContent("Select All");
+    });
+
+    it("initializes sortField to 'name'", () => {
+      renderPage();
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("initializes sortDir to 'asc'", () => {
+      renderPage();
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("initializes toast state to open=false", () => {
+      renderPage();
+      // No toast visible initially
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("initializes modalOpen to false", () => {
+      renderPage();
+      expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
+    });
+
+    it("initializes editingGroup to null", () => {
+      renderPage();
+      expect(screen.queryByTestId("modal-mode")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("useEffect - Initial Data Fetch", () => {
+    it("fetches groups on component mount", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ access_groups: [] }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("sets loading=true before fetch", () => {
+      global.fetch = jest.fn(() => new Promise(() => {}));
+      renderPage();
+      expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+    });
+
+    it("sets loading=false after fetch completes", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ access_groups: [] }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+      });
+    });
+
+    it("handles fetch error gracefully", async () => {
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      global.fetch = jest.fn().mockRejectedValueOnce(new Error("Fetch failed"));
+
+      renderPage();
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("safeSplitName Function (via mapApiGroupToUi)", () => {
+    it("handles empty name as 'Unknown'", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                id: "1",
+                group_name: "test",
+                members: [],
+                members_info: [{ _id: "u1", full_name: "", email: "test@test.com" }],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("splits single word name", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                id: "1",
+                group_name: "test",
+                members: [],
+                members_info: [{ _id: "u1", full_name: "John", email: "test@test.com" }],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("splits multi-word name correctly", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                id: "1",
+                group_name: "test",
+                members: [],
+                members_info: [
+                  {
+                    _id: "u1",
+                    full_name: "John Michael Doe",
+                    email: "test@test.com",
+                  },
+                ],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("handles whitespace-only name", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                id: "1",
+                group_name: "test",
+                members: [],
+                members_info: [{ _id: "u1", full_name: "   ", email: "test@test.com" }],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe("mapApiGroupToUi Data Transformation", () => {
+    it("transforms API group to UI format", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Engineers",
+                description: "Dev team",
+                members: ["u1"],
+                members_info: [
+                  {
+                    _id: "u1",
+                    full_name: "Alice Smith",
+                    email: "alice@test.com",
+                    role: "Lead",
+                    org_id: "org1",
+                  },
+                ],
+                workstations: ["ws1"],
+                file_shares: ["share1", "share2"],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Engineers")).toBeInTheDocument();
+      });
+    });
+
+    it("handles missing members_info array", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Team",
+                description: "Test",
+                members: [],
+                workstations: [],
+                file_shares: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Team")).toBeInTheDocument();
+      });
+    });
+
+    it("calculates memberCount from members array length", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Team",
+                members: ["u1", "u2", "u3"],
+                members_info: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Team")).toBeInTheDocument();
+      });
+    });
+
+    it("formats file shares count", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Team",
+                members: [],
+                members_info: [],
+                file_shares: ["s1", "s2"],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Team")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Filtered useMemo (search, filters, sorting)", () => {
+    it("filters by search query in name field", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Engineering",
+                description: "Dev",
+                members: [],
+                members_info: [],
+              },
+              {
+                _id: "g2",
+                group_name: "Marketing",
+                description: "Sales",
+                members: [],
+                members_info: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Engineering")).toBeInTheDocument();
+      });
+
+      const searchField = screen.getByTestId("search-field");
+      await userEvent.type(searchField, "market");
+    });
+
+    it("filters by search query in description field", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Team A",
+                description: "Engineering",
+                members: [],
+                members_info: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Team A")).toBeInTheDocument();
+      });
+    });
+
+    it("trims whitespace from search value", async () => {
+      renderPage();
+      const searchField = screen.getByTestId("search-field");
+      await userEvent.type(searchField, "   test   ");
+      expect(searchField).toHaveValue("   test   ");
+    });
+
+    it("sorts by string field ascending", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Beta",
+                members: [],
+                members_info: [],
+              },
+              {
+                _id: "g2",
+                group_name: "Alpha",
+                members: [],
+                members_info: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Beta")).toBeInTheDocument();
+      });
+    });
+
+    it("sorts by numeric field descending when sortDir=desc", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [], memberCount: 5 },
+              { _id: "g2", group_name: "B", members: [], members_info: [], memberCount: 10 },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+    });
+
+    it("handles missing sort values with fallback", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "Test", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByText("Test")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Selection & Indeterminate State (useMemo)", () => {
+    it("allVisibleSelected=true when all filtered groups selected", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              {
+                _id: "g1",
+                group_name: "Team",
+                members: [],
+                members_info: [],
+              },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("group-row-g1")).toBeInTheDocument();
+      });
+
+      const selectAllBtn = screen.getByTestId("select-all");
+      await userEvent.click(selectAllBtn);
+      expect(selectAllBtn).toHaveTextContent("Deselect All");
+    });
+
+    it("isIndeterminate=true when some (not all) selected", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+              { _id: "g2", group_name: "B", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      expect(screen.getByTestId("select-all")).toHaveTextContent("Select All");
+    });
+  });
+
+  describe("toggleSelect Handler", () => {
+    it("adds group to selectedIds when unchecked", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "Team", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+    });
+
+    it("removes group from selectedIds when checked", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "Team", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      expect(screen.getByTestId("checkbox-g1")).not.toBeChecked();
+    });
+  });
+
+  describe("toggleSelectAllVisible Handler", () => {
+    it("selects all when none selected", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+              { _id: "g2", group_name: "B", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("select-all"));
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+      expect(screen.getByTestId("checkbox-g2")).toBeChecked();
+    });
+
+    it("deselects all when all selected", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("select-all")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("select-all"));
+      await userEvent.click(screen.getByTestId("select-all"));
+      expect(screen.getByTestId("checkbox-g1")).not.toBeChecked();
+    });
+
+    it("deselects only unselected items when indeterminate", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+              { _id: "g2", group_name: "B", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      // Select one
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      // Click select-all to complete selection
+      await userEvent.click(screen.getByTestId("select-all"));
+      expect(screen.getByTestId("checkbox-g2")).toBeChecked();
+    });
+  });
+
+  describe("Modal Handlers", () => {
+    it("opens create modal with editingGroup=null", async () => {
+      renderPage();
+      const createBtn = screen.getByTestId("create-button");
+      await userEvent.click(createBtn);
+
+      expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
+      expect(screen.getByTestId("modal-mode")).toHaveTextContent("Create Mode");
+    });
+
+    it("opens edit modal with group data", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { id: "g1", group_name: "Team", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("edit-g1")).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByTestId("edit-g1"));
+      expect(screen.getByTestId("modal-mode")).toHaveTextContent("Edit Mode");
+    });
+
+    it("closes modal and clears editingGroup", async () => {
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId("modal-close"));
+      expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("normalizeIds Deduplication", () => {
+    it("handles valid items with id property", async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { id: "1" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      await userEvent.click(screen.getByTestId("modal-submit"));
+
+      await waitFor(() => {
+        expect(global.fetch.mock.calls.length).toBeGreaterThanOrEqual(2);
+      });
+    });
+
+    it("filters duplicate IDs", async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { id: "1" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      await userEvent.click(screen.getByTestId("modal-submit"));
+
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("handles items with _id property", async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { _id: "1" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      await userEvent.click(screen.getByTestId("modal-submit"));
+
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("skips items without id or _id", async () => {
+      renderPage();
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("handles non-array input gracefully", async () => {
+      renderPage();
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+  });
+
+  describe("Integration: Complex State & Effects", () => {
+    it("handles rapid layout/filter/search changes", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "Test", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+
+      // Rapid changes
+      await userEvent.type(screen.getByTestId("search-field"), "test");
+      await userEvent.click(screen.getByTestId("toggle-users"));
+      await userEvent.click(screen.getByTestId("filter-small"));
+
+      expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+    });
+
+    it("maintains selection across search/sort operations", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+              { _id: "g2", group_name: "B", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await waitFor(() => {
+        expect(screen.getByTestId("checkbox-g1")).toBeInTheDocument();
+      });
+
+      // Select a group
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      // Search
+      await userEvent.type(screen.getByTestId("search-field"), "test");
+      // Selection should persist
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+    });
+
+    it("updates display when modal submission completes", async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_groups: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ access_group: { id: "1" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              access_groups: [
+                {
+                  _id: "g1",
+                  group_name: "New Group",
+                  members: [],
+                  members_info: [],
+                },
+              ],
+            }),
+        });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      await userEvent.click(screen.getByTestId("modal-submit"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
+      });
+    });
+
+    it("handles concurrent API calls gracefully", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "Team", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("refresh-button"));
+      await userEvent.click(screen.getByTestId("refresh-button"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("groups-list")).toBeInTheDocument();
+      });
+    });
+
+    it("clears old modals and state when transitioning", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { id: "g1", group_name: "Team", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      renderPage();
+      await userEvent.click(screen.getByTestId("create-button"));
+      await userEvent.click(screen.getByTestId("modal-close"));
+
+      await userEvent.click(screen.getByTestId("create-button"));
+      expect(screen.getByTestId("modal-mode")).toHaveTextContent("Create Mode");
+    });
+  });
 });

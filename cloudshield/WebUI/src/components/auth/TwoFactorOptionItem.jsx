@@ -15,6 +15,7 @@ import { Box, Typography } from "@mui/material";
 import SmsOutlinedIcon from "@mui/icons-material/SmsOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * Clickable 2FA delivery method option (SMS or Email).
@@ -31,6 +32,7 @@ export default function TwoFactorOptionItem({
   subtitle,
   onClick,
 }) {
+  const themeColors = useThemeColors();
   // Select the appropriate icon based on type
   const IconLeft = type === "sms" ? SmsOutlinedIcon : MailOutlineOutlinedIcon;
 
@@ -49,9 +51,9 @@ export default function TwoFactorOptionItem({
       tabIndex={0}
       sx={{
         width: "100%",
-        backgroundColor: "#161616",
+        backgroundColor: themeColors.inputBg,
         borderRadius: "12px",
-        border: "1px solid rgba(255,255,255,0.18)",
+        border: `1px solid ${themeColors.border}`,
         paddingY: "14px",
         paddingX: "16px",
         display: "flex",
@@ -60,7 +62,7 @@ export default function TwoFactorOptionItem({
         cursor: "pointer",
         mb: 2,
         "&:hover": {
-          backgroundColor: "#1a1a1a",
+          backgroundColor: themeColors.inputBgHover,
         },
       }}
     >
@@ -70,7 +72,7 @@ export default function TwoFactorOptionItem({
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "center",
-            color: "#fff",
+            color: themeColors.text,
             lineHeight: 0,
             pt: "2px",
           }}
@@ -81,7 +83,7 @@ export default function TwoFactorOptionItem({
         <Box sx={{ display: "flex", flexDirection: "column" }}>
           <Typography
             sx={{
-              color: "#fff",
+              color: themeColors.text,
               fontWeight: 500,
               fontSize: "1rem",
               lineHeight: 1.3,
@@ -92,7 +94,7 @@ export default function TwoFactorOptionItem({
           {subtitle && (
             <Typography
               sx={{
-                color: "rgba(255,255,255,0.7)",
+                color: themeColors.textSecondary,
                 fontSize: "0.9rem",
                 lineHeight: 1.4,
               }}
@@ -107,7 +109,7 @@ export default function TwoFactorOptionItem({
         sx={{
           display: "flex",
           alignItems: "center",
-          color: "rgba(255,255,255,0.6)",
+          color: themeColors.textSecondary,
           lineHeight: 0,
         }}
       >

@@ -6,6 +6,7 @@ import {
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const MOCK_ALERTS = Array.from({ length: 5 }, (_, i) => ({
   id: `alert-${i}`,
@@ -13,21 +14,26 @@ const MOCK_ALERTS = Array.from({ length: 5 }, (_, i) => ({
   date: "10/11/2025 11:36 pm",
 }));
 
-const inputSx = {
+const getInputSx = (themeColors) => ({
   "& .MuiOutlinedInput-root": {
-    backgroundColor: "#161616",
+    backgroundColor: themeColors.inputBg,
     borderRadius: "8px",
-    color: "#fff",
-    "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
-    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.25)" },
-    "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+    color: themeColors.text,
+    "& fieldset": { borderColor: themeColors.borderLight },
+    "&:hover fieldset": { borderColor: themeColors.border },
+    "&.Mui-focused fieldset": { borderColor: themeColors.borderStrong },
   },
-  "& .MuiInputLabel-root": { color: "#9E9E9E" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
-  "& input::placeholder": { color: "#666" },
-};
+  "& .MuiInputLabel-root": { color: themeColors.textSecondary },
+  "& .MuiInputLabel-root.Mui-focused": { color: themeColors.text },
+  "& input::placeholder": { color: themeColors.textSecondary },
+});
 
 export default function NotificationsTab({ userData, onSave }) {
+  const themeColors = useThemeColors();
+  
+  // FIX: Actually initialize inputSx using the theme colors!
+  const inputSx = getInputSx(themeColors);
+
   const prefs = userData?.notification_preferences || {};
 
   const [emailAlerts, setEmailAlerts] = useState(prefs.email_alerts ?? false);
@@ -116,22 +122,22 @@ export default function NotificationsTab({ userData, onSave }) {
 
   return (
     <Box>
-      <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
+      <Typography sx={{ color: themeColors.textPrimary, fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
         Notification Centre
       </Typography>
-      <Typography sx={{ color: "#9E9E9E", fontSize: "0.85rem", mb: 3 }}>
+      <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.85rem", mb: 3 }}>
         Take a look at your notifications
       </Typography>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 3 }} />
 
       {/* Email Alerts */}
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 4, mb: 3 }}>
         <Box sx={{ width: 200 }}>
-          <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>
+          <Typography sx={{ color: themeColors.textPrimary, fontWeight: 600, fontSize: "0.95rem" }}>
             Email alerts
           </Typography>
-          <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5 }}>
+          <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem", mt: 0.5 }}>
             Activate email alerts
           </Typography>
         </Box>
@@ -151,27 +157,27 @@ export default function NotificationsTab({ userData, onSave }) {
             disabled={saving}
             sx={{
               "& .MuiSwitch-switchBase.Mui-checked": { 
-                color: "#4caf50",
+                color: themeColors.success,
                 "&:hover": { backgroundColor: "rgba(76, 175, 80, 0.08)" }
               },
               "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                backgroundColor: "#66bb6a",
+                backgroundColor: themeColors.success,
               },
-              "& .MuiSwitch-track": { backgroundColor: "#333" },
+              "& .MuiSwitch-track": { backgroundColor: themeColors.textSecondary },
             }}
           />
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 3 }} />
 
       {/* In-App Alerts */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 4, mb: 4 }}>
         <Box sx={{ width: 200 }}>
-          <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>
+          <Typography sx={{ color: themeColors.textPrimary, fontWeight: 600, fontSize: "0.95rem" }}>
             In-App alerts
           </Typography>
-          <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5 }}>
+          <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem", mt: 0.5 }}>
             Activate pop-up alerts
           </Typography>
         </Box>
@@ -181,24 +187,24 @@ export default function NotificationsTab({ userData, onSave }) {
           disabled={saving}
           sx={{
             "& .MuiSwitch-switchBase.Mui-checked": { 
-              color: "#4caf50",
+              color: themeColors.success,
               "&:hover": { backgroundColor: "rgba(76, 175, 80, 0.08)" }
             },
             "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-              backgroundColor: "#66bb6a",
+              backgroundColor: themeColors.success,
             },
-            "& .MuiSwitch-track": { backgroundColor: "#333" },
+            "& .MuiSwitch-track": { backgroundColor: themeColors.textSecondary },
           }}
         />
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 3 }} />
 
       {/* Alerts Table */}
       <Box
         sx={{
-          backgroundColor: "#111",
-          border: "1px solid rgba(255,255,255,0.07)",
+          backgroundColor: themeColors.bgSecondary,
+          border: `1px solid ${themeColors.borderLight}`,
           borderRadius: "14px",
           overflow: "hidden",
           mb: 3,
@@ -211,7 +217,7 @@ export default function NotificationsTab({ userData, onSave }) {
             alignItems: "center",
             gap: 2,
             padding: "14px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: `1px solid ${themeColors.borderLight}`,
           }}
         >
           <TextField
@@ -224,7 +230,7 @@ export default function NotificationsTab({ userData, onSave }) {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchOutlinedIcon sx={{ color: "#666", fontSize: "1rem" }} />
+                  <SearchOutlinedIcon sx={{ color: themeColors.textSecondary, fontSize: "1rem" }} />
                 </InputAdornment>
               ),
             }}
@@ -232,14 +238,14 @@ export default function NotificationsTab({ userData, onSave }) {
           <Button
             startIcon={<FilterListOutlinedIcon />}
             sx={{
-              color: "#9E9E9E",
-              border: "1px solid rgba(255,255,255,0.1)",
+              color: themeColors.textSecondary,
+              border: `1px solid ${themeColors.borderLight}`,
               borderRadius: "8px",
               textTransform: "none",
               fontSize: "0.85rem",
               padding: "6px 14px",
               whiteSpace: "nowrap",
-              "&:hover": { backgroundColor: "rgba(255,255,255,0.05)" },
+              "&:hover": { backgroundColor: themeColors.lightOverlaySubtle },
             }}
           >
             Filter
@@ -249,15 +255,15 @@ export default function NotificationsTab({ userData, onSave }) {
             onClick={deleteSelected}
             disabled={selected.length === 0}
             sx={{
-              color: "#ef5350",
-              border: "1px solid rgba(239,83,80,0.3)",
+              color: themeColors.error,
+              border: `1px solid ${themeColors.error}40`,
               borderRadius: "8px",
               textTransform: "none",
               fontSize: "0.85rem",
               padding: "6px 14px",
               whiteSpace: "nowrap",
-              "&:hover": { backgroundColor: "rgba(239,83,80,0.08)" },
-              "&:disabled": { color: "#555", borderColor: "rgba(255,255,255,0.06)" },
+              "&:hover": { backgroundColor: `${themeColors.error}15` },
+              "&:disabled": { color: themeColors.textDisabled, borderColor: themeColors.borderLight },
             }}
           >
             Delete All
@@ -270,17 +276,17 @@ export default function NotificationsTab({ userData, onSave }) {
             display: "grid",
             gridTemplateColumns: "40px 1fr 200px 48px",
             padding: "10px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: `1px solid ${themeColors.borderLight}`,
           }}
         >
           <Checkbox
             checked={selected.length === filtered.length && filtered.length > 0}
             onChange={toggleAll}
             size="small"
-            sx={{ color: "#555", "&.Mui-checked": { color: "#fff" }, padding: 0 }}
+            sx={{ color: themeColors.textSecondary, "&.Mui-checked": { color: themeColors.textPrimary }, padding: 0 }}
           />
-          <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem" }}>alert</Typography>
-          <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem" }}>Date:</Typography>
+          <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem" }}>alert</Typography>
+          <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem" }}>Date:</Typography>
           <span />
         </Box>
 
@@ -293,23 +299,23 @@ export default function NotificationsTab({ userData, onSave }) {
               gridTemplateColumns: "40px 1fr 200px 48px",
               padding: "14px 20px",
               alignItems: "center",
-              backgroundColor: idx % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
-              "&:hover": { backgroundColor: "rgba(255,255,255,0.04)" },
+              backgroundColor: idx % 2 === 0 ? themeColors.lightOverlaySubtle : "transparent",
+              borderBottom: `1px solid ${themeColors.borderLight}`,
+              "&:hover": { backgroundColor: themeColors.lightOverlay },
             }}
           >
             <Checkbox
               checked={selected.includes(alert.id)}
               onChange={() => toggleOne(alert.id)}
               size="small"
-              sx={{ color: "#555", "&.Mui-checked": { color: "#fff" }, padding: 0 }}
+              sx={{ color: themeColors.textSecondary, "&.Mui-checked": { color: themeColors.textPrimary }, padding: 0 }}
             />
-            <Typography sx={{ color: "#fff", fontSize: "0.88rem" }}>{alert.message}</Typography>
-            <Typography sx={{ color: "#9E9E9E", fontSize: "0.82rem" }}>{alert.date}</Typography>
+            <Typography sx={{ color: themeColors.textPrimary, fontSize: "0.88rem" }}>{alert.message}</Typography>
+            <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.82rem" }}>{alert.date}</Typography>
             <IconButton
               size="small"
               onClick={() => deleteOne(alert.id)}
-              sx={{ color: "#ef5350", "&:hover": { color: "#e53935" } }}
+              sx={{ color: themeColors.error, "&:hover": { color: themeColors.error } }}
             >
               <DeleteOutlineOutlinedIcon sx={{ fontSize: "1rem" }} />
             </IconButton>
@@ -318,7 +324,7 @@ export default function NotificationsTab({ userData, onSave }) {
 
         {filtered.length === 0 && (
           <Box sx={{ padding: "32px 20px", textAlign: "center" }}>
-            <Typography sx={{ color: "#555", fontSize: "0.85rem" }}>No alerts found</Typography>
+            <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.85rem" }}>No alerts found</Typography>
           </Box>
         )}
       </Box>
@@ -327,14 +333,14 @@ export default function NotificationsTab({ userData, onSave }) {
         disabled={saving}
         variant="contained"
         sx={{
-          backgroundColor: saving ? "#555" : "#fff",
-          color: "#000",
+          backgroundColor: saving ? themeColors.textDisabled : themeColors.primary,
+          color: themeColors.primaryText,
           fontWeight: 600,
           borderRadius: "10px",
           textTransform: "none",
           padding: "10px 28px",
-          "&:hover": { backgroundColor: saving ? "#555" : "#e0e0e0" },
-          "&:disabled": { backgroundColor: "#333", color: "#666" },
+          "&:hover": { backgroundColor: saving ? themeColors.textDisabled : themeColors.primaryHover },
+          "&:disabled": { backgroundColor: themeColors.bgHover, color: themeColors.textDisabled },
         }}
       >
         {saving ? "Auto-saving..." : "Settings saved"}

@@ -26,7 +26,7 @@ def test_worker_main_invokes_work(monkeypatch):
 
     fake_rq = types.SimpleNamespace(
         Worker=FakeWorker,
-        Queue=lambda connection: types.SimpleNamespace(),
+        Queue=lambda *args, **kwargs: types.SimpleNamespace(),
         SimpleWorker=FakeSimpleWorker,
         get_current_job=lambda: None,
     )
@@ -43,5 +43,5 @@ def test_worker_main_invokes_work(monkeypatch):
     fake_rq_scheduler = types.SimpleNamespace(Scheduler=FakeScheduler)
     monkeypatch.setitem(sys.modules, "rq_scheduler", fake_rq_scheduler)
 
-    runpy.run_module("cloudshield.Server.worker", run_name="__main__")
+    runpy.run_module("cloudshield.Server.api_worker", run_name="__main__")
     assert worked["count"] == 1

@@ -2,7 +2,7 @@
 // This component is used across various pages in the app to ensure a consistent look and feel while also handling layout concerns such as spacing and scroll behavior for the main content area.
 import { Box, Typography } from "@mui/material";
 
-export default function PageShell({ title, subtitle, actions, children }) {
+export default function PageShell({ title, subtitle, actions, children, noPadding = false }) {
   return (
     <Box
       sx={{
@@ -10,7 +10,7 @@ export default function PageShell({ title, subtitle, actions, children }) {
         display: "flex",
         flexDirection: "column",
         gap: 3,          // consistent spacing
-        p: 3,            // consistent page padding
+        p: noPadding ? 0 : 3,            // consistent page padding (disabled if noPadding is true)
         minHeight: 0,    // important for nested scroll areas
       }}
     >

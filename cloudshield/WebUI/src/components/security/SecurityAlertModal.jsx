@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import ReactMarkdown from "react-markdown"; 
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 import HighAlertIcon from "../../assets/security/HighAlertIcon";
 import ModerateAlertIcon from "../../assets/security/ModerateAlertIcon";
 import LowAlertIcon from "../../assets/security/LowAlertIcon";
@@ -29,6 +30,7 @@ const RISK_CONFIG = {
 };
 
 function SecurityAlertModal({ alert, isOpen, onClose }) {
+  const themeColors = useThemeColors();
   const [isHoveredResolve, setIsHoveredResolve] = useState(false);
   
   // AI State
@@ -108,20 +110,20 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       padding: "20px",
     },
     modal: {
-      backgroundColor: "#0f0f0f",
+      backgroundColor: themeColors.bgSecondary,
       borderRadius: "16px",
       width: "100%",
       maxWidth: "800px",
       maxHeight: "90vh",
       overflow: "auto",
-      border: "1px solid rgba(255,255,255,0.1)",
+      border: `1px solid ${themeColors.borderLight}`,
     },
     header: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "flex-start",
       padding: "24px 32px",
-      borderBottom: "1px solid rgba(255,255,255,0.08)",
+      borderBottom: `1px solid ${themeColors.borderLight}`,
     },
     headerLeft: {
       display: "flex",
@@ -136,7 +138,7 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
     title: {
       fontSize: "24px",
       fontWeight: "600",
-      color: "#fff",
+      color: themeColors.textPrimary,
       margin: 0,
     },
     riskBadge: {
@@ -147,18 +149,18 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       backgroundColor: riskConfig.color,
       fontSize: "11px",
       fontWeight: "700",
-      color: "#fff",
+      color: themeColors.textPrimary,
       letterSpacing: "0.5px",
     },
     id: {
       fontSize: "14px",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textSecondary,
       fontWeight: "400",
     },
     closeButton: {
       background: "none",
       border: "none",
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontSize: "28px",
       cursor: "pointer",
       padding: "0",
@@ -192,14 +194,14 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
     detailLabel: {
       fontSize: "11px",
       fontWeight: "600",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textSecondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
     },
     detailValue: {
       fontSize: "15px",
       fontWeight: "500",
-      color: "#fff",
+      color: themeColors.textPrimary,
     },
     descriptionSection: {
       marginBottom: "32px",
@@ -207,24 +209,24 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
     descriptionLabel: {
       fontSize: "11px",
       fontWeight: "600",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textSecondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       marginBottom: "8px",
     },
     descriptionText: {
       fontSize: "14px",
-      color: "rgba(255,255,255,0.8)",
+      color: themeColors.textSecondary,
       lineHeight: "1.6",
       marginBottom: "16px",
     },
     aiBox: {
       position: "relative",
-      backgroundColor: "#1a1a1a",
+      backgroundColor: themeColors.bgPrimary,
       borderRadius: "12px",
-      padding: "24px",
-      minHeight: "120px",
-      border: "1px solid rgba(255,255,255,0.08)",
+      padding: "16px",
+      minHeight: "200px",
+      border: `1px solid ${themeColors.borderLight}`,
     },
     expandButton: {
       position: "absolute",
@@ -234,10 +236,10 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       alignItems: "center",
       gap: "6px",
       padding: "8px 16px",
-      backgroundColor: "#fff",
+      backgroundColor: themeColors.textPrimary,
       border: "none",
       borderRadius: "8px",
-      color: "#1a1a1a",
+      color: themeColors.bgPrimary,
       fontSize: "13px",
       fontWeight: "600",
       cursor: "pointer",
@@ -265,12 +267,12 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       justifyContent: "space-between",
       alignItems: "center",
       padding: "24px 32px",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
+      borderTop: `1px solid ${themeColors.borderLight}`,
     },
     falsePositiveButton: {
       background: "none",
       border: "none",
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontSize: "14px",
       fontWeight: "400",
       cursor: "pointer",
@@ -285,11 +287,11 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
       gap: "8px",
       padding: "10px 20px",
       backgroundColor: isHoveredResolve
-        ? "rgba(255,255,255,0.12)"
-        : "rgba(255,255,255,0.08)",
-      border: "1px solid rgba(255,255,255,0.2)",
+        ? themeColors.lightOverlay
+        : themeColors.lightOverlaySubtle,
+      border: `1px solid ${themeColors.border}`,
       borderRadius: "8px",
-      color: "#fff",
+      color: themeColors.textPrimary,
       fontSize: "14px",
       fontWeight: "500",
       cursor: "pointer",
@@ -323,7 +325,7 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
             style={styles.closeButton}
             onClick={onClose}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)";
+              e.currentTarget.style.backgroundColor = themeColors.lightOverlaySubtle;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";
@@ -396,13 +398,15 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
                   onClick={handleExpandAI}
                   disabled={isAnalyzing}
                   onMouseEnter={(e) => {
-                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = "#f0f0f0";
+                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = themeColors.bgSecondary;
+                  e.currentTarget.style.color = themeColors.textPrimary;
                   }}
                   onMouseLeave={(e) => {
-                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = "#fff";
+                    if (!isAnalyzing) e.currentTarget.style.backgroundColor = themeColors.textPrimary;
+                  e.currentTarget.style.color = themeColors.bgPrimary;
                   }}
                 >
-                  <AiIcon width={14} height={14} color="#1a1a1a" />
+                  <AiIcon width={14} height={14} color={themeColors.bgPrimary} />
                   {isAnalyzing ? "Analyzing..." : "Expand with AI"}
                 </button>
               )}
@@ -448,7 +452,7 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
               onMouseEnter={() => setIsHoveredResolve(true)}
               onMouseLeave={() => setIsHoveredResolve(false)}
             >
-              <CheckmarkIcon width={16} height={16} color="#fff" />
+              <CheckmarkIcon width={16} height={16} color={themeColors.textPrimary} />
               Mark as resolved
             </button>
           </div>

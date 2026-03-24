@@ -48,35 +48,41 @@ class TestDatabase:
         assert database.MONGO_URL_FALLBACK is not None
         assert len(database.MONGO_URL_FALLBACK) > 0
 
-    @patch.dict(os.environ, {
-        'MONGO_DB': 'test_db',
-        'MONGO_URL': 'mongodb://test:27017/',
-        'MONGO_URL_ADMIN': 'mongodb://admin:27017/',
-        'MONGO_URL_EMP': 'mongodb://emp:27017/'
-    })
-    def test_custom_environment_variables(self):
-        if 'cloudshield.Server.utils.database' in sys.modules:
-            importlib.reload(sys.modules['cloudshield.Server.utils.database'])
-        
+    def test_custom_environment_variables(self, monkeypatch):
         from cloudshield.Server.utils import database
+        monkeypatch.setenv('MONGO_DB', 'test_db')
+        monkeypatch.setenv('MONGO_URL', 'mongodb://test:27017/')
+        monkeypatch.setenv('MONGO_URL_ADMIN', 'mongodb://admin:27017/')
+        monkeypatch.setenv('MONGO_URL_EMP', 'mongodb://emp:27017/')
+
+        import sys
+        monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.database", raising=False)
+        monkeypatch.delitem(sys.modules, "utils.database", raising=False) # Catch the shorter alias
+
+        import importlib
+        database = importlib.import_module("cloudshield.Server.utils.database")
         
         assert database.DB_NAME == "test_db"
         assert database.MONGO_URL_FALLBACK == "mongodb://test:27017/"
         assert database.MONGO_URL_ADMIN == "mongodb://admin:27017/"
         assert database.MONGO_URL_EMP == "mongodb://emp:27017/"
 
-    def test_mk_client_function(self):
+    def test_mk_client_function(self, monkeypatch):
         from cloudshield.Server.utils import database
+        from unittest.mock import MagicMock
+
+        mock_client_class = MagicMock()
         
         # Test that _mk_client is callable
         assert callable(database._mk_client)
+
+        monkeypatch.setattr(database, "MongoClient", mock_client_class)
         
         # Test with a mock URL
-        with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
-            database._mk_client("mongodb://test:27017/")
+        database._mk_client("mongodb://test:27017/")
             
-            # Verify MongoClient was called with correct parameters
-            mock_client.assert_called_once_with("mongodb://test:27017/", serverSelectionTimeoutMS=5000)
+        # Verify MongoClient was called with correct parameters
+        mock_client_class.assert_called_once_with("mongodb://test:27017/", serverSelectionTimeoutMS=5000)
 
     def test_database_exports(self):
         from cloudshield.Server.utils import database
@@ -260,19 +266,19 @@ def test_database_collections_accessible():
     assert database.users_public is not None
 
 
-def test_mk_client_timeout_parameter():
+def test_mk_client_timeout_parameter(monkeypatch):
     """Test that _mk_client uses correct timeout"""
     from cloudshield.Server.utils import database
-    
-    with patch('cloudshield.Server.utils.database.MongoClient') as mock_client:
-        test_url = "mongodb://localhost:27017/"
-        database._mk_client(test_url)
-        
-        # Verify it was called with serverSelectionTimeoutMS
-        call_args = mock_client.call_args
-        assert call_args[0][0] == test_url
-        assert call_args[1]['serverSelectionTimeoutMS'] == 5000
+    from unittest.mock import MagicMock
 
+    test_url = "mongodb://localhost:27017/"
+    mock_client_class = MagicMock()
+
+    monkeypatch.setattr(database, "MongoClient", mock_client_class)
+
+    database._mk_client(test_url)
+
+    mock_client_class.assert_called_once_with(test_url, serverSelectionTimeoutMS=5000)
 
 def test_database_constants():
     """Test that database constants are set correctly"""
@@ -283,7 +289,7 @@ def test_database_constants():
     assert len(database.DB_NAME) > 0
     
     assert isinstance(database.MONGO_URL_FALLBACK, str)
-    assert "mongodb://" in database.MONGO_URL_FALLBACK
+    assert "mongodb://" in database.MONGO_URL_FALLBACK or "mongodb+srv://" in database.MONGO_URL_FALLBACK
 
 
 @patch.dict(os.environ, {'MONGO_DB': 'custom_db'}, clear=False)
