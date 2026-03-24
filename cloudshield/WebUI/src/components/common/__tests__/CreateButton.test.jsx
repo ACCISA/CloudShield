@@ -8,6 +8,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CreateButton from "../CreateButton/CreateButton";
 
+jest.mock("../../../hooks/useThemeColors.js", () => ({
+  useThemeColors: () => ({
+    secondary: "#1a1a1a",
+    secondaryHover: "#242424",
+    secondaryBorder: "rgba(255, 255, 255, 0.1)",
+    secondaryText: "#ffffff",
+  }),
+}));
+
 // Mock icon component
 const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 
@@ -119,7 +128,7 @@ describe("CreateButton Component", () => {
       fireEvent.mouseEnter(button);
 
       expect(button.style.background).toBe("rgb(36, 36, 36)");
-      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.2)");
+      expect(button.style.borderColor).toBe("rgba(255, 255, 255, 0.1)");
     });
 
     test("restores styles on mouse leave", () => {
