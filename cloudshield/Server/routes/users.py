@@ -575,8 +575,7 @@ def import_users_csv():
                     errors.append({"row": row_num, "error": str(limit_err)})
                     continue
 
-                # Handle password: use provided hash if valid bcrypt, otherwise generate
-                plain_password_for_dc = None
+
                 if password_hash and is_bcrypt_string(password_hash):
                     # Use the pre-hashed password directly (migration from another system)
                     final_password_hash = password_hash
