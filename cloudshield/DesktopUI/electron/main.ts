@@ -259,11 +259,7 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
   let command = process.platform === "linux" ? "/usr/sbin/openvpn" : "openvpn";
   const args: string[] = ["--config", ovpnPath, "--writepid", pidFilePath];
 
-  // Linux desktop/dev environments may lack permissions for OpenVPN DCO.
-  // Disable DCO to avoid immediate fatal exits on systems without usable DCO.
-  if (process.platform === "linux") {
-    args.push("--disable-dco");
-  }
+
 
   if (process.platform === "win32") {
     const winOVPN = await getWinOVPNPath();
