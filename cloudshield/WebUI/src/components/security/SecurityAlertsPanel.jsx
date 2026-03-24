@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { Box, Typography } from "@mui/material";
 
 import SecurityAlertsTable from "./SecurityAlertsTable";
 import SearchField from "../common/SearchField/SearchField";
@@ -12,8 +13,10 @@ import DownloadIcon from "../../assets/DownloadIcon";
 import { SECURITY_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
 import { MOCK_SECURITY_ALERTS } from "../../data/mockData";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function SecurityAlertsPanel() {
+  const themeColors = useThemeColors();
   const [alerts] = useState(MOCK_SECURITY_ALERTS); // Replace with API call later
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState(new Set());
@@ -133,9 +136,9 @@ function SecurityAlertsPanel() {
       onClick: handleBulkMarkFalsePositive,
     },
     {
-      icon: <DownloadIcon width={16} height={16} color="#1a1a1a" />,
+      icon: <DownloadIcon width={16} height={16} color={themeColors.textPrimary} />,
       label: "Download",
-      color: "#1a1a1a",
+      color: themeColors.textPrimary,
       onClick: handleBulkDownload,
     },
   ];
@@ -153,10 +156,10 @@ function SecurityAlertsPanel() {
 
   const styles = {
     container: {
-      backgroundColor: "#0f0f0f",
+      backgroundColor: themeColors.bgSecondary,
       borderRadius: "16px",
       padding: "16px",
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${themeColors.borderLight}`,
     },
     header: {
       display: "flex",
@@ -168,13 +171,6 @@ function SecurityAlertsPanel() {
       display: "flex",
       alignItems: "center",
       gap: "8px",
-    },
-    title: {
-      fontSize: "14px",
-      fontWeight: "500",
-      color: "rgba(255,255,255,1)",
-      marginBottom: "12px",
-      marginTop: 0,
     },
     headerRight: {
       display: "flex",
@@ -192,7 +188,29 @@ function SecurityAlertsPanel() {
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.headerLeft}>
-          <h3 style={styles.title}>Security Alerts</h3>
+          {/* FIX: Use themeColors.textPrimary instead of hardcoded "#fff" */}
+          <Typography
+            sx={{
+              color: themeColors.textPrimary, 
+              fontWeight: 600,
+              fontSize: "1.1rem",
+            }}
+          >
+            Security Alert History
+          </Typography>
+          {/* FIX: Use themeColors.textPrimary instead of hardcoded "white" */}
+          <Box
+            sx={{
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              color: themeColors.textPrimary, 
+              fontSize: "0.85rem",
+              fontWeight: 500,
+            }}
+          >
+            {alerts.length}
+          </Box>
         </div>
         <div style={styles.headerRight}>
           <GroupActionsButton

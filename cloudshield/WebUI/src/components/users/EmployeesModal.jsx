@@ -4,6 +4,7 @@ import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 import "./EmployeesModal.css";
 
 import {
@@ -45,9 +46,10 @@ export default function EmployeesModal({
   creationMessage = null,
 }) {
   const { accessToken, currentUser } = useAuth();
+  const themeColors = useThemeColors();
 
   const isEditMode = Boolean(employeeData);
-  const isCreating = creationStatus === "running" || creationStatus === "starting"; // NOSONAR
+  const isCreating = creationStatus === "running" || creationStatus === "starting";
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -347,25 +349,25 @@ export default function EmployeesModal({
         <main className="employees-modal-content">
           {isCreating ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "24px", padding: "48px 24px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+              <div style={{ fontSize: "18px", fontWeight: 500, color: themeColors.textPrimary }}>
                 Creating user...
               </div>
               <div style={{ width: "100%", maxWidth: "300px" }}>
-                <div style={{ height: "4px", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "4px", backgroundColor: themeColors.border, borderRadius: "2px", overflow: "hidden" }}>
                   <div style={{ 
                     height: "100%", 
-                    backgroundColor: "#4caf50",
+                    backgroundColor: themeColors.success,
                     animation: "pulse 2s ease-in-out infinite",
                   }} />
                 </div>
               </div>
               {creationMessage && (
-                <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", textAlign: "center" }}>
+                <div style={{ fontSize: "14px", color: themeColors.textSecondary, textAlign: "center" }}>
                   {creationMessage}
                 </div>
               )}
               {typeof creationProgress === "number" && (
-                <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)" }}>
+                <div style={{ fontSize: "14px", color: themeColors.textSecondary }}>
                   {creationProgress}%
                 </div>
               )}
@@ -548,9 +550,9 @@ function BasicInfoStep({
               />
               <div className="employees-modal-image-placeholder">
                 <span className="employees-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="#9e9e9e" />
+                  <UploadIcon width={48} height={48} fill="var(--text-secondary)" />
                 </span>
-                <span>Upload Image</span>
+                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
               </div>
             </label>
           )}
@@ -658,7 +660,7 @@ function SelectionStep({
               indeterminate={isIndeterminate}
               onChange={onAllChange}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
               {type === "workstations" && "All Workstations"}
               {type === "groups" && "All Groups"}
               {type === "files" && "All Shares"}
@@ -678,7 +680,7 @@ function SelectionStep({
           {items.length === 0 ? (
             <div
               className="employees-modal-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default" }}
+              style={{ opacity: 0.7, cursor: "default", color: "var(--text-secondary)" }}
             >
               No results
             </div>

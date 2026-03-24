@@ -3,6 +3,23 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import UserRow from "../UserRow.jsx";
 
+// Mock useThemeColors hook
+jest.mock("../../../hooks/useThemeColors.js", () => ({
+  useThemeColors: () => ({
+    isDark: true,
+    isLight: false,
+    bgPrimary: "#0A0A0A",
+    bgSecondary: "#111111",
+    textPrimary: "#FFFFFF",
+    textSecondary: "#9E9E9E",
+    inputBg: "#161616",
+    border: "rgba(255,255,255,0.16)",
+    borderLight: "rgba(255,255,255,0.08)",
+    lightOverlay: "rgba(255,255,255,0.08)",
+    lightOverlaySubtle: "rgba(255,255,255,0.03)",
+  }),
+}));
+
 // Mock components
 jest.mock("../../common/EditButton/EditButton.jsx", () => {
   return function MockEditButton({ menuItems }) {
@@ -180,7 +197,7 @@ describe("UserRow", () => {
     const row = container.firstChild;
 
     fireEvent.mouseEnter(row);
-    expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.02)");
+    expect(row.style.backgroundColor).toBe("rgba(255,255,255,0.08)");
 
     fireEvent.mouseLeave(row);
     expect(row.style.backgroundColor).toBe("transparent");

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import cloudshieldLogo from "../assets/cloudshield_logo_white.png";
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
+import { useAppTheme } from "../context/ThemeContext.jsx";
 
 import {apiGet, apiPost} from "../api/client"
 // UI standardization
@@ -75,6 +76,7 @@ async function fetchJson(url, options) {
 
 // --- Main Page Component ---
 export default function ProvisioningPage() {
+  const { effectiveTheme } = useAppTheme();
   const pollTimerRef = useRef(null);
   const animationTimerRef = useRef(null);
   const successHandled = useRef(false);
@@ -204,8 +206,8 @@ export default function ProvisioningPage() {
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundColor: "#0A0A0A",
-        color: "#fff",
+        backgroundColor: "background.default",
+        color: "text.primary",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -251,7 +253,7 @@ export default function ProvisioningPage() {
               component="p"
               sx={{
                 mt: 3,
-                color: status === "failed" ? "#ef4444" : "rgba(255, 255, 255, 0.6)",
+                color: status === "failed" ? "#ef4444" : "text.secondary",
                 fontSize: "1rem",
                 fontFamily: "monospace",
                 minHeight: "1.5em",
@@ -270,14 +272,14 @@ export default function ProvisioningPage() {
                   sx={{
                     px: 3,
                     py: 1.5,
-                    borderColor: "rgba(255, 255, 255, 0.3)",
-                    color: "#fff",
+                    borderColor: "divider",
+                    color: "text.primary",
                     fontWeight: 600,
                     textTransform: "none",
                     "&:hover": {
-                      borderColor: "#fff",
-                      backgroundColor: "#fff",
-                      color: "#0A0A0A",
+                      borderColor: "text.primary",
+                      backgroundColor: "text.primary",
+                      color: "background.default",
                     },
                   }}
                 >
