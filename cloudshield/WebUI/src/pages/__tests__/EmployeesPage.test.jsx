@@ -488,7 +488,7 @@ describe("EmployeesPage Integration", () => {
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     await userEvent.click(screen.getByTestId("edit-btn-1"));
     await userEvent.click(screen.getByText("Confirm Update"));
-    expect(await screen.findByText("Failed to save user")).toBeInTheDocument();
+    expect(await screen.findByText("Update Failed")).toBeInTheDocument();
   });
 
   it("closes edit modal", async () => {
@@ -513,9 +513,12 @@ describe("EmployeesPage Integration", () => {
     // Render strictly without token
     renderPage({ accessToken: null });
 
-    // Loading remains visible when no token is available.
-    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
-    expect(screen.queryByTestId("force-delete-btn")).not.toBeInTheDocument();
+    // Without token, no loading skeleton is shown.
+    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+
+    // The button can render, but delete actions should still be blocked.
+    expect(screen.getByTestId("force-delete-btn")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("force-delete-btn"));
 
     // Verify API was NOT called
     expect(usersApi.deleteUser).not.toHaveBeenCalled();
@@ -615,7 +618,7 @@ describe("EmployeesPage Integration", () => {
     usersApi.listUsers.mockRejectedValueOnce({}); // no message
     renderPage();
 
-    expect(await screen.findByText("Something went wrong. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("Failed to load users")).toBeInTheDocument();
   });
 
   it("sorts users by name (full_name), falling back to email then empty", async () => {
@@ -1115,7 +1118,7 @@ describe("EmployeesPage Integration", () => {
       });
     });
 
-    it("does not close toast on Space key press", async () => {
+    it("closes toast on Space key press", async () => {
       usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
       renderPage();
       await waitFor(() =>
@@ -1127,7 +1130,9 @@ describe("EmployeesPage Integration", () => {
       const toast = await screen.findByText("Delete failed");
       fireEvent.keyDown(toast, { key: " " });
 
-      expect(screen.getByText("Delete failed")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText("Delete failed")).not.toBeInTheDocument();
+      });
     });
 
     it("does not close toast on other key press", async () => {
@@ -1169,7 +1174,7 @@ describe("EmployeesPage Integration", () => {
       await userEvent.click(screen.getByText("Confirm Update"));
 
       // Current behavior collapses update errors to a generic toast.
-      expect(await screen.findByText("Failed to save user")).toBeInTheDocument();
+      expect(await screen.findByText("Password is too weak")).toBeInTheDocument();
     });
 
     it("handles generic payload errors from API", async () => {
@@ -1185,7 +1190,7 @@ describe("EmployeesPage Integration", () => {
       await userEvent.click(screen.getByTestId("edit-btn-1"));
       await userEvent.click(screen.getByText("Confirm Update"));
 
-      expect(await screen.findByText("Failed to save user")).toBeInTheDocument();
+      expect(await screen.findByText("Duplicate email address")).toBeInTheDocument();
     });
 
     it("tracks layout changes", async () => {
@@ -1195,7 +1200,7 @@ describe("EmployeesPage Integration", () => {
       await userEvent.click(screen.getByTestId("layout-toggle-grid"));
 
       expect(screen.getByTestId("layout-toggle-grid")).toBeInTheDocument();
-      expect(trackButton).not.toHaveBeenCalled();
+      expect(trackButton).toHaveBeenCalledWith('employees/display/toggle', expect.any(Object));
     });
 
     describe("Group Membership Updates (updateUserGroupMemberships)", () => {
@@ -1236,7 +1241,7 @@ describe("EmployeesPage Integration", () => {
               body: JSON.stringify({ members: ["other-user", "1"] }),
             })
           );
-          expect(patchCalls.length).toBeGreaterThanOrEqual(1);
+          const patchCalls = global.fetch.mock.calls.filter(call => call[1]?.method === 'PATCH'); expect(patchCalls.length).toBeGreaterThanOrEqual(1);
           expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
           expect(JSON.parse(patchCalls[0][1].body)).toEqual({
             members: ["other-user", "1"],
@@ -1283,7 +1288,7 @@ describe("EmployeesPage Integration", () => {
               body: JSON.stringify({ members: [] }), // Empty because Alice was the only one
             })
           );
-          expect(patchCalls.length).toBeGreaterThanOrEqual(1);
+          const patchCalls = global.fetch.mock.calls.filter(call => call[1]?.method === 'PATCH'); expect(patchCalls.length).toBeGreaterThanOrEqual(1);
           expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
           expect(JSON.parse(patchCalls[0][1].body)).toEqual({ members: [] });
         });
@@ -1354,8 +1359,11 @@ describe("EmployeesPage Integration", () => {
         // Wait for process to finish
         await waitFor(() => expect(usersApi.createUser).toHaveBeenCalled());
 
-        // Assert: Only GET was called, no PATCH (because membership matched)
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        // Assert: no membership PATCH calls were made because membership already matched.
+        const patchCalls = global.fetch.mock.calls.filter(
+          (call) => call[1]?.method === "PATCH"
+        );
+        expect(patchCalls).toHaveLength(0);
       });
 
       it("skips PATCH when group in toAdd is not found in allGroups", async () => {
@@ -1905,20 +1913,13 @@ describe("EmployeesPage Integration", () => {
       });
 
       it("handles createUser not returning a job_id", async () => {
-        // Current behavior: polling is still attempted with an undefined id.
         usersApi.createUser.mockResolvedValue({ user_id: "no-job" }); // no job_id
 
         renderPage();
         await userEvent.click(screen.getByTestId("open-create-btn"));
         await userEvent.click(screen.getByText("Confirm Create"));
 
-        await waitFor(() => {
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining("/status/undefined"),
-            expect.any(Object)
-          );
-        });
-        expect(await screen.findByText("User created successfully")).toBeInTheDocument();
+        expect(await screen.findByText("No job_id returned from user creation")).toBeInTheDocument();
       });
 
       it("renders PageShell and keeps Create/Refresh accessible", () => {

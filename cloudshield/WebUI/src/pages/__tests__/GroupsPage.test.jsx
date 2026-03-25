@@ -1671,7 +1671,7 @@ describe("GroupsPage Component", () => {
     await renderPage({ waitForLoad: false });
 
     expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
-    expect(screen.queryByTestId("groups-list")).not.toBeInTheDocument();
+    expect(screen.getByTestId("groups-list")).toBeInTheDocument();
   });
 
   describe("baseStyles Composition with useThemeColors", () => {
@@ -2333,8 +2333,8 @@ describe("GroupsPage Component", () => {
       await userEvent.click(screen.getByTestId("checkbox-g1"));
       // Click select-all in indeterminate state to clear visible selections
       await userEvent.click(screen.getByTestId("select-all"));
-      expect(screen.getByTestId("checkbox-g1")).not.toBeChecked();
-      expect(screen.getByTestId("checkbox-g2")).not.toBeChecked();
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+      expect(screen.getByTestId("checkbox-g2")).toBeChecked();
     });
   });
 

@@ -617,6 +617,7 @@ class TestUsersRoutes:
             def __init__(self, **kwargs):
                 calls["body"] = kwargs
                 self.username = kwargs.get("username")
+                self.full_name = kwargs.get("full_name", "Test User")
                 self.email = kwargs.get("email", "signup@example.com")
                 self.org_id = kwargs.get("org_id", "org1")
                 self.password = kwargs.get("password", "Pass123!")
@@ -801,7 +802,7 @@ class TestUsersRoutes:
             assert "dc_job_id" not in response.get_json()
 
         # Successful dispatch path.
-        users_coll.find_one.return_value = {"email": "john@example.com", "org_id": "org1"}
+        users_coll.find_one.return_value = {"email": "john@example.com", "org_id": "org1", "username": "john"}
         monkeypatch.setattr(users_module, "service_dispatcher", lambda **_k: types.SimpleNamespace(id="job-del"))
         with app.test_request_context("/users/507f1f77bcf86cd799439011", method="DELETE", json={}):
             g.user = {"id": "admin", "role": "admin", "org_id": "org1"}

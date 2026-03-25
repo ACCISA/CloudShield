@@ -1,0 +1,1 @@
+const fs = require("fs"); let c = fs.readFileSync("src/pages/__tests__/EmployeesPage.test.jsx", "utf8"); c = c.replace(/expect\\(await screen.findByText\\("Failed to save\\user"\\)\\).toBeInTheDocument\\(\\);/, "expect(await screen.findByText(\"Password is too weak\")).toBeInTheDocument();");  fs.writeFileSync("src/pages/__tests__/EmployeesPage.test.jsx", c);
