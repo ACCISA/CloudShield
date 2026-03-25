@@ -19,11 +19,13 @@ import {
 
 import ProvisioningControls from "../components/provisioning/ProvisioningControls.jsx";
 import PageShell from "../components/layout/PageShell.jsx";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 import { trackButton } from "../lib/analytics";
 import { getUserErrorMessage } from "../lib/errors.js";
 
 export default function AddUserPage() {
+  const themeColors = useThemeColors();
   const [orgId, setOrgId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -111,8 +113,8 @@ export default function AddUserPage() {
             sx={{
               textTransform: "none",
               borderRadius: "10px",
-              color: "#fff",
-              borderColor: "rgba(255,255,255,0.3)",
+              color: "text.primary",
+              borderColor: "var(--border)",
             }}
           >
             Reset
@@ -176,7 +178,7 @@ export default function AddUserPage() {
           />
         </Box>
 
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+        <Divider sx={{ borderColor: "var(--border)" }} />
 
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <Button
@@ -231,7 +233,7 @@ export default function AddUserPage() {
             />
             <Typography
               variant="caption"
-              sx={{ display: "block", mt: 1, color: "rgba(255,255,255,0.65)" }}
+              sx={{ display: "block", mt: 1, color: themeColors.textSecondary }}
               className="truncate"
               title={
                 typeof progress === "number"
@@ -255,18 +257,18 @@ export default function AddUserPage() {
           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mt: 1 }}>
             <Chip label="Failed" color="error" size="small" />
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.9)" }}>
-                We couldn’t add the user.
+              <Typography variant="body2" sx={{ color: themeColors.text }}>
+                We couldn't add the user.
               </Typography>
               {message && (
                 <Typography
                   variant="body2"
-                  sx={{ color: "rgba(255,255,255,0.75)" }}
+                  sx={{ color: themeColors.textSecondary }}
                 >
                   {message}
                 </Typography>
               )}
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)" }}>
+              <Typography variant="caption" sx={{ color: themeColors.textTertiary }}>
                 Try verifying the organization ID and email, then run the task again.
               </Typography>
             </Box>
@@ -279,9 +281,9 @@ export default function AddUserPage() {
             sx={{
               mt: 2,
               p: 2,
-              border: "1px solid rgba(255,255,255,0.2)",
+              border: "1px solid var(--border)",
               borderRadius: "10px",
-              background: "rgba(255,255,255,0.04)",
+              background: "var(--action-hover)",
             }}
           >
             <Typography variant="h6" sx={{ color: "#4caf50" }}>
@@ -290,7 +292,7 @@ export default function AddUserPage() {
 
             <Typography
               variant="body2"
-              sx={{ color: "rgba(255,255,255,0.85)", mb: 1 }}
+              sx={{ color: themeColors.text, mb: 1 }}
               className="clamp-2"
               title={result.message || "The user has been created successfully."}
             >

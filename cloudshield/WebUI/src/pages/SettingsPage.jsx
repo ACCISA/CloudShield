@@ -38,7 +38,7 @@ function SettingsLoading() {
       data-testid="settings-loading"
       sx={{ mt: 2 }}
     >
-      <Typography sx={{ color: "#9E9E9E", mb: 2 }}>
+      <Typography sx={{ color: "text.secondary", mb: 2 }}>
         Loading settings...
       </Typography>
 
@@ -195,13 +195,13 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Box sx={{ minHeight: "100vh", backgroundColor: "#0A0A0A" }}>
+      <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
         <PageShell>
           <Typography
             variant="h4"
             sx={{
               fontWeight: 700,
-              color: "#fff",
+              color: "text.primary",
               mb: 1,
               fontSize: "2rem",
               letterSpacing: "-0.5px",
@@ -215,7 +215,8 @@ export default function SettingsPage() {
             onChange={(_, value) => setActiveTab(value)}
             sx={{
               mb: 2,
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              borderBottom: "1px solid",
+              borderBottomColor: "var(--divider)", // Use variable
               "& .MuiTab-root": {
                 textTransform: "none",
                 fontWeight: 500,
@@ -223,9 +224,17 @@ export default function SettingsPage() {
                 minWidth: "auto",
                 padding: "12px 0",
                 marginRight: "32px",
+                color: "var(--text-secondary)", // Use variable
+                transition: "color 0.2s ease",
               },
-              "& .Mui-selected": { color: "#fff" },
-              "& .MuiTabs-indicator": { backgroundColor: "#fff", height: "2px" },
+              "& .Mui-selected": { 
+                color: "var(--text-primary) !important", // Force text primary
+                fontWeight: 600,
+              },
+              "& .MuiTabs-indicator": { 
+                backgroundColor: "var(--text-primary)", // Force text primary
+                height: "2px",
+              },
             }}
           >
             {TABS.map((label) => (
@@ -257,7 +266,7 @@ export default function SettingsPage() {
             padding: "12px 24px",
             borderRadius: "12px",
             backgroundColor: toast.type === "error" ? "#d32f2f" : "#2e7d32",
-            color: "#fff",
+            color: "text.primary",
             fontSize: "1rem",
             boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
             zIndex: 9999,

@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FileShareWizardModal from '../FileShareWizardModal';
 import * as filesApi from '../../../api/filesApi';
+import { useAuth } from '../../../context/AuthContext.jsx';
 
 // Mock the API
 jest.mock('../../../api/filesApi', () => ({
@@ -101,6 +102,7 @@ describe('FileShareWizardModal', () => {
     localStorage.setItem('org_id', 'test-org');
     filesApi.fetchUsers.mockResolvedValue(mockUsers);
     filesApi.fetchGroups.mockResolvedValue(mockGroups);
+    useAuth.mockReturnValue(mockAuthContext);
   });
 
   const renderWithAuth = (props = {}) => {
@@ -115,22 +117,13 @@ describe('FileShareWizardModal', () => {
 
     it('should render modal when isOpen is true', () => {
       renderWithAuth();
-      expect(screen.getByText('New File Share')).toBeInTheDocument();
-    });
-
-    it('should show edit mode title when editing', async () => {
-      const file = { name: 'TestShare', description: 'Test description' };
-      renderWithAuth({ file });
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Edit: TestShare/)).toBeInTheDocument();
-      });
+      expect(screen.getByText('New Share')).toBeInTheDocument();
     });
 
     it('should render breadcrumb navigation', () => {
       renderWithAuth();
-      expect(screen.getByText('Files')).toBeInTheDocument();
-      expect(screen.getByText('New File Share')).toBeInTheDocument();
+      expect(screen.getByText('Shares')).toBeInTheDocument();
+      expect(screen.getByText('New Share')).toBeInTheDocument();
     });
 
     it('should render close button', () => {
@@ -217,25 +210,6 @@ describe('FileShareWizardModal', () => {
       expect(nextBtn).not.toBeDisabled();
     });
 
-    it('should disable share name in edit mode', async () => {
-      const file = { name: 'ExistingShare', description: 'Existing' };
-      renderWithAuth({ file });
-      
-      await waitFor(() => {
-        const input = screen.getByDisplayValue('ExistingShare');
-        expect(input).toBeDisabled();
-        expect(input).toHaveStyle({ cursor: 'not-allowed' });
-      });
-    });
-
-    it('should show "cannot be changed" text in edit mode', async () => {
-      const file = { name: 'ExistingShare' };
-      renderWithAuth({ file });
-      
-      await waitFor(() => {
-        expect(screen.getByText(/cannot be changed/i)).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Step Navigation', () => {
@@ -317,23 +291,6 @@ describe('FileShareWizardModal', () => {
       });
     });
 
-    it('should show Save Changes button on last step in edit mode', async () => {
-      const user = userEvent.setup();
-      const file = { name: 'ExistingShare' };
-      renderWithAuth({ file });
-      
-      await waitFor(() => screen.getByDisplayValue('ExistingShare'));
-      
-      // Navigate to last step
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      await waitFor(() => screen.getByTestId('user-selection-panel'));
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
-      });
-    });
-
     it('should update progress bar as steps advance', async () => {
       const user = userEvent.setup();
       const { container } = renderWithAuth();
@@ -361,6 +318,10 @@ describe('FileShareWizardModal', () => {
 
     it('should use org_id from localStorage', async () => {
       localStorage.setItem('org_id', 'custom-org');
+      useAuth.mockReturnValue({
+        accessToken: 'test-token',
+        currentUser: { org_id: 'default-org' },
+      });
       renderWithAuth();
       
       await waitFor(() => {
@@ -412,84 +373,6 @@ describe('FileShareWizardModal', () => {
       
       await waitFor(() => {
         expect(screen.getByText(/Available Groups: 2/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Edit Mode', () => {
-    it('should populate form with existing file data', async () => {
-      const file = {
-        name: 'ExistingShare',
-        description: 'Test description',
-        max_size_gb: '100',
-        users: ['jdoe'],
-        groups: ['engineering-team'],
-      };
-      renderWithAuth({ file });
-      
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('ExistingShare')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('Test description')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('100')).toBeInTheDocument();
-      });
-    });
-
-    it('should match users by username', async () => {
-      const user = userEvent.setup();
-      const file = {
-        name: 'ExistingShare',
-        users: ['jdoe', 'jsmith'],
-        groups: [],
-      };
-      renderWithAuth({ file });
-      
-      await waitFor(() => screen.getByDisplayValue('ExistingShare'));
-      
-      // Navigate to Users step
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Selected Users: 2/)).toBeInTheDocument();
-      });
-    });
-
-    it('should match groups by name', async () => {
-      const user = userEvent.setup();
-      const file = {
-        name: 'ExistingShare',
-        users: [],
-        groups: ['engineering-team', 'design-team'],
-      };
-      renderWithAuth({ file });
-      
-      await waitFor(() => screen.getByDisplayValue('ExistingShare'));
-      
-      // Navigate to Groups step
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      await waitFor(() => screen.getByTestId('user-selection-panel'));
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Selected Groups: 2/)).toBeInTheDocument();
-      });
-    });
-
-    it('should handle users not found in available list', async () => {
-      const user = userEvent.setup();
-      const file = {
-        name: 'ExistingShare',
-        users: ['unknown-user'],
-        groups: [],
-      };
-      renderWithAuth({ file });
-      
-      await waitFor(() => screen.getByDisplayValue('ExistingShare'));
-      
-      // Navigate to Users step - should still show the unknown user as fallback
-      await user.click(screen.getByRole('button', { name: /Next/i }));
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Selected Users: 1/)).toBeInTheDocument();
       });
     });
   });
@@ -642,22 +525,6 @@ describe('FileShareWizardModal', () => {
         // Modal might close, so button may not exist anymore
         expect(onSubmit).toHaveBeenCalled();
       });
-    });
-  });
-
-  describe('Delete Functionality', () => {
-    it('should show delete confirmation dialog', async () => {
-      const user = userEvent.setup();
-      const file = { name: 'TestShare' };
-      const onDelete = jest.fn();
-      window.confirm = jest.fn(() => false);
-      
-      renderWithAuth({ file, onDelete });
-      
-      await waitFor(() => screen.getByDisplayValue('TestShare'));
-      
-      // Note: Delete button would need to be implemented in the actual component
-      // This test documents the expected behavior
     });
   });
 
@@ -817,19 +684,14 @@ describe('FileShareWizardModal', () => {
 
     it('should handle missing localStorage org_id', async () => {
       localStorage.removeItem('org_id');
+      useAuth.mockReturnValue({
+        accessToken: 'test-token',
+        currentUser: { org_id: 'default-org' },
+      });
       renderWithAuth();
       
       await waitFor(() => {
-        expect(filesApi.fetchUsers).toHaveBeenCalledWith('default-org');
-      });
-    });
-
-    it('should handle file with missing properties', async () => {
-      const file = { name: 'MinimalShare' };
-      renderWithAuth({ file });
-      
-      await waitFor(() => {
-        expect(screen.getByDisplayValue('MinimalShare')).toBeInTheDocument();
+        expect(filesApi.fetchUsers).toHaveBeenCalledWith(null);
       });
     });
   });

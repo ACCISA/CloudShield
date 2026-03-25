@@ -1,7 +1,7 @@
 export default function MonitorIcon({ 
   width = 16, 
   height = 16, 
-  color = "white",
+  color = "currentColor", // Changed from "white" to "currentColor"
   className = ""
 }) {
   return (

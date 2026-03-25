@@ -52,7 +52,7 @@ describe("AddUserPage (mocked states)", () => {
     expect(failedLabels.length).toBeGreaterThan(0);
 
     // Generic failure copy always shows
-    const failureTitle = screen.getByText("We couldn’t add the user.");
+    const failureTitle = screen.getByText("We couldn't add the user.");
     const failureHint = screen.getByText(
       "Try verifying the organization ID and email, then run the task again."
     );
@@ -74,7 +74,7 @@ describe("AddUserPage (mocked states)", () => {
 
     // And as an extra guard, ensure we don't accidentally render any “empty message” node
     // (No extra text beyond the known generic lines in that section).
-    expect(within(failureSection).getByText("We couldn’t add the user.")).toBeInTheDocument();
+    expect(within(failureSection).getByText("We couldn't add the user.")).toBeInTheDocument();
     expect(
       within(failureSection).getByText(
         "Try verifying the organization ID and email, then run the task again."

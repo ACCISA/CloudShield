@@ -4,9 +4,7 @@ import RefreshButton from "../common/RefreshButton/RefreshButton";
 import Pagination from "../common/Pagination/Pagination";
 import EmptyState from "../common/EmptyState/EmptyState";
 import { searchWithRelevance } from "../../utils/searchUtils";
-
-const PANEL_BG = "#0f0f0f";
-const ROW_BG = "#2a2a2a";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const mockData = [
   {
@@ -59,6 +57,7 @@ export default function ActivityPanel({
   onPageChange,
   loading: externalLoading = false,
 }) {
+  const themeColors = useThemeColors();
   const [search, setSearch] = useState("");
   const [activities, setActivities] = useState(
     Array.isArray(initialData) ? initialData : []
@@ -183,18 +182,18 @@ export default function ActivityPanel({
     width: "100%",
     fontSize: "13px",
     fontWeight: sortField === field ? 600 : 500,
-    color: sortField === field ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.6)",
+    color: sortField === field ? themeColors.textPrimary : themeColors.textSecondary,
     cursor: "pointer",
     userSelect: "none",
   });
 
   const styles = {
     container: {
-      backgroundColor: PANEL_BG,
+      backgroundColor: themeColors.bgSecondary,
       borderRadius: "16px",
       padding: "16px",
-      border: "1px solid rgba(255,255,255,0.08)",
-      color: "#fff",
+      border: `1px solid ${themeColors.borderLight}`,
+      color: themeColors.textPrimary,
       marginTop: "24px",
     },
     header: {
@@ -213,7 +212,7 @@ export default function ActivityPanel({
     title: {
       fontSize: "14px",
       fontWeight: "500",
-      color: "rgba(255,255,255,1)",
+      color: themeColors.text,
       marginBottom: "12px",
       marginTop: 0,
     },
@@ -247,7 +246,7 @@ export default function ActivityPanel({
       alignItems: "center",
       borderRadius: "12px",
       padding: "12px 16px",
-      backgroundColor: index % 2 === 0 ? ROW_BG : "transparent",
+      backgroundColor: index % 2 === 0 ? themeColors.lightOverlaySubtle : "transparent",
     }),
     userCell: {
       display: "flex",
@@ -259,8 +258,8 @@ export default function ActivityPanel({
       width: "38px",
       height: "38px",
       borderRadius: "50%",
-      backgroundColor: "#fff",
-      color: "#111",
+      backgroundColor: themeColors.isDark ? "#fff" : "#000",
+      color: themeColors.isDark ? "#111" : "#fff",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -270,20 +269,15 @@ export default function ActivityPanel({
     },
     userText: {
       fontSize: "14px",
-      color: "#fff",
+      color: themeColors.text,
       fontWeight: 500,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
     },
-    dateText: {
-      fontSize: "14px",
-      color: "rgba(255,255,255,0.7)",
-      whiteSpace: "nowrap",
-    },
     activityText: {
       fontSize: "14px",
-      color: "#fff",
+      color: themeColors.text,
       lineHeight: 1.4,
     },
     error: {
@@ -298,7 +292,7 @@ export default function ActivityPanel({
     loading: {
       padding: "24px 12px",
       textAlign: "center",
-      color: "rgba(255,255,255,0.6)",
+      color: themeColors.textTertiary,
       fontSize: "13px",
     },
   };

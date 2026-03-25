@@ -2,8 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme/theme.js';
+import { CssBaseline } from '@mui/material';
+import { ThemeProvider_Custom } from './context/ThemeContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { PostHogProvider } from 'posthog-js/react';
 
@@ -23,12 +23,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         debug: import.meta.env.MODE === "development",
       }}
     >
-      <AuthProvider>
-        <ThemeProvider theme={theme}>
+      <ThemeProvider_Custom>
+        <AuthProvider>
           <CssBaseline />
           <App />
-        </ThemeProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider_Custom>
     </PostHogProvider>
   </React.StrictMode>
 );

@@ -20,7 +20,7 @@ const styles = {
     boxSizing: "border-box",
   },
   checkboxChecked: {
-    backgroundColor: "#fff",
+    backgroundColor: "var(--text-primary)",
     border: "2px solid #fff",
   },
   checkmark: {
@@ -61,7 +61,7 @@ export default function Checkbox({
     ...(checked || indeterminate ? styles.checkboxChecked : {}),
     ...style,
     // Always maintain the border color for unchecked state
-    borderColor: checked || indeterminate ? "#fff" : "rgba(255, 255, 255, 0.5)",
+    borderColor: checked || indeterminate ? "var(--text-primary)" : "var(--text-secondary)",
   };
 
   return (

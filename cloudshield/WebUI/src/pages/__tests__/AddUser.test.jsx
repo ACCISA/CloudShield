@@ -78,18 +78,16 @@ describe("AddUserPage", () => {
     it("should display the page title", () => {
       render(<AddUserPage />);
 
-      // Title prop currently disabled/commented out
-      expect(screen.queryByRole("heading", { name: "Add User" })).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Add User" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Add User/i })).toBeInTheDocument();
     });
 
     it("should display the page subtitle/description", () => {
       render(<AddUserPage />);
 
-      // Subtitle prop currently disabled/commented out
       expect(
-        screen.queryByText("Provision a new user to an organization.")
-      ).not.toBeInTheDocument();
+        screen.getByText("Provision a new user to an organization.")
+      ).toBeInTheDocument();
 
       expect(screen.getByLabelText("Organization ID")).toBeInTheDocument();
       expect(screen.getByLabelText("Username")).toBeInTheDocument();
@@ -222,7 +220,7 @@ describe("AddUserPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("We couldn’t add the user.")).toBeInTheDocument();
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
         expect(screen.getByText(/Bad request/i)).toBeInTheDocument();
       });
     });
@@ -244,7 +242,7 @@ describe("AddUserPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("We couldn’t add the user.")).toBeInTheDocument();
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
         expect(screen.getByText(/missing a job ID/i)).toBeInTheDocument();
       });
     });
@@ -296,11 +294,9 @@ describe("AddUserPage", () => {
   });
 
   describe("Status Polling & UI", () => {
-
     it("should display numeric progress percentage", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -310,7 +306,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -321,7 +316,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -332,7 +326,6 @@ describe("AddUserPage", () => {
     it("should display string progress message", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -342,7 +335,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -357,7 +349,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -368,7 +359,6 @@ describe("AddUserPage", () => {
     it("should infer status from finished to succeeded", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -378,7 +368,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -393,7 +382,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -405,7 +393,6 @@ describe("AddUserPage", () => {
     it("should infer status from queued to running", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -415,7 +402,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -426,7 +412,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -437,7 +422,6 @@ describe("AddUserPage", () => {
     it("should infer succeeded status from progress completed text", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -447,7 +431,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -462,7 +445,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -474,7 +456,6 @@ describe("AddUserPage", () => {
     it("should display result with all fields when succeeded", async () => {
       global.fetch = jest.fn((url) => {
         const s = String(url);
-
         if (s.includes("/task/dc/add_user")) {
           return Promise.resolve({
             ok: true,
@@ -484,7 +465,6 @@ describe("AddUserPage", () => {
             text: () => Promise.resolve(""),
           });
         }
-
         return Promise.resolve({
           ok: true,
           headers: { get: () => "application/json" },
@@ -504,7 +484,6 @@ describe("AddUserPage", () => {
 
       render(<AddUserPage />);
       await fillValidForm();
-
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
@@ -513,6 +492,601 @@ describe("AddUserPage", () => {
         expect(screen.getByText("Org ID: org-456")).toBeInTheDocument();
         expect(screen.getByText("Username: testuser")).toBeInTheDocument();
         expect(screen.getByText("Role: admin")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle progress 0% correctly", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "running", progress: 0 }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Adding user… 0%")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle progress 100% correctly", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "running", progress: 100 }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Adding user… 100%")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Form Validation Edge Cases", () => {
+    it("should accept username with special characters", async () => {
+      render(<AddUserPage />);
+      const usernameInput = screen.getByLabelText("Username");
+      await user.type(usernameInput, "user.name-123_test");
+      expect(usernameInput).toHaveValue("user.name-123_test");
+    });
+
+    it("should accept email with subdomains", async () => {
+      render(<AddUserPage />);
+      const emailInput = screen.getByLabelText("Email");
+      await user.type(emailInput, "user+tag@sub.domain.co.uk");
+      expect(emailInput).toHaveValue("user+tag@sub.domain.co.uk");
+    });
+
+    it("should accept very long password", async () => {
+      render(<AddUserPage />);
+      const longPassword = "a".repeat(256);
+      const passwordInput = screen.getByLabelText("Password");
+      await user.type(passwordInput, longPassword);
+      expect(passwordInput).toHaveValue(longPassword);
+    });
+
+    it("should accept organization ID with dashes and numbers", async () => {
+      render(<AddUserPage />);
+      const orgInput = screen.getByLabelText("Organization ID");
+      await user.type(orgInput, "org-123-456-789");
+      expect(orgInput).toHaveValue("org-123-456-789");
+    });
+
+    it("should handle whitespace in input fields", async () => {
+      render(<AddUserPage />);
+      const usernameInput = screen.getByLabelText("Username");
+      await user.type(usernameInput, "  user  ");
+      expect(usernameInput).toHaveValue("  user  ");
+    });
+
+    it("should enable button with minimum valid data", async () => {
+      render(<AddUserPage />);
+      const orgInput = screen.getByLabelText("Organization ID");
+      const usernameInput = screen.getByLabelText("Username");
+      const emailInput = screen.getByLabelText("Email");
+      const passwordInput = screen.getByLabelText("Password");
+      await user.type(orgInput, "org");
+      await user.type(usernameInput, "john");
+      await user.type(emailInput, "john@example.com");
+      await user.type(passwordInput, "pass123");
+      expect(screen.getByRole("button", { name: /Add User/i })).not.toBeDisabled();
+    });
+  });
+
+  describe("Network Error Scenarios", () => {
+    it("should handle network timeout on initial POST", async () => {
+      global.fetch = jest.fn(() => Promise.reject(new Error("Network timeout")));
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+        expect(screen.getByText(/Network timeout/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should continue running when polling request errors", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.reject(new Error("Polling failed"));
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+      });
+      expect(screen.queryByText("We couldn't add the user.")).not.toBeInTheDocument();
+    });
+
+    it("should handle 500 server error", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          headers: { get: () => "text/plain" },
+          text: () => Promise.resolve("Internal Server Error"),
+        })
+      );
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle 401 unauthorized error", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          headers: { get: () => "text/plain" },
+          text: () => Promise.resolve("Unauthorized"),
+        })
+      );
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Multiple Submissions", () => {
+    it("should prevent submission while in progress", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "running", progress: 50 }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+
+      const submitButton = screen.getByRole("button", { name: /Add User/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(submitButton).toBeDisabled();
+      });
+    });
+
+    it("should allow new submission after error", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.reject(new Error("Network error"))
+      );
+
+      const { rerender } = render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+
+      // Check that form is available for new attempt
+      expect(screen.getByLabelText("Organization ID")).toHaveValue("org-123");
+    });
+
+    it("should re-enable Add User button after failed submission when reset", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          headers: { get: () => "text/plain" },
+          text: () => Promise.resolve("Bad request"),
+        })
+      );
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+
+      // Form inputs should still be present
+      expect(screen.getByLabelText("Organization ID")).toBeInTheDocument();
+    });
+  });
+
+  describe("API Response Format Variations", () => {
+    it("should handle missing progress in status response", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "running" }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("should handle missing status in response", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ progress: 50 }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+    });
+
+    it("should handle result with partial fields", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () =>
+            Promise.resolve({
+              status: "succeeded",
+              result: { message: "Done", username: "john" },
+            }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("User added successfully")).toBeInTheDocument();
+        expect(screen.getByText("Done")).toBeInTheDocument();
+        expect(screen.getByText("Username: john")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle empty result object", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-123" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "succeeded", result: {} }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("User added successfully")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Input Field Interactions", () => {
+    it("should clear individual field without affecting others", async () => {
+      render(<AddUserPage />);
+      const orgInput = screen.getByLabelText("Organization ID");
+      const usernameInput = screen.getByLabelText("Username");
+
+      await user.type(orgInput, "org-123");
+      await user.type(usernameInput, "john");
+
+      expect(orgInput).toHaveValue("org-123");
+      expect(usernameInput).toHaveValue("john");
+
+      await user.clear(orgInput);
+      expect(orgInput).toHaveValue("");
+      expect(usernameInput).toHaveValue("john");
+    });
+
+    it("should handle rapid field changes", async () => {
+      render(<AddUserPage />);
+      const emailInput = screen.getByLabelText("Email");
+
+      await user.type(emailInput, "t");
+      await user.type(emailInput, "e");
+      await user.type(emailInput, "s");
+      await user.type(emailInput, "t");
+
+      expect(emailInput).toHaveValue("test");
+    });
+
+    it("should handle backspace in fields", async () => {
+      render(<AddUserPage />);
+      const input = screen.getByLabelText("Username");
+
+      await user.type(input, "testuser");
+      await user.type(input, "{backspace}{backspace}{backspace}");
+
+      expect(input).toHaveValue("testu");
+    });
+
+    it("should handle copy-paste operations", async () => {
+      render(<AddUserPage />);
+      const input = screen.getByLabelText("Email");
+      const testEmail = "complex.email+tag@sub.domain.com";
+
+      await user.type(input, testEmail);
+      expect(input).toHaveValue(testEmail);
+    });
+
+    it("should not auto-focus when rendering", () => {
+      const { container } = render(<AddUserPage />);
+      expect(document.activeElement).not.toEqual(
+        screen.getByLabelText("Organization ID")
+      );
+    });
+  });
+
+  describe("State Transitions", () => {
+    it("should transition from idle to pending on submission", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return new Promise(() => {}); // Never resolves
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ status: "running", progress: 50 }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+
+      const button = screen.getByRole("button", { name: /Add User/i });
+      expect(button).not.toBeDisabled();
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it("should transition from pending to error state", async () => {
+      global.fetch = jest.fn(() =>
+        Promise.reject(new Error("API Error"))
+      );
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+    });
+
+    it("should transition from error to pending on retry", async () => {
+      let callCount = 0;
+      global.fetch = jest.fn(() => {
+        callCount += 1;
+        if (callCount === 1) {
+          return Promise.reject(new Error("First call failed"));
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 202,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ job_id: "job-456" }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("We couldn't add the user.")).toBeInTheDocument();
+      });
+
+      // Form should still be available
+      expect(screen.getByLabelText("Organization ID")).toBeInTheDocument();
+    });
+  });
+
+  describe("Successfully Completed State", () => {
+    it("should show success message with complete result data", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-999" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () =>
+            Promise.resolve({
+              status: "succeeded",
+              result: {
+                message: "User provisioned",
+                org_id: "org-final",
+                username: "finaluser",
+                email: "final@example.com",
+                role: "member",
+              },
+            }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("User added successfully")).toBeInTheDocument();
+        expect(screen.getByText("User provisioned")).toBeInTheDocument();
+        expect(screen.getByText("Org ID: org-final")).toBeInTheDocument();
+        expect(screen.getByText("Username: finaluser")).toBeInTheDocument();
+        expect(screen.getByText("Role: member")).toBeInTheDocument();
+      });
+    });
+
+    it("should not show form inputs after success", async () => {
+      global.fetch = jest.fn((url) => {
+        const s = String(url);
+        if (s.includes("/task/dc/add_user")) {
+          return Promise.resolve({
+            ok: true,
+            status: 202,
+            headers: { get: () => "application/json" },
+            json: () => Promise.resolve({ job_id: "job-999" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () =>
+            Promise.resolve({
+              status: "succeeded",
+              result: { message: "Done" },
+            }),
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      render(<AddUserPage />);
+      const initialInputs = [
+        screen.getByLabelText("Organization ID"),
+        screen.getByLabelText("Username"),
+      ];
+
+      expect(initialInputs[0]).toBeInTheDocument();
+
+      await fillValidForm();
+      fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("User added successfully")).toBeInTheDocument();
       });
     });
   });

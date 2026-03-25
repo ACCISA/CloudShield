@@ -3,9 +3,14 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import SignupPage from "../SignUpPage";
+import { apiPost } from "../../api/client";
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
+}));
+
+jest.mock("../../api/client", () => ({
+  apiPost: jest.fn(),
 }));
 
 jest.mock("../../components/signup/SignupCard", () => {
@@ -124,6 +129,7 @@ describe("SignupPage (additional coverage)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    apiPost.mockReset();
     mockFetch = jest.fn();
     global.fetch = mockFetch;
     Storage.prototype.setItem = jest.fn();
@@ -138,7 +144,7 @@ describe("SignupPage (additional coverage)", () => {
 
   it("hides plan cards while submitting (shows loading state)", async () => {
     // Never resolve: keeps submitting=true without flake
-    mockFetch.mockImplementationOnce(() => new Promise(() => {}));
+    apiPost.mockImplementationOnce(() => new Promise(() => {}));
 
     renderSignupPage();
     fillValidForm();
@@ -149,7 +155,7 @@ describe("SignupPage (additional coverage)", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("primary-button")).toBeDisabled();
-      expect(screen.getByText("Creating...")).toBeInTheDocument();
+      expect(screen.getByText("Redirecting to payment...")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("plan-card-basic")).not.toBeInTheDocument();
@@ -162,20 +168,20 @@ describe("SignupPage (additional coverage)", () => {
       throw new Error("Storage quota exceeded");
     });
 
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          access_token: "test-token",
-          user_id: "user123",
-          org_id: "org123",
-          job_id: "job123",
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ error: "Stripe unavailable" }),
-      });
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        access_token: "test-token",
+        user_id: "user123",
+        org_id: "org123",
+        job_id: "job123",
+      }),
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ error: "Stripe unavailable" }),
+    });
 
     renderSignupPage();
     fillValidForm();
@@ -187,8 +193,9 @@ describe("SignupPage (additional coverage)", () => {
   });
 
   it("shows a form error when signup response JSON cannot be parsed", async () => {
-    mockFetch.mockResolvedValueOnce({
+    apiPost.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: async () => {
         throw new Error("Invalid JSON");
       },

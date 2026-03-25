@@ -338,6 +338,7 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
+                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
               >
                 Next
               </button>
@@ -346,6 +347,7 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
+                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
               >
                 {isSubmitting
                   ? "Saving..."
@@ -406,7 +408,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                 <BasicTierIcon
                   width={28}
                   height={28}
-                  color="rgba(255,255,255,0.7)"
+                  color="var(--text-secondary)"
                 />
               </div>
               <div className="workstation-modal-strength-title">Basic</div>
@@ -416,18 +418,18 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             </p>
             <div className="workstation-modal-strength-specs">
               <div className="workstation-modal-spec">
-                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <CpuIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>2 vCPU</span>
               </div>
               <div className="workstation-modal-spec">
-                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <RamIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>4 GB</span>
               </div>
               <div className="workstation-modal-spec">
                 <StorageIcon
                   width={16}
                   height={16}
-                  color="rgba(255,255,255,0.4)"
+                  color="var(--text-tertiary)"
                 />
                 <span>50 GB</span>
               </div>
@@ -447,7 +449,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                 <ProTierIcon
                   width={28}
                   height={28}
-                  color="rgba(255,255,255,0.7)"
+                  color="var(--text-secondary)"
                 />
               </div>
               <div className="workstation-modal-strength-title">Pro</div>
@@ -457,18 +459,18 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             </p>
             <div className="workstation-modal-strength-specs">
               <div className="workstation-modal-spec">
-                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <CpuIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>4 vCPU</span>
               </div>
               <div className="workstation-modal-spec">
-                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <RamIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>8 GB</span>
               </div>
               <div className="workstation-modal-spec">
                 <StorageIcon
                   width={16}
                   height={16}
-                  color="rgba(255,255,255,0.4)"
+                  color="var(--text-tertiary)"
                 />
                 <span>100 GB</span>
               </div>
@@ -488,7 +490,7 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                 <UltimateTierIcon
                   width={28}
                   height={28}
-                  color="rgba(255,255,255,0.7)"
+                  color="var(--text-secondary)"
                 />
               </div>
               <div className="workstation-modal-strength-title">Ultimate</div>
@@ -498,18 +500,18 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
             </p>
             <div className="workstation-modal-strength-specs">
               <div className="workstation-modal-spec">
-                <CpuIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <CpuIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>8 vCPU</span>
               </div>
               <div className="workstation-modal-spec">
-                <RamIcon width={16} height={16} color="rgba(255,255,255,0.4)" />
+                <RamIcon width={16} height={16} color="var(--text-tertiary)" />
                 <span>16 GB</span>
               </div>
               <div className="workstation-modal-spec">
                 <StorageIcon
                   width={16}
                   height={16}
-                  color="rgba(255,255,255,0.4)"
+                  color="var(--text-tertiary)"
                 />
                 <span>200 GB</span>
               </div>
@@ -544,9 +546,9 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="#9e9e9e" />
+                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
                 </span>
-                <span>Upload Image</span>
+                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
               </div>
             </label>
           )}
@@ -579,9 +581,9 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="#9e9e9e" />
+                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
                 </span>
-                <span>Upload Background</span>
+                <span style={{color: "var(--text-secondary)"}}>Upload Background</span>
               </div>
             </label>
           )}
@@ -697,7 +699,7 @@ function GenericSelectionStep({
               indeterminate={isIndeterminate}
               onChange={onAllChange}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
               All {typeLabel}
             </span>
           </div>
@@ -805,7 +807,7 @@ function SoftwareStep({
               indeterminate={isIndeterminate}
               onChange={onAllChange}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
               All Software
             </span>
           </div>

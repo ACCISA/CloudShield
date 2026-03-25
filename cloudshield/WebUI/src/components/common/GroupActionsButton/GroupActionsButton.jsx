@@ -29,7 +29,7 @@ const GroupActionsButton = ({
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: "16px",
     fontWeight: "500",
-    color: "#ffffff",
+    color: "var(--text-primary)",
     transition: "all 0.2s ease",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
     opacity: disabled ? 0.4 : 1,
@@ -63,7 +63,7 @@ const GroupActionsButton = ({
         {selectedCount > 0 && (
           <span
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: "var(--text-primary)",
               color: "#000",
               fontSize: "11px",
               fontWeight: "600",
