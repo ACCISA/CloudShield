@@ -5,8 +5,9 @@
  * Authentication page (login) integrated with Flask API.
  */
 import React, { useMemo, useState } from "react";
-import { Alert, Box } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
 import { trackButton } from "../lib/analytics";
+import { useNavigate } from "react-router-dom";
 
 import AuthCard from "../components/auth/AuthCard.jsx";
 import AuthTextField from "../components/auth/AuthTextField.jsx";
@@ -59,6 +60,7 @@ function getAuthErrorMessage({ status, data }) {
  * @param {Function} props.onLoginSuccess - Callback when login succeeds (receives token data)
  */
 export default function AuthPage({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -148,6 +150,26 @@ export default function AuthPage({ onLoginSuccess }) {
           <PrimaryButton onClick={handleLogin} disabled={isLoading || !canSubmit}>
             {isLoading ? "Logging in…" : "Login"}
           </PrimaryButton>
+
+          <Typography
+            onClick={() => {
+              trackButton("auth/nav/signup", { page: "auth" });
+              navigate("/signup");
+            }}
+            sx={{
+              cursor: "pointer",
+              mt: 1.5,
+              textAlign: "center",
+              color: "text.primary",
+              fontSize: "0.9rem",
+              "&:hover": {
+                textDecoration: "underline",
+                color: "primary.main",
+              },
+            }}
+          >
+            Don&apos;t have an account? Sign up
+          </Typography>
         </AuthCard>
       </Box>
     </PageShell>

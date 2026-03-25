@@ -13,6 +13,12 @@ jest.mock("../../api/client", () => ({
   apiPost: jest.fn(),
 }));
 
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}));
+
 // Make MUI sx testable in JSDOM by mapping `sx` -> inline `style`
 jest.mock("@mui/material", () => {
   const React = require("react");
@@ -29,7 +35,9 @@ jest.mock("@mui/material", () => {
     </div>
   );
 
-  return { Box, Alert };
+  const Typography = ({ children, ...rest }) => <div {...rest}>{children}</div>;
+
+  return { Box, Alert, Typography };
 });
 
 // Mock layout wrapper to avoid nested MUI sx complications
@@ -119,6 +127,7 @@ describe("AuthPage", () => {
   beforeEach(() => {
     mockOnLoginSuccess.mockClear();
     apiPost.mockReset();
+    mockNavigate.mockClear();
   });
 
   afterEach(() => {
@@ -134,6 +143,13 @@ describe("AuthPage", () => {
     expect(screen.getByPlaceholderText("johndoe@example.com")).toBeInTheDocument();
     expect(getPasswordInput(container)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByText("Don't have an account? Sign up")).toBeInTheDocument();
+  });
+
+  it("navigates to signup when clicking the signup link", () => {
+    render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    fireEvent.click(screen.getByText("Don't have an account? Sign up"));
+    expect(mockNavigate).toHaveBeenCalledWith("/signup");
   });
 
   it("updates email input when typing", () => {

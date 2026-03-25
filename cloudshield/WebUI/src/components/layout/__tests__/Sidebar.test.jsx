@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Sidebar from "../Sidebar";
 
 // Mock react-router-dom's useNavigate and useLocation to test navigation and active route marking
@@ -288,11 +288,29 @@ describe("Sidebar", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/settings");
     });
 
-    it("logs out and navigates to login when sign out is clicked", () => {
+    it("opens a confirmation modal before signing out", () => {
       renderSidebar({ mode: "full" });
       fireEvent.click(screen.getByLabelText("Sign out"));
+      expect(screen.getByText("Confirm Sign Out")).toBeInTheDocument();
+      expect(mockLogout).not.toHaveBeenCalled();
+    });
+
+    it("logs out and navigates to login when sign out is confirmed", () => {
+      renderSidebar({ mode: "full" });
+      fireEvent.click(screen.getByLabelText("Sign out"));
+      fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
       expect(mockLogout).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    });
+
+    it("closes the sign out modal without logging out when cancelled", () => {
+      renderSidebar({ mode: "full" });
+      fireEvent.click(screen.getByLabelText("Sign out"));
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      return waitFor(() => {
+        expect(screen.queryByText("Confirm Sign Out")).not.toBeInTheDocument();
+        expect(mockLogout).not.toHaveBeenCalled();
+      });
     });
 
     it("supports keyboard navigation for settings (Enter + Space)", () => {
@@ -310,9 +328,8 @@ describe("Sidebar", () => {
       const signOut = screen.getByLabelText("Sign out");
 
       fireEvent.keyDown(signOut, { key: "Enter" });
-      fireEvent.keyDown(signOut, { key: " " });
-
-      expect(mockLogout).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("Confirm Sign Out")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
 

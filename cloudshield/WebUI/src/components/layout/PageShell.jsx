@@ -2,7 +2,14 @@
 // This component is used across various pages in the app to ensure a consistent look and feel while also handling layout concerns such as spacing and scroll behavior for the main content area.
 import { Box, Typography } from "@mui/material";
 
-export default function PageShell({ title, subtitle, actions, children, noPadding = false }) {
+export default function PageShell({
+  title,
+  subtitle,
+  actions,
+  children,
+  noPadding = false,
+  headerCentered = false,
+}) {
   return (
     <Box
       sx={{
@@ -19,11 +26,21 @@ export default function PageShell({ title, subtitle, actions, children, noPaddin
           sx={{
             display: "flex",
             alignItems: "flex-start",
-            justifyContent: "space-between",
+            justifyContent: headerCentered ? "center" : "space-between",
             gap: 2,
           }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+              minWidth: 0,
+              width: headerCentered ? "100%" : "auto",
+              alignItems: headerCentered ? "center" : "flex-start",
+              textAlign: headerCentered ? "center" : "left",
+            }}
+          >
             {title ? (
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 {title}

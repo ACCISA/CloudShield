@@ -238,12 +238,13 @@ export default function ProvisioningPage() {
 
       <Box sx={{ width: "100%", maxWidth: 700 }}>
         <PageShell
+          headerCentered
           title={
-            <>
+            <Box sx={{ width: "100%" }}>
               Hang tight, we’re setting
               <br />
               everything up for you
-            </>
+            </Box>
           }
         >
           <Box sx={{ width: "100%", textAlign: "center" }}>

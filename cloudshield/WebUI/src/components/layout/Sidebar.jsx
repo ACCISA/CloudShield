@@ -32,6 +32,15 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -226,24 +235,28 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
         sx={{
           width: 36,
           height: 36,
-          borderRadius: "999px",
+          borderRadius: "10px",
           flexShrink: 0,
-          background:
-            "radial-gradient(circle at 30% 30%, #b9ff9f 0%, #4b5b3a 70%)",
-          border: "2px solid #fff",
+          backgroundColor: themeColors.lightOverlaySubtle || themeColors.lightOverlay,
+          border: `1px solid ${themeColors.borderLight}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           position: "relative",
         }}
       >
+        <ShieldIcon width={18} height={18} selected className="company-shield-mark" />
         <Box
           sx={{
             position: "absolute",
-            right: -2,
-            bottom: -2,
-            width: 8,
-            height: 8,
+            right: 6,
+            bottom: 7,
+            width: 7,
+            height: 1.75,
             borderRadius: "999px",
-            backgroundColor: "#5aff3d",
-            border: "2px solid #0F0F0F",
+            backgroundColor: themeColors.textPrimary,
+            transform: "rotate(-38deg)",
+            opacity: 0.9,
           }}
         />
       </Box>
@@ -449,6 +462,7 @@ export default function Sidebar({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useAuth();
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
@@ -598,10 +612,44 @@ export default function Sidebar({
             label="Sign out"
             ariaLabel="Sign out"
             icon={<LogoutOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
-            onActivate={handleSignOut}
+            onActivate={() => setSignOutDialogOpen(true)}
           />
         </Box>
       ) : null}
+
+      <Dialog
+        open={signOutDialogOpen}
+        onClose={() => setSignOutDialogOpen(false)}
+        aria-labelledby="sign-out-dialog-title"
+      >
+        <DialogTitle
+          id="sign-out-dialog-title"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          <WarningAmberRoundedIcon color="warning" />
+          Confirm Sign Out
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to sign out? Any unsaved changes may be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setSignOutDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setSignOutDialogOpen(false);
+              handleSignOut();
+            }}
+            color="error"
+            variant="contained"
+          >
+            Sign Out
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
