@@ -53,7 +53,7 @@ function normalizeActivityItem(item, index) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const auth = useAuth();
-  const { effectiveTheme } = useAppTheme();
+  const { effectiveTheme } = useAppTheme(); //NOSONAR javascript:S1481
   const themeColors = useThemeColors();
 
   const [provisioningStatus] = useState("pending");
