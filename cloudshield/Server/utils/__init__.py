@@ -16,7 +16,7 @@ from typing import Any
 _EXPORTS: dict[str, tuple[str, str]] = {
     "get_logger": (".logging_setup", "get_logger"),
     "derive_username": (".usernames", "derive_username"),
-    "cleanup_old_logs": (".logging_setup"," cleanup_old_logs"),
+    "cleanup_old_logs": (".logging_setup", "cleanup_old_logs"),
     "task_queue": (".redis_client", "task_queue"),
     "workstations_queue": (".redis_client", "workstations_queue"),
     "redis_conn": (".redis_client", "redis_conn"),
@@ -49,6 +49,11 @@ _EXPORTS: dict[str, tuple[str, str]] = {
 
 
 def __getattr__(name: str) -> Any:  # pragma: no cover
+    if name == "redis_client":
+        module = importlib.import_module(".redis_client", __name__)
+        globals()[name] = module
+        return module
+
     if name not in _EXPORTS:
         raise AttributeError(name)
 

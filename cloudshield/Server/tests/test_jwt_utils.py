@@ -1,12 +1,6 @@
-import sys
-from unittest.mock import patch 
-
-if "cloudshield.Server.security.jwt_utils" in sys.modules:
-    del sys.modules["cloudshield.Server.security.jwt_utils"]
+from unittest.mock import patch
 
 from cloudshield.Server.security import jwt_utils as jwt_module
-
-from cloudshield.Server.security.jwt_utils import issue_token, verify_token
 
 
 
@@ -16,7 +10,7 @@ def test_issue_token_returns_nonempty_string(monkeypatch):
     # Ensure JWT_SECRET is a valid key for this test
     monkeypatch.setattr(jwt_module, "JWT_SECRET", "test-secret-key", raising=False)
 
-    token = issue_token("123", "user", "org1", "test@example.com", "Test User")
+    token = jwt_module.issue_token("123", "user", "org1", "test@example.com", "Test User")
 
     assert isinstance(token, str)
     assert token != ""
@@ -30,8 +24,8 @@ def test_issue_token_can_be_called_multiple_times(monkeypatch):
     """
     monkeypatch.setattr(jwt_module, "JWT_SECRET", "test-secret-key", raising=False)
 
-    t1 = issue_token("user1", "admin", "org1", "user1@example.com", "User One")
-    t2 = issue_token("user2", "user", "org2", "user2@example.com", "User Two")
+    t1 = jwt_module.issue_token("user1", "admin", "org1", "user1@example.com", "User One")
+    t2 = jwt_module.issue_token("user2", "user", "org2", "user2@example.com", "User Two")
 
     assert isinstance(t1, str)
     assert isinstance(t2, str)
@@ -47,13 +41,12 @@ def test_verify_token_accepts_issued_token_without_error():
     Round-trip: token produced by issue_token should be accepted by verify_token
     without raising an exception. We don't assume any particular payload fields.
     """
-    token = issue_token("user123", "admin", "org123", "test@example.com", "Test User")
+    token = jwt_module.issue_token("user123", "admin", "org123", "test@example.com", "Test User")
 
-    decoded = verify_token(token)
+    decoded = jwt_module.verify_token(token)
 
     # Just assert that it decodes without error and returns a dict
     assert isinstance(decoded, dict)
     assert decoded is not None
-
 
 
