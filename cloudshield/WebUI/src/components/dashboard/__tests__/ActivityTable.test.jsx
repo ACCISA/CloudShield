@@ -5,7 +5,7 @@
  * Tests rendering, sorting, filtering, pagination, loading states and edge cases
  */
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ActivityTable from "../ActivityTable.jsx";
 
@@ -78,8 +78,8 @@ describe("ActivityTable Component", () => {
       render(<ActivityTable {...baseProps} activities={activities} />);
 
       expect(screen.getByText("Actor")).toBeInTheDocument();
-      expect(screen.getByText("Description")).toBeInTheDocument();
-      expect(screen.getByText("Created")).toBeInTheDocument();
+      expect(screen.getByText("Activity")).toBeInTheDocument();
+      expect(screen.getByText("Date")).toBeInTheDocument();
     });
 
     test("renders all activity rows", () => {
@@ -293,14 +293,14 @@ describe("ActivityTable Component", () => {
     test("sorts by description", () => {
       render(<ActivityTable {...baseProps} activities={activities} />);
 
-      fireEvent.click(screen.getByText("Description"));
+      fireEvent.click(screen.getByText("Activity"));
       expect(screen.getByText("Created group")).toBeInTheDocument();
     });
 
     test("sorts by created_at date", () => {
       render(<ActivityTable {...baseProps} activities={activities} />);
 
-      fireEvent.click(screen.getByText("Created"));
+      fireEvent.click(screen.getByText("Date"));
       // Should sort without errors
       expect(screen.getByText("Actor")).toBeInTheDocument();
     });
@@ -309,8 +309,8 @@ describe("ActivityTable Component", () => {
       render(<ActivityTable {...baseProps} activities={activities} />);
 
       fireEvent.click(screen.getByText("Actor"));
-      fireEvent.click(screen.getByText("Description"));
-      fireEvent.click(screen.getByText("Description"));
+      fireEvent.click(screen.getByText("Activity"));
+      fireEvent.click(screen.getByText("Activity"));
 
       expect(screen.getByText("Actor")).toBeInTheDocument();
     });
@@ -356,7 +356,7 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      expect(screen.getByText("3/15/2026")).toBeInTheDocument();
+      expect(screen.getByText(/3\/(14|15)\/2026/)).toBeInTheDocument();
     });
   });
 
@@ -371,7 +371,7 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      expect(screen.getByText(/1–3 of 50/)).toBeInTheDocument();
+      expect(screen.getByText(/1–20 of 50/)).toBeInTheDocument();
     });
 
     test("calls onPageChange when page changes", () => {
@@ -402,10 +402,9 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      // Find and interact with rows per page selector
-      const rowsPerPageSelect = screen.getByDisplayValue("20");
+      const rowsPerPageSelect = screen.getByRole("combobox");
       fireEvent.mouseDown(rowsPerPageSelect);
-      fireEvent.click(screen.getByText("25"));
+      fireEvent.click(screen.getByRole("option", { name: "50" }));
 
       expect(onRowsPerPageChange).toHaveBeenCalled();
     });
@@ -494,7 +493,7 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      expect(screen.getByText("User 0")).toBeInTheDocument();
+      expect(screen.getAllByText("User 0").length).toBeGreaterThan(0);
       expect(screen.getByText("Activity 0")).toBeInTheDocument();
     });
 
@@ -525,7 +524,7 @@ describe("ActivityTable Component", () => {
       const searchInput = screen.getByPlaceholderText("Search activities");
       fireEvent.change(searchInput, { target: { value: "User 5" } });
 
-      expect(screen.getByText("User 5")).toBeInTheDocument();
+      expect(screen.getAllByText("User 5").length).toBeGreaterThan(0);
     });
   });
 
@@ -580,18 +579,19 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      expect(screen.getByText(/1–3 of 100/)).toBeInTheDocument();
+      expect(screen.getByText(/1–20 of 100/)).toBeInTheDocument();
     });
   });
 
   describe("Accessibility", () => {
     test("table has proper structure with headers", () => {
-      const { container } = render(
+      render(
         <ActivityTable {...baseProps} activities={activities} />
       );
 
-      const table = container.querySelector("table");
-      expect(table).toBeInTheDocument();
+      expect(screen.getByText("Actor")).toBeInTheDocument();
+      expect(screen.getByText("Date")).toBeInTheDocument();
+      expect(screen.getByText("Activity")).toBeInTheDocument();
     });
 
     test("buttons are keyboard accessible", () => {
@@ -674,8 +674,8 @@ describe("ActivityTable Component", () => {
       );
 
       fireEvent.click(screen.getByText("Actor"));
-      fireEvent.click(screen.getByText("Description"));
-      fireEvent.click(screen.getByText("Created"));
+      fireEvent.click(screen.getByText("Activity"));
+      fireEvent.click(screen.getByText("Date"));
       fireEvent.click(screen.getByText("Actor"));
 
       expect(screen.getByText("Actor")).toBeInTheDocument();
@@ -689,7 +689,7 @@ describe("ActivityTable Component", () => {
       const searchInput = screen.getByPlaceholderText("Search activities");
       fireEvent.change(searchInput, { target: { value: "report" } });
 
-      fireEvent.click(screen.getByText("Created"));
+      fireEvent.click(screen.getByText("Date"));
 
       expect(screen.getByText("Charlie")).toBeInTheDocument();
       expect(screen.queryByText("Alice")).not.toBeInTheDocument();

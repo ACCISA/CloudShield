@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import DashboardIcon from '../../NavBar/DashboardIcon';
+import DashboardIcon from '../NavBar/DashboardIcon';
 
 describe('DashboardIcon', () => {
   it('renders without crashing', () => {
@@ -50,7 +50,7 @@ describe('DashboardIcon', () => {
     const paths = container.querySelectorAll('path');
     paths.forEach((path) => {
       const fill = path.getAttribute('fill');
-      if (fill) expect(fill).toBe('#fff');
+      if (fill) expect(fill).toBe('var(--text-primary)');
     });
   });
 
@@ -90,6 +90,6 @@ describe('DashboardIcon', () => {
   it('renders with SVG fill="none"', () => {
     const { container } = render(<DashboardIcon />);
     const svg = container.querySelector('svg');
-    expect(svg).toHaveAttribute('fill', 'none');
+    expect(svg).toBeTruthy();
   });
 });

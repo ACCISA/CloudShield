@@ -98,7 +98,7 @@ describe("HoverableRow Component", () => {
       const row = container.firstChild;
 
       fireEvent.mouseEnter(row);
-      expect(row.style.backgroundColor).toBe("rgba(255,255,255,0.03)");
+      expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.03)");
     });
 
     test("updates zIndex on hover", () => {
@@ -122,7 +122,7 @@ describe("HoverableRow Component", () => {
       const row = container.firstChild;
 
       fireEvent.mouseEnter(row);
-      expect(row.style.backgroundColor).toBe("rgba(255,255,255,0.03)");
+      expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.03)");
 
       fireEvent.mouseLeave(row);
       expect(row.style.backgroundColor).toBe("transparent");
@@ -153,13 +153,13 @@ describe("HoverableRow Component", () => {
 
       // First cycle
       fireEvent.mouseEnter(row);
-      expect(row.style.backgroundColor).toBe("rgba(255,255,255,0.03)");
+      expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.03)");
       fireEvent.mouseLeave(row);
       expect(row.style.backgroundColor).toBe("transparent");
 
       // Second cycle
       fireEvent.mouseEnter(row);
-      expect(row.style.backgroundColor).toBe("rgba(255,255,255,0.03)");
+      expect(row.style.backgroundColor).toBe("rgba(255, 255, 255, 0.03)");
       fireEvent.mouseLeave(row);
       expect(row.style.backgroundColor).toBe("transparent");
     });
@@ -242,7 +242,7 @@ describe("HoverableRow Component", () => {
         </HoverableRow>
       );
       const checkbox = screen.getByTestId("checkbox");
-      fireEvent.change(checkbox);
+      fireEvent.click(checkbox);
       expect(handleChange).toHaveBeenCalled();
     });
   });

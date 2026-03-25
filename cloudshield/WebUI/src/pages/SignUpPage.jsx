@@ -3,11 +3,9 @@ import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
-import { useAppTheme } from "../context/ThemeContext";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
-import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { getUserErrorMessage } from "../lib/errors";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
@@ -118,11 +116,11 @@ function extractServerErrors(res, data) {
 }
 
 export default function SignupPage({ onSignupSuccess }) {
-  const theme = useAppTheme();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [company, setCompany] = useState("");
   const [plan, setPlan] = useState("pro");
 
@@ -134,6 +132,12 @@ export default function SignupPage({ onSignupSuccess }) {
     setPlan(id);
   };
 
+  const submitLabel = (() => {
+    if (!submitting) return "Create Organization";
+    if (BYPASS_STRIPE) return "Creating...";
+    return "Redirecting to payment...";
+  })();
+
   const validate = () => {
     const next = {};
     const passwordRegex =
@@ -143,6 +147,7 @@ export default function SignupPage({ onSignupSuccess }) {
     if (!passwordRegex.test(password)) {
       next.password = PASSWORD_REQUIREMENTS_MESSAGE;
     }
+    if (!adminName.trim()) next.adminName = "Admin name is required.";
     if (!company.trim()) next.company = "Company name is required.";
 
     setErrors(next);
@@ -171,7 +176,7 @@ export default function SignupPage({ onSignupSuccess }) {
        	{
 		email: email,
             	password: password,
-            	full_name: company,
+            	full_name: adminName,
             	company_name: company,
             	package_type: plan,
           },
@@ -366,6 +371,18 @@ export default function SignupPage({ onSignupSuccess }) {
                 )}
 
                 <AuthTextField
+                  label="Admin Name"
+                  placeholder="Jane Doe"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                />
+                {errors.adminName && (
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                    {errors.adminName}
+                  </Typography>
+                )}
+
+                <AuthTextField
                   label="Company Name"
                   placeholder="Acme Corp"
                   value={company}
@@ -378,11 +395,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 )}
 
                 <PrimaryButton onClick={handleSignup} disabled={submitting}>
-                  {submitting
-                    ? BYPASS_STRIPE
-                      ? "Creating..."
-                      : "Redirecting to payment..."
-                    : "Create Organization"}
+                  {submitLabel}
                 </PrimaryButton>
 
                 <Typography
@@ -422,27 +435,25 @@ export default function SignupPage({ onSignupSuccess }) {
 
               <TableSurface>
                 <Box sx={{ p: 2 }}>
-                  {submitting ? (
-                    <TableSkeleton rows={4} cols={3} />
-                  ) : (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2.5,
-                        justifyContent: { xs: "center", md: "flex-start" },
-                      }}
-                    >
-                      {PLAN_OPTIONS.map((p) => (
-                        <PlanCard
-                          key={p.id}
-                          plan={p}
-                          selected={plan === p.id}
-                          onSelect={handlePlanSelect}
-                        />
-                      ))}
-                    </Box>
-                  )}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 2.5,
+                      justifyContent: { xs: "center", md: "flex-start" },
+                      opacity: submitting ? 0.8 : 1,
+                      pointerEvents: submitting ? "none" : "auto",
+                    }}
+                  >
+                    {PLAN_OPTIONS.map((p) => (
+                      <PlanCard
+                        key={p.id}
+                        plan={p}
+                        selected={plan === p.id}
+                        onSelect={handlePlanSelect}
+                      />
+                    ))}
+                  </Box>
                 </Box>
               </TableSurface>
             </Box>

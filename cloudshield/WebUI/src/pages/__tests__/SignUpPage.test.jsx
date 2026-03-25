@@ -3,9 +3,14 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import SignupPage from "../SignUpPage";
+import { apiPost } from "../../api/client";
 
 jest.mock("../../lib/analytics", () => ({
   trackButton: jest.fn(),
+}));
+
+jest.mock("../../api/client", () => ({
+  apiPost: jest.fn(),
 }));
 
 jest.mock("../../components/signup/SignupCard", () => {
@@ -117,6 +122,9 @@ describe("SignupPage", () => {
     fireEvent.change(screen.getByTestId("password-field"), {
       target: { value: password },
     });
+    fireEvent.change(screen.getByTestId("auth-field-admin-name"), {
+      target: { value: "Jane Doe" },
+    });
     fireEvent.change(screen.getByTestId("auth-field-company-name"), {
       target: { value: company },
     });
@@ -133,6 +141,7 @@ describe("SignupPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    apiPost.mockReset();
     mockFetch = jest.fn();
     global.fetch = mockFetch;
     Storage.prototype.setItem = jest.fn();
@@ -147,12 +156,19 @@ describe("SignupPage", () => {
     );
   };
 
+  const buildSignupResponse = (data, { ok = true, status = 200 } = {}) => ({
+    ok,
+    status,
+    json: async () => data,
+  });
+
   it("renders the signup form", () => {
     renderSignupPage();
 
     expect(screen.getByText("Create Your Organization")).toBeInTheDocument();
     expect(screen.getByTestId("auth-field-email")).toBeInTheDocument();
     expect(screen.getByTestId("password-field")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-field-admin-name")).toBeInTheDocument();
     expect(screen.getByTestId("auth-field-company-name")).toBeInTheDocument();
     expect(screen.getByTestId("primary-button")).toBeInTheDocument();
   });
@@ -192,6 +208,15 @@ describe("SignupPage", () => {
     expect(companyInput.value).toBe("Acme Corp");
   });
 
+  it("updates admin name field", () => {
+    renderSignupPage();
+
+    const adminInput = screen.getByTestId("auth-field-admin-name");
+    fireEvent.change(adminInput, { target: { value: "Jane Doe" } });
+
+    expect(adminInput.value).toBe("Jane Doe");
+  });
+
   it("selects a plan when plan card is clicked", () => {
     renderSignupPage();
 
@@ -211,7 +236,7 @@ describe("SignupPage", () => {
       expect(screen.getByText("Invalid email format.")).toBeInTheDocument();
     });
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
   });
 
   it("shows password requirements message for weak password", async () => {
@@ -254,6 +279,26 @@ describe("SignupPage", () => {
     });
   });
 
+  it("shows error for missing admin name", async () => {
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId("auth-field-email"), {
+      target: { value: VALID_EMAIL },
+    });
+    fireEvent.change(screen.getByTestId("password-field"), {
+      target: { value: VALID_PASSWORD },
+    });
+    fireEvent.change(screen.getByTestId("auth-field-company-name"), {
+      target: { value: VALID_COMPANY },
+    });
+
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Admin name is required.")).toBeInTheDocument();
+    });
+  });
+
   it("rejects emails longer than 254 characters (EMAIL_MAX_LENGTH)", async () => {
     renderSignupPage();
 
@@ -264,7 +309,7 @@ describe("SignupPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Invalid email format.")).toBeInTheDocument();
     });
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -286,15 +331,16 @@ describe("SignupPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Invalid email format.")).toBeInTheDocument();
     });
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
   });
 
   it("handles server validation error", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ errors: { email: "Email already exists." } }),
-    });
+    apiPost.mockResolvedValueOnce(
+      buildSignupResponse(
+        { errors: { email: "Email already exists." } },
+        { ok: false, status: 400 },
+      ),
+    );
 
     renderSignupPage();
 
@@ -307,11 +353,12 @@ describe("SignupPage", () => {
   });
 
   it("handles server conflict error", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 409,
-      json: async () => ({ message: "Organization already exists." }),
-    });
+    apiPost.mockResolvedValueOnce(
+      buildSignupResponse(
+        { message: "Organization already exists." },
+        { ok: false, status: 409 },
+      ),
+    );
 
     renderSignupPage();
 
@@ -326,11 +373,12 @@ describe("SignupPage", () => {
   });
 
   it("handles unexpected server error", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ message: "Unexpected error occurred." }),
-    });
+    apiPost.mockResolvedValueOnce(
+      buildSignupResponse(
+        { message: "Unexpected error occurred." },
+        { ok: false, status: 500 },
+      ),
+    );
 
     renderSignupPage();
 
@@ -345,14 +393,17 @@ describe("SignupPage", () => {
   });
 
   it("handles successful signup", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
+    apiPost.mockResolvedValueOnce(
+      buildSignupResponse({
         access_token: "mock-token",
         user_id: "user123",
         org_id: "org123",
         job_id: "job123",
       }),
+    );
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ error: "Stripe unavailable" }),
     });
 
     const onSignupSuccess = jest.fn();
@@ -383,21 +434,25 @@ describe("SignupPage", () => {
     expect(localStorage.setItem).toHaveBeenCalledWith("provision_job_id", "job123");
     expect(localStorage.setItem).toHaveBeenCalledWith("org_id", "org123");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/auth/signup",
+    expect(apiPost).toHaveBeenCalledWith(
+      "/auth/signup",
       expect.objectContaining({
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        email: VALID_EMAIL,
+        password: VALID_PASSWORD,
+        full_name: "Jane Doe",
+        company_name: VALID_COMPANY,
+        package_type: "pro",
       }),
     );
   });
 
   it("handles 400 error with general message", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ message: "Invalid request data" }),
-    });
+    apiPost.mockResolvedValueOnce(
+      buildSignupResponse(
+        { message: "Invalid request data" },
+        { ok: false, status: 400 },
+      ),
+    );
 
     renderSignupPage();
     setValidFormValues();
@@ -409,7 +464,7 @@ describe("SignupPage", () => {
   });
 
   it("handles network error", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+    apiPost.mockRejectedValueOnce(new Error("Network error"));
 
     renderSignupPage();
     setValidFormValues();
@@ -421,7 +476,7 @@ describe("SignupPage", () => {
   });
 
   it("disables submit button while submitting", async () => {
-    mockFetch.mockImplementationOnce(
+    apiPost.mockImplementationOnce(
       () => new Promise(() => {}) // keep request pending
     );
 
@@ -436,20 +491,30 @@ describe("SignupPage", () => {
         screen.queryByText("Create Organization")
       ).not.toBeInTheDocument();
     });
+
+    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+    expect(screen.getByTestId("plan-card-basic")).toBeInTheDocument();
   });
 
   it("clears form errors when resubmitting", async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: async () => ({ message: "Conflict error" }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_token: "token" }),
-      });
+    apiPost
+      .mockResolvedValueOnce(
+        buildSignupResponse(
+          { message: "Conflict error" },
+          { ok: false, status: 409 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        buildSignupResponse({
+          access_token: "token",
+          user_id: "user123",
+          org_id: "org123",
+        }),
+      );
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ error: "Stripe unavailable" }),
+    });
 
     renderSignupPage();
     setValidFormValues();
@@ -479,6 +544,7 @@ describe("SignupPage — Stripe checkout flow", () => {
 
   const signupResponse = {
     ok: true,
+    status: 200,
     json: async () => ({
       access_token: "mock-token",
       user_id: "user123",
@@ -490,6 +556,7 @@ describe("SignupPage — Stripe checkout flow", () => {
   function setValidFormValues() {
     fireEvent.change(screen.getByTestId("auth-field-email"), { target: { value: VALID_EMAIL } });
     fireEvent.change(screen.getByTestId("password-field"), { target: { value: VALID_PASSWORD } });
+    fireEvent.change(screen.getByTestId("auth-field-admin-name"), { target: { value: "Jane Doe" } });
     fireEvent.change(screen.getByTestId("auth-field-company-name"), { target: { value: VALID_COMPANY } });
   }
 
@@ -497,6 +564,7 @@ describe("SignupPage — Stripe checkout flow", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    apiPost.mockReset();
     global.fetch = jest.fn();
     Storage.prototype.setItem = jest.fn();
     Storage.prototype.getItem = jest.fn();
@@ -512,9 +580,8 @@ describe("SignupPage — Stripe checkout flow", () => {
     );
 
   it("redirects to Stripe checkout URL on successful signup", async () => {
-    global.fetch
-      .mockResolvedValueOnce(signupResponse)
-      .mockResolvedValueOnce({
+    apiPost.mockResolvedValueOnce(signupResponse);
+    global.fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: "https://checkout.stripe.com/pay/cs_test" }),
       });
@@ -529,9 +596,8 @@ describe("SignupPage — Stripe checkout flow", () => {
   });
 
   it("calls create-checkout with correct price_id, success_path and cancel_path", async () => {
-    global.fetch
-      .mockResolvedValueOnce(signupResponse)
-      .mockResolvedValueOnce({
+    apiPost.mockResolvedValueOnce(signupResponse);
+    global.fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: "https://checkout.stripe.com/pay/cs_test" }),
       });
@@ -559,9 +625,8 @@ describe("SignupPage — Stripe checkout flow", () => {
 
   it("shows Redirecting to payment... while Stripe checkout is in flight", async () => {
     let resolveCheckout;
-    global.fetch
-      .mockResolvedValueOnce(signupResponse)
-      .mockReturnValueOnce(new Promise((res) => { resolveCheckout = res; }));
+    apiPost.mockResolvedValueOnce(signupResponse);
+    global.fetch.mockReturnValueOnce(new Promise((res) => { resolveCheckout = res; }));
 
     renderSignupPage();
     setValidFormValues();
@@ -575,9 +640,8 @@ describe("SignupPage — Stripe checkout flow", () => {
   });
 
   it("falls back to /provisioning when checkout response has no URL", async () => {
-    global.fetch
-      .mockResolvedValueOnce(signupResponse)
-      .mockResolvedValueOnce({
+    apiPost.mockResolvedValueOnce(signupResponse);
+    global.fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ error: "Stripe unavailable" }),
       });

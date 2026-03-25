@@ -15,7 +15,7 @@ describe("Skeleton", () => {
     expect(el).toHaveStyle({ width: "100%" });
 
     // Base styles (reliably represented in JSDOM)
-    expect(el).toHaveStyle({ borderRadius: "10px" });
+    expect(el).toHaveStyle({ borderRadius: "8px" });
     expect(el).toHaveStyle({ backgroundSize: "400% 100%" });
     expect(el).toHaveStyle({ animation: "shimmer 1.2s ease-in-out infinite" });
 

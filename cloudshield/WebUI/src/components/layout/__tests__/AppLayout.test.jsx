@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import AppLayout from '../AppLayout';
 
+jest.mock('../Sidebar.jsx', () => {
+  return function MockSidebar() {
+    return <div data-testid="mock-sidebar">Sidebar</div>;
+  };
+});
+
 const renderWithRouter = (ui) => render(ui, { wrapper: BrowserRouter });
 
 describe('AppLayout', () => {
@@ -21,20 +27,16 @@ describe('AppLayout', () => {
         <div>Content</div>
       </AppLayout>
     );
-    // Check if sidebar is rendered by looking for navigation elements
-    const sidebar = document.querySelector('[role="button"]');
-    expect(sidebar).toBeInTheDocument();
+    expect(screen.getByTestId('mock-sidebar')).toBeInTheDocument();
   });
 
   it('hides sidebar when showSidebar is false', () => {
-    const { container } = renderWithRouter(
+    renderWithRouter(
       <AppLayout showSidebar={false}>
         <div>Content</div>
       </AppLayout>
     );
-    // No navigation buttons should be present
-    const navButtons = container.querySelectorAll('[role="button"]');
-    expect(navButtons.length).toBe(0);
+    expect(screen.queryByTestId('mock-sidebar')).not.toBeInTheDocument();
   });
 
   it('applies correct layout styles', () => {
