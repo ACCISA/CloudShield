@@ -309,7 +309,7 @@ describe("SecurityAlertsPanel Component", () => {
 
     it("renders the title", () => {
       render(<SecurityAlertsPanel />);
-      expect(screen.getByText("Security Alerts")).toBeInTheDocument();
+      expect(screen.getByText("Security Alert History")).toBeInTheDocument();
     });
 
     it("renders all main components", () => {

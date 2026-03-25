@@ -178,14 +178,14 @@ describe("editMenuConfigs", () => {
 
     it("should have edit file as first item", () => {
       const editItem = FILE_EDIT_MENU[0];
-      expect(editItem.label).toBe("edit file");
+      expect(editItem.label).toBe("edit share");
       expect(editItem.color).toBe("#fff");
       expect(editItem.onClick).toBeNull();
     });
 
     it("should have delete file as second item", () => {
       const deleteItem = FILE_EDIT_MENU[1];
-      expect(deleteItem.label).toBe("delete file");
+      expect(deleteItem.label).toBe("delete share");
       expect(deleteItem.color).toBe("#D51616");
       expect(deleteItem.onClick).toBeNull();
     });

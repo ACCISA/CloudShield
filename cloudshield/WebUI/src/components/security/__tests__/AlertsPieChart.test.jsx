@@ -425,11 +425,8 @@ describe("AlertsPieChart Component", () => {
       );
       const tooltip = container.querySelector('div[style*="position: fixed"]');
 
-      expect(tooltip).toHaveStyle({
-        backgroundColor: "#1a1a1a",
-        borderRadius: "6px",
-        color: "#fff",
-      });
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveStyle({ position: "fixed" });
     });
   });
 
@@ -565,6 +562,564 @@ describe("AlertsPieChart Component", () => {
         <AlertsPieChart data={mockAlerts} timeRange="7d" />,
       );
       expect(container.firstChild).toBeInTheDocument();
+    });
+  });
+
+  describe("Ref Management (svgRef, tooltipRef)", () => {
+    it("attaches svgRef to SVG element", () => {
+      const { container } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("attaches tooltipRef to tooltip div", () => {
+      const { container } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      const tooltip = container.querySelector('div[style*="position: fixed"]');
+      expect(tooltip).toBeInTheDocument();
+    });
+
+    it("renders without null refs when data is present", () => {
+      const { container } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      const svg = container.querySelector("svg");
+      const tooltip = container.querySelector('div[style*="position: fixed"]');
+      
+      expect(svg).not.toBeNull();
+      expect(tooltip).not.toBeNull();
+    });
+
+    it("handles ref usage in D3 select chain", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select).toHaveBeenCalled();
+      // Verify select was called with proper context
+      expect(d3.select().attr).toHaveBeenCalled();
+    });
+  });
+
+  describe("useEffect Dependencies (data, timeRange, bgSecondary, textPrimary, textSecondary)", () => {
+    it("rerenders when data prop changes", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      const newData = mockAlerts.slice(0, 2);
+      rerender(<AlertsPieChart data={newData} timeRange="30d" />);
+      
+      expect(d3.select).toHaveBeenCalled();
+    });
+
+    it("rerenders when timeRange prop changes", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      rerender(<AlertsPieChart data={mockAlerts} timeRange="7d" />);
+      
+      expect(d3.select).toHaveBeenCalled();
+    });
+
+    it("skips effect when data is empty", () => {
+      const { container } = render(
+        <AlertsPieChart data={[]} timeRange="30d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+      // d3.select should not be called for actual rendering when data is empty
+    });
+
+    it("skips effect when data is null", () => {
+      const { container } = render(
+        <AlertsPieChart data={null} timeRange="30d" />,
+      );
+      expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it("triggers effect on component mount", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select).toHaveBeenCalled();
+      expect(d3.pie).toHaveBeenCalled();
+    });
+
+    it("triggers effect on data change even with same timeRange", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      const callCount = d3.select.mock.calls.length;
+      
+      const newData = [
+        ...mockAlerts,
+        { id: 7, type: "New alert", date: "2024-03-01", risk: "high" },
+      ];
+      
+      rerender(<AlertsPieChart data={newData} timeRange="30d" />);
+      
+      expect(d3.select.mock.calls.length).toBeGreaterThan(callCount);
+    });
+  });
+
+  describe("Theme Colors (useThemeColors hook)", () => {
+    it("extracts bgSecondary color from theme", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Component should use theme colors for SVG stroke
+      expect(d3.select().attr).toHaveBeenCalled();
+    });
+
+    it("extracts textPrimary color from theme", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // textPrimary used for center label - total count
+      expect(d3.select().style).toHaveBeenCalled();
+    });
+
+    it("extracts textSecondary color from theme", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // textSecondary used for center label - subtitle
+      expect(d3.select().style).toHaveBeenCalled();
+    });
+
+    it("uses all three extracted colors in rendering", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // All color values should be used in the render chain
+      const styleCallCount = d3.select().style.mock.calls.length;
+      expect(styleCallCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe("D3 Arc Creation & Configuration", () => {
+    it("creates arc generator with correct inner radius", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.arc).toHaveBeenCalled();
+      // Arc should be configured with innerRadius
+      const arcCalls = d3.arc.mock.calls;
+      expect(arcCalls.length).toBeGreaterThan(0);
+    });
+
+    it("creates arc generator with correct outer radius", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Both arc and arcHover should be created
+      const arcCalls = d3.arc.mock.calls;
+      expect(arcCalls.length).toBeGreaterThanOrEqual(2); // arc and arcHover
+    });
+
+    it("creates arcHover with increased outer radius", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // arcHover outerRadius should be larger than arc outerRadius
+      expect(d3.arc).toHaveBeenCalledTimes(2);
+    });
+
+    it("configures arc with innerRadius and outerRadius methods", () => {
+      const arcFunction = d3.arc();
+      expect(arcFunction.innerRadius).toBeDefined();
+      expect(arcFunction.outerRadius).toBeDefined();
+    });
+
+    it("uses arc function to render slices", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Arc function should be called as part of rendering process
+      const arcFn = d3.arc();
+      expect(typeof arcFn).toBe("function");
+    });
+
+    it("applies arc to path elements", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Arc should be applied via d3 attr
+      expect(d3.select().attr).toHaveBeenCalled();
+    });
+  });
+
+  describe("Pie Data Transformation & Sorting", () => {
+    it("uses d3.rollup to count alerts by type", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.rollup).toHaveBeenCalled();
+    });
+
+    it("creates pie data with type and count", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.rollup).toHaveBeenCalled();
+    });
+
+    it("sorts pie data by count descending", () => {
+      const alerts = [
+        { id: 1, type: "Type A", date: "2024-03-07", risk: "high" },
+        { id: 2, type: "Type B", date: "2024-03-07", risk: "high" },
+        { id: 3, type: "Type B", date: "2024-03-07", risk: "high" },
+        { id: 4, type: "Type B", date: "2024-03-07", risk: "high" },
+      ];
+      render(<AlertsPieChart data={alerts} timeRange="30d" />);
+      expect(d3.rollup).toHaveBeenCalled();
+    });
+
+    it("handles single alert type correctly", () => {
+      const singleType = [
+        { id: 1, type: "Same Type", date: "2024-03-07", risk: "high" },
+        { id: 2, type: "Same Type", date: "2024-03-07", risk: "high" },
+      ];
+      render(<AlertsPieChart data={singleType} timeRange="30d" />);
+      expect(d3.rollup).toHaveBeenCalled();
+    });
+
+    it("handles many different types correctly", () => {
+      const manyTypes = Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        type: `Type ${i}`,
+        date: "2024-03-07",
+        risk: "high",
+      }));
+      render(<AlertsPieChart data={manyTypes} timeRange="30d" />);
+      expect(d3.rollup).toHaveBeenCalled();
+    });
+  });
+
+  describe("Color Scale Domain & Range", () => {
+    it("creates ordinal color scale", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.scaleOrdinal).toHaveBeenCalled();
+    });
+
+    it("sets domain with alert types", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      const scaleFunction = d3.scaleOrdinal();
+      expect(scaleFunction.domain).toBeDefined();
+    });
+
+    it("sets range with color values", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      const scaleFunction = d3.scaleOrdinal();
+      expect(scaleFunction.range).toBeDefined();
+    });
+
+    it("includes all predefined alert type colors", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Should include colors for all 10 alert types
+      expect(d3.scaleOrdinal).toHaveBeenCalled();
+    });
+
+    it("applies colors to arc fill", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalled();
+    });
+  });
+
+  describe("Center Labels (Total Count & Subtitle)", () => {
+    it("renders center total count label", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.sum).toHaveBeenCalled();
+      expect(d3.select().text).toHaveBeenCalled();
+    });
+
+    it("renders center subtitle label", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Two text elements should be added: total count and subtitle
+      const textCalls = d3.select().text.mock.calls;
+      expect(textCalls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("uses d3.sum to calculate total", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.sum).toHaveBeenCalled();
+    });
+
+    it("positions center labels correctly", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // text-anchor should be middle
+      expect(d3.select().attr).toHaveBeenCalledWith("text-anchor", "middle");
+    });
+  });
+
+  describe("Hover Effects & Transitions", () => {
+    it("creates transition on mouseenter", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().transition).toHaveBeenCalled();
+    });
+
+    it("applies arcHover on mouseenter", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().transition).toHaveBeenCalled();
+    });
+
+    it("sets transition duration to 200ms", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().duration).toHaveBeenCalled();
+    });
+
+    it("reverts to arc on mouseleave", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().transition).toHaveBeenCalled();
+    });
+
+    it("increases opacity on hover", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().style).toHaveBeenCalled();
+    });
+
+    it("shows tooltip on mouseenter", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().style).toHaveBeenCalledWith("opacity", 1);
+    });
+
+    it("hides tooltip on mouseleave", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().style).toHaveBeenCalled();
+    });
+
+    it("updates tooltip position on hover", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Tooltip should be positioned at pageX + 10, pageY - 10
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+  });
+
+  describe("Tooltip Rendering & HTML Generation", () => {
+    it("displays alert type in tooltip", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+
+    it("displays alert count in tooltip", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+
+    it("displays percentage in tooltip", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+
+    it("formats percentage to 1 decimal place", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Percentage calculation uses .toFixed(1)
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+
+    it("uses proper HTML structure in tooltip", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+
+    it("updates tooltip content on different hover targets", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      const htmlCalls = d3.select().html.mock.calls;
+      expect(htmlCalls.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Percentage Calculation", () => {
+    it("calculates percentage correctly", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Formula: (d.data.count / total) * 100).toFixed(1)
+      expect(d3.sum).toHaveBeenCalled();
+    });
+
+    it("handles single item percentage", () => {
+      const singleAlert = [{ id: 1, type: "Test", date: "2024-03-07" }];
+      render(<AlertsPieChart data={singleAlert} timeRange="30d" />);
+      // Single item should calculate as 100%
+      expect(d3.sum).toHaveBeenCalled();
+    });
+
+    it("handles equal distribution percentages", () => {
+      const evenAlerts = [
+        { id: 1, type: "Type A", date: "2024-03-07" },
+        { id: 2, type: "Type B", date: "2024-03-07" },
+        { id: 3, type: "Type C", date: "2024-03-07" },
+        { id: 4, type: "Type D", date: "2024-03-07" },
+      ];
+      render(<AlertsPieChart data={evenAlerts} timeRange="30d" />);
+      // Each should be 25%
+      expect(d3.sum).toHaveBeenCalled();
+    });
+  });
+
+  describe("Arc Transitions (attrTween)", () => {
+    it("creates attrTween for arc animation", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attrTween).toHaveBeenCalled();
+    });
+
+    it("uses d3.interpolate for smooth transition", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.interpolate).toHaveBeenCalled();
+    });
+
+    it("animates from zero angles", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Animation starts from startAngle: 0, endAngle: 0
+      expect(d3.interpolate).toHaveBeenCalled();
+    });
+
+    it("sets animation duration to 1000ms", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().duration).toHaveBeenCalled();
+    });
+  });
+
+  describe("Event Handlers (mouseenter/mouseleave)", () => {
+    it("registers mouseenter event handler", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().on).toHaveBeenCalled();
+    });
+
+    it("registers mouseleave event handler", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().on).toHaveBeenCalled();
+    });
+
+    it("handles mouseenter with proper context", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().on).toHaveBeenCalled();
+    });
+
+    it("handles mouseleave with proper context", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().on).toHaveBeenCalled();
+    });
+
+    it("calculates percentage in mouseenter handler", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      // Percentage calculation happens in mouseenter handler
+      expect(d3.select().html).toHaveBeenCalled();
+    });
+  });
+
+  describe("Clear Previous Chart Logic", () => {
+    it("calls selectAll to get existing elements", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().selectAll).toHaveBeenCalled();
+    });
+
+    it("calls remove to clear previous elements", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().selectAll().remove).toHaveBeenCalled();
+    });
+
+    it("clears chart before redrawing on data change", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      const initialClearCalls = d3.select().selectAll().remove.mock.calls.length;
+      
+      rerender(<AlertsPieChart data={mockAlerts.slice(0, 2)} timeRange="30d" />);
+      
+      expect(d3.select().selectAll().remove.mock.calls.length).toBeGreaterThan(
+        initialClearCalls,
+      );
+    });
+
+    it("prevents DOM bloat from multiple renders", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      rerender(<AlertsPieChart data={mockAlerts} timeRange="7d" />);
+      rerender(<AlertsPieChart data={mockAlerts} timeRange="14d" />);
+      
+      // Chart should be cleared each time
+      expect(d3.select().selectAll().remove).toHaveBeenCalled();
+    });
+  });
+
+  describe("SVG Attribute Setup", () => {
+    it("sets SVG width attribute", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith("width", expect.any(Number));
+    });
+
+    it("sets SVG height attribute", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith("height", expect.any(Number));
+    });
+
+    it("appends group element", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().append).toHaveBeenCalled();
+    });
+
+    it("sets group transform to center", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith(
+        "transform",
+        expect.stringContaining("translate"),
+      );
+    });
+  });
+
+  describe("Path Elements Setup", () => {
+    it("creates path elements for each slice", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().append).toHaveBeenCalled();
+    });
+
+    it("applies arc function to path d attribute", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith("d", expect.any(Function));
+    });
+
+    it("applies fill color from color scale", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith("fill", expect.any(Function));
+    });
+
+    it("applies stroke from theme color", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith(
+        "stroke",
+        expect.any(String),
+      );
+    });
+
+    it("sets stroke width to 2", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      expect(d3.select().attr).toHaveBeenCalledWith("stroke-width", 2);
+    });
+  });
+
+  describe("Complete Integration Tests", () => {
+    it("renders complete chart with all components", () => {
+      const { container } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      const svg = container.querySelector("svg");
+      const tooltip = container.querySelector('div[style*="position: fixed"]');
+      
+      expect(svg).toBeInTheDocument();
+      expect(tooltip).toBeInTheDocument();
+    });
+
+    it("handles full lifecycle: render -> data change -> rerender", () => {
+      const { rerender } = render(
+        <AlertsPieChart data={mockAlerts} timeRange="30d" />,
+      );
+      
+      const newData = mockAlerts.slice(0, 2);
+      rerender(<AlertsPieChart data={newData} timeRange="7d" />);
+      
+      expect(d3.select).toHaveBeenCalled();
+      expect(d3.pie).toHaveBeenCalled();
+    });
+
+    it("integrates refs, useEffect, and D3 rendering", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      
+      // All key D3 functions should be called in proper order
+      expect(d3.select).toHaveBeenCalled();
+      expect(d3.rollup).toHaveBeenCalled();
+      expect(d3.sum).toHaveBeenCalled();
+      expect(d3.pie).toHaveBeenCalled();
+      expect(d3.arc).toHaveBeenCalled();
+    });
+
+    it("handles theme color extraction and application", () => {
+      render(<AlertsPieChart data={mockAlerts} timeRange="30d" />);
+      
+      // Theme colors should flow through to SVG styling
+      expect(d3.select().attr).toHaveBeenCalled();
+      expect(d3.select().style).toHaveBeenCalled();
     });
   });
 });

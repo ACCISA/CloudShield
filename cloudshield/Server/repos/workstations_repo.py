@@ -20,6 +20,18 @@ def insert_workstation_template(*, db, org_id: str, name: str, description: str,
         members=members
         ).model_dump(by_alias=True))
 
+def get_workstation_templates(*, db, org_id: str):
+    ws_db = db.workstation_templates
+    try:
+        templates = list(ws_db.find({"org_id": org_id}))
+            
+        for t in templates:
+            t["_id"] = str(t["_id"])
+
+        return templates
+    except Exception:
+        return []
+
 def get_workstation_template(*, db, org_id: str, template_id: str):
     ws_db = db.workstation_templates
     try:

@@ -15,6 +15,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, OutlinedInput } from '@mui/material';
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * Renders a labeled text input field for auth forms.
@@ -36,11 +37,12 @@ export default function AuthTextField({
   endAdornment,
   onKeyDown,
 }) {
+  const themeColors = useThemeColors();
   return (
     <Box sx={{ width: '100%', mb: 2 }}>
       <Typography
         sx={{
-          color: '#fff',
+          color: themeColors.text,
           fontSize: '0.9rem',
           fontWeight: 500,
           mb: '6px',
@@ -58,22 +60,22 @@ export default function AuthTextField({
         endAdornment={endAdornment}
         sx={{
           width: '100%',
-          backgroundColor: '#161616',
+          backgroundColor: themeColors.inputBg,
           borderRadius: '8px',
-          color: '#fff',
+          color: themeColors.text,
           fontSize: '0.95rem',
           lineHeight: 1.3,
-          border: '1px solid rgba(255,255,255,0.18)',
+          border: `1px solid ${themeColors.border}`,
           paddingY: '12px',
           paddingX: '12px',
           '& .MuiOutlinedInput-notchedOutline': {
             border: 'none',
           },
           '&:hover': {
-            backgroundColor: '#1a1a1a',
+            backgroundColor: themeColors.inputBgHover,
           },
           '&.Mui-focused': {
-            outline: '2px solid rgba(255,255,255,0.4)',
+            outline: `2px solid ${themeColors.borderLight}`,
             outlineOffset: '0px',
           },
           '& input': {

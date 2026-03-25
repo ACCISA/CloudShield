@@ -36,17 +36,21 @@ def ws_create_default(org_id, name, description, software, access_groups, member
         logger.error(f"Orginization not found (org_id={org_id})")
         update_job(job, "org not found")
         return
-
-    ws_template = insert_workstation_template(
-        db=db,
-        name=name,
-        org_id=org_id,
-        description=description,
-        software=software,
-        is_ready=True,
-        access_groups=access_groups,
-        members=members
-    )
+    try:
+        ws_template = insert_workstation_template(
+            db=db,
+            name=name,
+            org_id=org_id,
+            description=description,
+            software=software,
+            is_ready=True,
+            access_groups=access_groups,
+            members=members
+        )
+    except Exception as e:
+        logger.error(e)
+        logger.error("Failed to insert workstation template to database")
+        return
 
     if ws_template is None:
         logger.error("Failed to insert vm template to database")

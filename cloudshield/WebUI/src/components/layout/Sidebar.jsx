@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 import DashboardIcon from "../../assets/NavBar/DashboardIcon";
 import ShieldIcon from "../../assets/NavBar/shieldIcon.jsx";
@@ -44,6 +45,7 @@ function NavItem({
   countColor,
   onNavigate,
 }) {
+  const themeColors = useThemeColors();
   const showCountChip = typeof count === "number" || count === "-";
 
   return (
@@ -51,8 +53,8 @@ function NavItem({
       sx={{
         width: "100%",
         borderRadius: "10px",
-        backgroundColor: active ? "#2a2a2a" : "transparent",
-        color: "#fff",
+        backgroundColor: active ? themeColors.lightOverlay : "transparent",
+        color: themeColors.textPrimary,
       }}
     >
       <Box
@@ -73,7 +75,7 @@ function NavItem({
           alignItems: "center",
           justifyContent: collapsed ? "center" : "flex-start",
           borderRadius: "10px",
-          "&:hover": { backgroundColor: "#2a2a2a" },
+          "&:hover": { backgroundColor: themeColors.lightOverlay },
         }}
       >
         <Box
@@ -120,7 +122,7 @@ function NavItem({
                   borderRadius: "6px",
                   px: "4px",
                   lineHeight: 1.2,
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   backgroundColor: countColor || "#444",
                 }}
               />
@@ -153,6 +155,7 @@ function NavItem({
 
 function AccordionGrid({ items }) {
   const navigate = useNavigate();
+  const themeColors = useThemeColors();
   return (
     <Box
       sx={{
@@ -177,8 +180,8 @@ function AccordionGrid({ items }) {
             borderRadius: "8px",
             cursor: "pointer",
             fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.9)",
-            "&:hover": { background: "rgba(255,255,255,0.06)" },
+            color: themeColors.textPrimary,
+            "&:hover": { background: themeColors.lightOverlaySubtle },
           }}
         >
           {it.text}
@@ -189,6 +192,7 @@ function AccordionGrid({ items }) {
 }
 
 function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
+  const themeColors = useThemeColors();
   const handleCompanyNavigate = () => {
     if (!showNav) return;
     navigate("/organizations");
@@ -264,7 +268,7 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
-                  color: "#fff",
+                  color: themeColors.textPrimary,
                   fontSize: "1rem",
                   fontWeight: 600,
                   lineHeight: 1.3,
@@ -274,7 +278,7 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
               </Typography>
               <Typography
                 sx={{
-                  color: "rgba(255,255,255,0.7)",
+                  color: themeColors.textSecondary,
                   fontSize: "0.8rem",
                   lineHeight: 1.3,
                   wordBreak: "break-all",
@@ -297,6 +301,7 @@ function SidebarBottomAction({
   icon,
   onActivate,
 }) {
+  const themeColors = useThemeColors();
   const onKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       onActivate();
@@ -312,13 +317,13 @@ function SidebarBottomAction({
         display: "flex",
         alignItems: "center",
         justifyContent: collapsed ? "center" : "flex-start",
-        color: "#fff",
+        color: themeColors.textPrimary,
         fontSize: "0.9rem",
         fontWeight: 500,
         cursor: "pointer",
         borderRadius: "8px",
         padding: collapsed ? "8px" : "8px 12px",
-        "&:hover": { backgroundColor: "#2a2a2a" },
+        "&:hover": { backgroundColor: themeColors.lightOverlay },
       }}
       onClick={onActivate}
       onKeyDown={onKeyDown}
@@ -440,6 +445,7 @@ export default function Sidebar({
   collapsed,
   onToggleCollapse,
 }) {
+  const themeColors = useThemeColors();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useAuth();
@@ -494,11 +500,11 @@ export default function Sidebar({
         minWidth: collapsed ? 72 : 280,
         height: "100vh",
         maxHeight: "100vh",
-        bgcolor: "#0F0F0F",
-        color: "#fff",
+        bgcolor: themeColors.bgPrimary,
+        color: themeColors.textPrimary,
         display: "flex",
         flexDirection: "column",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        borderRight: `1px solid ${themeColors.borderLight}`,
         borderRadius: "0 0 20px 20px",
         padding: collapsed ? "12px 8px" : "16px",
         position: "relative",
@@ -518,13 +524,13 @@ export default function Sidebar({
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
-            backgroundColor: "#1f1f1f",
+            backgroundColor: themeColors.bgSecondary,
             borderRadius: "8px",
-            border: "1px solid rgba(255,255,255,0.12)",
-            color: "#fff",
+            border: `1px solid ${themeColors.border}`,
+            color: themeColors.textPrimary,
             width: 28,
             height: 28,
-            "&:hover": { backgroundColor: "#2a2a2a" },
+            "&:hover": { backgroundColor: themeColors.lightOverlay },
           }}
         >
           {collapsed ? (
@@ -544,7 +550,7 @@ export default function Sidebar({
         me={me}
       />
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.18)", mb: 2 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 2 }} />
 
       {/* Navigation + accordions (hidden in provisioning mode) */}
       {showNav ? (
@@ -560,7 +566,7 @@ export default function Sidebar({
         <Box sx={{ flexGrow: 1 }} />
       )}
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.18)", mt: 2, mb: 2 }} />
+      <Divider sx={{ borderColor: themeColors.border, mt: 2, mb: 2 }} />
 
       {/* Bottom actions (hidden in provisioning mode) */}
       {showBottom ? (

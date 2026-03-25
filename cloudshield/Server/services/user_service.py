@@ -4,7 +4,7 @@ import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, log_audit, organizations
+from utils import users_admin, log_audit, organizations, derive_username
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 try:
@@ -197,8 +197,13 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Insert user
     # -----------------------------
+    requested_username = getattr(user_data, "username", None)
+    username = requested_username.strip() if isinstance(requested_username, str) else ""
+    username = username or derive_username(user_data.full_name)
+
     user_doc = {
         "email": user_data.email,
+        "username": username,
         "password": hash_password(user_data.password),
         "org_id": org_id, # This is now the 24-char ObjectId string
         "role": user_data.role,

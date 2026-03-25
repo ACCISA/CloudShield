@@ -392,7 +392,7 @@ describe("SettingsPage", () => {
       expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
     });
 
-    const toastElement = screen.getByText("Settings saved successfully").parentElement;
+    const toastElement = screen.getByRole("alert");
     await act(async () => {
       fireEvent.keyDown(toastElement, { key: "Enter" });
     });
@@ -436,7 +436,7 @@ describe("SettingsPage", () => {
       expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
     });
 
-    const toastElement = screen.getByText("Settings saved successfully").parentElement;
+    const toastElement = screen.getByRole("alert");
     await act(async () => {
       fireEvent.keyDown(toastElement, { key: " " });
     });
@@ -477,7 +477,7 @@ describe("SettingsPage", () => {
     });
 
     await waitFor(() => {
-      const toastElement = screen.getByText("Settings saved successfully").parentElement;
+      const toastElement = screen.getByRole("alert");
       expect(toastElement).toHaveAttribute("role", "alert");
       expect(toastElement).toHaveAttribute("tabIndex", "0");
     });

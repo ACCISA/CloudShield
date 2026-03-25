@@ -197,9 +197,11 @@ describe("BasicInfoTab", () => {
 
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
+    const firstNameInput = screen.getByLabelText("First Name");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
+      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
       fireEvent.click(saveButton);
     });
 
@@ -218,8 +220,6 @@ describe("BasicInfoTab", () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
     const file = new File(["image"], "profile.png", { type: "image/png" });
-    const editButton = screen.getByRole("button", { name: /edit/i });
-
     // Get the hidden file input
     const fileInput = document.querySelector('input[type="file"]');
 
@@ -291,14 +291,14 @@ describe("BasicInfoTab", () => {
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(emailInput, { target: { value: "JOHN@EXAMPLE.COM" } });
+      fireEvent.change(emailInput, { target: { value: "JANE@EXAMPLE.COM" } });
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: "john@example.com",
+          email: "jane@example.com",
         })
       );
     });

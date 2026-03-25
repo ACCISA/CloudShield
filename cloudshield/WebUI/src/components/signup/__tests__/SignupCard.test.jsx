@@ -27,7 +27,7 @@ describe('SignupCard', () => {
 
     const logo = screen.getByAltText('Company Logo');
     expect(logo).toBeInTheDocument();
-    expect(logo).toHaveAttribute('src', 'mocked-logo.png');
+    expect(logo.getAttribute('src')).toContain('cloudshield_logo_black.png');
   });
 
   it('applies correct styling to logo', () => {

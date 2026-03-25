@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const parseUTC = (str) => {
     if (!str) return null;
@@ -38,6 +39,7 @@ const GRID_COLUMNS = "2fr 1.4fr 1fr 1fr 40px";
 const GRID_COLUMNS_ADMIN = "1.2fr 2fr 1.4fr 1fr 1fr 40px";
 
 function TicketsItem({ ticket, isEven, isSuperAdmin }) {
+    const themeColors = useThemeColors();
     const navigate = useNavigate();
     const [hovered, setHovered] = React.useState(false);
     const { icon, color } = priorityConfig[ticket.priority] || priorityConfig.Low;
@@ -51,22 +53,22 @@ function TicketsItem({ ticket, isEven, isSuperAdmin }) {
             padding: "12px 16px",
             cursor: "pointer",
             backgroundColor: hovered
-                ? "rgba(255,255,255,0.07)"
+                ? themeColors.bgHover
                 : isEven
-                ? "rgba(255,255,255,0.04)"
+                ? themeColors.lightOverlaySubtle
                 : "transparent",
             transition: "background-color 0.15s",
         },
         cell: {
             fontSize: "0.875rem",
-            color: "#fff",
+            color: themeColors.text,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
         },
         dimCell: {
             fontSize: "0.875rem",
-            color: "rgba(255,255,255,0.45)",
+            color: themeColors.textTertiary,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -86,7 +88,7 @@ function TicketsItem({ ticket, isEven, isSuperAdmin }) {
         editBtn: {
             background: "none",
             border: "none",
-            color: "rgba(255,255,255,0.3)",
+            color: themeColors.textTertiary,
             cursor: "pointer",
             padding: "4px",
             borderRadius: "4px",
@@ -116,15 +118,15 @@ function TicketsItem({ ticket, isEven, isSuperAdmin }) {
                 {icon}
                 <span style={{ fontSize: "0.855rem", fontWeight: 500 }}>{ticket.priority}</span>
             </div>
-            <span style={{ ...styles.cell, color: ticket.status === "Closed" ? "rgba(255,255,255,0.35)" : "#fff" }}>
+            <span style={{ ...styles.cell, color: ticket.status === "Closed" ? themeColors.textTertiary : themeColors.text }}>
                 {ticket.status}
             </span>
             <div style={styles.actionCell}>
                 <button
                     style={styles.editBtn}
                     onClick={e => { e.stopPropagation(); navigate(`/tickets/${ticket.id}`); }}
-                    onMouseEnter={e => e.currentTarget.style.color = "#fff"}
-                    onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.3)"}
+                    onMouseEnter={e => e.currentTarget.style.color = themeColors.text}
+                    onMouseLeave={e => e.currentTarget.style.color = themeColors.textTertiary}
                 >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

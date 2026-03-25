@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import SecurityAlertsItem from "./SecurityAlertsItem.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function SecurityAlertsTable({
   securityAlerts = [],
@@ -14,6 +15,7 @@ function SecurityAlertsTable({
   hasNoAlerts = false,
   hasNoResults = false,
 }) {
+  const themeColors = useThemeColors();
   const styles = {
     tableHeaders: {
       display: "grid",
@@ -24,7 +26,7 @@ function SecurityAlertsTable({
       position: "sticky",
       top: 0,
       zIndex: 10,
-      backgroundColor: "#0f0f0f",
+      backgroundColor: themeColors.bgSecondary, // Inherit panel background
     },
     checkboxWrapper: {
       display: "flex",
@@ -34,7 +36,7 @@ function SecurityAlertsTable({
     },
     headerLabel: {
       fontSize: "0.85rem",
-      color: "rgba(255,255,255,1)",
+      color: themeColors.textPrimary,
       fontWeight: "500",
       display: "flex",
       alignItems: "center",
@@ -42,7 +44,7 @@ function SecurityAlertsTable({
     },
     headerLabelBright: {
       fontSize: "0.85rem",
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontWeight: "500",
       display: "flex",
       alignItems: "center",
@@ -65,18 +67,18 @@ function SecurityAlertsTable({
       alignItems: "center",
       justifyContent: "center",
       minHeight: "300px",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textSecondary,
       textAlign: "center",
       gap: "8px",
     },
     emptyStateTitle: {
       fontSize: "16px",
       fontWeight: "500",
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
     },
     emptyStateSubtitle: {
       fontSize: "14px",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textSecondary,
     },
   };
 

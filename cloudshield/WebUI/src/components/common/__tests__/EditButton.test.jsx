@@ -41,7 +41,7 @@ describe("EditButton Component", () => {
     test("opens menu when button is clicked", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       expect(screen.getByText("Edit")).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("EditButton Component", () => {
     test("closes menu when backdrop is clicked", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       // Menu should be open
@@ -68,7 +68,7 @@ describe("EditButton Component", () => {
     test("toggles menu on button click", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
 
       // Open menu
       fireEvent.click(button);
@@ -83,7 +83,7 @@ describe("EditButton Component", () => {
     test("calls onClick when menu item is clicked", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       const editMenuItem = screen.getByText("Edit");
@@ -95,7 +95,7 @@ describe("EditButton Component", () => {
     test("closes menu after menu item is clicked", async () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       const deleteMenuItem = screen.getByText("Delete");
@@ -108,7 +108,7 @@ describe("EditButton Component", () => {
       const itemsWithoutOnClick = [{ label: "No Action" }];
       render(<EditButton menuItems={itemsWithoutOnClick} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       const menuItem = screen.getByText("No Action");
@@ -120,15 +120,17 @@ describe("EditButton Component", () => {
     test("applies disabled styles when disabled", () => {
       render(<EditButton menuItems={mockMenuItems} disabled={true} />);
 
-      const button = screen.getByRole("button");
-      expect(button).toHaveStyle({ opacity: "0.5" });
-      expect(button).toHaveStyle({ cursor: "not-allowed" });
+      const iconButton = screen
+        .getAllByRole("button")
+        .find((el) => el.tagName.toLowerCase() === "button" && el.style.padding === "8px");
+      expect(iconButton).toHaveStyle({ opacity: "0.5" });
+      expect(iconButton).toHaveStyle({ cursor: "not-allowed" });
     });
 
     test("does not open menu when disabled and clicked", () => {
       render(<EditButton menuItems={mockMenuItems} disabled={true} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       // Menu items should not be visible
@@ -138,8 +140,10 @@ describe("EditButton Component", () => {
     test("is not disabled by default", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
-      expect(button).toHaveStyle({ opacity: "1" });
+      const iconButton = screen
+        .getAllByRole("button")
+        .find((el) => el.tagName.toLowerCase() === "button" && el.style.padding === "8px");
+      expect(iconButton).toHaveStyle({ opacity: "1" });
     });
   });
 
@@ -147,7 +151,7 @@ describe("EditButton Component", () => {
     test("renders all menu items", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
       fireEvent.click(button);
 
       mockMenuItems.forEach((item) => {
@@ -158,7 +162,7 @@ describe("EditButton Component", () => {
     test("handles clicks on different menu items", () => {
       render(<EditButton menuItems={mockMenuItems} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getAllByRole("button")[0];
 
       // Click first item
       fireEvent.click(button);

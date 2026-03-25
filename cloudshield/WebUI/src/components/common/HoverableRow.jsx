@@ -1,4 +1,5 @@
 import React from "react";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * HoverableRow
@@ -11,8 +12,9 @@ import React from "react";
  *   - ...rest: any other props (e.g., onClick)
  */
 const HoverableRow = ({ style = {}, className = "", children, ...rest }) => {
+  const themeColors = useThemeColors();
   const handleMouseEnter = (e) => {
-    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
+    e.currentTarget.style.backgroundColor = themeColors.lightOverlaySubtle;
     e.currentTarget.style.zIndex = "100";
   };
   const handleMouseLeave = (e) => {

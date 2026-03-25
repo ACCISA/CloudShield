@@ -16,12 +16,12 @@ const inputSx = {
     "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.4)" },
   },
   "& .MuiInputLabel-root": { color: "#9E9E9E" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "text.primary" },
 };
 
 const SectionLabel = ({ title, subtitle }) => (
   <Box sx={{ width: 240, flexShrink: 0 }}>
-    <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
+    <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
     {subtitle && (
       <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}>
         {subtitle}
@@ -90,10 +90,10 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
               justifyContent: "center",
             }}
           >
-            <MailOutlineOutlinedIcon sx={{ color: "#fff", fontSize: "1rem" }} />
+            <MailOutlineOutlinedIcon sx={{ color: "text.primary", fontSize: "1rem" }} />
           </Box>
         )}
-        <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>
+        <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.95rem" }}>
           {senderName || "CloudShield"}
         </Typography>
       </Box>
@@ -117,7 +117,7 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
           sx={{
             display: "inline-block",
             backgroundColor: brandColor || "#1a1a2e",
-            color: "#fff",
+            color: "text.primary",
             padding: "8px 20px",
             borderRadius: "6px",
             fontSize: "0.82rem",
@@ -177,7 +177,7 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
 
   return (
     <Box>
-      <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
+      <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
         Email Customization
       </Typography>
       <Typography sx={{ color: "#9E9E9E", fontSize: "0.85rem", mb: 3 }}>
@@ -282,7 +282,7 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                   }}
                   size="small"
                 >
-                  <EditOutlinedIcon sx={{ fontSize: "0.75rem", color: "#fff" }} />
+                  <EditOutlinedIcon sx={{ fontSize: "0.75rem", color: "text.primary" }} />
                 </IconButton>
                 <input
                   ref={logoRef}
@@ -338,7 +338,7 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
 
           {/* Notification Type Toggles */}
           <Box sx={{ mb: 3 }}>
-            <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem", mb: 0.5 }}>
+            <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem", mb: 0.5 }}>
               Email notifications
             </Typography>
             <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mb: 2 }}>
@@ -365,7 +365,7 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                     }}
                   >
                     <Box>
-                      <Typography sx={{ color: "#fff", fontSize: "0.88rem", fontWeight: 500 }}>
+                      <Typography sx={{ color: "text.primary", fontSize: "0.88rem", fontWeight: 500 }}>
                         {notif.label}
                       </Typography>
                       <Typography sx={{ color: "#9E9E9E", fontSize: "0.78rem" }}>
