@@ -202,6 +202,34 @@ describe("DashboardPage activity fetching and normalization", () => {
     expect(third.date).toBe("-");
   });
 
+  it("parses JSON when apiGet returns a Response-like object", async () => {
+    localStorage.setItem("org_id", "org-123");
+    apiGet.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({
+        items: [
+          {
+            _id: "mongo-1",
+            actor: "Alice",
+            description: "Created a new user",
+            created_at: "2026-03-05T08:00:00.000Z",
+          },
+        ],
+        total: 1,
+      }),
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("initial-count")).toHaveTextContent("1");
+      expect(screen.getByTestId("total-items")).toHaveTextContent("1");
+    });
+
+    const first = JSON.parse(screen.getByTestId("first-activity").textContent);
+    expect(first.user).toBe("Alice");
+    expect(first.activity).toBe("Created a new user");
+  });
+
   it("handles non-array items by setting empty activities while preserving total", async () => {
     localStorage.setItem("org_id", "org-123");
     apiGet.mockResolvedValueOnce({
