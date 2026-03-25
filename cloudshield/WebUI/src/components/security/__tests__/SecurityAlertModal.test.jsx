@@ -8,6 +8,17 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SecurityAlertModal from "../SecurityAlertModal";
+import { explainSecurityAlert } from "../../../api/threatsApi";
+
+jest.mock("react-markdown", () => {
+  return function ReactMarkdown({ children }) {
+    return <div data-testid="react-markdown">{children}</div>;
+  };
+});
+
+jest.mock("../../../api/threatsApi", () => ({
+  explainSecurityAlert: jest.fn(),
+}));
 
 // Mock all imported icons and components
 jest.mock("../../../assets/security/HighAlertIcon", () => {
@@ -85,10 +96,12 @@ describe("SecurityAlertModal Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
     console.log.mockRestore();
+    console.error.mockRestore();
   });
 
   describe("Basic Rendering", () => {
@@ -369,13 +382,27 @@ describe("SecurityAlertModal Component", () => {
       expect(screen.getByText("Expand with AI")).toBeInTheDocument();
     });
 
-    it("calls handler when expand with AI is clicked", () => {
+    it("requests and renders an AI explanation when expand with AI is clicked", async () => {
+      explainSecurityAlert.mockResolvedValue({
+        explanation: "This alert was summarized by AI.",
+      });
+
       render(<SecurityAlertModal {...defaultProps} />);
 
       const button = screen.getByText("Expand with AI");
       fireEvent.click(button);
 
-      expect(console.log).toHaveBeenCalledWith("Expand with AI:", 1);
+      await waitFor(() => {
+        expect(explainSecurityAlert).toHaveBeenCalledWith({
+          risk: "high",
+          type: "Ransomware Detection",
+          category: "Malware",
+          source: "User Upload",
+          description: "This is a test description of the security alert.",
+        });
+      });
+
+      expect(screen.getByText("This alert was summarized by AI.")).toBeInTheDocument();
     });
 
     it("renders checkmark icon in resolved button", () => {

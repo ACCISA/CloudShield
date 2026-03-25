@@ -24,7 +24,21 @@ const TestComponent = () => {
 };
 
 describe("AuthContext", () => {
+  const AUTH_ENV_KEYS = [
+    "VITE_AUTH_EMAIL",
+    "VITE_AUTH_PASSWORD",
+    "VITE_AUTH_TOKEN",
+    "VITE_API_EMAIL",
+    "VITE_API_PASSWORD",
+    "VITE_API_ACCESS_TOKEN",
+  ];
+
   beforeEach(() => {
+    delete globalThis.__APP_ENV__;
+    for (const key of AUTH_ENV_KEYS) {
+      delete process.env[key];
+    }
+
     localStorage.clear();
     const localStorageMock = (function () {
       let store = {};
@@ -35,12 +49,20 @@ describe("AuthContext", () => {
         clear: jest.fn(() => { store = {}; }),
       };
     })();
-    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      writable: true,
+      value: localStorageMock,
+    });
 
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
+    delete globalThis.__APP_ENV__;
+    for (const key of AUTH_ENV_KEYS) {
+      delete process.env[key];
+    }
     jest.clearAllMocks();
   });
 

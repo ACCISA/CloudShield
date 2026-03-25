@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AddUserPage from "../AddUser";
+import { apiGet } from "../../api/client";
 
 // Mock the ProvisioningControls component (keeps tests stable + avoids extra UI assumptions)
 jest.mock("../../components/provisioning/ProvisioningControls.jsx", () => {
@@ -20,8 +21,38 @@ jest.mock("../../lib/errors.js", () => ({
   getUserErrorMessage: (err) => (err instanceof Error ? err.message : String(err)),
 }));
 
+jest.mock("../../api/client", () => ({
+  apiGet: jest.fn(),
+}));
+
+jest.setTimeout(20000);
+
 describe("AddUserPage", () => {
-  const user = userEvent.setup();
+  let user;
+
+  const makeResponse = ({ ok = true, status = 200, json = {}, text = "" } = {}) => ({
+    ok,
+    status,
+    headers: { get: () => "application/json" },
+    json: jest.fn().mockResolvedValue(json),
+    text: jest.fn().mockResolvedValue(text),
+  });
+
+  const mockStartJob = ({ ok = true, status = 202, json = { job_id: "job-123" }, text = "" } = {}) => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok,
+        status,
+        headers: { get: () => (ok ? "application/json" : "text/plain") },
+        json: () => Promise.resolve(json),
+        text: () => Promise.resolve(text),
+      })
+    );
+  };
+
+  const mockPollingStatus = (payload, options = {}) => {
+    apiGet.mockResolvedValue(makeResponse({ json: payload, ...options }));
+  };
 
   const fillValidForm = async () => {
     await user.type(screen.getByLabelText("Organization ID"), "org-123");
@@ -32,7 +63,9 @@ describe("AddUserPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn();
+    user = userEvent.setup();
+    mockStartJob();
+    mockPollingStatus({ status: "succeeded", result: { message: "Done" } });
   });
 
   afterEach(() => {
@@ -170,16 +203,6 @@ describe("AddUserPage", () => {
 
   describe("Form Submission", () => {
     it("should call API on form submission (correct URL + payload)", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: true,
-          status: 202,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ job_id: "job-123" }),
-          text: () => Promise.resolve(""),
-        })
-      );
-
       render(<AddUserPage />);
       await fillValidForm();
 
@@ -205,14 +228,7 @@ describe("AddUserPage", () => {
 
   describe("Error Handling", () => {
     it("should handle API errors gracefully", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 400,
-          headers: { get: () => "text/plain" },
-          text: () => Promise.resolve("Bad request"),
-        })
-      );
+      mockStartJob({ ok: false, status: 400, text: "Bad request" });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -226,15 +242,7 @@ describe("AddUserPage", () => {
     });
 
     it("should handle missing job_id in response", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: true,
-          status: 202,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({}), // missing job_id
-          text: () => Promise.resolve(""),
-        })
-      );
+      mockStartJob({ json: {} });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -252,24 +260,7 @@ describe("AddUserPage", () => {
     it("should clear polling interval on unmount", async () => {
       const clearIntervalSpy = jest.spyOn(global, "clearInterval");
       const setIntervalSpy = jest.spyOn(global, "setInterval");
-
-      global.fetch = jest.fn((url) => {
-        if (String(url).includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 10 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: 10 });
 
       const { unmount } = render(<AddUserPage />);
       await fillValidForm();
@@ -295,24 +286,7 @@ describe("AddUserPage", () => {
 
   describe("Status Polling & UI", () => {
     it("should display numeric progress percentage", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 75 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: 75 });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -324,28 +298,7 @@ describe("AddUserPage", () => {
     });
 
     it("should display string progress message", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "running",
-              progress: "Processing user data",
-            }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: "Processing user data" });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -357,28 +310,7 @@ describe("AddUserPage", () => {
     });
 
     it("should infer status from finished to succeeded", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "finished",
-              result: { message: "Complete" },
-            }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "finished", result: { message: "Complete" } });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -391,24 +323,7 @@ describe("AddUserPage", () => {
     });
 
     it("should infer status from queued to running", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "queued", progress: "Waiting..." }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "queued", progress: "Waiting..." });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -420,27 +335,9 @@ describe("AddUserPage", () => {
     });
 
     it("should infer succeeded status from progress completed text", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              progress: "Completed successfully",
-              result: { message: "Done" },
-            }),
-          text: () => Promise.resolve(""),
-        });
+      mockPollingStatus({
+        progress: "Completed successfully",
+        result: { message: "Done" },
       });
 
       render(<AddUserPage />);
@@ -454,32 +351,14 @@ describe("AddUserPage", () => {
     });
 
     it("should display result with all fields when succeeded", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "succeeded",
-              result: {
-                message: "User created successfully",
-                org_id: "org-456",
-                username: "testuser",
-                role: "admin",
-              },
-            }),
-          text: () => Promise.resolve(""),
-        });
+      mockPollingStatus({
+        status: "succeeded",
+        result: {
+          message: "User created successfully",
+          org_id: "org-456",
+          username: "testuser",
+          role: "admin",
+        },
       });
 
       render(<AddUserPage />);
@@ -496,24 +375,7 @@ describe("AddUserPage", () => {
     });
 
     it("should handle progress 0% correctly", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 0 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: 0 });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -525,24 +387,7 @@ describe("AddUserPage", () => {
     });
 
     it("should handle progress 100% correctly", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 100 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: 100 });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -573,21 +418,21 @@ describe("AddUserPage", () => {
       render(<AddUserPage />);
       const longPassword = "a".repeat(256);
       const passwordInput = screen.getByLabelText("Password");
-      await user.type(passwordInput, longPassword);
+      fireEvent.change(passwordInput, { target: { value: longPassword } });
       expect(passwordInput).toHaveValue(longPassword);
     });
 
     it("should accept organization ID with dashes and numbers", async () => {
       render(<AddUserPage />);
       const orgInput = screen.getByLabelText("Organization ID");
-      await user.type(orgInput, "org-123-456-789");
+      fireEvent.change(orgInput, { target: { value: "org-123-456-789" } });
       expect(orgInput).toHaveValue("org-123-456-789");
     });
 
     it("should handle whitespace in input fields", async () => {
       render(<AddUserPage />);
       const usernameInput = screen.getByLabelText("Username");
-      await user.type(usernameInput, "  user  ");
+      fireEvent.change(usernameInput, { target: { value: "  user  " } });
       expect(usernameInput).toHaveValue("  user  ");
     });
 
@@ -620,39 +465,20 @@ describe("AddUserPage", () => {
     });
 
     it("should continue running when polling request errors", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.reject(new Error("Polling failed"));
-      });
+      apiGet.mockRejectedValue(new Error("Polling failed"));
 
       render(<AddUserPage />);
       await fillValidForm();
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(apiGet).toHaveBeenCalled();
       });
       expect(screen.queryByText("We couldn't add the user.")).not.toBeInTheDocument();
     });
 
     it("should handle 500 server error", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          headers: { get: () => "text/plain" },
-          text: () => Promise.resolve("Internal Server Error"),
-        })
-      );
+      mockStartJob({ ok: false, status: 500, text: "Internal Server Error" });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -664,14 +490,7 @@ describe("AddUserPage", () => {
     });
 
     it("should handle 401 unauthorized error", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-          headers: { get: () => "text/plain" },
-          text: () => Promise.resolve("Unauthorized"),
-        })
-      );
+      mockStartJob({ ok: false, status: 401, text: "Unauthorized" });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -685,24 +504,7 @@ describe("AddUserPage", () => {
 
   describe("Multiple Submissions", () => {
     it("should prevent submission while in progress", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 50 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running", progress: 50 });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -733,14 +535,7 @@ describe("AddUserPage", () => {
     });
 
     it("should re-enable Add User button after failed submission when reset", async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status: 400,
-          headers: { get: () => "text/plain" },
-          text: () => Promise.resolve("Bad request"),
-        })
-      );
+      mockStartJob({ ok: false, status: 400, text: "Bad request" });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -757,85 +552,33 @@ describe("AddUserPage", () => {
 
   describe("API Response Format Variations", () => {
     it("should handle missing progress in status response", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running" }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "running" });
 
       render(<AddUserPage />);
       await fillValidForm();
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
+        expect(apiGet).toHaveBeenCalled();
       });
     });
 
     it("should handle missing status in response", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ progress: 50 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ progress: 50 });
 
       render(<AddUserPage />);
       await fillValidForm();
       fireEvent.click(screen.getByRole("button", { name: /Add User/i }));
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
+        expect(apiGet).toHaveBeenCalled();
       });
     });
 
     it("should handle result with partial fields", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "succeeded",
-              result: { message: "Done", username: "john" },
-            }),
-          text: () => Promise.resolve(""),
-        });
+      mockPollingStatus({
+        status: "succeeded",
+        result: { message: "Done", username: "john" },
       });
 
       render(<AddUserPage />);
@@ -850,24 +593,7 @@ describe("AddUserPage", () => {
     });
 
     it("should handle empty result object", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-123" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "succeeded", result: {} }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      mockPollingStatus({ status: "succeeded", result: {} });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -937,18 +663,7 @@ describe("AddUserPage", () => {
 
   describe("State Transitions", () => {
     it("should transition from idle to pending on submission", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return new Promise(() => {}); // Never resolves
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () => Promise.resolve({ status: "running", progress: 50 }),
-          text: () => Promise.resolve(""),
-        });
-      });
+      global.fetch = jest.fn(() => new Promise(() => {}));
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -992,6 +707,7 @@ describe("AddUserPage", () => {
           text: () => Promise.resolve(""),
         });
       });
+      mockPollingStatus({ status: "succeeded", result: { message: "Done" } });
 
       render(<AddUserPage />);
       await fillValidForm();
@@ -1008,33 +724,16 @@ describe("AddUserPage", () => {
 
   describe("Successfully Completed State", () => {
     it("should show success message with complete result data", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-999" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "succeeded",
-              result: {
-                message: "User provisioned",
-                org_id: "org-final",
-                username: "finaluser",
-                email: "final@example.com",
-                role: "member",
-              },
-            }),
-          text: () => Promise.resolve(""),
-        });
+      mockStartJob({ json: { job_id: "job-999" } });
+      mockPollingStatus({
+        status: "succeeded",
+        result: {
+          message: "User provisioned",
+          org_id: "org-final",
+          username: "finaluser",
+          email: "final@example.com",
+          role: "member",
+        },
       });
 
       render(<AddUserPage />);
@@ -1051,27 +750,10 @@ describe("AddUserPage", () => {
     });
 
     it("should not show form inputs after success", async () => {
-      global.fetch = jest.fn((url) => {
-        const s = String(url);
-        if (s.includes("/task/dc/add_user")) {
-          return Promise.resolve({
-            ok: true,
-            status: 202,
-            headers: { get: () => "application/json" },
-            json: () => Promise.resolve({ job_id: "job-999" }),
-            text: () => Promise.resolve(""),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          headers: { get: () => "application/json" },
-          json: () =>
-            Promise.resolve({
-              status: "succeeded",
-              result: { message: "Done" },
-            }),
-          text: () => Promise.resolve(""),
-        });
+      mockStartJob({ json: { job_id: "job-999" } });
+      mockPollingStatus({
+        status: "succeeded",
+        result: { message: "Done" },
       });
 
       render(<AddUserPage />);
