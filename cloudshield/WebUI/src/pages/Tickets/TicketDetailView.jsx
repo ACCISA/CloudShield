@@ -5,6 +5,13 @@ import { apiGet, apiPatch } from '../../api/client';
 import { replyToTicket } from '../../api/ticketsApi';
 import { useThemeColors } from '../../hooks/useThemeColors.js';
 
+const parseApiResponse = async (response) => {
+    if (response && typeof response.json === 'function') {
+        return response.json();
+    }
+    return response;
+};
+
 const parseUTC = (str) => {
     if (!str) return null;
     return new Date(str.endsWith('Z') ? str : str + 'Z');
@@ -386,8 +393,9 @@ const TicketDetailView = () => {
 
     useEffect(() => {
         let mounted = true;
-        apiGet('/users/me').then(res => {
-            if (mounted) setMyEmail(res.user?.email || '');
+        apiGet('/users/me').then(async (response) => {
+            const res = await parseApiResponse(response);
+            if (mounted) setMyEmail(res?.user?.email || '');
         }).catch(err => console.error('Failed to fetch user', err));
         return () => { mounted = false; };
     }, []);
@@ -395,7 +403,8 @@ const TicketDetailView = () => {
     const loadTicket = async (isBackground = false) => {
         try {
             if (!isBackground) setLoading(true);
-            const data = await apiGet(`/tickets/${ticketId}`);
+            const response = await apiGet(`/tickets/${ticketId}`);
+            const data = await parseApiResponse(response);
             setTicketData(data);
         } catch (err) {
             if (!isBackground) setError(err.message || 'Failed to load ticket');

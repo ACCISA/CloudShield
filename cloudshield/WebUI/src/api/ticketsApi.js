@@ -1,17 +1,27 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiGet, apiPost, apiPatch } from "./client"; 
 
+async function parseApiResponse(response) {
+  if (response && typeof response.json === "function") {
+    return response.json();
+  }
+  return response;
+}
+
 // API Actions
 export const createTicket = async (ticketData) => {
-  return await apiPost('/tickets', ticketData);
+  const response = await apiPost('/tickets', ticketData);
+  return parseApiResponse(response);
 };
 
 export const replyToTicket = async (ticketId, message) => {
-  return await apiPost(`/tickets/${ticketId}/reply`, { message });
+  const response = await apiPost(`/tickets/${ticketId}/reply`, { message });
+  return parseApiResponse(response);
 };
 
 export const updateTicketStatus = async (ticketId, status) => {
-  return await apiPatch(`/tickets/${ticketId}/status`, { status });
+  const response = await apiPatch(`/tickets/${ticketId}/status`, { status });
+  return parseApiResponse(response);
 };
 
 // Hooks
@@ -26,7 +36,8 @@ export function useTickets() {
       setLoading(true);
       setError(null);
 
-      const res = await apiGet("/tickets");
+      const response = await apiGet("/tickets");
+      const res = await parseApiResponse(response);
 
       if (!mounted) return;
       
