@@ -30,8 +30,7 @@ const getInputSx = (themeColors) => ({
 export default function BasicInfoTab({ userData, onSave }) {
   const themeColors = useThemeColors();
   const inputSx = getInputSx(themeColors);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,9 +42,7 @@ export default function BasicInfoTab({ userData, onSave }) {
   // Watch for userData changes to auto-populate the fields
   useEffect(() => {
     if (userData) {
-      const nameParts = (userData.full_name || "").split(" ");
-      setFirstName(nameParts[0] || "");
-      setLastName(nameParts.slice(1).join(" ") || "");
+      setFullName(userData.full_name || "");
       setEmail(userData.email || "");
       setProfileImage(userData.profile_image || null);
     }
@@ -61,7 +58,7 @@ export default function BasicInfoTab({ userData, onSave }) {
 
   const validate = () => {
     const errs = {};
-    if (!firstName.trim()) errs.firstName = "First name is required";
+    if (!fullName.trim()) errs.fullName = "Name is required";
     if (!email.trim()) errs.email = "Email is required";
     if (newPassword && newPassword !== confirmPassword)
       errs.confirmPassword = "Passwords do not match"; //NOSONAR javascript:S2068
@@ -77,7 +74,7 @@ export default function BasicInfoTab({ userData, onSave }) {
     setSaving(true);
 
     const payload = {};
-    const newFullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const newFullName = fullName.trim();
     const newEmail = email.trim().toLowerCase();
 
     // Only send fields that actually changed
@@ -121,7 +118,7 @@ export default function BasicInfoTab({ userData, onSave }) {
               src={profileImage || undefined}
               sx={{ width: 80, height: 80, backgroundColor: themeColors.bgTertiary, fontSize: "1.5rem" }}
             >
-              {!profileImage && (firstName?.[0] || "U").toUpperCase()}
+              {!profileImage && (fullName?.[0] || "U").toUpperCase()}
             </Avatar>
             <IconButton
               onClick={() => fileRef.current?.click()}
@@ -146,27 +143,18 @@ export default function BasicInfoTab({ userData, onSave }) {
         <Box sx={{ display: "flex", flexDirection: "column", flex: 1, gap: 2 }}>
           <SectionLabel
             title="Name"
-            subtitle="Your name which appears throughout"
+            subtitle="Your name as it appears throughout the platform"
             themeColors={themeColors}
           />
-          <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
-            <TextField
-              label="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              error={!!errors.firstName}
-              helperText={errors.firstName}
-              fullWidth
-              sx={inputSx}
-            />
-            <TextField
-              label="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              fullWidth
-              sx={inputSx}
-            />
-          </Box>
+          <TextField
+            label="Admin Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            error={!!errors.fullName}
+            helperText={errors.fullName}
+            fullWidth
+            sx={{ ...inputSx, flex: 1 }}
+          />
         </Box>
       </Box>
 
