@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import ReactMarkdown from "react-markdown"; 
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 import ReactMarkdown from "react-markdown"; 
 import HighAlertIcon from "../../assets/security/HighAlertIcon";
