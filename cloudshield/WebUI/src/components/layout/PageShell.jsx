@@ -1,6 +1,7 @@
 // A reusable layout component that provides a consistent page structure with an optional header section for title, subtitle, and actions, and a main content area that fills the remaining space.
 // This component is used across various pages in the app to ensure a consistent look and feel while also handling layout concerns such as spacing and scroll behavior for the main content area.
 import { Box, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 
 export default function PageShell({
   title,
@@ -63,3 +64,12 @@ export default function PageShell({
     </Box>
   );
 }
+
+PageShell.propTypes = {
+  title: PropTypes.node,
+  subtitle: PropTypes.node,
+  actions: PropTypes.node,
+  children: PropTypes.node,
+  noPadding: PropTypes.bool,
+  headerCentered: PropTypes.bool,
+};

@@ -1,21 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import cloudshieldLogo from "../assets/cloudshield_logo_white.png";
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
-import { useAppTheme } from "../context/ThemeContext.jsx";
 
 import {apiGet, apiPost} from "../api/client"
-// UI standardization
 import PageShell from "../components/layout/PageShell.jsx";
 import { Box, Button, Typography } from "@mui/material";
-import { safeAsync } from "../lib/safeAsync.js";
 
 // 1. Backend Poll (Checks for true success/failure) - Every 2 seconds
 const POLL_INTERVAL_MS = 2000;
 
 // 2. Visual Animation (The smooth 1% increment)
 const ANIMATION_INTERVAL_MS = 1300;
-
-const API_BASE = "/api";
 
 // --- Helpers ---
 function readLocalUser() {
@@ -49,34 +44,8 @@ function getMockText(percent) {
   return "Finishing up...";
 }
 
-// Helper that gives fetch errors an axios-like shape so they work with getUserErrorMessage/safeAsync.
-async function fetchJson(url, options) {
-  const res = await fetch(url, options);
-
-  // Some test mocks omit `status`; treat it as 200 for success paths.
-  const status = typeof res?.status === "number" ? res.status : 200;
-
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    data = null;
-  }
-
-  if (!res.ok) {
-    const msg = data?.message || data?.error || `Request failed (${status})`;
-    const err = new Error(msg);
-    // axios-like shape for errors.js
-    err.response = { status, data };
-    throw err;
-  }
-
-  return data;
-}
-
 // --- Main Page Component ---
 export default function ProvisioningPage() {
-  const { effectiveTheme } = useAppTheme();
   const pollTimerRef = useRef(null);
   const animationTimerRef = useRef(null);
   const successHandled = useRef(false);

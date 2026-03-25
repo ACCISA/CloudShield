@@ -6,6 +6,7 @@
  */
 import React, { useMemo, useState } from "react";
 import { Alert, Box, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
 import { useNavigate } from "react-router-dom";
 
@@ -175,3 +176,7 @@ export default function AuthPage({ onLoginSuccess }) {
     </PageShell>
   );
 }
+
+AuthPage.propTypes = {
+  onLoginSuccess: PropTypes.func,
+};

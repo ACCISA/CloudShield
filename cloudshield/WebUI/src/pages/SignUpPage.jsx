@@ -3,7 +3,6 @@ import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
-import { useAppTheme } from "../context/ThemeContext";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
@@ -117,7 +116,6 @@ function extractServerErrors(res, data) {
 }
 
 export default function SignupPage({ onSignupSuccess }) {
-  const theme = useAppTheme();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -133,6 +131,12 @@ export default function SignupPage({ onSignupSuccess }) {
     trackButton("signup/plan/select", { page: "signup", plan: id });
     setPlan(id);
   };
+
+  const submitLabel = (() => {
+    if (!submitting) return "Create Organization";
+    if (BYPASS_STRIPE) return "Creating...";
+    return "Redirecting to payment...";
+  })();
 
   const validate = () => {
     const next = {};
@@ -391,11 +395,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 )}
 
                 <PrimaryButton onClick={handleSignup} disabled={submitting}>
-                  {submitting
-                    ? BYPASS_STRIPE
-                      ? "Creating..."
-                      : "Redirecting to payment..."
-                    : "Create Organization"}
+                  {submitLabel}
                 </PrimaryButton>
 
                 <Typography

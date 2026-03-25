@@ -17,7 +17,20 @@
  *     minimal here and handle heavier logic in pages or containers.
  */
 import React, { useEffect, useState } from "react";
-import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
+import PropTypes from "prop-types";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Chip,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
@@ -33,17 +46,16 @@ import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumb
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from "@mui/material";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+
+const navStatsShape = PropTypes.shape({
+  workstations: PropTypes.number,
+  users: PropTypes.number,
+  groups: PropTypes.number,
+  shares: PropTypes.number,
+});
 
 function NavItem({
   collapsed,
@@ -56,6 +68,10 @@ function NavItem({
 }) {
   const themeColors = useThemeColors();
   const showCountChip = typeof count === "number" || count === "-";
+  const renderedIcon =
+    React.isValidElement(icon) && typeof icon.type === "function"
+      ? React.cloneElement(icon, { selected: active })
+      : icon;
 
   return (
     <Box
@@ -98,9 +114,7 @@ function NavItem({
             mr: collapsed ? 0 : "10px",
           }}
         >
-          {React.isValidElement(icon) && typeof icon.type === "function"
-            ? React.cloneElement(icon, { selected: active })
-            : icon}
+          {renderedIcon}
         </Box>
 
         {!collapsed && (
@@ -375,6 +389,13 @@ function SidebarNavigation({
   const groupsPill = "#2656d8";
   const sharesPill = "#c57a1c";
 
+  const getBadgeCount = (value) => {
+    if (collapsed) return undefined;
+    if (typeof value === "number") return value;
+    if (statsLoading) return "…";
+    return 0;
+  };
+
   const getSharesCount = () => {
     if (collapsed || statsLoading) return undefined;
     if (stats.shares === 0) return "-";
@@ -415,7 +436,7 @@ function SidebarNavigation({
         icon={<WorkstationsIcon width={20} height={20} />}
         label="Workstations"
         active={isActive("/workstations")}
-        count={collapsed ? undefined : stats.workstations ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.workstations)}
         countColor={workstationPill}
         onNavigate={() => navigate("/workstations")}
       />
@@ -425,7 +446,7 @@ function SidebarNavigation({
         icon={<UsersIcon width={20} height={20} />}
         label="Employees"
         active={isActive("/employees") || isActive("/users")}
-        count={collapsed ? undefined : stats.users ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.users)}
         countColor={usersPill}
         onNavigate={() => navigate("/employees")}
       />
@@ -435,7 +456,7 @@ function SidebarNavigation({
         icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
         label="Groups"
         active={isActive("/groups")}
-        count={collapsed ? undefined : stats.groups ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.groups)}
         countColor={groupsPill}
         onNavigate={() => navigate("/groups")}
       />
@@ -466,21 +487,19 @@ export default function Sidebar({
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
-  
-  const [me, setMe] = useState(null);            // { id, email, org_id, role }
-  const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
+
+  const [me, setMe] = useState(null);
+  const [myOrg, setMyOrg] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me").json(); // expects { user: {...} }
+        const meRes = await apiGet("/users/me").json();
         if (!mounted) return;
         setMe(meRes.user);
 
-        // Only call org endpoint after we know we're authenticated
-        // expects { organization: {...} }
         const orgRes = await apiGet("/organizations/me");
         if (!mounted) return;
         setMyOrg(orgRes.organization);
@@ -655,3 +674,56 @@ export default function Sidebar({
 }
 
 export { NavItem, AccordionGrid };
+
+NavItem.propTypes = {
+  collapsed: PropTypes.bool,
+  icon: PropTypes.element.isRequired,
+  label: PropTypes.string.isRequired,
+  active: PropTypes.bool,
+  count: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  countColor: PropTypes.string,
+  onNavigate: PropTypes.func,
+};
+
+AccordionGrid.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      to: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
+};
+
+CompanySwitcher.propTypes = {
+  collapsed: PropTypes.bool,
+  showNav: PropTypes.bool,
+  navigate: PropTypes.func.isRequired,
+  myOrg: PropTypes.shape({
+    name: PropTypes.string,
+  }),
+  me: PropTypes.shape({
+    email: PropTypes.string,
+  }),
+};
+
+SidebarBottomAction.propTypes = {
+  collapsed: PropTypes.bool,
+  label: PropTypes.string.isRequired,
+  ariaLabel: PropTypes.string.isRequired,
+  icon: PropTypes.element.isRequired,
+  onActivate: PropTypes.func.isRequired,
+};
+
+SidebarNavigation.propTypes = {
+  collapsed: PropTypes.bool,
+  isActive: PropTypes.func.isRequired,
+  navigate: PropTypes.func.isRequired,
+  stats: navStatsShape,
+  statsLoading: PropTypes.bool,
+};
+
+Sidebar.propTypes = {
+  mode: PropTypes.oneOf(["full", "provisioning"]),
+  collapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
+};
