@@ -252,6 +252,20 @@ function UsersPill({ row }) {
   );
 }
 
+function getStatusLightColors(status) {
+  const normalized = (status || "").toLowerCase();
+
+  if (normalized === "connected") {
+    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+  }
+
+  if (normalized === "provisioning") {
+    return { outerColor: "#3F2A08", innerColor: "#F0B429" };
+  }
+
+  return { outerColor: "#381F1F", innerColor: "#ff5252" };
+}
+
 /* --------------------------------- component -------------------------------- */
 
 function WorkstationRow({
@@ -270,6 +284,7 @@ function WorkstationRow({
   onToggleSelect,
 }) {
   const responsiveStyles = getResponsiveStyles();
+  const statusColors = getStatusLightColors(r.status);
 
   return (
     <>
@@ -329,8 +344,8 @@ function WorkstationRow({
           <ActiveIcon
             width={12}
             height={12}
-            outerColor={r.status === "connected" ? "#1F381F" : "#381F1F"}
-            innerColor={r.status === "connected" ? "#04C40A" : "#ff5252"}
+            outerColor={statusColors.outerColor}
+            innerColor={statusColors.innerColor}
           />
         </div>
 

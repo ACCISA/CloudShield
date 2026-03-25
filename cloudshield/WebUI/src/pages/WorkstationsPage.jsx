@@ -28,6 +28,7 @@ import { getUserErrorMessage } from "../lib/errors";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
+import { apiGet, apiPost } from "../api/client.js";
 
 const styles = {
   ...managementToolbarStyles,
@@ -37,11 +38,41 @@ const styles = {
   iconStatusRow: { marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" },
 };
 
-export const createWorkstation = async (orgId, name, ip, groups) => {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isFailedProgress = (progress) => {
+  const normalized = (progress || "").toLowerCase();
+  return (
+    normalized === "failed" ||
+    normalized === "org not found" ||
+    normalized === "template not found" ||
+    normalized === "image not ready" ||
+    normalized.startsWith("failed")
+  );
+};
+
+const getIconStatusColors = (status) => {
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "connected") {
+    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+  }
+  if (normalized === "provisioning") {
+    return { outerColor: "#3F2A08", innerColor: "#F0B429" };
+  }
+  return { outerColor: "#381F1F", innerColor: "#ff5252" };
+};
+
+export const createWorkstation = async (payload) => {
   try {
-    const token = localStorage.getItem("jwt");
-    const res = await fetch(`/api/workstations`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), }, body: JSON.stringify({ org_id: orgId, name, ip, groups: groups?.map((g) => g.id) || [] }) });
-    if (!res.ok) throw new Error("Failed to create workstation");
+    const orgId = localStorage.getItem("org_id");
+    const res = await apiPost(`/workstations/templates`, {
+      org_id: orgId,
+      name: payload.name,
+      description: payload.description || "",
+      software: (payload.software || []).map((item) => item._id || item.id),
+      access_groups: (payload.access_groups || []).map((item) => item._id || item.id),
+      members: (payload.members || []).map((item) => item._id || item.id),
+    });
     return await res.json();
   } catch (e) { console.error(e); return null; }
 };
@@ -126,10 +157,61 @@ export default function WorkstationsPage() {
     });
   };
 
+  const pollCreateJob = useCallback(async (jobId, rowId) => {
+    while (true) {
+      try {
+        const res = await apiGet(`/status/${encodeURIComponent(jobId)}`);
+        const job = await res.json();
+        const jobStatus = (job.status || "").toLowerCase();
+
+        if (jobStatus === "queued" || jobStatus === "started") {
+          setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, status: "provisioning" } : row)));
+          await sleep(2000);
+          continue;
+        }
+
+        if (jobStatus === "failed" || isFailedProgress(job.progress)) {
+          setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, status: "failed" } : row)));
+          return;
+        }
+
+        if (jobStatus === "finished") {
+          setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, status: "connected" } : row)));
+          return;
+        }
+
+        await sleep(2000);
+      } catch (err) {
+        console.error("Failed to poll workstation creation job:", err);
+        await sleep(2000);
+      }
+    }
+  }, []);
+
   const handleCreate = async (payload) => {
-    const newRow = { id: `ws-${Date.now()}`, name: payload.name, code: payload.code || "WS-NEW", usersCount: payload.users?.length || 0, users: payload.users || [], currentUser: payload.users?.[0] || null, lastUsed: "—", status: "disconnected", groups: payload.groups || [] };
-    const created = await createWorkstation(payload.orgId, payload.name, payload.ip, payload.groups);
-    if (created) setRows((prev) => [newRow, ...prev]);
+    const newRow = {
+      id: `ws-${Date.now()}`,
+      name: payload.name,
+      code: payload.code || "WS-NEW",
+      usersCount: payload.members?.length || 0,
+      users: payload.members || [],
+      currentUser: payload.members?.[0] || null,
+      lastUsed: "—",
+      status: "provisioning",
+      groups: payload.access_groups || [],
+    };
+
+    setRows((prev) => [newRow, ...prev]);
+
+    const created = await createWorkstation(payload);
+    if (!created) {
+      setRows((prev) => prev.filter((row) => row.id !== newRow.id));
+      return;
+    }
+
+    if (created.job_id) {
+      pollCreateJob(created.job_id, newRow.id);
+    }
   };
 
   const handleEditSave = (id, changes) => setRows((prev) => prev.map((r) => r.id === id ? { ...r, ...changes, usersCount: changes.users?.length ?? r.usersCount } : r));
@@ -196,15 +278,16 @@ export default function WorkstationsPage() {
                 <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
                   <EmptyState message="No workstations found" description="Try adjusting your search or filters, or create a new workstation." />
                 </div>
-              ) : (
-                filtered.map((row) => {
-                  const selected = selectedIds.has(row.id);
-                  const currentUser = row.currentUser && row.currentUser !== "—" ? (typeof row.currentUser === "string" ? { firstName: row.currentUser.split(" ")[0], lastName: row.currentUser.split(" ")[1] || "" } : row.currentUser) : null;
+	              ) : (
+	                filtered.map((row) => {
+	                  const selected = selectedIds.has(row.id);
+	                  const currentUser = row.currentUser && row.currentUser !== "—" ? (typeof row.currentUser === "string" ? { firstName: row.currentUser.split(" ")[0], lastName: row.currentUser.split(" ")[1] || "" } : row.currentUser) : null;
+                    const statusColors = getIconStatusColors(row.status);
 
-                  return (
-                    <div key={row.id} style={{ ...styles.iconCard, ...(selected ? styles.iconCardSelected : {}) }}>
-                      <div style={styles.iconCardHeader}>
-                        <Checkbox checked={selected} onChange={() => toggleSelect(row.id)} />
+	                  return (
+	                    <div key={row.id} style={{ ...styles.iconCard, ...(selected ? styles.iconCardSelected : {}) }}>
+	                      <div style={styles.iconCardHeader}>
+	                        <Checkbox checked={selected} onChange={() => toggleSelect(row.id)} />
                         <EditButton menuItems={[{ icon: <EditIcon width={15} height={16} color={themeColors.text} />, label: "edit workstation", color: themeColors.text, onClick: () => { setEditRow(row); setOpenModal(true); } }, { icon: <TrashIcon width={12} height={14} color="#D51616" />, label: "delete workstation", color: "#D51616", onClick: () => handleDelete(row.id) }]} />
                       </div>
                       <div style={styles.iconTitle}>
@@ -217,14 +300,14 @@ export default function WorkstationsPage() {
                       {showUsersCol && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Users</span><span style={styles.iconMetaValue}>{row.usersCount ?? row.users?.length ?? 0}</span></div>}
                       {showCurrentCol && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Current</span><span style={styles.iconMetaValue}>{currentUser ? <DisplayIcon type="user" data={currentUser} size="small" /> : "—"}</span></div>}
                       {showLastUsedCol && <div style={styles.iconMetaRow}><span style={styles.iconMetaLabel}>Last Used</span><span style={styles.iconMetaValue}>{row.lastUsed || "—"}</span></div>}
-                      
-                      <div style={styles.iconStatusRow}>
-                        <StatusButton status={row.status} onClick={() => handleToggleStatus(row.id)} />
-                        <ActiveIcon width={12} height={12} outerColor={row.status === "connected" ? "#1F381F" : "#381F1F"} innerColor={row.status === "connected" ? "#04C40A" : "#ff5252"} />
-                      </div>
-                    </div>
-                  );
-                })
+	                      
+	                      <div style={styles.iconStatusRow}>
+	                        <StatusButton status={row.status} onClick={() => handleToggleStatus(row.id)} />
+	                        <ActiveIcon width={12} height={12} outerColor={statusColors.outerColor} innerColor={statusColors.innerColor} />
+	                      </div>
+	                    </div>
+	                  );
+	                })
               )}
             </div>
           </div>

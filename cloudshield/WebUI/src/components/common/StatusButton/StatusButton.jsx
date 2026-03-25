@@ -2,13 +2,12 @@
  * StatusButton.jsx
  *
  * Purpose:
- *   Displays a status button with connect/disconnect states.
- *   Shows connect icon with green border when connected,
- *   disconnect icon with red border when disconnected or busy.
+ *   Displays a status badge for workstation state.
+ *   Supports ready, provisioning, and unavailable states.
  *   Responsive: shows text on desktop/tablet, icon-only on mobile.
  *
  * Props:
- *   - status: 'connected' | 'disconnected' | 'busy'
+ *   - status: 'connected' | 'disconnected' | 'busy' | 'provisioning' | 'failed'
  *   - onClick: callback when button is clicked
  *   - compact: boolean (optional) - force icon-only mode
  */
@@ -42,6 +41,9 @@ const styles = {
   connected: {
     borderColor: "#116e34",
   },
+  provisioning: {
+    borderColor: "#a16207",
+  },
   disconnected: {
     borderColor: "#7c1d1d",
   },
@@ -65,10 +67,23 @@ export default function StatusButton({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isConnected = status === "connected";
-  const buttonStyle = isConnected ? styles.connected : styles.disconnected;
+  const normalizedStatus = (status || "").toLowerCase();
+  const isConnected = normalizedStatus === "connected";
+  const isProvisioning = normalizedStatus === "provisioning";
+  const buttonStyle = isConnected
+    ? styles.connected
+    : isProvisioning
+      ? styles.provisioning
+      : styles.disconnected;
   const isMobile = windowWidth < 768;
   const showIconOnly = compact || isMobile;
+  const label = isConnected
+    ? "Ready"
+    : isProvisioning
+      ? "Provisioning"
+      : normalizedStatus === "failed"
+        ? "Failed"
+        : "Unavailable";
 
   return (
     <button
@@ -80,13 +95,13 @@ export default function StatusButton({
       onClick={onClick}
     >
       <span style={styles.iconWrapper}>
-        {isConnected ? (
+        {isConnected || isProvisioning ? (
           <ConnectIcon width={14} height={14} color="var(--text-primary)" />
         ) : (
           <DisconnectIcon width={14} height={14} color="var(--text-primary)" />
         )}
       </span>
-      {!showIconOnly && <span>{isConnected ? "Connect" : "Disconnect"}</span>}
+      {!showIconOnly && <span>{label}</span>}
     </button>
   );
 }

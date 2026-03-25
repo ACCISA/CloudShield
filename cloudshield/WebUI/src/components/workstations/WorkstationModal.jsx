@@ -163,11 +163,11 @@ export default function WorkstationModal({
     try {
       await onSubmit?.({
         name: formData.name,
-        strength: formData.strength,
+        description: formData.strength,
         image: formData.workstationImage,
         desktopBackground: formData.desktopBackground,
-        groups: formData.selectedGroups,
-        users: formData.selectedUsers,
+        access_groups: formData.selectedGroups,
+        members: formData.selectedUsers,
         allUsers: formData.allUsers,
         allGroups: formData.allGroups,
         software: formData.selectedSoftware,
