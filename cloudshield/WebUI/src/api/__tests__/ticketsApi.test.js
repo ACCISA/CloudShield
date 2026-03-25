@@ -71,13 +71,25 @@ describe("ticketsApi — useTickets", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.tickets).toEqual([]);
   });
+
+  it("parses raw fetch Response-like objects", async () => {
+    apiGet.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ tickets: MOCK_TICKETS }),
+    });
+    const { result } = renderHook(() => useTickets());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.tickets).toEqual(MOCK_TICKETS);
+  });
 });
 
 describe("ticketsApi — createTicket", () => {
   afterEach(() => jest.clearAllMocks());
 
   it("calls apiPost with correct args", async () => {
-    apiPost.mockResolvedValue({ id: "t1" });
+    apiPost.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ id: "t1" }),
+    });
     const result = await createTicket({ title: "VPN", description: "broken", priority: "High" });
     expect(apiPost).toHaveBeenCalledWith("/tickets", { title: "VPN", description: "broken", priority: "High" });
     expect(result).toEqual({ id: "t1" });
