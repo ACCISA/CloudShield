@@ -27,23 +27,6 @@ ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
 ERROR_STATUS_REQUIRED = "status is required"
 ERROR_USER_ID_REQUIRED = "user_id is required"
 
-@workstations_bp.route("/workstations", methods=["GET"])
-@require_auth
-def get_workstations_api():
-    user = g.user
-    org_id = user.get("org_id")
-
-    if not org_id:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
-
-    collection = db_admin["workstations"]
-    items = list(collection.find({"org_id": org_id}))
-    for item in items:
-        item["_id"] = str(item["_id"])
-
-    return jsonify({"items": items}), 200
-
-
 @workstations_bp.route("/workstations", methods=["POST"])
 @require_auth
 def create_workstation():
@@ -97,8 +80,8 @@ def get_available_workstations_api():
     if not user_id:
         return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
 
-    from repos import get_available_workstation
-    workstations_list = get_available_workstation(db, user_id=user_id)
+    from repos import get_available_workstations
+    workstations_list = get_available_workstations(db, user_id=user_id)
 
     return {"workstations": workstations}, 200
 

@@ -62,7 +62,7 @@ class TestGetAvailableWorkstationsRoute:
     def test_route_with_user_id_param_succeeds(self, client):
         """Test line 35-37: route accepts user_id parameter."""
         # This tests the route decorator and parameter extraction
-        # The actual function call may fail due to missing get_available_workstation import
+        # The actual function call may fail due to missing get_available_workstations import
         response = client.get('/api/workstation/available?user_id=user-123')
         # Accept 200, 500, or error responses - we're testing route registration
         assert response.status_code in [200, 500]
