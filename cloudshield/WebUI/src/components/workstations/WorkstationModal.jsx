@@ -338,7 +338,10 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 Next
               </button>
@@ -347,7 +350,10 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 {isSubmitting
                   ? "Saving..."
@@ -546,9 +552,15 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
+                </span>
               </div>
             </label>
           )}
@@ -581,9 +593,15 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Background</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Background
+                </span>
               </div>
             </label>
           )}
@@ -843,7 +861,7 @@ function SoftwareStep({
                   }}
                 >
                   <div className="workstation-modal-dropdown-item-icon">
-                    {software.icon}
+                    <SoftwareVisual software={software} />
                   </div>
                   <div className="workstation-modal-dropdown-item-info">
                     <div className="workstation-modal-dropdown-item-name">
@@ -882,7 +900,7 @@ function SoftwareStep({
                   ×
                 </button>
                 <div className="workstation-modal-selected-card-icon">
-                  {software.icon}
+                  <SoftwareVisual software={software} />
                 </div>
                 <span className="workstation-modal-selected-card-name">
                   {software.name}
@@ -895,3 +913,31 @@ function SoftwareStep({
     </div>
   );
 }
+
+function SoftwareVisual({ software }) {
+  if (software?.picture) {
+    return (
+      <img
+        src={software.picture}
+        alt={software.name || "Software"}
+        style={{ width: 24, height: 24, borderRadius: 4, objectFit: "cover" }}
+      />
+    );
+  }
+
+  if (software?.icon) return software.icon;
+
+  return (
+    <span style={{ fontSize: "0.75rem", fontWeight: 700 }}>
+      {(software?.name || "?").slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+SoftwareVisual.propTypes = {
+  software: PropTypes.shape({
+    name: PropTypes.string,
+    picture: PropTypes.string,
+    icon: PropTypes.node,
+  }),
+};
