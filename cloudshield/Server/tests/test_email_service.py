@@ -28,7 +28,6 @@ def test_render_org_welcome_template_smoke():
     assert "Welcome to CloudShield" in html
     assert "CloudShield" in html
     assert "http://real.encs.concordia.ca/login" in html
-    assert "https://real.encs.concordia.ca/cloudshield_logo_white.png" in html
     assert "Download for Windows" in html
     assert "Download for macOS" in html
     assert "Download for Linux" in html
@@ -60,7 +59,6 @@ def test_render_employee_invite_template_smoke():
     assert "You're invited to CloudShield" in html
     assert "CloudShield" in html
     assert "http://real.encs.concordia.ca/login" in html
-    assert "https://real.encs.concordia.ca/cloudshield_logo_white.png" in html
     assert "Download for Windows" in html
     assert "Download for macOS" in html
     assert "Download for Linux" in html

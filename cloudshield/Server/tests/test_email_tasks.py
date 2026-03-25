@@ -1,3 +1,5 @@
+import pytest
+
 from cloudshield.Server.tasks import email_tasks
 
 
@@ -51,6 +53,50 @@ class DummyLogger:
 
     def exception(self, message, *args):
         self.messages.append(("exception", message, args))
+
+
+@pytest.mark.parametrize(
+    ("windows_url", "mac_url", "linux_url", "expected"),
+    [
+        ("", "", "", []),
+        (
+            "https://example.com/windows.exe",
+            "",
+            "",
+            [{"label": "Download for Windows", "url": "https://example.com/windows.exe"}],
+        ),
+        (
+            "",
+            "https://example.com/macos.dmg",
+            "",
+            [{"label": "Download for macOS", "url": "https://example.com/macos.dmg"}],
+        ),
+        (
+            "",
+            "",
+            "https://example.com/linux.AppImage",
+            [{"label": "Download for Linux", "url": "https://example.com/linux.AppImage"}],
+        ),
+        (
+            "https://example.com/windows.exe",
+            "https://example.com/macos.dmg",
+            "https://example.com/linux.AppImage",
+            [
+                {"label": "Download for Windows", "url": "https://example.com/windows.exe"},
+                {"label": "Download for macOS", "url": "https://example.com/macos.dmg"},
+                {"label": "Download for Linux", "url": "https://example.com/linux.AppImage"},
+            ],
+        ),
+    ],
+)
+def test_desktop_app_downloads_returns_configured_targets_in_order(
+    monkeypatch, windows_url, mac_url, linux_url, expected
+):
+    monkeypatch.setattr(email_tasks, "DESKTOP_APP_DOWNLOAD_URL_WINDOWS", windows_url)
+    monkeypatch.setattr(email_tasks, "DESKTOP_APP_DOWNLOAD_URL_MAC", mac_url)
+    monkeypatch.setattr(email_tasks, "DESKTOP_APP_DOWNLOAD_URL_LINUX", linux_url)
+
+    assert email_tasks._desktop_app_downloads() == expected
 
 
 def test_send_org_welcome_email_success(monkeypatch):
