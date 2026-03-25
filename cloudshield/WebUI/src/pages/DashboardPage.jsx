@@ -87,9 +87,11 @@ export default function DashboardPage() {
     setActivityError("");
 
     try {
-      const data = await safeAsync(() =>
+      const response = await safeAsync(() =>
         apiGet(`/activity/${org_id}?page=${page}&limit=${itemsPerPage}`)
       );
+      const data =
+        typeof response?.json === "function" ? await response.json() : response;
 
       const items = Array.isArray(data?.items) ? data.items : [];
       const normalized = items.map((item, idx) =>
