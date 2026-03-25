@@ -163,5 +163,5 @@ def explain_alert():
         
         return jsonify({"explanation": explanation_text}), 200
         
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Internal server error during AI analysis"}), 500
