@@ -6,6 +6,7 @@ async function parseApiResponse(response) {
   }
   return response;
 }
+
 /**
  * Sends a security alert payload to the Cortex AI to get a plain-English explanation.
  * @param {Object} alertData - The alert details (risk, type, category, source, description)
