@@ -1,5 +1,9 @@
 import os
-from google import genai
+try:
+    from google import genai
+except ImportError:  # pragma: no cover - exercised via runtime guard
+    genai = None
+
 from cloudshield.Server.utils.logging_setup import get_logger
 
 logger = get_logger("ai_explainer")
@@ -14,6 +18,10 @@ def generate_alert_explanation(alert_data: dict) -> str:
         if not api_key:
             logger.warning("GEMINI_API_KEY not set. Alert explainer disabled.")
             return "Error: AI explanation is currently unavailable because the API key is missing."
+
+        if genai is None:
+            logger.warning("google-genai package is not installed. Alert explainer disabled.")
+            return "Error: AI explanation is currently unavailable because the AI SDK is missing."
 
         # Safely extract alert details
         risk_level = alert_data.get("risk", "Unknown")
