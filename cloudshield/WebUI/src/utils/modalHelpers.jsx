@@ -246,6 +246,14 @@ export const fetchWorkstations = async (
   if (!accessToken) return _resetWorkstations(setAllWorkstations);
 
   try {
+    const allUsers = await fetchUsers(accessToken);
+    const userMap = new Map(
+      (Array.isArray(allUsers) ? allUsers : []).map((user) => [
+        String(user.id || user._id || ""),
+        user,
+      ]),
+    );
+
     const res = await apiGet(
       `/workstations?org_id=${encodeURIComponent(orgId)}`,
     );
@@ -264,6 +272,7 @@ export const fetchWorkstations = async (
 
 
     const normalized = workstations.map((w) => ({
+      members: Array.isArray(w.members) ? w.members : [],
       status:
         (w.status || "").toLowerCase() === "online"
           ? "connected"
@@ -276,7 +285,13 @@ export const fetchWorkstations = async (
       strength: w.description || "",
       software: Array.isArray(w.software) ? w.software : [],
       groups: Array.isArray(w.access_groups) ? w.access_groups : [],
-      users: Array.isArray(w.members) ? w.members : [],
+      users: (Array.isArray(w.members) ? w.members : [])
+        .map((memberId) => userMap.get(String(memberId)))
+        .filter(Boolean),
+      usersCount: Array.isArray(w.members) ? w.members.length : 0,
+      currentUser: (Array.isArray(w.members) ? w.members : [])
+        .map((memberId) => userMap.get(String(memberId)))
+        .find(Boolean) || null,
       online: w.online || w.status === "online" || false,
       ipAddress: w.ip_address || w.ipAddress || "",
       org_id: w.org_id,

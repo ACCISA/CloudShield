@@ -285,6 +285,12 @@ function WorkstationRow({
 }) {
   const responsiveStyles = getResponsiveStyles();
   const statusColors = getStatusLightColors(r.status);
+  const currentDisplayUser =
+    r.currentUser && typeof r.currentUser === "object"
+      ? r.currentUser
+      : Array.isArray(r.users) && r.users.length > 0 && typeof r.users[0] === "object"
+        ? r.users[0]
+        : null;
 
   return (
     <>
@@ -302,7 +308,7 @@ function WorkstationRow({
           <DisplayIcon type="workstation" data={r} size="small" />
           <div style={styles.nameContainer}>
             <span style={responsiveStyles.name}>{r.name}</span>
-            <span style={responsiveStyles.code}>↳ {r.code}</span>
+            {r.code ? <span style={responsiveStyles.code}>↳ {r.code}</span> : null}
           </div>
         </div>
 
@@ -310,17 +316,10 @@ function WorkstationRow({
 
         {showCurrent && (
           <div style={styles.currentContainer}>
-            {r.currentUser && r.currentUser !== "—" ? (
+            {currentDisplayUser ? (
               <DisplayIcon
                 type="user"
-                data={
-                  typeof r.currentUser === "string"
-                    ? {
-                        firstName: r.currentUser.split(" ")[0],
-                        lastName: r.currentUser.split(" ")[1] || "",
-                      }
-                    : r.currentUser
-                }
+                data={currentDisplayUser}
                 size="small"
               />
             ) : (

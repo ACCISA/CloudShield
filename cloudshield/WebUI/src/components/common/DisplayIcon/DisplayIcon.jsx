@@ -322,12 +322,32 @@ function WorkstationCard({
   initials,
   getBackgroundColor,
 }) {
-  const isOnline =
-    data.online !== undefined
+  const normalizedStatus = String(data.status || "").toLowerCase();
+  const isProvisioning = normalizedStatus === "provisioning";
+  const isConnectedStatus =
+    normalizedStatus === "online" ||
+    normalizedStatus === "connected" ||
+    normalizedStatus === "active";
+  const isFailed = normalizedStatus === "failed";
+  const isOnline = isConnectedStatus
+    ? true
+    : data.online !== undefined
       ? data.online
       : data.isOnline !== undefined
         ? data.isOnline
-        : data.status === "online";
+        : false;
+  const badgeClass = isProvisioning
+    ? "provisioning"
+    : isOnline
+      ? "active"
+      : "inactive";
+  const badgeLabel = isProvisioning
+    ? "Provisioning"
+    : isOnline
+      ? "Online"
+      : isFailed
+        ? "Failed"
+        : "Offline";
 
   return (
     <div className="hover-card">
@@ -346,8 +366,8 @@ function WorkstationCard({
         </div>
         <div className="hover-card-title">
           <h4>{name}</h4>
-          <span className={`status-badge ${isOnline ? "active" : "inactive"}`}>
-            {isOnline ? "Online" : "Offline"}
+          <span className={`status-badge ${badgeClass}`}>
+            {badgeLabel}
           </span>
         </div>
       </div>

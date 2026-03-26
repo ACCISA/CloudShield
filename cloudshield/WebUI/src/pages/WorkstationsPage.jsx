@@ -220,13 +220,13 @@ export default function WorkstationsPage() {
         if (jobStatus === "queued" || jobStatus === "started") {
           setRows((prev) =>
             prev.map((row) =>
-              row.id === rowId ? { ...row, status: "provisioning" } : row,
+              row.id === rowId ? { ...row, status: "provisioning", online: false } : row,
             ),
           );
           setTrackedEntries((entries) =>
             entries.map((entry) =>
               entry.jobId === jobId
-                ? { ...entry, row: { ...entry.row, status: "provisioning" } }
+                ? { ...entry, row: { ...entry.row, status: "provisioning", online: false } }
                 : entry,
             ),
           );
@@ -237,13 +237,13 @@ export default function WorkstationsPage() {
         if (jobStatus === "failed" || isFailedProgress(job.progress)) {
           setRows((prev) =>
             prev.map((row) =>
-              row.id === rowId ? { ...row, status: "failed" } : row,
+              row.id === rowId ? { ...row, status: "failed", online: false } : row,
             ),
           );
           setTrackedEntries((entries) =>
             entries.map((entry) =>
               entry.jobId === jobId
-                ? { ...entry, row: { ...entry.row, status: "failed" } }
+                ? { ...entry, row: { ...entry.row, status: "failed", online: false } }
                 : entry,
             ),
           );
@@ -263,6 +263,7 @@ export default function WorkstationsPage() {
                     ...row,
                     id: templateId || row.id,
                     status: "connected",
+                    online: true,
                   }
                 : row,
             ),
@@ -276,6 +277,7 @@ export default function WorkstationsPage() {
                       ...entry.row,
                       id: templateId || entry.row.id,
                       status: "connected",
+                      online: true,
                     },
                   }
                 : entry,
@@ -308,7 +310,9 @@ export default function WorkstationsPage() {
       strength: payload.description || "",
       usersCount: payload.members?.length || 0,
       users: payload.members || [],
+      currentUser: payload.members?.[0] || null,
       status: "provisioning",
+      online: false,
       groups: payload.access_groups || [],
       software: payload.software || [],
     };
@@ -413,7 +417,12 @@ export default function WorkstationsPage() {
 		              ) : (
 		                filtered.map((row) => {
 		                  const selected = selectedIds.has(row.id);
-		                  const currentUser = row.currentUser && row.currentUser !== "—" ? (typeof row.currentUser === "string" ? { firstName: row.currentUser.split(" ")[0], lastName: row.currentUser.split(" ")[1] || "" } : row.currentUser) : null;
+		                  const currentUser =
+                        row.currentUser && typeof row.currentUser === "object"
+                          ? row.currentUser
+                          : Array.isArray(row.users) && row.users.length > 0 && typeof row.users[0] === "object"
+                            ? row.users[0]
+                            : null;
                     const statusColors = getIconStatusColors(row.status);
 
 		                  return (

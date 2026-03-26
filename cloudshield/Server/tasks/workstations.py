@@ -10,7 +10,7 @@ from .task import get_server_nodes
 from services import service_dispatcher
 
 
-SIMULATE_WORKSTATION_CREATE_SECONDS = 10
+SIMULATE_WORKSTATION_CREATE_SECONDS = 0
 
 
 def _enqueue_workstation_ready_email(requesting_user_id, workstation_name, logger):
