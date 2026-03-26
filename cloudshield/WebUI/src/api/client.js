@@ -6,23 +6,23 @@
 // const data = await apiGet('/some/endpoint');
 // const result = await apiPost('/some/endpoint', { key: 'value' });
 
-const API_BASE =
-  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+import { buildApiUrl } from "../lib/apiBase.js";
 
 export function getToken() {
   return localStorage.getItem("jwt");
 }
 
-async function request(path, { method = "GET", body, headers } = {}) {
+async function request(path, { method = "GET", body, headers, ...fetchOptions } = {}) {
   const token = getToken();
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(buildApiUrl(path), {
     method,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers || {}),
     },
+    ...fetchOptions,
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
 
@@ -31,7 +31,9 @@ async function request(path, { method = "GET", body, headers } = {}) {
     try {
       const data = await res.json();
       msg = data?.error || data?.details || msg;
-    } catch {}
+    } catch {
+      // Preserve the HTTP status fallback when the error body is not JSON.
+    }
     throw new Error(msg);
   }
 

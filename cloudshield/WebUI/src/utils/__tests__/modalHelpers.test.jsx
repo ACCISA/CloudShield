@@ -686,13 +686,15 @@ describe("modalHelpers", () => {
       },
     ];
 
-    it("should fetch and normalize software successfully", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => mockSoftware,
-      });
+    it("should return the provided software catalog successfully", async () => {
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        mockSoftware,
+      );
 
-      const result = await fetchSoftware("org123", "token123");
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: "sw1",
@@ -700,16 +702,19 @@ describe("modalHelpers", () => {
         version: "1.0.0",
         vendor: "Vendor Inc.",
       });
+      expect(apiGet).not.toHaveBeenCalled();
     });
 
     it("should call state setter if provided", async () => {
       const setAllSoftware = jest.fn();
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => mockSoftware,
-      });
 
-      await fetchSoftware("org123", "token123", setAllSoftware);
+      await fetchSoftware(
+        "org123",
+        "token123",
+        setAllSoftware,
+        null,
+        mockSoftware,
+      );
       expect(setAllSoftware).toHaveBeenCalledWith(
         expect.arrayContaining([expect.objectContaining({ id: "sw1" })]),
       );
@@ -733,32 +738,21 @@ describe("modalHelpers", () => {
       expect(apiGet).not.toHaveBeenCalled();
     });
 
-    it("should handle non-ok response", async () => {
-      apiGet.mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
-
-      const result = await fetchSoftware("org123", "token123");
-      expect(result).toEqual([]);
-    });
-
     it("should normalize software data correctly", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          software: [
-            {
-              _id: "sw2",
-              name: "App",
-              version: "2.0",
-              vendor: "Corp",
-            },
-          ],
-        }),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
+          {
+            _id: "sw2",
+            name: "App",
+            version: "2.0",
+            vendor: "Corp",
+          },
+        ],
+      );
       expect(result[0]).toMatchObject({
         id: "sw2",
         _id: "sw2",
@@ -770,90 +764,96 @@ describe("modalHelpers", () => {
 
     // Additional tests for software normalization fallbacks
     it("should use fallback values for missing software fields", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             id: "sw3",
             // name is missing - should fallback to "Untitled Software"
             // version is missing - should fallback to ""
             // vendor is missing - should fallback to ""
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0]).toMatchObject({
         id: "sw3",
         _id: "sw3",
         name: "Untitled Software",
         version: "",
         vendor: "",
+        category: "Software",
       });
     });
 
     it("should prefer id over _id when both present", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             id: "primary-id",
             _id: "secondary-id",
             name: "Test Software",
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0].id).toBe("primary-id");
       expect(result[0]._id).toBe("secondary-id");
     });
 
     it("should fallback to _id when id is missing", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             _id: "only-underscore-id",
             name: "Test Software",
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0].id).toBe("only-underscore-id");
       expect(result[0]._id).toBe("only-underscore-id");
     });
 
     it("should fallback to id when _id is missing", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             id: "only-regular-id",
             name: "Test Software",
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0].id).toBe("only-regular-id");
       expect(result[0]._id).toBe("only-regular-id");
     });
 
     it("should convert numeric ids to string", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             id: 99999,
             _id: 88888,
             name: "Numeric ID Software",
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0].id).toBe("99999");
       expect(result[0]._id).toBe("88888");
       expect(typeof result[0].id).toBe("string");
@@ -861,28 +861,25 @@ describe("modalHelpers", () => {
     });
 
     it("should use empty string when both id and _id are missing", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => ([
+      const result = await fetchSoftware(
+        "org123",
+        "token123",
+        null,
+        null,
+        [
           {
             name: "No ID Software",
             version: "1.0",
           },
-        ]),
-      });
-
-      const result = await fetchSoftware("org123", "token123");
+        ],
+      );
       expect(result[0].id).toBe("");
       expect(result[0]._id).toBe("");
     });
 
-    it("should handle fetch error", async () => {
-      const openToast = jest.fn();
-      apiGet.mockRejectedValue(new Error("Network error"));
-
-      const result = await fetchSoftware("org123", "token123", null, openToast);
+    it("should handle an empty software catalog", async () => {
+      const result = await fetchSoftware("org123", "token123", null, null, []);
       expect(result).toEqual([]);
-      expect(openToast).toHaveBeenCalledWith("Network error");
     });
   });
 

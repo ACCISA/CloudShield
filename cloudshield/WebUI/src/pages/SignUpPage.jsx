@@ -188,7 +188,6 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-      console.log(createUserRes)
       const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));

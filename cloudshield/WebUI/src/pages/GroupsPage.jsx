@@ -51,9 +51,9 @@ export default function GroupsPage() {
   const [showFiles, setShowFiles] = useState(true);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [sortField, setSortField] = useState("name");
-  const [sortDir, setSortDir] = useState("asc");
-  const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
+  const [sortField] = useState("name");
+  const [sortDir] = useState("asc");
+  const [, setToast] = useState({ open: false, msg: "", type: "success" });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -114,7 +114,9 @@ export default function GroupsPage() {
     try {
       await safeAsync(
         async () => {
-          const data = await apiGet("/access-groups");
+          const response = await apiGet("/access-groups");
+          const data =
+            typeof response?.json === "function" ? await response.json() : response;
           const apiGroups = Array.isArray(data.access_groups) ? data.access_groups : [];
           setGroups(apiGroups.map(mapApiGroupToUi));
         },

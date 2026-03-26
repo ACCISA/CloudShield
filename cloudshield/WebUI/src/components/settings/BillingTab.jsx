@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Box, Typography, TextField, Button, Checkbox, Chip,
   InputAdornment, IconButton, CircularProgress, Grid, Paper,
@@ -13,9 +13,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useAuth } from "../../context/AuthContext";
-import { useAppTheme } from "../../context/ThemeContext";
-
-const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+import { buildApiUrl } from "../../lib/apiBase.js";
 
 const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
 
@@ -25,8 +23,30 @@ const PLAN_OPTIONS = [
   { id: "enterprise", name: "Enterprise", price: 89, priceId: "price_1T3VRDA5QKTufQ3csurJvjpn", description: "Designed for large scale enterprise infrastructure.", features: ["100 Workstations", "500 Users", "Premium NLP", "24/7 Support"] },
 ];
 
+function startStripeSyncPolling(fetchData, setIsSyncing) {
+  const params = new URLSearchParams(globalThis.location.search);
+  if (params.get("status") !== "success") {
+    return null;
+  }
+
+  setIsSyncing(true);
+  globalThis.history.replaceState({}, document.title, globalThis.location.pathname);
+
+  let attempts = 0;
+  const pollInterval = setInterval(async () => {
+    attempts += 1;
+    await fetchData();
+
+    if (attempts >= 5) {
+      clearInterval(pollInterval);
+      setIsSyncing(false);
+    }
+  }, 3000);
+
+  return () => clearInterval(pollInterval);
+}
+
 function BillingDisabled() {
-  const theme = useAppTheme();
   return (
     <Box sx={{ pb: 4 }}>
       <Box sx={{ mb: 4 }}>
@@ -59,7 +79,6 @@ function BillingDisabled() {
 }
 
 export default function BillingTab() {
-  const theme = useAppTheme();
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
@@ -71,11 +90,11 @@ export default function BillingTab() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [invRes, cardRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/billing/invoices/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } }),
-        fetch(`${API_BASE_URL}/billing/payment-method/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } })
+        fetch(buildApiUrl(`/billing/invoices/${orgId}`), { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } }),
+        fetch(buildApiUrl(`/billing/payment-method/${orgId}`), { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } })
       ]);
       const invData = await invRes.json();
       const cardData = await cardRes.json();
@@ -84,53 +103,43 @@ export default function BillingTab() {
       if (!cardData.error) setCard(cardData);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [orgId]);
 
   useEffect(() => {
     const handleFocus = () => {
       if (refreshUser) refreshUser();
       fetchData();
     };
-    window.addEventListener("focus", handleFocus);
+    globalThis.addEventListener("focus", handleFocus);
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("status") === "success") {
-      setIsSyncing(true);
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-      let attempts = 0;
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        await fetchData();
-        if (attempts >= 5) {
-          clearInterval(pollInterval);
-          setIsSyncing(false);
-        }
-      }, 3000);
-    } else {
-      if (orgId) fetchData();
+    const stopSyncPolling = startStripeSyncPolling(fetchData, setIsSyncing);
+    if (!stopSyncPolling && orgId) {
+      fetchData();
     }
 
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [orgId, refreshUser]);
+    return () => {
+      globalThis.removeEventListener("focus", handleFocus);
+      stopSyncPolling?.();
+    };
+  }, [fetchData, orgId, refreshUser]);
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/billing/create-portal-session`, {
+      const response = await fetch(buildApiUrl("/billing/create-portal-session"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("jwt")}` },
         body: JSON.stringify({ org_id: orgId }),
       });
       const data = await response.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url) globalThis.location.href = data.url;
     } catch (err) { console.error(err); }
     finally { setPortalLoading(false); }
   };
 
   const handleChangePage = (event, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    setRowsPerPage(Number.parseInt(event.target.value, 10));
     setPage(0);
   };
 
@@ -139,6 +148,7 @@ export default function BillingTab() {
   const cancelDate = card?.cancel_at_date ? new Date(card.cancel_at_date).toLocaleDateString() : null;
   const currentPlan = PLAN_OPTIONS.find(p => p.id === activePackage) || PLAN_OPTIONS[0];
   const displayedInvoices = invoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const hasCardOnFile = Boolean(card?.brand);
 
   if (BYPASS_STRIPE) return <BillingDisabled />;
 
@@ -242,17 +252,17 @@ export default function BillingTab() {
                 display: "flex", flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' },
                 justifyContent: "space-between", bgcolor: 'background.default', mt: 'auto', gap: 2
             }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'text.secondary', bgcolor: 'action.hover', p: 1, borderRadius: '8px' }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'text.secondary', bgcolor: 'action.hover', p: 1, borderRadius: '8px' }}>
                     <CreditCardOutlinedIcon sx={{ fontSize: '1.6rem' }} />
-                </Box>
-                <Box>
-                  <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem", display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                    {card && card.brand ? `Card •••• ${card.last4}` : "No card on file"}
-                    {card && card.brand && <Chip label="Default" size="small" sx={{ height: 20, fontSize: "0.6rem", bgcolor: 'action.hover', color: 'text.primary', fontWeight: 600 }} />}
+                  </Box>
+                  <Box>
+                  <Typography component="div" sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem", display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                    {hasCardOnFile ? `Card •••• ${card?.last4}` : "No card on file"}
+                    {hasCardOnFile && <Chip label="Default" size="small" sx={{ height: 20, fontSize: "0.6rem", bgcolor: 'action.hover', color: 'text.primary', fontWeight: 600 }} />}
                   </Typography>
                   <Typography sx={{ color: "text.secondary", fontSize: "0.75rem", mt: 0.3 }}>
-                    {card && card.brand ? `Expires ${card.exp_month}/${card.exp_year}` : "Update in billing portal"}
+                    {hasCardOnFile ? `Expires ${card?.exp_month}/${card?.exp_year}` : "Update in billing portal"}
                   </Typography>
                 </Box>
               </Box>
@@ -314,7 +324,7 @@ export default function BillingTab() {
                     <Box>
                         <Chip icon={<CheckIcon sx={{ fontSize: '0.9rem !important', color: '#4ade80 !important' }} />} label="Paid" size="small" sx={{ bgcolor: "rgba(74, 222, 128, 0.08)", color: "#4ade80", fontWeight: 700, border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '6px' }} />
                     </Box>
-                    <IconButton onClick={() => window.open(inv.url, '_blank')} sx={{ color: "rgba(255,255,255,0.3)", p: 0, '&:hover': { color: '#fff' } }}><DownloadOutlinedIcon sx={{ fontSize: '1.2rem' }} /></IconButton>
+                    <IconButton onClick={() => globalThis.open?.(inv.url, "_blank", "noopener,noreferrer")} sx={{ color: "rgba(255,255,255,0.3)", p: 0, '&:hover': { color: '#fff' } }}><DownloadOutlinedIcon sx={{ fontSize: '1.2rem' }} /></IconButton>
                   </Box>
                 ))}
             </Box>

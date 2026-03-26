@@ -10,9 +10,8 @@ import BillingTab from "../components/settings/BillingTab.jsx";
 import NotificationsTab from "../components/settings/NotificationsTab.jsx";
 import AppearanceTab from "../components/settings/AppearanceTab.jsx";
 
+import { buildApiUrl } from "../lib/apiBase.js";
 import { safeAsync } from "../lib/safeAsync.js";
-
-const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
 
 const TABS = ["Basic Info", "Plan & Billing", "Notifications", "Appearance"];
 
@@ -107,7 +106,7 @@ export default function SettingsPage() {
 
       try {
         const response = await safeAsync(async () => {
-          const userRes = await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
+          const userRes = await fetch(buildApiUrl(`/users/${currentUser.id}`), {
             headers: {
               "Content-Type": "application/json",
               ...getAuthHeader(),
@@ -146,7 +145,7 @@ export default function SettingsPage() {
     try {
       const response = await safeAsync(
         async () => {
-          const res = await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
+          const res = await fetch(buildApiUrl(`/users/${currentUser.id}`), {
             method: "PATCH",
             credentials: "include",
             headers: {
@@ -250,9 +249,12 @@ export default function SettingsPage() {
       </Box>
 
       {toast.open && (
-        <div
+        <button
+          type="button"
           role="alert"
           tabIndex={0}
+          aria-live="assertive"
+          aria-atomic="true"
           onClick={closeToast}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -267,16 +269,17 @@ export default function SettingsPage() {
             padding: "12px 24px",
             borderRadius: "12px",
             backgroundColor: toast.type === "error" ? "#d32f2f" : "#2e7d32",
-            color: "text.primary",
+            color: "#fff",
             fontSize: "1rem",
             boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
             zIndex: 9999,
             cursor: "pointer",
             outline: "none",
+            border: "none",
           }}
         >
           {toast.msg}
-        </div>
+        </button>
       )}
     </>
   );

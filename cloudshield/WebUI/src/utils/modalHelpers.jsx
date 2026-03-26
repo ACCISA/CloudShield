@@ -2,6 +2,7 @@
  * Shared utilities for modals (Groups, Employees, Workstations, etc.)
  */
 
+import { MOCK_SOFTWARE } from "../data/mockData.js";
 import { listUsers } from "../services/usersApi.js";
 import { apiGet } from "../api/client";
 
@@ -294,40 +295,74 @@ const _resetSoftware = (setAllSoftware, openToast, toastMsg) => {
   return [];
 };
 
+const inferSoftwareCategory = (name = "") => {
+  const normalizedName = name.toLowerCase();
+
+  if (
+    normalizedName.includes("code") ||
+    normalizedName.includes("git") ||
+    normalizedName.includes("docker") ||
+    normalizedName.includes("node") ||
+    normalizedName.includes("python") ||
+    normalizedName.includes("postman")
+  ) {
+    return "Development";
+  }
+
+  if (normalizedName.includes("slack") || normalizedName.includes("zoom")) {
+    return "Communication";
+  }
+
+  if (
+    normalizedName.includes("adobe") ||
+    normalizedName.includes("figma")
+  ) {
+    return "Design";
+  }
+
+  if (
+    normalizedName.includes("chrome") ||
+    normalizedName.includes("firefox")
+  ) {
+    return "Browser";
+  }
+
+  if (
+    normalizedName.includes("office") ||
+    normalizedName.includes("notion") ||
+    normalizedName.includes("1password")
+  ) {
+    return "Productivity";
+  }
+
+  return "Software";
+};
+
+const normalizeSoftwareCatalog = (softwareCatalog = []) =>
+  (Array.isArray(softwareCatalog) ? softwareCatalog : []).map((s) => ({
+    id: String(s.id || s._id || ""),
+    _id: String(s._id || s.id || ""),
+    name: s.name || "Untitled Software",
+    version: s.version || "",
+    vendor: s.vendor || "",
+    category: s.category || inferSoftwareCategory(s.name || ""),
+    icon: s.icon || null,
+  }));
+
 export const fetchSoftware = async (
   orgId,
   accessToken,
   setAllSoftware = null,
   openToast = null,
+  softwareCatalog = MOCK_SOFTWARE,
 ) => {
   if (!orgId) return _resetSoftware(setAllSoftware, openToast, "Missing org_id for software fetch");
   if (!accessToken) return _resetSoftware(setAllSoftware);
 
   try {
-
-    const res = await apiGet(
-      `/software?org_id=${encodeURIComponent(orgId)}`,
-      {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-    );
-
-    if (!res.ok) return _resetSoftware(setAllSoftware);
-
-    const data = await res.json();
-    const software = Array.isArray(data) ? data : data.software || [];
-
-    const normalized = software.map((s) => ({
-      id: String(s.id || s._id || ""),
-      _id: String(s._id || s.id || ""),
-      name: s.name || "Untitled Software",
-      version: s.version || "",
-      vendor: s.vendor || "",
-    }));
+    // The current backend does not expose a software catalog route, so
+    // workstation software options come from the frontend catalog.
+    const normalized = normalizeSoftwareCatalog(softwareCatalog);
 
     setAllSoftware?.(normalized);
     return normalized;

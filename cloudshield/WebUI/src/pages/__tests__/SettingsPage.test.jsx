@@ -169,7 +169,7 @@ describe("SettingsPage", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://127.0.0.1:5050/api/users/user-123",
+        "/api/users/user-123",
         expect.objectContaining({
           headers: expect.objectContaining({
             "Content-Type": "application/json",

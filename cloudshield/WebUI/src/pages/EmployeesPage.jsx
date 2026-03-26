@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { useThemeColors } from "../hooks/useThemeColors.js";
-import { trackButton } from "../lib/analytics";
 
 import UsersTable from "../components/users/UsersTable.jsx";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
@@ -29,6 +29,8 @@ import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
 
+import { apiGet } from "../api/client.js";
+import { buildApiUrl } from "../lib/apiBase.js";
 import { getUserErrorMessage } from "../lib/errors.js";
 import { formatShares } from "../lib/format.js";
 import { safeAsync } from "../lib/safeAsync.js";
@@ -37,23 +39,31 @@ import { listUsers, deleteUser, createUser, updateUser } from "../services/users
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
-const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
-
 const CustomToast = ({ msg, type = "success", onClose }) => {
   if (!msg) return null;
   return (
-    <div
+    <button
+      type="button"
+      aria-live="polite"
+      aria-atomic="true"
       style={{
         position: "fixed", bottom: "24px", right: "24px", padding: "12px 24px",
         borderRadius: "12px", backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
-        color: "text.primary", fontSize: "1rem", boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+        color: "#fff", fontSize: "1rem", boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
         zIndex: 9999, display: "flex", alignItems: "center", cursor: "pointer",
+        border: "none", outline: "none",
       }}
       onClick={onClose}
     >
       {msg}
-    </div>
+    </button>
   );
+};
+
+CustomToast.propTypes = {
+  msg: PropTypes.string,
+  type: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
 };
 
 function getUserGroups(allGroups, userId) {
@@ -63,28 +73,41 @@ function getUserGroups(allGroups, userId) {
   });
 }
 
+function buildUserGroups(memberGroups) {
+  return memberGroups.map((g) => ({
+    id: g.id || g._id,
+    name: g.group_name || g.name || "Unknown Group",
+    description: g.description || "",
+    image: g.group_image || null,
+  }));
+}
+
+function collectUniqueGroupResources(memberGroups, key) {
+  const resourceMap = new Map();
+
+  for (const group of memberGroups) {
+    const resources = Array.isArray(group[key]) ? group[key] : [];
+
+    for (const resource of resources) {
+      if (!resourceMap.has(resource)) {
+        resourceMap.set(resource, resource);
+      }
+    }
+  }
+
+  return Array.from(resourceMap.values()).map((resource) => ({
+    id: resource,
+    name: resource,
+    [key === "workstations" ? "hostname" : "drive"]: resource,
+  }));
+}
+
 function enrichUser(user, allGroups) {
   const userId = String(user._id);
   const memberGroups = getUserGroups(allGroups, userId);
-
-  const userGroups = memberGroups.map((g) => ({
-    id: g.id || g._id, name: g.group_name || g.name || "Unknown Group",
-    description: g.description || "", image: g.group_image || null,
-  }));
-
-  const workstationMap = new Map();
-  for (const g of memberGroups) {
-    const ws = Array.isArray(g.workstations) ? g.workstations : [];
-    for (const w of ws) { if (!workstationMap.has(w)) workstationMap.set(w, { id: w, name: w, hostname: w }); }
-  }
-  const userWorkstations = Array.from(workstationMap.values());
-
-  const fileShareMap = new Map();
-  for (const g of memberGroups) {
-    const fs = Array.isArray(g.file_shares) ? g.file_shares : [];
-    for (const f of fs) { if (!fileShareMap.has(f)) fileShareMap.set(f, { id: f, name: f, drive: f }); }
-  }
-  const userFileShares = Array.from(fileShareMap.values());
+  const userGroups = buildUserGroups(memberGroups);
+  const userWorkstations = collectUniqueGroupResources(memberGroups, "workstations");
+  const userFileShares = collectUniqueGroupResources(memberGroups, "file_shares");
 
   return {
     id: user._id, name: user.full_name || user.email, email: user.email,
@@ -99,6 +122,15 @@ function enrichUser(user, allGroups) {
 
 const styles = { ...managementToolbarStyles, iconFooter: { marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between" } };
 
+function getStoredOrgId() {
+  try {
+    return globalThis.localStorage.getItem("org_id");
+  } catch (error) {
+    console.error("Failed to read org_id from localStorage", error);
+    return null;
+  }
+}
+
 export default function EmployeesPage() {
   const location = useLocation();
   const { accessToken, currentUser } = useAuth();
@@ -112,7 +144,8 @@ export default function EmployeesPage() {
 
   const orgId = useMemo(() => {
     if (currentUser?.org_id && currentUser.org_id !== "default-org") return currentUser.org_id;
-    try { const stored = localStorage.getItem("org_id"); if (stored) return stored; } catch (e) {}
+    const stored = getStoredOrgId();
+    if (stored) return stored;
     return null;
   }, [currentUser]);
 
@@ -120,7 +153,11 @@ export default function EmployeesPage() {
   const [modalEmployee, setModalEmployee] = useState(null);
 
   useEffect(() => {
-    if (location.state?.openModal) { setModalOpen(true); setModalEmployee(null); window.history.replaceState({}, document.title); }
+    if (location.state?.openModal) {
+      setModalOpen(true);
+      setModalEmployee(null);
+      globalThis.history.replaceState({}, document.title, globalThis.location.pathname);
+    }
   }, [location]);
 
   const [layout, setLayout] = useState("list");
@@ -138,16 +175,38 @@ export default function EmployeesPage() {
   const [activeFilters, setActiveFilters] = useState({ status: new Set() });
   const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
 
-  const openToast = (msg, type = "success") => { setToast({ open: true, msg, type }); setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000); };
-  const resolveAuthToken = () => { try { return localStorage.getItem("jwt") || accessToken || null; } catch { return accessToken || null; } };
-  const getAuthHeader = () => { const token = resolveAuthToken(); return token ? { Authorization: `Bearer ${token}` } : {}; };
+  const openToast = useCallback((msg, type = "success") => {
+    setToast({ open: true, msg, type });
+    setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
+  }, []);
+
+  const resolveAuthToken = useCallback(() => {
+    try {
+      return globalThis.localStorage.getItem("jwt") || accessToken || null;
+    } catch {
+      return accessToken || null;
+    }
+  }, [accessToken]);
+
+  const getAuthHeader = useCallback(() => {
+    const token = resolveAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [resolveAuthToken]);
+
+  const fetchAccessGroups = useCallback(async () => {
+    const response = await apiGet("/access-groups", {
+      credentials: "include",
+      headers: getAuthHeader(),
+    });
+    const data =
+      typeof response?.json === "function" ? await response.json() : response;
+
+    return Array.isArray(data?.access_groups) ? data.access_groups : [];
+  }, [getAuthHeader]);
 
   const updateUserGroupMemberships = async (userId, newGroups) => {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
-    const res = await fetch(`${API_BASE_URL}/access-groups`, { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
-    if (!res.ok) return;
-    const data = await res.json();
-    const allGroups = data.access_groups || [];
+    const allGroups = await fetchAccessGroups();
 
     const currentGroupIds = allGroups.filter((g) => { const members = Array.isArray(g.members) ? g.members : []; return members.some((m) => String(m) === String(userId)); }).map((g) => String(g.id || g._id));
     const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
@@ -158,7 +217,7 @@ export default function EmployeesPage() {
       if (!group) continue;
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       if (!currentMembers.some((m) => String(m) === String(userId))) {
-        await fetch(`${API_BASE_URL}/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: [...currentMembers, userId] }) });
+        await fetch(buildApiUrl(`/access-groups/${groupId}`), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: [...currentMembers, userId] }) });
       }
     }
 
@@ -168,12 +227,12 @@ export default function EmployeesPage() {
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
       if (updatedMembers.length !== currentMembers.length) {
-        await fetch(`${API_BASE_URL},/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: updatedMembers }) });
+        await fetch(buildApiUrl(`/access-groups/${groupId}`), { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: updatedMembers }) });
       }
     }
   };
 
- const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async () => {
     const token = resolveAuthToken();
     if (!token) return;
     setLoading(true);
@@ -181,16 +240,17 @@ export default function EmployeesPage() {
       const data = await safeAsync(() => listUsers({ token, search, limit: 100, offset: 0 }), { toast: { error: (msg) => openToast(msg, "error") } });
       let allGroups = [];
       try {
-        const groupsRes = await fetch(`${API_BASE_URL}/access-groups`, { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
-        if (groupsRes.ok) { const groupsData = await groupsRes.json(); allGroups = groupsData.access_groups || []; }
-      } catch (e) {}
+        allGroups = await fetchAccessGroups();
+      } catch (error) {
+        console.error("Failed to load access groups", error);
+      }
       setUsers(Array.isArray(data) ? data.map((user) => enrichUser(user, allGroups)) : []);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [accessToken, search]);
+  }, [fetchAccessGroups, openToast, resolveAuthToken, search]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -208,13 +268,16 @@ export default function EmployeesPage() {
         const apiPayload = { email: payload.email, full_name: `${payload.firstName} ${payload.lastName}`, password: payload.password || "DefaultPass123!", role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee", org_id: orgId || "cedric", profile_image: payload.profileImage || null };
         await startCreation(async () => { const response = await createUser(apiPayload, { token }); return response.job_id; });
       }
-    } catch (error) { openToast("Failed to save user", "error"); }
+    } catch (error) {
+      console.error("Failed to save user", getUserErrorMessage(error), error);
+      openToast("Failed to save user", "error");
+    }
   };
   
   useEffect(() => {
     if (status === "succeeded") { openToast("User created successfully"); resetCreation(); setModalOpen(false); setModalEmployee(null); fetchUsers(); } 
     else if (status === "failed") { openToast(message || "Failed to create user", "error"); }
-  }, [status, message]);
+  }, [fetchUsers, message, openToast, resetCreation, status]);
 
   const handleDelete = async (user) => {
     const userToDelete = user || modalEmployee;
@@ -227,7 +290,9 @@ export default function EmployeesPage() {
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
       if (!user && modalEmployee) { setModalOpen(false); setModalEmployee(null); }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to delete user", error);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -251,19 +316,90 @@ export default function EmployeesPage() {
 
   const toggleSelect = (id) => setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   const toggleSelectAllVisible = () => {
-    const hasSelected = filtered.some((u) => selectedIds.has(u.id));
-    const allAreSelected = filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id));
+    const hasVisibleSelection = filtered.some((u) => selectedIds.has(u.id));
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (hasSelected && !allAreSelected) { filtered.forEach((u) => next.delete(u.id)); }
-      else if (!hasSelected) { filtered.forEach((u) => next.add(u.id)); }
-      else { filtered.forEach((u) => next.delete(u.id)); }
+      if (hasVisibleSelection) {
+        filtered.forEach((u) => next.delete(u.id));
+      } else {
+        filtered.forEach((u) => next.add(u.id));
+      }
       return next;
     });
   };
 
   const handleFilterChange = createFilterChangeHandler(setActiveFilters);
   const selectedCount = useMemo(() => filtered.filter((u) => selectedIds.has(u.id)).length, [filtered, selectedIds]);
+  const handleSort = (field) => {
+    let nextSortDir = "asc";
+
+    if (sortField === field) {
+      nextSortDir = sortDir === "asc" ? "desc" : "asc";
+    }
+
+    setSortDir(nextSortDir);
+    setSortField(field);
+  };
+
+  let content = (
+    <div style={dynamicStyles.iconsWrapper}>
+      <IconSelectionBar styles={dynamicStyles} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelectAll={toggleSelectAllVisible} selectedCount={selectedCount} />
+      <div style={dynamicStyles.iconsGrid}>
+        {filtered.length === 0 ? (
+          <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
+            <EmptyState message="No users found" description="Try adjusting your search or filters, or create a new user." />
+          </div>
+        ) : (
+          filtered.map((user) => {
+            const selected = selectedIds.has(user.id);
+            return (
+              <div key={user.id} style={{ ...dynamicStyles.iconCard, ...(selected ? dynamicStyles.iconCardSelected : {}) }}>
+                <div style={dynamicStyles.iconCardHeader}>
+                  <Checkbox checked={selected} onChange={() => toggleSelect(user.id)} />
+                  <EditButton menuItems={[{ icon: <EditIcon width={15} height={16} color={themeColors.text} />, label: "edit user", color: themeColors.text, onClick: () => { setModalEmployee(user); setModalOpen(true); } }, { icon: <TrashIcon width={12} height={14} color="#D51616" />, label: "delete user", color: "#D51616", onClick: () => handleDelete(user) }]} />
+                </div>
+                <div style={dynamicStyles.iconTitle}>
+                  <DisplayIcon type="user" data={user} size="small" />
+                  <div style={dynamicStyles.iconTitleText}>
+                    <span style={dynamicStyles.iconName}>{user.name}</span>
+                    <span style={dynamicStyles.iconSub}>↳ {user.email}</span>
+                  </div>
+                </div>
+                {showTitle && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Title</span><span style={dynamicStyles.iconMetaValue}>{user.title || "—"}</span></div>}
+                {showWorkstations && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Workstations</span><span style={dynamicStyles.iconMetaValue}>{user.workstationCount ?? user.workstations?.length ?? 0}</span></div>}
+                {showGroups && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Groups</span><span style={dynamicStyles.iconMetaValue}>{user.groupCount ?? user.groups?.length ?? 0}</span></div>}
+                {showFiles && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Shares</span><span style={dynamicStyles.iconMetaValue}>{user.fileCountDisplay ?? formatShares(user.fileCount ?? user.files?.length ?? 0)}</span></div>}
+                
+                <div style={dynamicStyles.iconFooter}>
+                  <span style={dynamicStyles.iconMetaLabel}>{user.status || "offline"}</span>
+                  <ActiveIcon width={12} height={12} outerColor={user.status === "online" ? "#1F381F" : "#381F1F"} innerColor={user.status === "online" ? "#04C40A" : "#ff5252"} />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    content = (
+      <TableSurface>
+        <TableSkeleton rows={8} cols={5} />
+      </TableSurface>
+    );
+  } else if (layout === "list") {
+    content = (
+      <TableSurface>
+        <UsersTable
+          users={filtered} showTitle={showTitle} showWorkstations={showWorkstations} showGroups={showGroups} showFiles={showFiles}
+          selectedIds={selectedIds} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate}
+          onToggleSelect={toggleSelect} onToggleSelectAll={toggleSelectAllVisible} onSort={handleSort} sortField={sortField} sortDir={sortDir}
+          onEdit={(u) => { setModalEmployee(u); setModalOpen(true); }} onDelete={handleDelete}
+        />
+      </TableSurface>
+    );
+  }
 
   return (
     <PageShell>
@@ -305,59 +441,7 @@ export default function EmployeesPage() {
         </div>
 
         {/* Clean Conditional Rendering */}
-        {loading ? (
-          <TableSurface>
-            <TableSkeleton rows={8} cols={5} />
-          </TableSurface>
-        ) : layout === "list" ? (
-          <TableSurface>
-            <UsersTable
-              users={filtered} showTitle={showTitle} showWorkstations={showWorkstations} showGroups={showGroups} showFiles={showFiles}
-              selectedIds={selectedIds} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate}
-              onToggleSelect={toggleSelect} onToggleSelectAll={toggleSelectAllVisible} onSort={(f) => { setSortDir(sortField === f ? (sortDir === "asc" ? "desc" : "asc") : "asc"); setSortField(f); }} sortField={sortField} sortDir={sortDir}
-              onEdit={(u) => { setModalEmployee(u); setModalOpen(true); }} onDelete={handleDelete}
-            />
-          </TableSurface>
-        ) : (
-          <div style={dynamicStyles.iconsWrapper}>
-            <IconSelectionBar styles={dynamicStyles} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelectAll={toggleSelectAllVisible} selectedCount={selectedCount} />
-            <div style={dynamicStyles.iconsGrid}>
-              {filtered.length === 0 ? (
-                <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
-                  <EmptyState message="No users found" description="Try adjusting your search or filters, or create a new user." />
-                </div>
-              ) : (
-                filtered.map((user) => {
-                  const selected = selectedIds.has(user.id);
-                  return (
-                    <div key={user.id} style={{ ...dynamicStyles.iconCard, ...(selected ? dynamicStyles.iconCardSelected : {}) }}>
-                      <div style={dynamicStyles.iconCardHeader}>
-                        <Checkbox checked={selected} onChange={() => toggleSelect(user.id)} />
-                        <EditButton menuItems={[{ icon: <EditIcon width={15} height={16} color={themeColors.text} />, label: "edit user", color: themeColors.text, onClick: () => { setModalEmployee(user); setModalOpen(true); } }, { icon: <TrashIcon width={12} height={14} color="#D51616" />, label: "delete user", color: "#D51616", onClick: () => handleDelete(user) }]} />
-                      </div>
-                      <div style={dynamicStyles.iconTitle}>
-                        <DisplayIcon type="user" data={user} size="small" />
-                        <div style={dynamicStyles.iconTitleText}>
-                          <span style={dynamicStyles.iconName}>{user.name}</span>
-                          <span style={dynamicStyles.iconSub}>↳ {user.email}</span>
-                        </div>
-                      </div>
-                      {showTitle && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Title</span><span style={dynamicStyles.iconMetaValue}>{user.title || "—"}</span></div>}
-                      {showWorkstations && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Workstations</span><span style={dynamicStyles.iconMetaValue}>{user.workstationCount ?? user.workstations?.length ?? 0}</span></div>}
-                      {showGroups && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Groups</span><span style={dynamicStyles.iconMetaValue}>{user.groupCount ?? user.groups?.length ?? 0}</span></div>}
-                      {showFiles && <div style={dynamicStyles.iconMetaRow}><span style={dynamicStyles.iconMetaLabel}>Shares</span><span style={dynamicStyles.iconMetaValue}>{user.fileCountDisplay ?? formatShares(user.fileCount ?? user.files?.length ?? 0)}</span></div>}
-                      
-                      <div style={dynamicStyles.iconFooter}>
-                        <span style={dynamicStyles.iconMetaLabel}>{user.status || "offline"}</span>
-                        <ActiveIcon width={12} height={12} outerColor={user.status === "online" ? "#1F381F" : "#381F1F"} innerColor={user.status === "online" ? "#04C40A" : "#ff5252"} />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+        {content}
       </div>
 
       <EmployeesModal open={modalOpen} onClose={() => { setModalOpen(false); setModalEmployee(null); resetCreation(); }} employeeData={modalEmployee} onSubmit={handleModalSubmit} onDelete={handleDelete} creationStatus={status} creationProgress={progress} creationMessage={message} />

@@ -11,7 +11,6 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { useThemeColors } from "../hooks/useThemeColors.js";
-import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
@@ -28,6 +27,7 @@ import { getUserErrorMessage } from "../lib/errors";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
+import { createWorkstation } from "../services/workstationsApi.js";
 
 const styles = {
   ...managementToolbarStyles,
@@ -35,15 +35,6 @@ const styles = {
   errorBanner: { padding: "10px 12px", borderRadius: "10px", border: "1px solid var(--border)", background: "rgba(213, 22, 22, 0.12)", color: "text.primary", fontSize: "0.9rem" },
   ...sharedIconViewStyles,
   iconStatusRow: { marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" },
-};
-
-export const createWorkstation = async (orgId, name, ip, groups) => {
-  try {
-    const token = localStorage.getItem("jwt");
-    const res = await fetch(`/api/workstations`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), }, body: JSON.stringify({ org_id: orgId, name, ip, groups: groups?.map((g) => g.id) || [] }) });
-    if (!res.ok) throw new Error("Failed to create workstation");
-    return await res.json();
-  } catch (e) { console.error(e); return null; }
 };
 
 export default function WorkstationsPage() {

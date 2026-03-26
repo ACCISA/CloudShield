@@ -2,7 +2,8 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage, { createWorkstation } from "../WorkstationsPage";
+import WorkstationsPage from "../WorkstationsPage";
+import { createWorkstation } from "../../services/workstationsApi.js";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
 
 jest.mock("../../hooks/useClickLogger", () => ({
