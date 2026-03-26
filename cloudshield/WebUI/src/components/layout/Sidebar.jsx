@@ -251,7 +251,8 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
           height: 36,
           borderRadius: "10px",
           flexShrink: 0,
-          backgroundColor: themeColors.lightOverlaySubtle || themeColors.lightOverlay,
+          backgroundColor:
+            themeColors.lightOverlaySubtle || themeColors.lightOverlay,
           border: `1px solid ${themeColors.borderLight}`,
           display: "flex",
           alignItems: "center",
@@ -259,7 +260,12 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
           position: "relative",
         }}
       >
-        <ShieldIcon width={18} height={18} selected className="company-shield-mark" />
+        <ShieldIcon
+          width={18}
+          height={18}
+          selected
+          className="company-shield-mark"
+        />
         <Box
           sx={{
             position: "absolute",
@@ -398,7 +404,6 @@ function SidebarNavigation({
 
   const getSharesCount = () => {
     if (collapsed || statsLoading) return undefined;
-    if (stats.shares === 0) return "-";
     return stats.shares ?? 0;
   };
 
@@ -453,7 +458,9 @@ function SidebarNavigation({
 
       <NavItem
         collapsed={collapsed}
-        icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
+        icon={
+          <GroupsIcon width={20} height={20} selected={isActive("/groups")} />
+        }
         label="Groups"
         active={isActive("/groups")}
         count={getBadgeCount(stats.groups)}
@@ -496,11 +503,11 @@ export default function Sidebar({
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me").json();
+        const meRes = await (await apiGet("/users/me")).json();
         if (!mounted) return;
         setMe(meRes.user);
 
-        const orgRes = await apiGet("/organizations/me");
+        const orgRes = await (await apiGet("/organizations/me")).json();
         if (!mounted) return;
         setMyOrg(orgRes.organization);
       } catch {
@@ -515,7 +522,7 @@ export default function Sidebar({
       mounted = false;
     };
   }, []);
-  
+
   const { stats, loading: statsLoading } = useOrgMetrics();
 
   const showNav = mode === "full";
@@ -623,7 +630,9 @@ export default function Sidebar({
             collapsed={collapsed}
             label="Tickets"
             ariaLabel="Tickets"
-            icon={<ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            icon={
+              <ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />
+            }
             onActivate={() => navigate("/tickets")}
           />
           <SidebarBottomAction

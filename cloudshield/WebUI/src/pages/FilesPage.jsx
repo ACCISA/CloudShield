@@ -28,6 +28,7 @@ import { getUserErrorMessage } from "../lib/errors";
 import { safeAsync } from "../lib/safeAsync";
 import { formatShares } from "../lib/format";
 import Pagination from "../components/common/Pagination/Pagination";
+import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
 
 import {
   createFileShare,
@@ -138,6 +139,8 @@ export default function FilesPage() {
   const { currentUser } = useAuth();
   const withClickLog = useClickLogger({ page: "files" });
   const themeColors = useThemeColors();
+
+  const { toast, showToast, hideToast } = useToast();
 
   const orgId = useMemo(() => {
     try {
@@ -305,6 +308,7 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
+            window.dispatchEvent(new Event("metrics:invalidate"));
           } else if (attempts >= maxAttempts) {
             clearInterval(pollInterval);
             setCreatingShares((prev) => {
@@ -313,8 +317,9 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            alert(
+            showToast(
               `File share "${data.shareName}" is taking longer than expected. Please refresh.`,
+              "error",
             );
           }
         }, 2000);
@@ -325,7 +330,10 @@ export default function FilesPage() {
           newSet.delete(data.shareName);
           return newSet;
         });
-        alert(`Failed to create share: ${getUserErrorMessage(err)}`);
+        showToast(
+          `Failed to create share: ${getUserErrorMessage(err)}`,
+          "error",
+        );
       }
     },
     [orgId, fetchTree],
@@ -342,10 +350,14 @@ export default function FilesPage() {
         });
         setEditTarget(null);
         fetchTree();
-        alert("File share updated successfully!");
+        showToast("Share updated");
+        window.dispatchEvent(new Event("metrics:invalidate"));
       } catch (err) {
         console.error("Failed to update share:", err);
-        alert(`Failed to update share: ${getUserErrorMessage(err)}`);
+        showToast(
+          `Failed to update share: ${getUserErrorMessage(err)}`,
+          "error",
+        );
       }
     },
     [orgId, editTarget, fetchTree],
@@ -362,10 +374,11 @@ export default function FilesPage() {
       await deleteFileShare(orgId, editTarget.name);
       setEditTarget(null);
       fetchTree();
-      alert("File share deleted successfully!");
+      showToast("Share deleted");
+      window.dispatchEvent(new Event("metrics:invalidate"));
     } catch (err) {
       console.error("Failed to delete share:", err);
-      alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
+      showToast(`Failed to delete share: ${getUserErrorMessage(err)}`, "error");
     }
   }, [orgId, editTarget, fetchTree]);
 
@@ -507,7 +520,10 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            alert("Delete is taking longer than expected. Please refresh.");
+            showToast(
+              "Delete is taking longer than expected. Please refresh.",
+              "error",
+            );
           }
         }, 2000);
       } catch (err) {
@@ -517,7 +533,10 @@ export default function FilesPage() {
           newSet.delete(node.name);
           return newSet;
         });
-        alert(`Failed to delete share: ${getUserErrorMessage(err)}`);
+        showToast(
+          `Failed to delete share: ${getUserErrorMessage(err)}`,
+          "error",
+        );
       }
     },
     [orgId, fetchTree],
@@ -534,27 +553,40 @@ export default function FilesPage() {
 
   const renderList = () => (
     <>
-      <div className="tableHeaders">
-        <div className="header">
-          <Checkbox
-            checked={allVisibleSelected}
-            indeterminate={isIndeterminate}
-            onChange={toggleSelectAllVisible}
-            style={
-              !allVisibleSelected && !isIndeterminate
-                ? {
-                    border: "2px solid rgba(255, 255, 255, 0.5)",
-                    backgroundColor: "transparent",
-                  }
-                : undefined
-            }
-          />
-          <div>Name</div>
-          <div className="metaHeader">Date Modified</div>
-          <div className="storageHeader">Storage</div>
-          <div className="usersHeader">Users</div>
-          <div className="groupsHeader">Groups</div>
-          <div />
+      <div style={{ position: "relative" }}>
+        <div
+          className="selectionSummaryCount"
+          style={{
+            position: "absolute",
+            top: "-20px",
+            left: 0,
+            visibility: selectedListCount > 0 ? "visible" : "hidden",
+          }}
+        >
+          {selectedListCount} selected
+        </div>
+        <div className="tableHeaders">
+          <div className="header">
+            <Checkbox
+              checked={allVisibleSelected}
+              indeterminate={isIndeterminate}
+              onChange={toggleSelectAllVisible}
+              style={
+                !allVisibleSelected && !isIndeterminate
+                  ? {
+                      border: "2px solid rgba(255, 255, 255, 0.5)",
+                      backgroundColor: "transparent",
+                    }
+                  : undefined
+              }
+            />
+            <div>Name</div>
+            <div className="metaHeader">Date Modified</div>
+            <div className="storageHeader">Storage</div>
+            <div className="usersHeader">Users</div>
+            <div className="groupsHeader">Groups</div>
+            <div />
+          </div>
         </div>
       </div>
 
@@ -882,20 +914,6 @@ export default function FilesPage() {
           </div>
 
           <div className="rightTools">
-            {layout === "list" && selectedListCount > 0 && (
-              <div className="selectionSummary">
-                <span className="selectionSummaryCount">
-                  {selectedListCount} selected
-                </span>
-                <button
-                  type="button"
-                  className="clearSelectionButton"
-                  onClick={clearSelection}
-                >
-                  Clear selection
-                </button>
-              </div>
-            )}
             <RefreshButton
               onClick={withClickLog({
                 name: "files/toolbar/refresh",
@@ -1378,6 +1396,12 @@ export default function FilesPage() {
         }
       `}</style>
       </div>
+      <Toast
+        msg={toast.msg}
+        type={toast.type}
+        open={toast.open}
+        onClose={hideToast}
+      />
     </PageShell>
   );
 }

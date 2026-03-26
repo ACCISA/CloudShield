@@ -8,21 +8,29 @@ import { apiGet, apiPatch, apiPost } from "./client";
  * Fetch all file shares for an organization
  */
 export async function fetchFileShares(orgId) {
-  const data = await apiGet(`/file_shares?org_id=${encodeURIComponent(orgId)}`);
+  const res = await apiGet(`/file_shares?org_id=${encodeURIComponent(orgId)}`);
+  const data = await res.json();
   return data.shares || [];
 }
 
 /**
  * Create a new file share (dispatches async job)
  */
-export async function createFileShare({ orgId, name, users, groups, description, maxSize }) {
+export async function createFileShare({
+  orgId,
+  name,
+  users,
+  groups,
+  description,
+  maxSize,
+}) {
   const body = {
     org_id: orgId,
     share_name: name,
     users: users || [],
     groups: groups || [],
   };
-  
+
   // Only include optional fields if they have values
   if (description) body.description = description;
   if (maxSize) body.max_size = parseInt(maxSize, 10); // Store as GB (just the number user entered)
@@ -59,10 +67,11 @@ export async function deleteFileShare(orgId, shareName) {
  * @param {boolean} summary - If true, returns only essential fields (for dropdowns/selection)
  */
 export async function fetchUsers(orgId, summary = true) {
-  const url = summary 
+  const url = summary
     ? `/organizations/${encodeURIComponent(orgId)}/users?summary=1`
     : `/organizations/${encodeURIComponent(orgId)}/users`;
-  const data = await apiGet(url);
+  const res = await apiGet(url);
+  const data = await res.json();
   return data.items || [];
 }
 
@@ -73,10 +82,9 @@ export async function fetchUsers(orgId, summary = true) {
  */
 export async function fetchGroups(orgId, summary = true) {
   void orgId; // Kept in signature for call-site consistency.
-  const url = summary
-    ? "/access-groups?summary=1"
-    : "/access-groups";
-  const data = await apiGet(url);
+  const url = summary ? "/access-groups?summary=1" : "/access-groups";
+  const res = await apiGet(url);
+  const data = await res.json();
   return data.access_groups || [];
 }
 

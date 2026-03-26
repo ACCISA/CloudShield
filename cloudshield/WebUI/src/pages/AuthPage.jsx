@@ -5,7 +5,6 @@
  * Authentication page (login) integrated with Flask API.
  */
 import React, { useMemo, useState } from "react";
-import { Alert, Box, Typography } from "@mui/material";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
 import { useNavigate } from "react-router-dom";
@@ -14,9 +13,9 @@ import AuthCard from "../components/auth/AuthCard.jsx";
 import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
-import PageShell from "../components/layout/PageShell.jsx";
 
-import {apiPost} from "../api/client";
+import { apiPost } from "../api/client";
+import "./auth.css";
 
 /**
  * Safely parse JSON if the response body is JSON, otherwise return {}.
@@ -46,11 +45,15 @@ async function safeReadJson(response) {
 function getAuthErrorMessage({ status, data }) {
   const apiMsg = data?.error || data?.message;
 
-  if (status === 400) return apiMsg || "Please check your email and password and try again.";
+  if (status === 400)
+    return apiMsg || "Please check your email and password and try again.";
   if (status === 401) return apiMsg || "Incorrect email or password.";
-  if (status === 403) return apiMsg || "You don’t have permission to access this account.";
-  if (status === 404) return apiMsg || "Login service not found. Please contact support.";
-  if (status >= 500) return "We’re having trouble signing you in right now. Please try again.";
+  if (status === 403)
+    return apiMsg || "You don’t have permission to access this account.";
+  if (status === 404)
+    return apiMsg || "Login service not found. Please contact support.";
+  if (status >= 500)
+    return "We’re having trouble signing you in right now. Please try again.";
 
   return apiMsg || "Login failed. Please try again.";
 }
@@ -87,11 +90,10 @@ export default function AuthPage({ onLoginSuccess }) {
 
     try {
       // 2) Call the Flask API
-      const response = await apiPost("/auth/login",
-        {
-          email: email.trim(),
-          password,
-        });
+      const response = await apiPost("/auth/login", {
+        email: email.trim(),
+        password,
+      });
 
       const data = await safeReadJson(response);
 
@@ -115,65 +117,41 @@ export default function AuthPage({ onLoginSuccess }) {
   };
 
   return (
-    <PageShell>
-      <Box
-        sx={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 3,
-        }}
-      >
-        <AuthCard>
-          {/* Error Feedback */}
-          {error ? (
-            <Alert severity="error" sx={{ mb: 3, width: "100%" }} variant="filled">
-              {error}
-            </Alert>
-          ) : null}
+    <div className="auth-page">
+      <AuthCard>
+        {error && <div className="auth-error">{error}</div>}
 
-          <AuthTextField
-            label="Email"
-            placeholder="johndoe@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+        <AuthTextField
+          label="Email"
+          placeholder="johndoe@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
 
-          <PasswordField
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+        <PasswordField
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
 
-          <PrimaryButton onClick={handleLogin} disabled={isLoading || !canSubmit}>
-            {isLoading ? "Logging in…" : "Login"}
-          </PrimaryButton>
+        <PrimaryButton onClick={handleLogin} disabled={isLoading || !canSubmit}>
+          {isLoading ? "Signing in…" : "Sign in"}
+        </PrimaryButton>
 
-          <Typography
-            onClick={() => {
-              trackButton("auth/nav/signup", { page: "auth" });
-              navigate("/signup");
-            }}
-            sx={{
-              cursor: "pointer",
-              mt: 1.5,
-              textAlign: "center",
-              color: "text.primary",
-              fontSize: "0.9rem",
-              "&:hover": {
-                textDecoration: "underline",
-                color: "primary.main",
-              },
-            }}
-          >
-            Don&apos;t have an account? Sign up
-          </Typography>
-        </AuthCard>
-      </Box>
-    </PageShell>
+        <button
+          type="button"
+          className="auth-nav-link"
+          onClick={() => {
+            trackButton("auth/nav/signup", { page: "auth" });
+            navigate("/signup");
+          }}
+        >
+          Don&apos;t have an account? Sign up
+        </button>
+      </AuthCard>
+    </div>
   );
 }
 

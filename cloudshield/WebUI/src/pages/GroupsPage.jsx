@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -29,6 +29,7 @@ import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { safeAsync } from "../lib/safeAsync.js";
 import { formatShares } from "../lib/format.js";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
+import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
 
 const baseStyles = {
   ...managementToolbarStyles,
@@ -54,7 +55,8 @@ export default function GroupsPage() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
-  const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
+  const { toast, showToast, hideToast } = useToast();
+  const openToast = (msg, type = "success") => showToast(msg, type);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -66,11 +68,6 @@ export default function GroupsPage() {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
-
-  const openToast = (msg, type = "success") => {
-    setToast({ open: true, msg, type });
-    setTimeout(() => setToast((p) => ({ ...p, open: false })), 2500);
-  };
 
   const safeSplitName = (fullName) => {
     const raw = (fullName || "").trim();
@@ -138,7 +135,8 @@ export default function GroupsPage() {
     try {
       await safeAsync(
         async () => {
-          const data = await apiGet("/access-groups");
+          const res = await apiGet("/access-groups");
+          const data = await res.json();
           const apiGroups = Array.isArray(data.access_groups)
             ? data.access_groups
             : [];
@@ -283,6 +281,7 @@ export default function GroupsPage() {
           ? "Group updated successfully"
           : "Group created successfully",
       );
+      window.dispatchEvent(new Event("metrics:invalidate"));
       await fetchGroups();
     } catch (e) {
       console.error(e);
@@ -304,6 +303,7 @@ export default function GroupsPage() {
         { toast: { error: (msg) => openToast(msg, "error") } },
       );
       openToast("Group deleted");
+      window.dispatchEvent(new Event("metrics:invalidate"));
       await fetchGroups();
     } catch (e) {
       console.error(e);
@@ -314,10 +314,6 @@ export default function GroupsPage() {
     () => filtered.filter((g) => selectedIds.has(g._id)).length,
     [filtered, selectedIds],
   );
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
   const getGroupMenuItems = (group) => [
     {
       icon: <EditIcon width={15} height={16} color={themeColors.text} />,
@@ -399,20 +395,6 @@ export default function GroupsPage() {
           </div>
 
           <div style={styles.rightActions}>
-            {layout === "list" && selectedCount > 0 && (
-              <div style={styles.selectionSummary}>
-                <span style={styles.selectionSummaryCount}>
-                  {selectedCount} selected
-                </span>
-                <button
-                  type="button"
-                  style={styles.clearSelectionButton}
-                  onClick={clearSelection}
-                >
-                  Clear selection
-                </button>
-              </div>
-            )}
             <RefreshButton onClick={fetchGroups} />
             <CreateButton
               icon={
@@ -435,21 +417,34 @@ export default function GroupsPage() {
           </TableSurface>
         ) : layout === "list" ? (
           <>
-            <TableSurface>
-              <GroupsList
-                rows={pagedGroups}
-                showUsers={showUsers}
-                showWorkstations={showWorkstations}
-                showFiles={showFiles}
-                selectedIds={selectedIds}
-                allVisibleSelected={allVisibleSelected}
-                isIndeterminate={isIndeterminate}
-                onToggleSelect={toggleSelect}
-                onToggleSelectAll={toggleSelectAllVisible}
-                onEdit={handleOpenEditModal}
-                onDelete={handleDeleteGroup}
-              />
-            </TableSurface>
+            <div style={{ position: "relative" }}>
+              <span
+                style={{
+                  ...styles.selectionSummaryCount,
+                  position: "absolute",
+                  top: "-2px",
+                  left: 0,
+                  visibility: selectedCount > 0 ? "visible" : "hidden",
+                }}
+              >
+                {selectedCount} selected
+              </span>
+              <TableSurface>
+                <GroupsList
+                  rows={pagedGroups}
+                  showUsers={showUsers}
+                  showWorkstations={showWorkstations}
+                  showFiles={showFiles}
+                  selectedIds={selectedIds}
+                  allVisibleSelected={allVisibleSelected}
+                  isIndeterminate={isIndeterminate}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAllVisible}
+                  onEdit={handleOpenEditModal}
+                  onDelete={handleDeleteGroup}
+                />
+              </TableSurface>
+            </div>
             <Pagination
               totalItems={filtered.length}
               itemsPerPage={10}
@@ -542,6 +537,12 @@ export default function GroupsPage() {
         onSubmit={handleSubmitGroup}
         onDelete={handleDeleteGroup}
         onRefresh={fetchGroups}
+      />
+      <Toast
+        msg={toast.msg}
+        type={toast.type}
+        open={toast.open}
+        onClose={hideToast}
       />
     </PageShell>
   );

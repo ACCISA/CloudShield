@@ -29,6 +29,7 @@ import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
+import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
 
 const styles = {
   ...managementToolbarStyles,
@@ -96,6 +97,7 @@ export default function WorkstationsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -324,20 +326,6 @@ export default function WorkstationsPage() {
           </div>
 
           <div style={styles.rightActions}>
-            {layout === "list" && selectedCount > 0 && (
-              <div style={styles.selectionSummary}>
-                <span style={styles.selectionSummaryCount}>
-                  {selectedCount} selected
-                </span>
-                <button
-                  type="button"
-                  style={styles.clearSelectionButton}
-                  onClick={() => setSelectedIds(new Set())}
-                >
-                  Clear selection
-                </button>
-              </div>
-            )}
             <RefreshButton
               onClick={withClickLog({
                 name: "workstations/refresh",
@@ -368,27 +356,40 @@ export default function WorkstationsPage() {
           </TableSurface>
         ) : layout === "list" ? (
           <>
-            <TableSurface>
-              <div style={styles.listWrapper}>
-                <WorkstationList
-                  rows={pagedRows}
-                  onEdit={(r) => {
-                    setEditRow(r);
-                    setOpenModal(true);
-                  }}
-                  onDelete={handleDelete}
-                  onToggleStatus={handleToggleStatus}
-                  selectedIds={selectedIds}
-                  allVisibleSelected={allVisibleSelected}
-                  isIndeterminate={isIndeterminate}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={toggleSelectAllVisible}
-                  showUsers={showUsersCol}
-                  showCurrent={showCurrentCol}
-                  showLastUsed={showLastUsedCol}
-                />
-              </div>
-            </TableSurface>
+            <div style={{ position: "relative" }}>
+              <span
+                style={{
+                  ...styles.selectionSummaryCount,
+                  position: "absolute",
+                  top: "-2px",
+                  left: 0,
+                  visibility: selectedCount > 0 ? "visible" : "hidden",
+                }}
+              >
+                {selectedCount} selected
+              </span>
+              <TableSurface>
+                <div style={styles.listWrapper}>
+                  <WorkstationList
+                    rows={pagedRows}
+                    onEdit={(r) => {
+                      setEditRow(r);
+                      setOpenModal(true);
+                    }}
+                    onDelete={handleDelete}
+                    onToggleStatus={handleToggleStatus}
+                    selectedIds={selectedIds}
+                    allVisibleSelected={allVisibleSelected}
+                    isIndeterminate={isIndeterminate}
+                    onToggleSelect={toggleSelect}
+                    onToggleSelectAll={toggleSelectAllVisible}
+                    showUsers={showUsersCol}
+                    showCurrent={showCurrentCol}
+                    showLastUsed={showLastUsedCol}
+                  />
+                </div>
+              </TableSurface>
+            </div>
             <Pagination
               totalItems={filtered.length}
               itemsPerPage={10}
@@ -548,11 +549,20 @@ export default function WorkstationsPage() {
               setEditRow(null);
             }}
             workstationData={editRow}
-            onSubmit={(p) => {
-              if (editRow) handleEditSave(editRow.id, p);
-              else handleCreate(p);
-              setOpenModal(false);
-              setEditRow(null);
+            onSubmit={async (p) => {
+              try {
+                if (editRow) {
+                  handleEditSave(editRow.id, p);
+                  showToast("Workstation updated");
+                  window.dispatchEvent(new Event("metrics:invalidate"));
+                } else {
+                  await handleCreate(p);
+                  showToast("Workstation created");
+                  window.dispatchEvent(new Event("metrics:invalidate"));
+                }
+              } catch {
+                showToast("Failed to save workstation", "error");
+              }
             }}
             onDelete={
               editRow
@@ -565,6 +575,12 @@ export default function WorkstationsPage() {
             }
           />
         )}
+        <Toast
+          msg={toast.msg}
+          type={toast.type}
+          open={toast.open}
+          onClose={hideToast}
+        />
       </div>
     </PageShell>
   );

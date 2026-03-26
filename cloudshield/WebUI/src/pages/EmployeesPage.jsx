@@ -42,32 +42,7 @@ import {
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
-
-const CustomToast = ({ msg, type = "success", onClose }) => {
-  if (!msg) return null;
-  return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: "24px",
-        right: "24px",
-        padding: "12px 24px",
-        borderRadius: "12px",
-        backgroundColor: type === "error" ? "#d32f2f" : "#2e7d32",
-        color: "text.primary",
-        fontSize: "1rem",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        cursor: "pointer",
-      }}
-      onClick={onClose}
-    >
-      {msg}
-    </div>
-  );
-};
+import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
 
 function getUserGroups(allGroups, userId) {
   return allGroups.filter((g) => {
@@ -187,12 +162,8 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState("");
 
   const [activeFilters, setActiveFilters] = useState({ status: new Set() });
-  const [toast, setToast] = useState({ open: false, msg: "", type: "success" });
-
-  const openToast = (msg, type = "success") => {
-    setToast({ open: true, msg, type });
-    setTimeout(() => setToast({ open: false, msg: "", type: "success" }), 3000);
-  };
+  const { toast, showToast, hideToast } = useToast();
+  const openToast = (msg, type = "success") => showToast(msg, type);
   const resolveAuthToken = () => {
     try {
       return localStorage.getItem("jwt") || accessToken || null;
@@ -315,6 +286,7 @@ export default function EmployeesPage() {
         if (payload.groups)
           await updateUserGroupMemberships(modalEmployee.id, payload.groups);
         openToast("User updated successfully");
+        window.dispatchEvent(new Event("metrics:invalidate"));
         setModalOpen(false);
         setModalEmployee(null);
         fetchUsers();
@@ -342,6 +314,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     if (status === "succeeded") {
       openToast("User created successfully");
+      window.dispatchEvent(new Event("metrics:invalidate"));
       resetCreation();
       setModalOpen(false);
       setModalEmployee(null);
@@ -366,6 +339,7 @@ export default function EmployeesPage() {
       });
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
+      window.dispatchEvent(new Event("metrics:invalidate"));
       if (!user && modalEmployee) {
         setModalOpen(false);
         setModalEmployee(null);
@@ -510,20 +484,6 @@ export default function EmployeesPage() {
           </div>
 
           <div style={styles.rightActions}>
-            {layout === "list" && selectedCount > 0 && (
-              <div style={styles.selectionSummary}>
-                <span style={styles.selectionSummaryCount}>
-                  {selectedCount} selected
-                </span>
-                <button
-                  type="button"
-                  style={styles.clearSelectionButton}
-                  onClick={() => setSelectedIds(new Set())}
-                >
-                  Clear selection
-                </button>
-              </div>
-            )}
             <RefreshButton
               onClick={withClickLog({
                 name: "employees/toolbar/refresh",
@@ -554,37 +514,50 @@ export default function EmployeesPage() {
           </TableSurface>
         ) : layout === "list" ? (
           <>
-            <TableSurface>
-              <UsersTable
-                users={pagedUsers}
-                showTitle={showTitle}
-                showWorkstations={showWorkstations}
-                showGroups={showGroups}
-                showFiles={showFiles}
-                selectedIds={selectedIds}
-                allVisibleSelected={allVisibleSelected}
-                isIndeterminate={isIndeterminate}
-                onToggleSelect={toggleSelect}
-                onToggleSelectAll={toggleSelectAllVisible}
-                onSort={(f) => {
-                  setSortDir(
-                    sortField === f
-                      ? sortDir === "asc"
-                        ? "desc"
-                        : "asc"
-                      : "asc",
-                  );
-                  setSortField(f);
+            <div style={{ position: "relative" }}>
+              <span
+                style={{
+                  ...styles.selectionSummaryCount,
+                  position: "absolute",
+                  top: "-2px",
+                  left: 0,
+                  visibility: selectedCount > 0 ? "visible" : "hidden",
                 }}
-                sortField={sortField}
-                sortDir={sortDir}
-                onEdit={(u) => {
-                  setModalEmployee(u);
-                  setModalOpen(true);
-                }}
-                onDelete={handleDelete}
-              />
-            </TableSurface>
+              >
+                {selectedCount} selected
+              </span>
+              <TableSurface>
+                <UsersTable
+                  users={pagedUsers}
+                  showTitle={showTitle}
+                  showWorkstations={showWorkstations}
+                  showGroups={showGroups}
+                  showFiles={showFiles}
+                  selectedIds={selectedIds}
+                  allVisibleSelected={allVisibleSelected}
+                  isIndeterminate={isIndeterminate}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAllVisible}
+                  onSort={(f) => {
+                    setSortDir(
+                      sortField === f
+                        ? sortDir === "asc"
+                          ? "desc"
+                          : "asc"
+                        : "asc",
+                    );
+                    setSortField(f);
+                  }}
+                  sortField={sortField}
+                  sortDir={sortDir}
+                  onEdit={(u) => {
+                    setModalEmployee(u);
+                    setModalOpen(true);
+                  }}
+                  onDelete={handleDelete}
+                />
+              </TableSurface>
+            </div>
             <Pagination
               totalItems={filtered.length}
               itemsPerPage={10}
@@ -751,13 +724,12 @@ export default function EmployeesPage() {
         creationProgress={progress}
         creationMessage={message}
       />
-      {toast.open && (
-        <CustomToast
-          msg={toast.msg}
-          type={toast.type}
-          onClose={() => setToast({ ...toast, open: false })}
-        />
-      )}
+      <Toast
+        msg={toast.msg}
+        type={toast.type}
+        open={toast.open}
+        onClose={hideToast}
+      />
     </PageShell>
   );
 }

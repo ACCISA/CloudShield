@@ -1,11 +1,8 @@
 import React, { useState } from "react";
-import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
 
-import PageShell from "../components/layout/PageShell.jsx";
-import TableSurface from "../components/table/TableSurface.jsx";
 import { getUserErrorMessage } from "../lib/errors";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
@@ -15,6 +12,7 @@ import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
 import { apiPost } from "../api/client";
+import "./auth.css";
 
 // to be updated later with real plans
 const PLAN_OPTIONS = [
@@ -67,8 +65,7 @@ const PLAN_OPTIONS = [
 ];
 
 const BYPASS_STRIPE =
-  typeof import.meta !== "undefined" &&
-  import.meta.env?.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+  import.meta?.env?.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
 
 const EMAIL_MAX_LENGTH = 254;
 const PASSWORD_REQUIREMENTS_MESSAGE =
@@ -262,7 +259,7 @@ export default function SignupPage({ onSignupSuccess }) {
       }
 
       if (checkoutData.url) {
-        window.location.href = checkoutData.url;
+        globalThis.location.href = checkoutData.url;
       } else {
         navigate("/provisioning", { replace: true });
       }
@@ -274,205 +271,97 @@ export default function SignupPage({ onSignupSuccess }) {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "background.default",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: 6,
-        py: 4,
-      }}
-    >
-      <Box sx={{ width: "100%", maxWidth: 1240 }}>
-        <PageShell>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 5,
-              alignItems: "stretch",
-            }}
-          >
-            <Box
-              sx={{
-                flex: "0 0 360px",
-                display: "flex",
-                alignItems: "center",
+    <div className="signup-page">
+      <div className="signup-inner">
+        {/* ── Left: form ── */}
+        <div className="signup-form-col">
+          <SignupCard>
+            <h2 className="auth-card__title">Create Your Organization</h2>
+
+            {BYPASS_STRIPE && (
+              <div className="signup-bypass-banner">
+                Billing disabled — VITE_BYPASS_STRIPE_CONFIRMATION=true
+              </div>
+            )}
+
+            {errors.form && <div className="auth-error">{errors.form}</div>}
+
+            <AuthTextField
+              label="Email"
+              placeholder="jane@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {errors.email && <p className="auth-field-error">{errors.email}</p>}
+
+            <PasswordField
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {errors.password && (
+              <p className="auth-field-error">{errors.password}</p>
+            )}
+
+            <AuthTextField
+              label="Admin Name"
+              placeholder="Jane Doe"
+              value={adminName}
+              onChange={(e) => setAdminName(e.target.value)}
+            />
+            {errors.adminName && (
+              <p className="auth-field-error">{errors.adminName}</p>
+            )}
+
+            <AuthTextField
+              label="Company Name"
+              placeholder="Acme Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
+            {errors.company && (
+              <p className="auth-field-error">{errors.company}</p>
+            )}
+
+            <PrimaryButton onClick={handleSignup} disabled={submitting}>
+              {submitLabel}
+            </PrimaryButton>
+
+            <button
+              type="button"
+              className="auth-nav-link"
+              onClick={() => {
+                trackButton("signup/nav/login", { page: "signup" });
+                navigate("/login");
               }}
             >
-              <SignupCard>
-                <Typography
-                  sx={{
-                    fontSize: "1.6rem",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    mb: 2.5,
-                  }}
-                >
-                  Create Your Organization
-                </Typography>
+              Already have an account? Log in
+            </button>
+          </SignupCard>
+        </div>
 
-                {BYPASS_STRIPE && (
-                  <Box
-                    sx={{
-                      mb: 2,
-                      px: 2,
-                      py: 1.2,
-                      borderRadius: "8px",
-                      bgcolor: "rgba(250, 204, 21, 0.08)",
-                      border: "1px solid rgba(250, 204, 21, 0.2)",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        color: "#facc15",
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                        textAlign: "center",
-                      }}
-                    >
-                      Billing disabled — VITE_BYPASS_STRIPE_CONFIRMATION=true
-                    </Typography>
-                  </Box>
-                )}
-
-                {errors.form && (
-                  <Typography
-                    sx={{
-                      color: "#f87171",
-                      mb: 1.5,
-                      fontSize: "0.9rem",
-                      textAlign: "center",
-                    }}
-                  >
-                    {errors.form}
-                  </Typography>
-                )}
-
-                <AuthTextField
-                  label="Email"
-                  placeholder="jane@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                {errors.email && (
-                  <Typography
-                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
-                  >
-                    {errors.email}
-                  </Typography>
-                )}
-
-                <PasswordField
-                  label="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                {errors.password && (
-                  <Typography
-                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
-                  >
-                    {errors.password}
-                  </Typography>
-                )}
-
-                <AuthTextField
-                  label="Admin Name"
-                  placeholder="Jane Doe"
-                  value={adminName}
-                  onChange={(e) => setAdminName(e.target.value)}
-                />
-                {errors.adminName && (
-                  <Typography
-                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
-                  >
-                    {errors.adminName}
-                  </Typography>
-                )}
-
-                <AuthTextField
-                  label="Company Name"
-                  placeholder="Acme Corp"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                />
-                {errors.company && (
-                  <Typography
-                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
-                  >
-                    {errors.company}
-                  </Typography>
-                )}
-
-                <PrimaryButton onClick={handleSignup} disabled={submitting}>
-                  {submitLabel}
-                </PrimaryButton>
-
-                <Typography
-                  onClick={() => {
-                    trackButton("signup/nav/login", { page: "signup" });
-                    navigate("/login");
-                  }}
-                  sx={{
-                    cursor: "pointer",
-                    mt: 1.5,
-                    textAlign: "center",
-                    color: "text.primary",
-                    fontSize: "0.9rem",
-                    "&:hover": {
-                      textDecoration: "underline",
-                      color: "primary.main",
-                    },
-                  }}
-                >
-                  Already have an account? Log in
-                </Typography>
-              </SignupCard>
-            </Box>
-
-            <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: "1.9rem",
-                  fontWeight: 700,
-                  color: "text.primary",
-                  mb: 2.5,
-                  textAlign: "left",
-                }}
-              >
-                Your Plan Overview
-              </Typography>
-
-              <TableSurface>
-                <Box sx={{ p: 2 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 2.5,
-                      justifyContent: "flex-start",
-                      opacity: submitting ? 0.8 : 1,
-                      pointerEvents: submitting ? "none" : "auto",
-                    }}
-                  >
-                    {PLAN_OPTIONS.map((p) => (
-                      <PlanCard
-                        key={p.id}
-                        plan={p}
-                        selected={plan === p.id}
-                        onSelect={handlePlanSelect}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              </TableSurface>
-            </Box>
-          </Box>
-        </PageShell>
-      </Box>
-    </Box>
+        {/* ── Right: plan selection ── */}
+        <div className="signup-plans-col">
+          <h2 className="signup-plans-title">Your Plan Overview</h2>
+          <div
+            className="signup-plans-grid"
+            style={{
+              opacity: submitting ? 0.7 : 1,
+              pointerEvents: submitting ? "none" : "auto",
+            }}
+          >
+            {PLAN_OPTIONS.map((p) => (
+              <PlanCard
+                key={p.id}
+                plan={p}
+                selected={plan === p.id}
+                onSelect={handlePlanSelect}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
