@@ -123,6 +123,8 @@ def attach_api_to_network(server_logger, network_name):
 
 
 def setup_ssh_keys(server_logger, private_key_path):
+    from .keygen import generate_ssh_key_pair
+
     server_logger.info("Generating ssh keys for samba-test container...")
     public_key_path, private_key_path = generate_ssh_key_pair(private_key_path=private_key_path)
 
@@ -344,7 +346,6 @@ def connect_runtime_containers_to_org_network(network_name: str, server_logger) 
     target_containers = [
         os.environ.get("CS_API_CONTAINER", "cs-api-test-dev"),
         os.environ.get("CS_UI_CONTAINER", "cs-ui-dev"),
-        os.environ.get("CS_DESKTOP_CONTAINER", "cs-desktop-ui-dev"),
     ]
 
     for container_name in target_containers:

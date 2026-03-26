@@ -22,50 +22,14 @@ process.env.APP_ROOT = path.join(__dirname, "..");
 export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-const VITE_PORT = process.env["VITE_PORT"] || "5174";
-const DEV_RENDERER_URL_FALLBACK = `http://127.0.0.1:${VITE_PORT}`;
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, "public")
   : RENDERER_DIST;
 
-// Containers often have no usable GPU/X11 acceleration path.
-// Force software rendering to prevent blank/white windows.
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch("disable-gpu");
-app.commandLine.appendSwitch("use-gl", "swiftshader");
-app.commandLine.appendSwitch("ignore-gpu-blocklist");
-
 let win: BrowserWindow | null;
 let appIcon: Tray | null = null;
 let isQuitting = false;
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function loadRendererWithRetry(targetWindow: BrowserWindow) {
-  const devRendererUrl =
-    VITE_DEV_SERVER_URL || (!app.isPackaged ? DEV_RENDERER_URL_FALLBACK : "");
-
-  if (!devRendererUrl) {
-    await targetWindow.loadFile(path.join(RENDERER_DIST, "index.html"));
-    return;
-  }
-
-  const maxAttempts = 20;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      await targetWindow.loadURL(devRendererUrl);
-      return;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const isRetryable = /ERR_CONNECTION_REFUSED|ERR_FAILED/i.test(message);
-      if (!isRetryable || attempt === maxAttempts) {
-        throw error;
-      }
-      await delay(300);
-    }
-  }
-}
 
 const showMainWindow = () => {
   if (!win || win.isDestroyed()) {
@@ -102,9 +66,12 @@ function createWindow() {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
   });
 
-  loadRendererWithRetry(win).catch((error) => {
-    console.error("[DesktopUI] Failed to load renderer:", error);
-  });
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    // win.loadFile('dist/index.html')
+    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+  }
 
   win.on("close", (event) => {
     if (isQuitting) return;

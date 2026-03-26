@@ -3,4 +3,6 @@ redis
 rq
 boto3
 pytest
-
+python-on-whales
+cryptography
+python-dotenv

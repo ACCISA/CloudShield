@@ -63,7 +63,7 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
         {"org_id": org_id, "email": email},
         {"_id": 1},
     )
-    if existing_user:
+    if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
         return str(existing_user["_id"])
 
     user_doc = {
@@ -85,7 +85,7 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
             {"org_id": org_id, "email": email},
             {"_id": 1},
         )
-        if existing_user:
+        if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
             return str(existing_user["_id"])
         raise
 

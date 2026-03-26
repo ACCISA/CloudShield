@@ -82,37 +82,6 @@ services:
       - ./cloudshield/WebUI:/app
       - ui_node_modules:/app/node_modules
 
-  desktop-ui:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.desktopui
-    container_name: "cs-desktop-ui-${ORG_TAG:-dev}"
-    user: "1000:1000"
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    environment:
-      - VITE_PORT=5174
-      - CHOKIDAR_USEPOLLING=true
-      - VITE_API_PROXY_TARGET=http://api-test:5050
-      - VITE_API_BASE_URL=http://api-test:5050/api
-      - DISPLAY=${DISPLAY:-:0}
-      - XAUTHORITY=/tmp/.docker.xauth
-      - ELECTRON_DISABLE_SANDBOX=true
-    ports:
-      - "5174:5174"
-    networks:
-      vpc_net:
-        ipv4_address: "172.23.${VPC_OCTET:-1}.21"
-      cloudshield_net:
-        ipv4_address: 172.28.0.21
-    volumes:
-      - ./cloudshield/DesktopUI:/app
-      - desktop_ui_node_modules:/app/node_modules
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ${XAUTHORITY:-/tmp/.cloudshield.xauth}:/tmp/.docker.xauth:ro
-
   openvpn-test:
     profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-openvpn-template:latest
@@ -308,4 +277,3 @@ networks:
 
 volumes:
   ui_node_modules:
-  desktop_ui_node_modules:
