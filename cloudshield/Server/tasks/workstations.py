@@ -188,4 +188,7 @@ def ws_create_custom():
     pass
 
 def ws_provision_update(workstation_id, status):
+    """
+    Update the provisioning status of a workstation
+    """
     pass

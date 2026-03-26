@@ -314,20 +314,10 @@ UserCard.defaultProps = {
   getBackgroundColor: () => "#7B68EE",
 };
 
-// Workstation hover card component
-function WorkstationCard({
-  data,
-  name,
-  profileImage,
-  initials,
-  getBackgroundColor,
-}) {
+const getWorkstationStatusMeta = (data) => {
   const normalizedStatus = String(data.status || "").toLowerCase();
   const isProvisioning = normalizedStatus === "provisioning";
-  const isConnectedStatus =
-    normalizedStatus === "online" ||
-    normalizedStatus === "connected" ||
-    normalizedStatus === "active";
+  const isConnectedStatus = ["online", "connected", "active"].includes(normalizedStatus);
   const isFailed = normalizedStatus === "failed";
   const isOnline = isConnectedStatus
     ? true
@@ -336,18 +326,31 @@ function WorkstationCard({
       : data.isOnline !== undefined
         ? data.isOnline
         : false;
-  const badgeClass = isProvisioning
-    ? "provisioning"
-    : isOnline
-      ? "active"
-      : "inactive";
-  const badgeLabel = isProvisioning
-    ? "Provisioning"
-    : isOnline
-      ? "Online"
-      : isFailed
-        ? "Failed"
-        : "Offline";
+
+  if (isProvisioning) {
+    return { badgeClass: "provisioning", badgeLabel: "Provisioning" };
+  }
+
+  if (isOnline) {
+    return { badgeClass: "active", badgeLabel: "Online" };
+  }
+
+  if (isFailed) {
+    return { badgeClass: "inactive", badgeLabel: "Failed" };
+  }
+
+  return { badgeClass: "inactive", badgeLabel: "Offline" };
+};
+
+// Workstation hover card component
+function WorkstationCard({
+  data,
+  name,
+  profileImage,
+  initials,
+  getBackgroundColor,
+}) {
+  const { badgeClass, badgeLabel } = getWorkstationStatusMeta(data);
 
   return (
     <div className="hover-card">

@@ -1,4 +1,6 @@
 """Tests for the workstations task module."""
+import sys
+import types
 import pytest
 from unittest.mock import MagicMock, Mock, patch, call
 from bson import ObjectId
@@ -156,6 +158,48 @@ def test_start_workstations_no_members(mock_dependencies):
 
     # Verify service_dispatcher was not called when there are no members
     workstations_module.service_dispatcher.assert_not_called()
+
+
+def test_enqueue_workstation_ready_email_skips_missing_requester_id():
+    logger = MagicMock()
+
+    workstations_module._enqueue_workstation_ready_email(None, "WS-One", logger)
+
+    logger.warning.assert_called_once_with(
+        "Skipping workstation ready email: missing requesting_user_id"
+    )
+
+
+def test_enqueue_workstation_ready_email_calls_job_service(monkeypatch):
+    logger = MagicMock()
+    recorded = {}
+    fake_job_service = types.ModuleType("services.job_service")
+
+    def fake_enqueue(user_id, workstation_name):
+        recorded["args"] = (user_id, workstation_name)
+
+    fake_job_service.enqueue_workstation_ready_email = fake_enqueue
+    monkeypatch.setitem(sys.modules, "services.job_service", fake_job_service)
+
+    workstations_module._enqueue_workstation_ready_email("user-1", "WS-One", logger)
+
+    assert recorded["args"] == ("user-1", "WS-One")
+    logger.error.assert_not_called()
+
+
+def test_enqueue_workstation_ready_email_logs_enqueue_error(monkeypatch):
+    logger = MagicMock()
+    fake_job_service = types.ModuleType("services.job_service")
+
+    def fake_enqueue(user_id, workstation_name):
+        raise RuntimeError("queue down")
+
+    fake_job_service.enqueue_workstation_ready_email = fake_enqueue
+    monkeypatch.setitem(sys.modules, "services.job_service", fake_job_service)
+
+    workstations_module._enqueue_workstation_ready_email("user-1", "WS-One", logger)
+
+    logger.error.assert_called_once()
 
 
 def test_ws_create_default_org_not_found(mock_dependencies):

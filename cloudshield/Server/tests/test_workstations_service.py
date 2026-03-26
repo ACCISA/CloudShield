@@ -289,6 +289,35 @@ def test_ws_create_default_with_multiple_access_groups(mock_dependencies, monkey
     )
 
 
+def test_ws_create_default_with_requesting_user_id(mock_dependencies, monkeypatch):
+    """Test ws_create_default forwards requesting_user_id when present."""
+    mock_task = MagicMock(return_value=None)
+    monkeypatch.setattr(
+        "cloudshield.Server.tasks.ws_create_default",
+        mock_task
+    )
+
+    ws_service.ws_create_default(
+        org_id="org-1",
+        name="Test WS",
+        description="Test",
+        software=["software1"],
+        access_groups=["group1"],
+        members=[],
+        requesting_user_id="user-123",
+    )
+
+    mock_task.assert_called_once_with(
+        "org-1",
+        "Test WS",
+        "Test",
+        ["software1"],
+        ["group1"],
+        [],
+        "user-123",
+    )
+
+
 def test_ws_start_returns_task_result(mock_dependencies, monkeypatch):
     """Test ws_start returns the result from the task."""
     mock_task = MagicMock(return_value={"status": "started"})
@@ -392,6 +421,32 @@ def test_enqueue_ws_create_default_forwards_all_parameters(mock_dependencies):
     assert call_args[0][3] == description
     assert call_args[0][4] == software
     assert call_args[0][5] == access_groups
+
+
+def test_enqueue_ws_create_default_appends_requesting_user_id(mock_dependencies):
+    """Test enqueue_ws_create_default appends requesting_user_id when present."""
+    mock_dependencies["queue"].enqueue.return_value = MagicMock(id="job-1")
+
+    ws_service.enqueue_ws_create_default(
+        org_id="org-1",
+        name="Test WS",
+        description="Test",
+        software=["software1"],
+        access_groups=["group1"],
+        members=[],
+        requesting_user_id="user-123",
+    )
+
+    mock_dependencies["queue"].enqueue.assert_called_once_with(
+        ws_service.ws_create_default,
+        "org-1",
+        "Test WS",
+        "Test",
+        ["software1"],
+        ["group1"],
+        [],
+        "user-123",
+    )
 
 
 def test_enqueue_ws_start_forwards_all_parameters(mock_dependencies):

@@ -259,7 +259,80 @@ def test_send_employee_invite_email_no_job_context(monkeypatch):
     monkeypatch.setattr(email_tasks, "render_template", fake_render)
     monkeypatch.setattr(email_tasks, "send_email", fake_send)
 
-    result = email_tasks.send_employee_invite_email("user789")
+
+def test_send_workstation_ready_email_success(monkeypatch):
+    job = DummyJob("job-ws")
+    logs = DummyLogsCollection()
+    user = {
+        "full_name": "Alex Admin",
+        "email": "alex@example.com",
+        "org_id": "org-123",
+    }
+    org = {"company_name": "CloudShield"}
+    rendered = {}
+    sent = {}
+    logger = DummyLogger()
+
+    def fake_render(template_name, context):
+        rendered["template"] = template_name
+        rendered["context"] = context
+        return "<html>ready</html>"
+
+    def fake_send(**kwargs):
+        sent.update(kwargs)
+        return {"status": "sent"}
+
+    monkeypatch.setattr(email_tasks, "get_current_job", lambda: job)
+    monkeypatch.setattr(email_tasks, "get_logger", lambda *args, **kwargs: logger)
+    monkeypatch.setattr(email_tasks, "users_admin", DummyCollection(user))
+    monkeypatch.setattr(email_tasks, "organizations", DummyCollection(org))
+    monkeypatch.setattr(email_tasks, "db_admin", DummyDbAdmin(logs))
+    monkeypatch.setattr(email_tasks, "render_template", fake_render)
+    monkeypatch.setattr(email_tasks, "send_email", fake_send)
+
+    result = email_tasks.send_workstation_ready_email("user-1", "WS-One")
 
     assert result["status"] == "sent"
-    # Verify it still works without a job context
+    assert job.meta["progress"] == "sending workstation ready email"
+    assert job.saved is True
+    assert rendered["template"] == "workstation_ready.html"
+    assert rendered["context"]["user_name"] == "Alex Admin"
+    assert rendered["context"]["org_name"] == "CloudShield"
+    assert rendered["context"]["workstation_name"] == "WS-One"
+    assert rendered["context"]["login_url"] == email_tasks.LOGIN_URL
+    assert sent["to_email"] == "alex@example.com"
+    assert sent["subject"] == "Your CloudShield workstation is ready"
+    assert logs.inserted and logs.inserted[0]["type"] == "workstation_ready"
+    assert logs.inserted[0]["workstation_name"] == "WS-One"
+    assert any(msg[0] == "info" and "status" in msg[1] for msg in logger.messages)
+
+
+def test_send_workstation_ready_email_error_without_job_context(monkeypatch):
+    logs = DummyLogsCollection()
+    user = {
+        "full_name": "Alex Admin",
+        "email": "alex@example.com",
+        "org_id": "org-123",
+    }
+    org = {"name": "CloudShield"}
+    logger = DummyLogger()
+
+    def fake_render(template_name, context):
+        return "<html>ready</html>"
+
+    def fake_send(**kwargs):
+        return {"status": "error", "reason": "smtp down"}
+
+    monkeypatch.setattr(email_tasks, "get_current_job", lambda: None)
+    monkeypatch.setattr(email_tasks, "get_logger", lambda *args, **kwargs: logger)
+    monkeypatch.setattr(email_tasks, "users_admin", DummyCollection(user))
+    monkeypatch.setattr(email_tasks, "organizations", DummyCollection(org))
+    monkeypatch.setattr(email_tasks, "db_admin", DummyDbAdmin(logs))
+    monkeypatch.setattr(email_tasks, "render_template", fake_render)
+    monkeypatch.setattr(email_tasks, "send_email", fake_send)
+
+    result = email_tasks.send_workstation_ready_email("user-1", "WS-One")
+
+    assert result["status"] == "error"
+    assert logs.inserted and logs.inserted[0]["reason"] == "smtp down"
+    assert any(msg[0] == "error" and "failed" in msg[1].lower() for msg in logger.messages)

@@ -266,6 +266,36 @@ function getStatusLightColors(status) {
   return { outerColor: "#381F1F", innerColor: "#ff5252" };
 }
 
+function getColumnTemplate({
+  isMobile,
+  showUsersColumn,
+  showCurrentColumn,
+  showLastUsedColumn,
+}) {
+  return [
+    !isMobile ? "28px" : null,
+    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)",
+    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
+    showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
+    showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
+    isMobile ? "40px" : "100px",
+    "28px",
+    "40px",
+  ].filter(Boolean);
+}
+
+function getHeaderSidePadding({ isMobile, isTablet }) {
+  if (isMobile) {
+    return "calc(12px + 4px + 4px)";
+  }
+
+  if (isTablet) {
+    return "calc(14px + 8px + 8px)";
+  }
+
+  return "calc(16px + 8px + 8px)";
+}
+
 /* --------------------------------- component -------------------------------- */
 
 function WorkstationRow({
@@ -403,17 +433,13 @@ export default function WorkstationList({
   const showUsersColumn = showUsers && !isMobile;
   const showCurrentColumn = showCurrent && windowWidth >= 1024;
   const showLastUsedColumn = showLastUsed && windowWidth >= 1024;
-
-  const cols = [
-    !isMobile ? "28px" : null, 
-    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)",
-    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
-    showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
-    showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
-    isMobile ? "40px" : "100px", 
-    "28px",
-    "40px", 
-  ].filter(Boolean);
+  const cols = getColumnTemplate({
+    isMobile,
+    showUsersColumn,
+    showCurrentColumn,
+    showLastUsedColumn,
+  });
+  const headerSidePadding = getHeaderSidePadding({ isMobile, isTablet });
 
   return (
     <>
@@ -422,16 +448,8 @@ export default function WorkstationList({
           style={{
             ...responsiveStyles.tableHeaders,
             gridTemplateColumns: cols.join(" "),
-            paddingLeft: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-            paddingRight: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
+            paddingLeft: headerSidePadding,
+            paddingRight: headerSidePadding,
           }}
         >
           <Checkbox
