@@ -11,8 +11,8 @@
  *   - Pure presentational component using MUI Paper/Box for layout and styling.
  *   - Keep styling changes here small; place form logic in consuming pages/components.
  */
-import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
+import React from "react";
+import { Paper, Box, Typography } from "@mui/material";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
@@ -27,17 +27,17 @@ export default function AuthCard({ children }) {
     <Paper
       variant="rounded"
       sx={{
-        width: '100%',
+        width: "100%",
         maxWidth: 480,
-        margin: '48px auto',
+        margin: "48px auto",
         backgroundColor: themeColors.surface,
-        borderRadius: '20px',
+        borderRadius: "20px",
         border: `1px solid ${themeColors.border}`,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.75)',
-        padding: { xs: '32px', md: '48px' },
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        boxShadow: "0 24px 64px rgba(0,0,0,0.75)",
+        padding: "48px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
         color: themeColors.text,
       }}
     >
@@ -50,27 +50,25 @@ export default function AuthCard({ children }) {
             height: 64,
             bgcolor: themeColors.text,
             color: themeColors.surface,
-            borderRadius: '8px',
+            borderRadius: "8px",
             fontWeight: 600,
             fontSize: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           LOGO
         </Box>
       </Box>
 
-      <Box sx={{ width: '100%' }}>
-        {children}
-      </Box>
+      <Box sx={{ width: "100%" }}>{children}</Box>
 
       {/* Footer links like "Can't log in?" / "Secure Login with 2FA" */}
       <Box
         sx={{
-          width: '100%',
-          textAlign: 'center',
+          width: "100%",
+          textAlign: "center",
           mt: 6,
           color: themeColors.text,
         }}
@@ -78,9 +76,9 @@ export default function AuthCard({ children }) {
         <Typography
           sx={{
             color: themeColors.text,
-            fontSize: '1rem',
+            fontSize: "1rem",
             fontWeight: 500,
-            textDecoration: 'underline',
+            textDecoration: "underline",
             mb: 2,
           }}
         >
@@ -89,7 +87,7 @@ export default function AuthCard({ children }) {
         <Typography
           sx={{
             color: themeColors.textSecondary,
-            fontSize: '0.9rem',
+            fontSize: "0.9rem",
             mb: 1,
           }}
         >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React from "react";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -98,65 +98,8 @@ const getStyles = (themeColors) => ({
     fontSize: "0.9rem",
     opacity: 0.85,
     whiteSpace: "nowrap",
-  }
+  },
 });
-
-// Responsive breakpoints
-const getResponsiveStyles = (windowWidth, styles) => {
-  if (windowWidth < 768) {
-    return {
-      ...styles,
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "16px 16px 4px 16px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "12px",
-        padding: "12px",
-      },
-      row: {
-        ...styles.row,
-        gap: "8px",
-        padding: "10px 6px",
-      },
-      nameSection: {
-        ...styles.nameSection,
-        gap: "8px",
-      },
-      name: {
-        ...styles.name,
-        fontSize: "0.95rem",
-      },
-      description: {
-        ...styles.description,
-        fontSize: "0.8rem",
-      },
-    };
-  }
-
-  if (windowWidth < 1024) {
-    return {
-      ...styles,
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "20px 20px 4px 20px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "16px",
-        padding: "14px",
-      },
-      row: {
-        ...styles.row,
-        gap: "10px",
-        padding: "11px 7px",
-      },
-    };
-  }
-
-  return styles;
-};
 
 /* ---------------------------- helpers & components ---------------------------- */
 
@@ -256,12 +199,10 @@ function GroupRow({
   onEdit,
   onDelete,
   isLast,
-  isMobile,
   isSelected,
   onToggleSelect,
   rowId,
   styles,
-  responsiveStyles,
 }) {
   const nameText = r?.name || "";
   const descText = r?.description || "";
@@ -270,27 +211,21 @@ function GroupRow({
     <>
       <HoverableRow
         style={{
-          ...responsiveStyles.row,
+          ...styles.row,
           gridTemplateColumns: cols.join(" "),
         }}
       >
-        {!isMobile && (
-          <Checkbox checked={isSelected} onChange={() => onToggleSelect(rowId)} />
-        )}
+        <Checkbox checked={isSelected} onChange={() => onToggleSelect(rowId)} />
 
-        <div style={responsiveStyles.nameSection}>
+        <div style={styles.nameSection}>
           <DisplayIcon type="group" data={r} size="small" />
           <div style={styles.nameContainer}>
-            <span
-              className="truncate"
-              style={responsiveStyles.name}
-              title={nameText}
-            >
+            <span className="truncate" style={styles.name} title={nameText}>
               {nameText || "—"}
             </span>
             <span
               className="truncate"
-              style={responsiveStyles.description}
+              style={styles.description}
               title={descText}
             >
               {descText ? `↳ ${descText}` : "↳ —"}
@@ -331,28 +266,15 @@ export default function GroupsList({
 }) {
   const themeColors = useThemeColors();
   const styles = getStyles(themeColors);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile = windowWidth < 768;
-  const responsiveStyles = useMemo(
-    () => getResponsiveStyles(windowWidth, styles),
-    [windowWidth, styles]
-  );
-
-  const showUsersColumn = showUsers && !isMobile;
-  const showWorkstationsColumn = showWorkstations && windowWidth >= 1024;
-  const showFilesColumn = showFiles && windowWidth >= 1024;
+  const showUsersColumn = showUsers;
+  const showWorkstationsColumn = showWorkstations;
+  const showFilesColumn = showFiles;
 
   const cols = [
-    !isMobile ? "28px" : null,
-    isMobile ? "1fr" : "1.2fr",
-    showUsersColumn ? (isMobile ? "0.8fr" : "0.6fr") : null,
+    "28px",
+    "1.2fr",
+    showUsersColumn ? "0.6fr" : null,
     showWorkstationsColumn ? "0.8fr" : null,
     showFilesColumn ? "0.8fr" : null,
     "0.25fr",
@@ -362,67 +284,56 @@ export default function GroupsList({
 
   return (
     <>
-      {!isMobile && (
-        <div
-          style={{
-            ...responsiveStyles.tableHeaders,
-            gridTemplateColumns: cols.join(" "),
-            paddingLeft: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : windowWidth < 1024
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-            paddingRight: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : windowWidth < 1024
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-          }}
-        >
-          <Checkbox
-            checked={allVisibleSelected}
-            indeterminate={isIndeterminate}
-            onChange={onToggleSelectAll}
-          />
-          <span className="truncate" style={styles.headerLabel} title="Name / Description">
-            Name/Description
-          </span>
-          {showUsersColumn && (
-            <span className="truncate" style={styles.headerLabel} title="Users">
-              Users
-            </span>
-          )}
-          {showWorkstationsColumn && (
-            <span className="truncate" style={styles.headerLabel} title="Workstations">
-              Workstations
-            </span>
-          )}
-          {showFilesColumn && (
-            <span className="truncate" style={styles.headerLabel} title="Shares">
-              Shares
-            </span>
-          )}
-          <div />
-        </div>
-      )}
-
       <div
         style={{
-          ...responsiveStyles.listPanel,
-          marginTop: isMobile ? "24px" : "0",
+          ...styles.tableHeaders,
+          gridTemplateColumns: cols.join(" "),
+          paddingLeft: "calc(16px + 8px + 8px)",
+          paddingRight: "calc(16px + 8px + 8px)",
         }}
       >
+        <Checkbox
+          checked={allVisibleSelected}
+          indeterminate={isIndeterminate}
+          onChange={onToggleSelectAll}
+        />
+        <span
+          className="truncate"
+          style={styles.headerLabel}
+          title="Name / Description"
+        >
+          Name/Description
+        </span>
+        {showUsersColumn && (
+          <span className="truncate" style={styles.headerLabel} title="Users">
+            Users
+          </span>
+        )}
+        {showWorkstationsColumn && (
+          <span
+            className="truncate"
+            style={styles.headerLabel}
+            title="Workstations"
+          >
+            Workstations
+          </span>
+        )}
+        {showFilesColumn && (
+          <span className="truncate" style={styles.headerLabel} title="Shares">
+            Shares
+          </span>
+        )}
+        <div />
+      </div>
+
+      <div style={{ ...styles.listPanel, marginTop: "0" }}>
         {list.length === 0 ? (
-          <EmptyState 
-            message="No groups found" 
-            description="Try adjusting your search or filters, or create a new group." 
+          <EmptyState
+            message="No groups found"
+            description="Try adjusting your search or filters, or create a new group."
           />
         ) : (
-          <div
-            style={{
-              padding: isMobile ? "0 4px" : "0 8px",
-            }}
-          >
+          <div style={{ padding: "0 8px" }}>
             <div style={styles.container}>
               {list.map((r, idx) => (
                 <GroupRow
@@ -435,12 +346,10 @@ export default function GroupsList({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   isLast={idx === list.length - 1}
-                  isMobile={isMobile}
                   isSelected={selectedIds.has(r._id)}
                   onToggleSelect={onToggleSelect}
                   rowId={r._id}
                   styles={styles}
-                  responsiveStyles={responsiveStyles}
                 />
               ))}
             </div>

@@ -3,20 +3,20 @@ export const managementToolbarStyles = {
     display: "flex",
     justifyContent: "space-between",
     gap: "12px",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     flexShrink: 0,
   },
   leftActions: {
     display: "flex",
     gap: "10px",
     flex: "1 1 auto",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     minWidth: "0",
   },
   rightActions: {
     display: "flex",
     gap: "10px",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     alignItems: "center",
   },
   selectionSummary: {

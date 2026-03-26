@@ -13,7 +13,7 @@ export default function SignupCard({ children }) {
         borderRadius: "20px",
         border: `1px solid ${themeColors.borderLight}`,
         boxShadow: "0 24px 64px rgba(0,0,0,0.75)",
-        padding: { xs: "20px", md: "24px" },
+        padding: "24px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -23,7 +23,11 @@ export default function SignupCard({ children }) {
       <Box sx={{ mb: 2 }}>
         <Box
           component="img"
-          src={themeColors.isDark ? "/cloudshield_logo_white.png" : "/cloudshield_logo_black.png"}
+          src={
+            themeColors.isDark
+              ? "/cloudshield_logo_white.png"
+              : "/cloudshield_logo_black.png"
+          }
           alt="Company Logo"
           sx={{
             width: 60,

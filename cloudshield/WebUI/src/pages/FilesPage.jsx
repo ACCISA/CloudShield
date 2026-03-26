@@ -1,9 +1,4 @@
-import React, {
-  useMemo,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -196,7 +191,8 @@ export default function FilesPage() {
           };
           if (normalized.username) lookup.set(normalized.username, normalized);
           if (email) lookup.set(email, normalized);
-          if (normalized.full_name) lookup.set(normalized.full_name, normalized);
+          if (normalized.full_name)
+            lookup.set(normalized.full_name, normalized);
           if (emailPrefix) lookup.set(emailPrefix, normalized);
         });
         setUserLookup(lookup);
@@ -311,7 +307,9 @@ export default function FilesPage() {
               return newSet;
             });
             await fetchTree();
-            alert(`File share "${data.shareName}" is taking longer than expected. Please refresh.`);
+            alert(
+              `File share "${data.shareName}" is taking longer than expected. Please refresh.`,
+            );
           }
         }, 2000);
       } catch (err) {
@@ -416,7 +414,8 @@ export default function FilesPage() {
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     const hasSelected = ids.some((id) => selectedIds.has(id));
-    const allAreSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
     return {
       allVisibleSelected: allAreSelected,
       isIndeterminate: hasSelected && !allAreSelected,
@@ -433,7 +432,8 @@ export default function FilesPage() {
     trackButton("files/list/select-all", { page: "files", layout });
     const ids = layout === "list" ? listVisibleIds : iconVisibleIds;
     const hasSelected = ids.some((id) => selectedIds.has(id));
-    const allAreSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const allAreSelected =
+      ids.length > 0 && ids.every((id) => selectedIds.has(id));
 
     if (hasSelected && !allAreSelected) {
       setSelectedIds(new Set());
@@ -476,7 +476,9 @@ export default function FilesPage() {
         const pollInterval = setInterval(async () => {
           attempts++;
           const currentShares = await fetchFileShares(orgId);
-          const shareStillExists = currentShares?.some((s) => s.share?.name === node.name);
+          const shareStillExists = currentShares?.some(
+            (s) => s.share?.name === node.name,
+          );
 
           if (!shareStillExists) {
             clearInterval(pollInterval);
@@ -511,7 +513,11 @@ export default function FilesPage() {
   );
 
   const handleLayoutChange = (next) => {
-    trackButton("files/display/toggle", { page: "files", layout: next, control: "display_button" });
+    trackButton("files/display/toggle", {
+      page: "files",
+      layout: next,
+      control: "display_button",
+    });
     setLayout(next);
   };
 
@@ -525,7 +531,10 @@ export default function FilesPage() {
             onChange={toggleSelectAllVisible}
             style={
               !allVisibleSelected && !isIndeterminate
-                ? { border: "2px solid rgba(255, 255, 255, 0.5)", backgroundColor: "transparent" }
+                ? {
+                    border: "2px solid rgba(255, 255, 255, 0.5)",
+                    backgroundColor: "transparent",
+                  }
                 : undefined
             }
           />
@@ -542,9 +551,9 @@ export default function FilesPage() {
         <div className="tableRows">
           {listVisibleRows.length === 0 && !isInitialLoading ? (
             <div style={{ padding: "32px 0" }}>
-              <EmptyState 
-                message="No shares found" 
-                description="Try adjusting your search or create a new share." 
+              <EmptyState
+                message="No shares found"
+                description="Try adjusting your search or create a new share."
               />
             </div>
           ) : (
@@ -568,13 +577,18 @@ export default function FilesPage() {
                     />
 
                     <div className="nameCell">
-                      <div className="nameInner" style={{ paddingLeft: depth * 18 }}>
+                      <div
+                        className="nameInner"
+                        style={{ paddingLeft: depth * 18 }}
+                      >
                         {isFolder ? (
                           <button
                             type="button"
                             className="chevBtn"
                             onClick={() => toggleExpand(node.id)}
-                            aria-label={isOpen ? "Collapse folder" : "Expand folder"}
+                            aria-label={
+                              isOpen ? "Collapse folder" : "Expand folder"
+                            }
                           >
                             <Chevron open={isOpen} />
                           </button>
@@ -595,7 +609,9 @@ export default function FilesPage() {
                       </div>
                     </div>
 
-                    <div className="meta">{formatDateTime(node.updated_at)}</div>
+                    <div className="meta">
+                      {formatDateTime(node.updated_at)}
+                    </div>
 
                     <StorageCell
                       currentSize={node.current_size}
@@ -605,7 +621,11 @@ export default function FilesPage() {
                     <div className="groups">
                       <AvatarPill
                         items={Array.from(new Set(ensureArray(node.users))).map(
-                          (username) => userLookup.get(username) || { username, id: username },
+                          (username) =>
+                            userLookup.get(username) || {
+                              username,
+                              id: username,
+                            },
                         )}
                         type="user"
                         maxVisible={3}
@@ -616,7 +636,10 @@ export default function FilesPage() {
                       <AvatarPill
                         items={ensureArray(node.groups).map(
                           (groupName) =>
-                            groupLookup.get(groupName) || { name: groupName, id: groupName },
+                            groupLookup.get(groupName) || {
+                              name: groupName,
+                              id: groupName,
+                            },
                         )}
                         type="group"
                         maxVisible={3}
@@ -626,13 +649,21 @@ export default function FilesPage() {
                     <EditButton
                       menuItems={[
                         {
-                          icon: <EditIcon width={15} height={16} color={themeColors.text} />,
+                          icon: (
+                            <EditIcon
+                              width={15}
+                              height={16}
+                              color={themeColors.text}
+                            />
+                          ),
                           label: "edit share",
                           color: themeColors.text,
                           onClick: () => openEdit(node),
                         },
                         {
-                          icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                          icon: (
+                            <TrashIcon width={12} height={14} color="#D51616" />
+                          ),
                           label: "delete share",
                           color: "#D51616",
                           onClick: () => handleDirectDelete(node),
@@ -676,9 +707,9 @@ export default function FilesPage() {
 
       {iconRows.length === 0 && !isInitialLoading ? (
         <div style={{ padding: "32px 0" }}>
-          <EmptyState 
-            message="No shares found" 
-            description="Try adjusting your search or create a new share." 
+          <EmptyState
+            message="No shares found"
+            description="Try adjusting your search or create a new share."
           />
         </div>
       ) : (
@@ -687,10 +718,13 @@ export default function FilesPage() {
             const isFolder = node.kind === NODE_KIND.FOLDER;
             const isSelected = selectedIds.has(node.id);
             const users = Array.from(new Set(ensureArray(node.users))).map(
-              (username) => userLookup.get(username) || { username, id: username },
+              (username) =>
+                userLookup.get(username) || { username, id: username },
             );
             const groups = ensureArray(node.groups).map((groupName) => {
-              return groupLookup.get(groupName) || { name: groupName, id: groupName };
+              return (
+                groupLookup.get(groupName) || { name: groupName, id: groupName }
+              );
             });
             const maxSize = Number.parseFloat(node.max_size);
             const hasStorage = Number.isFinite(maxSize) && maxSize > 0;
@@ -715,29 +749,48 @@ export default function FilesPage() {
                 aria-label={`${node.name} ${isFolder ? "folder" : "file"}`}
               >
                 <div className="tileHeader">
-                  <div className="tileSelect" onClick={stopEventPropagation} onKeyDown={stopEventPropagation}>
+                  <div
+                    className="tileSelect"
+                    onClick={stopEventPropagation}
+                    onKeyDown={stopEventPropagation}
+                  >
                     <Checkbox
                       checked={isSelected}
                       onChange={() => toggleSelect(node.id)}
                       style={
                         !isSelected
-                          ? { border: "2px solid var(--text-primary)", backgroundColor: "transparent" }
+                          ? {
+                              border: "2px solid var(--text-primary)",
+                              backgroundColor: "transparent",
+                            }
                           : undefined
                       }
                     />
                   </div>
 
-                  <div className="tileActions" onClick={stopEventPropagation} onKeyDown={stopEventPropagation}>
+                  <div
+                    className="tileActions"
+                    onClick={stopEventPropagation}
+                    onKeyDown={stopEventPropagation}
+                  >
                     <EditButton
                       menuItems={[
                         {
-                          icon: <EditIcon width={15} height={16} color={themeColors.text} />,
+                          icon: (
+                            <EditIcon
+                              width={15}
+                              height={16}
+                              color={themeColors.text}
+                            />
+                          ),
                           label: "edit share",
                           color: themeColors.text,
                           onClick: () => openEdit(node),
                         },
                         {
-                          icon: <TrashIcon width={12} height={14} color="#D51616" />,
+                          icon: (
+                            <TrashIcon width={12} height={14} color="#D51616" />
+                          ),
                           label: "delete share",
                           color: "#D51616",
                           onClick: () => handleDirectDelete(node),
@@ -752,15 +805,21 @@ export default function FilesPage() {
                     {isFolder ? <FolderIcon /> : <FileIcon />}
                   </span>
                   <div className="iconTitleText">
-                    <div className="iconName" title={node.name}>{node.name}</div>
-                    <div className="iconSub">{formatDateTime(node.updated_at)}</div>
+                    <div className="iconName" title={node.name}>
+                      {node.name}
+                    </div>
+                    <div className="iconSub">
+                      {formatDateTime(node.updated_at)}
+                    </div>
                   </div>
                 </div>
 
                 <div className="iconStorageLine">
                   <span className="iconMetaLabel">Storage</span>
                   <span className="iconMetaValue">
-                    {hasStorage ? `${currentSize} / ${maxSize} GB` : formatShares(0)}
+                    {hasStorage
+                      ? `${currentSize} / ${maxSize} GB`
+                      : formatShares(0)}
                   </span>
                 </div>
 
@@ -792,67 +851,75 @@ export default function FilesPage() {
     <PageShell>
       <div className="filesPage">
         <div className="toolbar">
-        <div className="leftTools">
-          <SearchField
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search files"
-            showIcon={true}
-            style={{
-              flex: "0 1 420px",
-              minWidth: "220px",
-              maxWidth: "420px",
-              width: "auto",
-            }}
-          />
-          <DisplayButton
-            layout={layout}
-            onLayoutChange={handleLayoutChange}
-          />
+          <div className="leftTools">
+            <SearchField
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search files"
+              showIcon={true}
+              style={{
+                flex: "0 1 420px",
+                minWidth: "220px",
+                maxWidth: "420px",
+                width: "auto",
+              }}
+            />
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={handleLayoutChange}
+            />
+          </div>
+
+          <div className="rightTools">
+            {layout === "list" && selectedListCount > 0 && (
+              <div className="selectionSummary">
+                <span className="selectionSummaryCount">
+                  {selectedListCount} selected
+                </span>
+                <button
+                  type="button"
+                  className="clearSelectionButton"
+                  onClick={clearSelection}
+                >
+                  Clear selection
+                </button>
+              </div>
+            )}
+            <RefreshButton
+              onClick={withClickLog({
+                name: "files/toolbar/refresh",
+                control: "refresh_button",
+              })(fetchTree)}
+            />
+            <CreateButton
+              icon={
+                <FolderPlusIcon
+                  width={16}
+                  height={16}
+                  color="var(--text-primary)"
+                />
+              }
+              buttonText="Create"
+              onClick={withClickLog({
+                name: "files/toolbar/open-upload",
+                control: "upload_button",
+              })(() => setUploadOpen(true))}
+            />
+          </div>
         </div>
 
-        <div className="rightTools">
-          {layout === "list" && selectedListCount > 0 && (
-            <div className="selectionSummary">
-              <span className="selectionSummaryCount">
-                {selectedListCount} selected
-              </span>
-              <button
-                type="button"
-                className="clearSelectionButton"
-                onClick={clearSelection}
-              >
-                Clear selection
-              </button>
-            </div>
-          )}
-          <RefreshButton
-            onClick={withClickLog({
-              name: "files/toolbar/refresh",
-              control: "refresh_button",
-            })(fetchTree)}
-          />
-          <CreateButton
-            icon={<FolderPlusIcon width={16} height={16} color="var(--text-primary)" />}
-            buttonText="Create"
-            onClick={withClickLog({
-              name: "files/toolbar/open-upload",
-              control: "upload_button",
-            })(() => setUploadOpen(true))}
-          />
-        </div>
-      </div>
-
-      {(creatingShares.size > 0 || deletingShares.size > 0) && (
-        <div className="operationBanner">
-          <CircularProgress size={14} style={{ color: "#4f8cff" }} />
-          <span>
-            {creatingShares.size > 0 && `Creating ${Array.from(creatingShares).join(", ")}...`}
-            {creatingShares.size > 0 && deletingShares.size > 0 && " • "}
-            {deletingShares.size > 0 && `Deleting ${Array.from(deletingShares).join(", ")}...`}
-          </span>
-        </div>
-      )}
+        {(creatingShares.size > 0 || deletingShares.size > 0) && (
+          <div className="operationBanner">
+            <CircularProgress size={14} style={{ color: "#4f8cff" }} />
+            <span>
+              {creatingShares.size > 0 &&
+                `Creating ${Array.from(creatingShares).join(", ")}...`}
+              {creatingShares.size > 0 && deletingShares.size > 0 && " • "}
+              {deletingShares.size > 0 &&
+                `Deleting ${Array.from(deletingShares).join(", ")}...`}
+            </span>
+          </div>
+        )}
 
         {loadError ? (
           <div className="filesErrorBanner" role="alert">
@@ -861,26 +928,24 @@ export default function FilesPage() {
         ) : null}
 
         <div className="contentSurface">
-          <TableSurface>
-            {renderMainContent()}
-          </TableSurface>
+          <TableSurface>{renderMainContent()}</TableSurface>
         </div>
 
-      <FileShareWizardModal
-        isOpen={isUploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onSubmit={handleCreateShare}
-      />
+        <FileShareWizardModal
+          isOpen={isUploadOpen}
+          onClose={() => setUploadOpen(false)}
+          onSubmit={handleCreateShare}
+        />
 
-      <FileShareWizardModal
-        isOpen={!!editTarget}
-        file={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSubmit={handleEditShare}
-        onDelete={handleDeleteShare}
-      />
+        <FileShareWizardModal
+          isOpen={!!editTarget}
+          file={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSubmit={handleEditShare}
+          onDelete={handleDeleteShare}
+        />
 
-      <style>{`
+        <style>{`
         .filesPage {
           padding: 0;
           color: var(--text-primary);
@@ -939,7 +1004,7 @@ export default function FilesPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           flex-shrink: 0;
           margin-bottom: 0;
         }
@@ -948,7 +1013,7 @@ export default function FilesPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
         .leftTools {
           flex: 1 1 auto;
@@ -1290,48 +1355,6 @@ export default function FilesPage() {
         
         @keyframes spin {
           to { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 900px) {
-          .toolbar {
-            align-items: stretch;
-          }
-
-          .leftTools,
-          .rightTools {
-            width: 100%;
-          }
-        }
-
-        @media (max-width: 820px) {
-          .topBar { flex-direction: column; align-items: stretch; }
-          .storagePill { width: 100%; }
-          .iconsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-
-          .tableHeaders {
-            padding: 20px 30px 4px 30px;
-          }
-
-          .table {
-            border-radius: 12px;
-            padding: 12px;
-          }
-
-          .row .meta,
-          .row .groups,
-          .storageCell,
-          .storageHeader,
-          .metaHeader,
-          .usersHeader,
-          .groupsHeader { display: none; }
-
-          .header, .row { grid-template-columns: 40px 1fr 44px; }
-        }
-        @media (max-width: 520px) {
-          .tableHeaders {
-            padding: 16px 20px 4px 20px;
-          }
-          .iconsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
       `}</style>
       </div>

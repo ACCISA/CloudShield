@@ -57,30 +57,11 @@ export default function StatCard({
   return (
     <Box
       sx={{
-        flex: {
-          xs: "1 1 100%", // Full width on extra small screens
-          sm: "1 1 calc(50% - 8px)", // Two cards per row on small screens
-          md: "1 1 calc(33.333% - 11px)", // Three cards per row on medium screens
-          lg: "1 1 calc(25% - 12px)", // Four cards per row on large screens, equal width
-        },
-        minWidth: {
-          xs: "100%",
-          sm: "200px",
-          md: "220px",
-          lg: "240px",
-        },
-        minHeight: {
-          xs: "160px",
-          sm: "180px",
-          md: "200px",
-          lg: "220px",
-        },
+        flex: "1 1 calc(25% - 12px)",
+        minWidth: "240px",
+        minHeight: "220px",
         borderRadius: "16px",
-        padding: {
-          xs: "24px",
-          sm: "28px",
-          md: "32px",
-        },
+        padding: "32px",
         background: error
           ? "linear-gradient(135deg, #e53e3e 0%, #fc8181 100%)"
           : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
@@ -106,11 +87,7 @@ export default function StatCard({
         <Typography
           sx={{
             color: themeColors.text,
-            fontSize: {
-              xs: "0.95rem",
-              sm: "1rem",
-              md: "1.05rem",
-            },
+            fontSize: "1.05rem",
             lineHeight: 1.3,
             fontWeight: 500,
             opacity: loading ? 0.7 : 1,
@@ -131,20 +108,14 @@ export default function StatCard({
               color: themeColors.text,
               backgroundColor: themeColors.bgHover,
               borderRadius: "8px",
-              width: {
-                xs: 32,
-                sm: 36,
-              },
-              height: {
-                xs: 32,
-                sm: 36,
-              },
+              width: 36,
+              height: 36,
               "&:hover": {
                 backgroundColor: themeColors.lightOverlaySubtle,
               },
             }}
           >
-            <AddIcon sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }} />
+            <AddIcon sx={{ fontSize: "1.25rem" }} />
           </IconButton>
         )}
       </Box>
@@ -153,12 +124,7 @@ export default function StatCard({
       <Typography
         sx={{
           color: themeColors.text,
-          fontSize: {
-            xs: "2.5rem",
-            sm: "3rem",
-            md: "3.5rem",
-            lg: "4rem",
-          },
+          fontSize: "4rem",
           fontWeight: 600,
           lineHeight: 1,
           letterSpacing: "-0.02em",
@@ -168,7 +134,10 @@ export default function StatCard({
         }}
       >
         {loading ? (
-          <CircularProgress size={40} sx={{ color: themeColors.textSecondary }} />
+          <CircularProgress
+            size={40}
+            sx={{ color: themeColors.textSecondary }}
+          />
         ) : error ? (
           "—"
         ) : (

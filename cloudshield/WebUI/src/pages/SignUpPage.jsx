@@ -97,7 +97,9 @@ function isEmailValid(raw) {
 function extractServerErrors(res, data) {
   if (res.status === 400) {
     if (data.errors && typeof data.errors === "object") return data.errors;
-    return { form: data.message || "Validation error. Please check your inputs." };
+    return {
+      form: data.message || "Validation error. Please check your inputs.",
+    };
   }
 
   if (res.status === 409) {
@@ -109,7 +111,9 @@ function extractServerErrors(res, data) {
   }
 
   if (!res.ok) {
-    return { form: data.message || "Unexpected error during signup. Please try again." };
+    return {
+      form: data.message || "Unexpected error during signup. Please try again.",
+    };
   }
 
   return null;
@@ -171,16 +175,13 @@ export default function SignupPage({ onSignupSuccess }) {
 
     try {
       // 1. Create the User and Organization in MongoDB
-      const createUserRes = await apiPost(
-        "/auth/signup",
-       	{
-		email: email,
-            	password: password,
-            	full_name: adminName,
-            	company_name: company,
-            	package_type: plan,
-          },
-        );
+      const createUserRes = await apiPost("/auth/signup", {
+        email: email,
+        password: password,
+        full_name: adminName,
+        company_name: company,
+        package_type: plan,
+      });
 
       let createUserData = {};
       try {
@@ -188,8 +189,11 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-      console.log(createUserRes)
-      const createUserErrors = extractServerErrors(createUserRes, createUserData);
+      console.log(createUserRes);
+      const createUserErrors = extractServerErrors(
+        createUserRes,
+        createUserData,
+      );
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
@@ -277,8 +281,8 @@ export default function SignupPage({ onSignupSuccess }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        px: { xs: 2, md: 4, lg: 6 },
-        py: { xs: 3, md: 4 },
+        px: 6,
+        py: 4,
       }}
     >
       <Box sx={{ width: "100%", maxWidth: 1240 }}>
@@ -286,14 +290,14 @@ export default function SignupPage({ onSignupSuccess }) {
           <Box
             sx={{
               display: "flex",
-              flexDirection: { xs: "column", md: "row" },
-              gap: { xs: 3, md: 5 },
+              flexDirection: "row",
+              gap: 5,
               alignItems: "stretch",
             }}
           >
             <Box
               sx={{
-                flex: { xs: "1 1 auto", md: "0 0 360px" },
+                flex: "0 0 360px",
                 display: "flex",
                 alignItems: "center",
               }}
@@ -354,7 +358,9 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {errors.email && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography
+                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
+                  >
                     {errors.email}
                   </Typography>
                 )}
@@ -365,7 +371,9 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {errors.password && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography
+                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
+                  >
                     {errors.password}
                   </Typography>
                 )}
@@ -377,7 +385,9 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setAdminName(e.target.value)}
                 />
                 {errors.adminName && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography
+                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
+                  >
                     {errors.adminName}
                   </Typography>
                 )}
@@ -389,7 +399,9 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setCompany(e.target.value)}
                 />
                 {errors.company && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography
+                    sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}
+                  >
                     {errors.company}
                   </Typography>
                 )}
@@ -427,7 +439,7 @@ export default function SignupPage({ onSignupSuccess }) {
                   fontWeight: 700,
                   color: "text.primary",
                   mb: 2.5,
-                  textAlign: { xs: "center", md: "left" },
+                  textAlign: "left",
                 }}
               >
                 Your Plan Overview
@@ -440,7 +452,7 @@ export default function SignupPage({ onSignupSuccess }) {
                       display: "flex",
                       flexWrap: "wrap",
                       gap: 2.5,
-                      justifyContent: { xs: "center", md: "flex-start" },
+                      justifyContent: "flex-start",
                       opacity: submitting ? 0.8 : 1,
                       pointerEvents: submitting ? "none" : "auto",
                     }}
