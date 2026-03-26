@@ -1,1 +1,0 @@
-const fs = require('fs'); const data = JSON.parse(fs.readFileSync('out.json', 'utf16le')); data.testResults[0].assertionResults.filter(r => r.status==='failed').forEach(r => console.log(r.title + '\n' + r.failureMessages[0].substring(0,500)));
