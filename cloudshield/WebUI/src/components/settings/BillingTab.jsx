@@ -15,7 +15,7 @@ import SyncIcon from "@mui/icons-material/Sync";
 import { useAuth } from "../../context/AuthContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
-const API_BASE_URL = "http://localhost:5050";
+const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
 
 const BYPASS_STRIPE = import.meta.env.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
 
@@ -74,8 +74,8 @@ export default function BillingTab() {
   const fetchData = async () => {
     try {
       const [invRes, cardRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/billing/invoices/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } }),
-        fetch(`${API_BASE_URL}/api/billing/payment-method/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } })
+        fetch(`${API_BASE_URL}/billing/invoices/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } }),
+        fetch(`${API_BASE_URL}/billing/payment-method/${orgId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` } })
       ]);
       const invData = await invRes.json();
       const cardData = await cardRes.json();

@@ -34,9 +34,7 @@ export default function AddUserPage() {
   const { jobId, status, message, progress, result, executeTask, reset } =
     useAsyncTask();
 
-  const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ||
-    "http://localhost:5050";
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050/api";
 
   const isBusy = status === "starting" || status === "running";
 

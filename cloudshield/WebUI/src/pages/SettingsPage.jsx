@@ -12,7 +12,8 @@ import AppearanceTab from "../components/settings/AppearanceTab.jsx";
 
 import { safeAsync } from "../lib/safeAsync.js";
 
-const API_BASE = "http://127.0.0.1:5050";
+const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+
 const TABS = ["Basic Info", "Plan & Billing", "Notifications", "Appearance"];
 
 const getAuthHeader = () => {
@@ -106,7 +107,7 @@ export default function SettingsPage() {
 
       try {
         const response = await safeAsync(async () => {
-          const userRes = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+          const userRes = await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
             headers: {
               "Content-Type": "application/json",
               ...getAuthHeader(),
@@ -145,7 +146,7 @@ export default function SettingsPage() {
     try {
       const response = await safeAsync(
         async () => {
-          const res = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+          const res = await fetch(`${API_BASE_URL}/users/${currentUser.id}`, {
             method: "PATCH",
             credentials: "include",
             headers: {
