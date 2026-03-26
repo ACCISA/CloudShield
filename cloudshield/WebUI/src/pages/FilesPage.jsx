@@ -27,6 +27,7 @@ import TableSkeleton from "../components/table/TableSkeleton";
 import { getUserErrorMessage } from "../lib/errors";
 import { safeAsync } from "../lib/safeAsync";
 import { formatShares } from "../lib/format";
+import Pagination from "../components/common/Pagination/Pagination";
 
 import {
   createFileShare,
@@ -161,6 +162,11 @@ export default function FilesPage() {
   const [editTarget, setEditTarget] = useState(null);
   const [deletingShares, setDeletingShares] = useState(new Set());
   const [creatingShares, setCreatingShares] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const location = useLocation();
 
@@ -372,6 +378,11 @@ export default function FilesPage() {
     return filterTreeByQuery(tree, searchQuery);
   }, [tree, searchQuery, layout]);
 
+  const pagedFilteredTree = useMemo(() => {
+    const start = (currentPage - 1) * 10;
+    return listFilteredTree.slice(start, start + 10);
+  }, [listFilteredTree, currentPage]);
+
   const effectiveExpanded = useMemo(() => {
     if (layout !== "list") return expanded;
     if (!searchQuery.trim()) return expanded;
@@ -381,8 +392,8 @@ export default function FilesPage() {
 
   const listVisibleRows = useMemo(() => {
     if (layout !== "list") return [];
-    return flattenVisibleTree(listFilteredTree, effectiveExpanded);
-  }, [listFilteredTree, effectiveExpanded, layout]);
+    return flattenVisibleTree(pagedFilteredTree, effectiveExpanded);
+  }, [pagedFilteredTree, effectiveExpanded, layout]);
 
   const listVisibleIds = useMemo(
     () => listVisibleRows.map((r) => r.node.id),
@@ -929,6 +940,15 @@ export default function FilesPage() {
 
         <div className="contentSurface">
           <TableSurface>{renderMainContent()}</TableSurface>
+          {layout === "list" && !isInitialLoading && (
+            <Pagination
+              totalItems={listFilteredTree.length}
+              itemsPerPage={10}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              itemLabel="shares"
+            />
+          )}
         </div>
 
         <FileShareWizardModal
