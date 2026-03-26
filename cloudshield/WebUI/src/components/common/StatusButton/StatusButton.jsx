@@ -90,9 +90,11 @@ export default function StatusButton({
       style={{
         ...styles.button,
         ...(showIconOnly ? styles.buttonIconOnly : styles.buttonWithText),
+        cursor: onClick ? "pointer" : "default",
         ...buttonStyle,
       }}
       onClick={onClick}
+      disabled={!onClick}
     >
       <span style={styles.iconWrapper}>
         {isConnected || isProvisioning ? (

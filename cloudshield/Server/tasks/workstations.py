@@ -1,3 +1,5 @@
+import time
+
 from rq import get_current_job
 
 from provisioner import provision_default_workstation, provision_workstation_vm
@@ -6,6 +8,22 @@ from repos import insert_workstation_template, insert_workstation, update_workst
 from models import WorkstationStatus
 from .task import get_server_nodes
 from services import service_dispatcher
+
+
+SIMULATE_WORKSTATION_CREATE_SECONDS = 10
+
+
+def _enqueue_workstation_ready_email(requesting_user_id, workstation_name, logger):
+    if not requesting_user_id:
+        logger.warning("Skipping workstation ready email: missing requesting_user_id")
+        return
+
+    try:
+        from services.job_service import enqueue_workstation_ready_email
+
+        enqueue_workstation_ready_email(requesting_user_id, workstation_name)
+    except Exception as exc:
+        logger.error("Failed to enqueue workstation ready email: %s", exc)
 
 def start_workstations(org_id, template_id, access_groups, members, logger):
     group_members = get_unique_members_by_ids(db, access_groups)
@@ -17,7 +35,7 @@ def start_workstations(org_id, template_id, access_groups, members, logger):
     [service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id) for _ in range(amount)]
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
     """
     Create a default workstation
     """
@@ -58,6 +76,17 @@ def ws_create_default(org_id, name, description, software, access_groups, member
 
     update_job(job, "starting ws_create_default")
 
+    if SIMULATE_WORKSTATION_CREATE_SECONDS > 0:
+        logger.info(
+            "Simulating workstation template creation for %ss",
+            SIMULATE_WORKSTATION_CREATE_SECONDS,
+        )
+        time.sleep(SIMULATE_WORKSTATION_CREATE_SECONDS)
+        update_workstation_template(db, template_id=template_id, is_ready=True)
+        _enqueue_workstation_ready_email(requesting_user_id, name, logger)
+        logger.info("Successfully simulated workstation template creation")
+        return {"result": {"template_id": template_id}}
+
     org_doc["id"] = org_id
 
     nodes = get_server_nodes(org_id)
@@ -92,6 +121,7 @@ def ws_create_default(org_id, name, description, software, access_groups, member
     update_workstation_template(db, template_id=template_id, is_ready=True)
 
     logger.info("Successfully created workstation template")
+    _enqueue_workstation_ready_email(requesting_user_id, name, logger)
 
     start_workstations(org_id, template_id, access_groups, members, logger)
 
@@ -159,4 +189,3 @@ def ws_create_custom():
 
 def ws_provision_update(workstation_id, status):
     pass
-

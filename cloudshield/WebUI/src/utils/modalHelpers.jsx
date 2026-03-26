@@ -262,37 +262,23 @@ export const fetchWorkstations = async (
       ? data
       : data.items || data.workstations || [];
 
-    const mapStatus = (workstation) => {
-      const rawStatus = String(workstation.status || "").toLowerCase();
-
-      if (rawStatus === "online" || rawStatus === "connected") {
-        return "connected";
-      }
-      if (rawStatus === "failed") {
-        return "failed";
-      }
-      if (rawStatus === "provisioning") {
-        return "provisioning";
-      }
-      if (typeof workstation.is_ready === "boolean") {
-        return workstation.is_ready ? "connected" : "disconnected";
-      }
-      return "disconnected";
-    };
 
     const normalized = workstations.map((w) => ({
-      status: mapStatus(w),
+      status:
+        (w.status || "").toLowerCase() === "online"
+          ? "connected"
+          : (w.status || "").toLowerCase() === "offline"
+            ? "disconnected"
+            : w.status || "disconnected",
       id: String(w.id || w._id || ""),
       _id: String(w._id || w.id || ""),
       name: w.name || "Untitled Workstation",
-      code: w.code || `WS-${String(w.id || w._id || "").slice(-6).toUpperCase()}`,
-      online: w.online || mapStatus(w) === "connected",
-      ipAddress: w.ip_address || w.ipAddress || "",
-      usersCount: Array.isArray(w.members) ? w.members.length : 0,
-      users: [],
+      strength: w.description || "",
+      software: Array.isArray(w.software) ? w.software : [],
       groups: Array.isArray(w.access_groups) ? w.access_groups : [],
-      currentUser: null,
-      lastUsed: "—",
+      users: Array.isArray(w.members) ? w.members : [],
+      online: w.online || w.status === "online" || false,
+      ipAddress: w.ip_address || w.ipAddress || "",
       org_id: w.org_id,
     }));
 
