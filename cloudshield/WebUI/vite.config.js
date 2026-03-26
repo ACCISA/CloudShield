@@ -13,6 +13,9 @@ export default defineConfig({
     host: devHost,
     port: devPort,
     strictPort: true,
+    allowedHosts: [
+      "real.encs.concordia.ca",
+    ],
     watch: {
       usePolling: true,
       interval: 1000,

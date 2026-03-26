@@ -14,7 +14,7 @@ from flask_cors import CORS
 
 from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from utils import get_logger  # type: ignore
 
@@ -62,21 +62,27 @@ logger = get_logger("api")
 def create_app() -> Flask:
     app = Flask(__name__)
     
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, 
+        x_for=1,   # Trust the first IP in the X-Forwarded-For chain
+        x_proto=1, # Trust the X-Forwarded-Proto header (https)
+        x_host=1,  # Trust the X-Forwarded-Host header
+        x_prefix=1 # Trust the X-Forwarded-Prefix header
+    )
     # --- 2. INITIALIZE CORS ---
     # This enables Cross-Origin Resource Sharing for all routes    
     CORS(
         app,
         resources={
-            r"/api/*": {
+            r"/*": {
                 "origins": [
-                    "http://localhost:5173",
-                    "http://127.0.0.1:5173",
+                    "https://real.encs.concordia.ca"
                 ]
             }
         },
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization"],
-        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
 
