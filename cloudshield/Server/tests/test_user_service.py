@@ -1120,3 +1120,29 @@ class TestUserService:
         assert inserted_doc["email"] == "test@example.com"
         assert inserted_doc["role"] == "employee"
         assert inserted_doc["status"] == "active"
+
+    def test_persist_domain_user_duplicate_key_returns_existing_user_id(self, setup_mocks, monkeypatch):
+        """Test persist_domain_user returns existing user id when insert raises DuplicateKeyError."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import persist_domain_user
+        import cloudshield.Server.services.user_service as user_service_module
+
+        class _FakeDuplicateKeyError(Exception):
+            pass
+
+        monkeypatch.setattr(user_service_module, "DuplicateKeyError", _FakeDuplicateKeyError)
+
+        existing_id = ObjectId()
+        mocks['users_admin'].find_one.side_effect = [None, {"_id": existing_id}]
+        mocks['users_admin'].insert_one.side_effect = _FakeDuplicateKeyError("duplicate key")
+
+        result = persist_domain_user(
+            org_id=self.TEST_ORG_ID,
+            username="testuser",
+            password="TestPass123!",
+            email="test@example.com"
+        )
+
+        assert result == str(existing_id)
+        mocks['users_admin'].insert_one.assert_called_once()
+        assert mocks['users_admin'].find_one.call_count == 2
