@@ -6,10 +6,13 @@ Tests cover:
 """
 import sys
 import os
+import importlib
+import io
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
 import pytest
+from pydantic import BaseModel, ValidationError
 from bson import ObjectId
 from pydantic import ValidationError
 
@@ -425,10 +428,8 @@ def client(monkeypatch, mock_access_groups_collection):
             "cloudshield.Server.utils.database.access_groups",
             mock_access_groups_collection
         )
-        monkeypatch.setattr(
-            "cloudshield.Server.routes.access_groups.access_groups",
-            mock_access_groups_collection
-        )
+        access_groups_routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        monkeypatch.setattr(access_groups_routes, "access_groups", mock_access_groups_collection)
 
         from cloudshield.Server.server import create_app
 
@@ -1905,3 +1906,504 @@ class TestAccessGroupRoutesWithFlask:
         assert response.status_code == 200
         data = response.get_json()
         assert data["access_group"]["group_image"] == "data:image/png;base64,newimage"
+
+
+class TestAccessGroupRouteCoverage:
+    """Extra tests targeting uncovered branches in routes/access_groups.py."""
+
+    def test_get_access_groups_collection_lazy_import_and_cache(self, monkeypatch):
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        fake_coll = MagicMock()
+        fake_db_mod = type("_DB", (), {"access_groups": fake_coll})
+
+        monkeypatch.setitem(sys.modules, "utils.database", fake_db_mod)
+        monkeypatch.setattr(routes, "access_groups", None)
+
+        resolved = routes._get_access_groups_collection()
+        assert resolved is fake_coll
+        assert routes._get_access_groups_collection() is fake_coll
+
+    def test_require_org_id_missing_raises(self):
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        from flask import Flask
+
+        app = Flask(__name__)
+        with app.test_request_context("/"):
+            from flask import g
+
+            g.user = {}
+            with pytest.raises(ValueError, match="Missing org_id"):
+                routes._require_org_id()
+
+    def test_create_group_dc_dispatch_failure_still_201(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        mock_coll.find_one.side_effect = [
+            None,
+            {
+                "_id": ObjectId(),
+                "name": "marketing",
+                "description": "desc",
+                "members": [],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            },
+        ]
+        mock_coll.insert_one.return_value = MagicMock(inserted_id=ObjectId())
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: (_ for _ in ()).throw(Exception("dc down")))
+
+        response = client.post(
+            "/api/access-groups",
+            json={"group_name": "Marketing", "description": "desc"},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        payload = response.get_json()
+        assert "dc_job_id" not in payload
+
+    def test_delete_group_not_found_after_delete_one(self, client):
+        client, mock_coll = client
+        gid = ObjectId()
+        mock_coll.find_one.return_value = {
+            "_id": gid,
+            "name": "group-a",
+            "members": [],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=0)
+
+        response = client.delete(f"/api/access-groups/{gid}")
+        assert response.status_code == 404
+        assert response.get_json()["error"] == "access group not found"
+
+    def test_add_members_dc_dispatch_failure_still_200(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        gid = ObjectId()
+        mock_coll.update_one.return_value = MagicMock(matched_count=1)
+        mock_coll.find_one.return_value = {
+            "_id": gid,
+            "name": "marketing",
+            "members": [ObjectId()],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: (_ for _ in ()).throw(Exception("dc down")))
+
+        response = client.post(
+            "/api/access-groups/add-members",
+            json={"group_name": "marketing", "members": [str(ObjectId())]},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        assert "access_group" in response.get_json()
+
+    def test_import_groups_csv_missing_file(self, client):
+        client, _ = client
+        response = client.post("/api/access-groups/import-csv", data={}, content_type="multipart/form-data")
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "No file provided"
+
+    def test_import_groups_csv_invalid_filename_or_extension(self, client):
+        client, _ = client
+
+        # No selected filename
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(b"x"), "")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "No file selected"
+
+        # Wrong extension
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(b"x"), "groups.txt")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "File must be a CSV"
+
+    def test_import_groups_csv_success_duplicate_and_warnings(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        users_coll = MagicMock()
+        users_coll.find.return_value = [
+            {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "john@example.com"}
+        ]
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: users_coll)
+
+        # First row duplicate; second created with one missing member warning.
+        mock_coll.find_one.side_effect = [{"_id": ObjectId()}, None]
+        mock_coll.insert_one.return_value = MagicMock(inserted_id=ObjectId())
+
+        class _Job:
+            id = "job-1"
+
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: _Job())
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "Marketing,dup,john@example.com,WS1\n"
+            "Engineering,new,john@example.com;missing@example.com,WS2;WS3\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["created"] == 1
+        assert payload["dc_job_ids"] == ["job-1"]
+        assert any("already exists" in (e.get("error") or "") for e in payload["errors"])
+        assert any("warning" in e for e in payload["errors"])
+
+    def test_import_groups_csv_value_error_and_internal_error(self, client, monkeypatch):
+        client, _ = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        # ValueError path
+        monkeypatch.setattr(routes, "_require_org_id", lambda: (_ for _ in ()).throw(ValueError("Missing org")))
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(b"group_name\nA\n"), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "Missing org"
+
+        # Generic exception path
+        monkeypatch.setattr(routes, "_require_org_id", lambda: "org123")
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(b"group_name\neng\n"), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 500
+        assert response.get_json()["error"] == "Internal server error"
+
+    def test_list_access_groups_ignores_non_objectid_member(self, client):
+        client, mock_coll = client
+        mock_coll.find.return_value.sort.return_value = [
+            {
+                "_id": ObjectId(),
+                "name": "mixed-members",
+                "members": ["not-an-objectid", ObjectId()],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        ]
+
+        response = client.get("/api/access-groups")
+        assert response.status_code == 200
+        data = response.get_json()["access_groups"][0]
+        assert data["members"]
+
+    def test_create_group_no_dc_dispatch_when_org_blank(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        monkeypatch.setattr(routes, "_require_org_id", lambda: "")
+
+        mock_coll.find_one.side_effect = [
+            None,
+            {
+                "_id": ObjectId(),
+                "name": "ops",
+                "description": None,
+                "members": [],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            },
+        ]
+        mock_coll.insert_one.return_value = MagicMock(inserted_id=ObjectId())
+
+        response = client.post("/api/access-groups", json={"group_name": "ops"}, content_type="application/json")
+        assert response.status_code == 201
+        assert "dc_job_id" not in response.get_json()
+
+    def test_update_group_no_dc_dispatch_when_name_empty(self, client):
+        client, mock_coll = client
+        gid = ObjectId()
+        existing = {
+            "_id": gid,
+            "name": "",
+            "description": "old",
+            "members": [],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        updated = {**existing, "description": "new"}
+        mock_coll.find_one.side_effect = [existing, updated]
+        mock_coll.update_one.return_value = MagicMock(matched_count=1)
+
+        response = client.patch(f"/api/access-groups/{gid}", json={"description": "new"}, content_type="application/json")
+        assert response.status_code == 200
+        assert "dc_job_id" not in response.get_json()
+
+    def test_update_group_dc_dispatch_failure_still_200(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        gid = ObjectId()
+        existing = {
+            "_id": gid,
+            "name": "team-a",
+            "description": "old",
+            "members": [],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        updated = {**existing, "name": "team-b"}
+        mock_coll.find_one.side_effect = [existing, None, updated]
+        mock_coll.update_one.return_value = MagicMock(matched_count=1)
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: (_ for _ in ()).throw(Exception("dc down")))
+
+        response = client.patch(
+            f"/api/access-groups/{gid}",
+            json={"group_name": "team-b"},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        assert "dc_job_id" not in response.get_json()
+
+    def test_delete_group_no_dc_dispatch_when_name_empty(self, client):
+        client, mock_coll = client
+        gid = ObjectId()
+        mock_coll.find_one.return_value = {
+            "_id": gid,
+            "name": "",
+            "members": [],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=1)
+
+        response = client.delete(f"/api/access-groups/{gid}")
+        assert response.status_code == 200
+        assert "dc_job_id" not in response.get_json()
+
+    def test_delete_group_dc_dispatch_failure_still_200(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        gid = ObjectId()
+        mock_coll.find_one.return_value = {
+            "_id": gid,
+            "name": "to-remove",
+            "members": [],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        mock_coll.delete_one.return_value = MagicMock(deleted_count=1)
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: (_ for _ in ()).throw(Exception("dc down")))
+
+        response = client.delete(f"/api/access-groups/{gid}")
+        assert response.status_code == 200
+        assert "dc_job_id" not in response.get_json()
+
+    def test_add_members_no_dc_dispatch_when_org_blank(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        monkeypatch.setattr(routes, "_require_org_id", lambda: "")
+
+        mock_coll.update_one.return_value = MagicMock(matched_count=1)
+        mock_coll.find_one.return_value = {
+            "_id": ObjectId(),
+            "name": "team",
+            "members": [ObjectId()],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+
+        response = client.post(
+            "/api/access-groups/add-members",
+            json={"group_name": "team", "members": [str(ObjectId())]},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+    def test_get_users_collection_fallback_import(self, monkeypatch):
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+        fallback_users = MagicMock(name="users_admin")
+
+        real_import = __import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "utils.database":
+                raise ImportError("no utils.database")
+            return real_import(name, globals, locals, fromlist, level)
+
+        fake_db_mod = type("_DB", (), {"users_admin": fallback_users})
+        monkeypatch.setitem(sys.modules, "cloudshield.Server.utils.database", fake_db_mod)
+        monkeypatch.setattr("builtins.__import__", fake_import)
+
+        assert routes._get_users_collection() is fallback_users
+
+    def test_import_groups_csv_row_level_validation_and_exceptions(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        users_coll = MagicMock()
+        users_coll.find.return_value = [
+            {"_id": ObjectId("507f1f77bcf86cd799439011"), "email": "john@example.com"},
+            {"_id": ObjectId("507f1f77bcf86cd799439012"), "email": ""},
+        ]
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: users_coll)
+
+        class _Job:
+            id = "job-x"
+
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: _Job())
+
+        # One duplicate, one missing name, one validation error (short group), one row-level exception,
+        # and one successful row with empty email/workstation tokens.
+        mock_coll.find_one.side_effect = [{"_id": ObjectId()}, None, None]
+
+        calls = {"n": 0}
+
+        def _insert_side_effect(_doc):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                raise RuntimeError("insert failed")
+            return MagicMock(inserted_id=ObjectId())
+
+        mock_coll.insert_one.side_effect = _insert_side_effect
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "dup-group,dup,john@example.com,WS1\n"
+            ",missing-name,,\n"
+            "ab,too-short,john@example.com,WS2\n"
+            "runtime-error,boom,john@example.com,WS3\n"
+            "good-group,ok,john@example.com;;,WS4;;\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["created"] == 1
+        assert payload["dc_job_ids"] == ["job-x"]
+        assert any("Missing required field: group_name" == (e.get("error") or "") for e in payload["errors"])
+        assert any(isinstance(e.get("error"), list) for e in payload["errors"])
+        assert any((e.get("error") or "") == "insert failed" for e in payload["errors"])
+
+    def test_import_groups_csv_no_member_emails_skips_user_lookup(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        users_coll = MagicMock()
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: users_coll)
+        mock_coll.find_one.return_value = None
+        mock_coll.insert_one.return_value = MagicMock(inserted_id=ObjectId())
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: MagicMock(id="job-nomembers"))
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "infra,desc,,\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        users_coll.find.assert_not_called()
+
+    def test_import_groups_csv_dc_dispatch_failure_non_blocking(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        users_coll = MagicMock()
+        users_coll.find.return_value = []
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: users_coll)
+        monkeypatch.setattr(routes, "service_dispatcher", lambda **_: (_ for _ in ()).throw(Exception("dc down")))
+
+        mock_coll.find_one.return_value = None
+        mock_coll.insert_one.return_value = MagicMock(inserted_id=ObjectId())
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "infra,desc,,\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["created"] == 1
+        assert payload["dc_job_ids"] == []
+
+    def test_import_groups_csv_row_validation_error_for_invalid_member_id(self, client, monkeypatch):
+        client, mock_coll = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        users_coll = MagicMock()
+        # Non-ObjectId _id string forces AccessGroupCreate members validation failure.
+        users_coll.find.return_value = [{"_id": "not-an-objectid", "email": "john@example.com"}]
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: users_coll)
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "eng,desc,john@example.com,WS1\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["created"] == 0
+        assert any(isinstance(e.get("error"), list) for e in payload["errors"])
+        mock_coll.insert_one.assert_not_called()
+
+    def test_import_groups_csv_row_validation_error_branch(self, client, monkeypatch):
+        client, _ = client
+        routes = importlib.import_module("cloudshield.Server.routes.access_groups")
+
+        class _Dummy(BaseModel):
+            x: int
+
+        try:
+            _Dummy(x="bad")
+        except ValidationError as ve:
+            validation_error = ve
+
+        def _raise_validation(**_kwargs):
+            raise validation_error
+
+        monkeypatch.setattr(routes, "AccessGroupCreate", _raise_validation)
+        monkeypatch.setattr(routes, "_get_users_collection", lambda: MagicMock(find=lambda *a, **k: []))
+
+        csv_data = (
+            "group_name,description,member_emails,workstations\n"
+            "eng,desc,,\n"
+        ).encode("utf-8")
+
+        response = client.post(
+            "/api/access-groups/import-csv",
+            data={"file": (io.BytesIO(csv_data), "groups.csv")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["created"] == 0
+        assert any(isinstance(e.get("error"), list) for e in payload["errors"])

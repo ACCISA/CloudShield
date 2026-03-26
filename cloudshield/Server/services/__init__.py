@@ -9,6 +9,7 @@ from .user_service import delete_user as delete_user
 from .user_service import persist_domain_user as persist_domain_user
 from .user_service import remove_domain_user_from_db as remove_domain_user_from_db
 from .user_service import list_users as list_users
+from .user_service import enforce_org_user_limit as enforce_org_user_limit
 from .shares_services import create_share as create_share
 from .shares_services import list_shares as list_shares
 from .shares_services import list_groups_with_shares as list_groups_with_shares
