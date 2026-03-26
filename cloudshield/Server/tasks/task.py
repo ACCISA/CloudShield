@@ -113,6 +113,7 @@ def proxy_rpc_request(nodes, method_name, request, actor="System"):
             return response
         except Exception as log_error:
             logger.error("Failed to log activity: " + str(log_error))
+        return response
     except Exception as e:
         logger.error("Proxy Fail: " + str(e))
         return None

@@ -72,6 +72,10 @@ def create_app() -> Flask:
                 "origins": [
                     "http://localhost:5173",
                     "http://127.0.0.1:5173",
+                    "http://localhost:5174",
+                    "http://127.0.0.1:5174",
+                    "https://172.28.0.20:5173", #NOSONAR python:S1313
+                    r"https://172\.23\.\d+\.20:5173",
                 ]
             }
         },

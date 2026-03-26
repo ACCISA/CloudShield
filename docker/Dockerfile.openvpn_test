@@ -11,6 +11,7 @@ RUN apt-get update \
     libldb-dev samba-libs ldb-tools libldb2\
     iproute2 \
     libgrpc++1.51t64 libgrpc29t64 \
+    build-essential cmake pkg-config libgrpc++-dev protobuf-compiler-grpc libprotobuf-dev \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -36,9 +37,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 COPY docker/openvpn /etc/openvpn
 
-# copy our rpc server binary and service
-COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
+# build rpc server in-image and install service
+COPY cloudshield/RPCNode /tmp/RPCNode
 COPY docker/cs_vpn_rpc.service /etc/systemd/system/cs_rpc.service
+RUN cd /tmp/RPCNode && bash scripts/proto-gen.sh \
+    && cmake -S /tmp/RPCNode -B /tmp/RPCNode/build-docker \
+    && cmake --build /tmp/RPCNode/build-docker --target cs-rpcsrv -j"$(nproc)" \
+    && install -m 0755 /tmp/RPCNode/build-docker/cs-rpcsrv /usr/local/bin/cs-rpcsrv \
+    && rm -rf /tmp/RPCNode
 
 # Copy entrypoint script
 COPY docker/openvpn-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
