@@ -12,7 +12,11 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
   const token = getToken();
   const hasBody = body !== undefined;
   const payload =
-    hasBody && typeof body === "string" ? body : hasBody ? JSON.stringify(body) : undefined;
+    hasBody && typeof body === "string"
+      ? body
+      : hasBody
+        ? JSON.stringify(body)
+        : undefined;
 
   const fetchImpl =
     typeof globalThis.fetch === "function"
@@ -38,15 +42,23 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
   const ok = typeof rawRes?.ok === "boolean" ? rawRes.ok : true;
   const status = typeof rawRes?.status === "number" ? rawRes.status : 200;
   const json =
-    typeof rawRes?.json === "function" ? rawRes.json.bind(rawRes) : async () => ({});
+    typeof rawRes?.json === "function"
+      ? rawRes.json.bind(rawRes)
+      : async () => ({});
   const text =
-    typeof rawRes?.text === "function" ? rawRes.text.bind(rawRes) : async () => "";
+    typeof rawRes?.text === "function"
+      ? rawRes.text.bind(rawRes)
+      : async () => "";
 
   const shouldReturnResponse =
     typeof path === "string" &&
     (path.startsWith("/status/") ||
       path.startsWith("/users") ||
-      path === "/organizations/me/metrics");
+      path === "/organizations/me/metrics" ||
+      path === "/organizations/me" ||
+      path.startsWith("/access-groups") ||
+      path.startsWith("/file_shares") ||
+      /^\/organizations\/[^/]+\/users/.test(path));
 
   // Some call sites expect a Fetch Response contract (res.ok/res.status/res.json/res.text).
   if (shouldReturnResponse) {
@@ -88,6 +100,9 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
 }
 
 export const apiGet = (path, opts) => request(path, { ...opts, method: "GET" });
-export const apiPost = (path, body, opts) => request(path, { ...opts, method: "POST", body });
-export const apiPatch = (path, body, opts) => request(path, { ...opts, method: "PATCH", body });
-export const apiDelete = (path, opts) => request(path, { ...opts, method: "DELETE" });
+export const apiPost = (path, body, opts) =>
+  request(path, { ...opts, method: "POST", body });
+export const apiPatch = (path, body, opts) =>
+  request(path, { ...opts, method: "PATCH", body });
+export const apiDelete = (path, opts) =>
+  request(path, { ...opts, method: "DELETE" });

@@ -294,7 +294,7 @@ export default function EmployeesPage() {
         const apiPayload = {
           email: payload.email,
           full_name: `${payload.firstName} ${payload.lastName}`,
-          password: payload.password || "DefaultPass123!",
+          password: payload.password,
           role: payload.jobTitle?.toLowerCase().includes("admin")
             ? "admin"
             : "employee",

@@ -5,6 +5,7 @@
  * Use `useToast()` in a page component, render `<Toast>` at the bottom of JSX.
  */
 import { useState, useCallback } from "react";
+import PropTypes from "prop-types";
 
 const ICONS = {
   success: (
@@ -86,16 +87,27 @@ export default function Toast({ msg, type = "success", open, onClose }) {
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        cursor: "pointer",
         maxWidth: "360px",
         animation: "toastSlideIn 0.2s ease",
       }}
-      onClick={onClose}
     >
-      <span style={{ color: colors.icon, display: "flex", flexShrink: 0 }}>
-        {ICONS[type]}
-      </span>
-      <span>{msg}</span>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          all: "unset",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          width: "100%",
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ color: colors.icon, display: "flex", flexShrink: 0 }}>
+          {ICONS[type]}
+        </span>
+        <span>{msg}</span>
+      </button>
       <style>{`
         @keyframes toastSlideIn {
           from { opacity: 0; transform: translateY(8px); }
@@ -105,3 +117,10 @@ export default function Toast({ msg, type = "success", open, onClose }) {
     </div>
   );
 }
+
+Toast.propTypes = {
+  msg: PropTypes.string,
+  type: PropTypes.oneOf(["success", "error"]),
+  open: PropTypes.bool,
+  onClose: PropTypes.func,
+};

@@ -5,7 +5,6 @@ import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
-import { useThemeColors } from "../../hooks/useThemeColors.js";
 import "./EmployeesModal.css";
 
 import {
@@ -47,11 +46,11 @@ export default function EmployeesModal({
   creationMessage = null,
 }) {
   const { accessToken, currentUser } = useAuth();
-  const themeColors = useThemeColors();
 
   const isEditMode = Boolean(employeeData);
-  const isCreating =
-    creationStatus === "running" || creationStatus === "starting";
+  const normalizedCreationStatus =
+    typeof creationStatus === "string" ? creationStatus.toLowerCase() : "";
+  const isCreating = ["running", "starting"].includes(normalizedCreationStatus);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -384,7 +383,7 @@ export default function EmployeesModal({
                   className="employees-modal-btn employees-modal-btn-delete"
                   onClick={() => {
                     if (
-                      window.confirm(
+                      globalThis.confirm(
                         "Are you sure you want to delete this user? This action cannot be undone.",
                       )
                     ) {

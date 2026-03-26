@@ -14,6 +14,7 @@ import { useThemeColors } from "../hooks/useThemeColors.js";
 import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
@@ -217,6 +218,7 @@ export default function WorkstationsPage() {
       payload.groups,
     );
     if (created) setRows((prev) => [newRow, ...prev]);
+    return Boolean(created);
   };
 
   const handleEditSave = (id, changes) =>
@@ -554,11 +556,15 @@ export default function WorkstationsPage() {
                 if (editRow) {
                   handleEditSave(editRow.id, p);
                   showToast("Workstation updated");
-                  window.dispatchEvent(new Event("metrics:invalidate"));
+                  globalThis.dispatchEvent(new Event("metrics:invalidate"));
                 } else {
-                  await handleCreate(p);
-                  showToast("Workstation created");
-                  window.dispatchEvent(new Event("metrics:invalidate"));
+                  const created = await handleCreate(p);
+                  if (created) {
+                    showToast("Workstation created");
+                    globalThis.dispatchEvent(new Event("metrics:invalidate"));
+                  } else {
+                    showToast("Failed to save workstation", "error");
+                  }
                 }
               } catch {
                 showToast("Failed to save workstation", "error");
