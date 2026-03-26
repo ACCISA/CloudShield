@@ -244,7 +244,7 @@ describe("GroupsList Component", () => {
 
     test("shows count badge for groups with no workstations array", () => {
       render(<GroupsList rows={[mockGroups[1]]} showWorkstations={true} />);
-      expect(screen.getByText("+ 0")).toBeInTheDocument();
+      expect(screen.getByText("—")).toBeInTheDocument();
     });
   });
 
@@ -357,7 +357,7 @@ describe("GroupsList Component", () => {
 
       expect(screen.getByText("Users")).toBeInTheDocument();
       expect(screen.getByText("Workstations")).toBeInTheDocument();
-      expect(screen.getByText("Files")).toBeInTheDocument();
+      expect(screen.getByText("Shares")).toBeInTheDocument();
     });
   });
 
@@ -375,16 +375,18 @@ describe("GroupsList Component", () => {
     test("renders checkboxes for each group on desktop", () => {
       render(<GroupsList rows={mockGroups} />);
       const checkboxes = screen.getAllByTestId("checkbox");
-      expect(checkboxes.length).toBe(mockGroups.length);
+      expect(checkboxes.length).toBe(mockGroups.length + 1);
     });
 
     test("checkbox can be toggled", async () => {
-      render(<GroupsList rows={mockGroups} />);
+      const onToggleSelect = jest.fn();
+      const rows = mockGroups.map((group) => ({ ...group, _id: group.id }));
+      render(<GroupsList rows={rows} onToggleSelect={onToggleSelect} />);
       const checkboxes = screen.getAllByTestId("checkbox");
 
-      expect(checkboxes[0]).not.toBeChecked();
-      await userEvent.click(checkboxes[0]);
-      expect(checkboxes[0]).toBeChecked();
+      expect(checkboxes[1]).not.toBeChecked();
+      await userEvent.click(checkboxes[1]);
+      expect(onToggleSelect).toHaveBeenCalledWith("1");
     });
   });
 

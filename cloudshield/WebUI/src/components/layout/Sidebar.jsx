@@ -17,8 +17,22 @@
  *     minimal here and handle heavier logic in pages or containers.
  */
 import React, { useEffect, useState } from "react";
-import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
+import PropTypes from "prop-types";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Chip,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 import DashboardIcon from "../../assets/NavBar/DashboardIcon";
 import ShieldIcon from "../../assets/NavBar/shieldIcon.jsx";
@@ -31,9 +45,17 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+
+const navStatsShape = PropTypes.shape({
+  workstations: PropTypes.number,
+  users: PropTypes.number,
+  groups: PropTypes.number,
+  shares: PropTypes.number,
+});
 
 function NavItem({
   collapsed,
@@ -44,15 +66,20 @@ function NavItem({
   countColor,
   onNavigate,
 }) {
+  const themeColors = useThemeColors();
   const showCountChip = typeof count === "number" || count === "-";
+  const renderedIcon =
+    React.isValidElement(icon) && typeof icon.type === "function"
+      ? React.cloneElement(icon, { selected: active })
+      : icon;
 
   return (
     <Box
       sx={{
         width: "100%",
         borderRadius: "10px",
-        backgroundColor: active ? "#2a2a2a" : "transparent",
-        color: "#fff",
+        backgroundColor: active ? themeColors.lightOverlay : "transparent",
+        color: themeColors.textPrimary,
       }}
     >
       <Box
@@ -73,7 +100,7 @@ function NavItem({
           alignItems: "center",
           justifyContent: collapsed ? "center" : "flex-start",
           borderRadius: "10px",
-          "&:hover": { backgroundColor: "#2a2a2a" },
+          "&:hover": { backgroundColor: themeColors.lightOverlay },
         }}
       >
         <Box
@@ -87,9 +114,7 @@ function NavItem({
             mr: collapsed ? 0 : "10px",
           }}
         >
-          {React.isValidElement(icon) && typeof icon.type === "function"
-            ? React.cloneElement(icon, { selected: active })
-            : icon}
+          {renderedIcon}
         </Box>
 
         {!collapsed && (
@@ -120,7 +145,7 @@ function NavItem({
                   borderRadius: "6px",
                   px: "4px",
                   lineHeight: 1.2,
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   backgroundColor: countColor || "#444",
                 }}
               />
@@ -153,6 +178,7 @@ function NavItem({
 
 function AccordionGrid({ items }) {
   const navigate = useNavigate();
+  const themeColors = useThemeColors();
   return (
     <Box
       sx={{
@@ -177,8 +203,8 @@ function AccordionGrid({ items }) {
             borderRadius: "8px",
             cursor: "pointer",
             fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.9)",
-            "&:hover": { background: "rgba(255,255,255,0.06)" },
+            color: themeColors.textPrimary,
+            "&:hover": { background: themeColors.lightOverlaySubtle },
           }}
         >
           {it.text}
@@ -189,6 +215,7 @@ function AccordionGrid({ items }) {
 }
 
 function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
+  const themeColors = useThemeColors();
   const handleCompanyNavigate = () => {
     if (!showNav) return;
     navigate("/organizations");
@@ -222,24 +249,28 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
         sx={{
           width: 36,
           height: 36,
-          borderRadius: "999px",
+          borderRadius: "10px",
           flexShrink: 0,
-          background:
-            "radial-gradient(circle at 30% 30%, #b9ff9f 0%, #4b5b3a 70%)",
-          border: "2px solid #fff",
+          backgroundColor: themeColors.lightOverlaySubtle || themeColors.lightOverlay,
+          border: `1px solid ${themeColors.borderLight}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           position: "relative",
         }}
       >
+        <ShieldIcon width={18} height={18} selected className="company-shield-mark" />
         <Box
           sx={{
             position: "absolute",
-            right: -2,
-            bottom: -2,
-            width: 8,
-            height: 8,
+            right: 6,
+            bottom: 7,
+            width: 7,
+            height: 1.75,
             borderRadius: "999px",
-            backgroundColor: "#5aff3d",
-            border: "2px solid #0F0F0F",
+            backgroundColor: themeColors.textPrimary,
+            transform: "rotate(-38deg)",
+            opacity: 0.9,
           }}
         />
       </Box>
@@ -264,7 +295,7 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
-                  color: "#fff",
+                  color: themeColors.textPrimary,
                   fontSize: "1rem",
                   fontWeight: 600,
                   lineHeight: 1.3,
@@ -274,7 +305,7 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
               </Typography>
               <Typography
                 sx={{
-                  color: "rgba(255,255,255,0.7)",
+                  color: themeColors.textSecondary,
                   fontSize: "0.8rem",
                   lineHeight: 1.3,
                   wordBreak: "break-all",
@@ -297,6 +328,7 @@ function SidebarBottomAction({
   icon,
   onActivate,
 }) {
+  const themeColors = useThemeColors();
   const onKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       onActivate();
@@ -312,13 +344,13 @@ function SidebarBottomAction({
         display: "flex",
         alignItems: "center",
         justifyContent: collapsed ? "center" : "flex-start",
-        color: "#fff",
+        color: themeColors.textPrimary,
         fontSize: "0.9rem",
         fontWeight: 500,
         cursor: "pointer",
         borderRadius: "8px",
         padding: collapsed ? "8px" : "8px 12px",
-        "&:hover": { backgroundColor: "#2a2a2a" },
+        "&:hover": { backgroundColor: themeColors.lightOverlay },
       }}
       onClick={onActivate}
       onKeyDown={onKeyDown}
@@ -356,6 +388,13 @@ function SidebarNavigation({
   const workstationPill = "#c94b4b";
   const groupsPill = "#2656d8";
   const sharesPill = "#c57a1c";
+
+  const getBadgeCount = (value) => {
+    if (collapsed) return undefined;
+    if (typeof value === "number") return value;
+    if (statsLoading) return "…";
+    return 0;
+  };
 
   const getSharesCount = () => {
     if (collapsed || statsLoading) return undefined;
@@ -397,7 +436,7 @@ function SidebarNavigation({
         icon={<WorkstationsIcon width={20} height={20} />}
         label="Workstations"
         active={isActive("/workstations")}
-        count={collapsed ? undefined : stats.workstations ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.workstations)}
         countColor={workstationPill}
         onNavigate={() => navigate("/workstations")}
       />
@@ -407,7 +446,7 @@ function SidebarNavigation({
         icon={<UsersIcon width={20} height={20} />}
         label="Employees"
         active={isActive("/employees") || isActive("/users")}
-        count={collapsed ? undefined : stats.users ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.users)}
         countColor={usersPill}
         onNavigate={() => navigate("/employees")}
       />
@@ -417,7 +456,7 @@ function SidebarNavigation({
         icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
         label="Groups"
         active={isActive("/groups")}
-        count={collapsed ? undefined : stats.groups ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.groups)}
         countColor={groupsPill}
         onNavigate={() => navigate("/groups")}
       />
@@ -440,27 +479,27 @@ export default function Sidebar({
   collapsed,
   onToggleCollapse,
 }) {
+  const themeColors = useThemeColors();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useAuth();
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
-  
-  const [me, setMe] = useState(null);            // { id, email, org_id, role }
-  const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
+
+  const [me, setMe] = useState(null);
+  const [myOrg, setMyOrg] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me"); // expects { user: {...} }
+        const meRes = await apiGet("/users/me").json();
         if (!mounted) return;
         setMe(meRes.user);
 
-        // Only call org endpoint after we know we're authenticated
-        // expects { organization: {...} }
         const orgRes = await apiGet("/organizations/me");
         if (!mounted) return;
         setMyOrg(orgRes.organization);
@@ -494,11 +533,11 @@ export default function Sidebar({
         minWidth: collapsed ? 72 : 280,
         height: "100vh",
         maxHeight: "100vh",
-        bgcolor: "#0F0F0F",
-        color: "#fff",
+        bgcolor: themeColors.bgPrimary,
+        color: themeColors.textPrimary,
         display: "flex",
         flexDirection: "column",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        borderRight: `1px solid ${themeColors.borderLight}`,
         borderRadius: "0 0 20px 20px",
         padding: collapsed ? "12px 8px" : "16px",
         position: "relative",
@@ -518,13 +557,13 @@ export default function Sidebar({
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
-            backgroundColor: "#1f1f1f",
+            backgroundColor: themeColors.bgSecondary,
             borderRadius: "8px",
-            border: "1px solid rgba(255,255,255,0.12)",
-            color: "#fff",
+            border: `1px solid ${themeColors.border}`,
+            color: themeColors.textPrimary,
             width: 28,
             height: 28,
-            "&:hover": { backgroundColor: "#2a2a2a" },
+            "&:hover": { backgroundColor: themeColors.lightOverlay },
           }}
         >
           {collapsed ? (
@@ -544,7 +583,7 @@ export default function Sidebar({
         me={me}
       />
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.18)", mb: 2 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 2 }} />
 
       {/* Navigation + accordions (hidden in provisioning mode) */}
       {showNav ? (
@@ -560,7 +599,7 @@ export default function Sidebar({
         <Box sx={{ flexGrow: 1 }} />
       )}
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.18)", mt: 2, mb: 2 }} />
+      <Divider sx={{ borderColor: themeColors.border, mt: 2, mb: 2 }} />
 
       {/* Bottom actions (hidden in provisioning mode) */}
       {showBottom ? (
@@ -592,12 +631,99 @@ export default function Sidebar({
             label="Sign out"
             ariaLabel="Sign out"
             icon={<LogoutOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
-            onActivate={handleSignOut}
+            onActivate={() => setSignOutDialogOpen(true)}
           />
         </Box>
       ) : null}
+
+      <Dialog
+        open={signOutDialogOpen}
+        onClose={() => setSignOutDialogOpen(false)}
+        aria-labelledby="sign-out-dialog-title"
+      >
+        <DialogTitle
+          id="sign-out-dialog-title"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          <WarningAmberRoundedIcon color="warning" />
+          Confirm Sign Out
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to sign out? Any unsaved changes may be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setSignOutDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setSignOutDialogOpen(false);
+              handleSignOut();
+            }}
+            color="error"
+            variant="contained"
+          >
+            Sign Out
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
 
 export { NavItem, AccordionGrid };
+
+NavItem.propTypes = {
+  collapsed: PropTypes.bool,
+  icon: PropTypes.element.isRequired,
+  label: PropTypes.string.isRequired,
+  active: PropTypes.bool,
+  count: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  countColor: PropTypes.string,
+  onNavigate: PropTypes.func,
+};
+
+AccordionGrid.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      to: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
+};
+
+CompanySwitcher.propTypes = {
+  collapsed: PropTypes.bool,
+  showNav: PropTypes.bool,
+  navigate: PropTypes.func.isRequired,
+  myOrg: PropTypes.shape({
+    name: PropTypes.string,
+  }),
+  me: PropTypes.shape({
+    email: PropTypes.string,
+  }),
+};
+
+SidebarBottomAction.propTypes = {
+  collapsed: PropTypes.bool,
+  label: PropTypes.string.isRequired,
+  ariaLabel: PropTypes.string.isRequired,
+  icon: PropTypes.element.isRequired,
+  onActivate: PropTypes.func.isRequired,
+};
+
+SidebarNavigation.propTypes = {
+  collapsed: PropTypes.bool,
+  isActive: PropTypes.func.isRequired,
+  navigate: PropTypes.func.isRequired,
+  stats: navStatsShape,
+  statsLoading: PropTypes.bool,
+};
+
+Sidebar.propTypes = {
+  mode: PropTypes.oneOf(["full", "provisioning"]),
+  collapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
+};

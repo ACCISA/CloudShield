@@ -76,3 +76,62 @@ describe("safeAsync", () => {
     expect(toast.error).toHaveBeenCalledWith("Sync friendly message");
   });
 });
+
+
+// Mock the error parser
+jest.mock('../errors', () => ({
+  getUserErrorMessage: jest.fn((err) => err.message || 'Default error'),
+}));
+
+describe('safeAsync', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  });
+
+  it('returns data and enforces minDelay on fast success', async () => {
+    const fastFn = jest.fn().mockResolvedValue('success data');
+    
+    const promise = safeAsync(fastFn, { minDelay: 500 });
+    
+    // Fast forward 100ms (data is ready, but delay holds it)
+    jest.advanceTimersByTime(100);
+    
+    // Fast forward remaining 400ms
+    jest.advanceTimersByTime(400);
+    
+    const result = await promise;
+    expect(result).toBe('success data');
+    expect(fastFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns data immediately if execution takes longer than minDelay', async () => {
+    const slowFn = jest.fn().mockImplementation(() => {
+      jest.advanceTimersByTime(600); // Takes 600ms internally
+      return Promise.resolve('slow data');
+    });
+
+    const promise = safeAsync(slowFn, { minDelay: 500 });
+    const result = await promise;
+    
+    expect(result).toBe('slow data');
+  });
+
+  it('catches errors, enforces minDelay, triggers toast, and throws', async () => {
+    const errorFn = jest.fn().mockRejectedValue(new Error('API Failed'));
+    const toastMock = { error: jest.fn() };
+
+    const promise = safeAsync(errorFn, { toast: toastMock, minDelay: 500 });
+    
+    // Fast forward 500ms
+    jest.advanceTimersByTime(500);
+
+    await expect(promise).rejects.toThrow('API Failed');
+    expect(getUserErrorMessage).toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+  });
+});

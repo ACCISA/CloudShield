@@ -17,6 +17,10 @@ from .dc_management import dc_update_file_share as dc_update_file_share
 from .email_tasks import send_org_welcome_email as send_org_welcome_email
 from .email_tasks import send_employee_invite_email as send_employee_invite_email
 
+from .workstations import ws_create_default as ws_create_default
+from .workstations import ws_start as ws_start
+from .workstations import ws_provision_update as ws_provision_update
+
 from .task import get_server_nodes as get_server_nodes
 from .task import proxy_rpc_request as proxy_rpc_request
 from .task import NodeType as NodeType

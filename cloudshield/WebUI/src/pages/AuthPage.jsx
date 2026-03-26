@@ -5,14 +5,18 @@
  * Authentication page (login) integrated with Flask API.
  */
 import React, { useMemo, useState } from "react";
-import { Alert, Box } from "@mui/material";
+import { Alert, Box, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
+import { useNavigate } from "react-router-dom";
 
 import AuthCard from "../components/auth/AuthCard.jsx";
 import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 import PageShell from "../components/layout/PageShell.jsx";
+
+import {apiPost} from "../api/client";
 
 /**
  * Safely parse JSON if the response body is JSON, otherwise return {}.
@@ -57,6 +61,7 @@ function getAuthErrorMessage({ status, data }) {
  * @param {Function} props.onLoginSuccess - Callback when login succeeds (receives token data)
  */
 export default function AuthPage({ onLoginSuccess }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -82,14 +87,11 @@ export default function AuthPage({ onLoginSuccess }) {
 
     try {
       // 2) Call the Flask API
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await apiPost("/auth/login",
+        {
           email: email.trim(),
           password,
-        }),
-      });
+        });
 
       const data = await safeReadJson(response);
 
@@ -149,8 +151,32 @@ export default function AuthPage({ onLoginSuccess }) {
           <PrimaryButton onClick={handleLogin} disabled={isLoading || !canSubmit}>
             {isLoading ? "Logging in…" : "Login"}
           </PrimaryButton>
+
+          <Typography
+            onClick={() => {
+              trackButton("auth/nav/signup", { page: "auth" });
+              navigate("/signup");
+            }}
+            sx={{
+              cursor: "pointer",
+              mt: 1.5,
+              textAlign: "center",
+              color: "text.primary",
+              fontSize: "0.9rem",
+              "&:hover": {
+                textDecoration: "underline",
+                color: "primary.main",
+              },
+            }}
+          >
+            Don&apos;t have an account? Sign up
+          </Typography>
         </AuthCard>
       </Box>
     </PageShell>
   );
 }
+
+AuthPage.propTypes = {
+  onLoginSuccess: PropTypes.func,
+};

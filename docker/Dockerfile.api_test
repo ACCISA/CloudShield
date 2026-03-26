@@ -3,7 +3,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y curl gnupg wget && \
     curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update && apt-get install -y terraform bash procps net-tools && \
+    apt-get update && apt-get install -y terraform bash procps net-tools iputils-ping && \
     rm -rf /var/lib/apt/lists/*
 
 # install docker compose
@@ -37,6 +37,7 @@ RUN mkdir -p /app/cloudshield/RPCNode/build/
 COPY .env /app/
 COPY cloudshield/Cloud/docker_provisioner /app/provisioner
 COPY cloudshield/Cloud/templates /var/lib/cloudshield/templates
+COPY cloudshield/RPCNode /app/cloudshield/RPCNode/
 COPY cloudshield/RPCNode/build/cs-rpcsrv  /app/cloudshield/RPCNode/build/cs-rpcsrv
 #COPY cloudshield/RPCNode/ /app/cloudshield/RPCNode/
 ENV PYTHONPATH=/app

@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Alert, Box, LinearProgress, Paper, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { trackButton } from "../lib/analytics";
+import { useAppTheme } from "../context/ThemeContext.jsx";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 
 import StatCard from "../components/dashboard/StatCard.jsx";
 import ActivityPanel from "../components/dashboard/ActivityPanel.jsx";
@@ -51,6 +53,8 @@ function normalizeActivityItem(item, index) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const auth = useAuth();
+  const { effectiveTheme } = useAppTheme(); //NOSONAR javascript:S1481
+  const themeColors = useThemeColors();
 
   const [provisioningStatus] = useState("pending");
   const [loadingText] = useState("Initializing infrastructure...");
@@ -83,9 +87,11 @@ export default function DashboardPage() {
     setActivityError("");
 
     try {
-      const data = await safeAsync(() =>
+      const response = await safeAsync(() =>
         apiGet(`/activity/${org_id}?page=${page}&limit=${itemsPerPage}`)
       );
+      const data =
+        typeof response?.json === "function" ? await response.json() : response;
 
       const items = Array.isArray(data?.items) ? data.items : [];
       const normalized = items.map((item, idx) =>
@@ -154,7 +160,7 @@ export default function DashboardPage() {
           display: "flex",
           flexDirection: "column",
           gap: 3,
-          color: "#fff",
+          color: "text.primary",
           height: "100%",
           minHeight: 0,
         }}
@@ -163,8 +169,9 @@ export default function DashboardPage() {
           <Paper
             sx={{
               p: 3,
-              bgcolor: "#1E1E1E",
-              border: "1px solid #333",
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: 2,
               display: "flex",
               flexDirection: "column",
@@ -178,7 +185,7 @@ export default function DashboardPage() {
                 alignItems: "center",
               }}
             >
-              <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
+              <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 600 }}>
                 Cloud Infrastructure Provisioning
               </Typography>
               <Typography variant="body2" sx={{ color: "#aaa" }}>
@@ -194,7 +201,7 @@ export default function DashboardPage() {
               sx={{
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: "#333",
+                backgroundColor: themeColors.isDark ? "#333" : "#e8e8e8",
                 "& .MuiLinearProgress-bar": {
                   background: "linear-gradient(90deg, #6a4fcf 0%, #ad8bff 100%)",
                 },

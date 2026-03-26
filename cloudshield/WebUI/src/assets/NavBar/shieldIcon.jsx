@@ -4,7 +4,7 @@ export default function ShieldIcon({
   height = 16,
   className = "",
 }) {
-  const color = selected ? "#fff" : "#BCBCBC";
+  const color = selected ? "var(--text-primary)" : "#BCBCBC";
 
   return (
     <svg

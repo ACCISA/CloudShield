@@ -1,34 +1,36 @@
 import { useState, useRef, useEffect } from "react";
 import { Box, Typography, TextField, Button, Avatar, Divider, IconButton } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
-const SectionLabel = ({ title, subtitle }) => (
+const SectionLabel = ({ title, subtitle, themeColors }) => (
   <Box sx={{ width: 260, flexShrink: 0 }}>
-    <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
+    <Typography sx={{ color: themeColors.text, fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
     {subtitle && (
-      <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}>
+      <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}>
         {subtitle}
       </Typography>
     )}
   </Box>
 );
 
-const inputSx = {
+const getInputSx = (themeColors) => ({
   "& .MuiOutlinedInput-root": {
-    backgroundColor: "#161616",
+    backgroundColor: themeColors.inputBg,
     borderRadius: "8px",
-    color: "#fff",
-    "& fieldset": { borderColor: "rgba(255,255,255,0.12)" },
-    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.25)" },
-    "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+    color: themeColors.text,
+    "& fieldset": { borderColor: themeColors.borderLight },
+    "&:hover fieldset": { borderColor: themeColors.border },
+    "&.Mui-focused fieldset": { borderColor: themeColors.borderStrong },
   },
-  "& .MuiInputLabel-root": { color: "#9E9E9E" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#fff" },
-};
+  "& .MuiInputLabel-root": { color: themeColors.textSecondary },
+  "& .MuiInputLabel-root.Mui-focused": { color: themeColors.text },
+});
 
 export default function BasicInfoTab({ userData, onSave }) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const themeColors = useThemeColors();
+  const inputSx = getInputSx(themeColors);
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,9 +42,7 @@ export default function BasicInfoTab({ userData, onSave }) {
   // Watch for userData changes to auto-populate the fields
   useEffect(() => {
     if (userData) {
-      const nameParts = (userData.full_name || "").split(" ");
-      setFirstName(nameParts[0] || "");
-      setLastName(nameParts.slice(1).join(" ") || "");
+      setFullName(userData.full_name || "");
       setEmail(userData.email || "");
       setProfileImage(userData.profile_image || null);
     }
@@ -58,7 +58,7 @@ export default function BasicInfoTab({ userData, onSave }) {
 
   const validate = () => {
     const errs = {};
-    if (!firstName.trim()) errs.firstName = "First name is required";
+    if (!fullName.trim()) errs.fullName = "Name is required";
     if (!email.trim()) errs.email = "Email is required";
     if (newPassword && newPassword !== confirmPassword)
       errs.confirmPassword = "Passwords do not match"; //NOSONAR javascript:S2068
@@ -74,7 +74,7 @@ export default function BasicInfoTab({ userData, onSave }) {
     setSaving(true);
 
     const payload = {};
-    const newFullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const newFullName = fullName.trim();
     const newEmail = email.trim().toLowerCase();
 
     // Only send fields that actually changed
@@ -97,10 +97,10 @@ export default function BasicInfoTab({ userData, onSave }) {
 
   return (
     <Box>
-      <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
+      <Typography sx={{ color: themeColors.text, fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
         Basic Info
       </Typography>
-      <Typography sx={{ color: "#9E9E9E", fontSize: "0.85rem", mb: 3 }}>
+      <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.85rem", mb: 3 }}>
         Take a look at your personal information
       </Typography>
 
@@ -110,15 +110,15 @@ export default function BasicInfoTab({ userData, onSave }) {
       <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4, gap: 4 }}>
         {/* Profile Picture */}
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0 }}>
-          <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.9rem", mb: 1 }}>
+          <Typography sx={{ color: themeColors.text, fontWeight: 600, fontSize: "0.9rem", mb: 1 }}>
             Profile picture
           </Typography>
           <Box sx={{ position: "relative" }}>
             <Avatar
               src={profileImage || undefined}
-              sx={{ width: 80, height: 80, backgroundColor: "#2a2a2a", fontSize: "1.5rem" }}
+              sx={{ width: 80, height: 80, backgroundColor: themeColors.bgTertiary, fontSize: "1.5rem" }}
             >
-              {!profileImage && (firstName?.[0] || "U").toUpperCase()}
+              {!profileImage && (fullName?.[0] || "U").toUpperCase()}
             </Avatar>
             <IconButton
               onClick={() => fileRef.current?.click()}
@@ -126,14 +126,14 @@ export default function BasicInfoTab({ userData, onSave }) {
                 position: "absolute",
                 bottom: -4,
                 right: -4,
-                backgroundColor: "#222",
-                border: "2px solid #0A0A0A",
+                backgroundColor: themeColors.bgActive,
+                border: `2px solid ${themeColors.bgPrimary}`,
                 padding: "4px",
-                "&:hover": { backgroundColor: "#333" },
+                "&:hover": { backgroundColor: themeColors.bgHover },
               }}
               size="small"
             >
-              <EditOutlinedIcon sx={{ fontSize: "0.85rem", color: "#fff" }} />
+              <EditOutlinedIcon sx={{ fontSize: "0.85rem", color: themeColors.text }} />
             </IconButton>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleImageChange} />
           </Box>
@@ -143,26 +143,18 @@ export default function BasicInfoTab({ userData, onSave }) {
         <Box sx={{ display: "flex", flexDirection: "column", flex: 1, gap: 2 }}>
           <SectionLabel
             title="Name"
-            subtitle="Your name which appears throughout"
+            subtitle="Your name as it appears throughout the platform"
+            themeColors={themeColors}
           />
-          <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
-            <TextField
-              label="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              error={!!errors.firstName}
-              helperText={errors.firstName}
-              fullWidth
-              sx={inputSx}
-            />
-            <TextField
-              label="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              fullWidth
-              sx={inputSx}
-            />
-          </Box>
+          <TextField
+            label="Admin Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            error={!!errors.fullName}
+            helperText={errors.fullName}
+            fullWidth
+            sx={{ ...inputSx, flex: 1 }}
+          />
         </Box>
       </Box>
 
@@ -173,6 +165,7 @@ export default function BasicInfoTab({ userData, onSave }) {
         <SectionLabel
           title="Email"
           subtitle="Your email which appears throughout and for receiving notifications"
+          themeColors={themeColors}
         />
         <TextField
           label="Email"
@@ -192,6 +185,7 @@ export default function BasicInfoTab({ userData, onSave }) {
         <SectionLabel
           title="Password"
           subtitle="Password to your account"
+          themeColors={themeColors}
         />
         <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
           <TextField
@@ -217,21 +211,21 @@ export default function BasicInfoTab({ userData, onSave }) {
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
+      <Divider sx={{ borderColor: themeColors.borderLight, mb: 3 }} />
 
       <Button
         onClick={handleSave}
         disabled={saving}
         variant="contained"
         sx={{
-          backgroundColor: "#fff",
-          color: "#000",
+          backgroundColor: themeColors.primary,
+          color: themeColors.primaryText,
           fontWeight: 600,
           borderRadius: "10px",
           textTransform: "none",
           padding: "10px 28px",
-          "&:hover": { backgroundColor: "#e0e0e0" },
-          "&:disabled": { backgroundColor: "#333", color: "#666" },
+          "&:hover": { backgroundColor: themeColors.primaryHover },
+          "&:disabled": { backgroundColor: themeColors.bgTertiary, color: themeColors.textSecondary },
         }}
       >
         {saving ? "Saving..." : "Save changes"}

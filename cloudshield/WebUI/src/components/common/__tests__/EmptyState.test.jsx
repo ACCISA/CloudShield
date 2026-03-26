@@ -110,7 +110,7 @@ describe("EmptyState Component", () => {
           testId="custom"
         />,
       );
-      expect(screen.getByTestId("custom-icon")).toBeInTheDocument();
+      expect(screen.getByTestId("empty-state-icon")).toBeInTheDocument();
       expect(screen.getByTestId("custom-message")).toBeInTheDocument();
       expect(screen.getByTestId("custom-description")).toBeInTheDocument();
     });

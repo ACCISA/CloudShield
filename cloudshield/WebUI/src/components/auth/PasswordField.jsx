@@ -13,6 +13,7 @@ import React, { useState } from "react";
 import { Box, Typography, OutlinedInput, IconButton } from "@mui/material";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
  * Password input field with show/hide toggle.
@@ -30,6 +31,7 @@ export default function PasswordField({
 }) {
   // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
+  const themeColors = useThemeColors();
 
   const handleToggle = () => setShow(!show);
 
@@ -44,7 +46,7 @@ export default function PasswordField({
     <Box sx={{ width: "100%", mb: 3 }}>
       <Typography
         sx={{
-          color: "#fff",
+          color: themeColors.text,
           fontSize: "0.9rem",
           fontWeight: 500,
           mb: "6px",
@@ -62,7 +64,7 @@ export default function PasswordField({
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            color: "#fff",
+            color: themeColors.text,
             fontSize: "0.9rem",
             fontWeight: 400,
             opacity: 0.8,
@@ -79,7 +81,7 @@ export default function PasswordField({
             onClick={handleToggle}
             size="small"
             sx={{
-              color: "#fff",
+              color: themeColors.text,
               p: 0,
             }}
           >
@@ -99,19 +101,19 @@ export default function PasswordField({
         onKeyDown={onKeyDown}
         sx={{
           width: "100%",
-          backgroundColor: "#161616",
+          backgroundColor: themeColors.inputBg,
           borderRadius: "8px",
-          color: "#fff",
+          color: themeColors.textPrimary,
           fontSize: "0.95rem",
           lineHeight: 1.3,
-          border: "1px solid rgba(255,255,255,0.18)",
+          border: `1px solid ${themeColors.borderLight}`,
           paddingY: "12px",
           paddingX: "12px",
           "& .MuiOutlinedInput-notchedOutline": {
             border: "none",
           },
           "&:hover": {
-            backgroundColor: "#1a1a1a",
+            backgroundColor: themeColors.bgSecondary,
           },
           "&.Mui-focused": {
             outline: "2px solid rgba(255,255,255,0.4)",

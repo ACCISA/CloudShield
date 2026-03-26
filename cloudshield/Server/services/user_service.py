@@ -4,11 +4,11 @@ import string
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime, timezone
-from utils import users_admin, log_audit, organizations
+from utils import users_admin, log_audit, organizations, derive_username
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 from security import hash_password
-from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError, DuplicateKeyError
 from bson.errors import InvalidId
 
 
@@ -59,6 +59,13 @@ def _must_admin(current_user: dict | None) -> None:
 
 def persist_domain_user(org_id: str, username: str, password: str, email: str) -> str:
     """Persist a domain user to the database and return the user ID."""
+    existing_user = users_admin.find_one(
+        {"org_id": org_id, "email": email},
+        {"_id": 1},
+    )
+    if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
+        return str(existing_user["_id"])
+
     user_doc = {
         "org_id": org_id,
         "email": email,
@@ -69,8 +76,18 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
-    res = users_admin.insert_one(user_doc)
-    return str(res.inserted_id)
+    try:
+        res = users_admin.insert_one(user_doc)
+        return str(res.inserted_id)
+    except DuplicateKeyError:
+        # Idempotency guard: user may already have been created by /api/users.
+        existing_user = users_admin.find_one(
+            {"org_id": org_id, "email": email},
+            {"_id": 1},
+        )
+        if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
+            return str(existing_user["_id"])
+        raise
 
 
 def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = None) -> bool:
@@ -146,7 +163,8 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
     
     def gen_password():
-        alphabet = string.ascii_letters + string.digits + string.punctuation
+        friendly_punctuation = "!@#%^&()-_=+[]{};:,.<>?"
+        alphabet = string.ascii_letters + string.digits + friendly_punctuation
         password = ''.join(secrets.choice(alphabet) for _ in range(16))
         return password
 
@@ -193,8 +211,13 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Insert user
     # -----------------------------
+    requested_username = getattr(user_data, "username", None)
+    username = requested_username.strip() if isinstance(requested_username, str) else ""
+    username = username or derive_username(user_data.full_name)
+
     user_doc = {
         "email": user_data.email,
+        "username": username,
         "password": hash_password(user_data.password),
         "org_id": org_id, # This is now the 24-char ObjectId string
         "role": user_data.role,

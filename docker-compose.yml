@@ -52,6 +52,12 @@ services:
       vpc_net:
         ipv4_address: "172.23.${VPC_OCTET:-1}.2"
     volumes:
+      - type: bind
+        source: ${WORKSTATIONS_MOUNT_DIR}
+        target: /data
+      - type: bind
+        source: ${CLOUDSHIELD_DATA_MOUNT_DIR}
+        target: /var/lib/cloudshield
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -148,13 +154,16 @@ services:
       USERNAME: "bill"
       PASSWORD: "gates"
       VERSION: "11"
-      KVM: "N"
+      DISK_SIZE: "32G"
+
     devices:
+      - /dev/kvm
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
     restart: "no"
-    stop_grace_period: 2m
+    networks:
+      vpc_net:
 
   api:
     build:

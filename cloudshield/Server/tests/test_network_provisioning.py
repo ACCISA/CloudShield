@@ -395,6 +395,10 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         str(jobs_dir)
     )
     monkeypatch.setattr(
+        "tasks.network_provisioning._detect_mode",
+        lambda logger: "terraform"
+    )
+    monkeypatch.setattr(
         "tasks.network_provisioning.destroy_infra",
         lambda org_id, region, force_empty_s3, org_dir, server_logger: None
     )
@@ -1279,13 +1283,8 @@ def test_import_terraform_provisioner_spec_loader_none(monkeypatch):
     mock_spec = SimpleNamespace(loader=None)
     monkeypatch.setattr(importlib.util, "spec_from_file_location", lambda *a: mock_spec)
     
-    # Since existing imports are tried first, force fail them
-    def fail_import(name, *args, **kwargs):
-        raise ModuleNotFoundError("Force file load")
-    
-    with unittest.mock.patch("builtins.__import__", side_effect=fail_import):
-        with pytest.raises(ModuleNotFoundError) as exc:
-            np._import_terraform_provisioner()
+    with pytest.raises(ModuleNotFoundError) as exc:
+        np._import_terraform_provisioner()
         assert "Terraform provisioner not found" in str(exc.value)
 
 

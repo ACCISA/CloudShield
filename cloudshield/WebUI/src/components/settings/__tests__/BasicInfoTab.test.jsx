@@ -24,8 +24,7 @@ describe("BasicInfoTab", () => {
     expect(screen.getByText("Basic Info")).toBeInTheDocument();
     expect(screen.getByText("Take a look at your personal information")).toBeInTheDocument();
     expect(screen.getByText("Profile picture")).toBeInTheDocument();
-    expect(screen.getByLabelText("First Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Admin Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 
@@ -33,8 +32,7 @@ describe("BasicInfoTab", () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("First Name")).toHaveValue("John");
-      expect(screen.getByLabelText("Last Name")).toHaveValue("Doe");
+      expect(screen.getByLabelText("Admin Name")).toHaveValue("John Doe");
       expect(screen.getByLabelText("Email")).toHaveValue("john@example.com");
     });
   });
@@ -42,30 +40,27 @@ describe("BasicInfoTab", () => {
   test("updates state when input fields change", async () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
-    const lastNameInput = screen.getByLabelText("Last Name");
+    const nameInput = screen.getByLabelText("Admin Name");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
-      fireEvent.change(lastNameInput, { target: { value: "Smith" } });
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
     });
 
-    expect(firstNameInput).toHaveValue("Jane");
-    expect(lastNameInput).toHaveValue("Smith");
+    expect(nameInput).toHaveValue("Jane Smith");
   });
 
   test("validates required fields", async () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
+    const nameInput = screen.getByLabelText("Admin Name");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "" } });
+      fireEvent.change(nameInput, { target: { value: "" } });
       fireEvent.click(saveButton);
     });
 
-    expect(screen.getByText("First name is required")).toBeInTheDocument();
+    expect(screen.getByText("Name is required")).toBeInTheDocument();
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 
@@ -120,14 +115,12 @@ describe("BasicInfoTab", () => {
 
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
-    const lastNameInput = screen.getByLabelText("Last Name");
+    const nameInput = screen.getByLabelText("Admin Name");
     const emailInput = screen.getByLabelText("Email");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
-      fireEvent.change(lastNameInput, { target: { value: "Smith" } });
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
       fireEvent.change(emailInput, { target: { value: "jane@example.com" } });
       fireEvent.click(saveButton);
     });
@@ -197,9 +190,11 @@ describe("BasicInfoTab", () => {
 
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
+    const nameInput = screen.getByLabelText("Admin Name");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
       fireEvent.click(saveButton);
     });
 
@@ -218,8 +213,6 @@ describe("BasicInfoTab", () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
     const file = new File(["image"], "profile.png", { type: "image/png" });
-    const editButton = screen.getByRole("button", { name: /edit/i });
-
     // Get the hidden file input
     const fileInput = document.querySelector('input[type="file"]');
 
@@ -268,8 +261,7 @@ describe("BasicInfoTab", () => {
     rerender(<BasicInfoTab userData={newUserData} onSave={mockOnSave} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("First Name")).toHaveValue("Jane");
-      expect(screen.getByLabelText("Last Name")).toHaveValue("Smith");
+      expect(screen.getByLabelText("Admin Name")).toHaveValue("Jane Smith");
       expect(screen.getByLabelText("Email")).toHaveValue("jane@example.com");
     });
   });
@@ -291,14 +283,14 @@ describe("BasicInfoTab", () => {
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(emailInput, { target: { value: "JOHN@EXAMPLE.COM" } });
+      fireEvent.change(emailInput, { target: { value: "JANE@EXAMPLE.COM" } });
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: "john@example.com",
+          email: "jane@example.com",
         })
       );
     });

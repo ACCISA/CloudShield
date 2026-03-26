@@ -5,6 +5,7 @@ import UserSelectionPanel from "./UserSelectionPanel.jsx";
 import GroupSelectionPanel from "./GroupSelectionPanel.jsx";
 import { fetchUsers, fetchGroups } from "../../api/filesApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 import {
   resolveOrgId,
   createDeleteHandler,
@@ -50,6 +51,7 @@ export default function FileShareWizardModal({
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableGroups, setAvailableGroups] = useState([]);
   const { currentUser } = useAuth();
+  const themeColors = useThemeColors();
 
   const normalizeUsers = (usersData) =>
     (Array.isArray(usersData) ? usersData : []).map((u) => {
@@ -467,7 +469,7 @@ function BasicInfoStep({ formData, setFormData, isEditMode, fieldErrors = {} }) 
               ? {
                   cursor: "not-allowed",
                   opacity: 0.6,
-                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backgroundColor: themeColors.lightOverlaySubtle,
                 }
               : {}
           }

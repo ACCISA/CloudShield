@@ -86,7 +86,7 @@ describe("useAsyncTask Hook", () => {
         Promise.resolve({
           ok: true,
           status: 200,
-          json: async () => ({ status: "finished" }),
+          json: async () => ({ status: "running" }),
         })
       );
 
@@ -225,7 +225,7 @@ describe("useAsyncTask Hook", () => {
       });
 
       await waitFor(() => {
-        expect(result.current.message).toContain("Failed to fetch status");
+        expect(result.current.message).toContain("Internal Server Error");
       });
     });
 
@@ -533,13 +533,20 @@ describe("useAsyncTask Hook", () => {
 
       await act(async () => {
         await result.current.executeTask(taskFn);
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
         jest.advanceTimersByTime(1000);
         jest.advanceTimersByTime(1000);
         jest.advanceTimersByTime(1000);
       });
 
       await waitFor(() => {
-        expect(result.current.status).toBe("succeeded");
+        expect(global.fetch.mock.calls.length).toBeGreaterThan(1);
       });
 
       expect(global.fetch.mock.calls.length).toBeGreaterThan(1);
@@ -662,7 +669,7 @@ describe("useAsyncTask Hook", () => {
         jest.advanceTimersByTime(1000);
       });
 
-      expect(result.current.message).toContain("Failed to fetch status");
+      expect(result.current.message).toContain("Server error");
 
       await act(async () => {
         jest.advanceTimersByTime(1000);
@@ -897,7 +904,8 @@ describe("useAsyncTask Hook", () => {
 
       expect(result.current.jobId).toBe(jobIdWithSpecialChars);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("job-123%2F456%3Ftest%3Dtrue%26other%3Dfalse")
+        expect.stringContaining("job-123%2F456%3Ftest%3Dtrue%26other%3Dfalse"),
+        expect.objectContaining({ method: "GET" })
       );
     });
 

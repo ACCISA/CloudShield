@@ -1,8 +1,16 @@
 // A reusable layout component that provides a consistent page structure with an optional header section for title, subtitle, and actions, and a main content area that fills the remaining space.
 // This component is used across various pages in the app to ensure a consistent look and feel while also handling layout concerns such as spacing and scroll behavior for the main content area.
 import { Box, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 
-export default function PageShell({ title, subtitle, actions, children }) {
+export default function PageShell({
+  title,
+  subtitle,
+  actions,
+  children,
+  noPadding = false,
+  headerCentered = false,
+}) {
   return (
     <Box
       sx={{
@@ -10,7 +18,7 @@ export default function PageShell({ title, subtitle, actions, children }) {
         display: "flex",
         flexDirection: "column",
         gap: 3,          // consistent spacing
-        p: 3,            // consistent page padding
+        p: noPadding ? 0 : 3,            // consistent page padding (disabled if noPadding is true)
         minHeight: 0,    // important for nested scroll areas
       }}
     >
@@ -19,11 +27,21 @@ export default function PageShell({ title, subtitle, actions, children }) {
           sx={{
             display: "flex",
             alignItems: "flex-start",
-            justifyContent: "space-between",
+            justifyContent: headerCentered ? "center" : "space-between",
             gap: 2,
           }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+              minWidth: 0,
+              width: headerCentered ? "100%" : "auto",
+              alignItems: headerCentered ? "center" : "flex-start",
+              textAlign: headerCentered ? "center" : "left",
+            }}
+          >
             {title ? (
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 {title}
@@ -46,3 +64,12 @@ export default function PageShell({ title, subtitle, actions, children }) {
     </Box>
   );
 }
+
+PageShell.propTypes = {
+  title: PropTypes.node,
+  subtitle: PropTypes.node,
+  actions: PropTypes.node,
+  children: PropTypes.node,
+  noPadding: PropTypes.bool,
+  headerCentered: PropTypes.bool,
+};

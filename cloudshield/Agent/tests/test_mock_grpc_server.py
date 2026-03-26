@@ -12,33 +12,7 @@ if "grpc" not in sys.modules:
     fake_grpc_module.server = lambda _executor: None
     sys.modules["grpc"] = fake_grpc_module
 
-if "google" not in sys.modules:
-    google_module = types.ModuleType("google")
-    sys.modules["google"] = google_module
-else:
-    google_module = sys.modules["google"]
 
-if "google.protobuf" not in sys.modules:
-    protobuf_module = types.ModuleType("google.protobuf")
-    sys.modules["google.protobuf"] = protobuf_module
-else:
-    protobuf_module = sys.modules["google.protobuf"]
-
-if "google.protobuf.json_format" not in sys.modules:
-    json_format_module = types.ModuleType("google.protobuf.json_format")
-
-    def default_message_to_dict(message, **_kwargs):
-        if hasattr(message, "__dict__"):
-            return dict(message.__dict__)
-        return {}
-
-    json_format_module.MessageToDict = default_message_to_dict
-    sys.modules["google.protobuf.json_format"] = json_format_module
-else:
-    json_format_module = sys.modules["google.protobuf.json_format"]
-
-setattr(google_module, "protobuf", protobuf_module)
-setattr(protobuf_module, "json_format", json_format_module)
 
 if "proto" not in sys.modules:
     proto_module = types.ModuleType("proto")

@@ -4,10 +4,6 @@ set -euo pipefail
 exec > /var/log/openvpn-userdata.log 2>&1
 set -x
 
-id -u | grep -q '^0$' || { echo "Must run as root"; exit 1; }
-
-timeout 10 systemctl start cs_rpc || true
-
 openvpn_address="${openvpn_address:-${OPENVPN_ADDRESS:-}}"
 openvpn_protocol="${openvpn_protocol:-${OPENVPN_PROTOCOL:-udp}}"
 openvpn_dns="${openvpn_dns:-${OPENVPN_DNS:-}}"
@@ -15,6 +11,9 @@ openvpn_port="${openvpn_port:-${OPENVPN_PORT:-1194}}"
 openvpn_client_name="${openvpn_client_name:-${OPENVPN_CLIENT_NAME:-client1}}"
 openvpn_ip_choice="${openvpn_ip_choice:-${OPENVPN_IP_CHOICE:-1}}"
 openvpn_public_address="${openvpn_public_address:-${OPENVPN_PUBLIC_ADDRESS:-}}"
+org_subnet_cidr="${org_subnet_cidr:-${ORG_SUBNET_CIDR:-}}"
+openvpn_force_hosts="${openvpn_force_hosts:-${OPENVPN_FORCE_HOSTS:-}}"
+openvpn_force_routes="${openvpn_force_routes:-${OPENVPN_FORCE_ROUTES:-}}"
 
 eth0_ip="$(ip -4 -o addr show dev eth0 | awk '{split($4,a,"/"); print a[1]; exit}' || true)"
 org_cidr="$(ip -4 route show dev eth0 | awk '/proto kernel/ && $1 ~ /^[0-9]+\./ {print $1; exit}' || true)"
@@ -30,6 +29,10 @@ if [ -z "${openvpn_address}" ]; then
   openvpn_address="${eth0_ip}"
 fi
 
+if [ -z "${openvpn_public_address}" ]; then
+  openvpn_public_address="${openvpn_address}"
+fi
+
 if [ -z "${openvpn_dns}" ] && [ -n "${org_net}" ] && [ "${org_prefix}" = "24" ]; then
   openvpn_dns="$(echo "${org_net}" | awk -F. '{print $1"."$2"."$3".10"}')"
 fi
@@ -39,16 +42,119 @@ INSTALLER="/opt/openvpn-install.sh"
 AUTO="/opt/openvpn-auto-install.exp"
 SERVER_CONF="/etc/openvpn/server/server.conf"
 
-if [ -f "${MARKER}" ] && [ -f "${SERVER_CONF}" ]; then
-  if [ -n "${org_net}" ] && [ "${org_prefix}" = "24" ]; then
-    grep -qE "push \"route ${org_net} 255\.255\.255\.0\"" "${SERVER_CONF}" \
-      || echo "push \"route ${org_net} 255.255.255.0\"" >> "${SERVER_CONF}"
+ensure_split_tunnel() {
+  [ -f "${SERVER_CONF}" ] || return 0
+  sed -i '/^[[:space:]]*push "redirect-gateway def1.*"[[:space:]]*$/d' "${SERVER_CONF}" || true
+}
+
+cidr_to_mask() {
+  local prefix="$1"
+  if ! [[ "${prefix}" =~ ^[0-9]+$ ]] || [ "${prefix}" -lt 0 ] || [ "${prefix}" -gt 32 ]; then
+    return 1
+  fi
+  local mask
+  if [ "${prefix}" -eq 0 ]; then
+    mask=0
+  else
+    mask=$(( (0xffffffff << (32 - prefix)) & 0xffffffff ))
+  fi
+  printf '%d.%d.%d.%d' \
+    $(( (mask >> 24) & 255 )) \
+    $(( (mask >> 16) & 255 )) \
+    $(( (mask >> 8) & 255 )) \
+    $(( mask & 255 ))
+}
+
+push_route_once() {
+  local net="$1"
+  local mask="$2"
+  [ -n "${net}" ] || return 0
+  [ -n "${mask}" ] || return 0
+  grep -qE "push \"route ${net} ${mask}\"" "${SERVER_CONF}" \
+    || echo "push \"route ${net} ${mask}\"" >> "${SERVER_CONF}"
+}
+
+ensure_org_route_and_dns() {
+  [ -f "${SERVER_CONF}" ] || return 0
+
+  local route_net=""
+  local route_prefix=""
+  local route_mask=""
+
+  if [ -n "${org_subnet_cidr}" ] && [[ "${org_subnet_cidr}" == */* ]]; then
+    route_net="${org_subnet_cidr%/*}"
+    route_prefix="${org_subnet_cidr#*/}"
+  elif [ -n "${org_net}" ] && [ -n "${org_prefix}" ]; then
+    route_net="${org_net}"
+    route_prefix="${org_prefix}"
+  fi
+
+  if [ -n "${route_net}" ] && [ -n "${route_prefix}" ]; then
+    route_mask="$(cidr_to_mask "${route_prefix}" || true)"
+    if [ -n "${route_mask}" ]; then
+      push_route_once "${route_net}" "${route_mask}"
+    fi
+  fi
+
+  if [ -n "${openvpn_dns}" ]; then
+    # Force the DNS/Samba host itself through the tunnel using a more-specific /32 route.
+    push_route_once "${openvpn_dns}" "255.255.255.255"
+  fi
+
+  if [ -n "${openvpn_force_hosts}" ]; then
+    for host_ip in ${openvpn_force_hosts//,/ }; do
+      [ -n "${host_ip}" ] || continue
+      push_route_once "${host_ip}" "255.255.255.255"
+    done
+  fi
+
+  if [ -n "${openvpn_force_routes}" ]; then
+    for cidr in ${openvpn_force_routes//,/ }; do
+      [ -n "${cidr}" ] || continue
+      if [[ "${cidr}" != */* ]]; then
+        continue
+      fi
+      local extra_net="${cidr%/*}"
+      local extra_prefix="${cidr#*/}"
+      local extra_mask
+      extra_mask="$(cidr_to_mask "${extra_prefix}" || true)"
+      if [ -n "${extra_mask}" ]; then
+        push_route_once "${extra_net}" "${extra_mask}"
+      fi
+    done
   fi
 
   if [ -n "${openvpn_dns}" ]; then
     grep -qE "push \"dhcp-option DNS ${openvpn_dns}\"" "${SERVER_CONF}" \
       || echo "push \"dhcp-option DNS ${openvpn_dns}\"" >> "${SERVER_CONF}"
   fi
+}
+
+ensure_client_remote_endpoint() {
+  local remote_host="${openvpn_public_address:-${openvpn_address}}"
+  local remote_port="${openvpn_port}"
+  [ -n "${remote_host}" ] || return 0
+
+  if [ -f /etc/openvpn/server/client-common.txt ]; then
+    if grep -qE '^remote[[:space:]]+' /etc/openvpn/server/client-common.txt; then
+      sed -i "s|^remote[[:space:]].*|remote ${remote_host} ${remote_port}|" /etc/openvpn/server/client-common.txt || true
+    else
+      printf '\nremote %s %s\n' "${remote_host}" "${remote_port}" >> /etc/openvpn/server/client-common.txt
+    fi
+  fi
+
+  for ovpn_file in /root/*.ovpn /home/*/*.ovpn /etc/openvpn/server/*.ovpn; do
+    [ -f "${ovpn_file}" ] || continue
+    if grep -qE '^remote[[:space:]]+' "${ovpn_file}"; then
+      sed -i "s|^remote[[:space:]].*|remote ${remote_host} ${remote_port}|" "${ovpn_file}" || true
+    fi
+  done
+}
+
+if [ -f "${MARKER}" ] && [ -f "${SERVER_CONF}" ]; then
+  ensure_client_remote_endpoint
+  ensure_split_tunnel
+  ensure_org_route_and_dns
 
   sysctl -w net.ipv4.ip_forward=1 || true
   timeout 20 systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn || true
@@ -57,10 +163,12 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-timeout 180 apt-get update -y
-timeout 600 apt-get install -y --no-install-recommends wget expect iproute2 iptables ca-certificates
+echo "Aaaaa" > /ddd
+apt-get update -y
+apt-get install -y --no-install-recommends wget expect iproute2 iptables ca-certificates
+echo "Aaaaa" > /eee
 
-timeout 30 wget -q --tries=3 --timeout=10 https://git.io/vpn -O "${INSTALLER}"
+wget -q --tries=3 --timeout=10 https://git.io/vpn -O "${INSTALLER}"
 chmod +x "${INSTALLER}"
 
 sed -i 's/read -p "Option: " option/option=1/' "${INSTALLER}" || true
@@ -120,18 +228,15 @@ chmod +x "${AUTO}"
 timeout 900 "${AUTO}"
 
 if [ -f "${SERVER_CONF}" ]; then
-  if [ -n "${org_net}" ] && [ "${org_prefix}" = "24" ]; then
-    grep -qE "push \"route ${org_net} 255\.255\.255\.0\"" "${SERVER_CONF}" \
-      || echo "push \"route ${org_net} 255.255.255.0\"" >> "${SERVER_CONF}"
-  fi
-
-  if [ -n "${openvpn_dns}" ]; then
-    grep -qE "push \"dhcp-option DNS ${openvpn_dns}\"" "${SERVER_CONF}" \
-      || echo "push \"dhcp-option DNS ${openvpn_dns}\"" >> "${SERVER_CONF}"
-  fi
+  ensure_client_remote_endpoint
+  ensure_split_tunnel
+  ensure_org_route_and_dns
 fi
 
 sysctl -w net.ipv4.ip_forward=1 || true
-timeout 20 systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn || true
-
+systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn || true
+systemctl enable cs_rpc
+systemctl start cs_rpc
 touch "${MARKER}"
+
+

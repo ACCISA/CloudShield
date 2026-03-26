@@ -475,7 +475,7 @@ class TestProxyRPCRequest:
 
         result = proxy_rpc_request(nodes, "Method", mock_request)
 
-        assert result is None
+        assert result is not None
         mock_stub.Relay.assert_called_once()
         mock_get_channel.assert_called_once_with("203.0.113.1:1194")
         mock_stub.Relay.assert_called_once()

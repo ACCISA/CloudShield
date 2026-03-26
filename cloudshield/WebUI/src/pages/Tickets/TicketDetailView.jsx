@@ -3,6 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { apiGet, apiPatch } from '../../api/client';
 import { replyToTicket } from '../../api/ticketsApi';
+import { useThemeColors } from '../../hooks/useThemeColors.js';
+
+const parseApiResponse = async (response) => {
+    if (response && typeof response.json === 'function') {
+        return response.json();
+    }
+    return response;
+};
 
 const parseUTC = (str) => {
     if (!str) return null;
@@ -24,16 +32,16 @@ const mdStyles = `
 .cs-md p:last-child { margin-bottom: 0; }
 .cs-md ul, .cs-md ol { margin: 0 0 0.45em 0; padding-left: 18px; }
 .cs-md li { margin-bottom: 0.2em; }
-.cs-md code { background: rgba(255,255,255,0.09); padding: 1px 5px; border-radius: 4px; font-size: 0.83em; }
+.cs-md code { background: var(--action-hover); padding: 1px 5px; border-radius: 4px; font-size: 0.83em; }
 .cs-md strong { font-weight: 650; }
 .cs-md-support strong { color: #90caf9; }
 .cs-md-system strong { color: #ffb74d; }
 .cs-textarea::-webkit-scrollbar { width: 4px; height: 4px; }
 .cs-textarea::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
-.cs-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-.cs-textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+.cs-textarea::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 10px; }
+.cs-textarea::-webkit-scrollbar-thumb:hover { background: var(--border); }
 .cs-textarea::-webkit-scrollbar-corner { background: transparent; }
-textarea.cs-textarea { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+textarea.cs-textarea { scrollbar-width: thin; scrollbar-color: var(--border-light) transparent; }
 `;
 
 const Icon = ({ d, size = 15, style }) => (
@@ -65,7 +73,7 @@ const S = {
         flexDirection: 'column',
         maxWidth: '1400px',
         margin: '0 auto',
-        color: '#fff',
+        color: 'var(--text-primary)',
         padding: '24px 32px',
         fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
         boxSizing: 'border-box',
@@ -73,7 +81,7 @@ const S = {
     backBtn: {
         background: 'none',
         border: 'none',
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--text-tertiary)',
         cursor: 'pointer',
         fontSize: '0.875rem',
         display: 'flex',
@@ -105,10 +113,10 @@ const S = {
     },
     descBox: {
         padding: '14px 18px',
-        backgroundColor: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--action-hover)',
+        border: '1px solid var(--border)',
         borderRadius: '10px',
-        color: 'rgba(255,255,255,0.8)',
+        color: 'var(--text-secondary)',
         whiteSpace: 'pre-wrap',
         lineHeight: 1.65,
         fontSize: '0.9rem',
@@ -122,16 +130,16 @@ const S = {
         flexDirection: 'column',
         gap: '10px',
         padding: '14px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '1px solid var(--border)',
         borderRadius: '12px',
         backgroundColor: 'rgba(0,0,0,0.18)',
         marginBottom: '12px',
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(255,255,255,0.12) transparent',
+        scrollbarColor: 'var(--border-light) transparent',
     },
     emptyState: {
         margin: 'auto',
-        color: 'rgba(255,255,255,0.28)',
+        color: 'var(--text-tertiary)',
         fontStyle: 'italic',
         fontSize: '0.875rem',
     },
@@ -155,15 +163,15 @@ const S = {
             ? 'rgba(255,183,77,0.1)'
             : isAi
             ? 'rgba(100,181,246,0.1)'
-            : 'rgba(255,255,255,0.06)',
+            : 'var(--action-hover)',
         border: `1px solid ${
             isSystem
                 ? 'rgba(255,183,77,0.28)'
                 : isAi
                 ? 'rgba(100,181,246,0.22)'
-                : 'rgba(255,255,255,0.1)'
+                : 'var(--border)'
         }`,
-        color: isSystem ? '#ffb74d' : isAi ? '#64b5f6' : 'rgba(255,255,255,0.6)',
+        color: isSystem ? '#ffb74d' : isAi ? '#64b5f6' : 'var(--text-secondary)',
     }),
     msgMeta: (isMine) => ({
         display: 'flex',
@@ -175,11 +183,11 @@ const S = {
     senderName: (isSystem, isAi, isMine) => ({
         fontSize: '0.76rem',
         fontWeight: 600,
-        color: isSystem ? '#ffb74d' : isAi ? '#64b5f6' : isMine ? '#fff' : 'rgba(255,255,255,0.55)',
+        color: isSystem ? '#ffb74d' : isAi ? '#64b5f6' : isMine ? 'var(--text-primary)' : 'var(--text-tertiary)',
     }),
     timestamp: {
         fontSize: '0.68rem',
-        color: 'rgba(255,255,255,0.3)',
+        color: 'var(--text-tertiary)',
     },
     bubble: (isSystem, isAi, isMine) => ({
         padding: '10px 13px',
@@ -192,13 +200,13 @@ const S = {
             ? 'rgba(100,181,246,0.05)'
             : isMine
             ? '#272727'
-            : 'rgba(255,255,255,0.035)',
+            : 'var(--action-hover)',
         border: `1px solid ${
             isSystem ? 'rgba(255,183,77,0.22)'
             : isAi ? 'rgba(100,181,246,0.14)'
-            : 'rgba(255,255,255,0.07)'
+            : 'var(--border-light)'
         }`,
-        color: isSystem ? '#ffb74d' : '#fff',
+        color: isSystem ? '#ffb74d' : 'var(--text-primary)',
         fontSize: '0.9rem',
         lineHeight: 1.65,
         boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
@@ -207,9 +215,9 @@ const S = {
         display: 'flex',
         alignItems: 'center',
         padding: '5px 12px',
-        backgroundColor: 'rgba(255,255,255,0.035)',
+        backgroundColor: 'var(--action-hover)',
         borderRadius: '22px',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid var(--border-light)',
         gap: '8px',
         transition: 'border-color 0.2s, background-color 0.2s',
     },
@@ -218,7 +226,7 @@ const S = {
         background: 'none',
         border: 'none',
         outline: 'none',
-        color: '#fff',
+        color: 'var(--text-primary)',
         fontSize: '0.9rem',
         resize: 'none',
         padding: '8px 2px',
@@ -232,7 +240,7 @@ const S = {
         background: 'none',
         border: 'none',
         cursor: active ? 'pointer' : 'default',
-        color: active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)',
+        color: active ? 'var(--text-primary)' : 'var(--text-disabled)',
         padding: '6px',
         borderRadius: '50%',
         display: 'flex',
@@ -243,7 +251,7 @@ const S = {
     }),
     disclaimer: {
         fontSize: '0.71rem',
-        color: 'rgba(255,255,255,0.3)',
+        color: 'var(--text-tertiary)',
         textAlign: 'center',
         margin: '9px 0 0 0',
         display: 'flex',
@@ -254,9 +262,9 @@ const S = {
     closedBox: {
         textAlign: 'center',
         padding: '14px',
-        border: '1px dashed rgba(255,255,255,0.1)',
+        border: '1px dashed var(--border)',
         borderRadius: '10px',
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-tertiary)',
         fontSize: '0.875rem',
     },
     sidebar: {
@@ -265,7 +273,7 @@ const S = {
         display: 'flex',
         flexDirection: 'column',
         gap: '26px',
-        borderLeft: '1px solid rgba(255,255,255,0.07)',
+        borderLeft: '1px solid var(--border)',
         paddingLeft: '28px',
         overflowY: 'auto',
         scrollbarWidth: 'thin',
@@ -275,7 +283,7 @@ const S = {
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '1.2px',
-        color: 'rgba(255,255,255,0.32)',
+        color: 'var(--text-tertiary)',
         margin: '0 0 14px 0',
     },
     detailRow: {
@@ -288,17 +296,17 @@ const S = {
         width: '34px',
         height: '34px',
         borderRadius: '8px',
-        backgroundColor: 'rgba(255,255,255,0.035)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        backgroundColor: 'var(--action-hover)',
+        border: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        color: 'rgba(255,255,255,0.45)',
+        color: 'var(--text-secondary)',
     },
     detailLabel: {
         fontSize: '0.72rem',
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-tertiary)',
         marginBottom: '2px',
     },
     detailValue: {
@@ -309,21 +317,21 @@ const S = {
     selectLabel: {
         display: 'block',
         fontSize: '0.72rem',
-        color: 'rgba(255,255,255,0.38)',
+        color: 'var(--text-tertiary)',
         marginBottom: '5px',
     },
     select: {
         width: '100%',
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: 'var(--action-hover)',
+        border: '1px solid var(--border-light)',
         borderRadius: '8px',
-        color: '#fff',
+        color: 'var(--text-primary)',
         padding: '9px 32px 9px 11px',
         fontSize: '0.855rem',
         outline: 'none',
         cursor: 'pointer',
         appearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='var(--text-tertiary)' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 11px center',
         fontFamily: 'inherit',
@@ -369,6 +377,7 @@ const S = {
 const TicketDetailView = () => {
     const { ticketId } = useParams();
     const navigate = useNavigate();
+    const themeColors = useThemeColors();
     const [ticketData, setTicketData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -384,8 +393,9 @@ const TicketDetailView = () => {
 
     useEffect(() => {
         let mounted = true;
-        apiGet('/users/me').then(res => {
-            if (mounted) setMyEmail(res.user?.email || '');
+        apiGet('/users/me').then(async (response) => {
+            const res = await parseApiResponse(response);
+            if (mounted) setMyEmail(res?.user?.email || '');
         }).catch(err => console.error('Failed to fetch user', err));
         return () => { mounted = false; };
     }, []);
@@ -393,7 +403,8 @@ const TicketDetailView = () => {
     const loadTicket = async (isBackground = false) => {
         try {
             if (!isBackground) setLoading(true);
-            const data = await apiGet(`/tickets/${ticketId}`);
+            const response = await apiGet(`/tickets/${ticketId}`);
+            const data = await parseApiResponse(response);
             setTicketData(data);
         } catch (err) {
             if (!isBackground) setError(err.message || 'Failed to load ticket');
@@ -454,12 +465,12 @@ const TicketDetailView = () => {
     }
 
     if (loading) return (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '64px', color: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '64px', color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>
             Loading ticket...
         </div>
     );
     if (error) return <div style={{ padding: '32px', color: '#ff4d4f' }}>{error}</div>;
-    if (!ticketData) return <div style={{ padding: '32px', color: '#fff' }}>Ticket not found.</div>;
+    if (!ticketData) return <div style={{ padding: '32px', color: 'var(--text-primary)' }}>Ticket not found.</div>;
 
     return (
         <>
@@ -467,9 +478,9 @@ const TicketDetailView = () => {
             <div style={S.page}>
                 <button
                     style={S.backBtn}
-                    onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
-                    onClick={() => navigate('/tickets')}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
+                    oonClick={() => navigate('/tickets')}
                 >
                     <Icon d={Icons.ArrowLeft} /> Back to Helpdesk
                 </button>
@@ -528,8 +539,8 @@ const TicketDetailView = () => {
                                 <form onSubmit={handleReply}>
                                     <div
                                         style={S.inputWrap}
-                                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.055)'; }}
-                                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.035)'; }}
+                                        onFocus={e => { e.currentTarget.style.borderColor = themeColors.border; e.currentTarget.style.backgroundColor = themeColors.lightOverlay; }}
+                                        onBlur={e => { e.currentTarget.style.borderColor = themeColors.borderLight; e.currentTarget.style.backgroundColor = themeColors.lightOverlaySubtle; }}
                                     >
                                         <textarea
                                             ref={textareaRef}
@@ -545,7 +556,7 @@ const TicketDetailView = () => {
                                             type="submit"
                                             disabled={isReplying || !replyText.trim()}
                                             style={S.sendBtn(replyText.trim() && !isReplying)}
-                                            onMouseEnter={e => { if (replyText.trim()) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+                                            onMouseEnter={e => { if (replyText.trim()) e.currentTarget.style.backgroundColor = themeColors.lightOverlay; }}
                                             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <Icon d={Icons.Send} size={16} />
@@ -611,8 +622,8 @@ const TicketDetailView = () => {
                                     value={ticketData.status}
                                     onChange={(e) => handleUpdateTicket('status', e.target.value)}
                                     style={S.select}
-                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
                                 >
                                     <option value="Open">Open</option>
                                     <option value="Pending">Pending</option>
@@ -626,8 +637,8 @@ const TicketDetailView = () => {
                                     value={ticketData.priority}
                                     onChange={(e) => handleUpdateTicket('priority', e.target.value)}
                                     style={S.select}
-                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
                                 >
                                     <option value="Low">Low</option>
                                     <option value="Medium">Medium</option>

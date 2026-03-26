@@ -532,12 +532,12 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
 
     if not nodes:
         logger.error("Inventory is empty for org_id=%s", org_id)
+        return {"message":"empty inventory"}
 
     request = infra_pb2.AddDomainUserData(username=username, password=password)
 
     # this request needs to be proxyed through the vpn server because it is destined for the domain controller
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.AddDomainUser", request=request)
-        
     if proxy_response is None:
         return PROXY_FAIL_MESSAGE
 
@@ -552,7 +552,6 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
 
     if status == infra_pb2.SUCCESS:
         logger.info("Successfully added user")
-        persist_domain_user(org_id, username, password, email)
 
         # Generate and store VPN config for the new user
         vpn_result = create_vpn_config_for_user(org_id, username, nodes, logger)

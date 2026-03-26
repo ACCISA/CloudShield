@@ -128,19 +128,6 @@ jobs:
         run: |
           export PYTHONPATH=cloudshield/Server:cloudshield/Cloud
           pytest cloudshield/Server/tests \
-            --ignore=cloudshield/Server/tests/test_dc_management.py \
-            --ignore=cloudshield/Server/tests/test_email_tasks.py \
-            --ignore=cloudshield/Server/tests/test_provisioning_full.py \
-            --ignore=cloudshield/Server/tests/test_rpc.py \
-            --ignore=cloudshield/Server/tests/test_task.py \
-            --ignore=cloudshield/Server/tests/test_tasks_edgecases.py \
-            --ignore=cloudshield/Server/tests/test_tasks_extended.py \
-            --ignore=cloudshield/Server/tests/test_billing.py \
-            --ignore=cloudshield/Server/tests/test_database.py \
-            --ignore=cloudshield/Server/tests/test_job_service.py \
-            --ignore=cloudshield/Server/tests/test_loggin_setup.py \
-            --ignore=cloudshield/Server/tests/test_network_provisioning.py \
-            --ignore=cloudshield/Server/tests/test_jwt_utils.py \
             --cov=cloudshield/Server \
             --cov-report=term --cov-report=xml:tests/python/coverage/server/coverage.xml
 
@@ -348,8 +335,8 @@ jobs:
             -Dsonar.c.file.suffixes=- \
             -Dsonar.cpp.file.suffixes=- \
             -Dsonar.objc.file.suffixes=- \
-            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/e2e/**,**/mockData.js,**/__mocks__/fileMock.js,**/WebUI/babel.config.cjs,**/DesktopUI/**/vitest.**.ts,,**/DesktopUI/src/main.tsx,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,cloudshield/**/GroupsIcon.jsx,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
-            -Dsonar.exclusions=**/tests/**,**/__mocks__/fileMock.js,**/WebUI/e2e/**,**/__tests__/**,**/mockData.js,**/WebUI/src/main.jsx,**/DesktopUI/src/main.tsx,**/DesktopUI/**/vitest.**.ts,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/DesktopUI/dist-electron/**,**/WebUI/src/App.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/GroupsIcon.jsx,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
+            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/mockData.js,**/__mocks__/fileMock.js,**/WebUI/babel.config.cjs,**/DesktopUI/**/vitest.**.ts,,**/DesktopUI/src/main.tsx,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,cloudshield/**/GroupsIcon.jsx,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
+            -Dsonar.exclusions=**/tests/**,**/__mocks__/fileMock.js,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/__tests__/**,**/mockData.js,**/WebUI/src/main.jsx,**/DesktopUI/src/main.tsx,**/DesktopUI/**/vitest.**.ts,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/DesktopUI/dist-electron/**,**/WebUI/src/App.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/GroupsIcon.jsx,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml,tests/python/coverage/cloud/coverage.xml,tests/python/coverage/threat_detection/coverage.xml,*.html \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info,tests/js/coverage/webui/lcov.info || (echo "SonarCloud analysis failed" && exit 1) \
 

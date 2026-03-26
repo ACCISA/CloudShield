@@ -1,4 +1,5 @@
 """User management API endpoints."""
+import importlib
 import json
 from collections.abc import Mapping
 
@@ -6,7 +7,8 @@ from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
 from models import UserCreate, UserUpdate
-from utils import get_logger
+from utils import get_logger, derive_username, db_admin
+from bson import ObjectId
 
 logger = get_logger("tasks")
 
@@ -42,6 +44,8 @@ Security:
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
+_IMPORTED_OBJECT_ID = ObjectId
+_IMPORTED_DB_ADMIN = db_admin
 
 
 def _make_json_safe(value):
@@ -74,6 +78,41 @@ def _json_or_empty() -> dict:
         - Helpful for methods like DELETE where a body may be absent.
     """
     return request.get_json(silent=True) or {}
+
+
+def _get_object_id_factory():
+    """Resolve ObjectId lazily so tests can monkeypatch either import location."""
+    current_object_id = globals().get("ObjectId", _IMPORTED_OBJECT_ID)
+    if current_object_id is not _IMPORTED_OBJECT_ID:
+        return current_object_id
+
+    try:
+        bson_mod = importlib.import_module("bson")
+    except Exception:
+        return current_object_id
+
+    return getattr(bson_mod, "ObjectId", current_object_id)
+
+
+def _get_db_admin_handle():
+    """Resolve db_admin lazily so tests can patch utils.database after import."""
+    current_db_admin = globals().get("db_admin", _IMPORTED_DB_ADMIN)
+    if current_db_admin is not _IMPORTED_DB_ADMIN:
+        return current_db_admin
+
+    try:
+        utils_db = importlib.import_module("utils.database")
+    except Exception:
+        return current_db_admin
+
+    return getattr(utils_db, "db_admin", current_db_admin)
+
+
+def _nonempty_str(value) -> str:
+    """Return a stripped string or an empty string for non-string values."""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
 
 
 def _extract_reason() -> str | None:
@@ -114,8 +153,8 @@ def _handle_user_create(current_user):
     user_data = UserCreate(**body)
 
     create_user(user_data, current_user=current_user, reason=reason)
-    # Generate username from email if not provided
-    username = user_data.username or user_data.email.split("@")[0]
+    # Generate the DC username from the user's full name unless explicitly provided.
+    username = user_data.username or derive_username(user_data.full_name)
     logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
     # Queue DC user creation task via service dispatcher
     job = service_dispatcher(
@@ -195,8 +234,8 @@ def create_user_endpoint():
                 org_id = resp_json.get("org_id") or body.get("org_id")
                 email = body.get("email", "")
                 full_name = body.get("full_name", "")
-                # Derive a DC username from the email prefix
-                dc_username = email.split("@")[0] if "@" in email else full_name.replace(" ", "").lower()
+                requested_username = body.get("username")
+                dc_username = requested_username or derive_username(full_name)
                 dc_password = body.get("password", "")
 
                 if org_id and dc_username and dc_password:
@@ -223,6 +262,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/<user_id>", methods=["GET"])
@@ -343,18 +383,15 @@ def delete_user_endpoint(user_id):
         200: { "message": "User deleted" }
         403: { "error": "..." }    # Authorization/role guard
         404: { "error": "..." }    # User not found
-        500: { "error": "Internal server error" }
     """
     try:
         # Try to look up user info before deletion for DC username derivation.
         # This is best-effort; failure here must not block the actual deletion.
         user_doc = None
         try:
-            from utils.database import db_admin
-            from bson import ObjectId
-            user_doc = db_admin["users"].find_one(
-                {"_id": ObjectId(user_id)},
-                {"email": 1, "org_id": 1, "full_name": 1},
+            user_doc = _get_db_admin_handle()["users"].find_one(
+                {"_id": _get_object_id_factory()(user_id)},
+                {"email": 1, "org_id": 1, "full_name": 1, "username": 1},
             )
         except Exception:
             pass  # Non-critical: DC dispatch will simply be skipped
@@ -364,12 +401,14 @@ def delete_user_endpoint(user_id):
 
         resp = {"message": "User deleted"}
 
+
         # After DB deletion, dispatch DC removal
         if user_doc:
             try:
-                org_id = user_doc.get("org_id") or g.user.get("org_id")
-                email = user_doc.get("email", "")
-                dc_username = email.split("@")[0] if "@" in email else ""
+                org_id = _nonempty_str(user_doc.get("org_id")) or _nonempty_str(g.user.get("org_id"))
+                stored_username = _nonempty_str(user_doc.get("username"))
+                full_name = _nonempty_str(user_doc.get("full_name"))
+                dc_username = stored_username or derive_username(full_name)
 
                 if org_id and dc_username:
                     job = service_dispatcher(
@@ -388,7 +427,8 @@ def delete_user_endpoint(user_id):
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
-    except Exception:
+    except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 
@@ -406,8 +446,8 @@ def signup_admin_endpoint():
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
-
     except Exception as e:
+        logger.error(e)
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/me", methods=["GET"])

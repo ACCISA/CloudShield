@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -316,7 +316,7 @@ def test_get_ec2_ips_skips_instances_without_matching_name(monkeypatch):
 
 
 def test_get_ec2_ips_returns_metadata(monkeypatch):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     class FakeEC2:
         def describe_instances(self):
@@ -548,7 +548,7 @@ def test_get_ec2_ips_handles_instances_without_tags(monkeypatch):
 
 
 def test_get_ec2_ips_handles_missing_optional_fields(monkeypatch):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     class FakeEC2:
         def describe_instances(self):

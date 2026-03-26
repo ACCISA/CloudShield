@@ -118,6 +118,7 @@ class TestUserService:
         mock_data.email = "john@example.com"
         mock_data.password = "password123"
         mock_data.org_id = self.TEST_ORG_ID
+        mock_data.username = None
         mock_data.role = "employee"
         mock_data.full_name = "John Doe"
         mock_data.company_name = None 
@@ -159,6 +160,8 @@ class TestUserService:
         mocks['users_admin'].insert_one.assert_called_once()
         mocks['log_audit'].assert_called_once()
         mocks['hash_password'].assert_called_once_with("password123")
+        inserted_doc = mocks['users_admin'].insert_one.call_args[0][0]
+        assert inserted_doc["username"] == "j_doe"
 
     def test_create_user_with_profile_image(self, setup_mocks, admin_user, user_data):
         """Test create_user includes profile_image in the inserted document."""
@@ -295,6 +298,7 @@ class TestUserService:
 
         # Optional: ensure the inserted doc keeps the role admin (service-layer hardening)
         inserted_doc = mocks["users_admin"].insert_one.call_args[0][0]
+        assert inserted_doc["username"] == "j_doe"
         assert inserted_doc["role"] == "admin"
         assert inserted_doc["org_id"] == self.TEST_ORG_ID
 
@@ -1116,3 +1120,29 @@ class TestUserService:
         assert inserted_doc["email"] == "test@example.com"
         assert inserted_doc["role"] == "employee"
         assert inserted_doc["status"] == "active"
+
+    def test_persist_domain_user_duplicate_key_returns_existing_user_id(self, setup_mocks, monkeypatch):
+        """Test persist_domain_user returns existing user id when insert raises DuplicateKeyError."""
+        mocks = setup_mocks
+        from cloudshield.Server.services.user_service import persist_domain_user
+        import cloudshield.Server.services.user_service as user_service_module
+
+        class _FakeDuplicateKeyError(Exception):
+            pass
+
+        monkeypatch.setattr(user_service_module, "DuplicateKeyError", _FakeDuplicateKeyError)
+
+        existing_id = ObjectId()
+        mocks['users_admin'].find_one.side_effect = [None, {"_id": existing_id}]
+        mocks['users_admin'].insert_one.side_effect = _FakeDuplicateKeyError("duplicate key")
+
+        result = persist_domain_user(
+            org_id=self.TEST_ORG_ID,
+            username="testuser",
+            password="TestPass123!",
+            email="test@example.com"
+        )
+
+        assert result == str(existing_id)
+        mocks['users_admin'].insert_one.assert_called_once()
+        assert mocks['users_admin'].find_one.call_count == 2

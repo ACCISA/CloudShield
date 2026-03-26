@@ -13,7 +13,6 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import {
   resolveOrgId,
   fetchFileShares,
-  safeSplitName,
   fetchUsers,
   fetchWorkstations,
   createImageUploadHandler,
@@ -198,7 +197,7 @@ export default function GroupsModal({
 
   const handleDelete = createDeleteHandler({
     onDelete: async () => {
-      if (!groupData?._id && !groupData?.id) return;
+      if (!groupData?._id && !groupData?._id) return;
       await onDelete?.(groupData._id || groupData.id);
     },
     setIsSubmitting,
@@ -339,6 +338,7 @@ export default function GroupsModal({
                 className="groups-modal-btn groups-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
+                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
               >
                 Next
               </button>
@@ -347,6 +347,7 @@ export default function GroupsModal({
                 className="groups-modal-btn groups-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
+                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
               >
                 {submitLabel}
               </button>
@@ -418,9 +419,9 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors =
               />
               <div className="groups-modal-image-placeholder">
                 <span className="groups-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="#9e9e9e" />
+                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
                 </span>
-                <span>Upload Image</span>
+                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
               </div>
             </label>
           )}
@@ -515,7 +516,7 @@ function SelectionStep({
               indeterminate={isIndeterminate}
               onChange={onAllChange}
             />
-            <span style={{ fontSize: "0.9rem", color: "#ffffff" }}>
+            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
               {type === "users" && "All Users"}
               {type === "workstations" && "All Workstations"}
               {type === "files" && "All Shares"}
@@ -535,7 +536,7 @@ function SelectionStep({
           {items.length === 0 ? (
             <div
               className="groups-modal-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default" }}
+              style={{ opacity: 0.7, cursor: "default", color: "var(--text-secondary)" }}
             >
               No results
             </div>

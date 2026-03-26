@@ -47,12 +47,6 @@ agent_pb2_grpc_module.AgentServiceServicer = BaseServicer
 sys.modules["proto.agent_pb2_grpc"] = agent_pb2_grpc_module
 setattr(proto_pkg, "agent_pb2_grpc", agent_pb2_grpc_module)
 
-# Stub google.protobuf.json_format
-google_module = ensure_module("google", types.ModuleType("google"))
-protobuf_module = ensure_module("google.protobuf", types.ModuleType("google.protobuf"))
-json_format_module = types.ModuleType("google.protobuf.json_format")
-
-
 def default_message_to_dict(obj, *args, **kwargs):
     if isinstance(obj, dict):
         return dict(obj)
@@ -60,11 +54,6 @@ def default_message_to_dict(obj, *args, **kwargs):
         return {k: v for k, v in obj.__dict__.items()}
     return {"value": obj}
 
-
-json_format_module.MessageToDict = default_message_to_dict
-sys.modules["google.protobuf.json_format"] = json_format_module
-setattr(protobuf_module, "json_format", json_format_module)
-setattr(google_module, "protobuf", protobuf_module)
 
 # Stub utils module used by servicer
 utils_module = types.ModuleType("utils")
@@ -270,7 +259,8 @@ def test_send_process_list_information_unexpected(fake_logger, fake_state):
     assert ("error", "Unexpected 'SendProcessListInformation' message, make sure a response was expected") in fake_logger.messages
 
 
-def test_send_process_list_information_expected(fake_logger, fake_state, fake_utils):
+def test_send_process_list_information_expected(fake_logger, fake_state, fake_utils, monkeypatch):
+    monkeypatch.setattr("cloudshield.ThreatDetection.servicer.MessageToDict", lambda msg, **kwargs: vars(msg))
     fake_state.expected_result = True
     serv = servicer.AgentServiceServicer([])
 
@@ -289,7 +279,8 @@ def test_send_process_list_information_expected(fake_logger, fake_state, fake_ut
     ]
 
 
-def test_send_network_connections_ingests_and_acks(fake_logger, fake_utils):
+def test_send_network_connections_ingests_and_acks(fake_logger, fake_utils, monkeypatch):
+    monkeypatch.setattr("cloudshield.ThreatDetection.servicer.MessageToDict", lambda msg, **kwargs: vars(msg))
     serv = servicer.AgentServiceServicer([])
 
     conns = [

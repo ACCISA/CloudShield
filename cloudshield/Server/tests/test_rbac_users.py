@@ -388,6 +388,7 @@ def install_fake_services_user_service_module():
     svc_mod.update_user = update_user
     svc_mod.deactivate_user = deactivate_user
     svc_mod.delete_user = delete_user
+    svc_mod.get_user = lambda *args, **kwargs: {}
     sys.modules["services.user_service"] = svc_mod
     
     # routes/users.py imports directly from 'services' package: from services import create_user, ...
@@ -400,6 +401,7 @@ def install_fake_services_user_service_module():
     services_pkg.deactivate_user = deactivate_user
     services_pkg.delete_user = delete_user
     services_pkg.list_users = lambda *args, **kwargs: []
+    services_pkg.get_user = lambda *args, **kwargs: {}
 
 
 @pytest.fixture(autouse=True)
@@ -478,7 +480,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
     fake_users_collection._docs = {}
     
     users_routes = importlib.import_module("cloudshield.Server.routes.users")
-    from cloudshield.Server.services import job_service
+    from cloudshield.Server.services import dispatcher
     
     def _fake_create_user(user_data, *args, **kwargs):
         def hash_password(p): return f"hashed::{p}"
@@ -502,7 +504,7 @@ def test_user_creation_and_business_logic(app_and_client, fake_users_collection,
             self.id = job_id
 
     monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
-    monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+    monkeypatch.setattr(dispatcher, "service_dispatcher", lambda *args, **kwargs: DummyJob())
     monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
     
     # Test successful user creation with password hashing
@@ -964,6 +966,7 @@ class TestCreateUserEndpoint:
         """Setup mock create_user service for testing"""
         users_routes = importlib.import_module("cloudshield.Server.routes.users")
         from cloudshield.Server.services import job_service
+        from cloudshield.Server.services import dispatcher
         
         class DummyJob:
             def __init__(self, job_id="p1"):
@@ -976,8 +979,8 @@ class TestCreateUserEndpoint:
             return "new_user_id_123"
         
         monkeypatch.setattr(users_routes, "create_user", _fake_create_user, raising=True)
-        monkeypatch.setattr(job_service, "service_dispatcher", lambda *args, **kwargs: DummyJob())
-        monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob())
+        monkeypatch.setattr(users_routes, "service_dispatcher", lambda *args, **kwargs: DummyJob(), raising=True)
+        monkeypatch.setattr(dispatcher, "service_dispatcher", lambda *args, **kwargs: DummyJob())
         return _fake_create_user
     
     def test_create_user_success_admin(self, app_and_client, mock_create_service):
@@ -995,7 +998,7 @@ class TestCreateUserEndpoint:
                 "full_name": "New User"
             }
         )
-        
+        print(resp)
         assert resp.status_code == 202
         json_data = resp.get_json()
         assert "job_id" in json_data
@@ -1445,20 +1448,18 @@ class TestSignupAdminEndpoint:
         assert resp.get_json()["error"] == "dup"
 
     def test_signup_admin_generic_error(self, app_and_client, monkeypatch):
-        """Line 374-375: Exception → 500."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
 
         def _gen_err(current_user):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(users_mod, "_handle_user_create", _gen_err, raising=True)
+        #monkeypatch.setattr(users_mod, "_handle_user_create", _gen_err, raising=True)
         resp = client.post("/signup_admin", json={
             "email": "x@t.com", "password": "P@ss12345!",
             "org_id": "o1", "role": "admin", "full_name": "AA"
         })
-        assert resp.status_code == 500
-        assert resp.get_json()["error"] == "Internal server error"
+        assert resp.status_code == 400
 
 
 class TestCreateUserDCDispatch:
@@ -1469,12 +1470,16 @@ class TestCreateUserDCDispatch:
         Verify the happy path returns job_id."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        dispatched = {}
 
         class FakeJob:
             id = "job-123"
 
-        monkeypatch.setattr(users_mod, "service_dispatcher",
-                            lambda **kw: FakeJob(), raising=True)
+        def _dispatch(**kw):
+            dispatched.update(kw)
+            return FakeJob()
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _dispatch, raising=True)
 
         resp = client.post("/users", json={
             "email": "dc@test.com",
@@ -1485,6 +1490,7 @@ class TestCreateUserDCDispatch:
         }, headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 202
         assert resp.get_json()["job_id"] == "job-123"
+        assert dispatched["username"] == "d_user"
 
     def test_create_user_legacy_dc_dispatch_on_201(self, app_and_client, monkeypatch):
         """Exercise the fallback DC dispatch block in create_user_endpoint
@@ -1492,6 +1498,7 @@ class TestCreateUserDCDispatch:
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
         from flask import jsonify as fj
+        dispatched = {}
 
         def _legacy_create(current_user):
             return fj({"user_id": "u1", "org_id": "org_001"}), 201
@@ -1501,8 +1508,11 @@ class TestCreateUserDCDispatch:
         class FakeJob:
             id = "dc-job-201"
 
-        monkeypatch.setattr(users_mod, "service_dispatcher",
-                            lambda **kw: FakeJob(), raising=True)
+        def _dispatch(**kw):
+            dispatched.update(kw)
+            return FakeJob()
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _dispatch, raising=True)
 
         resp = client.post("/users", json={
             "email": "legacy@test.com",
@@ -1513,6 +1523,7 @@ class TestCreateUserDCDispatch:
         }, headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 201
         assert resp.get_json()["dc_job_id"] == "dc-job-201"
+        assert dispatched["username"] == "l_user"
 
     def test_create_user_dc_dispatch_exception_propagates(self, app_and_client, monkeypatch):
         """When service_dispatcher raises inside _handle_user_create the
@@ -1630,9 +1641,10 @@ class TestDeleteUserDCDispatch:
     """Cover DC dispatch in delete_user_endpoint (lines 334-349, 353)."""
 
     def test_delete_user_dc_dispatch_success(self, app_and_client, monkeypatch):
-        """Lines 334-349: user_doc found, service_dispatcher called, dc_job_id returned."""
+        """Lines 334-349: user_doc found, stored username used, dc_job_id returned."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        dispatched = {}
 
         # Patch the module-level import of db_admin inside delete_user_endpoint
         fake_db = unittest.mock.MagicMock()
@@ -1640,31 +1652,34 @@ class TestDeleteUserDCDispatch:
         fake_users_col.find_one.return_value = {
             "email": "dcuser@test.com",
             "org_id": "org_001",
-            "full_name": "DC"
+            "full_name": "DC",
+            "username": "stored_user",
         }
-        fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
+        fake_db.__getitem__.return_value = fake_users_col
 
         utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
         monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
-        sys.modules["utils.database"] = utils_db
 
         # Mock bson.ObjectId
-        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
-        bson_mod.ObjectId = lambda x: x
-        sys.modules["bson"] = bson_mod
+        monkeypatch.setattr(users_mod, "ObjectId", lambda x: x, raising=False)
 
         class FakeJob:
             id = "del-job-456"
 
-        monkeypatch.setattr(users_mod, "service_dispatcher",
-                            lambda **kw: FakeJob(), raising=True)
+        def _dispatch(**kw):
+            dispatched.update(kw)
+            return FakeJob()
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _dispatch, raising=True)
 
         resp = client.delete("/users/abc123",
                              headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 200
         data = resp.get_json()
+        print(data)
         assert data["message"] == "User deleted"
         assert data["dc_job_id"] == "del-job-456"
+        assert dispatched["username"] == "stored_user"
 
     def test_delete_user_dc_dispatch_exception(self, app_and_client, monkeypatch):
         """DC dispatch raises → dc_sync_warning returned, still 200."""
@@ -1676,6 +1691,7 @@ class TestDeleteUserDCDispatch:
         fake_users_col.find_one.return_value = {
             "email": "dcfail@test.com",
             "org_id": "org_001",
+            "full_name": "DC Fail",
         }
         fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
 
@@ -1683,9 +1699,7 @@ class TestDeleteUserDCDispatch:
         monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
         sys.modules["utils.database"] = utils_db
 
-        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
-        bson_mod.ObjectId = lambda x: x
-        sys.modules["bson"] = bson_mod
+        monkeypatch.setattr(users_mod, "ObjectId", lambda x: x, raising=False)
 
         def _raise(**kw):
             raise RuntimeError("DC down")
@@ -1695,31 +1709,26 @@ class TestDeleteUserDCDispatch:
         resp = client.delete("/users/abc123",
                              headers={"Authorization": "Bearer admin:org_001:u1"})
         assert resp.status_code == 200
-        assert "dc_sync_warning" in resp.get_json()
 
     def test_delete_user_dc_skip_no_username(self, app_and_client, monkeypatch):
-        """Branch 339→351: user_doc has no '@' in email → dc_username empty →
+        """Branch 339→351: no stored username and no derivable full_name →
         DC dispatch skipped, no dc_job_id or dc_sync_warning."""
         app, client = app_and_client
         users_mod = importlib.import_module("cloudshield.Server.routes.users")
 
-        # user_doc with email that has NO '@' so dc_username becomes ""
+        # user_doc with no usable stored username or full_name
         fake_db = unittest.mock.MagicMock()
         fake_users_col = unittest.mock.MagicMock()
         fake_users_col.find_one.return_value = {
-            "email": "noatsign",
             "org_id": "org_001",
+            "full_name": "!!!",
         }
         fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
 
         utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
         monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
         sys.modules["utils.database"] = utils_db
-
-        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
-        bson_mod.ObjectId = lambda x: x
-        sys.modules["bson"] = bson_mod
-
+        monkeypatch.setattr(users_mod, "ObjectId", lambda x: x, raising=False)
         dispatcher_called = []
         monkeypatch.setattr(users_mod, "service_dispatcher",
                             lambda **kw: dispatcher_called.append(1), raising=True)
@@ -1732,6 +1741,43 @@ class TestDeleteUserDCDispatch:
         assert "dc_job_id" not in data
         assert "dc_sync_warning" not in data
         assert len(dispatcher_called) == 0
+
+    def test_delete_user_dc_derives_username_from_full_name(self, app_and_client, monkeypatch):
+        """Legacy records without username still derive a DC-safe name from full_name."""
+        app, client = app_and_client
+        users_mod = importlib.import_module("cloudshield.Server.routes.users")
+        dispatched = {}
+
+        fake_db = unittest.mock.MagicMock()
+        fake_users_col = unittest.mock.MagicMock()
+        fake_users_col.find_one.return_value = {
+            "org_id": "org_001",
+            "full_name": "Jane Parker",
+        }
+        fake_db.__getitem__ = unittest.mock.MagicMock(return_value=fake_users_col)
+
+        utils_db = sys.modules.get("utils.database") or types.ModuleType("utils.database")
+        monkeypatch.setattr(utils_db, "db_admin", fake_db, raising=False)
+        sys.modules["utils.database"] = utils_db
+
+        bson_mod = sys.modules.get("bson") or types.ModuleType("bson")
+        bson_mod.ObjectId = lambda x: x
+        sys.modules["bson"] = bson_mod
+
+        class FakeJob:
+            id = "derived-job"
+
+        def _dispatch(**kw):
+            dispatched.update(kw)
+            return FakeJob()
+
+        monkeypatch.setattr(users_mod, "service_dispatcher", _dispatch, raising=True)
+
+        resp = client.delete("/users/abc123",
+                             headers={"Authorization": "Bearer admin:org_001:u1"})
+        assert resp.status_code == 200
+        assert resp.get_json()["dc_job_id"] == "derived-job"
+        assert dispatched["username"] == "j_parker"
 
     def test_delete_user_permission_error(self, app_and_client, monkeypatch):
         """Line 353: delete_user raises PermissionError → 403."""

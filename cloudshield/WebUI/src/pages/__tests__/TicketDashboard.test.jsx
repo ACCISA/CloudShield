@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import TicketDashboard from "../Tickets/TicketDashboard";
+import { AuthProvider } from "../../context/AuthContext";
 
 jest.mock("../../api/ticketsApi", () => ({
   useTickets: jest.fn(),
@@ -23,11 +24,25 @@ const mockTickets = [
   { id: "3", title: "Drive access", priority: "Low", status: "Closed", created_at: "2026-03-09T08:00:00", org_id: "org1" },
 ];
 
-const renderDashboard = () =>
+const renderDashboard = (currentUser = {
+  id: "user-1",
+  email: "admin@org.com",
+  full_name: "Admin User",
+  role: "admin",
+  org_id: "org1",
+}) =>
   render(
-    <MemoryRouter>
-      <TicketDashboard />
-    </MemoryRouter>
+    <AuthProvider
+      initialState={{
+        disableBootstrap: true,
+        accessToken: "test-token",
+        currentUser,
+      }}
+    >
+      <MemoryRouter>
+        <TicketDashboard />
+      </MemoryRouter>
+    </AuthProvider>
   );
 
 describe("TicketDashboard", () => {
@@ -85,16 +100,30 @@ describe("TicketDashboard", () => {
   });
 
   it("hides Create Ticket button for super admin", async () => {
-    apiGet.mockResolvedValue({ user: { email: "support@cloudshield.com" } });
-    await act(async () => { renderDashboard(); });
+    await act(async () => {
+      renderDashboard({
+        id: "user-2",
+        email: "support@cloudshield.com",
+        full_name: "Support User",
+        role: "super_admin",
+        org_id: "cloudshield",
+      });
+    });
     await waitFor(() => {
       expect(screen.queryByText("Create Ticket")).not.toBeInTheDocument();
     });
   });
 
   it("shows Global Support Helpdesk title for super admin", async () => {
-    apiGet.mockResolvedValue({ user: { email: "support@cloudshield.com" } });
-    await act(async () => { renderDashboard(); });
+    await act(async () => {
+      renderDashboard({
+        id: "user-2",
+        email: "support@cloudshield.com",
+        full_name: "Support User",
+        role: "super_admin",
+        org_id: "cloudshield",
+      });
+    });
     await waitFor(() => {
       expect(screen.getByText("Global Support Helpdesk")).toBeInTheDocument();
     });

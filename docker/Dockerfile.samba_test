@@ -11,6 +11,7 @@ RUN apt-get update \
     iproute2 \
     acl attr winbind libpam-winbind libnss-winbind python3-setproctitle \
     libgrpc++1.51t64 libgrpc29t64 \
+    build-essential cmake pkg-config libgrpc++-dev protobuf-compiler-grpc libprotobuf-dev \
     && rm -Rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
@@ -46,8 +47,13 @@ RUN echo '#!/bin/sh' > /usr/local/bin/sudo && \
 RUN chmod +x /usr/local/bin/sudo
 
 # build rpc server against container libs and install service
-COPY cloudshield/RPCNode/build/cs-rpcsrv /usr/local/bin/
+COPY cloudshield/RPCNode /tmp/RPCNode
 COPY docker/cs_samba_rpc.service /etc/systemd/system/cs_rpc.service
+RUN cd /tmp/RPCNode && bash scripts/proto-gen.sh \
+    && cmake -S /tmp/RPCNode -B /tmp/RPCNode/build-docker \
+    && cmake --build /tmp/RPCNode/build-docker --target cs-rpcsrv -j"$(nproc)" \
+    && install -m 0755 /tmp/RPCNode/build-docker/cs-rpcsrv /usr/local/bin/cs-rpcsrv \
+    && rm -rf /tmp/RPCNode
 
 # Mask default Samba services at build time (AD DC uses its own service)
 RUN systemctl mask smbd nmbd winbind 2>/dev/null || true

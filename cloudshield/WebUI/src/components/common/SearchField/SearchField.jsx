@@ -14,9 +14,10 @@
  *   - Fully styled to match application theme
  */
 import React, { useState, useEffect, useCallback } from "react";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
 // Search icon SVG component
-const SearchIcon = () => (
+const SearchIcon = ({ color }) => (
   <svg
     width="18"
     height="18"
@@ -26,7 +27,7 @@ const SearchIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    style={{ color: "rgba(255,255,255,0.5)", marginRight: "8px" }}
+    style={{ color, marginRight: "8px" }}
   >
     <circle cx="11" cy="11" r="8" />
     <path d="m21 21-4.35-4.35" />
@@ -56,6 +57,7 @@ export default function SearchField({
   showIcon = true,
   style = {},
 }) {
+  const themeColors = useThemeColors();
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -108,13 +110,13 @@ export default function SearchField({
     display: "flex",
     alignItems: "center",
     width: getWidth(),
-    backgroundColor: isFocused ? "#242424" : isHovered ? "#242424" : "#1a1a1a",
+    backgroundColor: isFocused ? themeColors.bgHover : isHovered ? themeColors.bgHover : themeColors.secondary,
     borderRadius: "8px",
     border: isFocused
-      ? "1px solid rgba(255,255,255,0.2)"
+      ? `1px solid ${themeColors.border}`
       : isHovered
-      ? "1px solid rgba(255,255,255,0.2)"
-      : "1px solid rgba(255,255,255,0.1)",
+      ? `1px solid ${themeColors.border}`
+      : `1px solid ${themeColors.borderLight}`,
     padding: "12px 24px",
     height: "48px",
     boxSizing: "border-box",
@@ -128,7 +130,7 @@ export default function SearchField({
     backgroundColor: "transparent",
     border: "none",
     outline: "none",
-    color: "#fff",
+    color: themeColors.text,
     fontSize: "16px",
     fontWeight: "500",
     fontFamily: "inherit",
@@ -140,7 +142,7 @@ export default function SearchField({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {showIcon && <SearchIcon />}
+      {showIcon && <SearchIcon color={themeColors.textTertiary} />}
       <input
         type="text"
         value={debounceMs === 0 ? value : localValue}

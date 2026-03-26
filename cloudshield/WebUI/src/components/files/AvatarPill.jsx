@@ -49,7 +49,7 @@ export default function AvatarPill({ items = [], type = "user", maxVisible = 3 }
     }),
     extraCount: {
       fontSize: "12px",
-      color: "#ffffff",
+      color: "var(--text-primary)",
       fontWeight: "500",
       padding: "2px 8px",
       backgroundColor: "rgba(255, 255, 255, 0.1)",

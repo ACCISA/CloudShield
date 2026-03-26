@@ -6,7 +6,6 @@ import { trackButton } from "../lib/analytics";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
-import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { getUserErrorMessage } from "../lib/errors";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
@@ -15,6 +14,9 @@ import AuthTextField from "../components/auth/AuthTextField.jsx";
 import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
+import { apiPost } from "../api/client";
+
+// to be updated later with real plans
 const PLAN_OPTIONS = [
   {
     id: "basic",
@@ -118,6 +120,7 @@ export default function SignupPage({ onSignupSuccess }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [company, setCompany] = useState("");
   const [plan, setPlan] = useState("pro");
 
@@ -129,6 +132,12 @@ export default function SignupPage({ onSignupSuccess }) {
     setPlan(id);
   };
 
+  const submitLabel = (() => {
+    if (!submitting) return "Create Organization";
+    if (BYPASS_STRIPE) return "Creating...";
+    return "Redirecting to payment...";
+  })();
+
   const validate = () => {
     const next = {};
     const passwordRegex =
@@ -138,6 +147,7 @@ export default function SignupPage({ onSignupSuccess }) {
     if (!passwordRegex.test(password)) {
       next.password = PASSWORD_REQUIREMENTS_MESSAGE;
     }
+    if (!adminName.trim()) next.adminName = "Admin name is required.";
     if (!company.trim()) next.company = "Company name is required.";
 
     setErrors(next);
@@ -160,17 +170,17 @@ export default function SignupPage({ onSignupSuccess }) {
     trackButton("signup/submit", { page: "signup", plan });
 
     try {
-      const createUserRes = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: company,
-          company_name: company,
-          package_type: plan,
-        }),
-      });
+      // 1. Create the User and Organization in MongoDB
+      const createUserRes = await apiPost(
+        "/auth/signup",
+       	{
+		email: email,
+            	password: password,
+            	full_name: adminName,
+            	company_name: company,
+            	package_type: plan,
+          },
+        );
 
       let createUserData = {};
       try {
@@ -178,7 +188,7 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-
+      console.log(createUserRes)
       const createUserErrors = extractServerErrors(createUserRes, createUserData);
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
@@ -263,7 +273,7 @@ export default function SignupPage({ onSignupSuccess }) {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#0A0A0A",
+        bgcolor: "background.default",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -344,7 +354,7 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {errors.email && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.email}
                   </Typography>
                 )}
@@ -355,8 +365,20 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {errors.password && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.password}
+                  </Typography>
+                )}
+
+                <AuthTextField
+                  label="Admin Name"
+                  placeholder="Jane Doe"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                />
+                {errors.adminName && (
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
+                    {errors.adminName}
                   </Typography>
                 )}
 
@@ -367,17 +389,13 @@ export default function SignupPage({ onSignupSuccess }) {
                   onChange={(e) => setCompany(e.target.value)}
                 />
                 {errors.company && (
-                  <Typography sx={{ color: "#f87171", mb: 1.5, fontSize: "0.85rem" }}>
+                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
                     {errors.company}
                   </Typography>
                 )}
 
                 <PrimaryButton onClick={handleSignup} disabled={submitting}>
-                  {submitting
-                    ? BYPASS_STRIPE
-                      ? "Creating..."
-                      : "Redirecting to payment..."
-                    : "Create Organization"}
+                  {submitLabel}
                 </PrimaryButton>
 
                 <Typography
@@ -389,11 +407,11 @@ export default function SignupPage({ onSignupSuccess }) {
                     cursor: "pointer",
                     mt: 1.5,
                     textAlign: "center",
-                    color: "#ffffffff",
+                    color: "text.primary",
                     fontSize: "0.9rem",
                     "&:hover": {
                       textDecoration: "underline",
-                      color: "#93c5fd",
+                      color: "primary.main",
                     },
                   }}
                 >
@@ -407,7 +425,7 @@ export default function SignupPage({ onSignupSuccess }) {
                 sx={{
                   fontSize: "1.9rem",
                   fontWeight: 700,
-                  color: "#ffffff",
+                  color: "text.primary",
                   mb: 2.5,
                   textAlign: { xs: "center", md: "left" },
                 }}
@@ -417,27 +435,25 @@ export default function SignupPage({ onSignupSuccess }) {
 
               <TableSurface>
                 <Box sx={{ p: 2 }}>
-                  {submitting ? (
-                    <TableSkeleton rows={4} cols={3} />
-                  ) : (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2.5,
-                        justifyContent: { xs: "center", md: "flex-start" },
-                      }}
-                    >
-                      {PLAN_OPTIONS.map((p) => (
-                        <PlanCard
-                          key={p.id}
-                          plan={p}
-                          selected={plan === p.id}
-                          onSelect={handlePlanSelect}
-                        />
-                      ))}
-                    </Box>
-                  )}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 2.5,
+                      justifyContent: { xs: "center", md: "flex-start" },
+                      opacity: submitting ? 0.8 : 1,
+                      pointerEvents: submitting ? "none" : "auto",
+                    }}
+                  >
+                    {PLAN_OPTIONS.map((p) => (
+                      <PlanCard
+                        key={p.id}
+                        plan={p}
+                        selected={plan === p.id}
+                        onSelect={handlePlanSelect}
+                      />
+                    ))}
+                  </Box>
                 </Box>
               </TableSurface>
             </Box>

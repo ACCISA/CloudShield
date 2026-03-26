@@ -2,11 +2,15 @@ import React from "react";
 import FilterIcon from "../../../assets/FilterIcon.jsx";
 import ActiveIcon from "../../../assets/ActiveIcon.jsx";
 import { usePopover } from "../hooks/usePopover.js";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 import {
   buttonStyle as baseButtonStyle,
+  getButtonStyle,
   getPopoverStyle,
+  getPopoverStyleLegacy,
   backdropStyle,
   buttonHoverHandlers,
+  getButtonHoverHandlers,
 } from "../styles/popoverStyles.js";
 
 /**
@@ -31,6 +35,7 @@ export default function FilterButton({
   onFilterChange,
   style = {},
 }) {
+  const themeColors = useThemeColors();
   const popover = usePopover({ popoverWidth: 320, popoverHeight: 500 });
 
   const handleFilterToggle = (groupId, value) => {
@@ -43,12 +48,13 @@ export default function FilterButton({
     onFilterChange?.(groupId, value, !isActive);
   };
 
-  const buttonStyle = { ...baseButtonStyle, ...style };
+  const buttonStyle = getButtonStyle(themeColors);
   const popoverStyle = {
-    ...getPopoverStyle("320px"),
+    ...getPopoverStyle(themeColors, "320px"),
     maxHeight: "500px",
     overflowY: "auto",
   };
+  const hoverHandlers = getButtonHoverHandlers(themeColors);
 
   const filterGroupStyle = {
     marginBottom: "16px",
@@ -61,6 +67,7 @@ export default function FilterButton({
     marginBottom: "8px",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
+    color: themeColors.textSecondary,
   };
 
   const filterOptionStyle = (isActive) => ({
@@ -78,19 +85,19 @@ export default function FilterButton({
   const checkboxStyle = (isActive) => ({
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(255,255,255,0.5)",
+    border: `2px solid ${themeColors.border}`,
     borderRadius: "4px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: isActive ? "#fff" : "transparent",
+    backgroundColor: isActive ? themeColors.secondary : "transparent",
     transition: "all 0.2s ease",
   });
 
   const checkmarkStyle = {
     width: "10px",
     height: "10px",
-    color: "#000",
+    color: themeColors.bgPrimary,
   };
 
   const labelStyle = (isActive) => ({
@@ -100,14 +107,15 @@ export default function FilterButton({
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    color: themeColors.text,
   });
 
   const toggleSwitchStyle = (isActive) => ({
     width: "44px",
     height: "24px",
     backgroundColor: isActive
-      ? "rgba(255,255,255,0.2)"
-      : "rgba(255,255,255,0.1)",
+      ? themeColors.secondary
+      : themeColors.border,
     borderRadius: "12px",
     position: "relative",
     transition: "all 0.2s ease",
@@ -117,7 +125,7 @@ export default function FilterButton({
   const toggleKnobStyle = (isActive) => ({
     width: "20px",
     height: "20px",
-    backgroundColor: isActive ? "#4CAF50" : "rgba(255,255,255,0.5)",
+    backgroundColor: isActive ? themeColors.success : themeColors.textTertiary,
     borderRadius: "50%",
     position: "absolute",
     top: "2px",
@@ -128,7 +136,7 @@ export default function FilterButton({
 
   const dividerStyle = {
     height: "1px",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: themeColors.border,
     margin: "12px 0",
   };
 
@@ -149,15 +157,15 @@ export default function FilterButton({
         role="button"
         tabIndex={0}
         aria-label="Filter options"
-        {...buttonHoverHandlers}
+        {...hoverHandlers}
       >
-        <FilterIcon width={16} height={16} color="#fff" />
+        <FilterIcon width={16} height={16} color={themeColors.text} />
         Filter
         {activeFilterCount > 0 && (
           <span
             style={{
-              backgroundColor: "#fff",
-              color: "#000",
+              backgroundColor: themeColors.text,
+              color: themeColors.bgPrimary,
               fontSize: "11px",
               fontWeight: "600",
               padding: "2px 6px",

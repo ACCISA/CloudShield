@@ -3,12 +3,16 @@ import ListIcon from "../../../assets/DisplayButton/ListIcon.jsx";
 import ImageIcon from "../../../assets/DisplayButton/ImageIcon.jsx";
 import DisplayIcon from "../../../assets/DisplayButton/DisplayIcon.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 import { usePopover } from "../hooks/usePopover.js";
 import {
   buttonStyle as baseButtonStyle,
+  getButtonStyle,
   getPopoverStyle,
+  getPopoverStyleLegacy,
   backdropStyle,
   buttonHoverHandlers,
+  getButtonHoverHandlers,
 } from "../styles/popoverStyles.js";
 
 export default function DisplayButton({
@@ -17,6 +21,7 @@ export default function DisplayButton({
   style = {},
   columnToggles = null, // { columns: [{ key, label, checked }], onToggle }
 }) {
+  const themeColors = useThemeColors();
   const popover = usePopover({
     popoverWidth: columnToggles ? 400 : 280,
     popoverHeight: columnToggles ? 420 : 220,
@@ -27,8 +32,9 @@ export default function DisplayButton({
     // Keep popover open when switching layouts
   };
 
-  const buttonStyle = { ...baseButtonStyle, ...style };
-  const popoverStyle = getPopoverStyle(columnToggles ? "400px" : "280px");
+  const buttonStyle = getButtonStyle(themeColors);
+  const popoverStyle = getPopoverStyle(themeColors, columnToggles ? "400px" : "280px");
+  const hoverHandlers = getButtonHoverHandlers(themeColors);
 
   // Option card styling
   const getOptionStyle = (isActive) => ({
@@ -39,8 +45,8 @@ export default function DisplayButton({
     gap: "8px",
     padding: "20px 16px",
     borderRadius: "12px",
-    border: isActive ? "1px solid rgba(255,255,255,0.2)" : "none",
-    backgroundColor: isActive ? "rgba(255,255,255,0.1)" : "transparent",
+    border: isActive ? `1px solid ${themeColors.border}` : "none",
+    backgroundColor: isActive ? themeColors.bgHover : "transparent",
     cursor: "pointer",
     transition: "all 0.2s ease",
     height: "100px",
@@ -58,7 +64,7 @@ export default function DisplayButton({
     fontSize: "14px",
     fontWeight: isActive ? 600 : 400,
     opacity: isActive ? 1 : 0.7,
-    color: "#fff",
+    color: themeColors.text,
   });
 
   return (
@@ -71,9 +77,9 @@ export default function DisplayButton({
         role="button"
         tabIndex={0}
         aria-label="Display options"
-        {...buttonHoverHandlers}
+        {...hoverHandlers}
       >
-        <DisplayIcon width={16} height={16} color="#fff" />
+        <DisplayIcon width={16} height={16} color={themeColors.text} />
         Display
       </div>
 
@@ -132,7 +138,7 @@ export default function DisplayButton({
                   <ListIcon
                     width={28}
                     height={21}
-                    color={layout === "list" ? "#fff" : "rgba(255,255,255,0.6)"}
+                    color={layout === "list" ? themeColors.text : themeColors.textTertiary}
                   />
                 </div>
                 <div style={getLabelStyle(layout === "list")}>List</div>
@@ -153,8 +159,7 @@ export default function DisplayButton({
                 style={getOptionStyle(layout === "icons")}
                 onMouseEnter={(e) => {
                   if (layout !== "icons") {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255,255,255,0.08)";
+                    e.currentTarget.style.backgroundColor = themeColors.bgHover;
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -169,7 +174,7 @@ export default function DisplayButton({
                     width={32}
                     height={32}
                     color={
-                      layout === "icons" ? "#fff" : "rgba(255,255,255,0.6)"
+                      layout === "icons" ? themeColors.text : themeColors.textTertiary
                     }
                   />
                 </div>
@@ -197,7 +202,7 @@ export default function DisplayButton({
                     style={{
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#fff",
+                      color: "var(--text-primary)",
                       marginBottom: "4px",
                       opacity: 0.9,
                     }}

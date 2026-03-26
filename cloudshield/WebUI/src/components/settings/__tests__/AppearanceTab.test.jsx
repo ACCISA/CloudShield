@@ -1,310 +1,87 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import AppearanceTab from "../AppearanceTab";
-import "@testing-library/jest-dom";
+
+const mockUpdateTheme = jest.fn();
+const mockPreviewTheme = jest.fn();
+const mockClearPreview = jest.fn();
+
+jest.mock("../../../context/ThemeContext.jsx", () => ({
+  useAppTheme: () => ({
+    themeMode: "dark",
+    previewMode: null,
+    updateTheme: mockUpdateTheme,
+    previewTheme: mockPreviewTheme,
+    clearPreview: mockClearPreview,
+  }),
+}));
 
 describe("AppearanceTab", () => {
   beforeEach(() => {
-    localStorage.clear();
-    const localStorageMock = (function () {
-      let store = {};
-      return {
-        getItem: jest.fn((key) => store[key] || null),
-        setItem: jest.fn((key, value) => { store[key] = value.toString(); }),
-        removeItem: jest.fn((key) => { delete store[key]; }),
-        clear: jest.fn(() => { store = {}; }),
-      };
-    })();
-    Object.defineProperty(window, "localStorage", { value: localStorageMock });
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
   });
 
-  test("renders appearance header", () => {
+  test("renders core sections", () => {
     render(<AppearanceTab />);
 
     expect(screen.getByText("Appearance")).toBeInTheDocument();
-    expect(screen.getByText("Change how the dashboard looks and feels")).toBeInTheDocument();
-  });
-
-  test("renders dashboard colour section label", () => {
-    render(<AppearanceTab />);
-
     expect(screen.getByText("Dashboard colour")).toBeInTheDocument();
-    expect(screen.getByText("Change the colour of the dashboard")).toBeInTheDocument();
-  });
-
-  test("renders all theme options", () => {
-    render(<AppearanceTab />);
-
-    expect(screen.getByText("Light")).toBeInTheDocument();
-    expect(screen.getByText("Dark")).toBeInTheDocument();
-    expect(screen.getByText("System Default")).toBeInTheDocument();
-  });
-
-  test("displays theme descriptions", () => {
-    render(<AppearanceTab />);
-
-    expect(screen.getByText("Always use light appearance")).toBeInTheDocument();
-    expect(screen.getByText("Always use dark appearance")).toBeInTheDocument();
-    expect(screen.getByText("Match your system settings")).toBeInTheDocument();
-  });
-
-  test("loads default theme from localStorage", () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const darkThemeOption = screen.getByText("Dark").closest("div");
-    expect(darkThemeOption).toHaveStyle({ border: "2px solid" });
-  });
-
-  test("loads system theme from localStorage if set", () => {
-    localStorage.getItem.mockImplementation((key) => {
-      if (key === "cs_theme") return "system";
-      return null;
-    });
-
-    render(<AppearanceTab />);
-
-    const systemThemeOption = screen.getByText("System Default").closest("div");
-    expect(systemThemeOption).toBeInTheDocument();
-  });
-
-  test("switches theme when clicked", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
-
-    await act(async () => {
-      fireEvent.click(lightThemeOption);
-    });
-
-    expect(screen.getByText("Always use light appearance").closest("div")).toHaveStyle({
-      border: "2px solid",
-    });
-  });
-
-  test("marks active theme with Active badge", () => {
-    localStorage.getItem.mockReturnValue("light");
-
-    render(<AppearanceTab />);
-
-    const activeBadges = screen.getAllByText("Active");
-    expect(activeBadges.length).toBeGreaterThan(0);
-  });
-
-  test("renders language section label", () => {
-    render(<AppearanceTab />);
-
     expect(screen.getByText("Language")).toBeInTheDocument();
   });
 
-  test("renders language options", () => {
+  test("save button is disabled when there are no changes", () => {
     render(<AppearanceTab />);
 
-    expect(screen.getByDisplayValue("🇨🇦  English (Canada)")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("🇺🇸  English (United States)")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("🇨🇦  Français (Canada)")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("🇫🇷  Français (France)")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("🇪🇸  Español")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("🇩🇪  Deutsch")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
   });
 
-  test("loads default language from localStorage", () => {
-    localStorage.getItem.mockImplementation((key) => {
-      if (key === "cs_language") return "en-US";
-      return "dark";
-    });
-
+  test("selecting another theme enables save and calls preview", () => {
     render(<AppearanceTab />);
 
-    const languageSelect = screen.getByDisplayValue("🇺🇸  English (United States)");
-    expect(languageSelect).toHaveValue("en-US");
+    fireEvent.click(screen.getByText("Always use light appearance"));
+
+    expect(mockPreviewTheme).toHaveBeenCalledWith("light");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 
-  test("changes language when selected", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
+  test("cancel clears preview and hides cancel button", () => {
     render(<AppearanceTab />);
 
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
+    fireEvent.click(screen.getByText("Always use light appearance"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
-    await act(async () => {
-      fireEvent.change(languageSelect, { target: { value: "fr-CA" } });
-    });
-
-    expect(languageSelect).toHaveValue("fr-CA");
+    expect(mockClearPreview).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
   });
 
-  test("saves theme to localStorage when Save is clicked", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
+  test("save persists language and updates theme", () => {
     render(<AppearanceTab />);
 
-    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
-    const saveButton = screen.getByRole("button", { name: /save/i });
+    fireEvent.click(screen.getByText("Always use light appearance"));
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByText(/Français \(France\)/));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    await act(async () => {
-      fireEvent.click(lightThemeOption);
-      fireEvent.click(saveButton);
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalledWith("cs_theme", "light");
+    expect(mockUpdateTheme).toHaveBeenCalledWith("light");
+    expect(localStorage.getItem("cs_language")).toBe("fr-FR");
   });
 
-  test("saves language to localStorage when Save is clicked", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
-    const saveButton = screen.getByRole("button", { name: /save/i });
-
-    await act(async () => {
-      fireEvent.change(languageSelect, { target: { value: "es-ES" } });
-      fireEvent.click(saveButton);
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalledWith("cs_language", "es-ES");
-  });
-
-  test("shows success message after save", async () => {
+  test("shows temporary saved state", () => {
     jest.useFakeTimers();
-    localStorage.getItem.mockReturnValue("dark");
-
     render(<AppearanceTab />);
 
-    const saveButton = screen.getByRole("button", { name: /save/i });
+    fireEvent.click(screen.getByText("Always use light appearance"));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    await act(async () => {
-      fireEvent.click(saveButton);
+    expect(screen.getByRole("button", { name: "Saved!" })).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
     });
 
-    // Since there's no toast, we check if the saved state is set
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
     jest.useRealTimers();
-  });
-
-  test("renders save button", () => {
-    render(<AppearanceTab />);
-
-    const saveButton = screen.getByRole("button", { name: /save/i });
-    expect(saveButton).toBeInTheDocument();
-  });
-
-  test("does not save if nothing changed", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-    localStorage.setItem.mockClear();
-
-    render(<AppearanceTab />);
-
-    const saveButton = screen.getByRole("button", { name: /save/i });
-
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalled();
-  });
-
-  test("handles theme selection transitions", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const lightThemeOption = screen.getByText("Always use light appearance").closest("div");
-    const systemThemeOption = screen.getByText("Match your system settings").closest("div");
-
-    await act(async () => {
-      fireEvent.click(lightThemeOption);
-    });
-
-    expect(lightThemeOption).toHaveStyle({ border: "2px solid" });
-
-    await act(async () => {
-      fireEvent.click(systemThemeOption);
-    });
-
-    expect(systemThemeOption).toHaveStyle({ border: "2px solid" });
-  });
-
-  test("persists language across save actions", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
-    const saveButton = screen.getByRole("button", { name: /save/i });
-
-    await act(async () => {
-      fireEvent.change(languageSelect, { target: { value: "de-DE" } });
-      fireEvent.click(saveButton);
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalledWith("cs_language", "de-DE");
-  });
-
-  test("shows theme preview thumbnails", () => {
-    render(<AppearanceTab />);
-
-    // The theme previews should be rendered
-    const themeElements = screen.getByText("Always use light appearance").closest("div");
-    expect(themeElements).toBeInTheDocument();
-  });
-
-  test("renders all six language options", () => {
-    render(<AppearanceTab />);
-
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
-    expect(languageSelect).toBeInTheDocument();
-
-    const options = languageSelect.querySelectorAll("option");
-    expect(options.length).toBe(6);
-  });
-
-  test("defaults to en-CA language if not set", () => {
-    localStorage.getItem.mockImplementation((key) => {
-      if (key === "cs_language") return null;
-      return "dark";
-    });
-
-    render(<AppearanceTab />);
-
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
-    expect(languageSelect).toHaveValue("en-CA");
-  });
-
-  test("preserves theme selection through re-renders", async () => {
-    localStorage.getItem.mockReturnValue("light");
-
-    const { rerender } = render(<AppearanceTab />);
-
-    let activeBadges = screen.queryAllByText("Active");
-    expect(activeBadges.length).toBeGreaterThan(0);
-
-    rerender(<AppearanceTab />);
-
-    activeBadges = screen.queryAllByText("Active");
-    expect(activeBadges.length).toBeGreaterThan(0);
-  });
-
-  test("handles French language selection", async () => {
-    localStorage.getItem.mockReturnValue("dark");
-
-    render(<AppearanceTab />);
-
-    const languageSelect = screen.getByDisplayValue("🇨🇦  English (Canada)");
-    const saveButton = screen.getByRole("button", { name: /save/i });
-
-    await act(async () => {
-      fireEvent.change(languageSelect, { target: { value: "fr-CA" } });
-      fireEvent.click(saveButton);
-    });
-
-    expect(localStorage.setItem).toHaveBeenCalledWith("cs_language", "fr-CA");
   });
 });
