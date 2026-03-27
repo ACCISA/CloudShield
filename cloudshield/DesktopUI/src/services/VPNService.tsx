@@ -47,10 +47,15 @@ function decodeJwtClaims(token: string): JwtClaims {
 }
 
 function deriveUsername(claims: JwtClaims): string {
-  if (claims.username?.trim()) return claims.username.trim();
-  if (claims.email?.includes("@")) return claims.email.split("@")[0].trim();
-  if (claims.full_name?.trim()) return claims.full_name.trim().replace(/\s+/g, "").toLowerCase();
-  return "";
+  let username = "";
+  if (claims.username?.trim()) username = claims.username.trim();
+  if (claims.email?.includes("@")) username = claims.email.split("@")[0].trim();
+  if (claims.full_name?.trim())
+    username = claims.full_name.trim().toLowerCase();
+  console.log("Derived username:", username);
+  let firstNameLetter = username.charAt(0);
+  let lastName = username.split(" ")[1];
+  return firstNameLetter + "_" + lastName;
 }
 
 class VPNService {
