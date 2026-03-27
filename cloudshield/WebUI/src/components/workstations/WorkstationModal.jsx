@@ -355,6 +355,10 @@ export default function WorkstationModal({
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
                 }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 Next
               </button>
@@ -363,6 +367,10 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
                 style={{
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
@@ -605,6 +613,14 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Image
@@ -646,6 +662,14 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Background
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Background
@@ -922,7 +946,7 @@ function SoftwareStep({
                   }}
                 >
                   <div className="workstation-modal-dropdown-item-icon">
-                    {software.icon}
+                    <SoftwareVisual software={software} />
                   </div>
                   <div className="workstation-modal-dropdown-item-info">
                     <div className="workstation-modal-dropdown-item-name">
@@ -961,7 +985,7 @@ function SoftwareStep({
                   ×
                 </button>
                 <div className="workstation-modal-selected-card-icon">
-                  {software.icon}
+                  <SoftwareVisual software={software} />
                 </div>
                 <span className="workstation-modal-selected-card-name">
                   {software.name}
@@ -975,14 +999,30 @@ function SoftwareStep({
   );
 }
 
-SoftwareStep.propTypes = {
-  searchTerm: PropTypes.string.isRequired,
-  setSearchTerm: PropTypes.func.isRequired,
-  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
-  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
-  allSelected: PropTypes.bool,
-  onToggle: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
-  totalItems: PropTypes.array.isRequired,
-  onAllChange: PropTypes.func.isRequired,
+function SoftwareVisual({ software }) {
+  if (software?.picture) {
+    return (
+      <img
+        src={software.picture}
+        alt={software.name || "Software"}
+        style={{ width: 24, height: 24, borderRadius: 4, objectFit: "cover" }}
+      />
+    );
+  }
+
+  if (software?.icon) return software.icon;
+
+  return (
+    <span style={{ fontSize: "0.75rem", fontWeight: 700 }}>
+      {(software?.name || "?").slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+SoftwareVisual.propTypes = {
+  software: PropTypes.shape({
+    name: PropTypes.string,
+    picture: PropTypes.string,
+    icon: PropTypes.node,
+  }),
 };
