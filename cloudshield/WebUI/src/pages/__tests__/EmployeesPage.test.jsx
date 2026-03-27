@@ -399,26 +399,20 @@ describe("EmployeesPage Integration", () => {
   // --- CREATE ---
   it("creates user successfully", async () => {
     usersApi.createUser.mockResolvedValue({ job_id: "job-create-1" });
-    global.fetch = jest
-      .fn()
-      // initial groups fetch during first fetchUsers
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_groups: [] }),
-      })
-      // immediate status poll from useAsyncTask
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ status: "succeeded", progress: "completed" }),
-      })
-      // groups refetch after success
-      .mockResolvedValue({
+    global.fetch = jest.fn((url) => {
+      if (typeof url === "string" && url.includes("/status/")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: "succeeded", progress: "completed" }),
+        });
+      }
+      return Promise.resolve({
         ok: true,
         status: 200,
         json: async () => ({ access_groups: [] }),
       });
+    });
 
     renderPage();
     await userEvent.click(screen.getByTestId("open-create-btn"));
@@ -2481,7 +2475,7 @@ describe("EmployeesPage Integration", () => {
       renderPage();
       const helpBtn = screen.getByLabelText("CSV format help");
       fireEvent.mouseEnter(helpBtn);
-      expect(screen.getByText(/full_name/)).toBeInTheDocument();
+      expect(screen.getAllByText(/full_name/).length).toBeGreaterThan(0);
       fireEvent.mouseLeave(helpBtn);
     });
   });

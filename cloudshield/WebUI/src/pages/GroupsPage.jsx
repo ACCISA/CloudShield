@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -14,7 +14,8 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
+import UploadFileIcon from "../assets/UploadFileIcon.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from "../api/client.js";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
@@ -57,6 +58,9 @@ export default function GroupsPage() {
   const [sortDir, setSortDir] = useState("asc");
   const { toast, showToast, hideToast } = useToast();
   const openToast = (msg, type = "success") => showToast(msg, type);
+  const csvInputRef = useRef(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [showCsvHelp, setShowCsvHelp] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -155,6 +159,41 @@ export default function GroupsPage() {
     fetchGroups();
   }, []);
 
+  const handleCsvImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    event.target.value = "";
+    setCsvImporting(true);
+    try {
+      const result = await apiUploadFile("/access-groups/import-csv", file);
+      const created = result?.created || 0;
+      const errorCount = result?.errors?.length || 0;
+
+      if (created > 0) {
+        openToast(`Successfully imported ${created} group(s)${errorCount > 0 ? ` (${errorCount} warnings)` : ""}`);
+        await fetchGroups();
+      } else if (errorCount > 0) {
+        const firstError = result.errors[0];
+        openToast(`Import failed: ${firstError.error || "Unknown error"}`, "error");
+      } else {
+        openToast("No groups imported", "info");
+      }
+
+      if (errorCount > 0) {
+        console.warn("CSV import errors:", result.errors);
+      }
+    } catch (e) {
+      openToast(e.message || "CSV import failed", "error");
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
+  const handleCsvButtonClick = () => {
+    csvInputRef.current?.click();
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     setCurrentPage(1);
@@ -210,19 +249,16 @@ export default function GroupsPage() {
   };
 
   const toggleSelectAllVisible = () => {
-    const hasSelected = pagedGroups.some((g) => selectedIds.has(g._id));
     const allAreSelected =
       pagedGroups.length > 0 &&
       pagedGroups.every((g) => selectedIds.has(g._id));
 
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (hasSelected && !allAreSelected) {
+      if (allAreSelected) {
         pagedGroups.forEach((g) => next.delete(g._id));
-      } else if (!hasSelected) {
-        pagedGroups.forEach((g) => next.add(g._id));
       } else {
-        pagedGroups.forEach((g) => next.delete(g._id));
+        pagedGroups.forEach((g) => next.add(g._id));
       }
       return next;
     });
@@ -395,6 +431,104 @@ export default function GroupsPage() {
           </div>
 
           <div style={styles.rightActions}>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleCsvImport}
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              onClick={handleCsvButtonClick}
+              disabled={csvImporting}
+              aria-label="Import CSV"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "12px 16px",
+                minWidth: 120,
+                height: 48,
+                borderRadius: 8,
+                border: `1px solid ${themeColors.secondaryBorder || themeColors.border}`,
+                background: themeColors.secondary || themeColors.bgSecondary,
+                color: themeColors.secondaryText || themeColors.text,
+                opacity: csvImporting ? 0.5 : 1,
+                cursor: csvImporting ? "not-allowed" : "pointer",
+              }}
+            >
+              <UploadFileIcon width={16} height={16} color={themeColors.text} />
+              <span>{csvImporting ? "Importing..." : "Import CSV"}</span>
+            </button>
+            <div
+              style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+              onMouseEnter={() => setShowCsvHelp(true)}
+              onMouseLeave={() => setShowCsvHelp(false)}
+            >
+              <button
+                type="button"
+                aria-label="CSV format help"
+                onClick={() => setShowCsvHelp((v) => !v)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  border: `1px solid ${themeColors.border}`,
+                  background: "transparent",
+                  color: themeColors.text,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                ?
+              </button>
+              {showCsvHelp && (
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    minWidth: 340,
+                    maxWidth: 460,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    border: `1px solid ${themeColors.border}`,
+                    background: themeColors.bgSecondary,
+                    color: themeColors.text,
+                    fontSize: 12,
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.24)",
+                    zIndex: 20,
+                    whiteSpace: "normal",
+                    transform: "translateY(0)",
+                    animation: "fadeInCsvHelp 140ms ease-out",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Groups CSV Format</div>
+                  <div style={{ opacity: 0.9, marginBottom: 6 }}>
+                    Required columns: group_name
+                  </div>
+                  <div style={{ opacity: 0.9, marginBottom: 8 }}>
+                    Optional columns: description, member_emails, workstations
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                      fontSize: 11,
+                      padding: "8px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${themeColors.borderLight || themeColors.border}`,
+                      background: "rgba(0, 0, 0, 0.08)",
+                    }}
+                  >
+                    group_name,description,member_emails,workstations
+                    <br />
+                    engineering,Core team,dev1@example.com;dev2@example.com,WS001;WS002
+                  </div>
+                </div>
+              )}
+            </div>
             <RefreshButton onClick={fetchGroups} />
             <CreateButton
               icon={
@@ -412,9 +546,26 @@ export default function GroupsPage() {
 
         {/* Clean Conditional Rendering: Loading vs Content */}
         {loading ? (
-          <TableSurface>
-            <TableSkeleton rows={8} cols={5} />
-          </TableSurface>
+          <>
+            <TableSurface>
+              <TableSkeleton rows={8} cols={5} />
+            </TableSurface>
+            <div style={{ display: "none" }}>
+              <GroupsList
+                rows={[]}
+                showUsers={showUsers}
+                showWorkstations={showWorkstations}
+                showFiles={showFiles}
+                selectedIds={selectedIds}
+                allVisibleSelected={false}
+                isIndeterminate={false}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAllVisible}
+                onEdit={handleOpenEditModal}
+                onDelete={handleDeleteGroup}
+              />
+            </div>
+          </>
         ) : layout === "list" ? (
           <>
             <div style={{ position: "relative" }}>

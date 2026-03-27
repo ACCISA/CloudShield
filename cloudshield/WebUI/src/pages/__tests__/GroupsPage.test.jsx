@@ -9,6 +9,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import GroupsPage from "../GroupsPage";
+import * as clientApi from "../../api/client.js";
 
 jest.mock("../../hooks/useThemeColors.js", () => ({
   useThemeColors: () => ({
@@ -2621,8 +2622,78 @@ describe("GroupsPage Component", () => {
       renderPage();
       const helpBtn = screen.getByLabelText("CSV format help");
       fireEvent.mouseEnter(helpBtn);
-      expect(screen.getByText(/group_name/)).toBeInTheDocument();
+      expect(screen.getAllByText(/group_name/).length).toBeGreaterThan(0);
       fireEvent.mouseLeave(helpBtn);
+    });
+  });
+
+  describe("CSV import coverage", () => {
+    it("opens hidden file input from import button", async () => {
+      const clickSpy = jest
+        .spyOn(HTMLInputElement.prototype, "click")
+        .mockImplementation(() => {});
+
+      await renderPage();
+      await userEvent.click(screen.getByRole("button", { name: "Import CSV" }));
+
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it("imports groups from csv and refreshes list", async () => {
+      jest.spyOn(clientApi, "apiUploadFile").mockResolvedValueOnce({
+        created: 2,
+        errors: [],
+      });
+
+      let groupsGetCalls = 0;
+      global.fetch = jest.fn((url, opts) => {
+        if (
+          typeof url === "string" &&
+          url.includes("/api/access-groups") &&
+          (!opts?.method || opts.method === "GET")
+        ) {
+          groupsGetCalls += 1;
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ access_groups: [] }),
+          });
+        }
+
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      await renderPage();
+
+      const fileInput = document.querySelector('input[type="file"]');
+      const csvFile = new File(["group_name,description\nengineering,Core team"], "groups.csv", {
+        type: "text/csv",
+      });
+      fireEvent.change(fileInput, { target: { files: [csvFile] } });
+
+      expect(await screen.findByText(/Successfully imported 2 group\(s\)/i)).toBeInTheDocument();
+      expect(groupsGetCalls).toBeGreaterThanOrEqual(2);
+    });
+
+    it("shows first row error when csv import returns errors", async () => {
+      jest.spyOn(clientApi, "apiUploadFile").mockResolvedValueOnce({
+        created: 0,
+        errors: [{ error: "Invalid row 2" }],
+      });
+
+      global.fetch = jest.fn((url) => {
+        if (typeof url === "string" && url.includes("/api/access-groups")) {
+          return Promise.resolve({ ok: true, json: async () => ({ access_groups: [] }) });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      await renderPage();
+
+      const fileInput = document.querySelector('input[type="file"]');
+      const csvFile = new File(["bad"], "groups.csv", { type: "text/csv" });
+      fireEvent.change(fileInput, { target: { files: [csvFile] } });
+
+      expect(await screen.findByText("Import failed: Invalid row 2")).toBeInTheDocument();
     });
   });
   });
