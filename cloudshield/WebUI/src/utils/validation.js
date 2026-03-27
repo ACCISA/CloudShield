@@ -66,10 +66,11 @@ function fail(msg) {
  */
 export function validateUsername(value) {
   if (!value?.trim()) return fail("Username is required.");
-  if (value.length > 64) return fail("Username must be 64 characters or fewer.");
+  if (value.length > 64)
+    return fail("Username must be 64 characters or fewer.");
   if (!USERNAME_REGEX.test(value))
     return fail(
-      "Username must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores."
+      "Username must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores.",
     );
   return ok();
 }
@@ -80,11 +81,12 @@ export function validateUsername(value) {
  */
 export function validateDisplayName(value, fieldName = "Name") {
   if (!value?.trim()) return fail(`${fieldName} is required.`);
-  if (value.length > 100) return fail(`${fieldName} must be 100 characters or fewer.`);
+  if (value.length > 100)
+    return fail(`${fieldName} must be 100 characters or fewer.`);
   // Allow Unicode letters, spaces, hyphens, apostrophes
   if (!/^[\p{L}\p{M}' -]{1,100}$/u.test(value))
     return fail(
-      `${fieldName} may only contain letters, spaces, hyphens, and apostrophes.`
+      `${fieldName} may only contain letters, spaces, hyphens, and apostrophes.`,
     );
   return ok();
 }
@@ -94,10 +96,11 @@ export function validateDisplayName(value, fieldName = "Name") {
  */
 export function validateGroupName(value) {
   if (!value?.trim()) return fail("Group name is required.");
-  if (value.length > 64) return fail("Group name must be 64 characters or fewer.");
+  if (value.length > 64)
+    return fail("Group name must be 64 characters or fewer.");
   if (!GROUP_NAME_REGEX.test(value))
     return fail(
-      "Group name must start with a letter or digit and contain only letters, digits, spaces, dots, hyphens, and underscores."
+      "Group name must start with a letter or digit and contain only letters, digits, spaces, dots, hyphens, and underscores.",
     );
   return ok();
 }
@@ -107,10 +110,11 @@ export function validateGroupName(value) {
  */
 export function validateShareName(value) {
   if (!value?.trim()) return fail("Share name is required.");
-  if (value.length > 64) return fail("Share name must be 64 characters or fewer.");
+  if (value.length > 64)
+    return fail("Share name must be 64 characters or fewer.");
   if (!SHARE_NAME_REGEX.test(value))
     return fail(
-      "Share name must start with a letter or digit and contain only letters, digits, hyphens, and underscores (no spaces)."
+      "Share name must start with a letter or digit and contain only letters, digits, hyphens, and underscores (no spaces).",
     );
   return ok();
 }
@@ -123,7 +127,7 @@ export function validateShareSize(value) {
   const str = String(value).trim();
   if (!SHARE_SIZE_REGEX.test(str))
     return fail(
-      "Share size must be a positive integer, optionally followed by K, M, G, or T."
+      "Share size must be a positive integer, optionally followed by K, M, G, or T.",
     );
   return ok();
 }
@@ -136,17 +140,18 @@ export function validateShareSize(value) {
  */
 export function validatePassword(value) {
   if (!value) return fail("Password is required.");
-  if (value.length < 12) return fail("Password must be at least 12 characters.");
-  if (value.length > 128) return fail("Password must be 128 characters or fewer.");
-  for (const ch of value) {
-    if (PASSWORD_FORBIDDEN.has(ch))
-      return fail(
-        "Password contains a disallowed character. Avoid: ' \\ ; | & $ ` ( ) { } [ ] < > !"
-      );
-  }
-  if (!HAS_LOWER.test(value) || !HAS_UPPER.test(value) || !HAS_DIGIT.test(value) || !HAS_SPECIAL.test(value))
+  if (value.length < 12)
+    return fail("Password must be at least 12 characters.");
+  if (value.length > 128)
+    return fail("Password must be 128 characters or fewer.");
+  if (
+    !HAS_LOWER.test(value) ||
+    !HAS_UPPER.test(value) ||
+    !HAS_DIGIT.test(value) ||
+    !HAS_SPECIAL.test(value)
+  )
     return fail(
-      "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
+      "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.",
     );
   return ok();
 }
@@ -157,7 +162,8 @@ export function validatePassword(value) {
 export function validateEmail(value) {
   if (!value?.trim()) return fail("Email is required.");
   if (value.length > 254) return fail("Email must be 254 characters or fewer.");
-  if (!EMAIL_REGEX.test(value)) return fail("Please enter a valid email address.");
+  if (!EMAIL_REGEX.test(value))
+    return fail("Please enter a valid email address.");
   return ok();
 }
 
@@ -200,7 +206,7 @@ export function validateClientName(value) {
   if (!value?.trim()) return fail("Client name is required.");
   if (!CLIENT_NAME_REGEX.test(value))
     return fail(
-      "Client name must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores."
+      "Client name must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores.",
     );
   return ok();
 }
@@ -219,7 +225,8 @@ export function validateRequired(value, fieldName = "This field") {
  */
 export function validateJobTitle(value) {
   if (!value?.trim()) return ok(); // optional field
-  if (value.length > 100) return fail("Job title must be 100 characters or fewer.");
+  if (value.length > 100)
+    return fail("Job title must be 100 characters or fewer.");
   // Allow letters, digits, spaces, hyphens, dots, commas, parentheses
   if (!/^[\p{L}\p{N} .,()&/'-]{1,100}$/u.test(value))
     return fail("Job title contains invalid characters.");

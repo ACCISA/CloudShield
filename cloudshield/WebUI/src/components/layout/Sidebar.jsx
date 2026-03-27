@@ -40,11 +40,10 @@ import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
+import SidebarCollapseIcon from "../../assets/NavBar/SidebarCollapseIcon.jsx";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
@@ -251,7 +250,8 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
           height: 36,
           borderRadius: "10px",
           flexShrink: 0,
-          backgroundColor: themeColors.lightOverlaySubtle || themeColors.lightOverlay,
+          backgroundColor:
+            themeColors.lightOverlaySubtle || themeColors.lightOverlay,
           border: `1px solid ${themeColors.borderLight}`,
           display: "flex",
           alignItems: "center",
@@ -259,7 +259,12 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
           position: "relative",
         }}
       >
-        <ShieldIcon width={18} height={18} selected className="company-shield-mark" />
+        <ShieldIcon
+          width={18}
+          height={18}
+          selected
+          className="company-shield-mark"
+        />
         <Box
           sx={{
             position: "absolute",
@@ -398,7 +403,6 @@ function SidebarNavigation({
 
   const getSharesCount = () => {
     if (collapsed || statsLoading) return undefined;
-    if (stats.shares === 0) return "-";
     return stats.shares ?? 0;
   };
 
@@ -453,7 +457,9 @@ function SidebarNavigation({
 
       <NavItem
         collapsed={collapsed}
-        icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
+        icon={
+          <GroupsIcon width={20} height={20} selected={isActive("/groups")} />
+        }
         label="Groups"
         active={isActive("/groups")}
         count={getBadgeCount(stats.groups)}
@@ -484,6 +490,7 @@ export default function Sidebar({
   const { pathname } = useLocation();
   const { logout } = useAuth();
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const [isToggleAnimating, setIsToggleAnimating] = useState(false);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
@@ -496,11 +503,11 @@ export default function Sidebar({
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me").json();
+        const meRes = await (await apiGet("/users/me")).json();
         if (!mounted) return;
         setMe(meRes.user);
 
-        const orgRes = await apiGet("/organizations/me");
+        const orgRes = await (await apiGet("/organizations/me")).json();
         if (!mounted) return;
         setMyOrg(orgRes.organization);
       } catch {
@@ -515,7 +522,7 @@ export default function Sidebar({
       mounted = false;
     };
   }, []);
-  
+
   const { stats, loading: statsLoading } = useOrgMetrics();
 
   const showNav = mode === "full";
@@ -524,6 +531,12 @@ export default function Sidebar({
   const handleSignOut = () => {
     logout();
     navigate("/login", { replace: true });
+  };
+
+  const handleTogglePress = () => {
+    setIsToggleAnimating(true);
+    onToggleCollapse?.();
+    window.setTimeout(() => setIsToggleAnimating(false), 180);
   };
 
   return (
@@ -554,7 +567,7 @@ export default function Sidebar({
       >
         <IconButton
           size="small"
-          onClick={onToggleCollapse}
+          onClick={handleTogglePress}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
             backgroundColor: themeColors.bgSecondary,
@@ -563,14 +576,44 @@ export default function Sidebar({
             color: themeColors.textPrimary,
             width: 28,
             height: 28,
+            transition: "transform 0.14s ease, background-color 0.2s ease",
+            "&:active": {
+              transform: "scale(0.92)",
+            },
             "&:hover": { backgroundColor: themeColors.lightOverlay },
           }}
         >
-          {collapsed ? (
-            <OpenInFullIcon sx={{ fontSize: "1rem" }} />
-          ) : (
-            <CloseFullscreenIcon sx={{ fontSize: "1rem" }} />
-          )}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: collapsed ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s ease",
+              animation: isToggleAnimating
+                ? "sidebarTogglePulse 0.18s ease"
+                : "none",
+              "@keyframes sidebarTogglePulse": {
+                "0%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+                "50%": {
+                  transform: collapsed
+                    ? "rotate(180deg) scale(1.12)"
+                    : "scale(1.12)",
+                },
+                "100%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+              },
+            }}
+          >
+            <SidebarCollapseIcon
+              width={16}
+              height={16}
+              color={themeColors.textPrimary}
+            />
+          </Box>
         </IconButton>
       </Box>
 
@@ -623,7 +666,9 @@ export default function Sidebar({
             collapsed={collapsed}
             label="Tickets"
             ariaLabel="Tickets"
-            icon={<ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            icon={
+              <ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />
+            }
             onActivate={() => navigate("/tickets")}
           />
           <SidebarBottomAction

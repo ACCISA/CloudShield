@@ -139,11 +139,19 @@ describe("AuthPage", () => {
   };
 
   it("renders login form with all elements", () => {
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    expect(screen.getByPlaceholderText("johndoe@example.com")).toBeInTheDocument();
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
+    expect(
+      screen.getByPlaceholderText("johndoe@example.com"),
+    ).toBeInTheDocument();
     expect(getPasswordInput(container)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
-    expect(screen.getByText("Don't have an account? Sign up")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /sign in/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Don't have an account? Sign up"),
+    ).toBeInTheDocument();
   });
 
   it("navigates to signup when clicking the signup link", () => {
@@ -160,7 +168,9 @@ describe("AuthPage", () => {
   });
 
   it("updates password input when typing", () => {
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
     const passwordInput = getPasswordInput(container);
     fireEvent.change(passwordInput, { target: { value: "mypassword123" } });
     expect(passwordInput).toHaveValue("mypassword123");
@@ -169,7 +179,7 @@ describe("AuthPage", () => {
   it("shows error when submitting empty form", async () => {
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
 
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     // Validation is enforced by disabling the button (no error message rendered)
     expect(loginButton).toBeDisabled();
@@ -185,7 +195,7 @@ describe("AuthPage", () => {
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
 
@@ -200,10 +210,12 @@ describe("AuthPage", () => {
   });
 
   it("shows error when submitting with only password", async () => {
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(passwordInput, { target: { value: "password123" } });
 
@@ -228,14 +240,16 @@ describe("AuthPage", () => {
         ok: true,
         text: JSON.stringify(mockResponse),
         contentType: "application/json",
-      })
+      }),
     );
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
@@ -260,14 +274,16 @@ describe("AuthPage", () => {
         status: 401,
         text: JSON.stringify({ error: "Invalid credentials" }),
         contentType: "application/json",
-      })
+      }),
     );
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "wrong@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "wrongpassword" } });
@@ -287,14 +303,16 @@ describe("AuthPage", () => {
         status: 500,
         text: JSON.stringify({ error: "Internal server error" }),
         contentType: "application/json",
-      })
+      }),
     );
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
@@ -302,12 +320,60 @@ describe("AuthPage", () => {
 
     await waitFor(() => {
       // Generic 5xx message from getAuthErrorMessage
-      expect(
-        screen.getByText(/trouble signing you in/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/trouble signing you in/i)).toBeInTheDocument();
     });
 
     expect(mockOnLoginSuccess).not.toHaveBeenCalled();
+  });
+
+  it("shows 403-specific message", async () => {
+    apiPost.mockResolvedValueOnce(
+      buildResponse({
+        ok: false,
+        status: 403,
+        text: JSON.stringify({}),
+        contentType: "application/json",
+      }),
+    );
+
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
+    const emailInput = screen.getByPlaceholderText("johndoe@example.com");
+    const passwordInput = getPasswordInput(container);
+
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.change(passwordInput, { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/don’t have permission/i)).toBeInTheDocument();
+    });
+  });
+
+  it("parses non-JSON error text responses", async () => {
+    apiPost.mockResolvedValueOnce(
+      buildResponse({
+        ok: false,
+        status: 401,
+        text: "Plain text auth error",
+        contentType: "text/plain",
+      }),
+    );
+
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
+    const emailInput = screen.getByPlaceholderText("johndoe@example.com");
+    const passwordInput = getPasswordInput(container);
+
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.change(passwordInput, { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Plain text auth error")).toBeInTheDocument();
+    });
   });
 
   it("shows default error message when response has no error field", async () => {
@@ -317,14 +383,16 @@ describe("AuthPage", () => {
         status: 400,
         text: JSON.stringify({}),
         contentType: "application/json",
-      })
+      }),
     );
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
@@ -333,7 +401,7 @@ describe("AuthPage", () => {
     await waitFor(() => {
       // Default 400 message from getAuthErrorMessage
       expect(
-        screen.getByText(/please check your email and password/i)
+        screen.getByText(/please check your email and password/i),
       ).toBeInTheDocument();
     });
 
@@ -343,11 +411,13 @@ describe("AuthPage", () => {
   it("handles network errors gracefully", async () => {
     apiPost.mockRejectedValueOnce(new Error("Network error"));
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
@@ -368,7 +438,9 @@ describe("AuthPage", () => {
 
     apiPost.mockImplementationOnce(() => pending);
 
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
@@ -376,10 +448,12 @@ describe("AuthPage", () => {
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
 
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     // Button should switch to loading label + be disabled
-    const loadingBtn = await screen.findByRole("button", { name: /logging in/i });
+    const loadingBtn = await screen.findByRole("button", {
+      name: /signing in/i,
+    });
     expect(loadingBtn).toBeDisabled();
 
     // resolve request
@@ -388,7 +462,7 @@ describe("AuthPage", () => {
         ok: true,
         text: JSON.stringify({}),
         contentType: "application/json",
-      })
+      }),
     );
 
     await waitFor(() => {
@@ -407,11 +481,13 @@ describe("AuthPage", () => {
         ok: true,
         text: JSON.stringify(mockResponse),
         contentType: "application/json",
-      })
+      }),
     );
 
     const user = userEvent.setup();
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
@@ -436,11 +512,13 @@ describe("AuthPage", () => {
         ok: true,
         text: JSON.stringify(mockResponse),
         contentType: "application/json",
-      })
+      }),
     );
 
     const user = userEvent.setup();
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
@@ -465,14 +543,14 @@ describe("AuthPage", () => {
         ok: true,
         text: JSON.stringify(mockResponse),
         contentType: "application/json",
-      })
+      }),
     );
 
     const { container } = render(<AuthPage />);
 
     const emailInput = screen.getByPlaceholderText("johndoe@example.com");
     const passwordInput = getPasswordInput(container);
-    const loginButton = screen.getByRole("button", { name: /login/i });
+    const loginButton = screen.getByRole("button", { name: /sign in/i });
 
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
@@ -486,18 +564,11 @@ describe("AuthPage", () => {
     expect(mockOnLoginSuccess).not.toHaveBeenCalled();
   });
 
-  it("applies correct page layout styles", () => {
-    render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-
-    const pageShell = screen.getByTestId("page-shell");
-    const mainBox = pageShell.firstChild;
-
-    expect(mainBox).toHaveStyle({
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    });
-
+  it("renders auth page root and auth card", () => {
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
+    expect(container.querySelector(".auth-page")).toBeInTheDocument();
     expect(screen.getByTestId("auth-card")).toBeInTheDocument();
   });
 
@@ -507,18 +578,20 @@ describe("AuthPage", () => {
         ok: true,
         text: "",
         contentType: "application/json",
-      })
+      }),
     );
 
     const user = userEvent.setup();
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     await user.type(
       screen.getByPlaceholderText("johndoe@example.com"),
-      "test@example.com"
+      "test@example.com",
     );
     await user.type(getPasswordInput(container), "password123");
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(mockOnLoginSuccess).toHaveBeenCalledWith({});
@@ -531,18 +604,20 @@ describe("AuthPage", () => {
         ok: true,
         text: "{bad json",
         contentType: "application/json",
-      })
+      }),
     );
 
     const user = userEvent.setup();
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     await user.type(
       screen.getByPlaceholderText("johndoe@example.com"),
-      "test@example.com"
+      "test@example.com",
     );
     await user.type(getPasswordInput(container), "password123");
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(mockOnLoginSuccess).toHaveBeenCalledWith({});
@@ -553,18 +628,20 @@ describe("AuthPage", () => {
     apiPost.mockRejectedValueOnce(null);
 
     const user = userEvent.setup();
-    const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
+    const { container } = render(
+      <AuthPage onLoginSuccess={mockOnLoginSuccess} />,
+    );
 
     await user.type(
       screen.getByPlaceholderText("johndoe@example.com"),
-      "test@example.com"
+      "test@example.com",
     );
     await user.type(getPasswordInput(container), "password123");
-    fireEvent.click(screen.getByRole("button", { name: /login/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(
-        screen.getByText("Login failed. Please try again.")
+        screen.getByText("Login failed. Please try again."),
       ).toBeInTheDocument();
     });
 

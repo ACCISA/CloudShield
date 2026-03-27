@@ -134,16 +134,20 @@ jest.mock("../../components/groups/GroupsModal.jsx", () => {
         {onSubmit && (
           <button
             onClick={async () => {
-              await onSubmit({
-                name: "Test Group",
-                description: "Test Description",
-                image: null,
-                users: [],
-                workstations: [],
-                files: [],
-              });
-              onRefresh?.();
-              onClose?.();
+              try {
+                await onSubmit({
+                  name: "Test Group",
+                  description: "Test Description",
+                  image: null,
+                  users: [],
+                  workstations: [],
+                  files: [],
+                });
+                onRefresh?.();
+                onClose?.();
+              } catch {
+                // Keep the modal open on submit failures, like the real component does.
+              }
             }}
             data-testid="modal-submit"
           >
@@ -755,7 +759,9 @@ describe("GroupsPage Component", () => {
 
       fireEvent.click(screen.getByText("Grid"));
 
-      const selectAllButton = screen.getByRole("button", { name: /select all/i });
+      const selectAllButton = screen.getByRole("button", {
+        name: /select all/i,
+      });
       await userEvent.click(selectAllButton);
       expect(screen.getByText("1 selected")).toBeInTheDocument();
 
@@ -1185,10 +1191,6 @@ describe("GroupsPage Component", () => {
     });
 
     test("handleSubmitGroup PATCH - handles error", async () => {
-      const consoleSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       global.fetch = jest
         .fn()
         .mockResolvedValueOnce({
@@ -1205,10 +1207,7 @@ describe("GroupsPage Component", () => {
               ],
             }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Update failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Update failed"));
 
       await renderPage();
 
@@ -1228,27 +1227,22 @@ describe("GroupsPage Component", () => {
       await userEvent.click(submitBtn);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalled();
+        const patchCall = global.fetch.mock.calls.find(
+          (call) => call[1]?.method === "PATCH",
+        );
+        expect(patchCall).toBeTruthy();
+        expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
       });
-
-      consoleSpy.mockRestore();
     });
 
     test("handleSubmitGroup POST - handles error", async () => {
-      const consoleSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       global.fetch = jest
         .fn()
         .mockResolvedValueOnce({
           ok: true,
           json: () => Promise.resolve({ access_groups: [] }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Create failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Create failed"));
 
       await renderPage();
 
@@ -1263,10 +1257,13 @@ describe("GroupsPage Component", () => {
       await userEvent.click(submitBtn);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalled();
+        const postCall = global.fetch.mock.calls.find(
+          (call) =>
+            call[1]?.method === "POST" && call[0]?.includes("/access-groups"),
+        );
+        expect(postCall).toBeTruthy();
+        expect(screen.getByTestId("groups-modal")).toBeInTheDocument();
       });
-
-      consoleSpy.mockRestore();
     });
 
     // test removed - window.confirm not available in jsdom
@@ -1664,7 +1661,7 @@ describe("GroupsPage Component", () => {
     expect(screen.queryByTestId("page-subtitle")).not.toBeInTheDocument();
     expect(screen.getByTestId("table-surface")).toBeInTheDocument();
   });
-  
+
   test("shows the loading skeleton without unmounting the list", async () => {
     global.fetch = jest.fn(() => new Promise(() => {}));
 
@@ -1757,7 +1754,7 @@ describe("GroupsPage Component", () => {
     it("initializes showWorkstations to true", async () => {
       await renderPage();
       expect(screen.getByTestId("show-workstations")).toHaveTextContent(
-        "Workstations Shown"
+        "Workstations Shown",
       );
     });
 
@@ -1857,7 +1854,9 @@ describe("GroupsPage Component", () => {
                 id: "1",
                 group_name: "test",
                 members: [],
-                members_info: [{ _id: "u1", full_name: "", email: "test@test.com" }],
+                members_info: [
+                  { _id: "u1", full_name: "", email: "test@test.com" },
+                ],
               },
             ],
           }),
@@ -1879,7 +1878,9 @@ describe("GroupsPage Component", () => {
                 id: "1",
                 group_name: "test",
                 members: [],
-                members_info: [{ _id: "u1", full_name: "John", email: "test@test.com" }],
+                members_info: [
+                  { _id: "u1", full_name: "John", email: "test@test.com" },
+                ],
               },
             ],
           }),
@@ -1929,7 +1930,9 @@ describe("GroupsPage Component", () => {
                 id: "1",
                 group_name: "test",
                 members: [],
-                members_info: [{ _id: "u1", full_name: "   ", email: "test@test.com" }],
+                members_info: [
+                  { _id: "u1", full_name: "   ", email: "test@test.com" },
+                ],
               },
             ],
           }),
@@ -2144,8 +2147,20 @@ describe("GroupsPage Component", () => {
         json: () =>
           Promise.resolve({
             access_groups: [
-              { _id: "g1", group_name: "A", members: [], members_info: [], memberCount: 5 },
-              { _id: "g2", group_name: "B", members: [], members_info: [], memberCount: 10 },
+              {
+                _id: "g1",
+                group_name: "A",
+                members: [],
+                members_info: [],
+                memberCount: 5,
+              },
+              {
+                _id: "g2",
+                group_name: "B",
+                members: [],
+                members_info: [],
+                memberCount: 10,
+              },
             ],
           }),
       });
@@ -2610,5 +2625,42 @@ describe("GroupsPage Component", () => {
       fireEvent.mouseLeave(helpBtn);
     });
   });
+  });
+  describe("List Selection Summary", () => {
+    it("shows selected count when a group row is selected", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+              { _id: "g2", group_name: "B", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      await renderPage();
+      expect(screen.getByText("0 selected")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId("checkbox-g1"));
+      expect(screen.getByText("1 selected")).toBeInTheDocument();
+    });
+
+    it("does not render legacy clear selection button in toolbar", async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            access_groups: [
+              { _id: "g1", group_name: "A", members: [], members_info: [] },
+            ],
+          }),
+      });
+
+      await renderPage();
+      expect(
+        screen.queryByRole("button", { name: /clear selection/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -11,8 +11,12 @@
 }
 
 @keyframes modalFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .workstation-modal-dialog {
@@ -32,8 +36,14 @@
 }
 
 @keyframes modalSlide {
-  from { transform: translateY(30px) scale(0.96); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+  from {
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 /* Header */
@@ -54,7 +64,10 @@
 
 .workstation-modal-breadcrumb-item {
   font-size: 1rem;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   line-height: 1.4;
 }
 
@@ -128,7 +141,10 @@
   font-weight: 400;
   color: var(--text-secondary);
   transition: color 0.3s ease;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   text-align: center;
   white-space: nowrap;
 }
@@ -178,7 +194,10 @@
   font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Strength Selector */
@@ -187,12 +206,6 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   align-items: stretch;
-}
-
-@media (max-width: 768px) {
-  .workstation-modal-strength-selector {
-    grid-template-columns: 1fr;
-  }
 }
 
 .workstation-modal-strength-card {
@@ -281,7 +294,10 @@
   border-radius: 8px;
   color: var(--text-primary);
   font-size: 0.95rem;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
@@ -489,7 +505,10 @@
   font-weight: 500;
   margin-bottom: 16px;
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   flex-shrink: 0;
 }
 
@@ -715,7 +734,10 @@
   font-weight: 500;
   cursor: pointer;
   text-transform: none;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
@@ -802,23 +824,4 @@
 .workstation-modal-software-grid::-webkit-scrollbar-thumb:hover,
 .workstation-modal-wallpaper-grid::-webkit-scrollbar-thumb:hover {
   background-color: var(--border);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .workstation-modal-dialog {
-    width: 100%;
-    max-width: 100vw;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-  .workstation-modal-stepper { padding: 20px 16px; }
-  .workstation-modal-step-label { font-size: 11px; }
-  .workstation-modal-content { padding: 24px 20px; }
-  .workstation-modal-selected-cards,
-  .workstation-modal-software-grid,
-  .workstation-modal-wallpaper-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-  .workstation-modal-actions { flex-direction: column; gap: 12px; }
-  .workstation-modal-actions-right { width: 100%; }
-  .workstation-modal-btn { flex: 1; }
 }

@@ -1,7 +1,14 @@
 import { useState, useRef } from "react";
+import { compressImage } from "../../lib/compressImage.js";
 import {
-  Box, Typography, TextField, Button, Switch, Divider,
-  Avatar, IconButton,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Switch,
+  Divider,
+  Avatar,
+  IconButton,
 } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
@@ -21,9 +28,15 @@ const inputSx = {
 
 const SectionLabel = ({ title, subtitle }) => (
   <Box sx={{ width: 240, flexShrink: 0 }}>
-    <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
+    <Typography
+      sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem" }}
+    >
+      {title}
+    </Typography>
     {subtitle && (
-      <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}>
+      <Typography
+        sx={{ color: "#9E9E9E", fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}
+      >
         {subtitle}
       </Typography>
     )}
@@ -31,11 +44,31 @@ const SectionLabel = ({ title, subtitle }) => (
 );
 
 const NOTIFICATION_TYPES = [
-  { key: "welcome_email", label: "Welcome email", desc: "Sent when a new org is provisioned" },
-  { key: "employee_invite", label: "Employee invite", desc: "Sent when an employee is added" },
-  { key: "workstation_ready", label: "Workstation ready", desc: "Sent when a workstation finishes provisioning" },
-  { key: "security_alert", label: "Security alert", desc: "Sent on suspicious login or access event" },
-  { key: "password_reset", label: "Password reset", desc: "Sent when a password reset is requested" },
+  {
+    key: "welcome_email",
+    label: "Welcome email",
+    desc: "Sent when a new org is provisioned",
+  },
+  {
+    key: "employee_invite",
+    label: "Employee invite",
+    desc: "Sent when an employee is added",
+  },
+  {
+    key: "workstation_ready",
+    label: "Workstation ready",
+    desc: "Sent when a workstation finishes provisioning",
+  },
+  {
+    key: "security_alert",
+    label: "Security alert",
+    desc: "Sent on suspicious login or access event",
+  },
+  {
+    key: "password_reset",
+    label: "Password reset",
+    desc: "Sent when a password reset is requested",
+  },
 ];
 
 // Live email preview component
@@ -53,7 +86,9 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
   >
     {/* Preview label */}
     <Box sx={{ backgroundColor: "#1a1a1a", padding: "8px 14px" }}>
-      <Typography sx={{ color: "#9E9E9E", fontSize: "0.72rem", fontWeight: 500 }}>
+      <Typography
+        sx={{ color: "#9E9E9E", fontSize: "0.72rem", fontWeight: 500 }}
+      >
         LIVE PREVIEW
       </Typography>
     </Box>
@@ -76,7 +111,12 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
           <Box
             component="img"
             src={logoImage}
-            sx={{ height: 32, width: 32, borderRadius: "6px", objectFit: "cover" }}
+            sx={{
+              height: 32,
+              width: 32,
+              borderRadius: "6px",
+              objectFit: "cover",
+            }}
           />
         ) : (
           <Box
@@ -90,10 +130,14 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
               justifyContent: "center",
             }}
           >
-            <MailOutlineOutlinedIcon sx={{ color: "text.primary", fontSize: "1rem" }} />
+            <MailOutlineOutlinedIcon
+              sx={{ color: "text.primary", fontSize: "1rem" }}
+            />
           </Box>
         )}
-        <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.95rem" }}>
+        <Typography
+          sx={{ color: "text.primary", fontWeight: 700, fontSize: "0.95rem" }}
+        >
           {senderName || "CloudShield"}
         </Typography>
       </Box>
@@ -107,11 +151,16 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
           mb: 1,
         }}
       >
-        <Typography sx={{ color: "#222", fontWeight: 700, fontSize: "1rem", mb: 1 }}>
+        <Typography
+          sx={{ color: "#222", fontWeight: 700, fontSize: "1rem", mb: 1 }}
+        >
           Welcome to {senderName || "CloudShield"} 👋
         </Typography>
-        <Typography sx={{ color: "#555", fontSize: "0.82rem", lineHeight: 1.6, mb: 2 }}>
-          Your account has been set up and is ready to use. Click the button below to get started.
+        <Typography
+          sx={{ color: "#555", fontSize: "0.82rem", lineHeight: 1.6, mb: 2 }}
+        >
+          Your account has been set up and is ready to use. Click the button
+          below to get started.
         </Typography>
         <Box
           sx={{
@@ -128,8 +177,11 @@ const EmailPreview = ({ senderName, brandColor, logoImage, footerText }) => (
           Get Started
         </Box>
         <Divider sx={{ borderColor: "#eee", mb: 1.5 }} />
-        <Typography sx={{ color: "#aaa", fontSize: "0.72rem", lineHeight: 1.5 }}>
-          {footerText || "You're receiving this because you have an account with us. If you have any questions, contact support."}
+        <Typography
+          sx={{ color: "#aaa", fontSize: "0.72rem", lineHeight: 1.5 }}
+        >
+          {footerText ||
+            "You're receiving this because you have an account with us. If you have any questions, contact support."}
         </Typography>
       </Box>
     </Box>
@@ -140,22 +192,32 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
   const branding = orgData?.email_branding || {};
 
   const [senderName, setSenderName] = useState(branding.sender_name || "");
-  const [brandColor, setBrandColor] = useState(branding.brand_color || "#1a1a2e");
+  const [brandColor, setBrandColor] = useState(
+    branding.brand_color || "#1a1a2e",
+  );
   const [logoImage, setLogoImage] = useState(branding.logo_image || null);
   const [footerText, setFooterText] = useState(branding.footer_text || "");
   const [notifToggles, setNotifToggles] = useState(
     branding.notification_toggles ||
-      Object.fromEntries(NOTIFICATION_TYPES.map((n) => [n.key, true]))
+      Object.fromEntries(NOTIFICATION_TYPES.map((n) => [n.key, true])),
   );
   const [saving, setSaving] = useState(false);
   const logoRef = useRef();
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setLogoImage(ev.target.result);
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file, {
+        maxWidth: 512,
+        maxHeight: 256,
+      });
+      setLogoImage(dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => setLogoImage(ev.target.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   const toggleNotif = (key) =>
@@ -177,11 +239,19 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
 
   return (
     <Box>
-      <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
+      <Typography
+        sx={{
+          color: "text.primary",
+          fontWeight: 700,
+          fontSize: "1.1rem",
+          mb: 0.5,
+        }}
+      >
         Email Customization
       </Typography>
       <Typography sx={{ color: "#9E9E9E", fontSize: "0.85rem", mb: 3 }}>
-        Customize the branding and content of system emails sent to your employees
+        Customize the branding and content of system emails sent to your
+        employees
       </Typography>
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
@@ -190,9 +260,10 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
       <Box sx={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
         {/* Left: form */}
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
-
           {/* Sender Name */}
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}
+          >
             <SectionLabel
               title="Sender name"
               subtitle="Name that appears as email sender"
@@ -209,7 +280,9 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
           <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
 
           {/* Brand Color */}
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}
+          >
             <SectionLabel
               title="Brand color"
               subtitle="Used in email headers and buttons"
@@ -255,7 +328,9 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
           <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
 
           {/* Logo */}
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}
+          >
             <SectionLabel
               title="Email logo"
               subtitle="Displayed in email header (recommended 64×64)"
@@ -265,7 +340,12 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                 <Avatar
                   src={logoImage || undefined}
                   variant="rounded"
-                  sx={{ width: 56, height: 56, backgroundColor: "#2a2a2a", borderRadius: "8px" }}
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    backgroundColor: "#2a2a2a",
+                    borderRadius: "8px",
+                  }}
                 >
                   <MailOutlineOutlinedIcon sx={{ color: "#555" }} />
                 </Avatar>
@@ -282,7 +362,9 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                   }}
                   size="small"
                 >
-                  <EditOutlinedIcon sx={{ fontSize: "0.75rem", color: "text.primary" }} />
+                  <EditOutlinedIcon
+                    sx={{ fontSize: "0.75rem", color: "text.primary" }}
+                  />
                 </IconButton>
                 <input
                   ref={logoRef}
@@ -312,7 +394,9 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
           <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 3 }} />
 
           {/* Footer Text */}
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "flex-start", gap: 3, mb: 3 }}
+          >
             <SectionLabel
               title="Email footer"
               subtitle="Appears at the bottom of every email"
@@ -338,7 +422,14 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
 
           {/* Notification Type Toggles */}
           <Box sx={{ mb: 3 }}>
-            <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem", mb: 0.5 }}>
+            <Typography
+              sx={{
+                color: "text.primary",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                mb: 0.5,
+              }}
+            >
               Email notifications
             </Typography>
             <Typography sx={{ color: "#9E9E9E", fontSize: "0.8rem", mb: 2 }}>
@@ -361,14 +452,24 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                       justifyContent: "space-between",
                       padding: "14px 20px",
                       backgroundColor:
-                        idx % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                        idx % 2 === 0
+                          ? "rgba(255,255,255,0.02)"
+                          : "transparent",
                     }}
                   >
                     <Box>
-                      <Typography sx={{ color: "text.primary", fontSize: "0.88rem", fontWeight: 500 }}>
+                      <Typography
+                        sx={{
+                          color: "text.primary",
+                          fontSize: "0.88rem",
+                          fontWeight: 500,
+                        }}
+                      >
                         {notif.label}
                       </Typography>
-                      <Typography sx={{ color: "#9E9E9E", fontSize: "0.78rem" }}>
+                      <Typography
+                        sx={{ color: "#9E9E9E", fontSize: "0.78rem" }}
+                      >
                         {notif.desc}
                       </Typography>
                     </Box>
@@ -376,10 +477,13 @@ export default function EmailCustomizationTab({ orgData, onSave }) {
                       checked={notifToggles[notif.key] ?? true}
                       onChange={() => toggleNotif(notif.key)}
                       sx={{
-                        "& .MuiSwitch-switchBase.Mui-checked": { color: "#fff" },
-                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                          backgroundColor: "#555",
+                        "& .MuiSwitch-switchBase.Mui-checked": {
+                          color: "#fff",
                         },
+                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                          {
+                            backgroundColor: "#555",
+                          },
                         "& .MuiSwitch-track": { backgroundColor: "#333" },
                       }}
                     />

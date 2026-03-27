@@ -3,8 +3,8 @@ import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
+import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
-import { useThemeColors } from "../../hooks/useThemeColors.js";
 import "./EmployeesModal.css";
 
 import {
@@ -46,10 +46,11 @@ export default function EmployeesModal({
   creationMessage = null,
 }) {
   const { accessToken, currentUser } = useAuth();
-  const themeColors = useThemeColors();
 
   const isEditMode = Boolean(employeeData);
-  const isCreating = creationStatus === "running" || creationStatus === "starting";
+  const normalizedCreationStatus =
+    typeof creationStatus === "string" ? creationStatus.toLowerCase() : "";
+  const isCreating = ["running", "starting"].includes(normalizedCreationStatus);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -144,6 +145,7 @@ export default function EmployeesModal({
     }
 
     setCurrentStep(0);
+    setIsSubmitting(false);
     setSearchTerms({ workstations: "", groups: "", files: "" });
 
     fetchWorkstationsAll();
@@ -153,7 +155,8 @@ export default function EmployeesModal({
 
   // Pre-select groups that contain the user being edited
   useEffect(() => {
-    if (!open || !isEditMode || !employeeData?.id || allGroups.length === 0) return;
+    if (!open || !isEditMode || !employeeData?.id || allGroups.length === 0)
+      return;
 
     const userId = employeeData.id;
     const userGroups = allGroups.filter((g) => {
@@ -195,10 +198,22 @@ export default function EmployeesModal({
   );
 
   // Handlers
-  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
+  const handleNavigate = (direction) => {
+    const newStep = currentStep + direction;
+    // Validate step 1 before proceeding
+    if (currentStep === 0 && direction > 0) {
+      const errs = getBasicInfoErrors();
+      setFieldErrors(errs);
+      if (Object.keys(errs).length > 0) {
+        return; // Don't navigate if there are errors
+      }
+    }
+    if (newStep >= 0 && newStep < STEPS.length) {
+      setCurrentStep(newStep);
+    }
+  };
 
-  /** Validate all fields and return true if the form is valid. */
-  const runValidation = () => {
+  const getBasicInfoErrors = () => {
     const errs = {};
     const fn = validateDisplayName(formData.firstName, "First name");
     if (!fn.valid) errs.firstName = fn.error;
@@ -208,17 +223,28 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
+    // Password is optional in create mode - only validate if provided
     if (!isEditMode && formData.password) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
     }
+    return errs;
+  };
+
+  /** Validate all fields and return true if the form is valid. */
+  const runValidation = () => {
+    const errs = getBasicInfoErrors();
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    if (!runValidation()) return;
+    if (!runValidation()) {
+      // Navigate back to step 1 to show validation errors
+      setCurrentStep(0);
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onSubmit?.({
@@ -238,6 +264,7 @@ export default function EmployeesModal({
       }
     } catch (error) {
       console.error("Failed to submit employee:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -253,6 +280,7 @@ export default function EmployeesModal({
   const handleImageUpload = createImageUploadHandler(
     setFormData,
     "profileImage",
+    { maxWidth: 256, maxHeight: 256 },
   );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
@@ -290,15 +318,6 @@ export default function EmployeesModal({
     SelectionStep,
     fieldErrors,
   });
-
-  const isNextDisabled =
-    currentStep === 0 &&
-    (!formData.firstName.trim() ||
-      !formData.lastName.trim() ||
-      !formData.email.trim() ||
-      !validateDisplayName(formData.firstName, "First name").valid ||
-      !validateDisplayName(formData.lastName, "Last name").valid ||
-      !validateEmail(formData.email).valid);
 
   return (
     <div className="employees-modal-overlay">
@@ -347,65 +366,52 @@ export default function EmployeesModal({
 
         {/* Content */}
         <main className="employees-modal-content">
-          {isCreating ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "24px", padding: "48px 24px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 500, color: themeColors.textPrimary }}>
-                Creating user...
-              </div>
-              <div style={{ width: "100%", maxWidth: "300px" }}>
-                <div style={{ height: "4px", backgroundColor: themeColors.border, borderRadius: "2px", overflow: "hidden" }}>
-                  <div style={{ 
-                    height: "100%", 
-                    backgroundColor: themeColors.success,
-                    animation: "pulse 2s ease-in-out infinite",
-                  }} />
-                </div>
-              </div>
-              {creationMessage && (
-                <div style={{ fontSize: "14px", color: themeColors.textSecondary, textAlign: "center" }}>
-                  {creationMessage}
-                </div>
-              )}
-              {typeof creationProgress === "number" && (
-                <div style={{ fontSize: "14px", color: themeColors.textSecondary }}>
-                  {creationProgress}%
-                </div>
-              )}
-            </div>
+          {isCreating || isSubmitting ? (
+            <SubmittingOverlay
+              label={isEditMode ? "Saving changes..." : "Creating user..."}
+            />
           ) : (
             renderStepContent()
           )}
         </main>
 
         {/* Footer */}
-        <footer className="employees-modal-actions" style={{ opacity: isCreating ? 0.5 : 1, pointerEvents: isCreating ? "none" : "auto" }}>
+        <footer
+          className="employees-modal-actions"
+          style={{
+            opacity: isCreating || isSubmitting ? 0.5 : 1,
+            pointerEvents: isCreating || isSubmitting ? "none" : "auto",
+          }}
+        >
           <div className="employees-modal-actions-left">
             <button
               className="employees-modal-btn employees-modal-btn-cancel"
               onClick={onClose}
-              disabled={isCreating}
+              disabled={isCreating || isSubmitting}
             >
               Cancel
             </button>
-            {isEditMode && currentStep === 0 && !isCreating && (
-              <button
-                className="employees-modal-btn employees-modal-btn-delete"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Are you sure you want to delete this user? This action cannot be undone.",
-                    )
-                  ) {
-                    handleDelete();
-                  }
-                }}
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <TrashIcon width={14} height={14} color="#DC2626" /> Delete
-              </button>
-            )}
+            {isEditMode &&
+              currentStep === 0 &&
+              !(isCreating || isSubmitting) && (
+                <button
+                  className="employees-modal-btn employees-modal-btn-delete"
+                  onClick={() => {
+                    if (
+                      globalThis.confirm(
+                        "Are you sure you want to delete this user? This action cannot be undone.",
+                      )
+                    ) {
+                      handleDelete();
+                    }
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <TrashIcon width={14} height={14} color="#DC2626" /> Delete
+                </button>
+              )}
           </div>
-          {!isCreating && (
+          {!(isCreating || isSubmitting) && (
             <div className="employees-modal-actions-right">
               {currentStep > 0 && (
                 <button
@@ -419,7 +425,6 @@ export default function EmployeesModal({
                 <button
                   className="employees-modal-btn employees-modal-btn-primary"
                   onClick={() => handleNavigate(1)}
-                  disabled={isNextDisabled}
                 >
                   Next
                 </button>
@@ -468,7 +473,9 @@ function BasicInfoStep({
             maxLength={100}
           />
           {fieldErrors.firstName && (
-            <span className="employees-modal-field-error">{fieldErrors.firstName}</span>
+            <span className="employees-modal-field-error">
+              {fieldErrors.firstName}
+            </span>
           )}
         </div>
 
@@ -485,7 +492,9 @@ function BasicInfoStep({
             maxLength={100}
           />
           {fieldErrors.lastName && (
-            <span className="employees-modal-field-error">{fieldErrors.lastName}</span>
+            <span className="employees-modal-field-error">
+              {fieldErrors.lastName}
+            </span>
           )}
         </div>
       </div>
@@ -503,7 +512,9 @@ function BasicInfoStep({
           maxLength={254}
         />
         {fieldErrors.email && (
-          <span className="employees-modal-field-error">{fieldErrors.email}</span>
+          <span className="employees-modal-field-error">
+            {fieldErrors.email}
+          </span>
         )}
       </div>
 
@@ -520,7 +531,9 @@ function BasicInfoStep({
           maxLength={100}
         />
         {fieldErrors.jobTitle && (
-          <span className="employees-modal-field-error">{fieldErrors.jobTitle}</span>
+          <span className="employees-modal-field-error">
+            {fieldErrors.jobTitle}
+          </span>
         )}
       </div>
 
@@ -550,9 +563,15 @@ function BasicInfoStep({
               />
               <div className="employees-modal-image-placeholder">
                 <span className="employees-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-secondary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-secondary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
+                </span>
               </div>
             </label>
           )}
@@ -561,7 +580,7 @@ function BasicInfoStep({
 
       {!isEditMode && (
         <div className="employees-modal-form-group">
-          <label className="employees-modal-label">Password</label>
+          <label className="employees-modal-label">Password (optional)</label>
           <input
             type="password"
             className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}
@@ -569,12 +588,14 @@ function BasicInfoStep({
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, password: e.target.value }))
             }
-            placeholder="Min 12 chars, upper+lower+digit+special"
+            placeholder="Leave blank to auto-generate (or min 12 chars, upper+lower+digit+special)"
             maxLength={128}
             data-testid="password-input"
           />
           {fieldErrors.password && (
-            <span className="employees-modal-field-error">{fieldErrors.password}</span>
+            <span className="employees-modal-field-error">
+              {fieldErrors.password}
+            </span>
           )}
         </div>
       )}
@@ -680,7 +701,11 @@ function SelectionStep({
           {items.length === 0 ? (
             <div
               className="employees-modal-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default", color: "var(--text-secondary)" }}
+              style={{
+                opacity: 0.7,
+                cursor: "default",
+                color: "var(--text-secondary)",
+              }}
             >
               No results
             </div>

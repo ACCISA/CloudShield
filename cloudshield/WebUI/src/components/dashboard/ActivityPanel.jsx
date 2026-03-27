@@ -60,7 +60,7 @@ export default function ActivityPanel({
   const themeColors = useThemeColors();
   const [search, setSearch] = useState("");
   const [activities, setActivities] = useState(
-    Array.isArray(initialData) ? initialData : []
+    Array.isArray(initialData) ? initialData : [],
   );
   const [loading, setLoading] = useState(Boolean(externalLoading));
   const [error, setError] = useState(null);
@@ -153,7 +153,7 @@ export default function ActivityPanel({
     ? sortedActivities
     : sortedActivities.slice(
         (activePage - 1) * itemsPerPage,
-        activePage * itemsPerPage
+        activePage * itemsPerPage,
       );
 
   const totalForPagination = isControlledPagination
@@ -182,7 +182,8 @@ export default function ActivityPanel({
     width: "100%",
     fontSize: "13px",
     fontWeight: sortField === field ? 600 : 500,
-    color: sortField === field ? themeColors.textPrimary : themeColors.textSecondary,
+    color:
+      sortField === field ? themeColors.textPrimary : themeColors.textSecondary,
     cursor: "pointer",
     userSelect: "none",
   });
@@ -246,7 +247,8 @@ export default function ActivityPanel({
       alignItems: "center",
       borderRadius: "12px",
       padding: "12px 16px",
-      backgroundColor: index % 2 === 0 ? themeColors.lightOverlaySubtle : "transparent",
+      backgroundColor:
+        index % 2 === 0 ? themeColors.lightOverlaySubtle : "transparent",
     }),
     userCell: {
       display: "flex",
@@ -368,7 +370,9 @@ export default function ActivityPanel({
                 style={styles.row(index)}
               >
                 <div style={styles.userCell}>
-                  <div style={styles.avatar}>{getUserInitials(activity.user)}</div>
+                  <div style={styles.avatar}>
+                    {getUserInitials(activity.user)}
+                  </div>
                   <div style={styles.userText}>{activity.user}</div>
                 </div>
                 <div style={styles.dateText}>{activity.date}</div>

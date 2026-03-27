@@ -456,6 +456,21 @@ describe("EmployeesPage Integration", () => {
     );
   });
 
+  it("blocks create when organization context is missing", async () => {
+    localStorage.clear();
+    renderPage({
+      currentUser: { id: "admin-1", role: "admin" },
+    });
+
+    await userEvent.click(screen.getByTestId("open-create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    expect(usersApi.createUser).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Missing organization context. Refresh and try again.")
+    ).toBeInTheDocument();
+  });
+
   it("handles create failure", async () => {
     usersApi.createUser.mockRejectedValue(new Error("Create Failed"));
     renderPage();
@@ -1366,6 +1381,90 @@ describe("EmployeesPage Integration", () => {
         expect(patchCalls).toHaveLength(0);
       });
 
+      it("assigns selected groups after create succeeds even when createUser only returns a job_id", async () => {
+        let created = false;
+        const createdUser = {
+          _id: "new-user-123",
+          full_name: "Group User",
+          email: "g@t.com",
+          role: "employee",
+          status: "active",
+          org_id: "org-local",
+        };
+
+        usersApi.listUsers.mockImplementation(({ search = "" } = {}) => {
+          const users = created ? [...seedUsers, createdUser] : [...seedUsers];
+          if (search) {
+            return Promise.resolve(
+              users.filter((user) =>
+                user.email.toLowerCase().includes(search.toLowerCase()),
+              ),
+            );
+          }
+          return Promise.resolve(users);
+        });
+
+        usersApi.createUser.mockImplementation(async () => {
+          created = true;
+          return { job_id: "job-123" };
+        });
+
+        global.fetch.mockImplementation((url, opts) => {
+          if (url && url.includes("/status/")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({ status: "succeeded", progress: "completed" }),
+            });
+          }
+          if (
+            typeof url === "string" &&
+            url.includes("/api/access-groups/grp-1") &&
+            opts?.method === "PATCH"
+          ) {
+            return Promise.resolve({ ok: true, json: async () => ({}) });
+          }
+          if (typeof url === "string" && url.includes("/api/access-groups")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                access_groups: [{ id: "grp-1", members: [] }],
+              }),
+            });
+          }
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+        });
+
+        renderPage({
+          currentUser: { id: "admin-1", role: "admin", org_id: "org-local" },
+        });
+
+        await waitFor(() =>
+          expect(screen.getByText("Alice")).toBeInTheDocument(),
+        );
+
+        await userEvent.click(screen.getByTestId("open-create-btn"));
+        await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+        await waitFor(() => expect(usersApi.createUser).toHaveBeenCalled());
+
+        await waitFor(() => {
+          const patchCall = global.fetch.mock.calls.find(
+            (call) =>
+              call[1]?.method === "PATCH" &&
+              typeof call[0] === "string" &&
+              call[0].includes("/api/access-groups/grp-1"),
+          );
+          expect(patchCall).toBeDefined();
+          expect(JSON.parse(patchCall[1].body)).toEqual({
+            members: ["new-user-123"],
+          });
+        });
+
+        expect(
+          await screen.findByText("User created successfully"),
+        ).toBeInTheDocument();
+      });
+
       it("skips PATCH when group in toAdd is not found in allGroups", async () => {
         // grp-1 is in the submitted groups but NOT in the fetched allGroups
         global.fetch.mockResolvedValueOnce({
@@ -1981,7 +2080,7 @@ describe("EmployeesPage Integration", () => {
       getItemSpy.mockRestore();
     });
 
-    it("uses cedric as default org when none available", async () => {
+    it("returns null orgId when none available", async () => {
       localStorage.clear();
       renderPage({ currentUser: { id: "user-1" } });
       await waitFor(() => {

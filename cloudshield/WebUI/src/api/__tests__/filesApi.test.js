@@ -27,7 +27,7 @@ import {
 describe('filesApi', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    fetch.mockClear();
+    fetch.mockReset();
     localStorageMock.getItem.mockClear();
     localStorageMock.getItem.mockReturnValue('test-jwt-token');
     Object.defineProperty(globalThis, 'localStorage', {
@@ -581,14 +581,14 @@ describe('filesApi', () => {
       );
     });
 
-    it('should throw error when fetch fails', async () => {
+    it('should return empty array when access groups are unavailable', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         json: async () => ({ error: 'Not Found' }),
       });
 
-      await expect(fetchGroups('org123')).rejects.toThrow('Not Found');
+      await expect(fetchGroups('org123')).resolves.toEqual([]);
     });
   });
 

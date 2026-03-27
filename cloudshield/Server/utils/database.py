@@ -70,7 +70,9 @@ try:
 
     access_groups = db_admin["access_groups"]
     try:
-        access_groups.create_index("name", unique=True)
+        access_groups.create_index("org_id")
+        access_groups.create_index([("org_id", 1), ("created_at", -1)])
+        access_groups.create_index([("org_id", 1), ("name", 1)], unique=True)
     except Exception as e:
         print(f"[database.py] Note: access_groups index creation skipped: {e}")
 

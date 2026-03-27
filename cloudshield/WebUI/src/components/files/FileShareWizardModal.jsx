@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import PropTypes from "prop-types";
 import TrashIcon from "../../assets/TrashIcon.jsx";
 import UserSelectionPanel from "./UserSelectionPanel.jsx";
@@ -11,7 +12,10 @@ import {
   createDeleteHandler,
   createNavigationHandler,
 } from "../../utils/modalHelpers.jsx";
-import { validateShareName, validateShareSize } from "../../utils/validation.js";
+import {
+  validateShareName,
+  validateShareSize,
+} from "../../utils/validation.js";
 import "./FileShareWizardModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups"];
@@ -251,7 +255,10 @@ export default function FileShareWizardModal({
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
   const isNextDisabled =
-    currentStep === 0 && !isEditMode && (!formData.shareName.trim() || !validateShareName(formData.shareName).valid);
+    currentStep === 0 &&
+    !isEditMode &&
+    (!formData.shareName.trim() ||
+      !validateShareName(formData.shareName).valid);
 
   if (!isOpen) return null;
 
@@ -342,7 +349,15 @@ export default function FileShareWizardModal({
         </div>
 
         {/* Content */}
-        <main className="file-wizard-content">{renderStepContent()}</main>
+        <main className="file-wizard-content">
+          {isSubmitting ? (
+            <SubmittingOverlay
+              label={isEditMode ? "Saving changes..." : "Creating share..."}
+            />
+          ) : (
+            renderStepContent()
+          )}
+        </main>
 
         {/* Footer */}
         <footer className="file-wizard-actions">
@@ -434,7 +449,12 @@ FileShareWizardModal.defaultProps = {
 };
 
 // Sub-component: Basic Info Step
-function BasicInfoStep({ formData, setFormData, isEditMode, fieldErrors = {} }) {
+function BasicInfoStep({
+  formData,
+  setFormData,
+  isEditMode,
+  fieldErrors = {},
+}) {
   return (
     <div className="file-wizard-step">
       <div className="file-wizard-form-group">
@@ -475,7 +495,9 @@ function BasicInfoStep({ formData, setFormData, isEditMode, fieldErrors = {} }) 
           }
         />
         {fieldErrors.shareName && (
-          <span className="file-wizard-field-error">{fieldErrors.shareName}</span>
+          <span className="file-wizard-field-error">
+            {fieldErrors.shareName}
+          </span>
         )}
       </div>
 

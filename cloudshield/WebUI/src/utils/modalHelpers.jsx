@@ -2,6 +2,7 @@
  * Shared utilities for modals (Groups, Employees, Workstations, etc.)
  */
 
+import { compressImage } from "../lib/compressImage.js";
 import { listUsers } from "../services/usersApi.js";
 import { apiGet } from "../api/client";
 
@@ -110,7 +111,12 @@ export const fetchGroups = async (
   setAllGroups = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetGroups(setAllGroups, openToast, "Missing org_id for groups fetch");
+  if (!orgId)
+    return _resetGroups(
+      setAllGroups,
+      openToast,
+      "Missing org_id for groups fetch",
+    );
   if (!accessToken) return _resetGroups(setAllGroups);
 
   try {
@@ -134,7 +140,9 @@ export const fetchGroups = async (
     }
 
     const data = await res.json();
-    const groups = Array.isArray(data) ? data : data.access_groups || data.groups || [];
+    const groups = Array.isArray(data)
+      ? data
+      : data.access_groups || data.groups || [];
 
     const normalized = groups.map((g) => ({
       id: String(g.id || g._id || ""),
@@ -242,7 +250,12 @@ export const fetchWorkstations = async (
   setAllWorkstations = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetWorkstations(setAllWorkstations, openToast, "Missing org_id for workstations fetch");
+  if (!orgId)
+    return _resetWorkstations(
+      setAllWorkstations,
+      openToast,
+      "Missing org_id for workstations fetch",
+    );
   if (!accessToken) return _resetWorkstations(setAllWorkstations);
 
   try {
@@ -320,21 +333,22 @@ export const fetchSoftware = async (
   setAllSoftware = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetSoftware(setAllSoftware, openToast, "Missing org_id for software fetch");
+  if (!orgId)
+    return _resetSoftware(
+      setAllSoftware,
+      openToast,
+      "Missing org_id for software fetch",
+    );
   if (!accessToken) return _resetSoftware(setAllSoftware);
 
   try {
-
-    const res = await apiGet(
-      `/software?org_id=${encodeURIComponent(orgId)}`,
-      {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+    const res = await apiGet(`/software?org_id=${encodeURIComponent(orgId)}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    );
+    });
 
     if (!res.ok) return _resetSoftware(setAllSoftware);
 
@@ -371,16 +385,23 @@ export const fetchSoftware = async (
 export const createImageUploadHandler = (
   setFormData,
   fieldName = "profileImage",
+  compressOptions = {},
 ) => {
-  return (e) => {
+  return async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file, compressOptions);
+      setFormData((prev) => ({ ...prev, [fieldName]: dataUrl }));
+    } catch {
+      // Fallback: read as-is if compression fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 };
 

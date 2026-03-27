@@ -252,10 +252,3 @@
 .group-selection-selected-cards::-webkit-scrollbar-thumb:hover {
   opacity: 0.5;
 }
-
-/* Responsive */
-@media (max-width: 768px) {
-  .group-selection-selected-cards {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
-}
