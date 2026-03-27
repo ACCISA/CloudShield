@@ -5,6 +5,7 @@
 import { compressImage } from "../lib/compressImage.js";
 import { listUsers } from "../services/usersApi.js";
 import { apiGet } from "../api/client";
+import { MOCK_SOFTWARE } from "../data/mockSoftware.js";
 
 /**
  * Resolves the organization ID from currentUser or localStorage
@@ -327,6 +328,24 @@ const _resetSoftware = (setAllSoftware, openToast, toastMsg) => {
   return [];
 };
 
+const _normalizeSoftware = (software) =>
+  software.map((s) => ({
+    id: String(s.id || s._id || ""),
+    _id: String(s._id || s.id || ""),
+    name: s.name || "Untitled Software",
+    version: s.version || "",
+    vendor: s.vendor || "",
+    picture: s.picture || s.image || "",
+    category: s.category || s.vendor || "",
+    icon: s.icon,
+  }));
+
+const _useMockSoftware = (setAllSoftware) => {
+  const normalized = _normalizeSoftware(MOCK_SOFTWARE);
+  setAllSoftware?.(normalized);
+  return normalized;
+};
+
 export const fetchSoftware = async (
   orgId,
   accessToken,
@@ -350,25 +369,20 @@ export const fetchSoftware = async (
       },
     });
 
-    if (!res.ok) return _resetSoftware(setAllSoftware);
+    if (!res.ok) return _useMockSoftware(setAllSoftware);
 
     const data = await res.json();
     const software = Array.isArray(data) ? data : data.software || [];
 
-    const normalized = software.map((s) => ({
-      id: String(s.id || s._id || ""),
-      _id: String(s._id || s.id || ""),
-      name: s.name || "Untitled Software",
-      version: s.version || "",
-      vendor: s.vendor || "",
-    }));
+    if (!software.length) return _useMockSoftware(setAllSoftware);
+
+    const normalized = _normalizeSoftware(software);
 
     setAllSoftware?.(normalized);
     return normalized;
   } catch (e) {
     console.error("Error fetching software:", e);
-    openToast?.(e?.message || "Failed to load software");
-    return _resetSoftware(setAllSoftware);
+    return _useMockSoftware(setAllSoftware);
   }
 };
 
