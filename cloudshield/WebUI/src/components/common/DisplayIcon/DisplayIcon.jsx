@@ -314,6 +314,34 @@ UserCard.defaultProps = {
   getBackgroundColor: () => "#7B68EE",
 };
 
+const getWorkstationStatusMeta = (data) => {
+  const normalizedStatus = String(data.status || "").toLowerCase();
+  const isProvisioning = normalizedStatus === "provisioning";
+  const isConnectedStatus = ["online", "connected", "active"].includes(normalizedStatus);
+  const isFailed = normalizedStatus === "failed";
+  const isOnline = isConnectedStatus
+    ? true
+    : data.online !== undefined
+      ? data.online
+      : data.isOnline !== undefined
+        ? data.isOnline
+        : false;
+
+  if (isProvisioning) {
+    return { badgeClass: "provisioning", badgeLabel: "Provisioning" };
+  }
+
+  if (isOnline) {
+    return { badgeClass: "active", badgeLabel: "Online" };
+  }
+
+  if (isFailed) {
+    return { badgeClass: "inactive", badgeLabel: "Failed" };
+  }
+
+  return { badgeClass: "inactive", badgeLabel: "Offline" };
+};
+
 // Workstation hover card component
 function WorkstationCard({
   data,
@@ -322,12 +350,7 @@ function WorkstationCard({
   initials,
   getBackgroundColor,
 }) {
-  const isOnline =
-    data.online !== undefined
-      ? data.online
-      : data.isOnline !== undefined
-        ? data.isOnline
-        : data.status === "online";
+  const { badgeClass, badgeLabel } = getWorkstationStatusMeta(data);
 
   return (
     <div className="hover-card">
@@ -346,8 +369,8 @@ function WorkstationCard({
         </div>
         <div className="hover-card-title">
           <h4>{name}</h4>
-          <span className={`status-badge ${isOnline ? "active" : "inactive"}`}>
-            {isOnline ? "Online" : "Offline"}
+          <span className={`status-badge ${badgeClass}`}>
+            {badgeLabel}
           </span>
         </div>
       </div>

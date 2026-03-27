@@ -164,3 +164,54 @@ def send_employee_invite_email(user_id: str) -> dict:
     else:
         logger.info("Employee invite email status: %s", result.get("status"))
     return result
+
+
+def send_workstation_ready_email(user_id: str, workstation_name: str) -> dict:
+    """Send a workstation-ready email to the requesting user via background worker."""
+    job = get_current_job()
+    job_id = job.id if job else "unknown"
+    logger = get_logger("job", job_id=job_id)
+
+    if job is not None:
+        job.meta["progress"] = "sending workstation ready email"
+        job.save_meta()
+
+    user = users_admin.find_one({"_id": _coerce_object_id(user_id)}) or {}
+    org = organizations.find_one(org_filter(user.get("org_id"))) or {}
+
+    subject = "Your CloudShield workstation is ready"
+    html_body = render_template(
+        "workstation_ready.html",
+        {
+            "user_name": user.get("full_name"),
+            "org_name": org.get("company_name") or org.get("name"),
+            "workstation_name": workstation_name,
+            "login_url": LOGIN_URL,
+        },
+    )
+
+    result = send_email(
+        to_email=user.get("email", ""),
+        subject=subject,
+        html_body=html_body,
+    )
+
+    _log_email_event(
+        {
+            "type": "workstation_ready",
+            "org_id": user.get("org_id"),
+            "user_id": user_id,
+            "to_email": user.get("email"),
+            "subject": subject,
+            "status": result.get("status"),
+            "reason": result.get("reason"),
+            "workstation_name": workstation_name,
+            "created_at": datetime.now(timezone.utc),
+        }
+    )
+
+    if result.get("status") == "error":
+        logger.error("Workstation ready email failed: %s", result.get("reason"))
+    else:
+        logger.info("Workstation ready email status: %s", result.get("status"))
+    return result

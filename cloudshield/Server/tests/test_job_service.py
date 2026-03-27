@@ -46,6 +46,7 @@ def fake_tasks_module(monkeypatch):
     mod.dc_delete_file_share = maker("dc_delete_file_share")
     mod.send_org_welcome_email = maker("send_org_welcome_email")
     mod.send_employee_invite_email = maker("send_employee_invite_email")
+    mod.send_workstation_ready_email = maker("send_workstation_ready_email")
 
     monkeypatch.setitem(sys.modules, "cloudshield.Server.tasks", mod)
     return mod
@@ -63,6 +64,7 @@ def test_task_wrappers_execute_underlying_tasks(fake_tasks_module):
     assert job_service.dc_delete_file_share("org", "share")["name"] == "dc_delete_file_share"
     assert job_service.send_org_welcome_email("org", "admin")["name"] == "send_org_welcome_email"
     assert job_service.send_employee_invite_email("user")["name"] == "send_employee_invite_email"
+    assert job_service.send_workstation_ready_email("user", "ws-1")["name"] == "send_workstation_ready_email"
 
 
 def test_enqueue_provision(monkeypatch):
@@ -225,6 +227,18 @@ def test_enqueue_delete_file_share(monkeypatch):
     assert job.id == "jobX"
     assert recorded["func"] == job_service.dc_delete_file_share
     assert recorded["args"][:3] == ("org", "share", True)
+
+
+def test_enqueue_workstation_ready_email(monkeypatch):
+    recorded = {}
+    monkeypatch.setattr(job_service, "task_queue", _make_queue_stub(recorded))
+
+    job = job_service.enqueue_workstation_ready_email("user-1", "WS-One")
+
+    assert job.id == "jobX"
+    assert recorded["func"] == job_service.send_workstation_ready_email
+    assert recorded["args"] == ("user-1", "WS-One")
+    assert recorded["kwargs"]["job_timeout"] == job_service.JOB_TIMEOUT
 
 
 def test_enqueue_dc_remove_user(monkeypatch):

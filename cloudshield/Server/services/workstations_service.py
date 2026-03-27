@@ -4,10 +4,13 @@ from utils import get_logger, workstations_queue
 logger = get_logger("workstations")
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
     from cloudshield.Server.tasks import ws_create_default as _task # type: ignore
 
-    return _task(org_id, name, description, software, access_groups, members)
+    if requesting_user_id is None:
+        return _task(org_id, name, description, software, access_groups, members)
+
+    return _task(org_id, name, description, software, access_groups, members, requesting_user_id)
 
 def ws_start(org_id, template_id):
     from cloudshield.Server.tasks import ws_start as _task # type: ignore
@@ -19,16 +22,20 @@ def ws_provision_update(workstation_id, status):
 
     return _task
 
-def enqueue_ws_create_default(org_id, name, description, software, access_groups, members):
-    job = workstations_queue.enqueue(
+def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
+    enqueue_args = [
         ws_create_default,
         org_id,
         name,
         description,
         software,
         access_groups,
-        members
-    )
+        members,
+    ]
+    if requesting_user_id is not None:
+        enqueue_args.append(requesting_user_id)
+
+    job = workstations_queue.enqueue(*enqueue_args)
     logger.info("Enqueued ws_create_default")
     return job
 
