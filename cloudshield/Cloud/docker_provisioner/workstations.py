@@ -203,14 +203,15 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     logger.info(f"mounting oem path {str(oem_path)} from {str(host_oem_storage_path)}")
 
     container_ws = docker.compose.run(
-            service="workstation",
-            volumes=[
-                (str(host_vm_storage_path),"/storage","rw"),
-                (str(host_oem_storage_path), "/oem", "rw"),
-                (str(host_iso_path), "/boot.iso", "rw")
-            ],
-            detach=True,
-            tty=False
+        service="workstation",
+        volumes=[
+            (str(host_vm_storage_path),"/storage","rw"),
+            (str(host_oem_storage_path), "/oem", "rw"),
+            (str(host_iso_path), "/boot.iso", "rw")
+        ],
+        detach=True,
+        tty=False,
+        service_ports=True
     )
     
     container_ws_id = container_ws.id
@@ -303,12 +304,13 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
 
     container_ws = org_docker.compose.run(
-            service="workstation",
-            command=["skip"],
-            name=name,
-            volumes=[(str(host_vm_storage_path), "/storage", "rw")],
-            detach=True,
-            tty=False
+        service="workstation",
+        command=["skip"],
+        name=name,
+        volumes=[(str(host_vm_storage_path), "/storage", "rw")],
+        detach=True,
+        tty=False,
+        service_ports=True
     )
 
     container_ws_id = container_ws.id

@@ -38,6 +38,8 @@ import { listUsers, deleteUser, createUser, updateUser } from "../services/users
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
+import {apiPost, apiGet, apiPatch} from "../api/client";
+
 const CustomToast = ({ msg, type = "success", onClose }) => {
   if (!msg) return null;
   return (
@@ -177,7 +179,7 @@ export default function EmployeesPage() {
 
   const fetchAccessGroups = async () => {
     try {
-      const res = await fetch(ACCESS_GROUPS_URL, {
+      const res = await apiGet(ACCESS_GROUPS_URL, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
@@ -193,12 +195,7 @@ export default function EmployeesPage() {
   };
 
   const patchAccessGroupMembers = async (groupId, members) => {
-    const res = await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      body: JSON.stringify({ members }),
-    });
+    const res = await apiPatch(`access-groups/${groupId}`,{ members });
 
     if (!res.ok) {
       let msg = "Failed to update access group membership";
@@ -220,7 +217,7 @@ export default function EmployeesPage() {
    */
   const updateUserGroupMemberships = async (userId, newGroups) => {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
-    const res = await fetch("http://127.0.0.1:5050/api/access-groups", { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
+    const res = await apiGet("/access-groups");
     if (!res.ok) return;
     const data = await res.json();
     const allGroups = data.access_groups || [];
@@ -237,7 +234,7 @@ export default function EmployeesPage() {
 
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       if (!currentMembers.some((m) => String(m) === String(userId))) {
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: [...currentMembers, userId] }) });
+        await apiPatch(`access-groups/${groupId}`,{ members: [...currentMembers, userId] });
       }
     }
 
@@ -249,7 +246,7 @@ export default function EmployeesPage() {
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
       if (updatedMembers.length !== currentMembers.length) {
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: updatedMembers }) });
+        await apiPatch(`/access-groups/${groupId}`, { members: updatedMembers });
       }
     }
   };
@@ -263,7 +260,7 @@ export default function EmployeesPage() {
       const data = await safeAsync(() => listUsers({ token, search, limit: 100, offset: 0 }), { toast: { error: (msg) => openToast(msg, "error") } });
       let allGroups = [];
       try {
-        const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
+        const groupsRes = await apiGet("/access-groups");
         if (groupsRes.ok) { const groupsData = await groupsRes.json(); allGroups = groupsData.access_groups || []; }
       } catch (e) {}
       setUsers(Array.isArray(data) ? data.map((user) => enrichUser(user, allGroups)) : []);
