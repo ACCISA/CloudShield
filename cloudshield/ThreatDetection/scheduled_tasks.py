@@ -116,14 +116,52 @@ def _push_alerts_to_server(alerts: list, server_url: str, org_id: str, logger=No
             logger.warning("Failed to push alerts to Server: %s", exc)
 
 
-def _flush_alerts(deduplicator, es_log_fn, logger=None, server_url: str = "", org_id: str = "system"):
-    """Write buffered unified alerts to Elasticsearch and push to the Server."""
+def _flush_alerts(deduplicator, es_log_fn, logger=None, server_url: str = "", org_id: str = "system", es_client=None):
+    """Write buffered unified alerts to Elasticsearch and push to the Server.
+
+    Uses ES upsert keyed on ``alert_id`` for the unified_alerts index so that
+    a user-set status (resolved / false_positive) is never overwritten by a
+    subsequent flush of the same alert.  Only ``count``, ``last_seen``, and
+    ``timestamp`` are updated on an existing document; all other fields
+    (including ``status``) are left untouched.
+    """
     alerts = deduplicator.flush()
     if not alerts:
         return
     for alert in alerts:
         alert.org_id = org_id
-        es_log_fn("unified_alerts", alert.to_dict())
+        doc = alert.to_dict()
+        alert_id = doc.get("alert_id")
+        if es_client and alert_id:
+            # Upsert: create on first occurrence; on subsequent flushes only
+            # update the mutable counters — never touch status.
+            try:
+                es_client.update(
+                    index="unified_alerts",
+                    id=alert_id,
+                    body={
+                        "scripted_upsert": True,
+                        "script": {
+                            "source": (
+                                "if (ctx.op == 'create') { ctx._source.putAll(params.doc); }"
+                                " else {"
+                                " ctx._source.count = params.doc.count;"
+                                " ctx._source.last_seen = params.doc.last_seen;"
+                                " ctx._source.timestamp = params.doc.timestamp;"
+                                " }"
+                            ),
+                            "lang": "painless",
+                            "params": {"doc": doc},
+                        },
+                        "upsert": {},
+                    },
+                )
+            except Exception as exc:
+                if logger:
+                    logger.warning("ES upsert failed for alert %s: %s — falling back to index", alert_id, exc)
+                es_log_fn("unified_alerts", doc)
+        else:
+            es_log_fn("unified_alerts", doc)
     if logger:
         logger.info("Flushed %d unified alerts to ES", len(alerts))
     if server_url:
@@ -226,6 +264,7 @@ def start_scheduled_tasks(
                       alert_deduplicator, es_log_fn, logger,
                       server_url=_srv.get("url", ""),
                       org_id=_srv.get("org_id", "system"),
+                      es_client=es_client,
                   )),
             daemon=True,
         )

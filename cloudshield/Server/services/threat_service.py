@@ -253,6 +253,7 @@ def get_unified_alerts(limit: int = 50, org_id: str = "") -> list[dict]:
                 "query": {"term": {"org_id": org_id}},
                 "sort": [{"timestamp": {"order": "desc", "unmapped_type": "date"}}],
                 "size": limit,
+                "collapse": {"field": "alert_id"},
             },
         )
         return [hit["_source"] for hit in resp["hits"]["hits"]]

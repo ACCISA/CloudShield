@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import PageShell from "../components/layout/PageShell.jsx";
 import SecurityChartsPanel from "../components/security/SecurityChartsPanel.jsx";
@@ -14,8 +14,15 @@ const contentStyles = {
   minHeight: 0,
 };
 
+const POLL_INTERVAL_MS = 30_000;
+
 function SecurityDashboardPage() {
   const { alerts: fetchedAlerts, loading, error, refresh } = useSecurityAlerts();
+
+  useEffect(() => {
+    const id = setInterval(refresh, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [refresh]);
   const [overrides, setOverrides] = useState({});
 
   const alerts = fetchedAlerts.map((a) =>
