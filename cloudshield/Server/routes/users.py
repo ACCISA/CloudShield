@@ -1,4 +1,6 @@
 """User management API endpoints."""
+import csv
+import io
 import importlib
 import json
 from collections.abc import Mapping
@@ -21,7 +23,8 @@ from services import (  # noqa: E402
     delete_user,
     list_users,
     service_dispatcher,
-    get_user
+    get_user,
+    enforce_org_user_limit,
 )
 from utils.logging_setup import get_logger  # noqa: E402
 
@@ -498,10 +501,180 @@ def get_current_user_endpoint():
     # 2. Fallback to the JWT token claims if DB fetch wasn't possible
     safe_user = dict(u)
     safe_user.pop("password", None)
-    
+
     if real_id:
         safe_user["id"] = str(real_id)
         safe_user.pop("_id", None)
         safe_user.pop("sub", None)
 
     return jsonify({"user": safe_user}), 200
+
+
+@users_bp.route("/users/import-csv", methods=["POST"])
+@require_auth
+@require_role("admin")
+def import_users_csv():
+    """
+    Bulk import users from a CSV file.
+
+    Endpoint:
+        POST /api/users/import-csv
+
+    Request:
+        - Content-Type: multipart/form-data
+        - file: CSV file with columns: email,full_name,password_hash,role,workstations
+        - password_hash: bcrypt hash from previous system (recommended for migrations)
+        - role column is optional (defaults to "employee")
+        - workstations: semicolon-separated workstation names/IDs (optional)
+
+    CSV Format (with pre-hashed passwords - recommended for migrations):
+        email,full_name,password_hash,role,workstations
+        john@example.com,John Doe,$2b$12$LQv3c1yqBw...,employee,WS001;WS002
+        jane@example.com,Jane Smith,$2b$12$abc123...,admin,WS003
+
+    Responses:
+        200: { "created": N, "errors": [...] }
+        400: { "error": "No file provided" }
+        500: { "error": "Internal server error" }
+    """
+    try:
+        from security import is_bcrypt_string
+        from datetime import datetime, timezone
+        from utils import users_admin, log_audit
+
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files["file"]
+        if not file.filename:
+            return jsonify({"error": "No file selected"}), 400
+
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({"error": "File must be a CSV"}), 400
+
+        # Read and decode CSV content
+        content = file.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+
+        # Get org_id from current user
+        org_id = (g.user or {}).get("org_id")
+        if not org_id:
+            return jsonify({"error": "Missing org_id for authenticated user"}), 400
+
+        created_count = 0
+        errors = []
+        job_ids = []
+
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 (row 1 is header)
+            try:
+                # Normalize email to lowercase (consistent with UserCreate model)
+                email = (row.get("email") or "").strip().lower()
+                full_name = (row.get("full_name") or "").strip()
+                password_hash = (row.get("password_hash") or "").strip()
+                role = (row.get("role") or "employee").strip().lower()
+                workstations_raw = (row.get("workstations") or "").strip()
+
+                if not email or not full_name:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing required fields (email, full_name)"
+                    })
+                    continue
+
+                # Basic email format validation
+                if "@" not in email or email.startswith("@") or email.endswith("@"):
+                    errors.append({
+                        "row": row_num,
+                        "error": f"Invalid email format: {email}"
+                    })
+                    continue
+
+                if role not in ("admin", "employee"):
+                    role = "employee"
+
+                # Parse workstations (semicolon-separated)
+                workstations = []
+                if workstations_raw:
+                    for ws in workstations_raw.split(";"):
+                        ws = ws.strip()
+                        if ws:
+                            workstations.append(ws)
+
+                # Check for duplicate email within organization.
+                if users_admin.find_one({"org_id": org_id, "email": email}):
+                    errors.append({
+                        "row": row_num,
+                        "error": f"User with email {email} already exists"
+                    })
+                    continue
+
+                try:
+                    enforce_org_user_limit(org_id, additional_users=1)
+                except ValueError as limit_err:
+                    errors.append({"row": row_num, "error": str(limit_err)})
+                    continue
+
+
+                if password_hash and is_bcrypt_string(password_hash):
+                    # Use the pre-hashed password directly (migration from another system)
+                    final_password_hash = password_hash
+                else:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing or invalid password_hash for user import; user not created"
+                    })
+                    continue
+
+                # Insert user directly (bypassing create_user to handle pre-hashed passwords)
+                user_doc = {
+                    "email": email,
+                    "password": final_password_hash,
+                    "org_id": org_id,
+                    "role": role,
+                    "full_name": full_name,
+                    "status": "active",
+                    "profile_image": None,
+                    "workstations": workstations,
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc),
+                }
+                res = users_admin.insert_one(user_doc)
+                user_id = str(res.inserted_id)
+
+                # Audit log
+                try:
+                    log_audit(
+                        action="create",
+                        actor={
+                            "id": g.user.get("id"),
+                            "role": g.user.get("role"),
+                            "org_id": org_id,
+                        },
+                        resource="users",
+                        target={"id": user_id, "email": email},
+                        reason="CSV import",
+                        before=None,
+                        after={"role": role, "status": "active", "org_id": org_id, "workstations": workstations},
+                    )
+                except Exception:
+                    pass  # Don't fail import due to audit log issues
+
+                created_count += 1
+
+            except ValidationError as e:
+                safe_errors = [_make_json_safe(err) for err in e.errors()]
+                errors.append({"row": row_num, "error": safe_errors})
+            except ValueError as e:
+                errors.append({"row": row_num, "error": str(e)})
+            except Exception as e:
+                errors.append({"row": row_num, "error": str(e)})
+
+        return jsonify({
+            "created": created_count,
+            "job_ids": job_ids,
+            "errors": errors
+        }), 200
+
+    except Exception as e:
+        logger.error("CSV import failed: %s", e)
+        return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500

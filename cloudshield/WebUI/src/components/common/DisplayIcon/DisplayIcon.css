@@ -149,6 +149,11 @@
   color: #991b1b;
 }
 
+.status-badge.provisioning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
 /* Hover Card Details */
 .hover-card-details {
   display: flex;

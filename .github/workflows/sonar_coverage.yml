@@ -246,6 +246,9 @@ jobs:
         run: |
           mkdir -p tests/js/coverage/webui
           if [ -f cloudshield/WebUI/coverage/lcov.info ]; then
+            sed -i 's|^SF:src/|SF:cloudshield/WebUI/src/|g' cloudshield/WebUI/coverage/lcov.info
+            sed -i 's|^SF:\\/src\\/|SF:cloudshield/WebUI/src/|g' cloudshield/WebUI/coverage/lcov.info
+            sed -i 's|^SF:\\.\\/src\\/|SF:cloudshield/WebUI/src/|g' cloudshield/WebUI/coverage/lcov.info
             cp cloudshield/WebUI/coverage/lcov.info tests/js/coverage/webui/lcov.info
           else
             echo "" > tests/js/coverage/webui/lcov.info

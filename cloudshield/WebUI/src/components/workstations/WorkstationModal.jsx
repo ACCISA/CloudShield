@@ -164,11 +164,11 @@ export default function WorkstationModal({
     try {
       await onSubmit?.({
         name: formData.name,
-        strength: formData.strength,
+        description: formData.strength,
         image: formData.workstationImage,
         desktopBackground: formData.desktopBackground,
-        groups: formData.selectedGroups,
-        users: formData.selectedUsers,
+        access_groups: formData.selectedGroups,
+        members: formData.selectedUsers,
         allUsers: formData.allUsers,
         allGroups: formData.allGroups,
         software: formData.selectedSoftware,
@@ -381,6 +381,41 @@ export default function WorkstationModal({
     </div>
   );
 }
+
+const modalItemShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  firstName: PropTypes.string,
+  lastName: PropTypes.string,
+  email: PropTypes.string,
+  title: PropTypes.string,
+  members: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  category: PropTypes.string,
+  icon: PropTypes.node,
+});
+
+const workstationDataShape = PropTypes.shape({
+  name: PropTypes.string,
+  strength: PropTypes.string,
+  image: PropTypes.string,
+  desktopBackground: PropTypes.string,
+  groups: PropTypes.arrayOf(modalItemShape),
+  users: PropTypes.arrayOf(modalItemShape),
+  software: PropTypes.arrayOf(modalItemShape),
+  allUsers: PropTypes.bool,
+  allGroups: PropTypes.bool,
+  allSoftware: PropTypes.bool,
+  wallpaper: PropTypes.string,
+});
+
+WorkstationModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  workstationData: workstationDataShape,
+  onSubmit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
 
 // Sub-components
 function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
@@ -799,6 +834,19 @@ function GenericSelectionStep({
   );
 }
 
+GenericSelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+};
+
 function SoftwareStep({
   searchTerm,
   setSearchTerm,
@@ -926,3 +974,15 @@ function SoftwareStep({
     </div>
   );
 }
+
+SoftwareStep.propTypes = {
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+};

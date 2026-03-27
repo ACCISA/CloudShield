@@ -2,24 +2,24 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import StatusButton from "../StatusButton";
 
 describe("StatusButton", () => {
-  it("renders Connect button when status is connected", () => {
+  it("renders Ready label when status is connected", () => {
     render(<StatusButton status="connected" />);
-    expect(screen.getByText("Connect")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
   });
 
-  it("renders Disconnect button when status is disconnected", () => {
+  it("renders Unavailable label when status is disconnected", () => {
     render(<StatusButton status="disconnected" />);
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
   });
 
-  it("renders Disconnect button when status is busy", () => {
+  it("renders Unavailable label when status is busy", () => {
     render(<StatusButton status="busy" />);
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
   });
 
-  it("renders with default disconnected status when no status prop provided", () => {
+  it("renders default unavailable label when no status prop is provided", () => {
     render(<StatusButton />);
-    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
   });
 
   it("calls onClick handler when clicked", () => {
@@ -50,8 +50,8 @@ describe("StatusButton", () => {
     });
   });
 
-  it("has pointer cursor", () => {
-    render(<StatusButton status="connected" />);
+  it("has pointer cursor when clickable", () => {
+    render(<StatusButton status="connected" onClick={() => {}} />);
     const button = screen.getByRole("button");
 
     expect(button).toHaveStyle({

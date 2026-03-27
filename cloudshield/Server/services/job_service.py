@@ -120,6 +120,13 @@ def send_employee_invite_email(user_id: str):
 
     return _task(user_id)
 
+
+def send_workstation_ready_email(user_id: str, workstation_name: str):
+    """Call the workstation-ready email task directly (used by enqueue helpers/tests)."""
+    from cloudshield.Server.tasks import send_workstation_ready_email as _task  # type: ignore
+
+    return _task(user_id, workstation_name)
+
 def get_job_status(job_id: str) -> Tuple[Dict[str, Any], int]:
     """
     Retrieve the current status and metadata of a queued background job.
@@ -506,6 +513,18 @@ def enqueue_employee_invite_email(user_id: str) -> Job:
     return job
 
 
+def enqueue_workstation_ready_email(user_id: str, workstation_name: str) -> Job:
+    """Enqueue a workstation-ready email for the requesting user."""
+    job = task_queue.enqueue(
+        send_workstation_ready_email,
+        user_id,
+        workstation_name,
+        job_timeout=JOB_TIMEOUT,
+    )
+    logger.info("Enqueued send_workstation_ready_email")
+    return job
+
+
 SERVICES = {
     "provision_network": enqueue_provision,
     "provision_workstations": enqueue_provision_workstations,
@@ -524,5 +543,5 @@ SERVICES = {
     "dc_update_file_share": enqueue_dc_update_file_share,
     "send_org_welcome_email": enqueue_org_welcome_email,
     "send_employee_invite_email": enqueue_employee_invite_email,
+    "send_workstation_ready_email": enqueue_workstation_ready_email,
 }
-

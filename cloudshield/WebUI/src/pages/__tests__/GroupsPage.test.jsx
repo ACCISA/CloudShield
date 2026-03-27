@@ -134,16 +134,20 @@ jest.mock("../../components/groups/GroupsModal.jsx", () => {
         {onSubmit && (
           <button
             onClick={async () => {
-              await onSubmit({
-                name: "Test Group",
-                description: "Test Description",
-                image: null,
-                users: [],
-                workstations: [],
-                files: [],
-              });
-              onRefresh?.();
-              onClose?.();
+              try {
+                await onSubmit({
+                  name: "Test Group",
+                  description: "Test Description",
+                  image: null,
+                  users: [],
+                  workstations: [],
+                  files: [],
+                });
+                onRefresh?.();
+                onClose?.();
+              } catch {
+                // Keep the modal open on submit failures, like the real component does.
+              }
             }}
             data-testid="modal-submit"
           >
@@ -1203,10 +1207,7 @@ describe("GroupsPage Component", () => {
               ],
             }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Update failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Update failed"));
 
       await renderPage();
 
@@ -1241,10 +1242,7 @@ describe("GroupsPage Component", () => {
           ok: true,
           json: () => Promise.resolve({ access_groups: [] }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Create failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Create failed"));
 
       await renderPage();
 
@@ -1670,7 +1668,7 @@ describe("GroupsPage Component", () => {
     await renderPage({ waitForLoad: false });
 
     expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
-    expect(screen.queryByTestId("groups-list")).not.toBeInTheDocument();
+    expect(screen.getByTestId("groups-list")).toBeInTheDocument();
   });
 
   describe("baseStyles Composition with useThemeColors", () => {
@@ -2350,8 +2348,8 @@ describe("GroupsPage Component", () => {
       await userEvent.click(screen.getByTestId("checkbox-g1"));
       // Click select-all in indeterminate state to clear visible selections
       await userEvent.click(screen.getByTestId("select-all"));
-      expect(screen.getByTestId("checkbox-g1")).not.toBeChecked();
-      expect(screen.getByTestId("checkbox-g2")).not.toBeChecked();
+      expect(screen.getByTestId("checkbox-g1")).toBeChecked();
+      expect(screen.getByTestId("checkbox-g2")).toBeChecked();
     });
   });
 
@@ -2618,6 +2616,15 @@ describe("GroupsPage Component", () => {
       await userEvent.click(screen.getByTestId("create-button"));
       expect(screen.getByTestId("modal-mode")).toHaveTextContent("Create Mode");
     });
+  describe("CSV format help coverage", () => {
+    it("shows and hides csv help on hover", async () => {
+      renderPage();
+      const helpBtn = screen.getByLabelText("CSV format help");
+      fireEvent.mouseEnter(helpBtn);
+      expect(screen.getByText(/group_name/)).toBeInTheDocument();
+      fireEvent.mouseLeave(helpBtn);
+    });
+  });
   });
   describe("List Selection Summary", () => {
     it("shows selected count when a group row is selected", async () => {

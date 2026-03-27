@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -189,6 +190,50 @@ function UsersPill({ row }) {
   );
 }
 
+function getStatusLightColors(status) {
+  const normalized = (status || "").toLowerCase();
+
+  if (normalized === "connected") {
+    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+  }
+
+  if (normalized === "provisioning") {
+    return { outerColor: "#3F2A08", innerColor: "#F0B429" };
+  }
+
+  return { outerColor: "#381F1F", innerColor: "#ff5252" };
+}
+
+function getColumnTemplate({
+  isMobile,
+  showUsersColumn,
+  showCurrentColumn,
+  showLastUsedColumn,
+}) {
+  return [
+    !isMobile ? "28px" : null,
+    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)",
+    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
+    showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
+    showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
+    isMobile ? "40px" : "100px",
+    "28px",
+    "40px",
+  ].filter(Boolean);
+}
+
+function getHeaderSidePadding({ isMobile, isTablet }) {
+  if (isMobile) {
+    return "calc(12px + 4px + 4px)";
+  }
+
+  if (isTablet) {
+    return "calc(14px + 8px + 8px)";
+  }
+
+  return "calc(16px + 8px + 8px)";
+}
+
 /* --------------------------------- component -------------------------------- */
 
 function WorkstationRow({
@@ -227,17 +272,10 @@ function WorkstationRow({
 
         {showCurrent && (
           <div style={styles.currentContainer}>
-            {r.currentUser && r.currentUser !== "—" ? (
+            {currentDisplayUser ? (
               <DisplayIcon
                 type="user"
-                data={
-                  typeof r.currentUser === "string"
-                    ? {
-                        firstName: r.currentUser.split(" ")[0],
-                        lastName: r.currentUser.split(" ")[1] || "",
-                      }
-                    : r.currentUser
-                }
+                data={currentDisplayUser}
                 size="small"
               />
             ) : (
@@ -261,8 +299,8 @@ function WorkstationRow({
           <ActiveIcon
             width={12}
             height={12}
-            outerColor={r.status === "connected" ? "#1F381F" : "#381F1F"}
-            innerColor={r.status === "connected" ? "#04C40A" : "#ff5252"}
+            outerColor={statusColors.outerColor}
+            innerColor={statusColors.innerColor}
           />
         </div>
 
@@ -296,6 +334,50 @@ function WorkstationRow({
     </>
   );
 }
+
+const userShape = PropTypes.oneOfType([
+  PropTypes.string,
+  PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    email: PropTypes.string,
+    title: PropTypes.string,
+    role: PropTypes.string,
+    name: PropTypes.string,
+  }),
+]);
+
+const workstationRowShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  name: PropTypes.string,
+  code: PropTypes.string,
+  status: PropTypes.string,
+  lastUsed: PropTypes.string,
+  currentUser: userShape,
+  users: PropTypes.arrayOf(userShape),
+});
+
+UsersPill.propTypes = {
+  row: workstationRowShape.isRequired,
+};
+
+WorkstationRow.propTypes = {
+  r: workstationRowShape.isRequired,
+  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
+  showUsers: PropTypes.bool.isRequired,
+  showCurrent: PropTypes.bool.isRequired,
+  showLastUsed: PropTypes.bool.isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onToggleStatus: PropTypes.func,
+  isLast: PropTypes.bool.isRequired,
+  isMobile: PropTypes.bool.isRequired,
+  isTablet: PropTypes.bool.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onToggleSelect: PropTypes.func.isRequired,
+};
 
 export default function WorkstationList({
   rows,

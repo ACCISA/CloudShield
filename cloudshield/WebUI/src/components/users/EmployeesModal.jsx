@@ -198,10 +198,22 @@ export default function EmployeesModal({
   );
 
   // Handlers
-  const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
+  const handleNavigate = (direction) => {
+    const newStep = currentStep + direction;
+    // Validate step 1 before proceeding
+    if (currentStep === 0 && direction > 0) {
+      const errs = getBasicInfoErrors();
+      setFieldErrors(errs);
+      if (Object.keys(errs).length > 0) {
+        return; // Don't navigate if there are errors
+      }
+    }
+    if (newStep >= 0 && newStep < STEPS.length) {
+      setCurrentStep(newStep);
+    }
+  };
 
-  /** Validate all fields and return true if the form is valid. */
-  const runValidation = () => {
+  const getBasicInfoErrors = () => {
     const errs = {};
     const fn = validateDisplayName(formData.firstName, "First name");
     if (!fn.valid) errs.firstName = fn.error;
@@ -211,17 +223,28 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
+    // Password is optional in create mode - only validate if provided
     if (!isEditMode && formData.password) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
     }
+    return errs;
+  };
+
+  /** Validate all fields and return true if the form is valid. */
+  const runValidation = () => {
+    const errs = getBasicInfoErrors();
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    if (!runValidation()) return;
+    if (!runValidation()) {
+      // Navigate back to step 1 to show validation errors
+      setCurrentStep(0);
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onSubmit?.({
@@ -241,6 +264,7 @@ export default function EmployeesModal({
       }
     } catch (error) {
       console.error("Failed to submit employee:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -294,15 +318,6 @@ export default function EmployeesModal({
     SelectionStep,
     fieldErrors,
   });
-
-  const isNextDisabled =
-    currentStep === 0 &&
-    (!formData.firstName.trim() ||
-      !formData.lastName.trim() ||
-      !formData.email.trim() ||
-      !validateDisplayName(formData.firstName, "First name").valid ||
-      !validateDisplayName(formData.lastName, "Last name").valid ||
-      !validateEmail(formData.email).valid);
 
   return (
     <div className="employees-modal-overlay">
@@ -410,7 +425,6 @@ export default function EmployeesModal({
                 <button
                   className="employees-modal-btn employees-modal-btn-primary"
                   onClick={() => handleNavigate(1)}
-                  disabled={isNextDisabled}
                 >
                   Next
                 </button>
@@ -566,7 +580,7 @@ function BasicInfoStep({
 
       {!isEditMode && (
         <div className="employees-modal-form-group">
-          <label className="employees-modal-label">Password</label>
+          <label className="employees-modal-label">Password (optional)</label>
           <input
             type="password"
             className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}
@@ -574,7 +588,7 @@ function BasicInfoStep({
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, password: e.target.value }))
             }
-            placeholder="Min 12 chars, upper+lower+digit+special"
+            placeholder="Leave blank to auto-generate (or min 12 chars, upper+lower+digit+special)"
             maxLength={128}
             data-testid="password-input"
           />

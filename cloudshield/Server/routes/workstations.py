@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from utils.logging_setup import get_logger
 
@@ -78,7 +78,8 @@ def create_default():
             description=description,
             software=software,
             access_groups=access_groups,
-            members=members)
+            members=members,
+            requesting_user_id=(g.user or {}).get("id"))
 
     return jsonify({"job_id":job.id}), 202
 
