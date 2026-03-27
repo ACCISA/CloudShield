@@ -48,13 +48,10 @@ export async function listUsers({
 }
 
 export async function deleteUser(userId, { reason, token } = {}) {
-  const response = await apiDelete(
-    `/users/${encodeURIComponent(userId)}`,
-    {
-      headers: buildHeaders(token),
-      body: reason ? JSON.stringify({ reason }) : undefined,
-    }
-  );
+  const response = await apiDelete(`/users/${encodeURIComponent(userId)}`, {
+    headers: buildHeaders(token),
+    body: reason ? JSON.stringify({ reason }) : undefined,
+  });
 
   return parseResponse(response);
 }
@@ -73,7 +70,7 @@ export async function updateUser(userId, payload, { token } = {}) {
     payload,
     {
       headers: buildHeaders(token),
-    }
+    },
   );
 
   return parseResponse(response);
