@@ -134,16 +134,20 @@ jest.mock("../../components/groups/GroupsModal.jsx", () => {
         {onSubmit && (
           <button
             onClick={async () => {
-              await onSubmit({
-                name: "Test Group",
-                description: "Test Description",
-                image: null,
-                users: [],
-                workstations: [],
-                files: [],
-              });
-              onRefresh?.();
-              onClose?.();
+              try {
+                await onSubmit({
+                  name: "Test Group",
+                  description: "Test Description",
+                  image: null,
+                  users: [],
+                  workstations: [],
+                  files: [],
+                });
+                onRefresh?.();
+                onClose?.();
+              } catch {
+                // Keep the modal open on submit failures, like the real component does.
+              }
             }}
             data-testid="modal-submit"
           >
@@ -1205,10 +1209,7 @@ describe("GroupsPage Component", () => {
               ],
             }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Update failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Update failed"));
 
       await renderPage();
 
@@ -1245,10 +1246,7 @@ describe("GroupsPage Component", () => {
           ok: true,
           json: () => Promise.resolve({ access_groups: [] }),
         })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ error: "Create failed" }),
-        });
+        .mockRejectedValueOnce(new Error("Create failed"));
 
       await renderPage();
 

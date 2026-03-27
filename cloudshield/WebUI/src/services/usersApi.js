@@ -52,7 +52,7 @@ export async function deleteUser(userId, { reason, token } = {}) {
     `/users/${encodeURIComponent(userId)}`,
     {
       headers: buildHeaders(token),
-      body: reason ? JSON.stringify({ reason }) : undefined,
+      body: reason ? { reason } : undefined,
     }
   );
 
@@ -68,10 +68,13 @@ export async function createUser(user, { token } = {}) {
 }
 
 export async function updateUser(userId, payload, { token } = {}) {
-  const response = await apiPatch(`/users/${encodeURIComponent(userId)}`, {
-    headers: buildHeaders(token),
-    body: JSON.stringify(payload),
-  });
+  const response = await apiPatch(
+    `/users/${encodeURIComponent(userId)}`,
+    payload,
+    {
+      headers: buildHeaders(token),
+    }
+  );
 
   return parseResponse(response);
 }

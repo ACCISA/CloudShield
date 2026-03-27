@@ -281,6 +281,7 @@ export default function GroupsPage() {
       await fetchGroups();
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 

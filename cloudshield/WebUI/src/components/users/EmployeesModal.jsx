@@ -197,8 +197,7 @@ export default function EmployeesModal({
   // Handlers
   const handleNavigate = createNavigationHandler(setCurrentStep, STEPS.length);
 
-  /** Validate all fields and return true if the form is valid. */
-  const runValidation = () => {
+  const getBasicInfoErrors = () => {
     const errs = {};
     const fn = validateDisplayName(formData.firstName, "First name");
     if (!fn.valid) errs.firstName = fn.error;
@@ -208,10 +207,16 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
-    if (!isEditMode && formData.password) {
+    if (!isEditMode) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
     }
+    return errs;
+  };
+
+  /** Validate all fields and return true if the form is valid. */
+  const runValidation = () => {
+    const errs = getBasicInfoErrors();
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -238,6 +243,7 @@ export default function EmployeesModal({
       }
     } catch (error) {
       console.error("Failed to submit employee:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -293,12 +299,7 @@ export default function EmployeesModal({
 
   const isNextDisabled =
     currentStep === 0 &&
-    (!formData.firstName.trim() ||
-      !formData.lastName.trim() ||
-      !formData.email.trim() ||
-      !validateDisplayName(formData.firstName, "First name").valid ||
-      !validateDisplayName(formData.lastName, "Last name").valid ||
-      !validateEmail(formData.email).valid);
+    Object.keys(getBasicInfoErrors()).length > 0;
 
   return (
     <div className="employees-modal-overlay">
@@ -561,7 +562,7 @@ function BasicInfoStep({
 
       {!isEditMode && (
         <div className="employees-modal-form-group">
-          <label className="employees-modal-label">Password</label>
+          <label className="employees-modal-label">Password *</label>
           <input
             type="password"
             className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}

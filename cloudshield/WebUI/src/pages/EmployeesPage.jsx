@@ -25,6 +25,7 @@ import TrashIcon from "../assets/TrashIcon.jsx";
 import ActiveIcon from "../assets/ActiveIcon.jsx";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
+import PageShell from "../components/layout/PageShell.jsx";
 
 // Backend & Context
 import {
@@ -45,7 +46,9 @@ const TOAST_BG_COLORS = {
   success: "#2e7d32",
 };
 
-const ACCESS_GROUPS_URL = "http://127.0.0.1:5050/api/access-groups";
+const API_BASE =
+  import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5050/api";
+const ACCESS_GROUPS_URL = `${API_BASE}/access-groups`;
 
 const CustomToast = ({ msg, type, onClose }) => {
   if (!msg) return null;
@@ -162,6 +165,16 @@ function enrichUser(user, allGroups) {
   };
 }
 
+function getEmployeeUserId(employee) {
+  return String(
+    employee?._original?._id ||
+      employee?._original?.id ||
+      employee?._id ||
+      employee?.id ||
+      "",
+  );
+}
+
 const styles = {
   ...managementToolbarStyles,
   ...sharedIconViewStyles,
@@ -183,6 +196,7 @@ export default function EmployeesPage() {
 
   // CSV import file input ref
   const csvInputRef = useRef(null);
+  const pendingCreateGroupSyncRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
   const [showCsvHelp, setShowCsvHelp] = useState(false);
 
@@ -276,12 +290,23 @@ export default function EmployeesPage() {
   };
 
   const patchAccessGroupMembers = async (groupId, members) => {
-    await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
+    const res = await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json", ...getAuthHeader() },
       body: JSON.stringify({ members }),
     });
+
+    if (!res.ok) {
+      let msg = "Failed to update access group membership";
+      try {
+        const data = await res.json();
+        msg = data?.error || data?.details || msg;
+      } catch {
+        // Ignore JSON parse errors and use the generic message.
+      }
+      throw new Error(msg);
+    }
   };
 
   /**
@@ -291,11 +316,18 @@ export default function EmployeesPage() {
    * @param {Array} newGroups - Array of new group objects {id, name, ...} to be members of
    */
   const updateUserGroupMemberships = async (userId, newGroups) => {
-    const newGroupIds = newGroups.map((g) => String(g.id || g._id));
+    const normalizedUserId = String(userId || "");
+    const newGroupIds = [
+      ...new Set(
+        (Array.isArray(newGroups) ? newGroups : [])
+          .map((g) => String(g?.id || g?._id || ""))
+          .filter(Boolean),
+      ),
+    ];
 
     // Fetch all groups to determine current membership and update
     const allGroups = await fetchAccessGroups();
-    if (!allGroups.length) {
+    if (!Array.isArray(allGroups) || !allGroups.length) {
       console.error("Failed to fetch groups for membership update");
       return;
     }
@@ -304,7 +336,7 @@ export default function EmployeesPage() {
     const currentGroupIds = allGroups
       .filter((g) => {
         const members = Array.isArray(g.members) ? g.members : [];
-        return members.some((m) => String(m) === String(userId));
+        return members.some((m) => String(m) === normalizedUserId);
       })
       .map((g) => String(g.id || g._id));
 
@@ -319,8 +351,8 @@ export default function EmployeesPage() {
       if (!group) continue;
 
       const currentMembers = Array.isArray(group.members) ? group.members : [];
-      if (!currentMembers.some((m) => String(m) === String(userId))) {
-        const updatedMembers = [...currentMembers, userId];
+      if (!currentMembers.some((m) => String(m) === normalizedUserId)) {
+        const updatedMembers = [...currentMembers, normalizedUserId];
         await patchAccessGroupMembers(groupId, updatedMembers);
       }
     }
@@ -331,12 +363,41 @@ export default function EmployeesPage() {
       if (!group) continue;
 
       const currentMembers = Array.isArray(group.members) ? group.members : [];
-      const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
+      const updatedMembers = currentMembers.filter(
+        (m) => String(m) !== normalizedUserId,
+      );
       if (updatedMembers.length !== currentMembers.length) {
         await patchAccessGroupMembers(groupId, updatedMembers);
       }
     }
   };
+
+  const resolveCreatedUserId = useCallback(
+    async ({ email, userId }) => {
+      if (userId) return String(userId);
+
+      const token = resolveAuthToken();
+      if (!token || !email) return null;
+
+      const matches = await listUsers({
+        token,
+        search: email,
+        limit: 100,
+        offset: 0,
+      });
+
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const matchedUser = (Array.isArray(matches) ? matches : []).find((user) => {
+        const candidateEmail = String(user?.email || "").trim().toLowerCase();
+        const candidateOrgId = String(user?.org_id || "");
+        const orgMatches = !orgId || !candidateOrgId || candidateOrgId === orgId;
+        return candidateEmail === normalizedEmail && orgMatches;
+      });
+
+      return matchedUser ? String(matchedUser._id || matchedUser.id || "") : null;
+    },
+    [accessToken, orgId],
+  );
 
   // API Actions
   const fetchUsers = useCallback(async () => {
@@ -361,16 +422,12 @@ export default function EmployeesPage() {
         ? data.map((user) => enrichUser(user, allGroups))
         : [];
 
-      if (mappedUsers.length > 0) {
-        console.log(
-          "Sample user org_id format:",
-          mappedUsers[0]._original.org_id,
-        );
-      }
       setUsers(mappedUsers);
+      return mappedUsers;
     } catch (error) {
       console.error("Failed to fetch users", error);
       openToast(error.message || "Failed to load users", "error");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -389,26 +446,31 @@ export default function EmployeesPage() {
 
     try {
       const isEdit = Boolean(modalEmployee);
+      const fullName = [payload.firstName, payload.lastName]
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter(Boolean)
+        .join(" ");
 
       if (isEdit) {
+        const userId = getEmployeeUserId(modalEmployee);
         // Edit mode
         trackButton("employees/edit/submit", {
           page: "employees",
-          id: modalEmployee.id,
+          id: userId,
           control: "edit_dialog",
         });
         const apiPayload = {
-          full_name: `${payload.firstName} ${payload.lastName}`,
+          full_name: fullName,
           email: payload.email,
           role: payload.jobTitle,
           profile_image: payload.profileImage || null,
         };
 
-        await updateUser(modalEmployee.id, apiPayload, { token });
+        await updateUser(userId, apiPayload, { token });
 
         // Update group memberships if groups were provided
         if (payload.groups) {
-          await updateUserGroupMemberships(modalEmployee.id, payload.groups);
+          await updateUserGroupMemberships(userId, payload.groups);
         }
 
         openToast("User updated successfully");
@@ -421,14 +483,19 @@ export default function EmployeesPage() {
           page: "employees",
           control: "create_dialog",
         });
+        if (!orgId) {
+          openToast("Missing organization context. Refresh and try again.", "error");
+          return;
+        }
+
         const apiPayload = {
           email: payload.email,
-          full_name: `${payload.firstName} ${payload.lastName}`,
-          password: payload.password || "",
+          full_name: fullName,
+          password: payload.password,
           role: payload.jobTitle?.toLowerCase().includes("admin")
             ? "admin"
             : "employee",
-          org_id: orgId || "cedric",
+          org_id: orgId,
           profile_image: payload.profileImage || null,
         };
 
@@ -438,10 +505,16 @@ export default function EmployeesPage() {
           if (!response?.job_id) {
             throw new Error("No job_id returned from user creation");
           }
+          pendingCreateGroupSyncRef.current = {
+            email: apiPayload.email,
+            userId: response.user_id ? String(response.user_id) : null,
+            groups: Array.isArray(payload.groups) ? payload.groups : [],
+          };
           return response.job_id;
         });
       }
     } catch (error) {
+      pendingCreateGroupSyncRef.current = null;
       // Show detailed validation errors if available
       let msg = "Failed to save user";
       if (error.payload?.details && Array.isArray(error.payload.details)) {
@@ -462,16 +535,55 @@ export default function EmployeesPage() {
   
   // Handle job completion
   useEffect(() => {
+    let cancelled = false;
+
+    const finalizeCreatedUser = async () => {
+      let toastMessage = "User created successfully";
+      let toastType = "success";
+
+      try {
+        const pendingSync = pendingCreateGroupSyncRef.current;
+        const hasGroupsToSync =
+          Array.isArray(pendingSync?.groups) && pendingSync.groups.length > 0;
+
+        if (hasGroupsToSync) {
+          const createdUserId = await resolveCreatedUserId(pendingSync);
+          if (!createdUserId) {
+            throw new Error(
+              "User was created, but the account could not be reloaded for group assignment.",
+            );
+          }
+
+          await updateUserGroupMemberships(createdUserId, pendingSync.groups);
+        }
+      } catch (error) {
+        toastMessage =
+          error?.message ||
+          "User was created, but failed to update group memberships.";
+        toastType = "warning";
+      } finally {
+        pendingCreateGroupSyncRef.current = null;
+        resetCreation();
+        if (!cancelled) {
+          setModalOpen(false);
+          setModalEmployee(null);
+          await fetchUsers();
+          openToast(toastMessage, toastType);
+        }
+      }
+    };
+
     if (status === "succeeded") {
-      openToast("User created successfully");
-      resetCreation();
-      setModalOpen(false);
-      setModalEmployee(null);
-      fetchUsers();
+      void finalizeCreatedUser();
     } else if (status === "failed") {
+      pendingCreateGroupSyncRef.current = null;
       openToast(message || "Failed to create user", "error");
     }
-  }, [status, message]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, message, fetchUsers, resetCreation, resolveCreatedUserId]);
 
   const handleDelete = async (user) => {
     // Use provided user or fall back to modalEmployee for modal context
@@ -700,7 +812,8 @@ export default function EmployeesPage() {
   ];
 
   return (
-    <div className="page-layout" data-testid="page-shell">
+    <PageShell>
+      <div className="page-layout" style={styles.pageContent}>
       {/* Toolbar */}
       <div style={styles.toolbar}>
         <div style={styles.leftActions}>
@@ -721,12 +834,7 @@ export default function EmployeesPage() {
             }}
             placeholder="Search users"
             showIcon={true}
-            style={{
-              flex: "1 1 200px",
-              minWidth: "200px",
-              maxWidth: "680px",
-              width: "100%",
-            }}
+            style={styles.searchField}
           />
 
           <DisplayButton
@@ -772,11 +880,11 @@ export default function EmployeesPage() {
                 onClick={clearSelection}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.08)";
+                    styles.clearSelectionButtonHoverBackground;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.03)";
+                    styles.clearSelectionButtonIdleBackground;
                 }}
               >
                 Clear selection
@@ -879,94 +987,96 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {layout === "list" ? (
-        <div className="page-list-wrapper">
-          <UsersTable
-            users={filtered}
-            showTitle={showTitle}
-            showWorkstations={showWorkstations}
-            showGroups={showGroups}
-            showFiles={showFiles}
-            selectedIds={selectedIds}
-            allVisibleSelected={allVisibleSelected}
-            isIndeterminate={isIndeterminate}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAllVisible}
-            onSort={toggleSort}
-            sortField={sortField}
-            sortDir={sortDir}
-            onEdit={(u) => {
-              trackButton("employees/table/open-edit", {
-                page: "employees",
-                id: u.id,
-              });
-              setModalEmployee(u);
-              setModalOpen(true);
-            }}
-            onDelete={handleDelete}
-          />
-        </div>
-      ) : (
-        <div style={styles.iconsWrapper}>
-          <IconSelectionBar
-            styles={styles}
-            allVisibleSelected={allVisibleSelected}
-            isIndeterminate={isIndeterminate}
-            onToggleSelectAll={toggleSelectAllVisible}
-            selectedCount={selectedCount}
-          />
+      <div style={styles.contentSurface}>
+        {layout === "list" ? (
+          <div className="page-list-wrapper">
+            <UsersTable
+              users={filtered}
+              showTitle={showTitle}
+              showWorkstations={showWorkstations}
+              showGroups={showGroups}
+              showFiles={showFiles}
+              selectedIds={selectedIds}
+              allVisibleSelected={allVisibleSelected}
+              isIndeterminate={isIndeterminate}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onSort={toggleSort}
+              sortField={sortField}
+              sortDir={sortDir}
+              onEdit={(u) => {
+                trackButton("employees/table/open-edit", {
+                  page: "employees",
+                  id: u.id,
+                });
+                setModalEmployee(u);
+                setModalOpen(true);
+              }}
+              onDelete={handleDelete}
+            />
+          </div>
+        ) : (
+          <div style={styles.iconsWrapper}>
+            <IconSelectionBar
+              styles={styles}
+              allVisibleSelected={allVisibleSelected}
+              isIndeterminate={isIndeterminate}
+              onToggleSelectAll={toggleSelectAllVisible}
+              selectedCount={selectedCount}
+            />
 
-          <div style={styles.iconsGrid}>
-            {filtered.map((user) => {
-              const selected = selectedIds.has(user.id);
-              return (
-                <div
-                  key={user.id}
-                  style={{
-                    ...styles.iconCard,
-                    ...(selected ? styles.iconCardSelected : {}),
-                  }}
-                >
-                  <div style={styles.iconCardHeader}>
-                    <Checkbox
-                      checked={selected}
-                      onChange={() => toggleSelect(user.id)}
-                    />
-                    <EditButton menuItems={getUserMenuItems(user)} />
-                  </div>
+            <div style={styles.iconsGrid}>
+              {filtered.map((user) => {
+                const selected = selectedIds.has(user.id);
+                return (
+                  <div
+                    key={user.id}
+                    style={{
+                      ...styles.iconCard,
+                      ...(selected ? styles.iconCardSelected : {}),
+                    }}
+                  >
+                    <div style={styles.iconCardHeader}>
+                      <Checkbox
+                        checked={selected}
+                        onChange={() => toggleSelect(user.id)}
+                      />
+                      <EditButton menuItems={getUserMenuItems(user)} />
+                    </div>
 
-                  <div style={styles.iconTitle}>
-                    <DisplayIcon type="user" data={user} size="small" />
-                    <div style={styles.iconTitleText}>
-                      <span style={styles.iconName}>{user.name}</span>
-                      <span style={styles.iconSub}>G� {user.email}</span>
+                    <div style={styles.iconTitle}>
+                      <DisplayIcon type="user" data={user} size="small" />
+                      <div style={styles.iconTitleText}>
+                        <span style={styles.iconName}>{user.name}</span>
+                        <span style={styles.iconSub}>G� {user.email}</span>
+                      </div>
+                    </div>
+
+                    {iconMetaRows
+                      .filter((row) => row.show)
+                      .map((row) => (
+                        <div key={row.label} style={styles.iconMetaRow}>
+                          <span style={styles.iconMetaLabel}>{row.label}</span>
+                          <span style={styles.iconMetaValue}>{row.value(user)}</span>
+                        </div>
+                      ))}
+
+                    <div style={styles.iconFooter}>
+                      <span style={styles.iconMetaLabel}>{user.status || "offline"}</span>
+                      <ActiveIcon
+                        width={12}
+                        height={12}
+                        outerColor={user.status === "online" ? "#1F381F" : "#381F1F"}
+                        innerColor={user.status === "online" ? "#04C40A" : "#ff5252"}
+                      />
                     </div>
                   </div>
-
-                  {iconMetaRows
-                    .filter((row) => row.show)
-                    .map((row) => (
-                      <div key={row.label} style={styles.iconMetaRow}>
-                        <span style={styles.iconMetaLabel}>{row.label}</span>
-                        <span style={styles.iconMetaValue}>{row.value(user)}</span>
-                      </div>
-                    ))}
-
-                  <div style={styles.iconFooter}>
-                    <span style={styles.iconMetaLabel}>{user.status || "offline"}</span>
-                    <ActiveIcon
-                      width={12}
-                      height={12}
-                      outerColor={user.status === "online" ? "#1F381F" : "#381F1F"}
-                      innerColor={user.status === "online" ? "#04C40A" : "#ff5252"}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Modal */}
       <EmployeesModal
@@ -991,6 +1101,7 @@ export default function EmployeesPage() {
           onClose={() => setToast({ ...toast, open: false })}
         />
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

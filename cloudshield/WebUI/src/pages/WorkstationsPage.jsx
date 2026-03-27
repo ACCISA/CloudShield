@@ -369,11 +369,11 @@ export default function WorkstationsPage() {
 
   return (
     <PageShell>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 24, minHeight: 0 }}>
+      <div style={styles.pageContent}>
         {/* Toolbar */}
         <div style={styles.toolbar}>
           <div style={styles.leftActions}>
-            <SearchField value={search} onChange={(value) => setSearch(value)} placeholder="Search workstations" showIcon={true} style={{ flex: "1 1 200px", minWidth: "200px", maxWidth: "680px", width: "100%" }} />
+            <SearchField value={search} onChange={(value) => setSearch(value)} placeholder="Search workstations" showIcon={true} style={styles.searchField} />
             <DisplayButton layout={layout} onLayoutChange={setLayout} columnToggles={{ columns: [{ key: "showUsers", label: "Users", checked: showUsersCol }, { key: "showCurrent", label: "Current", checked: showCurrentCol }, { key: "showLastUsed", label: "Last Used", checked: showLastUsedCol }], onToggle: (c) => { if (c === "showUsers") setShowUsersCol((p) => !p); if (c === "showCurrent") setShowCurrentCol((p) => !p); if (c === "showLastUsed") setShowLastUsedCol((p) => !p); } }} />
             <FilterButton filterGroups={WORKSTATION_FILTERS} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
           </div>
@@ -382,7 +382,21 @@ export default function WorkstationsPage() {
             {layout === "list" && selectedCount > 0 && (
               <div style={styles.selectionSummary}>
                 <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
-                <button type="button" style={styles.clearSelectionButton} onClick={() => setSelectedIds(new Set())}>Clear selection</button>
+                <button
+                  type="button"
+                  style={styles.clearSelectionButton}
+                  onClick={() => setSelectedIds(new Set())}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      styles.clearSelectionButtonHoverBackground;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      styles.clearSelectionButtonIdleBackground;
+                  }}
+                >
+                  Clear selection
+                </button>
               </div>
             )}
             <RefreshButton onClick={withClickLog({ name: "workstations/refresh", control: "refresh_button" })(handleRefresh)} />
@@ -392,29 +406,30 @@ export default function WorkstationsPage() {
 
         {error && <div role="alert" style={styles.errorBanner}>{error}</div>}
 
-        {/* Clean Conditional Rendering */}
-        {loading ? (
-          <TableSurface>
-            <TableSkeleton rows={8} cols={5} />
-          </TableSurface>
-        ) : layout === "list" ? (
-          <TableSurface>
-            <div style={styles.listWrapper}>
-              <WorkstationList
-                rows={filtered} onEdit={(r) => { setEditRow(r); setOpenModal(true); }} onDelete={handleDelete} onToggleStatus={undefined}
-                selectedIds={selectedIds} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelect={toggleSelect} onToggleSelectAll={toggleSelectAllVisible}
-                showUsers={showUsersCol} showCurrent={showCurrentCol} showLastUsed={showLastUsedCol}
-              />
-            </div>
-          </TableSurface>
-        ) : (
-          <div style={styles.iconsWrapper}>
-            <IconSelectionBar styles={styles} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelectAll={toggleSelectAllVisible} selectedCount={selectedCount} />
-            <div style={styles.iconsGrid}>
-              {filtered.length === 0 ? (
-                <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
-                  <EmptyState message="No workstations found" description="Try adjusting your search or filters, or create a new workstation." />
-                </div>
+        <div style={styles.contentSurface}>
+          {/* Clean Conditional Rendering */}
+          {loading ? (
+            <TableSurface>
+              <TableSkeleton rows={8} cols={5} />
+            </TableSurface>
+          ) : layout === "list" ? (
+            <TableSurface>
+              <div style={styles.listWrapper}>
+                <WorkstationList
+                  rows={filtered} onEdit={(r) => { setEditRow(r); setOpenModal(true); }} onDelete={handleDelete} onToggleStatus={undefined}
+                  selectedIds={selectedIds} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelect={toggleSelect} onToggleSelectAll={toggleSelectAllVisible}
+                  showUsers={showUsersCol} showCurrent={showCurrentCol} showLastUsed={showLastUsedCol}
+                />
+              </div>
+            </TableSurface>
+          ) : (
+            <div style={styles.iconsWrapper}>
+              <IconSelectionBar styles={styles} allVisibleSelected={allVisibleSelected} isIndeterminate={isIndeterminate} onToggleSelectAll={toggleSelectAllVisible} selectedCount={selectedCount} />
+              <div style={styles.iconsGrid}>
+                {filtered.length === 0 ? (
+                  <div style={{ gridColumn: "1 / -1", margin: "32px 0" }}>
+                    <EmptyState message="No workstations found" description="Try adjusting your search or filters, or create a new workstation." />
+                  </div>
 		              ) : (
 		                filtered.map((row) => {
 		                  const selected = selectedIds.has(row.id);
@@ -448,12 +463,13 @@ export default function WorkstationsPage() {
 	                        <ActiveIcon width={12} height={12} outerColor={statusColors.outerColor} innerColor={statusColors.innerColor} />
 	                      </div>
                     </div>
-	                  );
-	                })
+                  );
+                })
               )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {openModal && <WorkstationModal open={openModal} onClose={() => { setOpenModal(false); setEditRow(null); }} workstationData={editRow} onSubmit={(p) => { if (editRow) handleEditSave(editRow.id, p); else handleCreate(p); setOpenModal(false); setEditRow(null); }} onDelete={editRow ? () => { handleDelete(editRow.id); setOpenModal(false); setEditRow(null); } : undefined} />}
       </div>
