@@ -83,14 +83,10 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 _agent_processes[request.agent_id].add(process.name.lower())
 
         unknown_processes = ingest_processes(process_data)
-        pids = [proc["data"].pid for proc in unknown_processes]
         if request.is_pending is True:
             servicer_logger.info("Received cached message")
-        if len(unknown_processes) != 0 and request.is_pending is False:
-            state_manager.set_expected_response(request.agent_id, "SendProcessList", "SendProcessListInformation")
-            return agent_pb2.ProcessListAck(action=True, pids=pids)
 
-        return agent_pb2.ProcessListAck(action=False, pids=pids)
+        return agent_pb2.ProcessListAck(action=False, pids=[])
 
     def SendProcessListInformation(self, request, context):
         if not state_manager.is_expected(request.agent_id, "SendProcessListInformation"):

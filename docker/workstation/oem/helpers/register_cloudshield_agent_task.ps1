@@ -61,6 +61,7 @@ $action = New-ScheduledTaskAction `
     -WorkingDirectory (Split-Path -Path $AgentExePath -Parent)
 
 $trigger = New-ScheduledTaskTrigger -AtStartup
+$trigger.Delay = 'PT30S'  # 30s delay to allow network to come up before agent connects
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
 $settings = New-ScheduledTaskSettingsSet `
@@ -80,5 +81,12 @@ Register-ScheduledTask `
     -Settings $settings `
     -Force | Out-Null
 
-Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-Write-Host "[CloudShield] Scheduled task '$TaskName' is registered and started."
+# Also register a Registry Run key so the agent starts unconditionally on every
+# boot, even when the workstation is cloned from a template image where the
+# scheduled task state may be saved as already "Running".
+$RunKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+Set-ItemProperty -Path $RunKey -Name "CloudShieldAgent" `
+    -Value "cmd.exe /c `"$LauncherCmdPath`"" -Force
+Write-Host "[CloudShield] Registry Run key set for CloudShieldAgent."
+
+Write-Host "[CloudShield] Scheduled task '$TaskName' is registered."

@@ -8,6 +8,7 @@ from utils.logging_setup import get_logger
 from services import service_dispatcher
 from cloudshield.Server.security.guards import require_auth
 from utils import db, db_admin
+from repos import get_workstation_templates
 
 logger = get_logger("workstations")
 

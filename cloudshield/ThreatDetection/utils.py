@@ -68,7 +68,9 @@ def get_agents():
 def is_valid_agent(agents, ip, agent_id):
 
     for agent in agents:
-        if ip == agent["ip"] and agent_id == agent["agent_id"]: 
+        ip_match = ip == agent["ip"]
+        id_match = agent.get("agent_id") in ("*", agent_id)
+        if ip_match and id_match:
             return True
     return False
 

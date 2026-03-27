@@ -173,9 +173,9 @@ function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRef
       gap: "8px",
     },
     tableWrapper: {
-      height: "340px",
       display: "flex",
       flexDirection: "column",
+      overflow: "hidden",
     },
   };
 

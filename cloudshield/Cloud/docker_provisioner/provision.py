@@ -825,6 +825,8 @@ def _write_compose_override_for_org(
     oem_dir: str,
     iso_path: str,
     td_agents_dir: str = "",
+    org_id: str = "",
+    server_url: str = "",
 ) -> None:
     def _yaml_quote(value: str) -> str:
         return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"') + '"'
@@ -853,6 +855,8 @@ def _write_compose_override_for_org(
             "      CLOUDSHIELD_RUNTIME: '1'\n"
             "      AGENTS_FILE: /app/cloudshield/ThreatDetection/org_agents/agents.json\n"
             "      ES_URL: 'http://elasticsearch:9200'\n"
+            + (f"      CLOUDSHIELD_ORG_ID: '{org_id}'\n" if org_id else "")
+            + (f"      CLOUDSHIELD_SERVER_URL: '{server_url}'\n" if server_url else "")
         )
 
     override_yaml = (
@@ -1108,6 +1112,22 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     server_logger.info(f"WORKSTATION_OEM_DIR={oem_dir}")
     server_logger.info(f"TD_AGENTS_DIR={td_agents_dir}")
 
+    # Resolve the CloudShield Server URL so ThreatDetection can push alerts to it.
+    # Look up the API container IP on cloudshield_net at provision time.
+    _cs_server_url = os.environ.get("CLOUDSHIELD_SERVER_URL", "")
+    if not _cs_server_url:
+        try:
+            _plain_docker = DockerClient()
+            for _c in _plain_docker.ps():
+                _nets = _c.network_settings.networks
+                if "cloudshield_net" in _nets and any(
+                    x in _c.name for x in ("cs-api", "cloudshield-api", "api")
+                ):
+                    _cs_server_url = f"http://{_nets['cloudshield_net'].ip_address}:5050"
+                    break
+        except Exception:
+            pass
+
     override_path = cloudshield_path / "docker-compose.org.override.yml"
     _write_compose_override_for_org(
         override_path=override_path,
@@ -1116,6 +1136,8 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         oem_dir=oem_dir,
         iso_path=iso_path,
         td_agents_dir=td_agents_dir,
+        org_id=org_id,
+        server_url=_cs_server_url,
     )
 
     org_docker = DockerClient(compose_files=[COMPOSE_FILE, str(override_path)])
