@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import WorkstationsPage, { createWorkstation } from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
@@ -47,14 +47,29 @@ jest.mock("../../components/table/TableSkeleton.jsx", () => ({
 
 jest.mock("../../components/workstations/WorkstationList.jsx", () => ({
   __esModule: true,
-  default: ({ rows, onDelete, showUsers, showCurrent, showLastUsed }) => (
+  default: ({
+    rows,
+    onDelete,
+    onEdit,
+    onToggleSelect,
+    onToggleSelectAll,
+    selectedIds,
+    allVisibleSelected,
+    showUsers,
+    showCurrent,
+    showLastUsed,
+  }) => (
     <div data-testid="workstation-list">
       <div data-testid="users-column">{showUsers ? "on" : "off"}</div>
       <div data-testid="current-column">{showCurrent ? "on" : "off"}</div>
       <div data-testid="lastused-column">{showLastUsed ? "on" : "off"}</div>
+      <button onClick={onToggleSelectAll}>{allVisibleSelected ? "toggle-all-on" : "toggle-all-off"}</button>
       {rows.map((row) => (
         <div key={row.id}>
           <span>{`${row.name}:${row.status}`}</span>
+          <span>{selectedIds?.has(row.id) ? "selected" : "unselected"}</span>
+          <button onClick={() => onToggleSelect?.(row.id)}>{`select-${row.name}`}</button>
+          <button onClick={() => onEdit?.(row)}>{`edit-${row.name}`}</button>
           {onDelete ? (
             <button onClick={() => onDelete(row.id)}>{`delete-${row.name}`}</button>
           ) : null}
@@ -101,8 +116,10 @@ jest.mock("../../components/common/SearchField/SearchField.jsx", () => ({
 
 jest.mock("../../components/common/DisplayButton/DisplayButton.jsx", () => ({
   __esModule: true,
-  default: ({ columnToggles }) => (
+  default: ({ columnToggles, onLayoutChange }) => (
     <div>
+      <button onClick={() => onLayoutChange("list")}>layout-list</button>
+      <button onClick={() => onLayoutChange("icons")}>layout-icons</button>
       <button onClick={() => columnToggles.onToggle("showUsers")}>toggle-users</button>
       <button onClick={() => columnToggles.onToggle("showCurrent")}>toggle-current</button>
       <button onClick={() => columnToggles.onToggle("showLastUsed")}>toggle-lastused</button>
@@ -112,7 +129,14 @@ jest.mock("../../components/common/DisplayButton/DisplayButton.jsx", () => ({
 
 jest.mock("../../components/common/FilterButton/FilterButton.jsx", () => ({
   __esModule: true,
-  default: () => <div data-testid="filter-button" />,
+  default: ({ onFilterChange }) => (
+    <div data-testid="filter-button">
+      <button onClick={() => onFilterChange("status", "connected", true)}>filter-connected-on</button>
+      <button onClick={() => onFilterChange("status", "connected", false)}>filter-connected-off</button>
+      <button onClick={() => onFilterChange("hasUsers", "activeUsers", true)}>filter-users-on</button>
+      <button onClick={() => onFilterChange("hasUsers", "activeUsers", false)}>filter-users-off</button>
+    </div>
+  ),
 }));
 
 jest.mock("../../components/common/CreateButton/CreateButton.jsx", () => ({
@@ -123,6 +147,57 @@ jest.mock("../../components/common/CreateButton/CreateButton.jsx", () => ({
 jest.mock("../../components/common/RefreshButton/RefreshButton.jsx", () => ({
   __esModule: true,
   default: ({ onClick }) => <button onClick={onClick}>Refresh</button>,
+}));
+
+jest.mock("../../components/common/IconSelectionBar.jsx", () => ({
+  __esModule: true,
+  default: ({ selectedCount, onToggleSelectAll }) => (
+    <div data-testid="icon-selection-bar">
+      <span>{selectedCount}</span>
+      <button onClick={onToggleSelectAll}>icon-toggle-all</button>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/DisplayIcon/DisplayIcon.jsx", () => ({
+  __esModule: true,
+  default: ({ type, data }) => (
+    <span data-testid={`display-icon-${type}`}>
+      {type}:{data?.name || data?.firstName || data?.lastName || "unknown"}
+    </span>
+  ),
+}));
+
+jest.mock("../../components/common/EditButton/EditButton.jsx", () => ({
+  __esModule: true,
+  default: ({ menuItems = [] }) => (
+    <div>
+      {menuItems.map((item) => (
+        <button key={item.label} onClick={item.onClick}>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/StatusButton/StatusButton.jsx", () => ({
+  __esModule: true,
+  default: ({ status, onClick }) => (
+    <button onClick={onClick}>{status || "no-status"}</button>
+  ),
+}));
+
+jest.mock("../../assets/ActiveIcon.jsx", () => ({
+  __esModule: true,
+  default: ({ outerColor, innerColor }) => (
+    <span data-testid="active-icon">{`${outerColor}|${innerColor}`}</span>
+  ),
+}));
+
+jest.mock("../../components/common/EmptyState/EmptyState.jsx", () => ({
+  __esModule: true,
+  default: ({ message }) => <div>{message}</div>,
 }));
 
 const TRACKED_WORKSTATIONS_KEY = "tracked_workstation_creations";
@@ -224,6 +299,28 @@ describe("WorkstationsPage", () => {
     expect(screen.getByText("Beta:disconnected")).toBeInTheDocument();
   });
 
+  test("filters rows by status and active users", async () => {
+    fetchWorkstations.mockResolvedValue([
+      { id: "w1", name: "Alpha", status: "connected", usersCount: 1 },
+      { id: "w2", name: "Beta", status: "disconnected", usersCount: 0 },
+    ]);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha:connected")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "filter-connected-on" }));
+
+    expect(screen.getByText("Alpha:connected")).toBeInTheDocument();
+    expect(screen.queryByText("Beta:disconnected")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "filter-users-on" }));
+    expect(screen.getByText("Alpha:connected")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "filter-connected-off" }));
+    fireEvent.click(screen.getByRole("button", { name: "filter-users-off" }));
+    expect(screen.getByText("Beta:disconnected")).toBeInTheDocument();
+  });
+
   test("toggles visible columns via display controls", async () => {
     renderPage();
 
@@ -235,6 +332,29 @@ describe("WorkstationsPage", () => {
     expect(screen.getByTestId("users-column")).toHaveTextContent("off");
     expect(screen.getByTestId("current-column")).toHaveTextContent("off");
     expect(screen.getByTestId("lastused-column")).toHaveTextContent("off");
+  });
+
+  test("toggles row selection, select-all states, and clears selection summary", async () => {
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha:connected")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "toggle-all-off" }));
+    expect(screen.getByText("2 selected")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "toggle-all-on" }));
+    await waitFor(() => expect(screen.queryByText("2 selected")).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "select-Alpha" }));
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "toggle-all-off" }));
+    await waitFor(() => expect(screen.queryByText("1 selected")).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "select-Alpha" }));
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    await waitFor(() => expect(screen.queryByText("1 selected")).not.toBeInTheDocument());
   });
 
   test("creates an optimistic row, polls job status, and persists the tracked row", async () => {
@@ -266,6 +386,48 @@ describe("WorkstationsPage", () => {
     tracked = JSON.parse(localStorage.getItem(TRACKED_WORKSTATIONS_KEY));
     expect(tracked[0].row.id).toBe("tpl-1");
     expect(tracked[0].row.online).toBe(true);
+  });
+
+  test("keeps a workstation provisioning while polling reports started", async () => {
+    fetchWorkstations.mockResolvedValue([]);
+    apiPost.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ job_id: "job-started" }),
+    });
+    apiGet.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ status: "started", progress: "starting ws_create_default" }),
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("workstation-list")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => expect(screen.getByText("Created WS:provisioning")).toBeInTheDocument());
+    const tracked = JSON.parse(localStorage.getItem(TRACKED_WORKSTATIONS_KEY));
+    expect(tracked[0].row.status).toBe("provisioning");
+    expect(tracked[0].row.online).toBe(false);
+  });
+
+  test("marks a workstation as failed when polling returns failure progress", async () => {
+    fetchWorkstations.mockResolvedValue([]);
+    apiPost.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ job_id: "job-fail" }),
+    });
+    apiGet.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ status: "finished", progress: "failed to get server nodes" }),
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("workstation-list")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => expect(screen.getByText("Created WS:provisioning")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Created WS:failed")).toBeInTheDocument());
+    const tracked = JSON.parse(localStorage.getItem(TRACKED_WORKSTATIONS_KEY));
+    expect(tracked[0].row.status).toBe("failed");
   });
 
   test("removes the optimistic row when create request fails", async () => {
@@ -310,6 +472,73 @@ describe("WorkstationsPage", () => {
     expect(tracked[0].row.status).toBe("connected");
   });
 
+  test("logs and recovers when tracked workstation storage is invalid", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    localStorage.setItem(TRACKED_WORKSTATIONS_KEY, "{invalid-json");
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha:connected")).toBeInTheDocument());
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to read tracked workstation jobs:",
+      expect.any(Error),
+    );
+  });
+
+  test("logs when tracked workstation persistence fails", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const originalSetItem = Storage.prototype.setItem;
+    const setItemSpy = jest.spyOn(Storage.prototype, "setItem").mockImplementation(function setItem(key, value) {
+      if (key === TRACKED_WORKSTATIONS_KEY) {
+        throw new Error("quota exceeded");
+      }
+      return originalSetItem.call(this, key, value);
+    });
+
+    fetchWorkstations.mockResolvedValue([]);
+    apiPost.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ job_id: "job-storage" }),
+    });
+    apiGet.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({
+        status: "finished",
+        result: { result: { template_id: "tpl-storage" } },
+      }),
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("workstation-list")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => expect(screen.getByText("Created WS:connected")).toBeInTheDocument());
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to persist tracked workstation jobs:",
+      expect.any(Error),
+    );
+    setItemSpy.mockRestore();
+  });
+
+  test("opens from route state", async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/", state: { openModal: true } }]}>
+        <WorkstationsPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("workstation-modal")).toBeInTheDocument());
+  });
+
+  test("edits an existing row through modal submit mapping", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alpha:connected")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "edit-Alpha" }));
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => expect(screen.getByText("Created WS:connected")).toBeInTheDocument());
+  });
+
   test("deletes the row and removes matching tracked entries", async () => {
     fetchWorkstations.mockResolvedValue([{ id: "w1", name: "Alpha", status: "connected", usersCount: 0 }]);
     localStorage.setItem(
@@ -336,5 +565,24 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Unable to refresh"));
+  });
+
+  test("renders icon layout with status colors and empty state", async () => {
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha:connected")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "layout-icons" }));
+
+    expect(screen.getByTestId("icon-selection-bar")).toBeInTheDocument();
+    expect(screen.getAllByTestId("active-icon").length).toBeGreaterThan(0);
+    expect(screen.getByText("connected")).toBeInTheDocument();
+  });
+
+  test("renders empty state in icon layout when no rows exist", async () => {
+    fetchWorkstations.mockResolvedValue([]);
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "layout-icons" }));
+    await waitFor(() => expect(screen.getByText("No workstations found")).toBeInTheDocument());
   });
 });

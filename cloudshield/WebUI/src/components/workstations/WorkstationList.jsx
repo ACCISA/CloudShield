@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -403,6 +404,50 @@ function WorkstationRow({
   );
 }
 
+const userShape = PropTypes.oneOfType([
+  PropTypes.string,
+  PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    email: PropTypes.string,
+    title: PropTypes.string,
+    role: PropTypes.string,
+    name: PropTypes.string,
+  }),
+]);
+
+const workstationRowShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  name: PropTypes.string,
+  code: PropTypes.string,
+  status: PropTypes.string,
+  lastUsed: PropTypes.string,
+  currentUser: userShape,
+  users: PropTypes.arrayOf(userShape),
+});
+
+UsersPill.propTypes = {
+  row: workstationRowShape.isRequired,
+};
+
+WorkstationRow.propTypes = {
+  r: workstationRowShape.isRequired,
+  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
+  showUsers: PropTypes.bool.isRequired,
+  showCurrent: PropTypes.bool.isRequired,
+  showLastUsed: PropTypes.bool.isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onToggleStatus: PropTypes.func,
+  isLast: PropTypes.bool.isRequired,
+  isMobile: PropTypes.bool.isRequired,
+  isTablet: PropTypes.bool.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onToggleSelect: PropTypes.func.isRequired,
+};
+
 export default function WorkstationList({
   rows,
   onEdit,
@@ -512,3 +557,18 @@ export default function WorkstationList({
     </>
   );
 }
+
+WorkstationList.propTypes = {
+  rows: PropTypes.arrayOf(workstationRowShape).isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onToggleStatus: PropTypes.func,
+  selectedIds: PropTypes.instanceOf(Set),
+  allVisibleSelected: PropTypes.bool,
+  isIndeterminate: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onToggleSelectAll: PropTypes.func,
+  showUsers: PropTypes.bool,
+  showCurrent: PropTypes.bool,
+  showLastUsed: PropTypes.bool,
+};

@@ -363,6 +363,41 @@ export default function WorkstationModal({
   );
 }
 
+const modalItemShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  firstName: PropTypes.string,
+  lastName: PropTypes.string,
+  email: PropTypes.string,
+  title: PropTypes.string,
+  members: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  category: PropTypes.string,
+  icon: PropTypes.node,
+});
+
+const workstationDataShape = PropTypes.shape({
+  name: PropTypes.string,
+  strength: PropTypes.string,
+  image: PropTypes.string,
+  desktopBackground: PropTypes.string,
+  groups: PropTypes.arrayOf(modalItemShape),
+  users: PropTypes.arrayOf(modalItemShape),
+  software: PropTypes.arrayOf(modalItemShape),
+  allUsers: PropTypes.bool,
+  allGroups: PropTypes.bool,
+  allSoftware: PropTypes.bool,
+  wallpaper: PropTypes.string,
+});
+
+WorkstationModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  workstationData: workstationDataShape,
+  onSubmit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
+
 // Sub-components
 function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
   // Extract the handlers if it's an object (WorkstationModal case)
@@ -768,6 +803,19 @@ function GenericSelectionStep({
   );
 }
 
+GenericSelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+};
+
 function SoftwareStep({
   searchTerm,
   setSearchTerm,
@@ -895,3 +943,15 @@ function SoftwareStep({
     </div>
   );
 }
+
+SoftwareStep.propTypes = {
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+};

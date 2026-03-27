@@ -23,6 +23,7 @@ import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import { safeAsync } from "../lib/safeAsync";
 import { getUserErrorMessage } from "../lib/errors";
 import { sharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
