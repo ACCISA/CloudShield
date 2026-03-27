@@ -16,6 +16,7 @@ from .dc_management import dc_remove_group as dc_remove_group
 from .dc_management import dc_update_file_share as dc_update_file_share
 from .email_tasks import send_org_welcome_email as send_org_welcome_email
 from .email_tasks import send_employee_invite_email as send_employee_invite_email
+from .email_tasks import send_workstation_ready_email as send_workstation_ready_email
 
 from .workstations import ws_create_default as ws_create_default
 from .workstations import ws_start as ws_start

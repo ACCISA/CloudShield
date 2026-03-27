@@ -1,13 +1,8 @@
 import React, { useState } from "react";
-import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { trackButton } from "../lib/analytics";
-import { useAppTheme } from "../context/ThemeContext";
 
-import PageShell from "../components/layout/PageShell.jsx";
-import TableSurface from "../components/table/TableSurface.jsx";
-import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { getUserErrorMessage } from "../lib/errors";
 
 import SignupCard from "../components/signup/SignupCard.jsx";
@@ -17,6 +12,7 @@ import PasswordField from "../components/auth/PasswordField.jsx";
 import PrimaryButton from "../components/auth/PrimaryButton.jsx";
 
 import { apiPost } from "../api/client";
+import "./auth.css";
 
 // to be updated later with real plans
 const PLAN_OPTIONS = [
@@ -69,8 +65,7 @@ const PLAN_OPTIONS = [
 ];
 
 const BYPASS_STRIPE =
-  typeof import.meta !== "undefined" &&
-  import.meta.env?.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
+  import.meta?.env?.VITE_BYPASS_STRIPE_CONFIRMATION === "true";
 
 const EMAIL_MAX_LENGTH = 254;
 const PASSWORD_REQUIREMENTS_MESSAGE =
@@ -99,7 +94,9 @@ function isEmailValid(raw) {
 function extractServerErrors(res, data) {
   if (res.status === 400) {
     if (data.errors && typeof data.errors === "object") return data.errors;
-    return { form: data.message || "Validation error. Please check your inputs." };
+    return {
+      form: data.message || "Validation error. Please check your inputs.",
+    };
   }
 
   if (res.status === 409) {
@@ -111,18 +108,20 @@ function extractServerErrors(res, data) {
   }
 
   if (!res.ok) {
-    return { form: data.message || "Unexpected error during signup. Please try again." };
+    return {
+      form: data.message || "Unexpected error during signup. Please try again.",
+    };
   }
 
   return null;
 }
 
 export default function SignupPage({ onSignupSuccess }) {
-  const theme = useAppTheme();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [company, setCompany] = useState("");
   const [plan, setPlan] = useState("pro");
 
@@ -134,6 +133,12 @@ export default function SignupPage({ onSignupSuccess }) {
     setPlan(id);
   };
 
+  const submitLabel = (() => {
+    if (!submitting) return "Create Organization";
+    if (BYPASS_STRIPE) return "Creating...";
+    return "Redirecting to payment...";
+  })();
+
   const validate = () => {
     const next = {};
     const passwordRegex =
@@ -143,6 +148,7 @@ export default function SignupPage({ onSignupSuccess }) {
     if (!passwordRegex.test(password)) {
       next.password = PASSWORD_REQUIREMENTS_MESSAGE;
     }
+    if (!adminName.trim()) next.adminName = "Admin name is required.";
     if (!company.trim()) next.company = "Company name is required.";
 
     setErrors(next);
@@ -166,16 +172,13 @@ export default function SignupPage({ onSignupSuccess }) {
 
     try {
       // 1. Create the User and Organization in MongoDB
-      const createUserRes = await apiPost(
-        "/auth/signup",
-       	{
-		email: email,
-            	password: password,
-            	full_name: company,
-            	company_name: company,
-            	package_type: plan,
-          },
-        );
+      const createUserRes = await apiPost("/auth/signup", {
+        email: email,
+        password: password,
+        full_name: adminName,
+        company_name: company,
+        package_type: plan,
+      });
 
       let createUserData = {};
       try {
@@ -183,8 +186,11 @@ export default function SignupPage({ onSignupSuccess }) {
       } catch (err) {
         console.error("Could not parse JSON response", err);
       }
-      console.log(createUserRes)
-      const createUserErrors = extractServerErrors(createUserRes, createUserData);
+      console.log(createUserRes);
+      const createUserErrors = extractServerErrors(
+        createUserRes,
+        createUserData,
+      );
       if (createUserErrors) {
         setErrors((prev) => ({ ...prev, ...createUserErrors }));
         return;
@@ -253,7 +259,7 @@ export default function SignupPage({ onSignupSuccess }) {
       }
 
       if (checkoutData.url) {
-        window.location.href = checkoutData.url;
+        globalThis.location.href = checkoutData.url;
       } else {
         navigate("/provisioning", { replace: true });
       }
@@ -265,191 +271,97 @@ export default function SignupPage({ onSignupSuccess }) {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "background.default",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: { xs: 2, md: 4, lg: 6 },
-        py: { xs: 3, md: 4 },
-      }}
-    >
-      <Box sx={{ width: "100%", maxWidth: 1240 }}>
-        <PageShell>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", md: "row" },
-              gap: { xs: 3, md: 5 },
-              alignItems: "stretch",
-            }}
-          >
-            <Box
-              sx={{
-                flex: { xs: "1 1 auto", md: "0 0 360px" },
-                display: "flex",
-                alignItems: "center",
+    <div className="signup-page">
+      <div className="signup-inner">
+        {/* ── Left: form ── */}
+        <div className="signup-form-col">
+          <SignupCard>
+            <h2 className="auth-card__title">Create Your Organization</h2>
+
+            {BYPASS_STRIPE && (
+              <div className="signup-bypass-banner">
+                Billing disabled — VITE_BYPASS_STRIPE_CONFIRMATION=true
+              </div>
+            )}
+
+            {errors.form && <div className="auth-error">{errors.form}</div>}
+
+            <AuthTextField
+              label="Email"
+              placeholder="jane@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {errors.email && <p className="auth-field-error">{errors.email}</p>}
+
+            <PasswordField
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {errors.password && (
+              <p className="auth-field-error">{errors.password}</p>
+            )}
+
+            <AuthTextField
+              label="Admin Name"
+              placeholder="Jane Doe"
+              value={adminName}
+              onChange={(e) => setAdminName(e.target.value)}
+            />
+            {errors.adminName && (
+              <p className="auth-field-error">{errors.adminName}</p>
+            )}
+
+            <AuthTextField
+              label="Company Name"
+              placeholder="Acme Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
+            {errors.company && (
+              <p className="auth-field-error">{errors.company}</p>
+            )}
+
+            <PrimaryButton onClick={handleSignup} disabled={submitting}>
+              {submitLabel}
+            </PrimaryButton>
+
+            <button
+              type="button"
+              className="auth-nav-link"
+              onClick={() => {
+                trackButton("signup/nav/login", { page: "signup" });
+                navigate("/login");
               }}
             >
-              <SignupCard>
-                <Typography
-                  sx={{
-                    fontSize: "1.6rem",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    mb: 2.5,
-                  }}
-                >
-                  Create Your Organization
-                </Typography>
+              Already have an account? Log in
+            </button>
+          </SignupCard>
+        </div>
 
-                {BYPASS_STRIPE && (
-                  <Box
-                    sx={{
-                      mb: 2,
-                      px: 2,
-                      py: 1.2,
-                      borderRadius: "8px",
-                      bgcolor: "rgba(250, 204, 21, 0.08)",
-                      border: "1px solid rgba(250, 204, 21, 0.2)",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        color: "#facc15",
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                        textAlign: "center",
-                      }}
-                    >
-                      Billing disabled — VITE_BYPASS_STRIPE_CONFIRMATION=true
-                    </Typography>
-                  </Box>
-                )}
-
-                {errors.form && (
-                  <Typography
-                    sx={{
-                      color: "#f87171",
-                      mb: 1.5,
-                      fontSize: "0.9rem",
-                      textAlign: "center",
-                    }}
-                  >
-                    {errors.form}
-                  </Typography>
-                )}
-
-                <AuthTextField
-                  label="Email"
-                  placeholder="jane@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                {errors.email && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
-                    {errors.email}
-                  </Typography>
-                )}
-
-                <PasswordField
-                  label="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                {errors.password && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
-                    {errors.password}
-                  </Typography>
-                )}
-
-                <AuthTextField
-                  label="Company Name"
-                  placeholder="Acme Corp"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                />
-                {errors.company && (
-                  <Typography sx={{ color: "error.main", mb: 1.5, fontSize: "0.85rem" }}>
-                    {errors.company}
-                  </Typography>
-                )}
-
-                <PrimaryButton onClick={handleSignup} disabled={submitting}>
-                  {submitting
-                    ? BYPASS_STRIPE
-                      ? "Creating..."
-                      : "Redirecting to payment..."
-                    : "Create Organization"}
-                </PrimaryButton>
-
-                <Typography
-                  onClick={() => {
-                    trackButton("signup/nav/login", { page: "signup" });
-                    navigate("/login");
-                  }}
-                  sx={{
-                    cursor: "pointer",
-                    mt: 1.5,
-                    textAlign: "center",
-                    color: "text.primary",
-                    fontSize: "0.9rem",
-                    "&:hover": {
-                      textDecoration: "underline",
-                      color: "primary.main",
-                    },
-                  }}
-                >
-                  Already have an account? Log in
-                </Typography>
-              </SignupCard>
-            </Box>
-
-            <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: "1.9rem",
-                  fontWeight: 700,
-                  color: "text.primary",
-                  mb: 2.5,
-                  textAlign: { xs: "center", md: "left" },
-                }}
-              >
-                Your Plan Overview
-              </Typography>
-
-              <TableSurface>
-                <Box sx={{ p: 2 }}>
-                  {submitting ? (
-                    <TableSkeleton rows={4} cols={3} />
-                  ) : (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 2.5,
-                        justifyContent: { xs: "center", md: "flex-start" },
-                      }}
-                    >
-                      {PLAN_OPTIONS.map((p) => (
-                        <PlanCard
-                          key={p.id}
-                          plan={p}
-                          selected={plan === p.id}
-                          onSelect={handlePlanSelect}
-                        />
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-              </TableSurface>
-            </Box>
-          </Box>
-        </PageShell>
-      </Box>
-    </Box>
+        {/* ── Right: plan selection ── */}
+        <div className="signup-plans-col">
+          <h2 className="signup-plans-title">Your Plan Overview</h2>
+          <div
+            className="signup-plans-grid"
+            style={{
+              opacity: submitting ? 0.7 : 1,
+              pointerEvents: submitting ? "none" : "auto",
+            }}
+          >
+            {PLAN_OPTIONS.map((p) => (
+              <PlanCard
+                key={p.id}
+                plan={p}
+                selected={plan === p.id}
+                onSelect={handlePlanSelect}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

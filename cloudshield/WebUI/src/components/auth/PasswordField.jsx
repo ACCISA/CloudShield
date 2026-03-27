@@ -1,19 +1,38 @@
-/**
- * PasswordField.jsx
- *
- * Purpose:
- *   Password input with a show/hide toggle and accessory label. Used on auth screens.
- *
- * Props:
- *   - label: string label shown above the input (default: 'Password')
- *   - value: current password value
- *   - onChange: change handler (e) => void
- */
 import React, { useState } from "react";
-import { Box, Typography, OutlinedInput, IconButton } from "@mui/material";
-import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { useThemeColors } from "../../hooks/useThemeColors.js";
+import "../../pages/auth.css";
+
+const EyeOpenIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeClosedIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
 
 /**
  * Password input field with show/hide toggle.
@@ -29,102 +48,34 @@ export default function PasswordField({
   onChange,
   onKeyDown,
 }) {
-  // Track whether password is visible or hidden
   const [show, setShow] = useState(false);
-  const themeColors = useThemeColors();
-
-  const handleToggle = () => setShow(!show);
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleToggle();
-    }
-  };
 
   return (
-    <Box sx={{ width: "100%", mb: 3 }}>
-      <Typography
-        sx={{
-          color: themeColors.text,
-          fontSize: "0.9rem",
-          fontWeight: 500,
-          mb: "6px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          lineHeight: 1.2,
-        }}
-      >
-        <span>{label}</span>
-        {/* in your screenshot, "Hide" text + eye icon appears on the same row as label */}
-        <Box
-          component="span"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            color: themeColors.text,
-            fontSize: "0.9rem",
-            fontWeight: 400,
-            opacity: 0.8,
-            cursor: "pointer",
-          }}
-          onClick={handleToggle}
-          onKeyDown={handleKeyDown}
-          role="button"
-          tabIndex={0}
+    <div className="auth-input-wrap" style={{ marginBottom: 18 }}>
+      <div className="auth-password-label-row">
+        <label className="auth-label" style={{ margin: 0 }}>
+          {label}
+        </label>
+        <button
+          type="button"
+          className="auth-show-toggle"
+          onClick={() => setShow((s) => !s)}
           aria-label={show ? "Hide password" : "Show password"}
         >
+          {show ? <EyeOpenIcon /> : <EyeClosedIcon />}
           {show ? "Hide" : "Show"}
-          <IconButton
-            onClick={handleToggle}
-            size="small"
-            sx={{
-              color: themeColors.text,
-              p: 0,
-            }}
-          >
-            {show ? (
-              <VisibilityOffOutlinedIcon fontSize="small" />
-            ) : (
-              <VisibilityOutlinedIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Box>
-      </Typography>
-
-      <OutlinedInput
-        type={show ? "text" : "password"}
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        sx={{
-          width: "100%",
-          backgroundColor: themeColors.inputBg,
-          borderRadius: "8px",
-          color: themeColors.textPrimary,
-          fontSize: "0.95rem",
-          lineHeight: 1.3,
-          border: `1px solid ${themeColors.borderLight}`,
-          paddingY: "12px",
-          paddingX: "12px",
-          "& .MuiOutlinedInput-notchedOutline": {
-            border: "none",
-          },
-          "&:hover": {
-            backgroundColor: themeColors.bgSecondary,
-          },
-          "&.Mui-focused": {
-            outline: "2px solid rgba(255,255,255,0.4)",
-            outlineOffset: "0px",
-          },
-          "& input": {
-            padding: 0,
-            letterSpacing: "0.15em", // like password dots feel tighter
-          },
-        }}
-      />
-    </Box>
+        </button>
+      </div>
+      <div className="auth-input-container">
+        <input
+          className="auth-input"
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          placeholder="••••••••••••"
+        />
+      </div>
+    </div>
   );
 }

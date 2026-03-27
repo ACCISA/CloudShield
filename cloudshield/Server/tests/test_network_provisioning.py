@@ -395,6 +395,10 @@ def test_destroy_environment_success(monkeypatch, tmp_path):
         str(jobs_dir)
     )
     monkeypatch.setattr(
+        "tasks.network_provisioning._detect_mode",
+        lambda logger: "terraform"
+    )
+    monkeypatch.setattr(
         "tasks.network_provisioning.destroy_infra",
         lambda org_id, region, force_empty_s3, org_dir, server_logger: None
     )

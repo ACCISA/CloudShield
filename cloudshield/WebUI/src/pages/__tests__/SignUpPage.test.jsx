@@ -122,6 +122,9 @@ describe("SignupPage", () => {
     fireEvent.change(screen.getByTestId("password-field"), {
       target: { value: password },
     });
+    fireEvent.change(screen.getByTestId("auth-field-admin-name"), {
+      target: { value: "Jane Doe" },
+    });
     fireEvent.change(screen.getByTestId("auth-field-company-name"), {
       target: { value: company },
     });
@@ -165,6 +168,7 @@ describe("SignupPage", () => {
     expect(screen.getByText("Create Your Organization")).toBeInTheDocument();
     expect(screen.getByTestId("auth-field-email")).toBeInTheDocument();
     expect(screen.getByTestId("password-field")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-field-admin-name")).toBeInTheDocument();
     expect(screen.getByTestId("auth-field-company-name")).toBeInTheDocument();
     expect(screen.getByTestId("primary-button")).toBeInTheDocument();
   });
@@ -202,6 +206,15 @@ describe("SignupPage", () => {
     fireEvent.change(companyInput, { target: { value: "Acme Corp" } });
 
     expect(companyInput.value).toBe("Acme Corp");
+  });
+
+  it("updates admin name field", () => {
+    renderSignupPage();
+
+    const adminInput = screen.getByTestId("auth-field-admin-name");
+    fireEvent.change(adminInput, { target: { value: "Jane Doe" } });
+
+    expect(adminInput.value).toBe("Jane Doe");
   });
 
   it("selects a plan when plan card is clicked", () => {
@@ -263,6 +276,26 @@ describe("SignupPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Company name is required.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error for missing admin name", async () => {
+    renderSignupPage();
+
+    fireEvent.change(screen.getByTestId("auth-field-email"), {
+      target: { value: VALID_EMAIL },
+    });
+    fireEvent.change(screen.getByTestId("password-field"), {
+      target: { value: VALID_PASSWORD },
+    });
+    fireEvent.change(screen.getByTestId("auth-field-company-name"), {
+      target: { value: VALID_COMPANY },
+    });
+
+    fireEvent.click(screen.getByTestId("primary-button"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Admin name is required.")).toBeInTheDocument();
     });
   });
 
@@ -406,7 +439,7 @@ describe("SignupPage", () => {
       expect.objectContaining({
         email: VALID_EMAIL,
         password: VALID_PASSWORD,
-        full_name: VALID_COMPANY,
+        full_name: "Jane Doe",
         company_name: VALID_COMPANY,
         package_type: "pro",
       }),
@@ -458,6 +491,9 @@ describe("SignupPage", () => {
         screen.queryByText("Create Organization")
       ).not.toBeInTheDocument();
     });
+
+    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
+    expect(screen.getByTestId("plan-card-basic")).toBeInTheDocument();
   });
 
   it("clears form errors when resubmitting", async () => {
@@ -520,6 +556,7 @@ describe("SignupPage — Stripe checkout flow", () => {
   function setValidFormValues() {
     fireEvent.change(screen.getByTestId("auth-field-email"), { target: { value: VALID_EMAIL } });
     fireEvent.change(screen.getByTestId("password-field"), { target: { value: VALID_PASSWORD } });
+    fireEvent.change(screen.getByTestId("auth-field-admin-name"), { target: { value: "Jane Doe" } });
     fireEvent.change(screen.getByTestId("auth-field-company-name"), { target: { value: VALID_COMPANY } });
   }
 

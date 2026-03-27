@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import { useLocation } from "react-router-dom";
 import { useClickLogger } from "../hooks/useClickLogger";
-import { useThemeColors } from "../hooks/useThemeColors.js";
 import { trackButton } from "../lib/analytics";
 
+// UI Components
 import UsersTable from "../components/users/UsersTable.jsx";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
-import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
 
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
@@ -15,6 +15,7 @@ import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx"
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import EmployeesModal from "../components/users/EmployeesModal.jsx";
 import CreateUserIcon from "../assets/CreateUserIcon.jsx";
+import UploadFileIcon from "../assets/UploadFileIcon.jsx";
 import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
@@ -22,9 +23,8 @@ import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
 import ActiveIcon from "../assets/ActiveIcon.jsx";
-import { getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { sharedIconViewStyles, getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
-
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
@@ -32,6 +32,7 @@ import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import { getUserErrorMessage } from "../lib/errors.js";
 import { formatShares } from "../lib/format.js";
 import { safeAsync } from "../lib/safeAsync.js";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 
 import { listUsers, deleteUser, createUser, updateUser } from "../services/usersApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -54,20 +55,39 @@ const CustomToast = ({ msg, type = "success", onClose }) => {
   );
 };
 
+CustomToast.propTypes = {
+  msg: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(["success", "error", "info", "warning"]),
+  onClose: PropTypes.func.isRequired,
+};
+
+CustomToast.defaultProps = {
+  type: "success",
+};
+
+/**
+ * Returns the groups (from allGroups) where userId is a member.
+ */
 function getUserGroups(allGroups, userId) {
-  return allGroups.filter((g) => {
-    const members = Array.isArray(g.members) ? g.members : [];
-    return members.some((m) => String(m) === userId);
-  });
+  return allGroups
+    .filter((g) => {
+      const members = Array.isArray(g.members) ? g.members : [];
+      return members.some((m) => String(m) === userId);
+    });
 }
 
+/**
+ * Enriches a raw API user with group, workstation, and file-share data.
+ */
 function enrichUser(user, allGroups) {
   const userId = String(user._id);
   const memberGroups = getUserGroups(allGroups, userId);
 
   const userGroups = memberGroups.map((g) => ({
-    id: g.id || g._id, name: g.group_name || g.name || "Unknown Group",
-    description: g.description || "", image: g.group_image || null,
+    id: g.id || g._id,
+    name: g.group_name || g.name || "Unknown Group",
+    description: g.description || "",
+    image: g.group_image || null,
   }));
 
   const workstationMap = new Map();
@@ -108,29 +128,44 @@ export default function EmployeesPage() {
   
   const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
+  // CSV import file input ref
+  const csvInputRef = useRef(null);
+  const pendingCreateGroupSyncRef = useRef(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [showCsvHelp, setShowCsvHelp] = useState(false);
+
+  // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
     if (currentUser?.org_id && currentUser.org_id !== "default-org") return currentUser.org_id;
     try { const stored = localStorage.getItem("org_id"); if (stored) return stored; } catch (e) {}
     return null;
   }, [currentUser]);
 
+  // UI State
   const [modalOpen, setModalOpen] = useState(false);
   const [modalEmployee, setModalEmployee] = useState(null);
 
+  // Open modal if navigated from dashboard
   useEffect(() => {
     if (location.state?.openModal) { setModalOpen(true); setModalEmployee(null); window.history.replaceState({}, document.title); }
   }, [location]);
 
   const [layout, setLayout] = useState("list");
+
   const [sortField, setSortField] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
+
+  // Column visibility toggles
   const [showTitle, setShowTitle] = useState(true);
   const [showWorkstations, setShowWorkstations] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
   const [showFiles, setShowFiles] = useState(true);
+
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Data State
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true); // START TRUE
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
   const [activeFilters, setActiveFilters] = useState({ status: new Set() });
@@ -140,6 +175,49 @@ export default function EmployeesPage() {
   const resolveAuthToken = () => { try { return localStorage.getItem("jwt") || accessToken || null; } catch { return accessToken || null; } };
   const getAuthHeader = () => { const token = resolveAuthToken(); return token ? { Authorization: `Bearer ${token}` } : {}; };
 
+  const fetchAccessGroups = async () => {
+    try {
+      const res = await fetch(ACCESS_GROUPS_URL, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      });
+      if (!res.ok) return [];
+
+      const data = await res.json();
+      return data.access_groups || [];
+    } catch (e) {
+      console.warn("Failed to fetch groups:", e);
+      return [];
+    }
+  };
+
+  const patchAccessGroupMembers = async (groupId, members) => {
+    const res = await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify({ members }),
+    });
+
+    if (!res.ok) {
+      let msg = "Failed to update access group membership";
+      try {
+        const data = await res.json();
+        msg = data?.error || data?.details || msg;
+      } catch {
+        // Ignore JSON parse errors and use the generic message.
+      }
+      throw new Error(msg);
+    }
+  };
+
+  /**
+   * Update group memberships for a user.
+   * Fetches all groups, determines current membership, and updates accordingly.
+   * @param {string} userId - The user ID to update group memberships for
+   * @param {Array} newGroups - Array of new group objects {id, name, ...} to be members of
+   */
   const updateUserGroupMemberships = async (userId, newGroups) => {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
     const res = await fetch("http://127.0.0.1:5050/api/access-groups", { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
@@ -149,20 +227,25 @@ export default function EmployeesPage() {
 
     const currentGroupIds = allGroups.filter((g) => { const members = Array.isArray(g.members) ? g.members : []; return members.some((m) => String(m) === String(userId)); }).map((g) => String(g.id || g._id));
     const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
+    // Groups to remove user from (in currentGroups but not in newGroups)
     const toRemove = currentGroupIds.filter((id) => !newGroupIds.includes(id));
 
+    // Update groups that need the user added
     for (const groupId of toAdd) {
       const group = allGroups.find((g) => String(g.id || g._id) === groupId);
       if (!group) continue;
+
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       if (!currentMembers.some((m) => String(m) === String(userId))) {
         await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: [...currentMembers, userId] }) });
       }
     }
 
+    // Update groups that need the user removed
     for (const groupId of toRemove) {
       const group = allGroups.find((g) => String(g.id || g._id) === groupId);
       if (!group) continue;
+
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
       if (updatedMembers.length !== currentMembers.length) {
@@ -174,6 +257,7 @@ export default function EmployeesPage() {
  const fetchUsers = useCallback(async () => {
     const token = resolveAuthToken();
     if (!token) return;
+
     setLoading(true);
     try {
       const data = await safeAsync(() => listUsers({ token, search, limit: 100, offset: 0 }), { toast: { error: (msg) => openToast(msg, "error") } });
@@ -184,13 +268,17 @@ export default function EmployeesPage() {
       } catch (e) {}
       setUsers(Array.isArray(data) ? data.map((user) => enrichUser(user, allGroups)) : []);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch users", error);
+      openToast(error.message || "Failed to load users", "error");
+      return [];
     } finally {
       setLoading(false);
     }
   }, [accessToken, search]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleModalSubmit = async (payload) => {
     const token = resolveAuthToken();
@@ -215,8 +303,10 @@ export default function EmployeesPage() {
   }, [status, message]);
 
   const handleDelete = async (user) => {
+    // Use provided user or fall back to modalEmployee for modal context
     const userToDelete = user || modalEmployee;
     const token = resolveAuthToken();
+
     if (!token || !userToDelete) return;
     if (userToDelete.id === currentUser?.id) { openToast("You cannot delete your own account", "error"); return; }
 
@@ -228,8 +318,64 @@ export default function EmployeesPage() {
     } catch (error) {}
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeFilters, sortField, sortDir]);
+
+  const handleLayoutChange = (value) => {
+    trackButton("employees/display/toggle", {
+      page: "employees",
+      layout: value,
+    });
+    setLayout(value);
+  };
+
+  // CSV import handler
+  const handleCsvImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be selected again
+    event.target.value = "";
+
+    setCsvImporting(true);
+    try {
+      trackButton("employees/csv/import", { page: "employees" });
+      const result = await apiUploadFile("/users/import-csv", file);
+
+      const created = result.created || 0;
+      const errorCount = result.errors?.length || 0;
+
+      if (created > 0) {
+        openToast(`Successfully imported ${created} user(s)${errorCount > 0 ? ` (${errorCount} errors)` : ""}`, "success");
+        fetchUsers();
+      } else if (errorCount > 0) {
+        const firstError = result.errors[0];
+        openToast(`Import failed: ${firstError.error || "Unknown error"}`, "error");
+      } else {
+        openToast("No users imported", "info");
+      }
+
+      // Log detailed errors to console for debugging
+      if (result.errors?.length > 0) {
+        console.warn("CSV import errors:", result.errors);
+      }
+    } catch (error) {
+      openToast(error.message || "CSV import failed", "error");
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
+  const handleCsvButtonClick = () => {
+    csvInputRef.current?.click();
+  };
+
+  // Logic: Filter & Sort
   const filtered = useMemo(() => {
     let out = [...users];
+
     const q = search.trim().toLowerCase();
     if (q) out = out.filter((u) => [u.name, u.email, u.title].some((v) => v.toLowerCase().includes(q)));
     if (activeFilters.status.size > 0) out = out.filter((u) => activeFilters.status.has(u.status));
@@ -238,8 +384,14 @@ export default function EmployeesPage() {
       if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
       return sortDir === "asc" ? va - vb : vb - va;
     });
+
     return out;
   }, [users, search, activeFilters, sortField, sortDir]);
+
+  const pagedUsers = useMemo(() => {
+    const start = (currentPage - 1) * 10;
+    return filtered.slice(start, start + 10);
+  }, [filtered, currentPage]);
 
   const { allVisibleSelected, isIndeterminate } = useMemo(() => {
     const hasSelected = filtered.some((u) => selectedIds.has(u.id));

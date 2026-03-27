@@ -2,6 +2,7 @@
  * Shared utilities for modals (Groups, Employees, Workstations, etc.)
  */
 
+import { compressImage } from "../lib/compressImage.js";
 import { listUsers } from "../services/usersApi.js";
 import { apiGet } from "../api/client";
 import { MOCK_SOFTWARE } from "../data/mockSoftware.js";
@@ -259,6 +260,14 @@ export const fetchWorkstations = async (
   if (!accessToken) return _resetWorkstations(setAllWorkstations);
 
   try {
+    const allUsers = await fetchUsers(accessToken);
+    const userMap = new Map(
+      (Array.isArray(allUsers) ? allUsers : []).map((user) => [
+        String(user.id || user._id || ""),
+        user,
+      ]),
+    );
+
     const res = await apiGet(
       `/workstations?org_id=${encodeURIComponent(orgId)}`,
     );
@@ -275,7 +284,9 @@ export const fetchWorkstations = async (
       ? data
       : data.items || data.workstations || [];
 
+
     const normalized = workstations.map((w) => ({
+      members: Array.isArray(w.members) ? w.members : [],
       status:
         (w.status || "").toLowerCase() === "online"
           ? "connected"
@@ -285,6 +296,16 @@ export const fetchWorkstations = async (
       id: String(w.id || w._id || ""),
       _id: String(w._id || w.id || ""),
       name: w.name || "Untitled Workstation",
+      strength: w.description || "",
+      software: Array.isArray(w.software) ? w.software : [],
+      groups: Array.isArray(w.access_groups) ? w.access_groups : [],
+      users: (Array.isArray(w.members) ? w.members : [])
+        .map((memberId) => userMap.get(String(memberId)))
+        .filter(Boolean),
+      usersCount: Array.isArray(w.members) ? w.members.length : 0,
+      currentUser: (Array.isArray(w.members) ? w.members : [])
+        .map((memberId) => userMap.get(String(memberId)))
+        .find(Boolean) || null,
       online: w.online || w.status === "online" || false,
       ipAddress: w.ip_address || w.ipAddress || "",
       org_id: w.org_id,
@@ -331,8 +352,13 @@ export const fetchSoftware = async (
   setAllSoftware = null,
   openToast = null,
 ) => {
-  if (!orgId) return _useMockSoftware(setAllSoftware);
-  if (!accessToken) return _useMockSoftware(setAllSoftware);
+  if (!orgId)
+    return _resetSoftware(
+      setAllSoftware,
+      openToast,
+      "Missing org_id for software fetch",
+    );
+  if (!accessToken) return _resetSoftware(setAllSoftware);
 
   try {
     const res = await apiGet(`/software?org_id=${encodeURIComponent(orgId)}`, {
@@ -373,16 +399,23 @@ export const fetchSoftware = async (
 export const createImageUploadHandler = (
   setFormData,
   fieldName = "profileImage",
+  compressOptions = {},
 ) => {
-  return (e) => {
+  return async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file, compressOptions);
+      setFormData((prev) => ({ ...prev, [fieldName]: dataUrl }));
+    } catch {
+      // Fallback: read as-is if compression fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 };
 

@@ -405,10 +405,12 @@ describe("EmployeesModal", () => {
       const firstNameInput = screen.getByPlaceholderText("John");
       const lastNameInput = screen.getByPlaceholderText("Doe");
       const emailInput = screen.getByPlaceholderText("john.doe@example.com");
+      const passwordInput = screen.getByTestId("password-input");
 
       await user.type(firstNameInput, "Test");
       await user.type(lastNameInput, "User");
       await user.type(emailInput, "test@example.com");
+      await user.type(passwordInput, "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
       await user.click(nextButton);
@@ -448,10 +450,12 @@ describe("EmployeesModal", () => {
       const firstNameInput = screen.getByPlaceholderText("John");
       const lastNameInput = screen.getByPlaceholderText("Doe");
       const emailInput = screen.getByPlaceholderText("john.doe@example.com");
+      const passwordInput = screen.getByTestId("password-input");
 
       await user.type(firstNameInput, "Test");
       await user.type(lastNameInput, "User");
       await user.type(emailInput, "test@example.com");
+      await user.type(passwordInput, "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
       expect(nextButton).not.toBeDisabled();
@@ -475,6 +479,7 @@ describe("EmployeesModal", () => {
       await user.type(firstNameInput, "Test");
       await user.type(lastNameInput, "User");
       await user.type(emailInput, "test@example.com");
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Navigate through all steps
       const nextButton = screen.getByText("Next");
@@ -717,6 +722,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Navigate to last step
       const nextButton = screen.getByText("Next");
@@ -785,6 +791,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Navigate to last step
       const nextButton = screen.getByText("Next");
@@ -819,6 +826,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
       await user.click(nextButton);
@@ -853,6 +861,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
       await user.click(nextButton);
@@ -993,6 +1002,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
 
@@ -1259,6 +1269,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       const nextButton = screen.getByText("Next");
       await user.click(nextButton);
@@ -1327,6 +1338,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
       await user.type(
         screen.getByPlaceholderText("Software Engineer"),
         "Developer",
@@ -1346,6 +1358,7 @@ describe("EmployeesModal", () => {
       expect(screen.getByPlaceholderText("john.doe@example.com")).toHaveValue(
         "test@example.com",
       );
+      expect(screen.getByTestId("password-input")).toHaveValue("SecurePass123@");
       expect(screen.getByPlaceholderText("Software Engineer")).toHaveValue(
         "Developer",
       );
@@ -1506,6 +1519,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Navigate through all steps
       for (let i = 0; i < 3; i++) {
@@ -1541,7 +1555,7 @@ describe("EmployeesModal", () => {
       expect(screen.getByText("Edit User")).toBeInTheDocument();
     });
 
-    it("should call onSubmit with empty optional fields when not provided", async () => {
+    it("should allow empty optional fields when required create fields are provided", async () => {
       const user = userEvent.setup();
       mockOnSubmit.mockResolvedValue(undefined);
 
@@ -1560,6 +1574,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Navigate to last step and submit
       await user.click(screen.getByText("Next"));
@@ -1574,7 +1589,7 @@ describe("EmployeesModal", () => {
             lastName: "User",
             email: "test@example.com",
             jobTitle: "",
-            password: "",
+            password: "SecurePass123@",
           }),
         );
       });
@@ -1646,6 +1661,7 @@ describe("EmployeesModal", () => {
         screen.getByPlaceholderText("john.doe@example.com"),
         "test@example.com",
       );
+      await user.type(screen.getByTestId("password-input"), "SecurePass123@");
 
       // Test forward navigation
       await user.click(screen.getByText("Next"));

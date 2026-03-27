@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import PropTypes from "prop-types";
 import EditButton from "../common/EditButton/EditButton.jsx";
 import EditIcon from "../../assets/EditIcon.jsx";
 import TrashIcon from "../../assets/TrashIcon.jsx";
@@ -140,69 +141,6 @@ const styles = {
   },
 };
 
-// Responsive breakpoints
-const getResponsiveStyles = () => {
-  const width = window.innerWidth;
-
-  if (width < 768) {
-    return {
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "16px 16px 4px 16px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "12px",
-        padding: "12px",
-      },
-      row: {
-        ...styles.row,
-        gap: "8px",
-        padding: "10px 6px",
-      },
-      nameSection: {
-        ...styles.nameSection,
-        gap: "8px",
-      },
-      name: {
-        ...styles.name,
-        fontSize: "0.95rem",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-      },
-      code: {
-        ...styles.code,
-        fontSize: "0.8rem",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-      },
-    };
-  }
-
-  if (width < 1024) {
-    return {
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "20px 20px 4px 20px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "16px",
-        padding: "14px",
-      },
-      row: {
-        ...styles.row,
-        gap: "10px",
-        padding: "11px 7px",
-      },
-    };
-  }
-
-  return styles;
-};
-
 /* ---------------------------- helpers & visuals ---------------------------- */
 
 function UsersPill({ row }) {
@@ -252,6 +190,50 @@ function UsersPill({ row }) {
   );
 }
 
+function getStatusLightColors(status) {
+  const normalized = (status || "").toLowerCase();
+
+  if (normalized === "connected") {
+    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+  }
+
+  if (normalized === "provisioning") {
+    return { outerColor: "#3F2A08", innerColor: "#F0B429" };
+  }
+
+  return { outerColor: "#381F1F", innerColor: "#ff5252" };
+}
+
+function getColumnTemplate({
+  isMobile,
+  showUsersColumn,
+  showCurrentColumn,
+  showLastUsedColumn,
+}) {
+  return [
+    !isMobile ? "28px" : null,
+    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)",
+    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
+    showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
+    showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
+    isMobile ? "40px" : "100px",
+    "28px",
+    "40px",
+  ].filter(Boolean);
+}
+
+function getHeaderSidePadding({ isMobile, isTablet }) {
+  if (isMobile) {
+    return "calc(12px + 4px + 4px)";
+  }
+
+  if (isTablet) {
+    return "calc(14px + 8px + 8px)";
+  }
+
+  return "calc(16px + 8px + 8px)";
+}
+
 /* --------------------------------- component -------------------------------- */
 
 function WorkstationRow({
@@ -264,30 +246,25 @@ function WorkstationRow({
   onDelete,
   onToggleStatus,
   isLast,
-  isMobile,
-  isTablet,
   isSelected,
   onToggleSelect,
 }) {
-  const responsiveStyles = getResponsiveStyles();
-
   return (
     <>
       <HoverableRow
         style={{
-          ...responsiveStyles.row,
+          ...styles.row,
           gridTemplateColumns: cols.join(" "),
         }}
       >
-        {!isMobile && (
-          <Checkbox checked={isSelected} onChange={onToggleSelect} />
-        )}
+        {/* select */}
+        <Checkbox checked={isSelected} onChange={onToggleSelect} />
 
-        <div style={responsiveStyles.nameSection}>
+        <div style={styles.nameSection}>
           <DisplayIcon type="workstation" data={r} size="small" />
           <div style={styles.nameContainer}>
-            <span style={responsiveStyles.name}>{r.name}</span>
-            <span style={responsiveStyles.code}>↳ {r.code}</span>
+            <span style={styles.name}>{r.name}</span>
+            <span style={styles.code}>↳ {r.code}</span>
           </div>
         </div>
 
@@ -295,17 +272,10 @@ function WorkstationRow({
 
         {showCurrent && (
           <div style={styles.currentContainer}>
-            {r.currentUser && r.currentUser !== "—" ? (
+            {currentDisplayUser ? (
               <DisplayIcon
                 type="user"
-                data={
-                  typeof r.currentUser === "string"
-                    ? {
-                        firstName: r.currentUser.split(" ")[0],
-                        lastName: r.currentUser.split(" ")[1] || "",
-                      }
-                    : r.currentUser
-                }
+                data={currentDisplayUser}
                 size="small"
               />
             ) : (
@@ -329,8 +299,8 @@ function WorkstationRow({
           <ActiveIcon
             width={12}
             height={12}
-            outerColor={r.status === "connected" ? "#1F381F" : "#381F1F"}
-            innerColor={r.status === "connected" ? "#04C40A" : "#ff5252"}
+            outerColor={statusColors.outerColor}
+            innerColor={statusColors.innerColor}
           />
         </div>
 
@@ -338,7 +308,13 @@ function WorkstationRow({
           <EditButton
             menuItems={[
               {
-                icon: <EditIcon width={15} height={16} color="var(--text-primary)" />,
+                icon: (
+                  <EditIcon
+                    width={15}
+                    height={16}
+                    color="var(--text-primary)"
+                  />
+                ),
                 label: "edit workstation",
                 color: "var(--text-primary)",
                 onClick: () => onEdit?.(r),
@@ -359,6 +335,50 @@ function WorkstationRow({
   );
 }
 
+const userShape = PropTypes.oneOfType([
+  PropTypes.string,
+  PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    email: PropTypes.string,
+    title: PropTypes.string,
+    role: PropTypes.string,
+    name: PropTypes.string,
+  }),
+]);
+
+const workstationRowShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  name: PropTypes.string,
+  code: PropTypes.string,
+  status: PropTypes.string,
+  lastUsed: PropTypes.string,
+  currentUser: userShape,
+  users: PropTypes.arrayOf(userShape),
+});
+
+UsersPill.propTypes = {
+  row: workstationRowShape.isRequired,
+};
+
+WorkstationRow.propTypes = {
+  r: workstationRowShape.isRequired,
+  cols: PropTypes.arrayOf(PropTypes.string).isRequired,
+  showUsers: PropTypes.bool.isRequired,
+  showCurrent: PropTypes.bool.isRequired,
+  showLastUsed: PropTypes.bool.isRequired,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onToggleStatus: PropTypes.func,
+  isLast: PropTypes.bool.isRequired,
+  isMobile: PropTypes.bool.isRequired,
+  isTablet: PropTypes.bool.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onToggleSelect: PropTypes.func.isRequired,
+};
+
 export default function WorkstationList({
   rows,
   onEdit,
@@ -374,84 +394,63 @@ export default function WorkstationList({
   showLastUsed = true,
 }) {
   const themeColors = useThemeColors();
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  const responsiveStyles = getResponsiveStyles();
-
-  const showUsersColumn = showUsers && !isMobile;
-  const showCurrentColumn = showCurrent && windowWidth >= 1024;
-  const showLastUsedColumn = showLastUsed && windowWidth >= 1024;
+  const showUsersColumn = showUsers;
+  const showCurrentColumn = showCurrent;
+  const showLastUsedColumn = showLastUsed;
 
   const cols = [
-    !isMobile ? "28px" : null, 
-    isMobile ? "minmax(100px, 1fr)" : "minmax(140px, 1.2fr)",
-    showUsersColumn ? (isMobile ? "0.8fr" : "minmax(80px, 0.9fr)") : null,
+    "28px",
+    "minmax(140px, 1.2fr)",
+    showUsersColumn ? "minmax(80px, 0.9fr)" : null,
     showCurrentColumn ? "minmax(60px, 0.6fr)" : null,
     showLastUsedColumn ? "minmax(80px, 0.8fr)" : null,
-    isMobile ? "40px" : "100px", 
+    "100px",
     "28px",
-    "40px", 
+    "40px",
   ].filter(Boolean);
 
   return (
     <>
-      {!isMobile && (
-        <div
-          style={{
-            ...responsiveStyles.tableHeaders,
-            gridTemplateColumns: cols.join(" "),
-            paddingLeft: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-            paddingRight: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-          }}
-        >
-          <Checkbox
-            checked={allVisibleSelected}
-            indeterminate={isIndeterminate}
-            onChange={onToggleSelectAll}
-          />
-          <span style={styles.headerLabel}>Name/Number</span>
-          {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
-          {showCurrentColumn && <span style={styles.headerLabel}>Current</span>}
-          {showLastUsedColumn && (
-            <span style={styles.headerLabel}>Last Used</span>
-          )}
-          <div />
-          <div />
-          <div />
-        </div>
-      )}
+      <div
+        style={{
+          ...styles.tableHeaders,
+          gridTemplateColumns: cols.join(" "),
+          paddingLeft: "calc(16px + 8px + 8px)",
+          paddingRight: "calc(16px + 8px + 8px)",
+        }}
+      >
+        <Checkbox
+          checked={allVisibleSelected}
+          indeterminate={isIndeterminate}
+          onChange={onToggleSelectAll}
+        />
+        <span style={styles.headerLabel}>Name/Number</span>
+        {showUsersColumn && <span style={styles.headerLabel}>Users</span>}
+        {showCurrentColumn && <span style={styles.headerLabel}>Current</span>}
+        {showLastUsedColumn && (
+          <span style={styles.headerLabel}>Last Used</span>
+        )}
+        <div />
+        <div />
+        <div />
+      </div>
 
       <div
         style={{
-          ...responsiveStyles.listPanel,
-          marginTop: isMobile ? "24px" : "0",
+          ...styles.listPanel,
+          marginTop: "0",
         }}
       >
         {rows.length === 0 ? (
-          <EmptyState 
-            message="No workstations found" 
-            description="Try adjusting your search or filters, or create a new workstation." 
+          <EmptyState
+            message="No workstations found"
+            description="Try adjusting your search or filters, or create a new workstation."
           />
         ) : (
           <div
             style={{
-              padding: isMobile ? "0 4px" : "0 8px",
+              padding: "0 8px",
             }}
           >
             <div style={styles.container}>
@@ -467,8 +466,6 @@ export default function WorkstationList({
                   onDelete={onDelete}
                   onToggleStatus={onToggleStatus}
                   isLast={idx === rows.length - 1}
-                  isMobile={isMobile}
-                  isTablet={isTablet}
                   isSelected={selectedIds.has(r.id)}
                   onToggleSelect={() => onToggleSelect(r.id)}
                 />

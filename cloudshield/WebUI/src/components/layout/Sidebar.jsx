@@ -17,7 +17,20 @@
  *     minimal here and handle heavier logic in pages or containers.
  */
 import React, { useEffect, useState } from "react";
-import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
+import PropTypes from "prop-types";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Chip,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
@@ -27,14 +40,21 @@ import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
+import SidebarCollapseIcon from "../../assets/NavBar/SidebarCollapseIcon.jsx";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+
+const navStatsShape = PropTypes.shape({
+  workstations: PropTypes.number,
+  users: PropTypes.number,
+  groups: PropTypes.number,
+  shares: PropTypes.number,
+});
 
 function NavItem({
   collapsed,
@@ -47,6 +67,10 @@ function NavItem({
 }) {
   const themeColors = useThemeColors();
   const showCountChip = typeof count === "number" || count === "-";
+  const renderedIcon =
+    React.isValidElement(icon) && typeof icon.type === "function"
+      ? React.cloneElement(icon, { selected: active })
+      : icon;
 
   return (
     <Box
@@ -89,9 +113,7 @@ function NavItem({
             mr: collapsed ? 0 : "10px",
           }}
         >
-          {React.isValidElement(icon) && typeof icon.type === "function"
-            ? React.cloneElement(icon, { selected: active })
-            : icon}
+          {renderedIcon}
         </Box>
 
         {!collapsed && (
@@ -226,24 +248,34 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
         sx={{
           width: 36,
           height: 36,
-          borderRadius: "999px",
+          borderRadius: "10px",
           flexShrink: 0,
-          background:
-            "radial-gradient(circle at 30% 30%, #b9ff9f 0%, #4b5b3a 70%)",
-          border: "2px solid #fff",
+          backgroundColor:
+            themeColors.lightOverlaySubtle || themeColors.lightOverlay,
+          border: `1px solid ${themeColors.borderLight}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           position: "relative",
         }}
       >
+        <ShieldIcon
+          width={18}
+          height={18}
+          selected
+          className="company-shield-mark"
+        />
         <Box
           sx={{
             position: "absolute",
-            right: -2,
-            bottom: -2,
-            width: 8,
-            height: 8,
+            right: 6,
+            bottom: 7,
+            width: 7,
+            height: 1.75,
             borderRadius: "999px",
-            backgroundColor: "#5aff3d",
-            border: "2px solid #0F0F0F",
+            backgroundColor: themeColors.textPrimary,
+            transform: "rotate(-38deg)",
+            opacity: 0.9,
           }}
         />
       </Box>
@@ -362,9 +394,15 @@ function SidebarNavigation({
   const groupsPill = "#2656d8";
   const sharesPill = "#c57a1c";
 
+  const getBadgeCount = (value) => {
+    if (collapsed) return undefined;
+    if (typeof value === "number") return value;
+    if (statsLoading) return "…";
+    return 0;
+  };
+
   const getSharesCount = () => {
     if (collapsed || statsLoading) return undefined;
-    if (stats.shares === 0) return "-";
     return stats.shares ?? 0;
   };
 
@@ -402,7 +440,7 @@ function SidebarNavigation({
         icon={<WorkstationsIcon width={20} height={20} />}
         label="Workstations"
         active={isActive("/workstations")}
-        count={collapsed ? undefined : stats.workstations ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.workstations)}
         countColor={workstationPill}
         onNavigate={() => navigate("/workstations")}
       />
@@ -412,17 +450,19 @@ function SidebarNavigation({
         icon={<UsersIcon width={20} height={20} />}
         label="Employees"
         active={isActive("/employees") || isActive("/users")}
-        count={collapsed ? undefined : stats.users ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.users)}
         countColor={usersPill}
         onNavigate={() => navigate("/employees")}
       />
 
       <NavItem
         collapsed={collapsed}
-        icon={<GroupsIcon width={20} height={20} selected={isActive("/groups")} />}
+        icon={
+          <GroupsIcon width={20} height={20} selected={isActive("/groups")} />
+        }
         label="Groups"
         active={isActive("/groups")}
-        count={collapsed ? undefined : stats.groups ?? (statsLoading ? "…" : 0)}
+        count={getBadgeCount(stats.groups)}
         countColor={groupsPill}
         onNavigate={() => navigate("/groups")}
       />
@@ -449,25 +489,25 @@ export default function Sidebar({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useAuth();
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const [isToggleAnimating, setIsToggleAnimating] = useState(false);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
-  
-  const [me, setMe] = useState(null);            // { id, email, org_id, role }
-  const [myOrg, setMyOrg] = useState(null);      // { id, name, ... }
+
+  const [me, setMe] = useState(null);
+  const [myOrg, setMyOrg] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       try {
-        const meRes = await apiGet("/users/me").json(); // expects { user: {...} }
+        const meRes = await (await apiGet("/users/me")).json();
         if (!mounted) return;
         setMe(meRes.user);
 
-        // Only call org endpoint after we know we're authenticated
-        // expects { organization: {...} }
-        const orgRes = await apiGet("/organizations/me");
+        const orgRes = await (await apiGet("/organizations/me")).json();
         if (!mounted) return;
         setMyOrg(orgRes.organization);
       } catch {
@@ -482,7 +522,7 @@ export default function Sidebar({
       mounted = false;
     };
   }, []);
-  
+
   const { stats, loading: statsLoading } = useOrgMetrics();
 
   const showNav = mode === "full";
@@ -491,6 +531,12 @@ export default function Sidebar({
   const handleSignOut = () => {
     logout();
     navigate("/login", { replace: true });
+  };
+
+  const handleTogglePress = () => {
+    setIsToggleAnimating(true);
+    onToggleCollapse?.();
+    window.setTimeout(() => setIsToggleAnimating(false), 180);
   };
 
   return (
@@ -521,7 +567,7 @@ export default function Sidebar({
       >
         <IconButton
           size="small"
-          onClick={onToggleCollapse}
+          onClick={handleTogglePress}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
             backgroundColor: themeColors.bgSecondary,
@@ -530,14 +576,44 @@ export default function Sidebar({
             color: themeColors.textPrimary,
             width: 28,
             height: 28,
+            transition: "transform 0.14s ease, background-color 0.2s ease",
+            "&:active": {
+              transform: "scale(0.92)",
+            },
             "&:hover": { backgroundColor: themeColors.lightOverlay },
           }}
         >
-          {collapsed ? (
-            <OpenInFullIcon sx={{ fontSize: "1rem" }} />
-          ) : (
-            <CloseFullscreenIcon sx={{ fontSize: "1rem" }} />
-          )}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: collapsed ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s ease",
+              animation: isToggleAnimating
+                ? "sidebarTogglePulse 0.18s ease"
+                : "none",
+              "@keyframes sidebarTogglePulse": {
+                "0%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+                "50%": {
+                  transform: collapsed
+                    ? "rotate(180deg) scale(1.12)"
+                    : "scale(1.12)",
+                },
+                "100%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+              },
+            }}
+          >
+            <SidebarCollapseIcon
+              width={16}
+              height={16}
+              color={themeColors.textPrimary}
+            />
+          </Box>
         </IconButton>
       </Box>
 
@@ -590,7 +666,9 @@ export default function Sidebar({
             collapsed={collapsed}
             label="Tickets"
             ariaLabel="Tickets"
-            icon={<ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
+            icon={
+              <ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />
+            }
             onActivate={() => navigate("/tickets")}
           />
           <SidebarBottomAction
@@ -598,12 +676,99 @@ export default function Sidebar({
             label="Sign out"
             ariaLabel="Sign out"
             icon={<LogoutOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
-            onActivate={handleSignOut}
+            onActivate={() => setSignOutDialogOpen(true)}
           />
         </Box>
       ) : null}
+
+      <Dialog
+        open={signOutDialogOpen}
+        onClose={() => setSignOutDialogOpen(false)}
+        aria-labelledby="sign-out-dialog-title"
+      >
+        <DialogTitle
+          id="sign-out-dialog-title"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          <WarningAmberRoundedIcon color="warning" />
+          Confirm Sign Out
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to sign out? Any unsaved changes may be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setSignOutDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setSignOutDialogOpen(false);
+              handleSignOut();
+            }}
+            color="error"
+            variant="contained"
+          >
+            Sign Out
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
 
 export { NavItem, AccordionGrid };
+
+NavItem.propTypes = {
+  collapsed: PropTypes.bool,
+  icon: PropTypes.element.isRequired,
+  label: PropTypes.string.isRequired,
+  active: PropTypes.bool,
+  count: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  countColor: PropTypes.string,
+  onNavigate: PropTypes.func,
+};
+
+AccordionGrid.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      to: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
+};
+
+CompanySwitcher.propTypes = {
+  collapsed: PropTypes.bool,
+  showNav: PropTypes.bool,
+  navigate: PropTypes.func.isRequired,
+  myOrg: PropTypes.shape({
+    name: PropTypes.string,
+  }),
+  me: PropTypes.shape({
+    email: PropTypes.string,
+  }),
+};
+
+SidebarBottomAction.propTypes = {
+  collapsed: PropTypes.bool,
+  label: PropTypes.string.isRequired,
+  ariaLabel: PropTypes.string.isRequired,
+  icon: PropTypes.element.isRequired,
+  onActivate: PropTypes.func.isRequired,
+};
+
+SidebarNavigation.propTypes = {
+  collapsed: PropTypes.bool,
+  isActive: PropTypes.func.isRequired,
+  navigate: PropTypes.func.isRequired,
+  stats: navStatsShape,
+  statsLoading: PropTypes.bool,
+};
+
+Sidebar.propTypes = {
+  mode: PropTypes.oneOf(["full", "provisioning"]),
+  collapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
+};

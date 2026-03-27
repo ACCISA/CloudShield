@@ -1,8 +1,19 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BasicInfoTab from "../BasicInfoTab";
 import "@testing-library/jest-dom";
+import { compressImage } from "../../../lib/compressImage";
+
+jest.mock("../../../lib/compressImage", () => ({
+  compressImage: jest.fn(),
+}));
 
 describe("BasicInfoTab", () => {
   const mockUserData = {
@@ -16,16 +27,18 @@ describe("BasicInfoTab", () => {
 
   beforeEach(() => {
     mockOnSave.mockClear();
+    compressImage.mockResolvedValue("data:image/jpeg;base64,compressed123");
   });
 
   test("renders section labels and input fields", () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
     expect(screen.getByText("Basic Info")).toBeInTheDocument();
-    expect(screen.getByText("Take a look at your personal information")).toBeInTheDocument();
+    expect(
+      screen.getByText("Take a look at your personal information"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Profile picture")).toBeInTheDocument();
-    expect(screen.getByLabelText("First Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Admin Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 
@@ -33,8 +46,7 @@ describe("BasicInfoTab", () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("First Name")).toHaveValue("John");
-      expect(screen.getByLabelText("Last Name")).toHaveValue("Doe");
+      expect(screen.getByLabelText("Admin Name")).toHaveValue("John Doe");
       expect(screen.getByLabelText("Email")).toHaveValue("john@example.com");
     });
   });
@@ -42,30 +54,27 @@ describe("BasicInfoTab", () => {
   test("updates state when input fields change", async () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
-    const lastNameInput = screen.getByLabelText("Last Name");
+    const nameInput = screen.getByLabelText("Admin Name");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
-      fireEvent.change(lastNameInput, { target: { value: "Smith" } });
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
     });
 
-    expect(firstNameInput).toHaveValue("Jane");
-    expect(lastNameInput).toHaveValue("Smith");
+    expect(nameInput).toHaveValue("Jane Smith");
   });
 
   test("validates required fields", async () => {
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
+    const nameInput = screen.getByLabelText("Admin Name");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "" } });
+      fireEvent.change(nameInput, { target: { value: "" } });
       fireEvent.click(saveButton);
     });
 
-    expect(screen.getByText("First name is required")).toBeInTheDocument();
+    expect(screen.getByText("Name is required")).toBeInTheDocument();
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 
@@ -96,7 +105,9 @@ describe("BasicInfoTab", () => {
       fireEvent.click(saveButton);
     });
 
-    expect(screen.getByText("Password must be at least 12 characters")).toBeInTheDocument();
+    expect(
+      screen.getByText("Password must be at least 12 characters"),
+    ).toBeInTheDocument();
   });
 
   test("validates password confirmation match", async () => {
@@ -107,8 +118,12 @@ describe("BasicInfoTab", () => {
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(passwordInput, { target: { value: "LongPassword123!" } });
-      fireEvent.change(confirmPasswordInput, { target: { value: "DifferentPassword123!" } });
+      fireEvent.change(passwordInput, {
+        target: { value: "LongPassword123!" },
+      });
+      fireEvent.change(confirmPasswordInput, {
+        target: { value: "DifferentPassword123!" },
+      });
       fireEvent.click(saveButton);
     });
 
@@ -120,14 +135,12 @@ describe("BasicInfoTab", () => {
 
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
-    const lastNameInput = screen.getByLabelText("Last Name");
+    const nameInput = screen.getByLabelText("Admin Name");
     const emailInput = screen.getByLabelText("Email");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
-      fireEvent.change(lastNameInput, { target: { value: "Smith" } });
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
       fireEvent.change(emailInput, { target: { value: "jane@example.com" } });
       fireEvent.click(saveButton);
     });
@@ -137,7 +150,7 @@ describe("BasicInfoTab", () => {
         expect.objectContaining({
           full_name: "Jane Smith",
           email: "jane@example.com",
-        })
+        }),
       );
     });
   });
@@ -152,8 +165,12 @@ describe("BasicInfoTab", () => {
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(passwordInput, { target: { value: "NewSecurePassword123!" } });
-      fireEvent.change(confirmPasswordInput, { target: { value: "NewSecurePassword123!" } });
+      fireEvent.change(passwordInput, {
+        target: { value: "NewSecurePassword123!" },
+      });
+      fireEvent.change(confirmPasswordInput, {
+        target: { value: "NewSecurePassword123!" },
+      });
       fireEvent.click(saveButton);
     });
 
@@ -161,7 +178,7 @@ describe("BasicInfoTab", () => {
       expect(mockOnSave).toHaveBeenCalledWith(
         expect.objectContaining({
           password: "NewSecurePassword123!",
-        })
+        }),
       );
     });
   });
@@ -176,8 +193,12 @@ describe("BasicInfoTab", () => {
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(passwordInput, { target: { value: "NewSecurePassword123!" } });
-      fireEvent.change(confirmPasswordInput, { target: { value: "NewSecurePassword123!" } });
+      fireEvent.change(passwordInput, {
+        target: { value: "NewSecurePassword123!" },
+      });
+      fireEvent.change(confirmPasswordInput, {
+        target: { value: "NewSecurePassword123!" },
+      });
       fireEvent.click(saveButton);
     });
 
@@ -192,16 +213,16 @@ describe("BasicInfoTab", () => {
     mockOnSave.mockReturnValue(
       new Promise((resolve) => {
         resolveOnSave = resolve;
-      })
+      }),
     );
 
     render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const firstNameInput = screen.getByLabelText("First Name");
+    const nameInput = screen.getByLabelText("Admin Name");
     const saveButton = screen.getByText("Save changes");
 
     await act(async () => {
-      fireEvent.change(firstNameInput, { target: { value: "Jane" } });
+      fireEvent.change(nameInput, { target: { value: "Jane Smith" } });
       fireEvent.click(saveButton);
     });
 
@@ -231,6 +252,40 @@ describe("BasicInfoTab", () => {
     await waitFor(() => {
       expect(fileInput).toHaveAttribute("accept", "image/*");
     });
+    expect(compressImage).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ maxWidth: 256, maxHeight: 256 }),
+    );
+  });
+
+  test("falls back to FileReader when compression fails", async () => {
+    compressImage.mockRejectedValueOnce(new Error("compress fail"));
+
+    const originalFileReader = global.FileReader;
+    const readAsDataURL = jest.fn(function () {
+      this.onload?.({
+        target: { result: "data:image/png;base64,fallback123" },
+      });
+    });
+    global.FileReader = jest.fn(function MockFileReader() {
+      this.readAsDataURL = readAsDataURL;
+      this.onload = null;
+    });
+
+    render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
+
+    const file = new File(["image"], "profile.png", { type: "image/png" });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(readAsDataURL).toHaveBeenCalledWith(file);
+    });
+
+    global.FileReader = originalFileReader;
   });
 
   test("displays profile avatar with user initials", () => {
@@ -257,7 +312,9 @@ describe("BasicInfoTab", () => {
   });
 
   test("updates fields when userData prop changes", async () => {
-    const { rerender } = render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
+    const { rerender } = render(
+      <BasicInfoTab userData={mockUserData} onSave={mockOnSave} />,
+    );
 
     const newUserData = {
       ...mockUserData,
@@ -268,8 +325,7 @@ describe("BasicInfoTab", () => {
     rerender(<BasicInfoTab userData={newUserData} onSave={mockOnSave} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("First Name")).toHaveValue("Jane");
-      expect(screen.getByLabelText("Last Name")).toHaveValue("Smith");
+      expect(screen.getByLabelText("Admin Name")).toHaveValue("Jane Smith");
       expect(screen.getByLabelText("Email")).toHaveValue("jane@example.com");
     });
   });
@@ -277,7 +333,9 @@ describe("BasicInfoTab", () => {
   test("handles missing profile image gracefully", () => {
     const userDataWithoutImage = { ...mockUserData, profile_image: null };
 
-    render(<BasicInfoTab userData={userDataWithoutImage} onSave={mockOnSave} />);
+    render(
+      <BasicInfoTab userData={userDataWithoutImage} onSave={mockOnSave} />,
+    );
 
     expect(screen.getByText("J")).toBeInTheDocument();
   });
@@ -299,7 +357,7 @@ describe("BasicInfoTab", () => {
       expect(mockOnSave).toHaveBeenCalledWith(
         expect.objectContaining({
           email: "jane@example.com",
-        })
+        }),
       );
     });
   });

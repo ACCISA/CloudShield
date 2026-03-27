@@ -870,7 +870,7 @@ describe("WorkstationModal", () => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
             name: "New Workstation",
-            strength: "basic",
+            description: "basic",
           }),
         );
       });
@@ -970,7 +970,7 @@ describe("WorkstationModal", () => {
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
-            users: expect.arrayContaining([
+            members: expect.arrayContaining([
               expect.objectContaining({ id: "1" }),
             ]),
           }),
@@ -1289,8 +1289,8 @@ describe("WorkstationModal", () => {
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
-            users: [],
-            groups: [],
+            members: [],
+            access_groups: [],
             software: [],
           }),
         );

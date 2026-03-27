@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
@@ -163,11 +164,11 @@ export default function WorkstationModal({
     try {
       await onSubmit?.({
         name: formData.name,
-        strength: formData.strength,
+        description: formData.strength,
         image: formData.workstationImage,
         desktopBackground: formData.desktopBackground,
-        groups: formData.selectedGroups,
-        users: formData.selectedUsers,
+        access_groups: formData.selectedGroups,
+        members: formData.selectedUsers,
         allUsers: formData.allUsers,
         allGroups: formData.allGroups,
         software: formData.selectedSoftware,
@@ -193,10 +194,12 @@ export default function WorkstationModal({
   const handleWorkstationImageUpload = createImageUploadHandler(
     setFormData,
     "workstationImage",
+    { maxWidth: 256, maxHeight: 256 },
   );
   const handleDesktopBackgroundUpload = createImageUploadHandler(
     setFormData,
     "desktopBackground",
+    { maxWidth: 1280, maxHeight: 720 },
   );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
@@ -296,7 +299,17 @@ export default function WorkstationModal({
         </div>
 
         {/* Content */}
-        <main className="workstation-modal-content">{renderStepContent()}</main>
+        <main className="workstation-modal-content">
+          {isSubmitting ? (
+            <SubmittingOverlay
+              label={
+                isEditMode ? "Saving changes..." : "Creating workstation..."
+              }
+            />
+          ) : (
+            renderStepContent()
+          )}
+        </main>
 
         {/* Footer */}
         <footer className="workstation-modal-actions">
@@ -342,6 +355,10 @@ export default function WorkstationModal({
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
                 }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 Next
               </button>
@@ -350,6 +367,10 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
                 style={{
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
@@ -368,6 +389,41 @@ export default function WorkstationModal({
     </div>
   );
 }
+
+const modalItemShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  firstName: PropTypes.string,
+  lastName: PropTypes.string,
+  email: PropTypes.string,
+  title: PropTypes.string,
+  members: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  category: PropTypes.string,
+  icon: PropTypes.node,
+});
+
+const workstationDataShape = PropTypes.shape({
+  name: PropTypes.string,
+  strength: PropTypes.string,
+  image: PropTypes.string,
+  desktopBackground: PropTypes.string,
+  groups: PropTypes.arrayOf(modalItemShape),
+  users: PropTypes.arrayOf(modalItemShape),
+  software: PropTypes.arrayOf(modalItemShape),
+  allUsers: PropTypes.bool,
+  allGroups: PropTypes.bool,
+  allSoftware: PropTypes.bool,
+  wallpaper: PropTypes.string,
+});
+
+WorkstationModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  workstationData: workstationDataShape,
+  onSubmit: PropTypes.func,
+  onDelete: PropTypes.func,
+};
 
 // Sub-components
 function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
@@ -557,6 +613,14 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Image
@@ -598,6 +662,14 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Background
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Background
@@ -785,6 +857,19 @@ function GenericSelectionStep({
     </div>
   );
 }
+
+GenericSelectionStep.propTypes = {
+  type: PropTypes.string.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
+  allSelected: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  totalItems: PropTypes.array.isRequired,
+  onAllChange: PropTypes.func.isRequired,
+};
 
 function SoftwareStep({
   searchTerm,

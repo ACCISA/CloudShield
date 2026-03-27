@@ -8,7 +8,7 @@ from utils import users_admin, log_audit, organizations, derive_username
 from utils.terraform import get_workstation_count
 from models import UserCreate, UserUpdate, OrganizationCreate, create_organization_doc
 from security import hash_password
-from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError, DuplicateKeyError
 from bson.errors import InvalidId
 
 
@@ -19,6 +19,27 @@ def _coerce_int(val) -> int | None:
     if isinstance(val, (int, float)):
         return int(val)
     return None
+
+
+def enforce_org_user_limit(org_id: str, additional_users: int = 1) -> None:
+    """Raise ValueError when adding users would exceed the org limit."""
+    try:
+        org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
+    except InvalidId as exc:
+        raise ValueError("Invalid organization ID format") from exc
+    except Exception:
+        org_doc = {}
+
+    user_limit = _coerce_int(org_doc.get("user_limit"))
+    if user_limit is None:
+        user_limit = _coerce_int(get_workstation_count(org_id))
+    if user_limit is None:
+        return
+
+    add_count = max(int(additional_users), 0)
+    existing_db_count = users_admin.count_documents({"org_id": org_id})
+    if existing_db_count + add_count > user_limit:
+        raise ValueError("User limit reached for this organization")
 
 
 def _create_org_for_signup(org_name: Optional[str], package: str, domain_name, realm_name, dc_admin_password) -> tuple[str, dict]:
@@ -59,6 +80,13 @@ def _must_admin(current_user: dict | None) -> None:
 
 def persist_domain_user(org_id: str, username: str, password: str, email: str) -> str:
     """Persist a domain user to the database and return the user ID."""
+    existing_user = users_admin.find_one(
+        {"org_id": org_id, "email": email},
+        {"_id": 1},
+    )
+    if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
+        return str(existing_user["_id"])
+
     user_doc = {
         "org_id": org_id,
         "email": email,
@@ -69,8 +97,18 @@ def persist_domain_user(org_id: str, username: str, password: str, email: str) -
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
-    res = users_admin.insert_one(user_doc)
-    return str(res.inserted_id)
+    try:
+        res = users_admin.insert_one(user_doc)
+        return str(res.inserted_id)
+    except DuplicateKeyError:
+        # Idempotency guard: user may already have been created by /api/users.
+        existing_user = users_admin.find_one(
+            {"org_id": org_id, "email": email},
+            {"_id": 1},
+        )
+        if isinstance(existing_user, dict) and existing_user.get("_id") is not None:
+            return str(existing_user["_id"])
+        raise
 
 
 def remove_domain_user_from_db(org_id: str, username: str, job_id: str | None = None) -> bool:
@@ -184,12 +222,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         raise ValueError(f"User with email {user_data.email} already exists")
 
     # Enforce user limit based on organization package
-    existing_db_count = users_admin.count_documents({"org_id": org_id})
-    user_limit = _coerce_int(org_doc.get("user_limit"))
-    if user_limit is None:
-        user_limit = _coerce_int(get_workstation_count(org_id))
-    if user_limit is not None and existing_db_count + 1 > user_limit:
-        raise ValueError("User limit reached for this organization")
+    enforce_org_user_limit(org_id, additional_users=1)
 
     # -----------------------------
     # Insert user

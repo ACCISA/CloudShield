@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import UserRow from "./UserRow.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
 import EmptyState from "../common/EmptyState/EmptyState.jsx";
@@ -10,8 +10,7 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "24px 24px 4px 24px",
-    backgroundColor: "transparent", // FIX: Made transparent
-    // Removed sticky, top, and zIndex properties
+    backgroundColor: "transparent",
   },
   headerLabel: {
     fontSize: "0.85rem",
@@ -25,41 +24,6 @@ const styles = {
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
     padding: "16px",
   },
-};
-
-// Responsive breakpoints
-const getResponsiveStyles = () => {
-  const width = window.innerWidth;
-
-  if (width < 768) {
-    return {
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "16px 16px 4px 16px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "12px",
-        padding: "12px",
-      },
-    };
-  }
-
-  if (width < 1024) {
-    return {
-      tableHeaders: {
-        ...styles.tableHeaders,
-        padding: "20px 20px 4px 20px",
-      },
-      listPanel: {
-        ...styles.listPanel,
-        borderRadius: "16px",
-        padding: "14px",
-      },
-    };
-  }
-
-  return styles;
 };
 
 export default function UsersTable({
@@ -80,26 +44,15 @@ export default function UsersTable({
   onDelete,
 }) {
   const themeColors = useThemeColors();
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  const responsiveStyles = getResponsiveStyles();
-
-  const showTitleColumn = showTitle && !isMobile;
-  const showWorkstationsColumn = showWorkstations && windowWidth >= 1024;
-  const showGroupsColumn = showGroups && windowWidth >= 1024;
-  const showFilesColumn = showFiles && windowWidth >= 1024;
+  const showTitleColumn = showTitle;
+  const showWorkstationsColumn = showWorkstations;
+  const showGroupsColumn = showGroups;
+  const showFilesColumn = showFiles;
 
   const cols = [
-    !isMobile ? "28px" : null,
-    isMobile ? "1fr" : "1.2fr",
+    "28px",
+    "1.2fr",
     showTitleColumn ? "0.9fr" : null,
     showWorkstationsColumn ? "0.6fr" : null,
     showGroupsColumn ? "0.8fr" : null,
@@ -110,52 +63,38 @@ export default function UsersTable({
 
   return (
     <>
-      {!isMobile && (
-        <div
-          style={{
-            ...responsiveStyles.tableHeaders,
-            gridTemplateColumns: cols.join(" "),
-            paddingLeft: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-            paddingRight: isMobile
-              ? "calc(12px + 4px + 4px)"
-              : isTablet
-                ? "calc(14px + 8px + 8px)"
-                : "calc(16px + 8px + 8px)",
-          }}
-        >
-          <Checkbox
-            checked={allVisibleSelected}
-            indeterminate={isIndeterminate}
-            onChange={onToggleSelectAll}
-          />
-          <span style={styles.headerLabel}>Name/Email</span>
-          {showTitleColumn && <span style={styles.headerLabel}>Title</span>}
-          {showWorkstationsColumn && (
-            <span style={styles.headerLabel}>Workstations</span>
-          )}
-          {showGroupsColumn && <span style={styles.headerLabel}>Groups</span>}
-          {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
-          <div />
-          <div />
-        </div>
-      )}
+      <div
+        style={{
+          ...styles.tableHeaders,
+          gridTemplateColumns: cols.join(" "),
+          paddingLeft: "calc(16px + 8px + 8px)",
+          paddingRight: "calc(16px + 8px + 8px)",
+        }}
+      >
+        <Checkbox
+          checked={allVisibleSelected}
+          indeterminate={isIndeterminate}
+          onChange={onToggleSelectAll}
+        />
+        <span style={styles.headerLabel}>Name/Email</span>
+        {showTitleColumn && <span style={styles.headerLabel}>Title</span>}
+        {showWorkstationsColumn && (
+          <span style={styles.headerLabel}>Workstations</span>
+        )}
+        {showGroupsColumn && <span style={styles.headerLabel}>Groups</span>}
+        {showFilesColumn && <span style={styles.headerLabel}>Shares</span>}
+        <div />
+        <div />
+      </div>
 
-      <div style={responsiveStyles.listPanel}>
+      <div style={styles.listPanel}>
         {users.length === 0 ? (
-          <EmptyState 
-            message="No users found" 
-            description="Try adjusting your search or filters, or create a new user." 
+          <EmptyState
+            message="No users found"
+            description="Try adjusting your search or filters, or create a new user."
           />
         ) : (
-          <div
-            style={{
-              padding: isMobile ? "0 4px" : "0 8px",
-            }}
-          >
+          <div style={{ padding: "0 8px" }}>
             <div
               style={{
                 display: "flex",
@@ -175,8 +114,6 @@ export default function UsersTable({
                   onDelete={() => onDelete(u)}
                   isLast={idx === users.length - 1}
                   cols={cols}
-                  isMobile={isMobile}
-                  isTablet={isTablet}
                   isSelected={selectedIds.has(u.id)}
                   onToggleSelect={() => onToggleSelect(u.id)}
                 />

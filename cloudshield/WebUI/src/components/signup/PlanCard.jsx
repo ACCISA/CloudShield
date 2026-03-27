@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import React from "react";
+import "../../pages/auth.css";
 
 export default function PlanCard({ plan, selected, onSelect }) {
   const handleKeyDown = (e) => {
@@ -9,82 +10,29 @@ export default function PlanCard({ plan, selected, onSelect }) {
   };
 
   return (
-    <Box
+    <button
+      type="button"
+      className={`plan-card${selected ? " selected" : ""}`}
       onClick={() => onSelect(plan.id)}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       aria-label={`Select ${plan.name} plan for $${plan.price} per month`}
-      sx={{
-        flex: "1 1 260px",
-        maxWidth: 300,
-        backgroundColor: "#111111",
-        borderRadius: "16px",
-        border: selected
-          ? "2px solid #4ade80"
-          : "1px solid rgba(255,255,255,0.12)",
-        padding: "16px 18px",
-        color: "text.primary",
-        cursor: "pointer",
-        transition: "0.2s ease-out",
-        boxShadow: selected
-          ? "0 0 18px rgba(74,222,128,0.35)"
-          : "0 14px 32px rgba(0,0,0,0.6)",
-        "&:hover": {
-          backgroundColor: "#151515",
-        },
-      }}
+      aria-pressed={selected}
     >
-      <Typography sx={{ fontSize: "1.4rem", fontWeight: 600 }}>
-        ${plan.price}
-      </Typography>
-
-      <Typography sx={{ opacity: 0.6, mb: 1 }}>/ Per Month</Typography>
-
-      <Typography sx={{ fontSize: "1.05rem", fontWeight: 600 }}>
+      <p className="plan-card__price">${plan.price}</p>
+      <p className="plan-card__period">/ Per Month</p>
+      <div className="plan-card__name">
         {plan.name}
-        {plan.tag && (
-          <Box
-            component="span"
-            sx={{
-              ml: 1,
-              backgroundColor: "#4ade80",
-              color: "#000",
-              px: 0.75,
-              py: 0.25,
-              borderRadius: "999px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-            }}
-          >
-            {plan.tag}
-          </Box>
-        )}
-      </Typography>
-
-      <Typography
-        sx={{
-          opacity: 0.7,
-          mt: 1,
-          mb: 1.5,
-          fontSize: "0.9rem",
-          lineHeight: 1.4,
-        }}
-      >
-        {plan.description}
-      </Typography>
-
-      <Box sx={{ borderBottom: "1px solid rgba(255,255,255,0.12)", mb: 1.5 }} />
-
-      <Typography sx={{ fontWeight: 600, mb: 0.75, fontSize: "0.9rem" }}>
-        Features:
-      </Typography>
-
+        {plan.tag && <span className="plan-card__tag">{plan.tag}</span>}
+      </div>
+      <p className="plan-card__desc">{plan.description}</p>
+      <hr className="plan-card__divider" />
+      <p className="plan-card__features-label">Features:</p>
       {plan.features.map((f) => (
-        <Typography key={f} sx={{ fontSize: "0.8rem", opacity: 0.85 }}>
-          ✓ {f}
-        </Typography>
+        <p key={f} className="plan-card__feature">
+          <span className="plan-card__check">✓</span>
+          {f}
+        </p>
       ))}
-    </Box>
+    </button>
   );
 }

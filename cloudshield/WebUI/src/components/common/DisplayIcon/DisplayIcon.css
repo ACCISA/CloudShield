@@ -149,6 +149,11 @@
   color: #991b1b;
 }
 
+.status-badge.provisioning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
 /* Hover Card Details */
 .hover-card-details {
   display: flex;
@@ -172,17 +177,4 @@
 .detail-value {
   color: #111827;
   word-break: break-word;
-}
-
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .display-icon-card {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-
-  .hover-card {
-    min-width: 240px;
-  }
 }

@@ -9,13 +9,20 @@ import { TICKET_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 import { useTickets } from "../../api/ticketsApi";
-import { apiGet } from "../../api/client";
 import CreateTicketModal from "../../components/Tickets/CreateTicketModal";
+import { useAuth } from "../../context/AuthContext";
 
 function TicketDashboard() {
     const themeColors = useThemeColors();
-    const { tickets, loading, error, refreshTickets } = useTickets();
+    const { tickets: rawTickets, loading, error, refreshTickets } = useTickets();
+    const { currentUser } = useAuth();
     
+    // Fix 1: Ensure we handle the "items" wrapper from the backend
+    const tickets = useMemo(() => {
+        if (!rawTickets) return [];
+        return Array.isArray(rawTickets) ? rawTickets : (rawTickets.items || []);
+    }, [rawTickets]);
+
     const styles = {
         page: {
             padding: "32px",
@@ -105,8 +112,8 @@ function TicketDashboard() {
             flexDirection: "column",
         },
     };
+
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [userEmail, setUserEmail] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [activeFilters, setActiveFilters] = useState({
@@ -115,21 +122,14 @@ function TicketDashboard() {
     });
     const itemsPerPage = 6;
 
-    useEffect(() => {
-        let mounted = true;
-        apiGet("/users/me").then(res => {
-            if (mounted) setUserEmail(res.user?.email || "");
-        }).catch(err => console.error("Failed to fetch user email", err));
-        return () => { mounted = false; };
-    }, []);
-
     useEffect(() => { setCurrentPage(1); }, [searchQuery, activeFilters]);
 
+    // Fix 2: Use the global context user instead of the local fetch
+    const userEmail = currentUser?.email || "";
     const isSuperAdmin = userEmail === "support@cloudshield.com";
     const handleFilterChange = createFilterChangeHandler(setActiveFilters);
 
     const metrics = useMemo(() => {
-        if (!tickets) return { total: 0, open: 0, closed: 0, highPriority: 0 };
         return {
             total: tickets.length,
             open: tickets.filter(t => t.status === "Open" || t.status === "Pending").length,
@@ -139,7 +139,6 @@ function TicketDashboard() {
     }, [tickets]);
 
     const filteredTickets = useMemo(() => {
-        if (!tickets) return [];
         let result = tickets;
 
         if (searchQuery.trim()) {
@@ -171,7 +170,6 @@ function TicketDashboard() {
 
     return (
         <div style={styles.page}>
-
             <div style={styles.header}>
                 <h2 style={styles.pageTitle}>
                     {isSuperAdmin ? "Global Support Helpdesk" : "Support Helpdesk"}
@@ -230,7 +228,7 @@ function TicketDashboard() {
                     <TicketsTable
                         tickets={paginatedTickets}
                         isSuperAdmin={isSuperAdmin}
-                        hasNoTickets={!tickets || tickets.length === 0}
+                        hasNoTickets={tickets.length === 0}
                         hasNoResults={filteredTickets.length === 0}
                     />
                 </div>

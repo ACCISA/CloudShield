@@ -9,12 +9,28 @@ def test_render_org_welcome_template_smoke():
             "admin_name": "Sam",
             "org_name": "CloudShield",
             "login_url": "http://real.encs.concordia.ca/login",
+            "desktop_app_downloads": [
+                {
+                    "label": "Download for Windows",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Windows-0.0.0-Setup.exe",
+                },
+                {
+                    "label": "Download for macOS",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Mac-0.0.0-Installer.dmg",
+                },
+                {
+                    "label": "Download for Linux",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Linux-0.0.0.AppImage",
+                },
+            ],
         },
     )
     assert "Welcome to CloudShield" in html
     assert "CloudShield" in html
     assert "http://real.encs.concordia.ca/login" in html
-    assert "http://real.encs.concordia.ca/cloudshield_logo_white.png" in html
+    assert "Download for Windows" in html
+    assert "Download for macOS" in html
+    assert "Download for Linux" in html
 
 
 def test_render_employee_invite_template_smoke():
@@ -24,12 +40,28 @@ def test_render_employee_invite_template_smoke():
             "employee_name": "Alex",
             "org_name": "CloudShield",
             "login_url": "http://real.encs.concordia.ca/login",
+            "desktop_app_downloads": [
+                {
+                    "label": "Download for Windows",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Windows-0.0.0-Setup.exe",
+                },
+                {
+                    "label": "Download for macOS",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Mac-0.0.0-Installer.dmg",
+                },
+                {
+                    "label": "Download for Linux",
+                    "url": "https://github.com/ACCISA/CloudShield/releases/download/Iteration11/CloudShield-Linux-0.0.0.AppImage",
+                },
+            ],
         },
     )
     assert "You're invited to CloudShield" in html
     assert "CloudShield" in html
     assert "http://real.encs.concordia.ca/login" in html
-    assert "http://real.encs.concordia.ca/cloudshield_logo_white.png" in html
+    assert "Download for Windows" in html
+    assert "Download for macOS" in html
+    assert "Download for Linux" in html
 
 
 def test_send_email_disabled(monkeypatch):

@@ -96,48 +96,6 @@ const styles = {
   },
 };
 
-// Responsive breakpoints
-const getResponsiveStyles = () => {
-  const width = window.innerWidth;
-
-  // Mobile (< 768px)
-  if (width < 768) {
-    return {
-      row: {
-        ...styles.row,
-        gap: "8px",
-        padding: "10px 6px",
-      },
-      nameSection: {
-        ...styles.nameSection,
-        gap: "8px",
-      },
-      name: {
-        ...styles.name,
-        fontSize: "0.95rem",
-      },
-      email: {
-        ...styles.email,
-        fontSize: "0.8rem",
-      },
-    };
-  }
-
-  // Tablet (768px - 1024px)
-  if (width < 1024) {
-    return {
-      row: {
-        ...styles.row,
-        gap: "10px",
-        padding: "11px 7px",
-      },
-    };
-  }
-
-  // Desktop - return original styles
-  return styles;
-};
-
 /* ---------------------------- helpers ---------------------------- */
 
 // Replaces the fake placeholders with actual DisplayIcons stacked
@@ -177,22 +135,28 @@ function renderShares(data) {
   const display =
     data.fileCountDisplay ??
     data.sharesDisplay ??
-    (Array.isArray(data.files) ? (data.files.length === 0 ? "-" : String(data.files.length)) : null);
+    (Array.isArray(data.files)
+      ? data.files.length === 0
+        ? "-"
+        : String(data.files.length)
+      : null);
 
   if (display === "-" || display === "—") {
     return <span style={{ opacity: 0.5, ...styles.textCell }}>—</span>;
   }
 
   return (
-    <div style={{
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "4px 10px",
-      borderRadius: "20px",
-      backgroundColor: "var(--action-hover)",
-      fontSize: "0.85rem",
-      whiteSpace: "nowrap",
-    }}>
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "4px 10px",
+        borderRadius: "20px",
+        backgroundColor: "var(--action-hover)",
+        fontSize: "0.85rem",
+        whiteSpace: "nowrap",
+      }}
+    >
       {display}
     </div>
   );
@@ -210,12 +174,9 @@ export default function UserRow({
   onDelete,
   isLast,
   cols,
-  isMobile,
-  isTablet,
   isSelected,
   onToggleSelect,
 }) {
-  const responsiveStyles = getResponsiveStyles();
   const themeColors = useThemeColors();
 
   return (
@@ -223,27 +184,27 @@ export default function UserRow({
       {/* Row */}
       <div
         style={{
-          ...responsiveStyles.row,
+          ...styles.row,
           gridTemplateColumns: cols.join(" "),
         }}
         onMouseEnter={(e) =>
           (e.currentTarget.style.backgroundColor = "var(--action-hover)")
         }
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.backgroundColor = "transparent")
+        }
       >
-        {/* select - hide on mobile */}
-        {!isMobile && (
-          <Checkbox checked={isSelected} onChange={onToggleSelect} />
-        )}
+        {/* select */}
+        <Checkbox checked={isSelected} onChange={onToggleSelect} />
 
         {/* name + email + TRUE profile picture icon */}
-        <div style={responsiveStyles.nameSection}>
+        <div style={styles.nameSection}>
           <DisplayIcon type="user" data={data} size="small" />
           <div style={styles.nameContainer}>
-            <span style={responsiveStyles.name} title={data.name}>
+            <span style={styles.name} title={data.name}>
               {data.name}
             </span>
-            <span style={responsiveStyles.email} title={data.email}>
+            <span style={styles.email} title={data.email}>
               ↳ {data.email}
             </span>
           </div>
@@ -257,7 +218,9 @@ export default function UserRow({
         )}
 
         {/* workstations */}
-        {showWorkstations && <ItemsPill items={data.workstations} type="workstation" />}
+        {showWorkstations && (
+          <ItemsPill items={data.workstations} type="workstation" />
+        )}
 
         {/* groups */}
         {showGroups && <ItemsPill items={data.groups} type="group" />}
@@ -280,7 +243,13 @@ export default function UserRow({
           <EditButton
             menuItems={[
               {
-                icon: <EditIcon width={15} height={16} color="var(--text-primary)" />,
+                icon: (
+                  <EditIcon
+                    width={15}
+                    height={16}
+                    color="var(--text-primary)"
+                  />
+                ),
                 label: "edit user",
                 color: "var(--text-primary)",
                 onClick: onEdit,

@@ -20,6 +20,14 @@ export function useOrgMetrics() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refetchKey, setRefetchKey] = useState(0);
+
+  useEffect(() => {
+    const handleInvalidate = () => setRefetchKey((k) => k + 1);
+    window.addEventListener("metrics:invalidate", handleInvalidate);
+    return () =>
+      window.removeEventListener("metrics:invalidate", handleInvalidate);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -29,7 +37,8 @@ export function useOrgMetrics() {
         setLoading(true);
         setError(null);
 
-        const res = await apiGet("/organizations/me/metrics").json(); // { stats: { users, workstations, access_groups, shares } }
+        const _raw = await apiGet("/organizations/me/metrics"); // { stats: { users, workstations, access_groups, shares } }
+        const res = await _raw.json();
 
         if (!mounted) return;
 
@@ -52,7 +61,7 @@ export function useOrgMetrics() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [refetchKey]);
 
   return { stats, loading, error };
 }
