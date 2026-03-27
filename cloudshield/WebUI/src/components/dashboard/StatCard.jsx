@@ -2,7 +2,7 @@
  * StatCard.jsx
  *
  * Purpose:
- *   Dashboard statistic card showing a metric, value and change chip.
+ *   Dashboard statistic card showing a metric and value.
  *   Responsive design with loading and error states for backend integration.
  *
  * Props:
@@ -11,7 +11,7 @@
  *   - changePercent: percentage change value (number)
  *   - changeText: optional custom change indicator text (overrides changePercent)
  *   - isPositiveChange: whether the change is positive (affects arrow direction)
- *   - gradientFrom/gradientTo: background gradient colors
+ *   - gradientFrom: background color
  *   - loading: shows loading state
  *   - error: error message to display
  *   - onAdd: callback when add button is clicked
@@ -28,7 +28,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 /**
- * Dashboard statistic card showing a metric value with gradient background.
+ * Dashboard statistic card showing a metric value with a flat background color.
  * Supports loading states, error handling, and responsive design.
  *
  * @param {Object} props
@@ -37,8 +37,7 @@ import { useThemeColors } from "../../hooks/useThemeColors.js";
  * @param {number} [props.changePercent] - Percentage change (e.g., 15.2)
  * @param {string} [props.changeText] - Custom change text (overrides changePercent)
  * @param {boolean} [props.isPositiveChange=true] - Whether change is positive
- * @param {string} [props.gradientFrom='#6a5acd'] - Gradient start color
- * @param {string} [props.gradientTo='#9f7aea'] - Gradient end color
+ * @param {string} [props.gradientFrom='#6a5acd'] - Card background color
  * @param {boolean} [props.loading=false] - Show loading state
  * @param {string} [props.error] - Error message to display
  * @param {Function} [props.onAdd] - Callback when add button is clicked
@@ -48,7 +47,6 @@ export default function StatCard({
   title,
   value,
   gradientFrom = "#6a5acd",
-  gradientTo = "#9f7aea",
   loading = false,
   error,
   onAdd,
@@ -62,9 +60,7 @@ export default function StatCard({
         minHeight: "220px",
         borderRadius: "16px",
         padding: "32px",
-        background: error
-          ? "linear-gradient(135deg, #e53e3e 0%, #fc8181 100%)"
-          : `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+        backgroundColor: error ? "#e53e3e" : gradientFrom,
         color: "#fff",
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
         display: "flex",
@@ -72,7 +68,11 @@ export default function StatCard({
         gap: "20px",
         position: "relative",
         overflow: "hidden",
-        transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+        transition:
+          "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, filter 0.2s ease-in-out",
+        "&:hover": {
+          filter: "brightness(1.08)",
+        },
       }}
     >
       {/* Header row: title + plus */}
@@ -106,12 +106,13 @@ export default function StatCard({
             onClick={onAdd}
             sx={{
               color: themeColors.text,
-              backgroundColor: themeColors.bgHover,
+              backgroundColor: "rgba(255, 255, 255, 0.12)",
+              border: "1px solid rgba(255, 255, 255, 0.16)",
               borderRadius: "8px",
               width: 36,
               height: 36,
               "&:hover": {
-                backgroundColor: themeColors.lightOverlaySubtle,
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
               },
             }}
           >

@@ -258,11 +258,11 @@ describe("GroupsList Component", () => {
       expect(screen.getByText("8")).toBeInTheDocument();
     });
 
-    test("shows '-' for groups with no files", () => {
+    test("shows '—' for groups with no files", () => {
       const noFilesGroup = [{ ...mockGroups[0], files: 0 }];
       render(<GroupsList rows={noFilesGroup} showFiles={true} />);
 
-      expect(screen.getByText("-")).toBeInTheDocument();
+      expect(screen.getByText("—")).toBeInTheDocument();
     });
   });
 
@@ -446,7 +446,7 @@ describe("GroupsList Component", () => {
       ];
 
       render(<GroupsList rows={groupWithNoFiles} showFiles={true} />);
-      expect(screen.getByText("-")).toBeInTheDocument();
+      expect(screen.getByText("—")).toBeInTheDocument();
     });
   });
 });

@@ -120,14 +120,19 @@ function getGroupMenuItems(group, onEdit, onDelete) {
   ];
 }
 
-function formatSharesDisplay(row) {
-  if (row?.filesDisplay != null) return row.filesDisplay;
+function getSharesCount(row) {
+  if (row?.filesDisplay != null) {
+    const display = row.filesDisplay;
+    if (display === "—" || display === "-") return 0;
+    const parsed = Number(display);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
   const n = Number(row?.files ?? 0);
-  if (!Number.isFinite(n) || n === 0) return "-";
-  return String(n);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-function ItemsPill({ items, type, totalCount, getKey, styles }) {
+function ItemsPill({ items, type, totalCount, getKey, styles, countFormatter }) {
   const itemsList = Array.isArray(items) ? items : [];
   const show = itemsList.slice(0, 3);
   const count = totalCount || itemsList.length;
@@ -140,7 +145,7 @@ function ItemsPill({ items, type, totalCount, getKey, styles }) {
   if (show.length === 0) {
     return (
       <div style={styles.countBadge}>
-        <span>+ {count}</span>
+        <span>{countFormatter ? countFormatter(count) : `+ ${count}`}</span>
       </div>
     );
   }
@@ -190,6 +195,18 @@ function WorkstationsPill({ row, styles }) {
   );
 }
 
+function SharesPill({ row, styles }) {
+  return (
+    <ItemsPill
+      items={[]}
+      totalCount={getSharesCount(row)}
+      getKey={(_, idx) => `share-${idx}`}
+      styles={styles}
+      countFormatter={(count) => String(count)}
+    />
+  );
+}
+
 function GroupRow({
   r,
   cols,
@@ -235,11 +252,7 @@ function GroupRow({
 
         {showUsers && <UsersPill row={r} styles={styles} />}
         {showWorkstations && <WorkstationsPill row={r} styles={styles} />}
-        {showFiles && (
-          <div style={styles.countBadge}>
-            <span>{formatSharesDisplay(r)}</span>
-          </div>
-        )}
+        {showFiles && <SharesPill row={r} styles={styles} />}
 
         <div style={styles.editContainer}>
           <EditButton menuItems={getGroupMenuItems(r, onEdit, onDelete)} />

@@ -1,6 +1,6 @@
-import {apiPost, apiPatch, apiDelete, apiGet} from "../api/client";
+import { apiPost, apiPatch, apiDelete, apiGet } from "../api/client";
 
-const API_PREFIX = '/api';
+const API_PREFIX = "/api";
 
 function buildHeaders(token) {
   const headers = { "Content-Type": "application/json" };
@@ -16,7 +16,7 @@ async function parseResponse(response) {
 
   if (!response.ok) {
     const error = new Error(
-      payload?.error || `Request failed with ${response.status}`
+      payload?.error || `Request failed with ${response.status}`,
     );
     error.status = response.status;
     error.payload = payload;
@@ -48,13 +48,10 @@ export async function listUsers({
 }
 
 export async function deleteUser(userId, { reason, token } = {}) {
-  const response = await apiDelete(
-    `/users/${encodeURIComponent(userId)}`,
-    {
-      headers: buildHeaders(token),
-      body: reason ? JSON.stringify({ reason }) : undefined,
-    }
-  );
+  const response = await apiDelete(`/users/${encodeURIComponent(userId)}`, {
+    headers: buildHeaders(token),
+    body: reason ? JSON.stringify({ reason }) : undefined,
+  });
 
   return parseResponse(response);
 }

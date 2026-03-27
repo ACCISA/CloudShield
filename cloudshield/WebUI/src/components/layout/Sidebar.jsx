@@ -40,11 +40,10 @@ import WorkstationsIcon from "../../assets/NavBar/WorkstationsIcon";
 import UsersIcon from "../../assets/NavBar/UsersIcon";
 import GroupsIcon from "../../assets/NavBar/GroupsIcon";
 import FilesIcon from "../../assets/NavBar/FilesIcon";
+import SidebarCollapseIcon from "../../assets/NavBar/SidebarCollapseIcon.jsx";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { apiGet } from "../../api/client";
 import { useOrgMetrics } from "../../api/useOrgMetrics.js";
@@ -491,6 +490,7 @@ export default function Sidebar({
   const { pathname } = useLocation();
   const { logout } = useAuth();
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const [isToggleAnimating, setIsToggleAnimating] = useState(false);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(path + "/");
@@ -533,6 +533,12 @@ export default function Sidebar({
     navigate("/login", { replace: true });
   };
 
+  const handleTogglePress = () => {
+    setIsToggleAnimating(true);
+    onToggleCollapse?.();
+    window.setTimeout(() => setIsToggleAnimating(false), 180);
+  };
+
   return (
     <Box
       sx={{
@@ -561,7 +567,7 @@ export default function Sidebar({
       >
         <IconButton
           size="small"
-          onClick={onToggleCollapse}
+          onClick={handleTogglePress}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           sx={{
             backgroundColor: themeColors.bgSecondary,
@@ -570,14 +576,44 @@ export default function Sidebar({
             color: themeColors.textPrimary,
             width: 28,
             height: 28,
+            transition: "transform 0.14s ease, background-color 0.2s ease",
+            "&:active": {
+              transform: "scale(0.92)",
+            },
             "&:hover": { backgroundColor: themeColors.lightOverlay },
           }}
         >
-          {collapsed ? (
-            <OpenInFullIcon sx={{ fontSize: "1rem" }} />
-          ) : (
-            <CloseFullscreenIcon sx={{ fontSize: "1rem" }} />
-          )}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: collapsed ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s ease",
+              animation: isToggleAnimating
+                ? "sidebarTogglePulse 0.18s ease"
+                : "none",
+              "@keyframes sidebarTogglePulse": {
+                "0%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+                "50%": {
+                  transform: collapsed
+                    ? "rotate(180deg) scale(1.12)"
+                    : "scale(1.12)",
+                },
+                "100%": {
+                  transform: collapsed ? "rotate(180deg) scale(1)" : "scale(1)",
+                },
+              },
+            }}
+          >
+            <SidebarCollapseIcon
+              width={16}
+              height={16}
+              color={themeColors.textPrimary}
+            />
+          </Box>
         </IconButton>
       </Box>
 
