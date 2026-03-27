@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>You have been invited</title>
+    <title>Your workstation is ready</title>
   </head>
   <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial, Helvetica, sans-serif;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
@@ -23,18 +23,19 @@
             </tr>
             <tr>
               <td style="font-size:20px;font-weight:bold;color:#111111;padding:18px 0 12px;">
-                You're invited to CloudShield
+                Your workstation is ready
               </td>
             </tr>
             <tr>
               <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:16px;">
-                Hi {{ employee_name or "there" }}, you have been invited to join
-                <strong>{{ org_name or "your organization" }}</strong> on CloudShield.
+                Hi {{ user_name or "there" }}, your workstation
+                <strong>{{ workstation_name or "workstation" }}</strong>
+                for <strong>{{ org_name or "your organization" }}</strong> is ready to be used.
               </td>
             </tr>
             <tr>
               <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:20px;">
-                Sign in with the credentials provided by your administrator, then update your profile and password:
+                Sign in to CloudShield to access it:
               </td>
             </tr>
             <tr>
@@ -44,30 +45,9 @@
                 </a>
               </td>
             </tr>
-            {% if desktop_app_downloads %}
-            <tr>
-              <td style="font-size:14px;color:#333333;line-height:1.6;padding-bottom:12px;">
-                To connect to your CloudShield workstation, download and install the CloudShield desktop app:
-              </td>
-            </tr>
-            {% for app in desktop_app_downloads %}
-              <tr>
-                <td style="padding-bottom:12px;">
-                  <a href="{{ app.url }}" style="display:inline-block;width:240px;box-sizing:border-box;text-align:center;background:#f9fafb;color:#111827;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid #d1d5db;">
-                    {{ app.label }}
-                  </a>
-                </td>
-              </tr>
-            {% endfor %}
-            <tr>
-              <td style="font-size:12px;color:#6b7280;line-height:1.5;padding-bottom:24px;">
-                Install the app, then sign in with the credentials provided by your administrator.
-              </td>
-            </tr>
-            {% endif %}
             <tr>
               <td style="font-size:12px;color:#6b7280;line-height:1.5;">
-                If you did not expect this invite, please ignore this email.
+                If you did not expect this workstation, please contact your CloudShield administrator.
               </td>
             </tr>
             <tr>

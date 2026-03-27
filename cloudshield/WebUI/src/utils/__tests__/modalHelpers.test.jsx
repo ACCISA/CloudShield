@@ -665,6 +665,88 @@ describe("modalHelpers", () => {
       });
     });
 
+    it("should resolve member ids into user objects and set currentUser", async () => {
+      listUsers.mockResolvedValue([
+        {
+          _id: "user1",
+          email: "user1@test.com",
+          full_name: "Jane Doe",
+          role: "admin",
+        },
+      ]);
+      apiGet.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          workstations: [
+            {
+              _id: "ws4",
+              name: "Designer",
+              description: "basic",
+              members: ["user1", "missing-user"],
+              access_groups: ["group-1"],
+              software: [{ _id: "sw-1", name: "Office" }],
+              status: "online",
+              org_id: "org123",
+            },
+          ],
+        }),
+      });
+
+      const result = await fetchWorkstations("org123", "token123");
+
+      expect(listUsers).toHaveBeenCalledWith({
+        token: "token123",
+        search: "",
+        limit: 200,
+        offset: 0,
+      });
+      expect(result[0]).toMatchObject({
+        id: "ws4",
+        name: "Designer",
+        strength: "basic",
+        usersCount: 2,
+        groups: ["group-1"],
+        software: [{ _id: "sw-1", name: "Office" }],
+        status: "connected",
+        currentUser: expect.objectContaining({
+          id: "user1",
+          firstName: "Jane",
+          lastName: "Doe",
+        }),
+      });
+      expect(result[0].users).toEqual([
+        expect.objectContaining({
+          id: "user1",
+          email: "user1@test.com",
+        }),
+      ]);
+    });
+
+    it("should preserve failed status and offline fallback", async () => {
+      listUsers.mockResolvedValue([]);
+      apiGet.mockResolvedValue({
+        ok: true,
+        json: async () => ([
+          {
+            id: "ws5",
+            name: "Broken",
+            status: "failed",
+            members: [],
+          },
+        ]),
+      });
+
+      const result = await fetchWorkstations("org123", "token123");
+
+      expect(result[0]).toMatchObject({
+        id: "ws5",
+        name: "Broken",
+        status: "failed",
+        online: false,
+        currentUser: null,
+      });
+    });
+
     it("should default to 'Untitled Workstation' for missing names", async () => {
       apiGet.mockResolvedValue({
         ok: true,
