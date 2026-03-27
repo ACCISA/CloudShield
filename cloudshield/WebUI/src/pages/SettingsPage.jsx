@@ -94,37 +94,53 @@ export default function SettingsPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (!currentUser?.id) {
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-
     const fetchData = async () => {
+      const token = localStorage.getItem("jwt");
+      if (!token) {
+        if (!cancelled) {
+          setUserData(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
 
       try {
+        const userId =
+          currentUser?.id ??
+          currentUser?._id ??
+          currentUser?.user_id ??
+          null;
+
         const response = await safeAsync(async () => {
-          const userRes = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+          const url = userId
+            ? `${API_BASE}/api/users/${userId}`
+            : `${API_BASE}/api/users/me`;
+
+          const res = await fetch(url, {
+            credentials: "include",
             headers: {
               "Content-Type": "application/json",
               ...getAuthHeader(),
             },
           });
 
-          if (!userRes.ok) {
-            throw await buildApiError(userRes, "Failed to load settings");
+          if (!res.ok) {
+            throw await buildApiError(res, "Failed to load settings");
           }
 
-          return userRes.json();
+          return res.json();
         });
 
         if (!cancelled) {
-          setUserData(response.user || response);
+          setUserData(response?.user || response || null);
         }
       } catch (e) {
         console.error("Failed to load settings data", e);
+        if (!cancelled) {
+          setUserData(null);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -137,15 +153,27 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   const handleUserUpdate = async (payload) => {
-    if (!currentUser?.id) return false;
+    const userId =
+      userData?.id ??
+      userData?._id ??
+      userData?.user_id ??
+      currentUser?.id ??
+      currentUser?._id ??
+      currentUser?.user_id ??
+      null;
+
+    if (!userId) {
+      openToast("Could not determine which user to update.", "error");
+      return false;
+    }
 
     try {
       const response = await safeAsync(
         async () => {
-          const res = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
+          const res = await fetch(`${API_BASE}/api/users/${userId}`, {
             method: "PATCH",
             credentials: "include",
             headers: {
@@ -168,7 +196,15 @@ export default function SettingsPage() {
         }
       );
 
-      setUserData(response.user || response);
+      const apiUser = response?.user || response || {};
+      const { password, ...safePayload } = payload;
+
+      setUserData((prev) => ({
+        ...prev,
+        ...safePayload,
+        ...apiUser,
+      }));
+
       openToast("Settings saved successfully", "success");
       return true;
     } catch {
@@ -216,7 +252,7 @@ export default function SettingsPage() {
             sx={{
               mb: 2,
               borderBottom: "1px solid",
-              borderBottomColor: "var(--divider)", // Use variable
+              borderBottomColor: "var(--divider)",
               "& .MuiTab-root": {
                 textTransform: "none",
                 fontWeight: 500,
@@ -224,15 +260,15 @@ export default function SettingsPage() {
                 minWidth: "auto",
                 padding: "12px 0",
                 marginRight: "32px",
-                color: "var(--text-secondary)", // Use variable
+                color: "var(--text-secondary)",
                 transition: "color 0.2s ease",
               },
-              "& .Mui-selected": { 
-                color: "var(--text-primary) !important", // Force text primary
+              "& .Mui-selected": {
+                color: "var(--text-primary) !important",
                 fontWeight: 600,
               },
-              "& .MuiTabs-indicator": { 
-                backgroundColor: "var(--text-primary)", // Force text primary
+              "& .MuiTabs-indicator": {
+                backgroundColor: "var(--text-primary)",
                 height: "2px",
               },
             }}
@@ -266,7 +302,7 @@ export default function SettingsPage() {
             padding: "12px 24px",
             borderRadius: "12px",
             backgroundColor: toast.type === "error" ? "#d32f2f" : "#2e7d32",
-            color: "text.primary",
+            color: "white",
             fontSize: "1rem",
             boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
             zIndex: 9999,
