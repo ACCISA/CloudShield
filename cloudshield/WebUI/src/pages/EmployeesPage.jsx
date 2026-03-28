@@ -134,11 +134,9 @@ export default function EmployeesPage() {
   
   const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
-  // CSV import file input ref
-  const csvInputRef = useRef(null);
+  
   const pendingCreateGroupSyncRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
-  const [showCsvHelp, setShowCsvHelp] = useState(false);
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -273,7 +271,7 @@ export default function EmployeesPage() {
           return;
         }
 
-        const apiPayload = { email: payload.email, full_name: `${payload.firstName} ${payload.lastName}`, password: payload.password || "DefaultPass123!", role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee", org_id: orgId, profile_image: payload.profileImage || null };
+        const apiPayload = { email: payload.email, full_name: `${payload.firstName} ${payload.lastName}`, password: payload.password || "", role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee", org_id: orgId, profile_image: payload.profileImage || null };
         pendingCreateGroupSyncRef.current = {
           groups: Array.isArray(payload.groups) ? payload.groups : [],
           email: payload.email || "",
@@ -407,9 +405,7 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleCsvButtonClick = () => {
-    csvInputRef.current?.click();
-  };
+
 
   // Logic: Filter & Sort
   const filtered = useMemo(() => {
@@ -496,105 +492,25 @@ export default function EmployeesPage() {
                 </button>
               </div>
             )}
-            <input
-              ref={csvInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              onChange={handleCsvImport}
-              style={{ display: "none" }}
+
+            <CsvImportButton
+                button={
+                  <CreateButton
+                    icon={<UploadFileIcon width={16} height={16} color={themeColors.text} />}
+                    buttonText={csvImporting ? "Importing..." : "Import CSV"}
+                    disabled={csvImporting}
+                    data-testid="import-csv-btn"
+                  />
+                }
+                onImport={handleCsvImport}
+                importing={csvImporting}
+                themeColors={themeColors}
+                helpTitle="Employees CSV Format"
+                requiredColumns={["email", "full_name", "password_hash"]}
+                optionalColumns={["role", "workstations"]}
+                exampleHeader="email,full_name,password_hash,role,workstations"
+                exampleRow="john@example.com,John Doe,$2b$12$...,employee,WS001;WS002"
             />
-            <button
-              type="button"
-              onClick={handleCsvButtonClick}
-              disabled={csvImporting}
-              aria-label="Import CSV"
-              data-testid="import-csv-btn"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "12px 16px",
-                minWidth: 120,
-                height: 48,
-                borderRadius: 8,
-                border: `1px solid ${themeColors.secondaryBorder || themeColors.border}`,
-                background: themeColors.secondary || themeColors.bgSecondary,
-                color: themeColors.secondaryText || themeColors.text,
-                opacity: csvImporting ? 0.5 : 1,
-                cursor: csvImporting ? "not-allowed" : "pointer",
-              }}
-            >
-              <UploadFileIcon width={16} height={16} color={themeColors.text} />
-              <span>{csvImporting ? "Importing..." : "Import CSV"}</span>
-            </button>
-            <div
-              style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
-              onMouseEnter={() => setShowCsvHelp(true)}
-              onMouseLeave={() => setShowCsvHelp(false)}
-            >
-              <button
-                type="button"
-                aria-label="CSV format help"
-                onClick={() => setShowCsvHelp((v) => !v)}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: `1px solid ${themeColors.border}`,
-                  background: "transparent",
-                  color: themeColors.text,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                ?
-              </button>
-              {showCsvHelp && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "calc(100% + 8px)",
-                    minWidth: 340,
-                    maxWidth: 460,
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: `1px solid ${themeColors.border}`,
-                    background: themeColors.bgSecondary,
-                    color: themeColors.text,
-                    fontSize: 12,
-                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.24)",
-                    zIndex: 20,
-                    whiteSpace: "normal",
-                    transform: "translateY(0)",
-                    animation: "fadeInCsvHelp 140ms ease-out",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Employees CSV Format</div>
-                  <div style={{ opacity: 0.9, marginBottom: 6 }}>
-                    Required columns: email, full_name, password_hash (bcrypt hash or plaintext password)
-                  </div>
-                  <div style={{ opacity: 0.9, marginBottom: 8 }}>
-                    Optional columns: role, workstations
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-                      fontSize: 11,
-                      padding: "8px 10px",
-                      borderRadius: 6,
-                      border: `1px solid ${themeColors.borderLight || themeColors.border}`,
-                      background: "rgba(0, 0, 0, 0.08)",
-                    }}
-                  >
-                    email,full_name,password_hash,role,workstations
-                    <br />
-                    john@example.com,John Doe,$2b$12$...,employee,WS001;WS002
-                  </div>
-                </div>
-              )}
-            </div>
             <RefreshButton onClick={withClickLog({ name: "employees/toolbar/refresh", control: "refresh_button" })(fetchUsers)} />
             <CreateButton icon={<CreateUserIcon width={16} height={16} color={themeColors.text} />} buttonText="Create" onClick={() => { setModalEmployee(null); setModalOpen(true); }} />
           </div>

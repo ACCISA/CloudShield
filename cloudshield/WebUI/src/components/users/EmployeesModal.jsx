@@ -223,8 +223,8 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
-    // Password is optional in create mode - only validate if provided
-    if (!isEditMode && formData.password) {
+    // Password is required in create mode.
+    if (!isEditMode) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
     }

@@ -43,9 +43,8 @@ def verify_password(plain: str, stored: str) -> bool:
         bool: True if the password matches, False otherwise.
     """
     try:
-        return bcrypt.checkpw(plain.encode("utf-8"), str(stored).encode("utf-8"))
+        if is_bcrypt_string(stored):
+            return bcrypt.checkpw(plain.encode("utf-8"), stored.encode("utf-8"))
+        return hmac.compare_digest(plain, stored)
     except Exception:
-        try:
-            return hmac.compare_digest(plain, str(stored))
-        except Exception:
-            return False
+        return False
