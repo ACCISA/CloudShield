@@ -14,7 +14,7 @@ from services.user_service import create_user
 from services import service_dispatcher
 from utils.database import organizations
 from utils.database import users_admin
-from security.passwords import hash_password, is_bcrypt_string, verify_password
+from security.passwords import verify_password
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -166,12 +166,6 @@ def login():
     )
     if not user or not verify_password(password, user.get("password", "")):
         return jsonify({"error": "Invalid credentials"}), 401
-
-    if not is_bcrypt_string(user["password"]):
-        users_admin.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"password": hash_password(password)}}
-        )
 
     token = issue_token(sub=str(user["_id"]), role=user["role"], org_id=user["org_id"], email=user["email"], full_name=user.get("full_name", ""))
     return jsonify({

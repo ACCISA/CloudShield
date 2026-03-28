@@ -31,13 +31,9 @@ class TestAuth:
     def mock_password_functions(self):
         """Mock password-related functions"""
         verify_mock = unittest.mock.MagicMock()
-        hash_mock = unittest.mock.MagicMock()
-        is_bcrypt_mock = unittest.mock.MagicMock()
         
         return {
             'verify_password': verify_mock,
-            'hash_password': hash_mock, 
-            'is_bcrypt_string': is_bcrypt_mock
         }
 
     @pytest.fixture
@@ -62,8 +58,6 @@ class TestAuth:
         # Patch the imported symbols directly on the auth module
         monkeypatch.setattr(auth_module, "users_admin", mock_users_admin)
         monkeypatch.setattr(auth_module, "verify_password", mock_password_functions['verify_password'])
-        monkeypatch.setattr(auth_module, "hash_password", mock_password_functions['hash_password'])
-        monkeypatch.setattr(auth_module, "is_bcrypt_string", mock_password_functions['is_bcrypt_string'])
         monkeypatch.setattr(auth_module, "issue_token", mock_jwt_functions['issue_token'])
         monkeypatch.setattr(auth_module, "verify_token", mock_jwt_functions['verify_token'])
         
@@ -87,7 +81,6 @@ class TestAuth:
             "org_id": "org_001"
         }
         mock_password_functions['verify_password'].return_value = True
-        mock_password_functions['is_bcrypt_string'].return_value = True
         mock_jwt_functions['issue_token'].return_value = "jwt.token.here"
         
         response = client.post('/auth/login', json={
@@ -113,30 +106,6 @@ class TestAuth:
             {"email": 1, "password": 1, "role": 1, "org_id": 1, "full_name": 1}
         )
         
-        #Legacy plaintext password upgrade
-        mock_users_admin.reset_mock()
-        mock_users_admin.find_one.return_value = {
-            "_id": "user123",
-            "email": "john@example.com",
-            "password": "plaintext_password",
-            "role": "admin", 
-            "org_id": "org_001"
-        }
-        mock_password_functions['is_bcrypt_string'].return_value = False  
-        mock_password_functions['hash_password'].return_value = "$2b$12$newhash"
-        
-        response = client.post('/auth/login', json={
-            "email": "john@example.com",
-            "password": "plaintext_password"
-        })
-        
-        assert response.status_code == 200
-        mock_password_functions['hash_password'].assert_called_with("plaintext_password")
-        mock_users_admin.update_one.assert_called_with(
-            {"_id": "user123"},
-            {"$set": {"password": "$2b$12$newhash"}}
-        )
-
     def test_login_failures(self, app_with_auth, mock_users_admin, mock_password_functions):
         """Test various login failure scenarios"""
         app, client = app_with_auth

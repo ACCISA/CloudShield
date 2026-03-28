@@ -503,13 +503,31 @@ export default function EmployeesPage() {
               onChange={handleCsvImport}
               style={{ display: "none" }}
             />
-            <CreateButton
-              icon={<UploadFileIcon width={16} height={16} color={themeColors.text} />}
-              buttonText={csvImporting ? "Importing..." : "Import CSV"}
+            <button
+              type="button"
               onClick={handleCsvButtonClick}
               disabled={csvImporting}
+              aria-label="Import CSV"
               data-testid="import-csv-btn"
-            />
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "12px 16px",
+                minWidth: 120,
+                height: 48,
+                borderRadius: 8,
+                border: `1px solid ${themeColors.secondaryBorder || themeColors.border}`,
+                background: themeColors.secondary || themeColors.bgSecondary,
+                color: themeColors.secondaryText || themeColors.text,
+                opacity: csvImporting ? 0.5 : 1,
+                cursor: csvImporting ? "not-allowed" : "pointer",
+              }}
+            >
+              <UploadFileIcon width={16} height={16} color={themeColors.text} />
+              <span>{csvImporting ? "Importing..." : "Import CSV"}</span>
+            </button>
             <div
               style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
               onMouseEnter={() => setShowCsvHelp(true)}
@@ -555,7 +573,7 @@ export default function EmployeesPage() {
                 >
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>Employees CSV Format</div>
                   <div style={{ opacity: 0.9, marginBottom: 6 }}>
-                    Required columns: email, full_name, password_hash
+                    Required columns: email, full_name, password_hash (bcrypt hash or plaintext password)
                   </div>
                   <div style={{ opacity: 0.9, marginBottom: 8 }}>
                     Optional columns: role, workstations
