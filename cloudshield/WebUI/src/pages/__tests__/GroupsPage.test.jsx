@@ -2633,10 +2633,14 @@ describe("GroupsPage Component", () => {
         .spyOn(HTMLInputElement.prototype, "click")
         .mockImplementation(() => {});
 
-      await renderPage();
-      await userEvent.click(screen.getByRole("button", { name: "Import CSV" }));
+      try {
+        await renderPage();
+        await userEvent.click(screen.getByRole("button", { name: "Import CSV" }));
 
-      expect(clickSpy).toHaveBeenCalled();
+        expect(clickSpy).toHaveBeenCalled();
+      } finally {
+        clickSpy.mockRestore();
+      }
     });
 
     it("imports groups from csv and refreshes list", async () => {
