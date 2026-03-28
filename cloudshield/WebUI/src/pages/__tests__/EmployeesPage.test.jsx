@@ -330,7 +330,7 @@ jest.mock("../../components/common/CSVImport/CSVImport.jsx", () => ({
   __esModule: true,
   default: ({ button, onImport, importing }) => {
     const React = require("react");
-    const file = new File(["email,full_name\njohn@example.com,John Doe"], "employees.csv", {
+    const file = new global.File(["email,full_name\njohn@example.com,John Doe"], "employees.csv", {
       type: "text/csv",
     });
     return (
