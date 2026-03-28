@@ -502,7 +502,6 @@ export default function GroupsPage() {
                     zIndex: 20,
                     whiteSpace: "normal",
                     transform: "translateY(0)",
-                    animation: "fadeInCsvHelp 140ms ease-out",
                   }}
                 >
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>Groups CSV Format</div>
