@@ -5,9 +5,16 @@
  * Tests multi-step wizard, form validation, and user interactions
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GroupsModal from "../GroupsModal";
+import { compressImage } from "../../../lib/compressImage.js";
 
 // Mock DisplayIcon component
 jest.mock("../../common/DisplayIcon/DisplayIcon.jsx", () => {
@@ -25,6 +32,10 @@ jest.mock("../../../assets/ImageUploadIcon.jsx", () => {
     return <span>Upload</span>;
   };
 });
+
+jest.mock("../../../lib/compressImage.js", () => ({
+  compressImage: jest.fn(),
+}));
 
 // Mock AuthContext
 jest.mock("../../../context/AuthContext.jsx", () => ({
@@ -46,8 +57,35 @@ describe("GroupsModal Component", () => {
   const mockOnClose = jest.fn();
   const mockOnSubmit = jest.fn();
 
+  const flushInitialModalEffects = async () => {
+    const { listUsers } = require("../../../services/usersApi.js");
+
+    await waitFor(() => {
+      expect(listUsers.mock.calls.length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
+
+  const renderOpenGroupsModal = async (props = {}) => {
+    let view;
+
+    await act(async () => {
+      view = render(
+        <GroupsModal open={true} onClose={mockOnClose} {...props} />,
+      );
+    });
+
+    await flushInitialModalEffects();
+    return view;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    compressImage.mockResolvedValue("data:image/jpeg;base64,compressed");
   });
 
   // Basic rendering tests
@@ -57,45 +95,43 @@ describe("GroupsModal Component", () => {
       expect(screen.queryByTestId("groups-modal")).not.toBeInTheDocument();
     });
 
-    test("renders modal when open is true", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("renders modal when open is true", async () => {
+      await renderOpenGroupsModal();
       expect(screen.getByText("New Group")).toBeInTheDocument();
     });
 
-    test("shows Edit Group title in edit mode", () => {
+    test("shows Edit Group title in edit mode", async () => {
       const groupData = {
         id: "1",
         name: "Test Group",
         description: "Test Description",
       };
 
-      render(
-        <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
-      );
+      await renderOpenGroupsModal({ groupData });
       expect(screen.getByText("Edit Group")).toBeInTheDocument();
     });
 
-    test("shows New Group title in create mode", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("shows New Group title in create mode", async () => {
+      await renderOpenGroupsModal();
       expect(screen.getByText("New Group")).toBeInTheDocument();
     });
   });
 
   // Breadcrumb tests
   describe("Breadcrumb Navigation", () => {
-    test("displays Groups breadcrumb", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("displays Groups breadcrumb", async () => {
+      await renderOpenGroupsModal();
       expect(screen.getByText("Groups")).toBeInTheDocument();
     });
 
-    test("displays close button", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("displays close button", async () => {
+      await renderOpenGroupsModal();
       const closeButton = screen.getByLabelText("Close");
       expect(closeButton).toBeInTheDocument();
     });
 
     test("calls onClose when close button is clicked", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const closeButton = screen.getByLabelText("Close");
 
       await userEvent.click(closeButton);
@@ -105,8 +141,8 @@ describe("GroupsModal Component", () => {
 
   // Progress bar tests
   describe("Progress Bar", () => {
-    test("displays all step labels", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("displays all step labels", async () => {
+      await renderOpenGroupsModal();
 
       expect(screen.getByText("Basic Info")).toBeInTheDocument();
       expect(screen.getByText("Users")).toBeInTheDocument();
@@ -114,8 +150,8 @@ describe("GroupsModal Component", () => {
       expect(screen.getByText("Shares")).toBeInTheDocument();
     });
 
-    test("shows active state for current step", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("shows active state for current step", async () => {
+      await renderOpenGroupsModal();
 
       const basicInfoStep = screen.getByText("Basic Info");
       expect(basicInfoStep).toHaveClass("active");
@@ -124,22 +160,22 @@ describe("GroupsModal Component", () => {
 
   // Basic Info step tests
   describe("Basic Info Step", () => {
-    test("renders group name input", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("renders group name input", async () => {
+      await renderOpenGroupsModal();
       expect(
         screen.getByPlaceholderText("Enter group name"),
       ).toBeInTheDocument();
     });
 
-    test("renders description textarea", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("renders description textarea", async () => {
+      await renderOpenGroupsModal();
       expect(
         screen.getByPlaceholderText("Enter a brief description of the group"),
       ).toBeInTheDocument();
     });
 
     test("allows typing in group name field", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
 
       await userEvent.type(nameInput, "Test Group");
@@ -147,7 +183,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("allows typing in description field", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const descInput = screen.getByPlaceholderText(
         "Enter a brief description of the group",
       );
@@ -156,14 +192,14 @@ describe("GroupsModal Component", () => {
       expect(descInput).toHaveValue("Test Description");
     });
 
-    test("disables Next button when group name is empty", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("disables Next button when group name is empty", async () => {
+      await renderOpenGroupsModal();
       const nextButton = screen.getByText("Next");
       expect(nextButton).toBeDisabled();
     });
 
     test("enables Next button when group name is filled", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       const nextButton = screen.getByText("Next");
 
@@ -171,8 +207,8 @@ describe("GroupsModal Component", () => {
       expect(nextButton).not.toBeDisabled();
     });
 
-    test("shows image upload placeholder initially", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("shows image upload placeholder initially", async () => {
+      await renderOpenGroupsModal();
       expect(screen.getByText("Upload Image")).toBeInTheDocument();
     });
 
@@ -184,9 +220,7 @@ describe("GroupsModal Component", () => {
         image: "data:image/png;base64,test",
       };
 
-      render(
-        <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
-      );
+      await renderOpenGroupsModal({ groupData });
 
       const removeButtons = screen.getAllByText("×");
       // The last one is the image remove button (close button is first)
@@ -195,8 +229,8 @@ describe("GroupsModal Component", () => {
       expect(screen.getByText("Upload Image")).toBeInTheDocument();
     });
 
-    test("handles file input change event", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("handles file input change event", async () => {
+      await renderOpenGroupsModal();
 
       // Find the file input
       const fileInputs = document.querySelectorAll('input[type="file"]');
@@ -215,6 +249,9 @@ describe("GroupsModal Component", () => {
         onloadend: null,
       };
 
+      compressImage.mockRejectedValueOnce(
+        new Error("Failed to load image for compression"),
+      );
       global.FileReader = jest.fn(() => mockFileReader);
 
       // Trigger change
@@ -225,11 +262,35 @@ describe("GroupsModal Component", () => {
         mockFileReader.onloadend();
       }
 
-      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(file);
+      await waitFor(() => {
+        expect(compressImage).toHaveBeenCalledWith(file, {
+          maxWidth: 256,
+          maxHeight: 256,
+        });
+        expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(file);
+      });
     });
 
-    test("handles empty file upload", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("handles successful image compression upload", async () => {
+      await renderOpenGroupsModal();
+
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      const file = new File(["dummy content"], "test.png", {
+        type: "image/png",
+      });
+
+      fireEvent.change(fileInputs[0], { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByAltText("Group icon")).toHaveAttribute(
+          "src",
+          "data:image/jpeg;base64,compressed",
+        );
+      });
+    });
+
+    test("handles empty file upload", async () => {
+      await renderOpenGroupsModal();
 
       const fileInputs = document.querySelectorAll('input[type="file"]');
       const fileInput = fileInputs[0];
@@ -244,14 +305,14 @@ describe("GroupsModal Component", () => {
 
   // Navigation tests
   describe("Step Navigation", () => {
-    test("Back button is disabled on first step", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("Back button is disabled on first step", async () => {
+      await renderOpenGroupsModal();
       const backButton = screen.getByText("Back");
       expect(backButton).toBeDisabled();
     });
 
     test("navigates to next step when Next is clicked", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -265,7 +326,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("navigates back to previous step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -282,7 +343,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("shows Create/Save button on last step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -302,9 +363,7 @@ describe("GroupsModal Component", () => {
         description: "Test",
       };
 
-      render(
-        <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
-      );
+      await renderOpenGroupsModal({ groupData });
 
       // Navigate to last step
       const nextButton = screen.getByText("Next");
@@ -319,7 +378,7 @@ describe("GroupsModal Component", () => {
   // Users step tests
   describe("Users Selection Step", () => {
     test("renders user search input", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -331,7 +390,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("allows typing in user search", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -346,7 +405,7 @@ describe("GroupsModal Component", () => {
   // Workstations step tests
   describe("Workstations Selection Step", () => {
     test("renders workstation search input", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -362,7 +421,7 @@ describe("GroupsModal Component", () => {
   // Files step tests
   describe("Files Selection Step", () => {
     test("renders file search input", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
 
@@ -379,13 +438,7 @@ describe("GroupsModal Component", () => {
   // Submit tests
   describe("Form Submission", () => {
     test("calls onSubmit with form data when Create is clicked", async () => {
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={mockOnSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit: mockOnSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -413,13 +466,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("calls onClose after submission", async () => {
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={mockOnSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit: mockOnSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -435,7 +482,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("handles submit without onSubmit callback", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -453,13 +500,13 @@ describe("GroupsModal Component", () => {
 
   // Cancel button tests
   describe("Cancel Button", () => {
-    test("renders cancel button", () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+    test("renders cancel button", async () => {
+      await renderOpenGroupsModal();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
 
     test("calls onClose when cancel is clicked", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       await userEvent.click(screen.getByText("Cancel"));
       expect(mockOnClose).toHaveBeenCalled();
@@ -468,7 +515,7 @@ describe("GroupsModal Component", () => {
 
   // Edit mode initialization tests
   describe("Edit Mode Initialization", () => {
-    test("populates form with existing group data", () => {
+    test("populates form with existing group data", async () => {
       const groupData = {
         id: "1",
         name: "Existing Group",
@@ -478,9 +525,7 @@ describe("GroupsModal Component", () => {
         workstations: [],
       };
 
-      render(
-        <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
-      );
+      await renderOpenGroupsModal({ groupData });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       const descInput = screen.getByPlaceholderText(
@@ -495,7 +540,7 @@ describe("GroupsModal Component", () => {
   // Selection interactions
   describe("Selection Interactions", () => {
     test("clears search on step change", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -510,7 +555,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("updates workstations search term", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -526,7 +571,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("updates files search term", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -542,9 +587,9 @@ describe("GroupsModal Component", () => {
       expect(searchInput).toHaveValue("doc");
     });
 
-    test("handles default case in step rendering", () => {
+    test("handles default case in step rendering", async () => {
       // This tests the default return null case by checking all valid steps
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       expect(
         screen.getByPlaceholderText("Enter group name"),
       ).toBeInTheDocument();
@@ -557,6 +602,7 @@ describe("GroupsModal Component", () => {
       const { rerender } = render(
         <GroupsModal open={true} onClose={mockOnClose} />,
       );
+      await flushInitialModalEffects();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test");
@@ -566,15 +612,17 @@ describe("GroupsModal Component", () => {
 
       // Reopen modal - should reset
       rerender(<GroupsModal open={true} onClose={mockOnClose} />);
+      await flushInitialModalEffects();
 
       const newNameInput = screen.getByPlaceholderText("Enter group name");
       expect(newNameInput).toHaveValue("");
     });
 
-    test("handles switching from create to edit mode", () => {
+    test("handles switching from create to edit mode", async () => {
       const { rerender } = render(
         <GroupsModal open={true} onClose={mockOnClose} />,
       );
+      await flushInitialModalEffects();
 
       const groupData = {
         id: "1",
@@ -585,6 +633,7 @@ describe("GroupsModal Component", () => {
       rerender(
         <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
       );
+      await flushInitialModalEffects();
 
       expect(screen.getByText("Edit Group")).toBeInTheDocument();
     });
@@ -593,6 +642,7 @@ describe("GroupsModal Component", () => {
       const { rerender } = render(
         <GroupsModal open={true} onClose={mockOnClose} />,
       );
+      await flushInitialModalEffects();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test");
@@ -603,6 +653,7 @@ describe("GroupsModal Component", () => {
       // Close and reopen
       rerender(<GroupsModal open={false} onClose={mockOnClose} />);
       rerender(<GroupsModal open={true} onClose={mockOnClose} />);
+      await flushInitialModalEffects();
 
       // Should be on first step
       expect(
@@ -610,21 +661,19 @@ describe("GroupsModal Component", () => {
       ).toBeInTheDocument();
     });
 
-    test("handles empty group data in edit mode", () => {
+    test("handles empty group data in edit mode", async () => {
       const groupData = {
         id: "1",
       };
 
-      render(
-        <GroupsModal open={true} onClose={mockOnClose} groupData={groupData} />,
-      );
+      await renderOpenGroupsModal({ groupData });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       expect(nameInput).toHaveValue("");
     });
 
     test("handles image upload change event", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const fileInput = screen
         .getByPlaceholderText("Enter group name")
@@ -639,7 +688,7 @@ describe("GroupsModal Component", () => {
   // Selection step interaction tests
   describe("Users Selection Step", () => {
     test("navigates to users step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -652,7 +701,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("allows search term updates in users step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -667,7 +716,7 @@ describe("GroupsModal Component", () => {
 
   describe("Workstations Selection Step", () => {
     test("navigates to workstations step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -681,7 +730,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("allows search term updates in workstations step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -697,7 +746,7 @@ describe("GroupsModal Component", () => {
 
   describe("Files Selection Step", () => {
     test("navigates to files step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -712,7 +761,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("allows search term updates in files step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -728,10 +777,8 @@ describe("GroupsModal Component", () => {
   });
 
   describe("Default Switch Case", () => {
-    test("handles invalid step gracefully", () => {
-      const { container } = render(
-        <GroupsModal open={true} onClose={mockOnClose} />,
-      );
+    test("handles invalid step gracefully", async () => {
+      const { container } = await renderOpenGroupsModal();
 
       // Modal should still render even with edge cases
       expect(container.querySelector(".groups-modal-dialog")).toBeTruthy();
@@ -740,7 +787,7 @@ describe("GroupsModal Component", () => {
 
   describe("Additional Edge Cases", () => {
     test("handles description textarea input", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -754,7 +801,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("navigates back from users step", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -772,7 +819,7 @@ describe("GroupsModal Component", () => {
     });
 
     test("navigates to final step and back", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "Test Group");
@@ -1059,7 +1106,7 @@ describe("GroupsModal Component", () => {
   // Submit Button and Loading State Tests
   describe("Submit Button and Loading State", () => {
     test("submit button shows correct text in create mode", async () => {
-      render(<GroupsModal open={true} onClose={mockOnClose} />);
+      await renderOpenGroupsModal();
       const nameInput = screen.getByPlaceholderText("Enter group name");
 
       // Fill in required field and navigate to last step
@@ -1085,13 +1132,7 @@ describe("GroupsModal Component", () => {
         files: [],
       };
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          groupData={groupData}
-        />,
-      );
+      await renderOpenGroupsModal({ groupData });
 
       // Navigate to last step
       const nextButton = screen.getByText("Next");
@@ -1108,13 +1149,7 @@ describe("GroupsModal Component", () => {
         () => new Promise((resolve) => setTimeout(resolve, 100)),
       );
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={slowOnSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit: slowOnSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1141,13 +1176,7 @@ describe("GroupsModal Component", () => {
         () => new Promise((resolve) => setTimeout(resolve, 100)),
       );
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={slowOnSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit: slowOnSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1171,13 +1200,7 @@ describe("GroupsModal Component", () => {
         () => new Promise((resolve) => setTimeout(resolve, 50)),
       );
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={onSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1205,14 +1228,7 @@ describe("GroupsModal Component", () => {
       const onSubmit = jest.fn(() => Promise.resolve());
       const onRefresh = jest.fn();
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={onSubmit}
-          onRefresh={onRefresh}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit, onRefresh });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1234,13 +1250,7 @@ describe("GroupsModal Component", () => {
     test("calls onClose after successful submission", async () => {
       const onSubmit = jest.fn(() => Promise.resolve());
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={onSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1262,13 +1272,7 @@ describe("GroupsModal Component", () => {
     test("resets isSubmitting state after submission error", async () => {
       const onSubmit = jest.fn(() => Promise.reject(new Error("Failed")));
 
-      render(
-        <GroupsModal
-          open={true}
-          onClose={mockOnClose}
-          onSubmit={onSubmit}
-        />,
-      );
+      await renderOpenGroupsModal({ onSubmit });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1321,7 +1325,7 @@ describe("GroupsModal Component", () => {
         json: () => Promise.resolve({ shares: [] }),
       });
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       // Navigate to files step to trigger fetch
       const nameInput = screen.getByPlaceholderText("Enter group name");
@@ -1339,7 +1343,7 @@ describe("GroupsModal Component", () => {
 
     test("fetchUsersAll handles empty access token", async () => {
       // This is handled by the mock which provides a token
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       await waitFor(() => {
         expect(screen.getByText("New Group")).toBeInTheDocument();
@@ -1350,7 +1354,7 @@ describe("GroupsModal Component", () => {
       const { listUsers } = require("../../../services/usersApi.js");
       listUsers.mockRejectedValueOnce(new Error("API Error"));
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       // Navigate to users step
       const nameInput = screen.getByPlaceholderText("Enter group name");
@@ -1375,7 +1379,7 @@ describe("GroupsModal Component", () => {
 
       global.localStorage.getItem.mockReturnValue(null);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1397,7 +1401,7 @@ describe("GroupsModal Component", () => {
         status: 500,
       });
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1423,7 +1427,7 @@ describe("GroupsModal Component", () => {
         }),
       });
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1441,7 +1445,7 @@ describe("GroupsModal Component", () => {
     test("fetchFileSharesAll handles fetch exception", async () => {
       global.fetch.mockRejectedValueOnce(new Error("Network error"));
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1465,7 +1469,7 @@ describe("GroupsModal Component", () => {
         { _id: "u1", full_name: "", email: "test@test.com" },
       ]);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1484,7 +1488,7 @@ describe("GroupsModal Component", () => {
         { _id: "u1", full_name: "John", email: "john@test.com" },
       ]);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1503,7 +1507,7 @@ describe("GroupsModal Component", () => {
         { _id: "u1", full_name: "John Michael Doe", email: "john@test.com" },
       ]);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1522,7 +1526,7 @@ describe("GroupsModal Component", () => {
         { _id: "u1", full_name: "   ", email: "test@test.com" },
       ]);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
@@ -1541,7 +1545,7 @@ describe("GroupsModal Component", () => {
         { _id: "u1", full_name: null, email: "test@test.com" },
       ]);
 
-      render(<GroupsModal open={true} onClose={jest.fn()} />);
+      await renderOpenGroupsModal({ onClose: jest.fn() });
 
       const nameInput = screen.getByPlaceholderText("Enter group name");
       await userEvent.type(nameInput, "test-group");
