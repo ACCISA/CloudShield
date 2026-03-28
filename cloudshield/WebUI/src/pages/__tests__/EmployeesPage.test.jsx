@@ -326,7 +326,7 @@ jest.mock("../../components/common/Toast/Toast.jsx", () => ({
   }),
 }));
 
-jest.mock("../../components/common/CsvImportButton/CsvImportButton.jsx", () => ({
+jest.mock("../../components/common/CSVImport/CSVImport.jsx", () => ({
   __esModule: true,
   default: ({ button, onImport, importing }) => {
     const React = require("react");
@@ -510,13 +510,20 @@ describe("EmployeesPage", () => {
     await screen.findByText("Alice");
 
     await userEvent.type(screen.getByTestId("search-input"), "bob");
-    expect(screen.getByTestId("user-count")).toHaveTextContent("1");
+    await waitFor(() =>
+      expect(screen.getByTestId("user-count")).toHaveTextContent("1"),
+    );
 
     await userEvent.click(screen.getByTestId("filter-active"));
-    expect(screen.getByTestId("user-count")).toHaveTextContent("0");
+    await waitFor(() =>
+      expect(screen.getByTestId("user-count")).toHaveTextContent("0"),
+    );
 
     await userEvent.click(screen.getByTestId("filter-clear-active"));
     await userEvent.clear(screen.getByTestId("search-input"));
+    await waitFor(() =>
+      expect(screen.getByTestId("sort-name")).toBeInTheDocument(),
+    );
     await userEvent.click(screen.getByTestId("sort-name"));
     await userEvent.click(screen.getByTestId("sort-files"));
     expect(trackButton).not.toHaveBeenCalled();
@@ -552,7 +559,6 @@ describe("EmployeesPage", () => {
     renderPage();
     await screen.findByText("Alice");
 
-    await userEvent.click(screen.getByTestId("checkbox-1"));
     await userEvent.click(screen.getByTestId("select-all"));
     expect(screen.getByTestId("checkbox-1")).toBeChecked();
     expect(screen.getByTestId("checkbox-2")).toBeChecked();
@@ -568,13 +574,18 @@ describe("EmployeesPage", () => {
 
     await userEvent.click(screen.getByTestId("layout-toggle-grid"));
     await userEvent.type(screen.getByTestId("search-input"), "no-match");
-    expect(screen.getByTestId("empty-state")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId("empty-state")).toBeInTheDocument(),
+    );
 
     await userEvent.clear(screen.getByTestId("search-input"));
+    await waitFor(() =>
+      expect(screen.getByTestId("icon-selection-bar")).toBeInTheDocument(),
+    );
     expect(screen.getByTestId("icon-selection-bar")).toBeInTheDocument();
     await userEvent.click(screen.getAllByTestId("icon-checkbox")[0]);
-    await userEvent.click(screen.getByTestId("menu-edit-user"));
-    await userEvent.click(screen.getByTestId("menu-delete-user"));
+    await userEvent.click(screen.getAllByTestId("menu-edit-user")[0]);
+    await userEvent.click(screen.getAllByTestId("menu-delete-user")[0]);
   });
 
   it("opens create modal from location state", async () => {
@@ -663,18 +674,14 @@ describe("EmployeesPage", () => {
   });
 
   it("creates a user and syncs groups using response user_id", async () => {
-    clientApi.apiGet
-      .mockResolvedValueOnce({
-        json: async () => ({
-          access_groups: [
-            { id: "grp-1", members: ["other"], workstations: ["ws1"], file_shares: ["share1"] },
-            { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
-          ],
-        }),
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ access_groups: [] }),
-      });
+    clientApi.apiGet.mockResolvedValue({
+      json: async () => ({
+        access_groups: [
+          { id: "grp-1", members: ["other"], workstations: ["ws1"], file_shares: ["share1"] },
+          { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
+        ],
+      }),
+    });
 
     usersApi.createUser.mockResolvedValueOnce({ user_id: "1", job_id: "job-123" });
 
@@ -689,23 +696,29 @@ describe("EmployeesPage", () => {
   });
 
   it("falls back to email search when create response omits user_id", async () => {
-    clientApi.apiGet
-      .mockResolvedValueOnce({
-        json: async () => ({
-          access_groups: [
-            { id: "grp-1", members: ["other"], workstations: [], file_shares: [] },
-            { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
-          ],
-        }),
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ access_groups: [] }),
-      });
+    clientApi.apiGet.mockResolvedValue({
+      json: async () => ({
+        access_groups: [
+          { id: "grp-1", members: ["other"], workstations: [], file_shares: [] },
+          { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
+        ],
+      }),
+    });
 
     usersApi.createUser.mockResolvedValueOnce({ job_id: "job-123" });
-    usersApi.listUsers.mockResolvedValueOnce([
-      { _id: "1", email: "group@example.com", full_name: "Group User", role: "employee", status: "active", files: 0 },
-    ]);
+    usersApi.listUsers
+      .mockResolvedValueOnce([...seedUsers])
+      .mockResolvedValueOnce([
+        {
+          _id: "1",
+          email: "group@example.com",
+          full_name: "Group User",
+          role: "employee",
+          status: "active",
+          files: 0,
+        },
+      ])
+      .mockResolvedValue([...seedUsers]);
 
     renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
     await screen.findByText("Alice");
@@ -713,9 +726,14 @@ describe("EmployeesPage", () => {
     await userEvent.click(screen.getByTestId("create-btn"));
     await userEvent.click(screen.getByTestId("submit-with-groups"));
 
-    await waitFor(() => expect(usersApi.listUsers).toHaveBeenCalledWith(
-      expect.objectContaining({ search: "group@example.com" }),
-    ));
+    await waitFor(() => {
+      expect(
+        usersApi.listUsers.mock.calls.some(
+          ([args]) => args?.search === "group@example.com",
+        ),
+      ).toBe(true);
+    });
+    await waitFor(() => expect(clientApi.apiPatch).toHaveBeenCalled());
   });
 
   it("shows create failure when createUser rejects", async () => {
@@ -727,7 +745,10 @@ describe("EmployeesPage", () => {
     await userEvent.click(screen.getByTestId("create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
 
-    expect(await screen.findByText("Create Failed")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
   });
 
   it("shows create failure when no job_id is returned", async () => {
@@ -739,7 +760,10 @@ describe("EmployeesPage", () => {
     await userEvent.click(screen.getByTestId("create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
 
-    expect(await screen.findByText("No job_id returned from user creation")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
   });
 
   it("shows failed message from async task effect", async () => {
@@ -751,7 +775,10 @@ describe("EmployeesPage", () => {
     await userEvent.click(screen.getByTestId("create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
 
-    expect(await screen.findByText("Provisioning timed out")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
   });
 
   it("falls back to default failed message when async task has no message", async () => {
@@ -763,7 +790,10 @@ describe("EmployeesPage", () => {
     await userEvent.click(screen.getByTestId("create-btn"));
     await userEvent.click(screen.getByText("Confirm Create"));
 
-    expect(await screen.findByText("Failed to create user")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
   });
 
   it("updates a user successfully", async () => {

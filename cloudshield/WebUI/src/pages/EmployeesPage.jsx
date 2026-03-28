@@ -29,6 +29,7 @@ import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
 import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
+import CsvImportButton from "../components/common/CSVImport/CSVImport.jsx";
 
 import { formatShares } from "../lib/format.js";
 import { safeAsync } from "../lib/safeAsync.js";
@@ -369,12 +370,8 @@ export default function EmployeesPage() {
   };
 
   // CSV import handler
-  const handleCsvImport = async (event) => {
-    const file = event.target.files?.[0];
+  const handleCsvImport = async (file) => {
     if (!file) return;
-
-    // Reset input so same file can be selected again
-    event.target.value = "";
 
     setCsvImporting(true);
     try {

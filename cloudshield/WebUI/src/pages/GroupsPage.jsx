@@ -7,6 +7,7 @@ import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import { useThemeColors } from "../hooks/useThemeColors.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
+import CsvImportButton from "../components/common/CSVImport/CSVImport.jsx";
 
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
@@ -157,11 +158,8 @@ export default function GroupsPage() {
     fetchGroups();
   }, []);
 
-  const handleCsvImport = async (event) => {
-    const file = event.target.files?.[0];
+  const handleCsvImport = async (file) => {
     if (!file) return;
-
-    event.target.value = "";
     setCsvImporting(true);
     try {
       const result = await apiUploadFile("/access-groups/import-csv", file);
