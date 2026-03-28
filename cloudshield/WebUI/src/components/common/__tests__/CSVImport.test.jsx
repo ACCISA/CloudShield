@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import CsvImportButton from "../CSVImport/CSVImport";
 
 const themeColors = {
@@ -12,14 +11,14 @@ const themeColors = {
 
 describe("CSVImport", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it("renders the help popover and closes it again", () => {
     render(
       <CsvImportButton
         button={<button type="button">Import CSV</button>}
-        onImport={vi.fn()}
+        onImport={jest.fn()}
         themeColors={themeColors}
         helpTitle="Employees CSV Format"
         requiredColumns={["email", "full_name", "password_hash"]}
@@ -35,17 +34,17 @@ describe("CSVImport", () => {
     expect(screen.getByText("Employees CSV Format")).toBeInTheDocument();
     expect(screen.getByText("Required columns: email, full_name, password_hash")).toBeInTheDocument();
     expect(screen.getByText("Optional columns: role, workstations")).toBeInTheDocument();
-    expect(screen.getByText("email,full_name,password_hash,role,workstations")).toBeInTheDocument();
-    expect(screen.getByText("john@example.com,John Doe,$2b$12$...,employee,WS001;WS002")).toBeInTheDocument();
+    expect(document.body).toHaveTextContent("email,full_name,password_hash,role,workstations");
+    expect(document.body).toHaveTextContent("john@example.com,John Doe,$2b$12$...,employee,WS001;WS002");
 
     fireEvent.click(helpButton);
     expect(screen.queryByText("Employees CSV Format")).not.toBeInTheDocument();
   });
 
   it("calls onImport with the selected file and clears the input value", () => {
-    const onImport = vi.fn();
+    const onImport = jest.fn();
 
-    render(
+    const { container } = render(
       <CsvImportButton
         button={<button type="button">Import CSV</button>}
         onImport={onImport}
@@ -58,7 +57,7 @@ describe("CSVImport", () => {
       />,
     );
 
-    const input = screen.getByDisplayValue("", { selector: 'input[type="file"]' });
+    const input = container.querySelector('input[type="file"]');
     const file = new File(["email\njohn@example.com"], "employees.csv", { type: "text/csv" });
 
     fireEvent.change(input, { target: { files: [file] } });
@@ -69,9 +68,9 @@ describe("CSVImport", () => {
   });
 
   it("does nothing when the file picker is closed without a file", () => {
-    const onImport = vi.fn();
+    const onImport = jest.fn();
 
-    render(
+    const { container } = render(
       <CsvImportButton
         button={<button type="button">Import CSV</button>}
         onImport={onImport}
@@ -84,7 +83,7 @@ describe("CSVImport", () => {
       />,
     );
 
-    const input = screen.getByDisplayValue("", { selector: 'input[type="file"]' });
+    const input = container.querySelector('input[type="file"]');
     fireEvent.change(input, { target: { files: [] } });
 
     expect(onImport).not.toHaveBeenCalled();
@@ -94,7 +93,7 @@ describe("CSVImport", () => {
     render(
       <CsvImportButton
         button={<button type="button">Import CSV</button>}
-        onImport={vi.fn()}
+        onImport={jest.fn()}
         importing
         themeColors={themeColors}
         helpTitle="Employees CSV Format"
@@ -112,7 +111,7 @@ describe("CSVImport", () => {
     render(
       <CsvImportButton
         button={<button type="button" disabled>Import CSV</button>}
-        onImport={vi.fn()}
+        onImport={jest.fn()}
         themeColors={themeColors}
         helpTitle="Employees CSV Format"
         requiredColumns={["email"]}
@@ -126,10 +125,10 @@ describe("CSVImport", () => {
   });
 
   it("renders non-element button content and supports a custom accept value", () => {
-    render(
+    const { container } = render(
       <CsvImportButton
         button="Import CSV"
-        onImport={vi.fn()}
+        onImport={jest.fn()}
         accept=".csv"
         themeColors={themeColors}
         helpTitle="Employees CSV Format"
@@ -142,6 +141,6 @@ describe("CSVImport", () => {
 
     expect(screen.getByText("Import CSV")).toBeInTheDocument();
     expect(screen.getByLabelText(/csv format help/i)).toBeInTheDocument();
-    expect(screen.getByDisplayValue("", { selector: 'input[type="file"]' })).toHaveAttribute("accept", ".csv");
+    expect(container.querySelector('input[type="file"]')).toHaveAttribute("accept", ".csv");
   });
 });
