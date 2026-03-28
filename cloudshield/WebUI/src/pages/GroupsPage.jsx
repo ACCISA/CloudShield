@@ -546,26 +546,9 @@ export default function GroupsPage() {
 
         {/* Clean Conditional Rendering: Loading vs Content */}
         {loading ? (
-          <>
-            <TableSurface>
-              <TableSkeleton rows={8} cols={5} />
-            </TableSurface>
-            <div style={{ display: "none" }}>
-              <GroupsList
-                rows={[]}
-                showUsers={showUsers}
-                showWorkstations={showWorkstations}
-                showFiles={showFiles}
-                selectedIds={selectedIds}
-                allVisibleSelected={false}
-                isIndeterminate={false}
-                onToggleSelect={toggleSelect}
-                onToggleSelectAll={toggleSelectAllVisible}
-                onEdit={handleOpenEditModal}
-                onDelete={handleDeleteGroup}
-              />
-            </div>
-          </>
+          <TableSurface>
+            <TableSkeleton rows={8} cols={5} />
+          </TableSurface>
         ) : layout === "list" ? (
           <>
             <div style={{ position: "relative" }}>
