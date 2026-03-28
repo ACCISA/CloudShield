@@ -427,29 +427,13 @@ export default function GroupsPage() {
 
             <CsvImportButton
               button={
-                <button
-                  type="button"
-                  aria-label="Import CSV"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "12px 16px",
-                    minWidth: 120,
-                    height: 48,
-                    borderRadius: 8,
-                    border: `1px solid ${themeColors.secondaryBorder || themeColors.border}`,
-                    background: themeColors.secondary || themeColors.bgSecondary,
-                    color: themeColors.secondaryText || themeColors.text,
-                    opacity: csvImporting ? 0.5 : 1,
-                    cursor: csvImporting ? "not-allowed" : "pointer",
-                  }}
+                <CreateButton
+                  icon={<UploadFileIcon width={16} height={16} color={themeColors.text} />}
+                  buttonText={csvImporting ? "Importing..." : "Import CSV"}
                   disabled={csvImporting}
-                >
-                  <UploadFileIcon width={16} height={16} color={themeColors.text} />
-                  <span>{csvImporting ? "Importing..." : "Import CSV"}</span>
-                </button>
+                  title="Import CSV"
+                  data-testid="import-csv-btn"
+                />
               }
               onImport={handleCsvImport}
               importing={csvImporting}
