@@ -98,10 +98,16 @@ def _push_alerts_to_server(alerts: list, server_url: str, org_id: str, logger=No
     """
     try:
         import requests as _requests
-        payload = {
-            "org_id": org_id,
-            "alerts": [a.to_dict() if hasattr(a, "to_dict") else a for a in alerts],
-        }
+    except ImportError as exc:
+        if logger:
+            logger.warning("Requests dependency missing; cannot push %d alerts for org_id=%s: %s", len(alerts), org_id, exc)
+        return
+
+    payload = {
+        "org_id": org_id,
+        "alerts": [a.to_dict() if hasattr(a, "to_dict") else a for a in alerts],
+    }
+    try:
         resp = _requests.post(
             f"{server_url.rstrip('/')}/api/threat/ingest",
             json=payload,
@@ -109,11 +115,20 @@ def _push_alerts_to_server(alerts: list, server_url: str, org_id: str, logger=No
         )
         if logger:
             logger.info(
-                "Pushed %d alerts to Server (status=%s)", len(alerts), resp.status_code
+                "Pushed %d alerts to Server org_id=%s (status=%s)",
+                len(alerts),
+                org_id,
+                resp.status_code,
             )
     except Exception as exc:
         if logger:
-            logger.warning("Failed to push alerts to Server: %s", exc)
+            logger.warning(
+                "Failed to push alerts to Server server_url=%s org_id=%s count=%d: %s",
+                server_url,
+                org_id,
+                len(alerts),
+                exc,
+            )
 
 
 def _flush_alerts(deduplicator, es_log_fn, logger=None, server_url: str = "", org_id: str = "system", es_client=None):
@@ -205,8 +220,9 @@ def _prune_old_alerts(es_client, max_age_days: int = 30, logger=None):
             deleted = resp.get("deleted", 0)
             if deleted and logger:
                 logger.info("Pruned %d old docs from '%s'", deleted, index)
-        except Exception:
-            pass  # index may not exist yet
+        except Exception as exc:
+            if logger:
+                logger.warning("Prune skipped for index='%s' cutoff=%s: %s", index, cutoff, exc)
 
 
 # ── Thread launcher ─────────────────────────────────────────────────────────

@@ -53,10 +53,10 @@ const styles = {
   },
 };
 
-export const createWorkstation = async (orgId, name, ip, groups) => {
+export const createWorkstationTemplate = async (orgId, payload) => {
   try {
     const token = localStorage.getItem("jwt");
-    const res = await fetch(`/api/workstations`, {
+    const res = await fetch(`/api/workstations/templates`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -65,12 +65,14 @@ export const createWorkstation = async (orgId, name, ip, groups) => {
       },
       body: JSON.stringify({
         org_id: orgId,
-        name,
-        ip,
-        groups: groups?.map((g) => g.id) || [],
+        name: payload.name,
+        description: payload.description,
+        software: (payload.software || []).map((s) => s.id || s._id || s),
+        access_groups: (payload.access_groups || []).map((g) => g.id || g._id || g),
+        members: (payload.members || []).map((u) => u.id || u._id || u),
       }),
     });
-    if (!res.ok) throw new Error("Failed to create workstation");
+    if (!res.ok) throw new Error("Failed to create workstation template");
     return await res.json();
   } catch (e) {
     console.error(e);
@@ -98,7 +100,7 @@ export default function WorkstationsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { toast, showToast, hideToast } = useToast();
+  const { toast, showToast, hideToast } = useToast(6000);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -200,24 +202,21 @@ export default function WorkstationsPage() {
   };
 
   const handleCreate = async (payload) => {
-    const newRow = {
-      id: `ws-${Date.now()}`,
-      name: payload.name,
-      code: payload.code || "WS-NEW",
-      usersCount: payload.users?.length || 0,
-      users: payload.users || [],
-      currentUser: payload.users?.[0] || null,
-      lastUsed: "—",
-      status: "disconnected",
-      groups: payload.groups || [],
-    };
-    const created = await createWorkstation(
-      payload.orgId,
-      payload.name,
-      payload.ip,
-      payload.groups,
-    );
-    if (created) setRows((prev) => [newRow, ...prev]);
+    const orgId = localStorage.getItem("org_id");
+    const created = await createWorkstationTemplate(orgId, payload);
+    if (created) {
+      const newRow = {
+        id: created.job_id || `ws-${Date.now()}`,
+        name: payload.name,
+        code: "WS-NEW",
+        usersCount: payload.members?.length || 0,
+        users: payload.members || [],
+        currentUser: payload.members?.[0] || null,
+        lastUsed: "—",
+        status: "provisioning",
+      };
+      setRows((prev) => [newRow, ...prev]);
+    }
     return Boolean(created);
   };
 
@@ -560,7 +559,7 @@ export default function WorkstationsPage() {
                 } else {
                   const created = await handleCreate(p);
                   if (created) {
-                    showToast("Workstation created");
+                    showToast("Workstation template queued — provisioning in background");
                     globalThis.dispatchEvent(new Event("metrics:invalidate"));
                   } else {
                     showToast("Failed to save workstation", "error");

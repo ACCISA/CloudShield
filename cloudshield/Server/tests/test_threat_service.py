@@ -141,7 +141,7 @@ class TestEsClient:
         mock_es_mod = MagicMock()
         mock_instance = MagicMock()
         mock_es_mod.Elasticsearch.return_value = mock_instance
-        mock_instance.ping.side_effect = Exception("connection refused")
+        mock_instance.ping.side_effect = OSError("connection refused")
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
             result = ts._es_client()

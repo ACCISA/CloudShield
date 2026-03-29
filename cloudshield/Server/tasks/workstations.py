@@ -5,6 +5,7 @@ from rq import get_current_job
 
 from provisioner import provision_default_workstation, provision_workstation_vm
 from utils import get_logger, update_job, db, db_admin, organizations, org_filter
+from utils.logging_setup import set_correlation_id
 from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation_template, get_unique_members_by_ids
 from models import WorkstationStatus
 from .task import get_server_nodes
@@ -44,6 +45,12 @@ def ws_create_default(org_id, name, description, software, access_groups, member
 
     job = get_current_job()
     job_id = job.id if job else "unknown"
+
+    # Restore cross-boundary correlation: include both the job ID and the
+    # HTTP request_id that originally dispatched this task (if available).
+    request_id = (job.meta or {}).get("_request_id") if job else None
+    cid = f"job:{job_id}" + (f" req:{request_id}" if request_id else "")
+    set_correlation_id(cid)
 
     logger = get_logger("job", job_id=job_id)
     
@@ -134,6 +141,10 @@ def ws_start(org_id, template_id):
 
     job = get_current_job()
     job_id = job.id if job else "unknown"
+
+    request_id = (job.meta or {}).get("_request_id") if job else None
+    cid = f"job:{job_id}" + (f" req:{request_id}" if request_id else "")
+    set_correlation_id(cid)
 
     logger = get_logger("job", job_id=job_id)
     

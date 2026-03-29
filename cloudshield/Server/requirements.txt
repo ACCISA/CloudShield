@@ -16,6 +16,7 @@ python-on-whales
 grpcio
 protobuf
 flask-cors
+Flask-Limiter[redis]
 jinja2
 stripe
 google-genai

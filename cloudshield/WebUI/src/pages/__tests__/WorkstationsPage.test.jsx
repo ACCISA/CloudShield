@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage, { createWorkstation } from "../WorkstationsPage";
+import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
 
 jest.mock("../../hooks/useClickLogger", () => ({
@@ -168,7 +168,7 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-describe("createWorkstation", () => {
+describe("createWorkstationTemplate", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
@@ -181,22 +181,31 @@ describe("createWorkstation", () => {
     jest.clearAllMocks();
   });
 
-  test("posts payload and returns response", async () => {
+  test("posts full template payload to /api/workstations/templates", async () => {
     localStorage.setItem("jwt", "token-123");
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: jest.fn().mockResolvedValue({ id: "ws-1" }),
+      json: jest.fn().mockResolvedValue({ job_id: "job-1" }),
     });
 
-    const result = await createWorkstation("org-1", "WS 1", "10.0.0.1", [
-      { id: "g1" },
-    ]);
+    const result = await createWorkstationTemplate("org-1", {
+      name: "WS 1",
+      description: "basic",
+      software: [{ id: "s1" }],
+      access_groups: [{ id: "g1" }],
+      members: [{ id: "u1" }],
+    });
 
-    expect(result).toEqual({ id: "ws-1" });
+    expect(result).toEqual({ job_id: "job-1" });
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/workstations",
+      "/api/workstations/templates",
       expect.objectContaining({ method: "POST" }),
     );
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.org_id).toBe("org-1");
+    expect(body.access_groups).toEqual(["g1"]);
+    expect(body.members).toEqual(["u1"]);
+    expect(body.software).toEqual(["s1"]);
   });
 });
 

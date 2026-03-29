@@ -145,6 +145,7 @@ def list_access_groups():
         return jsonify({"access_groups": out}), 200
 
     except Exception as e:
+        logger.exception("Failed to list access groups for org_id=%s", (getattr(g, "user", {}) or {}).get("org_id"))
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 
@@ -205,6 +206,7 @@ def create_access_group():
     except ValidationError as e:
         return jsonify({"error": "Validation failed", "details": e.errors()}), 400
     except Exception as e:
+        logger.exception("Failed to create access group for org_id=%s", (getattr(g, "user", {}) or {}).get("org_id"))
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 

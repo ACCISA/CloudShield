@@ -548,6 +548,7 @@ def provision_network(
         _enqueue_welcome_email_post_success(org_id, logger)
         return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
     except Exception as e:
+        logger.exception("Provisioning failed org_id=%s job_id=%s", org_id, job_id)
         set_progress(f"failed: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         raise
@@ -597,7 +598,7 @@ def destroy_environment(org_id: str, force: bool = False):
         return {"message": "Destroy complete", "removed_dir": True}
 
     except Exception as e:
-        logger.error(e)
+        logger.exception("Destroy environment failed org_id=%s job_id=%s", org_id, job_id)
         set_progress(f"failed destroy: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         # tests expect None on exception

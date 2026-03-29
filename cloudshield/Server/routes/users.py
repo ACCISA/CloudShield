@@ -265,7 +265,7 @@ def create_user_endpoint():
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        logger.error(e)
+        logger.exception("User create failed for actor=%s org_id=%s", (g.user or {}).get("email"), (g.user or {}).get("org_id"))
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/<user_id>", methods=["GET"])
@@ -285,6 +285,7 @@ def get_user_endpoint(user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception:
+        logger.exception("User read failed user_id=%s actor=%s", user_id, (g.user or {}).get("email"))
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])

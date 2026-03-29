@@ -464,17 +464,25 @@ def test_database_drops_legacy_global_email_index(monkeypatch):
     users_admin.drop_index.assert_called_once_with("email_1")
 
 
-def test_database_legacy_email_index_migration_exception_is_handled(monkeypatch, capsys):
+def test_database_legacy_email_index_migration_exception_is_handled(monkeypatch, caplog):
+    import logging
     users_admin = unittest.mock.MagicMock()
     users_admin.index_information.side_effect = RuntimeError("legacy migration boom")
 
-    _import_database_with_custom_users(monkeypatch, users_admin)
+    # cloudshield.api has propagate=False; attach caplog's handler directly so it captures.
+    db_logger = logging.getLogger("cloudshield.api")
+    db_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(logging.WARNING):
+            _import_database_with_custom_users(monkeypatch, users_admin)
+    finally:
+        db_logger.removeHandler(caplog.handler)
 
-    out = capsys.readouterr().out
-    assert "legacy users email index migration skipped" in out
+    assert "legacy users email index migration skipped" in caplog.text
 
 
-def test_database_users_email_org_indexes_exception_is_handled(monkeypatch, capsys):
+def test_database_users_email_org_indexes_exception_is_handled(monkeypatch, caplog):
+    import logging
     users_admin = unittest.mock.MagicMock()
     users_admin.index_information.return_value = {}
 
@@ -485,7 +493,12 @@ def test_database_users_email_org_indexes_exception_is_handled(monkeypatch, caps
 
     users_admin.create_index.side_effect = _create_index_side_effect
 
-    _import_database_with_custom_users(monkeypatch, users_admin)
+    db_logger = logging.getLogger("cloudshield.api")
+    db_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(logging.WARNING):
+            _import_database_with_custom_users(monkeypatch, users_admin)
+    finally:
+        db_logger.removeHandler(caplog.handler)
 
-    out = capsys.readouterr().out
-    assert "users email/org indexes creation skipped" in out
+    assert "users email/org indexes creation skipped" in caplog.text

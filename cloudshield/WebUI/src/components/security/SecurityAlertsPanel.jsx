@@ -101,22 +101,17 @@ function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRef
   };
 
   const handleBulkMarkResolved = () => {
-    // Backend integration: API call to mark selected alerts as resolved
-    console.log("Mark as resolved:", Array.from(selectedAlerts));
-    // Clear selection after action
+    // TODO: API call to mark selected alerts as resolved
     setSelectedAlerts(new Set());
   };
 
   const handleBulkMarkFalsePositive = () => {
-    // Backend integration: API call to mark selected alerts as false positive
-    console.log("Mark as false positive:", Array.from(selectedAlerts));
-    // Clear selection after action
+    // TODO: API call to mark selected alerts as false positive
     setSelectedAlerts(new Set());
   };
 
   const handleBulkDownload = () => {
-    // Backend integration: API call to download selected alerts
-    console.log("Download alerts:", Array.from(selectedAlerts));
+    // TODO: API call to download selected alerts
   };
 
   const groupActionsMenuItems = [

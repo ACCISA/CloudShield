@@ -2,6 +2,10 @@ import logging
 
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS  # <--- 1. Add this import
+try:
+    from cloudshield.Server.extensions import limiter  # type: ignore
+except ImportError:
+    from extensions import limiter  # type: ignore
 from pydantic import ValidationError
 from bson import ObjectId # <-- Added to convert string ID for DB queries
 from bson.errors import InvalidId
@@ -23,7 +27,19 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 CORS(auth_bp)  # NOSONAR - permissive CORS is intentional for this API; access is controlled via JWT bearer tokens
 
+
+def _error_response(message: str, code: str, details, status: int):
+    payload = {
+        "message": message,
+        "code": code,
+        "details": details,
+        # Keep legacy key for backward compatibility with existing clients/tests.
+        "error": message,
+    }
+    return jsonify(payload), status
+
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])  # NOSONAR - OPTIONS is required for CORS preflight; CSRF does not apply as auth uses JWT bearer tokens, not cookies
+@limiter.limit("5 per minute")
 def signup():
     if request.method == 'OPTIONS':
         return '', 200 # Standard response for preflight
@@ -65,8 +81,8 @@ def signup():
         logger.info("Signup failed: %s", exc)
         return jsonify({'error': str(exc)}), 400
     except Exception:
-        logger.exception("Unexpected error during signup")
-        return jsonify({'error': 'Internal server error'}), 500
+        logger.exception("Unexpected signup failure email=%s", user_model.email)
+        return _error_response("Internal server error", "INTERNAL_ERROR", "Unexpected error during signup", 500)
 
     try:
         job = service_dispatcher(
@@ -118,6 +134,7 @@ def signup():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def login():
     """
     Authenticate a user and issue a JWT access token.
@@ -215,4 +232,5 @@ def me():
         claims = verify_token(token)
         return jsonify({"claims": claims}), 200
     except Exception as e:
-        return jsonify({"error":"Unauthorized","details":str(e)}), 401
+        logger.info("Token verification failed for /auth/me: %s", e)
+        return _error_response("Unauthorized", "HTTP_401", str(e), 401)

@@ -1,0 +1,105 @@
+# Production-hardened Dockerfile for CloudShield API server
+# Multi-stage build with minimal runtime footprint
+# Pinned dependencies and non-root execution
+
+# Build stage: Install build tools and dependencies
+FROM python:3.11-slim AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# Install build dependencies (only for building wheels)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    curl \
+    gnupg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements only for optimal layer caching
+COPY cloudshield/Server/requirements.txt .
+
+# Create venv and install pinned dependencies
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip==24.0 setuptools==69.2.0 wheel==0.43.0 && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Terraform setup stage (separate layer for IaC tools)
+FROM builder AS terraform-builder
+
+WORKDIR /build
+
+# Install Terraform from official HashiCorp repository
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends terraform=1.7.0-1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Runtime stage: Minimal production image
+FROM python:3.11-slim
+
+# Add non-root app user for security
+RUN groupadd -r app && useradd -r -g app -u 1000 app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    DEPLOYMENT_MODE=docker
+
+# Install only runtime dependencies (no build tools)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    bash \
+    procps \
+    net-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy venv from builder
+COPY --from=builder --chown=app:app /opt/venv /opt/venv
+
+# Copy Terraform from terraform-builder
+COPY --from=terraform-builder /usr/bin/terraform /usr/local/bin/terraform
+
+# Setup application directory
+WORKDIR /app
+RUN chown -R app:app /app && chmod 755 /app
+
+# Copy application code (minimal set)
+COPY --chown=app:app cloudshield/__init__.py /app/cloudshield/
+COPY --chown=app:app cloudshield/Server /app/cloudshield/Server/
+COPY --chown=app:app cloudshield/Cloud /app/cloudshield/Cloud/
+
+# Create runtime directories with restricted permissions
+RUN mkdir -p /app/logs/jobs && \
+    mkdir -p /var/lib/cloudshield && \
+    chown -R app:app /app/logs /var/lib/cloudshield && \
+    chmod 755 /app/logs /var/lib/cloudshield
+
+# Copy supervisor config as root, then restrict
+COPY docker/supervisord.conf /app/
+RUN chown root:app /app/supervisord.conf && chmod 640 /app/supervisord.conf
+
+# Install supervisor with minimal dependencies
+RUN /opt/venv/bin/pip install supervisor==4.2.5 && \
+    rm -rf /var/cache/pip/*
+
+# Switch to non-root user
+USER app
+
+EXPOSE 5050
+
+# Health check
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+    CMD curl -f http://localhost:5050/health || exit 1
+
+CMD ["/opt/venv/bin/supervisord", "-c", "/app/supervisord.conf"]

@@ -1,0 +1,58 @@
+# Production-hardened Dockerfile for ThreatDetection server
+# Multi-stage build to minimize final image size and surface area
+# Pinned versions for reproducibility and security
+
+# Build stage
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# Copy only requirements for dependency caching
+COPY cloudshield/ThreatDetection/requirements.txt .
+
+# Create a virtual environment and install pinned dependencies
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip==24.0 setuptools==69.2.0 wheel==0.43.0 && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Runtime stage
+FROM python:3.10-slim
+
+# Add non-root user for running application
+RUN groupadd -r app && useradd -r -g app -u 1000 app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Copy virtual environment from builder
+COPY --from=builder --chown=app:app /opt/venv /opt/venv
+
+WORKDIR /app
+RUN chown -R app:app /app && \
+    chmod 755 /app
+
+# Copy application code (read-only layer)
+COPY --chown=app:app cloudshield/ThreatDetection/ /app/cloudshield/ThreatDetection/
+COPY --chown=app:app cloudshield/__init__.py /app/cloudshield/
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs && \
+    chown -R app:app /app/logs && \
+    chmod 755 /app/logs
+
+# Set security context
+USER app
+
+EXPOSE 50051
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+    CMD python -c "import grpc; print('OK')" || exit 1
+
+CMD ["python3", "cloudshield/ThreatDetection/server.py"]
