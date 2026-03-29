@@ -15,6 +15,7 @@ exclude = [
     "cloudshield/ThreatDetection/tests/*",
     "cloudshield/Agent/tests/*",
     "cloudshield/Cloud/tests/*",
+    "cloudshield/Agent/tools/*",
 ]
 
 [lint.per-file-ignores]
