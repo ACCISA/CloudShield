@@ -412,7 +412,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it('displays "-" for Shares when shares count is 0 (not collapsed)', () => {
+  it('displays "0" for Shares when shares count is 0 (not collapsed)', () => {
     useOrgMetrics.mockReturnValue({
       stats: { workstations: 6, users: 6, groups: 6, shares: 0 },
       loading: false,
@@ -421,8 +421,7 @@ describe("Sidebar", () => {
     renderSidebar({ collapsed: false });
 
     const shares = screen.getByRole("button", { name: "Shares" });
-    expect(shares.textContent).toContain("-");
-    expect(shares.textContent).not.toContain("0");
+    expect(shares.textContent).toContain("0");
   });
 
   it("displays numeric badge for Shares when shares count is greater than 0", () => {

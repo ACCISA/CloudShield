@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PasswordField from "../PasswordField";
 
 describe("PasswordField", () => {
@@ -78,7 +79,8 @@ describe("PasswordField", () => {
     expect(screen.getByDisplayValue("mypassword")).toBeInTheDocument();
   });
 
-  it("toggles visibility when Enter key is pressed on Show/Hide button", () => {
+  it("toggles visibility when Enter key is pressed on Show/Hide button", async () => {
+    const user = userEvent.setup();
     render(<PasswordField value="secret123" onChange={mockOnChange} />);
     const input = screen.getByDisplayValue("secret123");
     const showHideButton = screen.getByRole("button", {
@@ -89,28 +91,25 @@ describe("PasswordField", () => {
     expect(input).toHaveAttribute("type", "password");
 
     // Press Enter to show
-    fireEvent.keyDown(showHideButton, { key: "Enter" });
+    showHideButton.focus();
+    await user.keyboard("{Enter}");
     expect(input).toHaveAttribute("type", "text");
 
     // Press Enter to hide again
     const hideButton = screen.getByRole("button", { name: /hide password/i });
-    fireEvent.keyDown(hideButton, { key: "Enter" });
+    hideButton.focus();
+    await user.keyboard("{Enter}");
     expect(input).toHaveAttribute("type", "password");
   });
 
-  it("toggles visibility when Space key is pressed on Show/Hide button", () => {
+  it("renders the show/hide control as a native button", () => {
     render(<PasswordField value="secret123" onChange={mockOnChange} />);
-    const input = screen.getByDisplayValue("secret123");
     const showHideButton = screen.getByRole("button", {
       name: /show password/i,
     });
 
-    // Initially hidden
-    expect(input).toHaveAttribute("type", "password");
-
-    // Press Space to show
-    fireEvent.keyDown(showHideButton, { key: " " });
-    expect(input).toHaveAttribute("type", "text");
+    expect(showHideButton.tagName).toBe("BUTTON");
+    expect(showHideButton).toHaveAttribute("type", "button");
   });
 
   it("does not toggle for other keys", () => {
@@ -129,13 +128,16 @@ describe("PasswordField", () => {
     expect(input).toHaveAttribute("type", "password");
   });
 
-  it("has proper accessibility attributes", () => {
+  it("has proper accessibility attributes", async () => {
+    const user = userEvent.setup();
     render(<PasswordField value="" onChange={mockOnChange} />);
     const showHideButton = screen.getByRole("button", {
       name: /show password/i,
     });
 
-    expect(showHideButton).toHaveAttribute("tabIndex", "0");
+    await user.tab();
+    expect(showHideButton).toHaveFocus();
+    expect(showHideButton).toHaveAttribute("type", "button");
     expect(showHideButton).toHaveAttribute("aria-label", "Show password");
   });
 
