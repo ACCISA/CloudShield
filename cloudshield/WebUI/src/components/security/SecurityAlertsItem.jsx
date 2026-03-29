@@ -172,7 +172,7 @@ function SecurityAlertsItem({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            handleRowClick(e);
+            handleRowClick();
           }
         }}
         onMouseEnter={(e) => {

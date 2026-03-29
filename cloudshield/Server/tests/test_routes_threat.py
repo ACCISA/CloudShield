@@ -256,3 +256,87 @@ def test_ingest_defaults_org_to_system(client, monkeypatch):
     })
     assert resp.status_code == 200
     assert captured["org_id"] == "system"
+
+
+# ── PATCH /api/threat/unified/<alert_id> ───────────────────────────────────
+
+def test_patch_unified_alert_invalid_status(client, monkeypatch):
+    import security.guards as guards_mod
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    resp = client.patch(
+        "/api/threat/unified/alert-123",
+        json={"status": "invalid_status"},
+        headers={"Authorization": "Bearer test-dev-token"},
+    )
+    assert resp.status_code == 400
+    assert "error" in resp.get_json()
+
+
+def test_patch_unified_alert_missing_status(client, monkeypatch):
+    import security.guards as guards_mod
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    resp = client.patch(
+        "/api/threat/unified/alert-123",
+        json={},
+        headers={"Authorization": "Bearer test-dev-token"},
+    )
+    assert resp.status_code == 400
+
+
+def test_patch_unified_alert_not_found(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    import security.guards as guards_mod
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    monkeypatch.setattr(threat_mod, "update_alert_status", lambda aid, status, org_id="": False)
+    resp = client.patch(
+        "/api/threat/unified/alert-999",
+        json={"status": "resolved"},
+        headers={"Authorization": "Bearer test-dev-token"},
+    )
+    assert resp.status_code == 404
+
+
+def test_patch_unified_alert_success(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    import security.guards as guards_mod
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    monkeypatch.setattr(threat_mod, "update_alert_status", lambda aid, status, org_id="": True)
+    resp = client.patch(
+        "/api/threat/unified/alert-1",
+        json={"status": "false_positive"},
+        headers={"Authorization": "Bearer test-dev-token"},
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["alert_id"] == "alert-1"
+    assert data["status"] == "false_positive"
+
+
+# ── POST /api/threat/alerts/explain ───────────────────────────────────────
+
+def test_explain_alert_no_body(client):
+    resp = client.post("/api/threat/alerts/explain", json={})
+    assert resp.status_code == 400
+
+
+def test_explain_alert_success(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    monkeypatch.setattr(
+        threat_mod, "generate_alert_explanation",
+        lambda data: "This alert indicates suspicious activity.",
+    )
+    resp = client.post("/api/threat/alerts/explain", json={
+        "risk": "high", "type": "port_scan", "description": "test"
+    })
+    assert resp.status_code == 200
+    assert "explanation" in resp.get_json()
+
+
+def test_explain_alert_exception_returns_500(client, monkeypatch):
+    import cloudshield.Server.routes.threat as threat_mod
+    monkeypatch.setattr(
+        threat_mod, "generate_alert_explanation",
+        lambda data: (_ for _ in ()).throw(Exception("AI error")),
+    )
+    resp = client.post("/api/threat/alerts/explain", json={"risk": "high"})
+    assert resp.status_code == 500

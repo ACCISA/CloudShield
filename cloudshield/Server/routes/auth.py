@@ -33,7 +33,7 @@ def signup():
 
     # Avoid logging sensitive request body (e.g., passwords).
     logger.debug("Signup request keys: %s", list(body.keys()))
-    logger.info("Signup attempt for email: %s", body.get("email"))
+    logger.info("Signup attempt for email: %s", str(body.get("email", "")).replace("\n", "").replace("\r", ""))
 
     # Validate request using pydantic model
     try:
