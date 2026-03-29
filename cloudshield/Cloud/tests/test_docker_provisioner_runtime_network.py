@@ -103,8 +103,9 @@ def test_provision_network_docker_calls_runtime_network_connect(monkeypatch, tmp
     monkeypatch.setattr(docker_provision, "DockerClient", lambda *a, **k: object())
     monkeypatch.setattr(docker_provision, "setup_ssh_keys", lambda *_a, **_k: (None, None))
 
-    # Avoid writing under /var/lib during this unit test.
+    # Avoid writing under /var/lib or /home during this unit test.
     monkeypatch.setattr(docker_provision.Path, "mkdir", lambda self, parents=False, exist_ok=False: None)
+    monkeypatch.setattr(docker_provision, "_ensure_td_agents_dir", lambda org_id, _logger: "/tmp/td-agents")
 
     org_data = {
         "org_id": "org1",

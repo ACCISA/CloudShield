@@ -195,12 +195,13 @@ def test_send_process_list_sets_expected_and_returns_action(fake_logger, fake_st
     serv = servicer.AgentServiceServicer([])
 
     class Process:
-        def __init__(self, cmdline, pid):
+        def __init__(self, cmdline, pid, name=""):
             self.cmdline = cmdline
             self.pid = pid
+            self.name = name
             self.is_pending = False
 
-    proc1 = Process("/bin/echo hello", 101)
+    proc1 = Process("/bin/echo hello", 101, name="echo")
     proc2 = Process("   ", 202)
 
     request = SimpleNamespace(
@@ -229,11 +230,12 @@ def test_send_process_list_pending_skips_action(fake_state, fake_utils):
     serv = servicer.AgentServiceServicer([])
 
     class Process:
-        def __init__(self, cmdline, pid):
+        def __init__(self, cmdline, pid, name=""):
             self.cmdline = cmdline
             self.pid = pid
+            self.name = name
 
-    proc = Process("/usr/bin/python", 88)
+    proc = Process("/usr/bin/python", 88, name="python")
     request = SimpleNamespace(agent_id="agent-y", is_pending=True, processes=[proc])
     context = SimpleNamespace(peer=lambda: "peer")
 
