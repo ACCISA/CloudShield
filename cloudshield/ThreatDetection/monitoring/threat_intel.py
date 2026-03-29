@@ -24,6 +24,7 @@ try:
     import requests as _requests  # type: ignore[import-untyped]
     _HAS_REQUESTS = True
 except ImportError:  # pragma: no cover
+    _requests = None
     _HAS_REQUESTS = False
 
 
