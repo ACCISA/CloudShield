@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import userEvent from "@testing-library/user-event";
 import PlanCard from "../PlanCard";
 
 describe("PlanCard", () => {
@@ -46,11 +47,10 @@ describe("PlanCard", () => {
     );
 
     expect(screen.getByText("Features:")).toBeInTheDocument();
-    expect(
-      screen.getByText("✓ Advanced Predictive Analytics")
-    ).toBeInTheDocument();
-    expect(screen.getByText("✓ Automated Workflows")).toBeInTheDocument();
-    expect(screen.getByText("✓ Enhanced NLP")).toBeInTheDocument();
+    expect(screen.getByText("Advanced Predictive Analytics")).toBeInTheDocument();
+    expect(screen.getByText("Automated Workflows")).toBeInTheDocument();
+    expect(screen.getByText("Enhanced NLP")).toBeInTheDocument();
+    expect(screen.getAllByText("✓")).toHaveLength(3);
   });
 
   it("renders tag when present", () => {
@@ -79,9 +79,8 @@ describe("PlanCard", () => {
     );
 
     const box = container.firstChild;
-    expect(box).toHaveStyle({
-      border: "2px solid #4ade80",
-    });
+    expect(box).toHaveClass("plan-card", "selected");
+    expect(box).toHaveAttribute("aria-pressed", "true");
   });
 
   it("applies default styles when selected is false", () => {
@@ -90,9 +89,9 @@ describe("PlanCard", () => {
     );
 
     const box = container.firstChild;
-    expect(box).toHaveStyle({
-      border: "1px solid rgba(255,255,255,0.12)",
-    });
+    expect(box).toHaveClass("plan-card");
+    expect(box).not.toHaveClass("selected");
+    expect(box).toHaveAttribute("aria-pressed", "false");
   });
 
   it("calls onSelect with plan id when clicked", () => {
@@ -147,7 +146,7 @@ describe("PlanCard", () => {
       ...mockPlan,
       features: Array.from({ length: 10 }, (_, i) => `Feature ${i + 1}`),
     };
-    render(
+    const { container } = render(
       <PlanCard
         plan={manyFeaturesPlan}
         selected={false}
@@ -155,7 +154,7 @@ describe("PlanCard", () => {
       />
     );
 
-    const features = screen.getAllByText(/✓ Feature/);
+    const features = container.querySelectorAll(".plan-card__feature");
     expect(features).toHaveLength(10);
   });
 
@@ -172,13 +171,15 @@ describe("PlanCard", () => {
     expect(mockOnSelect).toHaveBeenCalled();
   });
 
-  it("calls onSelect when Enter key is pressed", () => {
+  it("calls onSelect when Enter key is pressed", async () => {
+    const user = userEvent.setup();
     render(
       <PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />
     );
 
     const button = screen.getByRole("button");
-    fireEvent.keyDown(button, { key: "Enter" });
+    button.focus();
+    await user.keyboard("{Enter}");
 
     expect(mockOnSelect).toHaveBeenCalledWith("pro");
   });
@@ -194,14 +195,16 @@ describe("PlanCard", () => {
     expect(mockOnSelect).toHaveBeenCalledWith("pro");
   });
 
-  it("does not call onSelect for other keys", () => {
+  it("does not call onSelect for other keys", async () => {
+    const user = userEvent.setup();
     render(
       <PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />
     );
 
     const button = screen.getByRole("button");
-    fireEvent.keyDown(button, { key: "a" });
-    fireEvent.keyDown(button, { key: "Escape" });
+    button.focus();
+    await user.keyboard("a");
+    await user.keyboard("{Escape}");
 
     expect(mockOnSelect).not.toHaveBeenCalled();
   });
@@ -215,13 +218,15 @@ describe("PlanCard", () => {
     expect(button).toBeInTheDocument();
   });
 
-  it("has tabIndex for keyboard navigation", () => {
+  it("is focusable for keyboard navigation", async () => {
+    const user = userEvent.setup();
     render(
       <PlanCard plan={mockPlan} selected={false} onSelect={mockOnSelect} />
     );
 
     const button = screen.getByRole("button");
-    expect(button).toHaveAttribute("tabIndex", "0");
+    await user.tab();
+    expect(button).toHaveFocus();
   });
 
   it("has aria-label describing the plan", () => {

@@ -258,9 +258,7 @@ describe("SecurityAlertModal Component", () => {
           alert={alertWithoutDescription}
         />,
       );
-      expect(
-        screen.getByText(/A potentially malicious file was uploaded/),
-      ).toBeInTheDocument();
+      expect(screen.getByText("No description available.")).toBeInTheDocument();
     });
 
     it("renders N/A for missing ID", () => {
@@ -338,12 +336,19 @@ describe("SecurityAlertModal Component", () => {
 
     it("calls handler and closes when false positive is clicked", () => {
       const mockOnClose = jest.fn();
-      render(<SecurityAlertModal {...defaultProps} onClose={mockOnClose} />);
+      const mockOnMarkFalsePositive = jest.fn();
+      render(
+        <SecurityAlertModal
+          {...defaultProps}
+          onClose={mockOnClose}
+          onMarkFalsePositive={mockOnMarkFalsePositive}
+        />,
+      );
 
       const button = screen.getByText("Mark as false positive");
       fireEvent.click(button);
 
-      expect(console.log).toHaveBeenCalledWith("Mark as false positive:", 1);
+      expect(mockOnMarkFalsePositive).toHaveBeenCalledTimes(1);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
@@ -353,12 +358,18 @@ describe("SecurityAlertModal Component", () => {
     });
 
     it("calls handler when download button is clicked", () => {
-      render(<SecurityAlertModal {...defaultProps} />);
+      const mockOnDownload = jest.fn();
+      render(
+        <SecurityAlertModal
+          {...defaultProps}
+          onDownload={mockOnDownload}
+        />,
+      );
 
       const button = screen.getByTestId("download-button");
       fireEvent.click(button);
 
-      expect(console.log).toHaveBeenCalledWith("Download alert:", 1);
+      expect(mockOnDownload).toHaveBeenCalledTimes(1);
     });
 
     it("renders mark as resolved button", () => {
@@ -368,12 +379,19 @@ describe("SecurityAlertModal Component", () => {
 
     it("calls handler and closes when resolved is clicked", () => {
       const mockOnClose = jest.fn();
-      render(<SecurityAlertModal {...defaultProps} onClose={mockOnClose} />);
+      const mockOnMarkResolved = jest.fn();
+      render(
+        <SecurityAlertModal
+          {...defaultProps}
+          onClose={mockOnClose}
+          onMarkResolved={mockOnMarkResolved}
+        />,
+      );
 
       const button = screen.getByText("Mark as resolved");
       fireEvent.click(button);
 
-      expect(console.log).toHaveBeenCalledWith("Mark as resolved:", 1);
+      expect(mockOnMarkResolved).toHaveBeenCalledTimes(1);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 

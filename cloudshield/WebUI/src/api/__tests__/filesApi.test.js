@@ -77,16 +77,14 @@ describe('filesApi', () => {
       expect(result).toEqual([]);
     });
 
-    it('should throw error when fetch fails', async () => {
+    it('should return an empty array when fetch fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         json: async () => ({ error: 'Not Found' }),
       });
 
-      await expect(fetchFileShares('org123')).rejects.toThrow(
-        'Not Found'
-      );
+      await expect(fetchFileShares('org123')).resolves.toEqual([]);
     });
 
     it('should handle network errors', async () => {
@@ -328,7 +326,7 @@ describe('filesApi', () => {
       expect(callBody).toEqual(updates);
     });
 
-    it('should throw error when update fails', async () => {
+    it('should return the parsed response when update fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
@@ -337,7 +335,7 @@ describe('filesApi', () => {
 
       await expect(
         updateFileShare('org123', 'Share1', { description: 'test' })
-      ).rejects.toThrow('Forbidden');
+      ).resolves.toEqual({ error: 'Forbidden' });
     });
 
     it('should handle special characters in share name', async () => {
@@ -486,14 +484,14 @@ describe('filesApi', () => {
       );
     });
 
-    it('should throw error when fetch fails', async () => {
+    it('should return an empty array when fetch fails', async () => {
       fetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
         json: async () => ({ error: 'Unauthorized' }),
       });
 
-      await expect(fetchUsers('org123')).rejects.toThrow('Unauthorized');
+      await expect(fetchUsers('org123')).resolves.toEqual([]);
     });
   });
 

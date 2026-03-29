@@ -6,8 +6,13 @@
  */
 import { useThemeColors } from "../../../hooks/useThemeColors";
 
-export default function SubmittingOverlay({ label = "Saving..." }) {
+export default function SubmittingOverlay({
+  label = "Saving...",
+  message = null,
+  progress = null,
+}) {
   const themeColors = useThemeColors();
+  const showProgress = Number.isFinite(progress);
 
   return (
     <div
@@ -31,6 +36,31 @@ export default function SubmittingOverlay({ label = "Saving..." }) {
       >
         {label}
       </div>
+
+      {message ? (
+        <div
+          style={{
+            fontSize: "14px",
+            color: themeColors.textSecondary || themeColors.textPrimary,
+            textAlign: "center",
+            maxWidth: "320px",
+          }}
+        >
+          {message}
+        </div>
+      ) : null}
+
+      {showProgress ? (
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: themeColors.info,
+          }}
+        >
+          {Math.round(progress)}%
+        </div>
+      ) : null}
 
       <div style={{ width: "100%", maxWidth: "280px" }}>
         <div

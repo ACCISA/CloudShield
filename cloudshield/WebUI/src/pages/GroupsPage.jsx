@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import GroupsList from "../components/groups/GroupsList.jsx";
@@ -7,6 +7,7 @@ import { createFilterChangeHandler } from "../utils/filterHelpers.js";
 import { useThemeColors } from "../hooks/useThemeColors.js";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
 import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
+import CsvImportButton from "../components/common/CSVImport/CSVImport.jsx";
 
 import SearchField from "../components/common/SearchField/SearchField.jsx";
 import CreateButton from "../components/common/CreateButton/CreateButton.jsx";
@@ -14,7 +15,8 @@ import RefreshButton from "../components/common/RefreshButton/RefreshButton.jsx"
 import DisplayButton from "../components/common/DisplayButton/DisplayButton.jsx";
 import FilterButton from "../components/common/FilterButton/FilterButton.jsx";
 import CreateGroupIcon from "../assets/CreateGroupIcon.jsx";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
+import UploadFileIcon from "../assets/UploadFileIcon.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUploadFile } from "../api/client.js";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import EditButton from "../components/common/EditButton/EditButton.jsx";
@@ -57,6 +59,7 @@ export default function GroupsPage() {
   const [sortDir, setSortDir] = useState("asc");
   const { toast, showToast, hideToast } = useToast();
   const openToast = (msg, type = "success") => showToast(msg, type);
+  const [csvImporting, setCsvImporting] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -155,6 +158,35 @@ export default function GroupsPage() {
     fetchGroups();
   }, []);
 
+  const handleCsvImport = async (file) => {
+    if (!file) return;
+    setCsvImporting(true);
+    try {
+      const result = await apiUploadFile("/access-groups/import-csv", file);
+      const created = result?.created || 0;
+      const errorCount = result?.errors?.length || 0;
+
+      if (created > 0) {
+        openToast(`Successfully imported ${created} group(s)${errorCount > 0 ? ` (${errorCount} warnings)` : ""}`);
+        await fetchGroups();
+      } else if (errorCount > 0) {
+        const firstError = result.errors[0];
+        openToast(`Import failed: ${firstError.error || "Unknown error"}`, "error");
+      } else {
+        openToast("No groups imported", "info");
+      }
+
+      if (errorCount > 0) {
+        console.warn("CSV import errors:", result.errors);
+      }
+    } catch (e) {
+      openToast(e.message || "CSV import failed", "error");
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
+
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     setCurrentPage(1);
@@ -210,19 +242,16 @@ export default function GroupsPage() {
   };
 
   const toggleSelectAllVisible = () => {
-    const hasSelected = pagedGroups.some((g) => selectedIds.has(g._id));
     const allAreSelected =
       pagedGroups.length > 0 &&
       pagedGroups.every((g) => selectedIds.has(g._id));
 
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (hasSelected && !allAreSelected) {
+      if (allAreSelected) {
         pagedGroups.forEach((g) => next.delete(g._id));
-      } else if (!hasSelected) {
-        pagedGroups.forEach((g) => next.add(g._id));
       } else {
-        pagedGroups.forEach((g) => next.delete(g._id));
+        pagedGroups.forEach((g) => next.add(g._id));
       }
       return next;
     });
@@ -395,6 +424,26 @@ export default function GroupsPage() {
           </div>
 
           <div style={styles.rightActions}>
+
+            <CsvImportButton
+              button={
+                <CreateButton
+                  icon={<UploadFileIcon width={16} height={16} color={themeColors.text} />}
+                  buttonText={csvImporting ? "Importing..." : "Import CSV"}
+                  disabled={csvImporting}
+                  title="Import CSV"
+                  data-testid="import-csv-btn"
+                />
+              }
+              onImport={handleCsvImport}
+              importing={csvImporting}
+              themeColors={themeColors}
+              helpTitle="Groups CSV Format"
+              requiredColumns={["group_name"]}
+              optionalColumns={["description", "member_emails", "workstations"]}
+              exampleHeader="group_name,description,member_emails,workstations"
+              exampleRow="engineering,Core team,dev1@example.com;dev2@example.com,WS001;WS002"
+            />
             <RefreshButton onClick={fetchGroups} />
             <CreateButton
               icon={

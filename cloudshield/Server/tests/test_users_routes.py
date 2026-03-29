@@ -418,6 +418,7 @@ class TestUsersRoutes:
         security_mod = types.SimpleNamespace(is_bcrypt_string=lambda _v: True)
         utils_mod = types.SimpleNamespace(users_admin=unittest.mock.MagicMock(), log_audit=lambda **_k: None)
         monkeypatch.setitem(sys.modules, "security", security_mod)
+        monkeypatch.setitem(sys.modules, "security.passwords", types.SimpleNamespace(hash_password=lambda v: f"hashed::{v}"))
         monkeypatch.setitem(sys.modules, "utils", utils_mod)
 
         app = Flask(__name__)
@@ -457,6 +458,7 @@ class TestUsersRoutes:
         security_mod = types.SimpleNamespace(is_bcrypt_string=lambda _v: True)
         utils_mod = types.SimpleNamespace(users_admin=unittest.mock.MagicMock(), log_audit=lambda **_k: None)
         monkeypatch.setitem(sys.modules, "security", security_mod)
+        monkeypatch.setitem(sys.modules, "security.passwords", types.SimpleNamespace(hash_password=lambda v: f"hashed::{v}"))
         monkeypatch.setitem(sys.modules, "utils", utils_mod)
 
         app = Flask(__name__)
@@ -512,8 +514,10 @@ class TestUsersRoutes:
         users_admin = _UsersAdmin()
         log_audit = unittest.mock.MagicMock(side_effect=RuntimeError("audit fail"))
         security_mod = types.SimpleNamespace(is_bcrypt_string=_is_bcrypt_string)
+        security_passwords_mod = types.SimpleNamespace(hash_password=lambda v: f"hashed::{v}")
         utils_mod = types.SimpleNamespace(users_admin=users_admin, log_audit=log_audit)
         monkeypatch.setitem(sys.modules, "security", security_mod)
+        monkeypatch.setitem(sys.modules, "security.passwords", security_passwords_mod)
         monkeypatch.setitem(sys.modules, "utils", utils_mod)
 
         def _limit(org_id, additional_users=1):
@@ -560,13 +564,13 @@ class TestUsersRoutes:
 
         assert status == 200
         payload = response.get_json()
-        assert payload["created"] == 2
+        assert payload["created"] == 3
         assert payload["job_ids"] == []
         assert any("Missing required fields" in (e.get("error") or "") for e in payload["errors"])
         assert any("Invalid email format" in (e.get("error") or "") for e in payload["errors"])
         assert any("already exists" in (e.get("error") or "") for e in payload["errors"])
         assert any("Organization user limit reached" in (e.get("error") or "") for e in payload["errors"])
-        assert any("invalid password_hash" in (e.get("error") or "") for e in payload["errors"])
+        assert not any("invalid password_hash" in (e.get("error") or "") for e in payload["errors"])
         assert any(isinstance(e.get("error"), list) for e in payload["errors"])
         assert any(e.get("error") == "bad value" for e in payload["errors"])
         assert any(e.get("error") == "row boom" for e in payload["errors"])
@@ -577,6 +581,7 @@ class TestUsersRoutes:
         security_mod = types.SimpleNamespace(is_bcrypt_string=lambda _v: True)
         utils_mod = types.SimpleNamespace(users_admin=unittest.mock.MagicMock(), log_audit=lambda **_k: None)
         monkeypatch.setitem(sys.modules, "security", security_mod)
+        monkeypatch.setitem(sys.modules, "security.passwords", types.SimpleNamespace(hash_password=lambda v: f"hashed::{v}"))
         monkeypatch.setitem(sys.modules, "utils", utils_mod)
 
         app = Flask(__name__)

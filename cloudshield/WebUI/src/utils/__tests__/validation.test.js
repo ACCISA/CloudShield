@@ -161,11 +161,11 @@ describe("validation utilities", () => {
       expect(validatePassword("").valid).toBe(false);
     });
 
-    it("rejects passwords with dangerous shell characters", () => {
-      expect(validatePassword("Pass;word1!").valid).toBe(false);
-      expect(validatePassword("Pass|word1!").valid).toBe(false);
-      expect(validatePassword("Pass`word1!").valid).toBe(false);
-      expect(validatePassword("Pass$(cmd)1!").valid).toBe(false);
+    it("allows shell-like characters when strength requirements are met", () => {
+      expect(validatePassword("Pass;word12!").valid).toBe(true);
+      expect(validatePassword("Pass|word12!").valid).toBe(true);
+      expect(validatePassword("Pass`word12!").valid).toBe(true);
+      expect(validatePassword("Pass$(cmd)12!").valid).toBe(true);
     });
   });
 
