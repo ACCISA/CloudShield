@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import logger as logger_module
+import cloudshield.ThreatDetection.logger as logger_module
 
 def ensure_module(name, module):
     if name not in sys.modules:

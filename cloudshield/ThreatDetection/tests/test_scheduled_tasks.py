@@ -161,3 +161,37 @@ class TestStartScheduledTasks:
             threat_intel_interval=9999,
         )
         assert len(threads) == 1
+
+
+def test_refresh_threat_intel_no_logger():
+    """Test threat intel refresh with no logger."""
+    ti = MagicMock()
+    ti.refresh_feeds.return_value = 10
+    ti.total_indicators = 500
+
+    # Should not raise even without logger
+    _refresh_threat_intel(ti, logger=None)
+    ti.refresh_feeds.assert_called_once_with(timeout=60)
+
+
+def test_retrain_model_no_es_gracefully():
+    """Test anomaly retrain handles no ES client."""
+    detector = MagicMock()
+
+    _retrain_anomaly_model(detector, es_client=None, logger=None)
+
+    # Should not call train when es_client is None
+    detector.train.assert_not_called()
+
+
+def test_flush_alerts_empty_dedup():
+    """Test flush alerts when deduplicator is empty."""
+    from cloudshield.ThreatDetection.alerts import AlertDeduplicator
+
+    dd = AlertDeduplicator()
+    es_log = MagicMock()
+
+    _flush_alerts(dd, es_log)
+
+    # Should not call es_log when no pending alerts
+    es_log.assert_not_called()
