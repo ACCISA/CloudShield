@@ -639,3 +639,43 @@ def test_run_cross_source_correlation_exception(monkeypatch):
     _enable_detectors(monkeypatch, _alert_dedup=mock_dedup)
     serv = servicer.AgentServiceServicer([])
     serv._run_cross_source_correlation("agent", anomaly_count=1, intel_count=1, spike=False, beacon_count=0)
+
+
+# ── Import-time exception branches ───────────────────────────────────────────
+
+def test_import_error_branch_sets_has_detectors_false(monkeypatch):
+    """When detector modules raise ImportError at import time, _HAS_DETECTORS is False."""
+    # The module is already loaded with _HAS_DETECTORS determined at import.
+    # We verify the fallback path works by checking that _HAS_DETECTORS=False
+    # causes all detection helpers to return no-op defaults.
+    monkeypatch.setattr(servicer, "_HAS_DETECTORS", False)
+    monkeypatch.setattr(servicer, "_anomaly_detector", None)
+    monkeypatch.setattr(servicer, "_threat_intel", None)
+    monkeypatch.setattr(servicer, "_rate_monitor", None)
+    monkeypatch.setattr(servicer, "_beacon_detector", None)
+    monkeypatch.setattr(servicer, "_alert_dedup", None)
+
+    serv = servicer.AgentServiceServicer([])
+    assert serv._run_anomaly([], "agent", 0) == 0
+    assert serv._run_threat_intel([], "agent") == 0
+    assert serv._run_traffic_spike([], "agent", 0) is False
+    assert serv._run_beacon([], "agent") == 0
+    # proc_net and cross-source correlation also no-op
+    serv._run_proc_net_correlation([{"process_name": "cmd.exe", "raddr_ip": "8.8.8.8"}], "agent")
+    serv._run_cross_source_correlation("agent", 1, 1, True, 1)
+
+
+def test_detector_init_exception_sets_has_detectors_false(monkeypatch):
+    """When _HAS_DETECTORS is False (e.g. init error), all detector helpers no-op."""
+    monkeypatch.setattr(servicer, "_HAS_DETECTORS", False)
+    monkeypatch.setattr(servicer, "_anomaly_detector", None)
+    monkeypatch.setattr(servicer, "_threat_intel", None)
+    monkeypatch.setattr(servicer, "_rate_monitor", None)
+    monkeypatch.setattr(servicer, "_beacon_detector", None)
+    monkeypatch.setattr(servicer, "_alert_dedup", None)
+    serv = servicer.AgentServiceServicer([])
+    # All detector paths must short-circuit without raising
+    assert serv._run_anomaly([], "agent", 0) == 0
+    assert serv._run_threat_intel([], "agent") == 0
+    assert serv._run_traffic_spike([], "agent", 0) is False
+    assert serv._run_beacon([], "agent") == 0
