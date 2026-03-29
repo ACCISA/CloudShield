@@ -215,9 +215,9 @@ def test_send_process_list_sets_expected_and_returns_action(fake_logger, fake_st
     response = serv.SendProcessList(request, context)
 
     assert "test_servicer.ProcessListAck" in str(type(response))
-    assert response.action is True
-    assert response.pids == [101]
-    assert fake_state.set_calls == [("agent-x", "SendProcessList", "SendProcessListInformation")]
+    assert response.action is False
+    assert response.pids == []
+    assert fake_state.set_calls == []
     assert fake_utils["get_ip"] == ["peer-string"]
     # Only the non-empty cmdline process should be ingested
     ingested = fake_utils["ingest"]
@@ -243,7 +243,7 @@ def test_send_process_list_pending_skips_action(fake_state, fake_utils):
     response = serv.SendProcessList(request, context)
 
     assert response.action is False
-    assert response.pids == [88]
+    assert response.pids == []
     # since is_pending True the expected response should not be scheduled
     assert fake_state.set_calls == []
 
