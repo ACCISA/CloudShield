@@ -153,8 +153,10 @@ class TestCreateCheckout:
         res = client.post("/api/billing/create-checkout", json={"price_id": "price_xxx"})
         assert res.status_code == 400
 
-    @patch("cloudshield.Server.routes.billing.stripe.checkout.Session.create", side_effect=Exception("Stripe down"))
+    @patch("cloudshield.Server.routes.billing.stripe.checkout.Session.create")
     def test_stripe_error(self, mock_create, client):
+        import stripe as _stripe
+        mock_create.side_effect = _stripe.error.StripeError("Stripe down")
         res = client.post("/api/billing/create-checkout", json={
             "price_id": "price_1T3VQrA5QKTufQ3cRB80WIPb",
             "org_id": "org_abc"
@@ -401,7 +403,7 @@ class TestStripeWebhook:
             headers={"STRIPE_SIGNATURE": "sig_test"}
         )
 
-    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event", side_effect=Exception("bad sig"))
+    @patch("cloudshield.Server.routes.billing.stripe.Webhook.construct_event", side_effect=ValueError("bad sig"))
     def test_invalid_signature_returns_400(self, mock_event, client):
         res = self._post(client, {})
         assert res.status_code == 400
@@ -510,8 +512,10 @@ class TestCreatePortalSession:
                 assert res.status_code == 200
                 assert "billing.stripe.com" in res.get_json()["url"]
 
-    @patch("cloudshield.Server.routes.billing.stripe.billing_portal.Session.create", side_effect=Exception("Stripe error"), create=True)
+    @patch("cloudshield.Server.routes.billing.stripe.billing_portal.Session.create", create=True)
     def test_stripe_error(self, mock_portal, client):
+        import stripe as _stripe
+        mock_portal.side_effect = _stripe.error.StripeError("Stripe error")
         with patch(f"{self._mod()}.organizations") as mock_orgs:
             mock_orgs.find_one.return_value = make_org()
             with patch(f"{self._mod()}.org_filter", return_value={"_id": "org_abc"}):
