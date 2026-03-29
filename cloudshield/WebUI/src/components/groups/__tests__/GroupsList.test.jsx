@@ -307,7 +307,7 @@ describe("GroupsList Component", () => {
 
   // Responsive tests
   describe("Responsive Behavior", () => {
-    test("hides headers on mobile", () => {
+    test("keeps headers visible on mobile-width windows", () => {
       Object.defineProperty(window, "innerWidth", {
         writable: true,
         configurable: true,
@@ -318,11 +318,10 @@ describe("GroupsList Component", () => {
       fireEvent(window, new Event("resize"));
       rerender(<GroupsList rows={mockGroups} />);
 
-      // Headers should be hidden on mobile
-      expect(screen.queryByText("Name/Description")).not.toBeInTheDocument();
+      expect(screen.getByText("Name/Description")).toBeInTheDocument();
     });
 
-    test("adjusts columns for tablet view", () => {
+    test("keeps workstation column visible on tablet-width windows", () => {
       Object.defineProperty(window, "innerWidth", {
         writable: true,
         configurable: true,
@@ -335,8 +334,7 @@ describe("GroupsList Component", () => {
       fireEvent(window, new Event("resize"));
       rerender(<GroupsList rows={mockGroups} showWorkstations={true} />);
 
-      // Workstations column should be hidden on tablet
-      expect(screen.queryByText("Workstations")).not.toBeInTheDocument();
+      expect(screen.getByText("Workstations")).toBeInTheDocument();
     });
 
     test("shows all columns on desktop", () => {

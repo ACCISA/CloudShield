@@ -18,19 +18,22 @@ describe('PrimaryButton', () => {
   it('is full width by default', () => {
     render(<PrimaryButton>Button</PrimaryButton>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('MuiButton-fullWidth');
+    expect(button).toHaveClass('auth-btn');
+    expect(button.style.width).toBe('');
   });
 
   it('can be rendered not full width', () => {
     render(<PrimaryButton fullWidth={false}>Button</PrimaryButton>);
     const button = screen.getByRole('button');
-    expect(button).not.toHaveClass('MuiButton-fullWidth');
+    expect(button).toHaveClass('auth-btn');
+    expect(button).toHaveStyle({ width: 'auto' });
   });
 
-  it('forwards additional props to MUI Button', () => {
-    render(<PrimaryButton disabled>Disabled Button</PrimaryButton>);
+  it('forwards additional button props', () => {
+    render(<PrimaryButton disabled data-testid="primary-button">Disabled Button</PrimaryButton>);
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
+    expect(screen.getByTestId('primary-button')).toBeInTheDocument();
   });
 
   it('renders children correctly', () => {
