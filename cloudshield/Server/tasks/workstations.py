@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 
 from rq import get_current_job
@@ -177,7 +178,9 @@ def ws_start(org_id, template_id):
             workstation_id=vm_id,
             mac=data.get("mac", ""),
             ipv4_address=data["ipv4_address"],
-            status=WorkstationStatus.ACTIVE
+            status=WorkstationStatus.ACTIVE,
+            name=ws_template.get("name", "Workstation"),
+            members=ws_template.get("members", []),
     )
 
 

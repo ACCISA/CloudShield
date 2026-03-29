@@ -13,8 +13,6 @@ from pathlib import Path
 
 from python_on_whales import DockerClient
 
-from .keygen import generate_ssh_key_pair
-
 OVPN_VOLUME_NAME = "opvn-data-cloudshield"
 PKI_INPUT = b"\n\n\n"
 BASE_PATH = os.environ.get("CLOUDSHIELD_BASE_DIR", "/app")
@@ -755,22 +753,55 @@ def provision_threat_detection_docker(
     server_logger,
     org_docker: DockerClient,
     org_network_name: str,
+    td_agents_dir: str = "",
+    cs_server_url: str = "",
 ) -> tuple[str, str] | None:
     """Spin up a per-org ThreatDetection container and return (container_id, ip).
 
-    The container reuses the same 'server' image (Dockerfile.server) but runs
-    on the org network only, with its own agents.json bind-mounted in.
+    Uses plain Docker API (not compose.run) to avoid compose project reconciliation
+    conflicts with other running containers.
     """
     container_name = f"threat-detection-{org_id}"
     server_logger.info(f"Starting per-org ThreatDetection container: {container_name}")
 
+    # Build the threat-detection image via compose if not already present.
+    image_name = "app-threat-detection:latest"
     try:
-        container_td = org_docker.compose.run(
+        plain_docker = DockerClient()
+        existing = plain_docker.image.list(filters={"reference": image_name})
+        if not existing:
+            server_logger.info("Building threat-detection image...")
+            org_docker.compose.build(["threat-detection"])
+    except Exception as exc:
+        server_logger.warning(f"Could not verify/build threat-detection image: {exc}")
+
+    envs = {
+        "CLOUDSHIELD_RUNTIME": "1",
+        "ES_URL": "http://elasticsearch:9200",
+    }
+    if org_id:
+        envs["CLOUDSHIELD_ORG_ID"] = org_id
+    if cs_server_url:
+        envs["CLOUDSHIELD_SERVER_URL"] = cs_server_url
+    if td_agents_dir:
+        envs["AGENTS_FILE"] = "/app/cloudshield/ThreatDetection/org_agents/agents.json"
+
+    volumes = []
+    if td_agents_dir:
+        volumes.append((td_agents_dir, "/app/cloudshield/ThreatDetection/org_agents", "rw"))
+
+    try:
+        plain_docker = DockerClient()
+        container_td = plain_docker.container.run(
+            image_name,
             name=container_name,
-            service="threat-detection",
             detach=True,
-            tty=False,
+            networks=[org_network_name],
+            envs=envs,
+            volumes=volumes,
         )
+        # Also connect to cloudshield_net so the container can reach Elasticsearch.
+        plain_docker.network.connect("cloudshield_net", container_td)
     except Exception as exc:
         server_logger.error(f"Failed to start ThreatDetection container for org {org_id}: {exc}")
         return None
@@ -1226,15 +1257,16 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     if not run_concurrent_tasks(server_logger, copy_files_tasks):
         return
 
-    api_ip = attach_api_to_network(server_logger, org_network_name)
+    attach_api_to_network(server_logger, org_network_name)
 
     # ── Per-org ThreatDetection container ───────────────────────────────────
     td_result = provision_threat_detection_docker(
         org_id, server_logger, org_docker, org_network_name,
+        td_agents_dir=td_agents_dir,
+        cs_server_url=_cs_server_url,
     )
     td_ip = None
     td_container_id = None
-    td_agents_file = Path(_host_path_to_container(td_agents_dir)) / "agents.json"
     if not td_result:
         server_logger.error("Per-org ThreatDetection failed to start; aborting provisioning")
         return

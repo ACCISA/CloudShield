@@ -30,6 +30,7 @@ const RISK_CONFIG = {
 };
 
 function SecurityAlertModal({ alert, isOpen, onClose, onMarkResolved, onMarkFalsePositive, onDownload }) {
+  const themeColors = useThemeColors();
   const [isHoveredResolve, setIsHoveredResolve] = useState(false);
   
   // AI State

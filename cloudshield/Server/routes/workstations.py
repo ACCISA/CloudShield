@@ -144,6 +144,8 @@ def create_default():
             logger.warning(f"WORKSTATIONS create_default request missing {arg}")
             return jsonify({"error": f"{arg} is required"}), 400
 
+    members = data.get("members", [])
+
     job = service_dispatcher(
         service_name="ws_create_default",
         org_id=org_id,
@@ -151,6 +153,7 @@ def create_default():
         description=description,
         software=software,
         access_groups=access_groups,
+        members=members,
     )
 
     return jsonify({"job_id": job.id}), 202

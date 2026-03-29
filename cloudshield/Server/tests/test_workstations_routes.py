@@ -67,34 +67,59 @@ class TestGetAvailableWorkstationsRoute:
 
 
 class TestGetWorkstationsRoute:
-    """Test GET /workstations route - parameter validation (lines 46-53)."""
+    """Test GET /workstations route - reads org_id from auth token (g.user)."""
 
-    def test_route_missing_org_id_returns_400(self, client):
-        """Test line 51: missing org_id parameter returns 400 error."""
-        response = client.get('/api/workstations')
+    def test_route_missing_org_id_returns_400(self, app):
+        """Test: missing org_id in auth token returns 400 error."""
+        from cloudshield.Server.routes.workstations import workstations_bp
+        no_org_app = Flask(__name__ + "_no_org")
+        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @no_org_app.before_request
+        def inject_user_no_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin"}
+
+        with no_org_app.test_client() as c:
+            response = c.get('/api/workstations')
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
 
-    def test_route_with_org_id_param_succeeds(self, client):
-        """Test line 47-49: route accepts org_id parameter."""
-        with patch('cloudshield.Server.routes.workstations.get_workstations') as mock_repo:
-            mock_repo.return_value = [{'id': 'ws-1'}]
-            response = client.get('/api/workstations?org_id=org-123')
+    def test_route_with_org_id_in_token_succeeds(self, client):
+        """Test: route returns 200 when auth token contains org_id."""
+        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
+            mock_collection = MagicMock()
+            mock_collection.find.return_value = []
+            mock_db.__getitem__.return_value = mock_collection
+            response = client.get('/api/workstations')
             assert response.status_code == 200
 
-    def test_route_with_empty_org_id_returns_error(self, client):
-        """Test line 50: empty org_id parameter is treated as missing."""
-        response = client.get('/api/workstations?org_id=')
+    def test_route_with_empty_org_id_returns_error(self, app):
+        """Test: empty org_id in auth token is treated as missing."""
+        from cloudshield.Server.routes.workstations import workstations_bp
+        empty_org_app = Flask(__name__ + "_empty_org")
+        empty_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @empty_org_app.before_request
+        def inject_user_empty_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin", "org_id": ""}
+
+        with empty_org_app.test_client() as c:
+            response = c.get('/api/workstations')
         assert response.status_code == 400
 
-    def test_route_org_id_passed_to_repo(self, client):
-        """Test line 49: org_id is passed to get_workstations function."""
-        with patch('cloudshield.Server.routes.workstations.get_workstations') as mock_repo:
-            mock_repo.return_value = []
-            response = client.get('/api/workstations?org_id=test-org')
-            assert mock_repo.called
-            assert 'test-org' in str(mock_repo.call_args)
+    def test_route_org_id_scopes_query(self, client):
+        """Test: org_id from token is used to scope the DB query."""
+        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
+            mock_collection = MagicMock()
+            mock_collection.find.return_value = []
+            mock_db.__getitem__.return_value = mock_collection
+            client.get('/api/workstations')
+            call_args = mock_collection.find.call_args
+            assert call_args is not None
+            assert 'test-org' in str(call_args)
 
 
 class TestCreateDefaultRoute:
@@ -470,16 +495,23 @@ class TestLineSpecificCoverage:
                 # Some falsy values might be accepted as strings
                 assert response.status_code in [200, 400, 500]
 
-    def test_line_50_get_workstations_org_id_falsy_check(self, client):
+    def test_line_50_get_workstations_org_id_falsy_check(self, app):
         """
-        Test line 50-51: if not org_id: return error
-        This triggers when org_id is None, empty string, or falsy value
+        Test: if not org_id in g.user: return 400 error
+        This triggers when org_id is None or empty string in the auth token.
         """
-        response_missing = client.get('/api/workstations')
+        from cloudshield.Server.routes.workstations import workstations_bp
+        no_org_app = Flask(__name__ + "_falsy_org")
+        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @no_org_app.before_request
+        def inject_no_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin", "org_id": None}
+
+        with no_org_app.test_client() as c:
+            response_missing = c.get('/api/workstations')
         assert response_missing.status_code == 400
-        
-        response_empty = client.get('/api/workstations?org_id=')
-        assert response_empty.status_code == 400
 
     def test_line_70_create_default_validation_chain(self, client):
         """

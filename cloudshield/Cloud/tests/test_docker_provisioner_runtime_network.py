@@ -1,4 +1,3 @@
-from pathlib import Path
 from subprocess import CalledProcessError
 from types import SimpleNamespace
 from unittest.mock import MagicMock

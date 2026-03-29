@@ -6,4 +6,8 @@ venv/
 *.log
 **/node_modules/
 docker/workstation/storage/
-win11x64.iso
+localdata/
+**/*.iso
+**/*.qcow2
+**/*.vmdk
+**/*.vhd

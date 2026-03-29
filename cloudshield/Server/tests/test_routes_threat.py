@@ -182,8 +182,10 @@ def test_geo_check_success(client, monkeypatch):
 
 def test_unified_alerts_empty(client, monkeypatch):
     import cloudshield.Server.routes.threat as threat_mod
-    monkeypatch.setattr(threat_mod, "get_unified_alerts", lambda limit: [])
-    resp = client.get("/api/threat/unified")
+    import security.guards as guards_mod
+    monkeypatch.setattr(threat_mod, "get_unified_alerts", lambda limit, org_id="": [])
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    resp = client.get("/api/threat/unified", headers={"Authorization": "Bearer test-dev-token"})
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["alerts"] == []
@@ -192,12 +194,14 @@ def test_unified_alerts_empty(client, monkeypatch):
 
 def test_unified_alerts_with_limit(client, monkeypatch):
     import cloudshield.Server.routes.threat as threat_mod
+    import security.guards as guards_mod
     captured = {}
-    def fake_unified(limit):
+    def fake_unified(limit, org_id=""):
         captured["limit"] = limit
         return [{"alert_id": "abc", "source": "snort", "severity": "HIGH"}]
     monkeypatch.setattr(threat_mod, "get_unified_alerts", fake_unified)
-    resp = client.get("/api/threat/unified?limit=25")
+    monkeypatch.setattr(guards_mod, "DEV_BYPASS_TOKEN", "test-dev-token")
+    resp = client.get("/api/threat/unified?limit=25", headers={"Authorization": "Bearer test-dev-token"})
     assert resp.status_code == 200
     assert captured["limit"] == 25
     assert resp.get_json()["count"] == 1

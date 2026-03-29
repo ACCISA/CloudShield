@@ -9,18 +9,26 @@ import os
 from unittest.mock import MagicMock, patch
 from enum import Enum
 
-# Add the parent directory to the path so we can import tasks
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + "/..")
+import importlib.util
 
-from tasks.task import (
-    NodeType,
-    ServerNode,
-    get_full_grpc_path,
-    get_grpc_channel,
-    get_server_nodes,
-    get_server_node,
-    proxy_rpc_request,
+# Force-load Server's tasks.task by file path to avoid sys.modules collision
+# with cloudshield.Agent.tasks.task (same bare module name, different package).
+_server_root = os.path.dirname(os.path.abspath(__file__)) + "/.."
+_spec = importlib.util.spec_from_file_location(
+    "cloudshield.Server.tasks.task",
+    os.path.join(_server_root, "tasks", "task.py"),
 )
+_task_mod = importlib.util.module_from_spec(_spec)
+sys.modules["cloudshield.Server.tasks.task"] = _task_mod
+_spec.loader.exec_module(_task_mod)
+
+NodeType = _task_mod.NodeType
+ServerNode = _task_mod.ServerNode
+get_full_grpc_path = _task_mod.get_full_grpc_path
+get_grpc_channel = _task_mod.get_grpc_channel
+get_server_nodes = _task_mod.get_server_nodes
+get_server_node = _task_mod.get_server_node
+proxy_rpc_request = _task_mod.proxy_rpc_request
 from models.itam import Inventory, EC2Instance
 
 

@@ -11,7 +11,7 @@ try:
     from cloudshield.Server.security import hash_password
 except Exception:
     from security import hash_password
-from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError, DuplicateKeyError
 from bson.errors import InvalidId
 
 

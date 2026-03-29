@@ -17,8 +17,7 @@ try:
     from monitoring.threat_intel import ThreatIntelChecker
     from anomaly.rate_monitor import TrafficRateMonitor
     from alerts import (
-        AlertDeduplicator, Severity,
-        alert_from_anomaly, alert_from_threat_intel,
+        AlertDeduplicator, alert_from_anomaly, alert_from_threat_intel,
         alert_from_traffic_spike, alert_from_beacon,
     )
     _anomaly_detector = AnomalyDetector(contamination=0.05)
@@ -82,7 +81,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
             if process.name:
                 _agent_processes[request.agent_id].add(process.name.lower())
 
-        unknown_processes = ingest_processes(process_data)
+        ingest_processes(process_data)
         if request.is_pending is True:
             servicer_logger.info("Received cached message")
 

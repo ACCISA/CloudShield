@@ -193,7 +193,7 @@ function UsersPill({ row }) {
 function getStatusLightColors(status) {
   const normalized = (status || "").toLowerCase();
 
-  if (normalized === "connected") {
+  if (["connected", "active", "online"].includes(normalized)) {
     return { outerColor: "#1F381F", innerColor: "#04C40A" };
   }
 
@@ -249,6 +249,8 @@ function WorkstationRow({
   isSelected,
   onToggleSelect,
 }) {
+  const currentDisplayUser = r.currentUser || null;
+  const statusColors = getStatusLightColors(r.status);
   return (
     <>
       <HoverableRow

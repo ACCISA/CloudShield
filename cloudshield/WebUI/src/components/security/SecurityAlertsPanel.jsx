@@ -13,8 +13,10 @@ import FalsePositiveIcon from "../../assets/security/FalsePositiveIcon";
 import DownloadIcon from "../../assets/DownloadIcon";
 import { SECURITY_FILTERS } from "../../config/filterConfigs";
 import { createFilterChangeHandler } from "../../utils/filterHelpers";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 function SecurityAlertsPanel({ alerts = [], loading = false, error = null, onRefresh, onUpdateAlert = () => {} }) {
+  const themeColors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
