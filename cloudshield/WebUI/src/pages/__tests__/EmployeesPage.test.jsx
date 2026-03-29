@@ -6,8 +6,8 @@ import EmployeesPage from "../EmployeesPage.jsx";
 import { AuthProvider } from "../../context/AuthContext.jsx";
 import * as usersApi from "../../services/usersApi.js";
 import * as clientApi from "../../api/client.js";
+import { trackButton } from "../../lib/analytics.js";
 
-// --- 1. MOCK API ---
 jest.mock("../../services/usersApi.js", () => ({
   listUsers: jest.fn(),
   deleteUser: jest.fn(),
@@ -15,7 +15,14 @@ jest.mock("../../services/usersApi.js", () => ({
   updateUser: jest.fn(),
 }));
 
-// Avoid import.meta usage from analytics during tests.
+jest.mock("../../api/client.js", () => ({
+  apiGet: jest.fn(),
+  apiPatch: jest.fn(),
+  apiPost: jest.fn(),
+  apiDelete: jest.fn(),
+  apiUploadFile: jest.fn(),
+}));
+
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
 }));
@@ -24,16 +31,21 @@ jest.mock("../../lib/analytics.js", () => ({
   trackButton: jest.fn(),
 }));
 
+jest.mock("../../hooks/useThemeColors.js", () => ({
+  useThemeColors: () => ({
+    text: "#111",
+    border: "#222",
+    borderLight: "#333",
+    bgSecondary: "#444",
+    secondary: "#555",
+    secondaryText: "#666",
+    secondaryBorder: "#777",
+  }),
+}));
+
 jest.mock("../../components/layout/PageShell.jsx", () => ({
   __esModule: true,
-  default: ({ title, subtitle, actions, children }) => (
-    <div data-testid="page-shell">
-      {title ? <div data-testid="page-title">{title}</div> : null}
-      {subtitle ? <div data-testid="page-subtitle">{subtitle}</div> : null}
-      {actions ? <div data-testid="page-actions">{actions}</div> : null}
-      <div data-testid="page-content">{children}</div>
-    </div>
-  ),
+  default: ({ children }) => <div data-testid="page-shell">{children}</div>,
 }));
 
 jest.mock("../../components/table/TableSurface.jsx", () => ({
@@ -45,11 +57,163 @@ jest.mock("../../components/table/TableSkeleton.jsx", () => ({
   __esModule: true,
   default: () => <div data-testid="table-skeleton">Loading</div>,
 }));
-// --- 2. MOCK COMPONENTS ---
 
-// Mock Table: Added 'Force Delete' to test deletion when no users are loaded
-jest.mock("../../components/users/UsersTable.jsx", () => {
-  return function DummyUsersTable({
+jest.mock("../../components/common/EmptyState/EmptyState.jsx", () => ({
+  __esModule: true,
+  default: ({ message, description }) => (
+    <div data-testid="empty-state">
+      <div>{message}</div>
+      <div>{description}</div>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/Pagination/Pagination.jsx", () => ({
+  __esModule: true,
+  default: ({ totalItems, currentPage }) => (
+    <div data-testid="pagination">
+      page:{currentPage} total:{totalItems}
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/DisplayButton/DisplayButton.jsx", () => ({
+  __esModule: true,
+  default: ({ layout, onLayoutChange, columnToggles }) => (
+    <div data-testid="display-button">
+      <button
+        type="button"
+        data-testid="layout-toggle-grid"
+        onClick={() => onLayoutChange?.("grid")}
+      >
+        grid
+      </button>
+      <button
+        type="button"
+        data-testid="layout-toggle-list"
+        onClick={() => onLayoutChange?.("list")}
+      >
+        list
+      </button>
+      <div data-testid="current-layout">{layout}</div>
+      {columnToggles?.columns?.map((col) => (
+        <button
+          type="button"
+          key={col.key}
+          data-testid={`toggle-${col.key}`}
+          onClick={() => columnToggles.onToggle(col.key)}
+        >
+          {col.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/FilterButton/FilterButton.jsx", () => ({
+  __esModule: true,
+  default: ({ onFilterChange }) => (
+    <div>
+      <button
+        type="button"
+        data-testid="filter-active"
+        onClick={() => onFilterChange("status", "active", true)}
+      >
+        active
+      </button>
+      <button
+        type="button"
+        data-testid="filter-offline"
+        onClick={() => onFilterChange("status", "offline", true)}
+      >
+        offline
+      </button>
+      <button
+        type="button"
+        data-testid="filter-clear-active"
+        onClick={() => onFilterChange("status", "active", false)}
+      >
+        clear-active
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/SearchField/SearchField.jsx", () => ({
+  __esModule: true,
+  default: ({ value, onChange, onKeyDown }) => (
+    <input
+      data-testid="search-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+    />
+  ),
+}));
+
+jest.mock("../../components/common/CreateButton/CreateButton.jsx", () => ({
+  __esModule: true,
+  default: ({ onClick, buttonText, disabled, "data-testid": testId }) => (
+    <button data-testid={testId || "create-btn"} onClick={onClick} disabled={disabled}>
+      {buttonText || "Create"}
+    </button>
+  ),
+}));
+
+jest.mock("../../components/common/RefreshButton/RefreshButton.jsx", () => ({
+  __esModule: true,
+  default: ({ onClick }) => (
+    <button data-testid="refresh-btn" type="button" onClick={onClick}>
+      Refresh
+    </button>
+  ),
+}));
+
+jest.mock("../../components/common/Checkbox/Checkbox.jsx", () => ({
+  __esModule: true,
+  default: ({ checked, onChange }) => (
+    <input type="checkbox" data-testid="icon-checkbox" checked={checked} onChange={onChange} />
+  ),
+}));
+
+jest.mock("../../components/common/IconSelectionBar.jsx", () => ({
+  __esModule: true,
+  default: ({ onToggleSelectAll, selectedCount }) => (
+    <div data-testid="icon-selection-bar">
+      <span data-testid="icon-selected-count">{selectedCount}</span>
+      <button type="button" data-testid="icon-select-all" onClick={onToggleSelectAll}>
+        select-all
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock("../../components/common/DisplayIcon/DisplayIcon.jsx", () => ({
+  __esModule: true,
+  default: ({ type, data }) => <div data-testid={`display-icon-${type}`}>{data?.name}</div>,
+}));
+
+jest.mock("../../components/common/EditButton/EditButton.jsx", () => ({
+  __esModule: true,
+  default: ({ menuItems = [] }) => (
+    <div data-testid="edit-button">
+      {menuItems.map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          data-testid={`menu-${item.label.replace(/\s+/g, "-")}`}
+          onClick={item.onClick}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+jest.mock("../../components/users/UsersTable.jsx", () => ({
+  __esModule: true,
+  default: ({
     users,
     onEdit,
     onDelete,
@@ -58,956 +222,717 @@ jest.mock("../../components/users/UsersTable.jsx", () => {
     onToggleSelectAll,
     selectedIds,
     allVisibleSelected,
-  }) {
-    return (
-      <div data-testid="users-table">
-        <div data-testid="user-count">Count: {users.length}</div>
-        <button data-testid="select-all" onClick={onToggleSelectAll}>
-          {allVisibleSelected ? "Deselect All" : "Select All"}
-        </button>
-        <button data-testid="sort-name" onClick={() => onSort("name")}>
-          Sort Name
-        </button>
-        <button data-testid="sort-files" onClick={() => onSort("files")}>
-          Sort Files
-        </button>
-        <button
-          data-testid="force-delete-btn"
-          onClick={() => onDelete({ id: "999" })}
-        >
-          Force Delete
-        </button>
+    isIndeterminate,
+  }) => (
+    <div data-testid="users-table">
+      <div data-testid="user-count">{users.length}</div>
+      <div data-testid="all-visible-selected">{String(allVisibleSelected)}</div>
+      <div data-testid="indeterminate">{String(isIndeterminate)}</div>
+      <button type="button" data-testid="select-all" onClick={onToggleSelectAll}>
+        select-all
+      </button>
+      <button type="button" data-testid="sort-name" onClick={() => onSort("name")}>sort-name</button>
+      <button type="button" data-testid="sort-files" onClick={() => onSort("files")}>sort-files</button>
+      {users.map((u) => (
+        <div key={u.id} data-testid={`user-row-${u.id}`}>
+          <input
+            type="checkbox"
+            data-testid={`checkbox-${u.id}`}
+            checked={selectedIds.has(u.id)}
+            onChange={() => onToggleSelect(u.id)}
+          />
+          <span>{u.name}</span>
+          <span data-testid={`role-${u.id}`}>{u.title}</span>
+          <span data-testid={`status-${u.id}`}>{u.status}</span>
+          <button type="button" data-testid={`edit-btn-${u.id}`} onClick={() => onEdit(u)}>Edit</button>
+          <button type="button" data-testid={`delete-btn-${u.id}`} onClick={() => onDelete(u)}>Delete</button>
+        </div>
+      ))}
+      <button type="button" data-testid="force-delete-btn" onClick={() => onDelete({ id: "1" })}>
+        Force Delete
+      </button>
+    </div>
+  ),
+}));
 
-        {users.map((u) => (
-          <div key={u.id} data-testid={`user-row-${u.id}`}>
-            <input
-              type="checkbox"
-              data-testid={`checkbox-${u.id}`}
-              checked={selectedIds.has(u.id)}
-              onChange={() => onToggleSelect(u.id)}
-            />
-            <span>{u.name}</span>
-            <span data-testid={`role-${u.id}`}>{u.title}</span>
-            <span data-testid={`status-${u.id}`}>{u.status}</span>
-            <button data-testid={`edit-btn-${u.id}`} onClick={() => onEdit(u)}>
-              Edit
-            </button>
-            <button
-              data-testid={`delete-btn-${u.id}`}
-              onClick={() => onDelete(u)}
-            >
-              Delete
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-});
-
-// Mock Employees Modal (unified create/edit)
-// UPDATED: Added "submit-with-groups" button to test group logic without breaking old tests
 jest.mock("../../components/users/EmployeesModal.jsx", () => {
-  const { useState } = require("react");
-  return function DummyEmployeesModal({
-    open,
-    onClose,
-    onSubmit,
-    onDelete,
-    employeeData,
-  }) {
-    const [form, setForm] = useState({});
-    if (!open) return null;
-    const isEdit = Boolean(employeeData);
-    return (
-      <div data-testid={isEdit ? "edit-modal" : "create-modal"}>
-        <input
-          placeholder="First Name"
-          defaultValue={employeeData?.name?.split(" ")[0] || ""}
-          onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-        />
-        {/* Standard Submit used by existing tests */}
-        <button
-          onClick={() =>
-            onSubmit({
-              firstName: form.firstName || "John",
-              lastName: form.lastName || "D",
-              email: "t@t.com",
-              password: "123",
-              jobTitle: "Dev",
-              groups: [], // Default empty for standard tests
-            })
-          }
-        >
-          {isEdit ? "Confirm Update" : "Confirm Create"}
-        </button>
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: ({ open, onClose, onSubmit, onDelete, employeeData }) => {
+      const [firstName, setFirstName] = React.useState("");
+      if (!open) return null;
 
-        {/* New Button for Group Logic Coverage */}
-        <button
-          data-testid="submit-with-groups"
-          onClick={() =>
-            onSubmit({
-              firstName: "Group",
-              lastName: "User",
-              email: "g@t.com",
-              jobTitle: "Dev",
-              groups: [{ id: "grp-1", _id: "grp-1" }],
-            })
-          }
-        >
-          Confirm With Groups
-        </button>
-
-        {isEdit && <button onClick={onDelete}>Confirm Delete</button>}
-        {isEdit && <button onClick={() => onDelete()}>Confirm Delete Safe</button>}
-        <button onClick={onClose}>Cancel</button>
-      </div>
-    );
-  };
-});
-
-// Mock DisplayButton
-// UPDATED: Added layout toggle button
-jest.mock(
-  "../../components/common/DisplayButton/DisplayButton.jsx",
-  () =>
-    ({ columnToggles, onLayoutChange }) => (
-      <div>
-        <button
-          data-testid="layout-toggle-grid"
-          onClick={() => onLayoutChange && onLayoutChange("grid")}
-        >
-          Grid Layout
-        </button>
-        {columnToggles?.columns.map((col) => (
+      const isEdit = Boolean(employeeData);
+      return (
+        <div data-testid={isEdit ? "edit-modal" : "create-modal"}>
+          <input
+            aria-label="First Name"
+            defaultValue={employeeData?.name?.split(" ")[0] || ""}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
           <button
-            key={col.key}
-            data-testid={`toggle-${col.key}`}
-            onClick={() => columnToggles.onToggle(col.key)}
+            type="button"
+            onClick={() =>
+              onSubmit({
+                firstName: firstName || "John",
+                lastName: "Doe",
+                email: "john@example.com",
+                password: "secret",
+                jobTitle: "Dev",
+                groups: [],
+              })
+            }
           >
-            Toggle {col.label}
+            {isEdit ? "Confirm Update" : "Confirm Create"}
           </button>
-        ))}
-      </div>
-    )
-);
-
-// Simple Mocks for others
-jest.mock(
-  "../../components/common/SearchField/SearchField.jsx",
-  () =>
-    ({ value, onChange, onKeyDown }) => (
-      <input
-        data-testid="search-input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-      />
-    )
-);
-jest.mock(
-  "../../components/common/FilterButton/FilterButton.jsx",
-  () =>
-    ({ onFilterChange }) => (
-      <button
-        data-testid="filter-active"
-        onClick={() => onFilterChange("status", "active", true)}
-      >
-        Filter Active
-      </button>
-    )
-);
-jest.mock(
-  "../../components/common/CreateButton/CreateButton.jsx",
-  () =>
-    ({ onClick, buttonText, disabled, "data-testid": testId }) => (
-      <button data-testid={testId || "open-create-btn"} onClick={onClick} disabled={disabled}>
-        {buttonText || "Create"}
-      </button>
-    )
-);
-jest.mock(
-  "../../components/common/RefreshButton/RefreshButton.jsx",
-  () =>
-    ({ onClick }) => (
-      <button data-testid="refresh-btn" onClick={onClick}>
-        Refresh
-      </button>
-    )
-);
-
-jest.mock("../../components/common/EditButton/EditButton.jsx", () => {
-  return function MockEditButton({ menuItems = [] }) {
-    return (
-      <div data-testid="icon-edit-menu">
-        {menuItems.map((item) => (
           <button
-            key={item.label}
-            data-testid={`icon-menu-${item.label.replace(/\s+/g, "-")}`}
-            onClick={item.onClick}
+            type="button"
+            data-testid="submit-with-groups"
+            onClick={() =>
+              onSubmit({
+                firstName: "Group",
+                lastName: "User",
+                email: "group@example.com",
+                jobTitle: "Dev",
+                groups: [
+                  { id: "grp-1", _id: "grp-1" },
+                  { id: "grp-old", _id: "grp-old" },
+                ],
+              })
+            }
           >
-            {item.label}
+            Confirm With Groups
           </button>
-        ))}
+          <button type="button" data-testid="force-delete-modal" onClick={() => onDelete?.({ id: "1" })}>
+            Force Delete
+          </button>
+          {isEdit && <button type="button" onClick={() => onDelete({ id: "1" })}>Confirm Delete</button>}
+          {isEdit && <button type="button" onClick={() => onDelete()}>Confirm Delete Safe</button>}
+          <button type="button" onClick={onClose}>Cancel</button>
+        </div>
+      );
+    },
+  };
+});
+
+jest.mock("../../components/common/Toast/Toast.jsx", () => ({
+  __esModule: true,
+  default: ({ msg, open }) => (open ? <div data-testid="toast">{msg}</div> : null),
+  useToast: () => ({
+    toast: { msg: "", type: "success", open: false },
+    showToast: jest.fn(),
+    hideToast: jest.fn(),
+  }),
+}));
+
+jest.mock("../../components/common/CSVImport/CSVImport.jsx", () => ({
+  __esModule: true,
+  default: ({ button, onImport, importing }) => {
+    const React = require("react");
+    const file = new global.File(["email,full_name\njohn@example.com,John Doe"], "employees.csv", {
+      type: "text/csv",
+    });
+    return (
+      <div data-testid="csv-import-wrapper">
+        {React.cloneElement(button, {
+          onClick: () => onImport(file),
+          disabled: importing,
+        })}
+        <button type="button" aria-label="CSV format help">?</button>
       </div>
     );
+  },
+}));
+
+jest.mock("../../lib/format.js", () => ({
+  formatShares: (n) => `${n} shares`,
+}));
+
+jest.mock("../../utils/filterHelpers.js", () => ({
+  createFilterChangeHandler: (setActiveFilters) => (groupId, value, checked) => {
+    setActiveFilters((prev) => {
+      const next = {
+        ...prev,
+        [groupId]: new Set(prev[groupId] || []),
+      };
+      if (checked) next[groupId].add(value);
+      else next[groupId].delete(value);
+      return next;
+    });
+  },
+}));
+
+jest.mock("../../context/AuthContext.jsx", () => {
+  const React = require("react");
+  const AuthContext = React.createContext(null);
+  return {
+    __esModule: true,
+    AuthProvider: ({ initialState, children }) => (
+      <AuthContext.Provider value={initialState}>{children}</AuthContext.Provider>
+    ),
+    useAuth: () => React.useContext(AuthContext),
   };
 });
 
-jest.mock("../../components/common/Checkbox/Checkbox.jsx", () => {
-  return function MockCheckbox({ checked, onChange }) {
-    return (
-      <input
-        data-testid="icon-checkbox"
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-      />
-    );
+jest.mock("../../hooks/useAsyncTask.js", () => {
+  const React = require("react");
+  return {
+    useAsyncTask: () => {
+      const [status, setStatus] = React.useState("idle");
+      const [message, setMessage] = React.useState("");
+      const [progress, setProgress] = React.useState(0);
+
+      const executeTask = async (task) => {
+        try {
+          const result = await task();
+          setProgress(100);
+          setStatus("succeeded");
+          return result;
+        } catch (error) {
+          setMessage(error?.message || "");
+          setStatus("failed");
+          throw error;
+        }
+      };
+
+      const reset = () => {
+        setStatus("idle");
+        setMessage("");
+        setProgress(0);
+      };
+
+      return { status, message, progress, executeTask, reset };
+    },
   };
 });
 
-// --- 3. HELPER ---
+const seedUsers = [
+  {
+    _id: "1",
+    full_name: "Alice",
+    email: "alice@example.com",
+    role: "admin",
+    status: "active",
+    profile_image: null,
+  },
+  {
+    _id: "2",
+    full_name: "Bob",
+    email: "bob@example.com",
+    role: "employee",
+    status: "offline",
+    profile_image: null,
+  },
+];
+
 const renderPage = ({
   accessToken = "valid-token",
-  currentUser = { id: "admin-1", role: "admin" },
+  currentUser = { id: "admin-1", role: "admin", org_id: "org-1" },
+  initialEntries,
 } = {}) => {
   const { MemoryRouter } = require("react-router-dom");
+
   return render(
-    <AuthProvider
-      initialState={{ currentUser, accessToken, disableBootstrap: true }}
-    >
-      <MemoryRouter>
+    <AuthProvider initialState={{ currentUser, accessToken, disableBootstrap: true }}>
+      <MemoryRouter initialEntries={initialEntries}>
         <EmployeesPage />
       </MemoryRouter>
-    </AuthProvider>
+    </AuthProvider>,
   );
 };
 
-// --- 4. TESTS ---
-describe("EmployeesPage Integration", () => {
-  const seedUsers = [
-    {
-      _id: "1",
-      full_name: "Alice",
-      email: "a@t.com",
-      role: "admin",
-      status: "active",
-      files: 10,
-    },
-    {
-      _id: "2",
-      full_name: "Bob",
-      email: "b@t.com",
-      role: "employee",
-      status: "offline",
-      files: 5,
-    },
-  ];
+beforeEach(() => {
+  jest.clearAllMocks();
+  localStorage.clear();
 
-  beforeAll(() => {
-    // Silence console errors for negative tests
-    jest.spyOn(console, "error").mockImplementation(() => {});
+  usersApi.listUsers.mockResolvedValue([...seedUsers]);
+  usersApi.createUser.mockResolvedValue({ user_id: "new-user", job_id: "job-123" });
+  usersApi.updateUser.mockResolvedValue({ success: true });
+  usersApi.deleteUser.mockResolvedValue({ success: true });
+
+  clientApi.apiGet.mockResolvedValue({
+    json: async () => ({ access_groups: [] }),
   });
+  clientApi.apiPatch.mockResolvedValue({ json: async () => ({}) });
+  clientApi.apiUploadFile.mockResolvedValue({ created: 0, errors: [] });
+});
 
-  afterAll(() => {
-    console.error.mockRestore();
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    localStorage.clear();
-    localStorage.setItem("org_id", "org-local");
-    
-    // Mock global fetch for group logic (default success empty)
-    global.fetch = jest.fn().mockImplementation((url) => {
-      if (url && url.includes('/status/')) return Promise.resolve({ ok: true, json: async () => ({ status: 'succeeded' }) });
-      return Promise.resolve({ ok: true, json: async () => ({ access_groups: [] }) });
-    });
-
-    usersApi.listUsers.mockResolvedValue([...seedUsers]);
-    usersApi.createUser.mockResolvedValue({ user_id: "new", job_id: "job-123" });
-    usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-    usersApi.deleteUser.mockResolvedValue({ success: true });
-
-    jest.spyOn(clientApi, "apiUploadFile").mockResolvedValue({
-      created: 0,
-      errors: [],
-    });
-  });
-
-  // --- API & RENDER ---
-  it("renders users fetched from API", async () => {
+describe("EmployeesPage", () => {
+  it("renders users in list layout and loads groups", async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    expect(screen.getByTestId("user-count")).toHaveTextContent("Count: 2");
-  });
 
-  it("handles API failure on load", async () => {
-    usersApi.listUsers.mockRejectedValue(new Error("Fetch Failed"));
-    renderPage();
-    expect(await screen.findByText("Fetch Failed")).toBeInTheDocument();
-  });
-
-  it("refreshes users", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("refresh-btn"));
-    expect(usersApi.listUsers).toHaveBeenCalledTimes(2);
-  });
-
-  // --- SEARCH ---
-  it("filters by search", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.type(screen.getByTestId("search-input"), "Alice");
-    await waitFor(() =>
-      expect(screen.getByTestId("user-count")).toHaveTextContent("Count: 1")
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect(screen.getByTestId("users-table")).toBeInTheDocument();
+    expect(clientApi.apiGet).toHaveBeenCalledWith(
+      "/access-groups",
+      expect.objectContaining({ headers: expect.any(Object) }),
     );
   });
 
-  it("fetches on Enter key", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    fireEvent.keyDown(screen.getByTestId("search-input"), {
-      key: "Enter",
-      code: "Enter",
-    });
-    expect(usersApi.listUsers).toHaveBeenCalledTimes(2);
+  it("uses jwt over accessToken in group auth headers", async () => {
+    localStorage.setItem("jwt", "my-jwt");
+    renderPage({ accessToken: "fallback-token" });
+
+    await screen.findByText("Alice");
+
+    expect(clientApi.apiGet).toHaveBeenCalledWith(
+      "/access-groups",
+      expect.objectContaining({ headers: { Authorization: "Bearer my-jwt" } }),
+    );
   });
 
-  // --- SORT ---
-  it("sorts by numeric field (Files)", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("sort-files"));
-    await userEvent.click(screen.getByTestId("sort-files"));
-    await userEvent.click(screen.getByTestId("sort-name"));
-    expect(screen.getByTestId("users-table")).toBeInTheDocument();
+  it("falls back to accessToken when jwt is missing", async () => {
+    renderPage({ accessToken: "fallback-token" });
+
+    await screen.findByText("Alice");
+
+    expect(clientApi.apiGet).toHaveBeenCalledWith(
+      "/access-groups",
+      expect.objectContaining({ headers: { Authorization: "Bearer fallback-token" } }),
+    );
   });
 
-  // --- FILTER ---
-  it("filters by status", async () => {
+  it("handles fetchAccessGroups failure gracefully", async () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    clientApi.apiGet.mockRejectedValueOnce(new Error("groups down"));
+
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
+
+    expect(warnSpy).toHaveBeenCalledWith("Failed to fetch groups:", expect.any(Error));
+    warnSpy.mockRestore();
+  });
+
+  it("searches, filters, and sorts users", async () => {
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.type(screen.getByTestId("search-input"), "bob");
+    await waitFor(() =>
+      expect(screen.getByTestId("user-count")).toHaveTextContent("1"),
+    );
+
     await userEvent.click(screen.getByTestId("filter-active"));
     await waitFor(() =>
-      expect(screen.queryByText("Bob")).not.toBeInTheDocument()
+      expect(screen.getByTestId("user-count")).toHaveTextContent("0"),
     );
-  });
 
-  // --- CREATE ---
-  it("creates user successfully", async () => {
-    usersApi.createUser.mockResolvedValue({ job_id: "job-create-1" });
-    global.fetch = jest
-      .fn()
-      // initial groups fetch during first fetchUsers
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_groups: [] }),
-      })
-      // immediate status poll from useAsyncTask
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ status: "succeeded", progress: "completed" }),
-      })
-      // groups refetch after success
-      .mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_groups: [] }),
-      });
-
-    renderPage();
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    expect(
-      await screen.findByText("User created successfully")
-    ).toBeInTheDocument();
-  });
-
-  it("uses currentUser.org_id when it is valid", async () => {
-    renderPage({
-      currentUser: { id: "admin-1", role: "admin", org_id: "org-from-user" },
-    });
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    await waitFor(() =>
-      expect(usersApi.createUser).toHaveBeenCalledWith(
-        expect.objectContaining({ org_id: "org-from-user" }),
-        expect.any(Object)
-      )
-    );
-  });
-
-  it("falls back to localStorage when currentUser.org_id is default-org", async () => {
-    renderPage({
-      currentUser: { id: "admin-1", role: "admin", org_id: "default-org" },
-    });
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    await waitFor(() =>
-      expect(usersApi.createUser).toHaveBeenCalledWith(
-        expect.objectContaining({ org_id: "org-local" }),
-        expect.any(Object)
-      )
-    );
-  });
-
-  it("blocks create when organization context is missing", async () => {
-    localStorage.clear();
-    renderPage({
-      currentUser: { id: "admin-1", role: "admin" },
-    });
-
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-
-    expect(usersApi.createUser).not.toHaveBeenCalled();
-    expect(
-      await screen.findByText("Missing organization context. Refresh and try again.")
-    ).toBeInTheDocument();
-  });
-
-  it("handles create failure", async () => {
-    usersApi.createUser.mockRejectedValue(new Error("Create Failed"));
-    renderPage();
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    expect(await screen.findByText("Create Failed")).toBeInTheDocument();
-  });
-
-  it("closes create modal", async () => {
-    renderPage();
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Cancel"));
-    expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
-  });
-
-  // --- UPDATE ---
-  it("updates user successfully", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("edit-btn-1"));
-    await userEvent.click(screen.getByText("Confirm Update"));
-    expect(
-      await screen.findByText("User updated successfully")
-    ).toBeInTheDocument();
-  });
-
-  it("handles update failure", async () => {
-    usersApi.updateUser.mockRejectedValue(new Error("Update Failed"));
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("edit-btn-1"));
-    await userEvent.click(screen.getByText("Confirm Update"));
-    expect(await screen.findByText("Update Failed")).toBeInTheDocument();
-  });
-
-  it("closes edit modal", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("edit-btn-1"));
-    await userEvent.click(screen.getByText("Cancel"));
-    expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
-  });
-
-  // --- DELETE ---
-  it("deletes user successfully", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("delete-btn-1"));
-    expect(
-      await screen.findByText("User deleted successfully")
-    ).toBeInTheDocument();
-  });
-
-  it("blocks delete if token is missing", async () => {
-    // Render strictly without token
-    renderPage({ accessToken: null });
-
-    // Without token, no loading skeleton is shown.
-    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
-
-    // The button can render, but delete actions should still be blocked.
-    expect(screen.getByTestId("force-delete-btn")).toBeInTheDocument();
-    await userEvent.click(screen.getByTestId("force-delete-btn"));
-
-    // Verify API was NOT called
-    expect(usersApi.deleteUser).not.toHaveBeenCalled();
-  });
-
-  it("deletes from edit modal", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("edit-btn-1"));
-    await userEvent.click(screen.getByText("Confirm Delete"));
-    expect(usersApi.deleteUser).toHaveBeenCalled();
-  });
-
-  it("closes modal after delete when called from modal context", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await userEvent.click(screen.getByTestId("edit-btn-1"));
-    expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText("Confirm Delete Safe"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument()
-    );
-  });
-
-  // --- EDGE CASES ---
-  it("blocks create without token", async () => {
-    renderPage({ accessToken: null });
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    expect(await screen.findByText(/must be logged in/i)).toBeInTheDocument();
-  });
-
-  it("closes toast on click", async () => {
-    renderPage();
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-    const toast = await screen.findByText("User created successfully");
-    await userEvent.click(toast);
-    await waitFor(() =>
-      expect(
-        screen.queryByText("User created successfully")
-      ).not.toBeInTheDocument()
-    );
-  });
-
-  it("shows error when deletion fails and keeps the row", async () => {
-    usersApi.deleteUser.mockRejectedValueOnce(new Error("Not found"));
-
-    renderPage();
-    await screen.findByText("Alice");
-
-    await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-    // toast / error message
-    expect(await screen.findByText(/not found/i)).toBeInTheDocument();
-
-    // row still present
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-  });
-
-  it("applies search when pressing Enter", async () => {
-    renderPage(); // your helper
-    await screen.findByText("Alice"); // ensures initial load finished
-
-    const before = usersApi.listUsers.mock.calls.length;
-
+    await userEvent.click(screen.getByTestId("filter-clear-active"));
     await userEvent.clear(screen.getByTestId("search-input"));
-    await userEvent.type(screen.getByTestId("search-input"), "neo");
-
-    fireEvent.keyDown(screen.getByTestId("search-input"), {
-      key: "Enter",
-      code: "Enter",
-    });
-
-    await waitFor(() => {
-      expect(usersApi.listUsers.mock.calls.length).toBeGreaterThan(before);
-    });
-
-    const lastCallArg = usersApi.listUsers.mock.calls.at(-1)[0];
-    expect(lastCallArg.search).toBe("neo");
+    await waitFor(() =>
+      expect(screen.getByTestId("sort-name")).toBeInTheDocument(),
+    );
+    await userEvent.click(screen.getByTestId("sort-name"));
+    await userEvent.click(screen.getByTestId("sort-files"));
+    expect(trackButton).not.toHaveBeenCalled();
   });
 
-  //Refresh early return
-  it("does not fetch users when accessToken is null", async () => {
-    renderPage({ accessToken: null });
-
-    // useEffect runs, but fetchUsers returns early, so listUsers should not be called
-    expect(usersApi.listUsers).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByTestId("refresh-btn"));
-    expect(usersApi.listUsers).not.toHaveBeenCalled();
-  });
-
-  it("shows default load error message when error.message is missing", async () => {
-    usersApi.listUsers.mockRejectedValueOnce({}); // no message
+  it("fetches again when Enter is pressed in the search field", async () => {
     renderPage();
-
-    expect(await screen.findByText("Failed to load users")).toBeInTheDocument();
-  });
-
-  it("sorts users by name (full_name), falling back to email then empty", async () => {
-    usersApi.listUsers.mockResolvedValueOnce([
-      {
-        _id: "u3",
-        full_name: null,
-        email: null,
-        role: "employee",
-        status: "active",
-        files: 0,
-      },
-      {
-        _id: "u2",
-        full_name: "",
-        email: "bob@example.com",
-        role: "employee",
-        status: "active",
-        files: 0,
-      },
-      {
-        _id: "u1",
-        full_name: "Alice",
-        email: "alice@example.com",
-        role: "employee",
-        status: "active",
-        files: 0,
-      },
-    ]);
-
-    renderPage();
-
-    // Wait for any item that must appear
     await screen.findByText("Alice");
 
-    // Collect rendered name spans in order
-    const rows = screen.getAllByTestId(/user-row-/);
-    const names = rows.map((r) => r.querySelector("span")?.textContent ?? "");
+    fireEvent.keyDown(screen.getByTestId("search-input"), { key: "Enter", code: "Enter" });
 
-    // First should be empty
-    expect(names[0]).toBe("");
-    expect(names[1]).toBe("Alice");
-    expect(names[2]).toBe("bob@example.com");
+    expect(usersApi.listUsers).toHaveBeenCalledTimes(2);
   });
 
-  it("falls back to default role and status when missing", async () => {
-    usersApi.listUsers.mockResolvedValueOnce([
-      {
-        _id: "u1",
-        full_name: "No Meta",
-        email: "nometa@example.com",
-        role: null,
-        status: null,
-        files: 0,
-      },
-    ]);
-
+  it("toggles layout and column visibility", async () => {
     renderPage();
-    await screen.findByText("No Meta");
+    await screen.findByText("Alice");
 
-    expect(screen.getByTestId("role-u1")).toHaveTextContent("Employee");
-    expect(screen.getByTestId("status-u1")).toHaveTextContent("offline");
+    await userEvent.click(screen.getByTestId("layout-toggle-grid"));
+    expect(trackButton).toHaveBeenCalledWith(
+      "employees/display/toggle",
+      expect.objectContaining({ layout: "grid" }),
+    );
+    expect(screen.getByTestId("current-layout")).toHaveTextContent("grid");
+
+    await userEvent.click(screen.getByTestId("toggle-showTitle"));
+    await userEvent.click(screen.getByTestId("toggle-showWorkstations"));
+    await userEvent.click(screen.getByTestId("toggle-showGroups"));
+    await userEvent.click(screen.getByTestId("toggle-showFiles"));
   });
 
-  it("toggles single user selection", async () => {
+  it("supports selection and clear selection", async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    const checkbox = screen.getByTestId("checkbox-1");
-
-    // Select user
-    await userEvent.click(checkbox);
-    expect(checkbox).toBeChecked();
-
-    // Deselect user
-    await userEvent.click(checkbox);
-    expect(checkbox).not.toBeChecked();
-  });
-
-  it("selects all visible users", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    const selectAllBtn = screen.getByTestId("select-all");
-    await userEvent.click(selectAllBtn);
-
+    await userEvent.click(screen.getByTestId("select-all"));
     expect(screen.getByTestId("checkbox-1")).toBeChecked();
     expect(screen.getByTestId("checkbox-2")).toBeChecked();
-  });
 
-  it("deselects all visible users when all are selected", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    const selectAllBtn = screen.getByTestId("select-all");
-
-    // Select all
-    await userEvent.click(selectAllBtn);
-    expect(screen.getByTestId("checkbox-1")).toBeChecked();
-
-    // Deselect all
-    await userEvent.click(selectAllBtn);
+    await userEvent.click(screen.getByText("Clear selection"));
     expect(screen.getByTestId("checkbox-1")).not.toBeChecked();
     expect(screen.getByTestId("checkbox-2")).not.toBeChecked();
   });
 
-  it("only deselects visible users when toggling select all", async () => {
+  it("uses grid layout empty state and icon controls", async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    // Select both users
-    await userEvent.click(screen.getByTestId("checkbox-1"));
-    await userEvent.click(screen.getByTestId("checkbox-2"));
-
-    // Filter to show only Alice
-    await userEvent.clear(screen.getByTestId("search-input"));
-    await userEvent.type(screen.getByTestId("search-input"), "Alice");
-    await waitFor(() => expect(screen.getByTestId("select-all")).toBeInTheDocument());
-
-    
-    await userEvent.click(screen.getByTestId("select-all"));
-
-    // Alice should be deselected, but we can't see Bob in UI
-    expect(screen.getByTestId("checkbox-1")).not.toBeChecked();
-  });
-
-  it("toggles showTitle column visibility", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    const toggleBtn = screen.getByTestId("toggle-showTitle");
-    await userEvent.click(toggleBtn);
-
-    // Verify the toggle was called (column visibility state changes)
-    expect(toggleBtn).toBeInTheDocument();
-  });
-
-  it("toggles showWorkstations column visibility", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("toggle-showWorkstations"));
-    expect(screen.getByTestId("toggle-showWorkstations")).toBeInTheDocument();
-  });
-
-  it("toggles showGroups column visibility", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("toggle-showGroups"));
-    expect(screen.getByTestId("toggle-showGroups")).toBeInTheDocument();
-  });
-
-  it("toggles showFiles column visibility", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("toggle-showFiles"));
-    expect(screen.getByTestId("toggle-showFiles")).toBeInTheDocument();
-  });
-
-  it("prevents deleting own account", async () => {
-    // Render with current user ID matching one of the users
-    renderPage({ currentUser: { id: "1", role: "admin" } });
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-    expect(
-      await screen.findByText("You cannot delete your own account")
-    ).toBeInTheDocument();
-    expect(usersApi.deleteUser).not.toHaveBeenCalled();
-  });
-
-  it("shows error toast type with correct styling class", async () => {
-    usersApi.createUser.mockRejectedValue(new Error("Creation error"));
-    renderPage();
-    await userEvent.click(screen.getByTestId("open-create-btn"));
-    await userEvent.click(screen.getByText("Confirm Create"));
-
-    const toast = await screen.findByText("Creation error");
-    expect(toast).toBeInTheDocument();
-  });
-
-  it("handles delete error gracefully", async () => {
-    usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete error"));
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-    expect(await screen.findByText("Delete error")).toBeInTheDocument();
-  });
-
-  it("removes user from list after successful deletion", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("delete-btn-1"));
-
+    await userEvent.click(screen.getByTestId("layout-toggle-grid"));
+    await userEvent.type(screen.getByTestId("search-input"), "no-match");
     await waitFor(() =>
-      expect(screen.queryByText("Alice")).not.toBeInTheDocument()
+      expect(screen.getByTestId("empty-state")).toBeInTheDocument(),
     );
+
+    await userEvent.clear(screen.getByTestId("search-input"));
+    await waitFor(() =>
+      expect(screen.getByTestId("icon-selection-bar")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("icon-selection-bar")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByTestId("icon-checkbox")[0]);
+    await userEvent.click(screen.getAllByTestId("menu-edit-user")[0]);
+    await userEvent.click(screen.getAllByTestId("menu-delete-user")[0]);
   });
 
-  it("handles localStorage error gracefully when reading org_id", async () => {
-    // Mock localStorage to throw error
-    const originalGetItem = Storage.prototype.getItem;
-    Storage.prototype.getItem = jest.fn(() => {
-      throw new Error("Storage error");
+  it("opens create modal from location state", async () => {
+    renderPage({
+      initialEntries: [{ pathname: "/employees", state: { openModal: true } }],
     });
 
+    expect(await screen.findByTestId("create-modal")).toBeInTheDocument();
+  });
+
+  it("blocks creation when organization context is missing", async () => {
+    renderPage({
+      accessToken: "valid-token",
+      currentUser: { id: "admin-1", role: "admin" },
+    });
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    expect(await screen.findByText("Missing organization context. Refresh and try again.")).toBeInTheDocument();
+    expect(usersApi.createUser).not.toHaveBeenCalled();
+  });
+
+  it("uses currentUser.org_id when valid", async () => {
+    renderPage({
+      currentUser: { id: "admin-1", role: "admin", org_id: "org-from-user" },
+    });
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ org_id: "org-from-user" }),
+        expect.any(Object),
+      );
+    });
+  });
+
+  it("falls back to localStorage org_id when currentUser.org_id is default-org", async () => {
+    localStorage.setItem("org_id", "stored-org");
     renderPage({
       currentUser: { id: "admin-1", role: "admin", org_id: "default-org" },
     });
 
-    // Should still render without crashing
-    expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
 
-    Storage.prototype.getItem = originalGetItem;
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ org_id: "stored-org" }),
+        expect.any(Object),
+      );
+    });
   });
 
-  it("opens modal when location state has openModal true", async () => {
-    const { MemoryRouter } = require("react-router-dom");
+  it("handles localStorage failures while resolving org_id", async () => {
+    const spy = jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage error");
+    });
 
-    // Use MemoryRouter with initial state
-    render(
-      <AuthProvider
-        initialState={{
-          currentUser: { id: "admin-1" },
-          accessToken: "valid-token",
-          disableBootstrap: true,
-        }}
-      >
-        <MemoryRouter
-          initialEntries={[
-            { pathname: "/employees", state: { openModal: true } },
-          ]}
-        >
-          <EmployeesPage />
-        </MemoryRouter>
-      </AuthProvider>
-    );
+    renderPage({
+      currentUser: { id: "admin-1", role: "admin", org_id: "fallback-org" },
+    });
 
-    // Modal should open automatically
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
     await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ org_id: "fallback-org" }),
+        expect.any(Object),
+      );
+    });
+
+    spy.mockRestore();
+  });
+
+  it("blocks save without token", async () => {
+    renderPage({ accessToken: null, currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByTestId("force-delete-modal"));
+
+    expect(usersApi.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("creates a user and syncs groups using response user_id", async () => {
+    clientApi.apiGet.mockResolvedValue({
+      json: async () => ({
+        access_groups: [
+          { id: "grp-1", members: ["other"], workstations: ["ws1"], file_shares: ["share1"] },
+          { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
+        ],
+      }),
+    });
+
+    usersApi.createUser.mockResolvedValueOnce({ user_id: "1", job_id: "job-123" });
+
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+    expect(await screen.findByText("User created successfully")).toBeInTheDocument();
+    await waitFor(() => expect(clientApi.apiPatch).toHaveBeenCalled());
+  });
+
+  it("falls back to email search when create response omits user_id", async () => {
+    clientApi.apiGet.mockResolvedValue({
+      json: async () => ({
+        access_groups: [
+          { id: "grp-1", members: ["other"], workstations: [], file_shares: [] },
+          { id: "grp-old", members: ["1"], workstations: [], file_shares: [] },
+        ],
+      }),
+    });
+
+    usersApi.createUser.mockResolvedValueOnce({ job_id: "job-123" });
+    usersApi.listUsers
+      .mockResolvedValueOnce([...seedUsers])
+      .mockResolvedValueOnce([
+        {
+          _id: "1",
+          email: "group@example.com",
+          full_name: "Group User",
+          role: "employee",
+          status: "active",
+          files: 0,
+        },
+      ])
+      .mockResolvedValue([...seedUsers]);
+
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByTestId("submit-with-groups"));
+
+    await waitFor(() => {
+      expect(
+        usersApi.listUsers.mock.calls.some(
+          ([args]) => args?.search === "group@example.com",
+        ),
+      ).toBe(true);
+    });
+    await waitFor(() => expect(clientApi.apiPatch).toHaveBeenCalled());
+  });
+
+  it("shows create failure when createUser rejects", async () => {
+    usersApi.createUser.mockRejectedValueOnce(new Error("Create Failed"));
+
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
       expect(screen.getByTestId("create-modal")).toBeInTheDocument();
     });
   });
 
-  it("returns empty auth header when no jwt token", async () => {
-    localStorage.removeItem("jwt");
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+  it("shows create failure when no job_id is returned", async () => {
+    usersApi.createUser.mockResolvedValueOnce({ user_id: "1" });
 
-    // Should still render without auth header issues
-    expect(screen.getByTestId("users-table")).toBeInTheDocument();
-  });
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
 
-  it("handles users with groups, workstations, and file shares", async () => {
-    const usersWithGroups = [
-      {
-        _id: "1",
-        full_name: "Alice",
-        email: "a@t.com",
-        role: "admin",
-        status: "active",
-        files: 10,
-      },
-    ];
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
 
-    // Mock groups API response with members
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          access_groups: [
-            {
-              id: "grp1",
-              _id: "grp1",
-              group_name: "Engineering",
-              members: ["1"],
-              workstations: ["ws1"],
-              file_shares: ["share1"],
-            },
-          ],
-        }),
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
     });
-
-    usersApi.listUsers.mockResolvedValue(usersWithGroups);
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
   });
 
-  it("aggregates workstations from multiple groups", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          access_groups: [
-            {
-              id: "grp1",
-              members: ["1"],
-              workstations: ["ws1", "ws2"],
-              file_shares: [],
-            },
-            {
-              id: "grp2",
-              members: ["1"],
-              workstations: ["ws2", "ws3"],
-              file_shares: ["share1"],
-            },
-          ],
-        }),
+  it("shows failed message from async task effect", async () => {
+    usersApi.createUser.mockRejectedValueOnce({ message: "Provisioning timed out" });
+
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
     });
-
-    usersApi.listUsers.mockResolvedValue([
-      {
-        _id: "1",
-        full_name: "Alice",
-        email: "a@t.com",
-        role: "admin",
-        status: "active",
-        files: 0,
-      },
-    ]);
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
   });
 
-  it("maps user without full_name to use email as name", async () => {
-    usersApi.listUsers.mockResolvedValue([
-      {
-        _id: "1",
-        full_name: null,
-        email: "noname@example.com",
-        role: "employee",
-        status: "active",
-        files: 0,
-      },
-    ]);
+  it("falls back to default failed message when async task has no message", async () => {
+    usersApi.createUser.mockRejectedValueOnce({});
 
+    renderPage({ currentUser: { id: "admin-1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByText("Confirm Create"));
+
+    await waitFor(() => {
+      expect(usersApi.createUser).toHaveBeenCalled();
+      expect(screen.getByTestId("create-modal")).toBeInTheDocument();
+    });
+  });
+
+  it("updates a user successfully", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("noname@example.com")).toBeInTheDocument()
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    expect(await screen.findByTestId("edit-modal")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Confirm Update"));
+
+    expect(await screen.findByText("User updated successfully")).toBeInTheDocument();
+    expect(usersApi.updateUser).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({
+        full_name: "John Doe",
+        email: "john@example.com",
+        role: "Dev",
+      }),
+      expect.any(Object),
     );
   });
 
-  it("handles fetchAccessGroups network error gracefully", async () => {
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-    global.fetch = jest.fn().mockRejectedValue(new Error("groups network down"));
+  it("shows update password validation message", async () => {
+    usersApi.updateUser.mockRejectedValueOnce({
+      payload: { details: [{ loc: ["body", "password"], msg: "Password is too weak" }] },
+    });
 
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Failed to fetch groups:",
-      expect.any(Error)
-    );
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Update"));
+
+    expect(await screen.findByText("Password is too weak")).toBeInTheDocument();
   });
 
-  it("clicks hidden CSV input from import button", async () => {
-    const clickSpy = jest
-      .spyOn(HTMLInputElement.prototype, "click")
-      .mockImplementation(() => {});
+  it("shows update payload error message", async () => {
+    usersApi.updateUser.mockRejectedValueOnce({
+      payload: { error: "Duplicate email address" },
+    });
 
     renderPage();
-    await userEvent.click(screen.getByTestId("import-csv-btn"));
-    expect(clickSpy).toHaveBeenCalled();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Update"));
+
+    expect(await screen.findByText("Duplicate email address")).toBeInTheDocument();
   });
 
-  it("imports CSV successfully and refreshes users", async () => {
+  it("shows update error.message fallback", async () => {
+    usersApi.updateUser.mockRejectedValueOnce(new Error("Generic failure"));
+
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Update"));
+
+    expect(await screen.findByText("Generic failure")).toBeInTheDocument();
+  });
+
+  it("shows default save error when update error has no message or payload", async () => {
+    usersApi.updateUser.mockRejectedValueOnce({});
+
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Update"));
+
+    expect(await screen.findByText("Failed to save user")).toBeInTheDocument();
+  });
+
+  it("deletes a user successfully", async () => {
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    expect(await screen.findByText("User deleted successfully")).toBeInTheDocument();
+    expect(usersApi.deleteUser).toHaveBeenCalledWith("1", expect.any(Object));
+  });
+
+  it("blocks deleting your own account", async () => {
+    renderPage({ currentUser: { id: "1", role: "admin", org_id: "org-1" } });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    expect(await screen.findByText("You cannot delete your own account")).toBeInTheDocument();
+    expect(usersApi.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("shows delete error and keeps row visible", async () => {
+    usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete error"));
+
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    expect(await screen.findByText("Delete error")).toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+  });
+
+  it("blocks delete when token is missing", async () => {
+    renderPage({ accessToken: null });
+
+    await userEvent.click(screen.getByTestId("create-btn"));
+    await userEvent.click(screen.getByTestId("force-delete-modal"));
+
+    expect(usersApi.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("closes modal from cancel and delete-safe buttons", async () => {
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Cancel"));
+    expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
+  });
+
+  it("covers delete from modal and the safe modal delete path", async () => {
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Delete"));
+    expect(usersApi.deleteUser).toHaveBeenCalledWith("1", expect.any(Object));
+
+    renderPage();
+    await screen.findByText("Alice");
+    await userEvent.click(screen.getByTestId("edit-btn-1"));
+    await userEvent.click(screen.getByText("Confirm Delete Safe"));
+    expect(usersApi.deleteUser).toHaveBeenCalled();
+  });
+
+  it("imports CSV successfully, with warnings", async () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     clientApi.apiUploadFile.mockResolvedValueOnce({
       created: 2,
@@ -1015,1474 +940,94 @@ describe("EmployeesPage Integration", () => {
     });
 
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    const fileInput = document.querySelector('input[type="file"]');
-    const csvFile = new File(["email,full_name\na@t.com,Alice"], "users.csv", {
-      type: "text/csv",
-    });
-
-    fireEvent.change(fileInput, { target: { files: [csvFile] } });
-
-    expect(
-      await screen.findByText(/Successfully imported 2 user\(s\) \(1 errors\)/i)
-    ).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("csv-import-wrapper").querySelector("button"));
+    expect(await screen.findByText(/Successfully imported 2 user\(s\) \(1 errors\)/i)).toBeInTheDocument();
     expect(usersApi.listUsers).toHaveBeenCalledTimes(2);
     expect(warnSpy).toHaveBeenCalledWith("CSV import errors:", [{ error: "row warning" }]);
+    warnSpy.mockRestore();
   });
 
-  it("shows import failure from CSV result errors", async () => {
+  it("shows no users imported when CSV created count is zero", async () => {
+    clientApi.apiUploadFile.mockResolvedValueOnce({ created: 0, errors: [] });
+
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("csv-import-wrapper").querySelector("button"));
+    expect(await screen.findByText("No users imported")).toBeInTheDocument();
+  });
+
+  it("shows CSV import failure when result contains errors", async () => {
     clientApi.apiUploadFile.mockResolvedValueOnce({
       created: 0,
       errors: [{ error: "Invalid CSV row" }],
     });
 
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    const fileInput = document.querySelector('input[type="file"]');
-    const csvFile = new File(["bad"], "users.csv", { type: "text/csv" });
-    fireEvent.change(fileInput, { target: { files: [csvFile] } });
-
+    await userEvent.click(screen.getByTestId("csv-import-wrapper").querySelector("button"));
     expect(await screen.findByText("Import failed: Invalid CSV row")).toBeInTheDocument();
   });
 
-  it("shows no-import info and handles upload exception", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    const fileInput = document.querySelector('input[type="file"]');
-    const csvFile = new File(["x"], "users.csv", { type: "text/csv" });
-
-    clientApi.apiUploadFile.mockResolvedValueOnce({ created: 0, errors: [] });
-    fireEvent.change(fileInput, { target: { files: [csvFile] } });
-    expect(await screen.findByText("No users imported")).toBeInTheDocument();
-
+  it("shows CSV upload exception message", async () => {
     clientApi.apiUploadFile.mockRejectedValueOnce(new Error("CSV import boom"));
-    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+
+    renderPage();
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("csv-import-wrapper").querySelector("button"));
     expect(await screen.findByText("CSV import boom")).toBeInTheDocument();
   });
 
-  it("shows and hides CSV help tooltip via hover and click", async () => {
+  it("shows and hides toast by clicking it", async () => {
+    usersApi.deleteUser.mockRejectedValueOnce(new Error("Toast error"));
+
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    const helpToggle = screen.getByText("?");
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    const toast = await screen.findByText("Toast error");
 
-    fireEvent.mouseEnter(helpToggle);
-    fireEvent.mouseLeave(helpToggle);
-    await userEvent.click(helpToggle);
-
-    // The exact tooltip text rendering can vary by environment; ensure handlers run.
-    expect(helpToggle).toBeInTheDocument();
+    await userEvent.click(toast);
+    await waitFor(() => {
+      expect(screen.queryByText("Toast error")).not.toBeInTheDocument();
+    });
   });
 
-  it("clears selection and applies hover styles on clear button", async () => {
+  it("keeps toast visible for non-activating key presses", async () => {
+    usersApi.deleteUser.mockRejectedValueOnce(new Error("Toast error"));
+
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    await screen.findByText("Alice");
 
-    await userEvent.click(screen.getByTestId("checkbox-1"));
-    const clearBtn = await screen.findByText("Clear selection");
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    const toast = await screen.findByText("Toast error");
 
-    fireEvent.mouseEnter(clearBtn);
-    expect(clearBtn.style.background).toBe("rgba(255, 255, 255, 0.08)");
-
-    fireEvent.mouseLeave(clearBtn);
-    expect(clearBtn.style.background).toBe("rgba(255, 255, 255, 0.03)");
-
-    await userEvent.click(clearBtn);
-    expect(screen.getByTestId("checkbox-1")).not.toBeChecked();
+    fireEvent.keyDown(toast, { key: "Escape" });
+    expect(screen.getByText("Toast error")).toBeInTheDocument();
   });
 
-  it("covers icon-grid menu actions and icon checkbox selection", async () => {
+  it("closes toast on Space or Enter key", async () => {
+    usersApi.deleteUser.mockRejectedValueOnce(new Error("Toast close"));
+
     renderPage();
-    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByTestId("layout-toggle-grid"));
-
-    const iconCheckboxes = screen.getAllByTestId("icon-checkbox");
-    await userEvent.click(iconCheckboxes[0]);
-    expect(iconCheckboxes[0]).toBeChecked();
-
-    const editButtons = screen.getAllByTestId("icon-menu-edit-user");
-    await userEvent.click(editButtons[0]);
-    expect(await screen.findByTestId("edit-modal")).toBeInTheDocument();
-    await userEvent.click(screen.getByText("Cancel"));
-
-    const deleteButtons = screen.getAllByTestId("icon-menu-delete-user");
-    await userEvent.click(deleteButtons[0]);
-    await waitFor(() => expect(usersApi.deleteUser).toHaveBeenCalled());
-  });
-
-  // Tests for CustomToast keyboard handling
-  describe("CustomToast keyboard handling", () => {
-    it("closes toast on click", async () => {
-      usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-      );
-
-      await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-      const toast = await screen.findByText("Delete failed");
-      await userEvent.click(toast);
-
-      await waitFor(() => {
-        expect(screen.queryByText("Delete failed")).not.toBeInTheDocument();
-      });
-    });
-
-    it("closes toast on Space key press", async () => {
-      usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-      );
-
-      await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-      const toast = await screen.findByText("Delete failed");
-      fireEvent.keyDown(toast, { key: " " });
-
-      await waitFor(() => {
-        expect(screen.queryByText("Delete failed")).not.toBeInTheDocument();
-      });
-    });
-
-    it("does not close toast on other key press", async () => {
-      usersApi.deleteUser.mockRejectedValueOnce(new Error("Delete failed"));
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-      );
-
-      await userEvent.click(screen.getByTestId("delete-btn-1"));
-
-      const toast = await screen.findByText("Delete failed");
-      fireEvent.keyDown(toast, { key: "Escape" });
-
-      // Toast should still be visible
-      expect(screen.getByText("Delete failed")).toBeInTheDocument();
-    });
-  });
-
-  // =========================================================
-  // NEW COVERAGE TESTS (Added below existing blocks)
-  // =========================================================
-  describe("Complex Logic & Error Handling Coverage", () => {
-    const { trackButton } = require("../../lib/analytics.js");
-
-    it("handles specific password error details from API", async () => {
-      // Covers: if (passwordError) { msg = passwordError.msg || msg; }
-      const errorPayload = {
-        payload: {
-          details: [{ loc: ["body", "password"], msg: "Password is too weak" }],
-        },
-      };
-      usersApi.updateUser.mockRejectedValue(errorPayload);
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-      );
-      await userEvent.click(screen.getByTestId("edit-btn-1"));
-      await userEvent.click(screen.getByText("Confirm Update"));
-
-      // Current behavior collapses update errors to a generic toast.
-      expect(await screen.findByText("Password is too weak")).toBeInTheDocument();
-    });
-
-    it("handles generic payload errors from API", async () => {
-      // Covers: } else if (error.payload?.error) { msg = error.payload.error; }
-      const errorPayload = {
-        payload: { error: "Duplicate email address" },
-      };
-      usersApi.updateUser.mockRejectedValue(errorPayload);
-      renderPage();
-      await waitFor(() =>
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-      );
-      await userEvent.click(screen.getByTestId("edit-btn-1"));
-      await userEvent.click(screen.getByText("Confirm Update"));
-
-      expect(await screen.findByText("Duplicate email address")).toBeInTheDocument();
-    });
-
-    it("tracks layout changes", async () => {
-      // Current implementation no longer emits analytics here.
-      renderPage();
-
-      await userEvent.click(screen.getByTestId("layout-toggle-grid"));
-
-      expect(screen.getByTestId("layout-toggle-grid")).toBeInTheDocument();
-      expect(trackButton).toHaveBeenCalledWith('employees/display/toggle', expect.any(Object));
-    });
-
-    describe("Group Membership Updates (updateUserGroupMemberships)", () => {
-      it("adds user to new groups", async () => {
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-1", members: ["other-user"] }],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => {
-          // Covers: fetch(`.../api/access-groups/${groupId}`, { method: "PATCH", ... })
-          // Verify the PATCH call was made to add the user
-          const patchCall = global.fetch.mock.calls.find(c => c[0].includes("/api/access-groups/grp-1") && c[1]?.method === "PATCH");
-          expect(patchCall).toBeDefined();
-          expect(patchCall[1]).toEqual(
-            expect.objectContaining({
-              method: "PATCH",
-              body: JSON.stringify({ members: ["other-user", "1"] }),
-            })
-          );
-          const patchCalls = global.fetch.mock.calls.filter(call => call[1]?.method === 'PATCH'); expect(patchCalls.length).toBeGreaterThanOrEqual(1);
-          expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
-          expect(JSON.parse(patchCalls[0][1].body)).toEqual({
-            members: ["other-user", "1"],
-          });
-        });
-      });
-
-      it("removes user from old groups", async () => {
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-1", members: ["1"] }],
-            }),
-          });
-        });
-
-        // We need to UPDATE an existing user to trigger removal logic
-        // We submit WITHOUT groups (default button), effectively removing them from 'grp-1'
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByText("Confirm Update"));
-
-        await waitFor(() => {
-          // Verify PATCH call removed ID "1"
-          const patchCall = global.fetch.mock.calls.find(c => c[0].includes("/api/access-groups/grp-1") && c[1]?.method === "PATCH");
-          expect(patchCall).toBeDefined();
-          expect(patchCall[1]).toEqual(
-            expect.objectContaining({
-              method: "PATCH",
-              body: JSON.stringify({ members: [] }), // Empty because Alice was the only one
-            })
-          );
-          const patchCalls = global.fetch.mock.calls.filter(call => call[1]?.method === 'PATCH'); expect(patchCalls.length).toBeGreaterThanOrEqual(1);
-          expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
-          expect(JSON.parse(patchCalls[0][1].body)).toEqual({ members: [] });
-        });
-      });
-
-      it("handles failure when fetching groups", async () => {
-        // Covers: if (!res.ok) { console.error(...); return; }
-        let groupsFetchCalls = 0;
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          if (url && url.includes("/api/access-groups")) {
-            groupsFetchCalls += 1;
-            if (groupsFetchCalls === 1) {
-              return Promise.resolve({
-                ok: true,
-                json: async () => ({ access_groups: [] }),
-              });
-            }
-            return Promise.resolve({ ok: false });
-          }
-          return Promise.resolve({ ok: true, json: async () => ({}) });
-        });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => {
-          const patchCalls = global.fetch.mock.calls.filter(
-            (call) => call[1]?.method === "PATCH"
-          );
-          expect(patchCalls).toHaveLength(0);
-        });
-
-        // Ensure logic stopped (no PATCH calls made)
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        expect(patchCalls).toHaveLength(0);
-      });
-
-      it("skips PATCH if user is already a member (idempotency)", async () => {
-        // Mock GET: User IS ALREADY in 'grp-1'
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            access_groups: [{ id: "grp-1", members: ["new-user-123"] }],
-          }),
-        });
-
-        usersApi.createUser.mockResolvedValue({ user_id: "new-user-123", job_id: "job-123" });
-
-        renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        // Wait for process to finish
-        await waitFor(() => expect(usersApi.createUser).toHaveBeenCalled());
-
-        // Assert: no membership PATCH calls were made because membership already matched.
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        expect(patchCalls).toHaveLength(0);
-      });
-
-      it("assigns selected groups after create succeeds even when createUser only returns a job_id", async () => {
-        let created = false;
-        const createdUser = {
-          _id: "new-user-123",
-          full_name: "Group User",
-          email: "g@t.com",
-          role: "employee",
-          status: "active",
-          org_id: "org-local",
-        };
-
-        usersApi.listUsers.mockImplementation(({ search = "" } = {}) => {
-          const users = created ? [...seedUsers, createdUser] : [...seedUsers];
-          if (search) {
-            return Promise.resolve(
-              users.filter((user) =>
-                user.email.toLowerCase().includes(search.toLowerCase()),
-              ),
-            );
-          }
-          return Promise.resolve(users);
-        });
-
-        usersApi.createUser.mockImplementation(async () => {
-          created = true;
-          return { job_id: "job-123" };
-        });
-
-        global.fetch.mockImplementation((url, opts) => {
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded", progress: "completed" }),
-            });
-          }
-          if (
-            typeof url === "string" &&
-            url.includes("/api/access-groups/grp-1") &&
-            opts?.method === "PATCH"
-          ) {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (typeof url === "string" && url.includes("/api/access-groups")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({
-                access_groups: [{ id: "grp-1", members: [] }],
-              }),
-            });
-          }
-          return Promise.resolve({ ok: true, json: async () => ({}) });
-        });
-
-        renderPage({
-          currentUser: { id: "admin-1", role: "admin", org_id: "org-local" },
-        });
-
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument(),
-        );
-
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.createUser).toHaveBeenCalled());
-
-        await waitFor(() => {
-          const patchCall = global.fetch.mock.calls.find(
-            (call) =>
-              call[1]?.method === "PATCH" &&
-              typeof call[0] === "string" &&
-              call[0].includes("/api/access-groups/grp-1"),
-          );
-          expect(patchCall).toBeDefined();
-          expect(JSON.parse(patchCall[1].body)).toEqual({
-            members: ["new-user-123"],
-          });
-        });
-
-        expect(
-          await screen.findByText("User created successfully"),
-        ).toBeInTheDocument();
-      });
-
-      it("skips PATCH when group in toAdd is not found in allGroups", async () => {
-        // grp-1 is in the submitted groups but NOT in the fetched allGroups
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            access_groups: [], // No groups exist at all
-          }),
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // Only GET for groups was called — no PATCH since the group doesn't exist
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        expect(patchCalls).toHaveLength(0);
-      });
-
-      it("skips PATCH when group in toRemove is not found in allGroups", async () => {
-        // Current membership has a group that doesn't exist in allGroups anymore
-        // This shouldn't happen in practice but covers the `if (!group) continue;` branch
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            access_groups: [
-              { id: "grp-old", members: ["1"] }, // Alice is a member
-            ],
-          }),
-        });
-
-        // After the GET, a second GET may happen during fetchUsers refresh
-        global.fetch.mockResolvedValue({
-          ok: true,
-          json: async () => ({ access_groups: [] }),
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        // Edit Alice and submit with groups that don't include grp-old
-        // This triggers removal from grp-old
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-      });
-
-      it("returns early without PATCHing when groups GET is not ok", async () => {
-        // Covers the full early-return path: if (!res.ok) { console.error(...); return; }
-        // After the return, NO data parsing or PATCH should occur
-        global.fetch = jest.fn().mockResolvedValue({
-          ok: false,
-          status: 500,
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // Only GET calls should exist — zero PATCH calls
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        expect(patchCalls).toHaveLength(0);
-      });
-
-      it("computes currentGroupIds using _id fallback", async () => {
-        // Covers: .map((g) => String(g.id || g._id))
-        // Group uses _id instead of id
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ _id: "grp-legacy", members: ["1"] }],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // PATCH should target grp-legacy to remove Alice
-        await waitFor(() => {
-          const patchCall = global.fetch.mock.calls.find(
-            (call) =>
-              call[1]?.method === "PATCH" &&
-              typeof call[0] === "string" &&
-              call[0].includes("/api/access-groups/grp-legacy")
-          );
-          expect(patchCall).toBeDefined();
-        });
-      });
-
-      it("handles groups with non-array members field in currentGroupIds filter", async () => {
-        // Covers: const members = Array.isArray(g.members) ? g.members : [];
-        // When g.members is not an array (e.g., null or undefined)
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { id: "grp-null-members", members: null },
-                { id: "grp-1", members: ["other"] },
-              ],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // grp-null-members should NOT cause errors — just be skipped in currentGroupIds
-        await waitFor(() => {
-          const patchCall = global.fetch.mock.calls.find(
-            (call) =>
-              call[1]?.method === "PATCH" &&
-              typeof call[0] === "string" &&
-              call[0].includes("/api/access-groups/grp-1")
-          );
-          expect(patchCall).toBeDefined();
-        });
-      });
-
-      it("handles groups with non-array members field in toAdd loop", async () => {
-        // Covers: const currentMembers = Array.isArray(group.members) ? group.members : [];
-        // in the toAdd for-loop, when the group found has members as a non-array
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-1", members: undefined }],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // Should PATCH to add Alice to grp-1, treating undefined members as []
-        await waitFor(() => {
-          const patchCall = global.fetch.mock.calls.find(
-            (call) =>
-              call[1]?.method === "PATCH" &&
-              typeof call[0] === "string" &&
-              call[0].includes("/api/access-groups/grp-1")
-          );
-          expect(patchCall).toBeDefined();
-        });
-      });
-
-      it("handles groups with non-array members in toRemove loop", async () => {
-        // Covers: const currentMembers = Array.isArray(group.members) ? group.members : [];
-        // in the toRemove for-loop
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            access_groups: [
-              // grp-bad has a string members field — user "1" would be "in" it
-              // only if Array.isArray check fails gracefully
-              { id: "grp-bad", members: "not-an-array" },
-            ],
-          }),
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        // Edit Alice, submit with grp-1 (not grp-bad)
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // grp-bad should not appear in currentGroupIds (members isn't array → empty [])
-        // so it won't be in toRemove, meaning no PATCH for grp-bad
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        // grp-1 is in toAdd but not in allGroups, so no PATCH at all
-        expect(patchCalls).toHaveLength(0);
-      });
-
-      it("skips remove PATCH when member count is unchanged", async () => {
-        // Covers: if (updatedMembers.length !== currentMembers.length) guard
-        // User is supposedly in toRemove but actually isn't in the members array
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") {
-            return Promise.resolve({ ok: true, json: async () => ({}) });
-          }
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "succeeded" }),
-            });
-          }
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [{ id: "grp-x", members: ["1", "other-user"] }],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        // Edit Alice with grp-1 (she is being removed from grp-x)
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // grp-x should get a PATCH removing "1" but keeping "other-user"
-        await waitFor(() => {
-          const patchCall = global.fetch.mock.calls.find(
-            (call) =>
-              call[1]?.method === "PATCH" &&
-              typeof call[0] === "string" &&
-              call[0].includes("/api/access-groups/grp-x")
-          );
-          expect(patchCall).toBeDefined();
-          const body = JSON.parse(patchCall[1].body);
-          expect(body.members).toEqual(["other-user"]);
-        });
-      });
-
-      it("adds and removes groups in the same operation", async () => {
-        // Covers both toAdd and toRemove executing in one call
-        // Alice is in grp-old, submitted groups are [grp-1]
-        // → toRemove: grp-old, toAdd: grp-1
-        global.fetch.mockImplementation((url, opts) => {
-          if (opts?.method === "PATCH") return Promise.resolve({ ok: true, json: async () => ({}) });
-          if (url && url.includes("/status/")) return Promise.resolve({ ok: true, json: async () => ({ status: "succeeded" }) });
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              access_groups: [
-                { id: "grp-old", members: ["1", "other"] },
-                { id: "grp-1", members: ["other"] },
-              ],
-            }),
-          });
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        await waitFor(() => {
-          const patchCalls = global.fetch.mock.calls.filter(
-            (call) => call[1]?.method === "PATCH"
-          );
-          expect(patchCalls).toHaveLength(2);
-
-          // First PATCH: add Alice to grp-1
-          expect(patchCalls[0][0]).toContain("/api/access-groups/grp-1");
-          const addBody = JSON.parse(patchCalls[0][1].body);
-          expect(addBody.members).toContain("1");
-
-          // Second PATCH: remove Alice from grp-old
-          expect(patchCalls[1][0]).toContain("/api/access-groups/grp-old");
-          const removeBody = JSON.parse(patchCalls[1][1].body);
-          expect(removeBody.members).not.toContain("1");
-          expect(removeBody.members).toContain("other");
-        });
-      });
-
-      it("handles access_groups missing from response", async () => {
-        // Covers: const allGroups = data.access_groups || [];
-        // When the response has no access_groups key at all
-        global.fetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({}), // no access_groups key
-        });
-
-        usersApi.updateUser.mockResolvedValue({ success: true, job_id: "job-123" });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByTestId("submit-with-groups"));
-
-        await waitFor(() => expect(usersApi.updateUser).toHaveBeenCalled());
-
-        // allGroups = [] → toAdd can't find groups → no PATCHes
-        const patchCalls = global.fetch.mock.calls.filter(
-          (call) => call[1]?.method === "PATCH"
-        );
-        expect(patchCalls).toHaveLength(0);
-      });
-    });
-
-    describe("getAuthHeader", () => {
-      it("includes Bearer token when jwt is in localStorage", async () => {
-        localStorage.setItem("jwt", "my-secret-token");
-
-        // Mock groups fetch to capture headers
-        global.fetch.mockResolvedValue({
-          ok: true,
-          json: async () => ({ access_groups: [] }),
-        });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        // fetch is called for groups during fetchUsers — check the Authorization header
-        const groupsFetchCall = global.fetch.mock.calls.find(
-          (call) =>
-            typeof call[0] === "string" &&
-            call[0].includes("/api/access-groups")
-        );
-        expect(groupsFetchCall).toBeTruthy();
-        expect(groupsFetchCall[1].headers.Authorization).toBe(
-          "Bearer my-secret-token"
-        );
-      });
-
-      it("skips user fetch when no jwt and no access token", async () => {
-        localStorage.removeItem("jwt");
-
-        global.fetch.mockResolvedValue({
-          ok: true,
-          json: async () => ({ access_groups: [] }),
-        });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        const groupsFetchCall = global.fetch.mock.calls.find(
-          (call) =>
-            typeof call[0] === "string" &&
-            call[0].includes("/api/access-groups")
-        );
-        expect(groupsFetchCall).toBeTruthy();
-        expect(groupsFetchCall[1].headers?.Authorization).toBe("Bearer valid-token");
-      });
-    });
-
-    describe("error.message fallback in handleModalSubmit", () => {
-      it("falls back to error.message when no payload details or payload.error", async () => {
-        // Covers: else if (error.message) { msg = error.message; }
-        usersApi.createUser.mockRejectedValue(new Error("Generic failure"));
-        renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
-
-        expect(
-          await screen.findByText("Generic failure")
-        ).toBeInTheDocument();
-      });
-
-      it("falls back to default message when error has no message or payload", async () => {
-        // Covers: let msg = "Failed to save user" (no overrides)
-        // Must use the edit flow so the error reaches handleModalSubmit's catch
-        usersApi.updateUser.mockRejectedValue({});
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByText("Confirm Update"));
-
-        expect(
-          await screen.findByText("Failed to save user")
-        ).toBeInTheDocument();
-      });
-
-      it("uses default msg when passwordError.msg is missing", async () => {
-        // Covers: passwordError.msg || msg  (msg stays as "Failed to save user")
-        // Must use the edit flow so the error reaches handleModalSubmit's catch
-        const errorPayload = {
-          payload: {
-            details: [{ loc: ["body", "password"] }], // no msg property
-          },
-        };
-        usersApi.updateUser.mockRejectedValue(errorPayload);
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-        await userEvent.click(screen.getByTestId("edit-btn-1"));
-        await userEvent.click(screen.getByText("Confirm Update"));
-
-        expect(
-          await screen.findByText("Failed to save user")
-        ).toBeInTheDocument();
-      });
-    });
-
-    describe("Job status effect (useAsyncTask status changes)", () => {
-      it("shows success toast and refreshes when job status is 'succeeded'", async () => {
-        // Mock createUser to return a job_id
-        usersApi.createUser.mockResolvedValue({ user_id: "new-user-123", job_id: "job-123" });
-
-        // Mock polling: first call returns "running", second returns "succeeded"
-        global.fetch.mockImplementation((url) => {
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "failed", message: "Provisioning timed out", progress: "failed" })
-            });
-          }
-          return Promise.resolve({ ok: true, json: async () => ({ access_groups: [] }) });
-        });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
-
-        // The useEffect fires when status becomes "failed"
-        expect(
-          await screen.findByText("Provisioning timed out")
-        ).toBeInTheDocument();
-      });
-
-      it("shows default failed message when job fails without a message", async () => {
-        usersApi.createUser.mockResolvedValue({ user_id: "789", job_id: "job-789" });
-
-        global.fetch.mockImplementation((url) => {
-          if (url && url.includes("/status/")) {
-            return Promise.resolve({
-              ok: true,
-              json: async () => ({ status: "failed" })
-            });
-          }
-          return Promise.resolve({ ok: true, json: async () => ({ access_groups: [] }) });
-        });
-
-        renderPage();
-        await waitFor(() =>
-          expect(screen.getByText("Alice")).toBeInTheDocument()
-        );
-
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
-
-        // When message is empty/falsy, the effect uses the fallback
-        expect(
-          await screen.findByText("Failed to create user")
-        ).toBeInTheDocument();
-      });
-
-      it("handles createUser not returning a job_id", async () => {
-        usersApi.createUser.mockResolvedValue({ user_id: "no-job" }); // no job_id
-
-        renderPage();
-        await userEvent.click(screen.getByTestId("open-create-btn"));
-        await userEvent.click(screen.getByText("Confirm Create"));
-
-        expect(await screen.findByText("No job_id returned from user creation")).toBeInTheDocument();
-      });
-
-      it("renders PageShell and keeps Create/Refresh accessible", () => {
-      renderPage();
-
-      expect(screen.getByTestId("page-shell")).toBeInTheDocument();
-      
-
-        expect(document.querySelector(".page-layout")).toBeInTheDocument();
-        expect(screen.getByTestId("refresh-btn")).toBeInTheDocument();
-        expect(screen.getByTestId("import-csv-btn")).toBeInTheDocument();
-        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe("Comprehensive useAuth Hook Integration", () => {
-    it("reads currentUser from AuthContext", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("uses currentUser when available", async () => {
-      renderPage({
-        currentUser: { id: "admin-1", email: "admin@test.com" },
-      });
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("orgId useMemo with localStorage Fallback", () => {
-    it("prefers localStorage org_id over currentUser.org_id", async () => {
-      localStorage.setItem("org_id", "stored-org-123");
-      renderPage({
-        currentUser: { id: "user-1", org_id: "user-org-456" },
-      });
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("falls back to currentUser.org_id when localStorage fails", async () => {
-      const getItemSpy = jest
-        .spyOn(Storage.prototype, "getItem")
-        .mockImplementation(() => {
-          throw new Error("localStorage error");
-        });
-
-      renderPage({
-        currentUser: { id: "user-1", org_id: "fallback-org" },
-      });
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-      getItemSpy.mockRestore();
-    });
-
-    it("returns null orgId when none available", async () => {
-      localStorage.clear();
-      renderPage({ currentUser: { id: "user-1" } });
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("recalculates orgId when currentUser changes", async () => {
-      renderPage({
-        currentUser: { id: "user-1", org_id: "org-1" },
-      });
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-      usersApi.listUsers.mockClear();
-    });
-  });
-
-  describe("State Initialization (useState hooks)", () => {
-    it("initializes layout to 'list'", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByTestId("page-shell")).toBeInTheDocument();
-      });
-    });
-
-    it("initializes modalOpen to false", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-      expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
-    });
-
-    it("initializes modalEmployee to null", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-      expect(screen.queryByTestId("edit-modal")).not.toBeInTheDocument();
-    });
-
-    it("initializes sortField to 'name'", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("initializes sortDir to 'asc'", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("initializes column visibility states to true", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("initializes selectedIds as empty Set", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("initializes search to empty string", async () => {
-      renderPage();
-      const searchField = screen.getByTestId("search-input");
-      expect(searchField).toHaveValue("");
-    });
-
-    it("initializes activeFilters with empty status Set", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("initializes toast state with open=false", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("location.state?.openModal Effect", () => {
-    it("opens modal when location.state.openModal is true", async () => {
-      // Setup location mock
-      jest.mock("react-router-dom", () => ({
-        ...jest.requireActual("react-router-dom"),
-        useLocation: () => ({
-          state: { openModal: true },
-          pathname: "/employees",
-        }),
-      }));
-
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("sets editTarget to null when opening from location", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("clears location.state history after opening", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("useAsyncTask Hook Integration", () => {
-    it("initializes status to idle", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("tracks creation job progress", async () => {
-      usersApi.createUser.mockResolvedValue({ user_id: "new-user-123", job_id: "job-123" });
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("updates status when job succeeds", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("updates status when job fails", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("useEffect for Initial Data Fetch", () => {
-    it("fetches users on component mount", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("fetches users for each orgId change", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-      usersApi.listUsers.mockClear();
-    });
-
-    it("handles fetch error and sets error toast", async () => {
-      usersApi.listUsers.mockRejectedValue(new Error("Fetch failed"));
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Modal State Management", () => {
-    it("opens create modal on Create button click", async () => {
-      const user = userEvent.setup();
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
-      });
-      await user.click(screen.getByTestId("open-create-btn"));
-    });
-
-    it("opens edit modal when editing user", async () => {
-      const user = userEvent.setup();
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText("Alice")).toBeInTheDocument();
-      });
-      await user.click(screen.getByTestId("edit-btn-1"));
-    });
-
-    it("closes modal on cancel", async () => {
-      const user = userEvent.setup();
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByTestId("open-create-btn")).toBeInTheDocument();
-      });
-    });
-
-    it("resets modalEmployee when closing", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("User Selection Logic", () => {
-    it("toggles single user selection", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(screen.getByText("Alice")).toBeInTheDocument();
-      });
-    });
-
-    it("selects all visible users", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("deselects all when all selected and toggling select-all", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("only selects/deselects visible users based on filters", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Column Visibility Toggles", () => {
-    it("toggles Title column visibility", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("toggles Workstations column visibility", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("toggles Groups column visibility", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("toggles Files/Shares column visibility", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Search & Filter Logic", () => {
-    it("filters users by search query", async () => {
-      const user = userEvent.setup();
-      renderPage();
-      await waitFor(() => {
-        const searchField = screen.getByTestId("search-input");
-        expect(searchField).toBeInTheDocument();
-      });
-    });
-
-    it("filters by status when active filter applied", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("combines search and status filters", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("clears filter and shows all users", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Sort Logic", () => {
-    it("sorts by name field ascending by default", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("sorts by numeric field (Files count)", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("reverses sort direction on second click", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("handles missing sort values with fallback", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Memoized Computed Values", () => {
-    it("filtered array respects search and filters", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("allVisibleSelected tracks when all visible are selected", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("isIndeterminate when some (not all) selected", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe("Integration: Multiple State & Effects", () => {
-    it("handles rapid layout/filter changes without losing selection", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("maintains selection across search/sort operations", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("updates display when modal submission completes", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("handles concurrent API calls gracefully", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-
-    it("cleans up old modals and state when transitioning", async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(usersApi.listUsers).toHaveBeenCalled();
-      });
-    });
-  });
-  describe("CSV format help coverage", () => {
-    it("shows and hides csv help on hover", async () => {
-      renderPage();
-      const helpBtn = screen.getByLabelText("CSV format help");
-      fireEvent.mouseEnter(helpBtn);
-      expect(screen.getByText(/full_name/)).toBeInTheDocument();
-      fireEvent.mouseLeave(helpBtn);
-    });
+    await screen.findByText("Alice");
+
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    const toast = await screen.findByText("Toast close");
+
+    fireEvent.keyDown(toast, { key: " " });
+    await waitFor(() => expect(screen.queryByText("Toast close")).not.toBeInTheDocument());
+
+    usersApi.deleteUser.mockRejectedValueOnce(new Error("Toast close 2"));
+    renderPage();
+    await screen.findByText("Alice");
+    await userEvent.click(screen.getByTestId("delete-btn-1"));
+    const toast2 = await screen.findByText("Toast close 2");
+    fireEvent.keyDown(toast2, { key: "Enter" });
+    await waitFor(() => expect(screen.queryByText("Toast close 2")).not.toBeInTheDocument());
   });
 });

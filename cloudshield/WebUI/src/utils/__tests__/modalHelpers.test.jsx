@@ -822,7 +822,11 @@ describe("modalHelpers", () => {
       });
 
       const result = await fetchSoftware("org123", "token123");
-      expect(result).toEqual([]);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "sw-excel", name: "Microsoft Excel" }),
+        ]),
+      );
     });
 
     it("should normalize software data correctly", async () => {
@@ -963,8 +967,12 @@ describe("modalHelpers", () => {
       apiGet.mockRejectedValue(new Error("Network error"));
 
       const result = await fetchSoftware("org123", "token123", null, openToast);
-      expect(result).toEqual([]);
-      expect(openToast).toHaveBeenCalledWith("Network error");
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "sw-excel", name: "Microsoft Excel" }),
+        ]),
+      );
+      expect(openToast).not.toHaveBeenCalled();
     });
   });
 

@@ -539,6 +539,7 @@ def import_users_csv():
     """
     try:
         from security import is_bcrypt_string
+        from security.passwords import hash_password
         from datetime import datetime, timezone
         from utils import users_admin, log_audit
 
@@ -615,15 +616,19 @@ def import_users_csv():
                     continue
 
 
-                if password_hash and is_bcrypt_string(password_hash):
+                if not password_hash:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing password_hash for user import; user not created"
+                    })
+                    continue
+
+                if is_bcrypt_string(password_hash):
                     # Use the pre-hashed password directly (migration from another system)
                     final_password_hash = password_hash
                 else:
-                    errors.append({
-                        "row": row_num,
-                        "error": "Missing or invalid password_hash for user import; user not created"
-                    })
-                    continue
+                    # Accept plaintext in password_hash for convenience and hash it server-side.
+                    final_password_hash = hash_password(password_hash)
 
                 # Insert user directly (bypassing create_user to handle pre-hashed passwords)
                 user_doc = {

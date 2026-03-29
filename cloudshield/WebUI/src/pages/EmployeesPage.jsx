@@ -28,13 +28,15 @@ import { managementToolbarStyles } from "../components/common/styles/managementT
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
 import TableSkeleton from "../components/table/TableSkeleton.jsx";
+import EmptyState from "../components/common/EmptyState/EmptyState.jsx";
+import CsvImportButton from "../components/common/CSVImport/CSVImport.jsx";
 
-import { getUserErrorMessage } from "../lib/errors.js";
 import { formatShares } from "../lib/format.js";
 import { safeAsync } from "../lib/safeAsync.js";
 import { useThemeColors } from "../hooks/useThemeColors.js";
 
 import { listUsers, deleteUser, createUser, updateUser } from "../services/usersApi.js";
+import { apiGet, apiPatch, apiUploadFile } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
@@ -49,6 +51,11 @@ const CustomToast = ({ msg, type = "success", onClose }) => {
         zIndex: 9999, display: "flex", alignItems: "center", cursor: "pointer",
       }}
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") onClose();
+      }}
+      role="button"
+      tabIndex={0}
     >
       {msg}
     </div>
@@ -128,11 +135,9 @@ export default function EmployeesPage() {
   
   const { status, message, progress, executeTask: startCreation, reset: resetCreation } = useAsyncTask();
 
-  // CSV import file input ref
-  const csvInputRef = useRef(null);
+  
   const pendingCreateGroupSyncRef = useRef(null);
   const [csvImporting, setCsvImporting] = useState(false);
-  const [showCsvHelp, setShowCsvHelp] = useState(false);
 
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
@@ -177,15 +182,9 @@ export default function EmployeesPage() {
 
   const fetchAccessGroups = async () => {
     try {
-      const res = await fetch(ACCESS_GROUPS_URL, {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      });
-      if (!res.ok) return [];
-
+      const res = await apiGet("/access-groups", { headers: getAuthHeader() });
       const data = await res.json();
-      return data.access_groups || [];
+      return Array.isArray(data.access_groups) ? data.access_groups : [];
     } catch (e) {
       console.warn("Failed to fetch groups:", e);
       return [];
@@ -193,23 +192,7 @@ export default function EmployeesPage() {
   };
 
   const patchAccessGroupMembers = async (groupId, members) => {
-    const res = await fetch(`${ACCESS_GROUPS_URL}/${groupId}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      body: JSON.stringify({ members }),
-    });
-
-    if (!res.ok) {
-      let msg = "Failed to update access group membership";
-      try {
-        const data = await res.json();
-        msg = data?.error || data?.details || msg;
-      } catch {
-        // Ignore JSON parse errors and use the generic message.
-      }
-      throw new Error(msg);
-    }
+    await apiPatch(`/access-groups/${encodeURIComponent(groupId)}`, { members }, { headers: getAuthHeader() });
   };
 
   /**
@@ -220,10 +203,7 @@ export default function EmployeesPage() {
    */
   const updateUserGroupMemberships = async (userId, newGroups) => {
     const newGroupIds = newGroups.map((g) => String(g.id || g._id));
-    const res = await fetch("http://127.0.0.1:5050/api/access-groups", { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
-    if (!res.ok) return;
-    const data = await res.json();
-    const allGroups = data.access_groups || [];
+    const allGroups = await fetchAccessGroups();
 
     const currentGroupIds = allGroups.filter((g) => { const members = Array.isArray(g.members) ? g.members : []; return members.some((m) => String(m) === String(userId)); }).map((g) => String(g.id || g._id));
     const toAdd = newGroupIds.filter((id) => !currentGroupIds.includes(id));
@@ -237,7 +217,7 @@ export default function EmployeesPage() {
 
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       if (!currentMembers.some((m) => String(m) === String(userId))) {
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: [...currentMembers, userId] }) });
+        await patchAccessGroupMembers(groupId, [...currentMembers, userId]);
       }
     }
 
@@ -249,7 +229,7 @@ export default function EmployeesPage() {
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = currentMembers.filter((m) => String(m) !== String(userId));
       if (updatedMembers.length !== currentMembers.length) {
-        await fetch(`http://127.0.0.1:5050/api/access-groups/${groupId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ members: updatedMembers }) });
+        await patchAccessGroupMembers(groupId, updatedMembers);
       }
     }
   };
@@ -261,11 +241,7 @@ export default function EmployeesPage() {
     setLoading(true);
     try {
       const data = await safeAsync(() => listUsers({ token, search, limit: 100, offset: 0 }), { toast: { error: (msg) => openToast(msg, "error") } });
-      let allGroups = [];
-      try {
-        const groupsRes = await fetch("http://127.0.0.1:5050/api/access-groups", { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
-        if (groupsRes.ok) { const groupsData = await groupsRes.json(); allGroups = groupsData.access_groups || []; }
-      } catch (e) {}
+      const allGroups = await fetchAccessGroups();
       setUsers(Array.isArray(data) ? data.map((user) => enrichUser(user, allGroups)) : []);
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -291,15 +267,77 @@ export default function EmployeesPage() {
         openToast("User updated successfully");
         setModalOpen(false); setModalEmployee(null); fetchUsers();
       } else {
-        const apiPayload = { email: payload.email, full_name: `${payload.firstName} ${payload.lastName}`, password: payload.password || "DefaultPass123!", role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee", org_id: orgId || "cedric", profile_image: payload.profileImage || null };
-        await startCreation(async () => { const response = await createUser(apiPayload, { token }); return response.job_id; });
+        if (!orgId) {
+          openToast("Missing organization context. Refresh and try again.", "error");
+          return;
+        }
+
+        const apiPayload = { email: payload.email, full_name: `${payload.firstName} ${payload.lastName}`, password: payload.password || "", role: payload.jobTitle?.toLowerCase().includes("admin") ? "admin" : "employee", org_id: orgId, profile_image: payload.profileImage || null };
+        pendingCreateGroupSyncRef.current = {
+          groups: Array.isArray(payload.groups) ? payload.groups : [],
+          email: payload.email || "",
+          userId: null,
+        };
+        await startCreation(async () => {
+          const response = await createUser(apiPayload, { token });
+          const jid = response?.job_id;
+          if (!jid) {
+            pendingCreateGroupSyncRef.current = null;
+            throw new Error("No job_id returned from user creation");
+          }
+          if (pendingCreateGroupSyncRef.current) {
+            pendingCreateGroupSyncRef.current.userId = response?.user_id || response?.id || null;
+          }
+          return jid;
+        });
       }
-    } catch (error) { openToast("Failed to save user", "error"); }
+    } catch (error) {
+      let msg = "Failed to save user";
+      const details = Array.isArray(error?.payload?.details) ? error.payload.details : [];
+      const passwordError = details.find((d) => Array.isArray(d?.loc) && d.loc.includes("password"));
+      if (passwordError?.msg) msg = passwordError.msg;
+      else if (error?.payload?.error) msg = error.payload.error;
+      else if (error?.message) msg = error.message;
+      openToast(msg, "error");
+    }
   };
   
   useEffect(() => {
-    if (status === "succeeded") { openToast("User created successfully"); resetCreation(); setModalOpen(false); setModalEmployee(null); fetchUsers(); } 
-    else if (status === "failed") { openToast(message || "Failed to create user", "error"); }
+    const syncCreatedUserGroups = async () => {
+      const pending = pendingCreateGroupSyncRef.current;
+      if (!pending || !Array.isArray(pending.groups) || pending.groups.length === 0) {
+        return;
+      }
+
+      const token = resolveAuthToken();
+      if (!token) return;
+
+      let createdUserId = pending.userId;
+      if (!createdUserId && pending.email) {
+        const matches = await listUsers({ token, search: pending.email, limit: 10, offset: 0 });
+        const exact = (Array.isArray(matches) ? matches : []).find(
+          (u) => (u?.email || "").toLowerCase() === pending.email.toLowerCase(),
+        );
+        createdUserId = exact?._id || exact?.id || null;
+      }
+
+      if (createdUserId) {
+        await updateUserGroupMemberships(String(createdUserId), pending.groups);
+      }
+    };
+
+    if (status === "succeeded") {
+      safeAsync(syncCreatedUserGroups, { toast: { error: () => openToast("User created but group assignment failed", "warning") } });
+      pendingCreateGroupSyncRef.current = null;
+      openToast("User created successfully");
+      resetCreation();
+      setModalOpen(false);
+      setModalEmployee(null);
+      fetchUsers();
+    } else if (status === "failed") {
+      pendingCreateGroupSyncRef.current = null;
+      openToast(message || "Failed to create user", "error");
+    }
   }, [status, message]);
 
   const handleDelete = async (user) => {
@@ -332,12 +370,8 @@ export default function EmployeesPage() {
   };
 
   // CSV import handler
-  const handleCsvImport = async (event) => {
-    const file = event.target.files?.[0];
+  const handleCsvImport = async (file) => {
     if (!file) return;
-
-    // Reset input so same file can be selected again
-    event.target.value = "";
 
     setCsvImporting(true);
     try {
@@ -368,9 +402,7 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleCsvButtonClick = () => {
-    csvInputRef.current?.click();
-  };
+
 
   // Logic: Filter & Sort
   const filtered = useMemo(() => {
@@ -417,13 +449,13 @@ export default function EmployeesPage() {
 
   return (
     <PageShell>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 24, minHeight: 0 }}>
+      <div className="page-layout" style={{ display: "flex", flexDirection: "column", height: "100%", gap: 24, minHeight: 0 }}>
         {/* Toolbar */}
         <div style={styles.toolbar}>
           <div style={styles.leftActions}>
             <SearchField value={search} onChange={setSearch} onKeyDown={(e) => { if (e.key === "Enter") fetchUsers(); }} placeholder="Search users" showIcon={true} style={{ flex: "1 1 200px", minWidth: "200px", maxWidth: "680px", width: "100%" }} />
             <DisplayButton
-              layout={layout} onLayoutChange={setLayout}
+              layout={layout} onLayoutChange={handleLayoutChange}
               columnToggles={{
                 columns: [
                   { key: "showTitle", label: "Title", checked: showTitle },
@@ -446,9 +478,36 @@ export default function EmployeesPage() {
             {layout === "list" && selectedCount > 0 && (
               <div style={styles.selectionSummary}>
                 <span style={styles.selectionSummaryCount}>{selectedCount} selected</span>
-                <button type="button" style={styles.clearSelectionButton} onClick={() => setSelectedIds(new Set())}>Clear selection</button>
+                <button
+                  type="button"
+                  style={styles.clearSelectionButton}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)"; }}
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Clear selection
+                </button>
               </div>
             )}
+
+            <CsvImportButton
+                button={
+                  <CreateButton
+                    icon={<UploadFileIcon width={16} height={16} color={themeColors.text} />}
+                    buttonText={csvImporting ? "Importing..." : "Import CSV"}
+                    disabled={csvImporting}
+                    data-testid="import-csv-btn"
+                  />
+                }
+                onImport={handleCsvImport}
+                importing={csvImporting}
+                themeColors={themeColors}
+                helpTitle="Employees CSV Format"
+                requiredColumns={["email", "full_name", "password_hash"]}
+                optionalColumns={["role", "workstations"]}
+                exampleHeader="email,full_name,password_hash,role,workstations"
+                exampleRow="john@example.com,John Doe,$2b$12$...,employee,WS001;WS002"
+            />
             <RefreshButton onClick={withClickLog({ name: "employees/toolbar/refresh", control: "refresh_button" })(fetchUsers)} />
             <CreateButton icon={<CreateUserIcon width={16} height={16} color={themeColors.text} />} buttonText="Create" onClick={() => { setModalEmployee(null); setModalOpen(true); }} />
           </div>
