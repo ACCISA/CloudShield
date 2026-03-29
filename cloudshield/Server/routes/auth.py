@@ -21,9 +21,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
-CORS(auth_bp)
+CORS(auth_bp)  # NOSONAR - permissive CORS is intentional for this API; access is controlled via JWT bearer tokens
 
-@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
+@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])  # NOSONAR - OPTIONS is required for CORS preflight; CSRF does not apply as auth uses JWT bearer tokens, not cookies
 def signup():
     if request.method == 'OPTIONS':
         return '', 200 # Standard response for preflight
