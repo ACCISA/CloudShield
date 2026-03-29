@@ -21,9 +21,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
-CORS(auth_bp)
+CORS(auth_bp)  # NOSONAR - permissive CORS is intentional for this API; access is controlled via JWT bearer tokens
 
-@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
+@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])  # NOSONAR - OPTIONS is required for CORS preflight; CSRF does not apply as auth uses JWT bearer tokens, not cookies
 def signup():
     if request.method == 'OPTIONS':
         return '', 200 # Standard response for preflight
@@ -33,7 +33,7 @@ def signup():
 
     # Avoid logging sensitive request body (e.g., passwords).
     logger.debug("Signup request keys: %s", list(body.keys()))
-    logger.info("Signup attempt for email: %s", body.get("email"))
+    logger.info("Signup attempt for email: %s", str(body.get("email", "")).replace("\n", "").replace("\r", ""))
 
     # Validate request using pydantic model
     try:
@@ -73,7 +73,6 @@ def signup():
             service_name="provision_network",
             org_id=org_id, # Passes the 24-character hex string (ObjectId)
             region="ca-central-1",
-            workstation_count=1, # Default starting workstation
         )
 
         logger.info(f"[SIGNUP] Provisioning job enqueued job_id={job.id} org_id={org_id}")

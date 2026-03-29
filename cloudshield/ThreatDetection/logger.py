@@ -12,7 +12,7 @@ def create_logger(name: str, log_file: str, prefix: str) -> logging.Logger:
     fh.setLevel(logging.DEBUG)
 
     ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logging.INFO)
 
     formatter = logging.Formatter(f"[{prefix}] %(asctime)s - %(levelname)s - %(message)s")
     fh.setFormatter(formatter)

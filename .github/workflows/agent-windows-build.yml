@@ -93,22 +93,18 @@ jobs:
           if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
           New-Item -ItemType Directory -Path $stageDir | Out-Null
           $distRoot = Join-Path (Get-Location) "cloudshield/Agent/dist"
-          $oneFolderPath = Join-Path $distRoot "main"
-          $oneFilePath = Join-Path $distRoot "main.exe"
+          # main.spec names the output 'cloudshield_agent' so PyInstaller produces
+          # dist/cloudshield_agent.exe (one-file build).
+          $oneFilePath = Join-Path $distRoot "cloudshield_agent.exe"
 
-          if (Test-Path $oneFolderPath) {
-            Copy-Item -Path (Join-Path $oneFolderPath '*') -Destination $stageDir -Recurse -Force
-            $exePath = Join-Path $stageDir "main.exe"
-          } elseif (Test-Path $oneFilePath) {
+          if (Test-Path $oneFilePath) {
             Copy-Item -Path $oneFilePath -Destination $stageDir -Force
-            $exePath = Join-Path $stageDir "main.exe"
+            $exePath = Join-Path $stageDir "cloudshield_agent.exe"
           } else {
-            throw "PyInstaller output not found in $distRoot"
+            throw "PyInstaller output not found: $oneFilePath"
           }
 
-          if (Test-Path $exePath) {
-            Rename-Item -Path $exePath -NewName "cloudshield-agent.exe" -Force
-          } else {
+          if (-not (Test-Path $exePath)) {
             throw "Built executable not found after copy (expected $exePath)"
           }
           $zipPath = Join-Path $env:RUNNER_TEMP "${{ steps.version.outputs.artifact }}.zip"
@@ -126,7 +122,7 @@ jobs:
         shell: pwsh
         run: |
           $stageDir = "${{ steps.package.outputs.stage_dir }}"
-          $exe = Join-Path $stageDir "cloudshield-agent.exe"
+          $exe = Join-Path $stageDir "cloudshield_agent.exe"
           if (-not (Test-Path $exe)) {
             throw "Executable not found at $exe"
           }

@@ -43,9 +43,13 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
+      - ES_URL=http://elasticsearch:9200
       # Pass through paths so the provisioner knows where to mount from the host
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
+      - KVM=Y
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CLOUDSHIELD_SERVER_URL=${CLOUDSHIELD_SERVER_URL}
     depends_on:
       redis:
         condition: service_healthy
@@ -54,6 +58,8 @@ services:
     networks:
       vpc_net:
         ipv4_address: "172.23.${VPC_OCTET:-1}.2"
+      cloudshield_net:
+        ipv4_address: 172.28.0.30
     volumes:
       - type: bind
         source: ${WORKSTATIONS_MOUNT_DIR}
@@ -151,22 +157,32 @@ services:
     profiles: ["template"] # Prevents it from starting unless explicitly called
     image: cs-workstation-template:latest
     build:
-      context: docker/workstation
+      context: ./docker/workstation
       dockerfile: Dockerfile.workstation_test
     environment:
       USERNAME: "bill"
       PASSWORD: "gates"
       VERSION: "11"
-      DISK_SIZE: "32G"
-
+      KVM: "Y"
+      DISK_SIZE: "${WORKSTATION_DISK_SIZE:-32G}"
+      RAM_SIZE: "${WORKSTATION_RAM_SIZE:-1.5G}"
     devices:
       - /dev/kvm
       - /dev/net/tun
+      - /dev/kvm
     cap_add:
       - NET_ADMIN
     restart: "no"
     networks:
       vpc_net:
+
+  threat-detection:
+    profiles: ["template"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    environment:
+      CLOUDSHIELD_RUNTIME: "1"
 
   api:
     build:
@@ -179,10 +195,14 @@ services:
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
+      - DEPLOYMENT_MODE=docker
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
       - ES_URL=http://elasticsearch:9200
+      - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
+      - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -190,14 +210,15 @@ services:
       - "5050:5050"
     volumes:
       - ./cloudshield:/app/cloudshield
+      - ./docker:/app/docker
       - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - vpc_net
       - cloudshield_net
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
-    container_name: "elasticsearch-${ORG_TAG:-dev}"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -208,64 +229,7 @@ services:
     ports:
       - "9200:9200"
 
-  server:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.server
-    container_name: "server-${ORG_TAG:-dev}"
-    environment:
-      ES_URL: "http://elasticsearch:9200"
-      CLOUDSHIELD_RUNTIME: "1"
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.10
-    ports:
-      - "50051:50051"
 
-  agent1:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent1-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-1"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.11
-
-  agent2:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent2-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-2"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.12
-
-  agent3:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.agent
-    container_name: "agent3-${ORG_TAG:-dev}"
-    environment:
-      AGENT_ID: "agent-3"
-      SERVER_ADDR: "server"
-      SERVER_PORT: "50051"
-    depends_on:
-      - server
-    networks:
-      cloudshield_net:
-        ipv4_address: 172.28.0.13
 
 networks:
   vpc_net:
@@ -273,6 +237,7 @@ networks:
     name: ${VPC_NET_NAME:-vpc_net}
 
   cloudshield_net:
+    name: cloudshield_net
     driver: bridge
     ipam:
       config:

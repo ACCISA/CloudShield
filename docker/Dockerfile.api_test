@@ -3,7 +3,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y curl gnupg wget && \
     curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update && apt-get install -y terraform bash procps net-tools iputils-ping && \
+    apt-get update && apt-get install -y terraform bash procps net-tools iputils-ping mtools fdisk && \
     rm -rf /var/lib/apt/lists/*
 
 # install docker compose

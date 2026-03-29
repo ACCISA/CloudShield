@@ -68,7 +68,7 @@ export default function StatusButton({
   }, []);
 
   const normalizedStatus = (status || "").toLowerCase();
-  const isConnected = normalizedStatus === "connected";
+  const isConnected = ["connected", "active", "online"].includes(normalizedStatus);
   const isProvisioning = normalizedStatus === "provisioning";
   const buttonStyle = isConnected
     ? styles.connected

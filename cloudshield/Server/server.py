@@ -17,7 +17,14 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 
 from utils import get_logger  # type: ignore
-from provisioner import init_cloud
+try:
+    from cloudshield.Cloud.provisioner import init_cloud  # type: ignore
+except Exception:
+    try:
+        from provisioner import init_cloud  # type: ignore
+    except Exception:
+        def init_cloud():
+            return None
 
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.

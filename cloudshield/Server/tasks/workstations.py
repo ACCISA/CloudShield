@@ -1,9 +1,10 @@
 import time
+from datetime import datetime, timezone
 
 from rq import get_current_job
 
 from provisioner import provision_default_workstation, provision_workstation_vm
-from utils import get_logger, update_job, db, organizations, org_filter
+from utils import get_logger, update_job, db, db_admin, organizations, org_filter
 from repos import insert_workstation_template, insert_workstation, update_workstation, update_workstation_template, get_workstation_template, get_unique_members_by_ids
 from models import WorkstationStatus
 from .task import get_server_nodes
@@ -32,7 +33,8 @@ def start_workstations(org_id, template_id, access_groups, members, logger):
     amount = len(unique_members)
 
     logger.info(f"Starting {amount}")
-    [service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id) for _ in range(amount)]
+    for _ in range(amount):
+        service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id)
 
 
 def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
@@ -176,7 +178,9 @@ def ws_start(org_id, template_id):
             workstation_id=vm_id,
             mac=data.get("mac", ""),
             ipv4_address=data["ipv4_address"],
-            status=WorkstationStatus.ACTIVE
+            status=WorkstationStatus.ACTIVE,
+            name=ws_template.get("name", "Workstation"),
+            members=ws_template.get("members", []),
     )
 
 
@@ -189,6 +193,20 @@ def ws_create_custom():
 
 def ws_provision_update(workstation_id, status):
     """
-    Update the provisioning status of a workstation
+    Update a workstation's status after it reports back from provisioning.
+    The workstation_id here is the Docker container ID stored as 'container_id'
+    on the workstation document.
     """
-    pass
+    logger = get_logger("workstations")
+    workstations = db_admin["workstations"]
+
+    result = workstations.update_one(
+        {"container_id": workstation_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc)}},
+    )
+
+    if result.modified_count == 0:
+        logger.warning(f"No workstation found with container_id={workstation_id}")
+    else:
+        logger.info(f"Updated workstation container_id={workstation_id} to status={status}")
+

@@ -50,30 +50,37 @@ def redis_mock_fixture():
     Autouse fixture that yields the mock client for tests to assert calls.
     """
     yield _redis_mock_client
-try:
-    import cryptography  # noqa: F401
-    import bcrypt        # noqa: F401
-    import paramiko      # noqa: F401
-except (ImportError, RuntimeError):
+_missing_modules = set()
+for _mod in ("cryptography", "bcrypt", "paramiko"):
+    try:
+        __import__(_mod)
+    except (ImportError, RuntimeError):
+        _missing_modules.add(_mod)
+
+if _missing_modules:
     _mock_sym = unittest.mock.MagicMock()
-    
-    modules_to_mock = [
-        "cryptography",
-        "cryptography.hazmat",
-        "cryptography.hazmat.bindings",
-        "cryptography.hazmat.bindings._rust",
-        "cryptography.hazmat.backends",
-        "cryptography.hazmat.primitives",
-        "cryptography.hazmat.primitives.serialization",
-        "cryptography.hazmat.primitives.hashes",
-        "cryptography.hazmat.primitives.asymmetric",
-        "cryptography.hazmat.primitives.asymmetric.rsa",
-        "cryptography.hazmat.primitives.asymmetric.ed25519",
-        "cryptography.hazmat.primitives.kdf",
-        "cryptography.hazmat.primitives.kdf.scrypt",
-        "bcrypt",
-        "paramiko"
-    ]
-    
+
+    modules_to_mock = []
+    if "cryptography" in _missing_modules:
+        modules_to_mock.extend([
+            "cryptography",
+            "cryptography.hazmat",
+            "cryptography.hazmat.bindings",
+            "cryptography.hazmat.bindings._rust",
+            "cryptography.hazmat.backends",
+            "cryptography.hazmat.primitives",
+            "cryptography.hazmat.primitives.serialization",
+            "cryptography.hazmat.primitives.hashes",
+            "cryptography.hazmat.primitives.asymmetric",
+            "cryptography.hazmat.primitives.asymmetric.rsa",
+            "cryptography.hazmat.primitives.asymmetric.ed25519",
+            "cryptography.hazmat.primitives.kdf",
+            "cryptography.hazmat.primitives.kdf.scrypt",
+        ])
+    if "bcrypt" in _missing_modules:
+        modules_to_mock.append("bcrypt")
+    if "paramiko" in _missing_modules:
+        modules_to_mock.append("paramiko")
+
     for mod in modules_to_mock:
         sys.modules[mod] = _mock_sym

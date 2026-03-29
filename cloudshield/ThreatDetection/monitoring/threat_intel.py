@@ -24,6 +24,7 @@ try:
     import requests as _requests  # type: ignore[import-untyped]
     _HAS_REQUESTS = True
 except ImportError:  # pragma: no cover
+    _requests = None
     _HAS_REQUESTS = False
 
 
@@ -33,11 +34,23 @@ except ImportError:  # pragma: no cover
 # abuse infrastructure (examples, replace with real feeds in production).
 _SEED_BAD_IPS: set[str] = set()
 
-# Well-known remote blocklist URLs (one IP per line).
-DEFAULT_FEED_URLS: list[str] = [
-    # Abuse.ch Feodo Tracker (banking trojans / C2)
-    "https://feodotracker.abuse.ch/downloads/ipblocklist.txt",
+# Feed definitions: (url, label, strip_inline_comment)
+# strip_inline_comment=True handles formats like "1.2.3.0/24 ; SBL12345"
+DEFAULT_FEEDS: list[tuple[str, str, bool]] = [
+    # Abuse.ch Feodo Tracker – banking trojan / botnet C2 IPs
+    ("https://feodotracker.abuse.ch/downloads/ipblocklist.txt", "feodo_tracker", False),
+    # Abuse.ch SSL Blacklist – IPs hosting malicious SSL certificates
+    ("https://sslbl.abuse.ch/blacklist/sslipblacklist.txt", "abuse_ch_sslbl", False),
+    # Emerging Threats – known compromised/malicious IPs (no auth required)
+    ("https://rules.emergingthreats.net/blockrules/compromised-ips.txt", "emerging_threats", False),
+    # Spamhaus DROP – hijacked netblocks / CIDR ranges
+    ("https://www.spamhaus.org/drop/drop.txt", "spamhaus_drop", True),
+    # Spamhaus EDROP – extended drop list
+    ("https://www.spamhaus.org/drop/edrop.txt", "spamhaus_edrop", True),
 ]
+
+# Keep legacy list for backward-compat (used if feed_urls kwarg passed directly)
+DEFAULT_FEED_URLS: list[str] = [url for url, _, _ in DEFAULT_FEEDS]
 
 
 @dataclass
@@ -76,8 +89,14 @@ class ThreatIntelChecker:
     ):
         self._lock = threading.Lock()
         self._bad_ips: set[str] = set(seed_ips or _SEED_BAD_IPS)
-        self._bad_nets: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
-        self._feed_urls = feed_urls if feed_urls is not None else list(DEFAULT_FEED_URLS)
+        self._bad_nets: list[tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, str]] = []
+        # ip → feed label for richer alert messages
+        self._ip_source: dict[str, str] = {}
+        # Use explicit feed defs unless caller passed legacy URL list
+        if feed_urls is not None:
+            self._feeds: list[tuple[str, str, bool]] = [(u, "blocklist", False) for u in feed_urls]
+        else:
+            self._feeds = list(DEFAULT_FEEDS)
         self._last_refresh: float = 0.0
 
     # ── Loading ─────────────────────────────────────────────────────────
@@ -100,36 +119,43 @@ class ThreatIntelChecker:
         """Manually add IPs/CIDRs. Returns count added."""
         return sum(self._add(ip) for ip in ips)
 
-    def _add(self, entry: str) -> int:
+    def _add(self, entry: str, label: str = "blocklist") -> int:
         with self._lock:
             if "/" in entry:
                 try:
                     net = ipaddress.ip_network(entry, strict=False)
-                    self._bad_nets.append(net)
+                    self._bad_nets.append((net, label))
                     return 1
                 except ValueError:
                     return 0
-            self._bad_ips.add(entry.strip())
+            ip = entry.strip()
+            self._bad_ips.add(ip)
+            self._ip_source.setdefault(ip, label)
             return 1
 
     def refresh_feeds(self, timeout: int = 30) -> int:
         """
-        Pull each configured remote feed URL and merge IPs into the set.
+        Pull each configured remote feed and merge IPs/CIDRs into the set.
         Returns total new entries added.
         """
         if not _HAS_REQUESTS:
             return 0
 
         total = 0
-        for url in self._feed_urls:
+        for url, label, strip_comment in self._feeds:
             try:
                 resp = _requests.get(url, timeout=timeout)
                 resp.raise_for_status()
                 for line in resp.text.splitlines():
                     line = line.strip()
-                    if not line or line.startswith("#"):
+                    if not line or line.startswith("#") or line.startswith(";"):
                         continue
-                    total += self._add(line)
+                    # Handle "CIDR ; comment" format (Spamhaus DROP/EDROP)
+                    if strip_comment and ";" in line:
+                        line = line.split(";", 1)[0].strip()
+                    if not line:
+                        continue
+                    total += self._add(line, label)
             except Exception:
                 continue
 
@@ -137,6 +163,20 @@ class ThreatIntelChecker:
         return total
 
     # ── Checking ────────────────────────────────────────────────────────
+
+    def get_source(self, ip: str) -> str:
+        """Return the feed label that first flagged *ip*, or 'blocklist'."""
+        with self._lock:
+            if ip in self._ip_source:
+                return self._ip_source[ip]
+            try:
+                addr = ipaddress.ip_address(ip)
+            except ValueError:
+                return "blocklist"
+            for net, label in self._bad_nets:
+                if addr in net:
+                    return label
+            return "blocklist"
 
     def is_bad(self, ip: str) -> bool:
         """Check if *ip* is in any blocklist."""
@@ -147,7 +187,7 @@ class ThreatIntelChecker:
                 addr = ipaddress.ip_address(ip)
             except ValueError:
                 return False
-            return any(addr in net for net in self._bad_nets)
+            return any(addr in net for net, _ in self._bad_nets)
 
     def check_connections(
         self,
@@ -163,20 +203,28 @@ class ThreatIntelChecker:
         for c in conns:
             l_ip = c.get("laddr_ip") or c.get("laddrIp") or ""
             r_ip = c.get("raddr_ip") or c.get("raddrIp") or ""
+            proc = c.get("process_name") or c.get("processName") or "unknown process"
 
             if r_ip and self.is_bad(r_ip):
+                feed = self.get_source(r_ip)
                 hits.append(ThreatIntelHit(
                     ip=r_ip,
-                    source="blocklist",
+                    source=feed,
                     direction="outbound",
-                    reason=f"Agent {agent_id} connecting to known-bad IP {r_ip}",
+                    reason=(
+                        f"Agent {agent_id} ({proc}) connecting to {r_ip}, "
+                        f"flagged by {feed}"
+                    ),
                 ))
             if l_ip and self.is_bad(l_ip):
+                feed = self.get_source(l_ip)
                 hits.append(ThreatIntelHit(
                     ip=l_ip,
-                    source="blocklist",
+                    source=feed,
                     direction="inbound",
-                    reason=f"Known-bad IP {l_ip} connecting to agent {agent_id}",
+                    reason=(
+                        f"Known-bad IP {l_ip} ({feed}) connecting to agent {agent_id}"
+                    ),
                 ))
 
         return hits

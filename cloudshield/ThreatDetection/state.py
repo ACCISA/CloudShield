@@ -45,20 +45,24 @@ class GRPCStateManager:
         """
         return [request for request in self.expected if request["agent_id"] == agent_id]
         
-    def alert_missing_responses(self): 
+    def alert_missing_responses(self):
         """
         This function is ran to log agents that have not responded with expected RPCs.
-        Example: An agent sent a SendProcessList and the server notified the agent to send a 
+        Example: An agent sent a SendProcessList and the server notified the agent to send a
         SendProcessListInformation. If the agent never replies back with a SendProcessListInformation, an event should be logged.
         """
+        curtime = int(time.time())
+        stale = []
         for request in self.expected:
             request_method = request["request_method"]
             response_method = request["response_method"]
             agent_id = request["agent_id"]
             request_timestamp = request["request_timestamp"]
-            curtime = int(time.time())
             if (curtime - request_timestamp) > self.delay:
                 state_logger.warning(f"Agent '{agent_id}' was expected to respond with '{response_method}' after a '{request_method}' call")
+                stale.append(request)
+        for request in stale:
+            self.expected.remove(request)
 
     def is_expected(self, agent_id, new_response_method):
         """

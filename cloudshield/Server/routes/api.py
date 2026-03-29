@@ -669,20 +669,20 @@ def task_provision():
     # Check if the environment is already provisioned
     is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
     filter_with_status = dict(org_filter(org_id))
-    filter_with_status["status"] = "complete"
+    filter_with_status["status"] = {"$in": ["complete", "completed", "provisioning"]}
 
     provisioned = organizations.find_one(filter_with_status)
-    
+
     if provisioned and not is_testing:
         logger.warning("Provisioning already completed for the requested organization.")
         return jsonify({"error": "Environment already provisioned"}), 400
 
     _seed_workstations(org_id, workstation_count)
 
-    # Update MongoDB to mark the environment as provisioned
+    # Mark the environment as provisioning (the async job will set "completed" on success)
     organizations.update_one(
         org_filter(org_id),
-        {"$set": {"status": "complete"}},
+        {"$set": {"status": "provisioning"}},
         upsert=True
     )
 

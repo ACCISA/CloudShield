@@ -35,30 +35,36 @@ function SecurityAlertsItem({
   isSelected = false,
   onToggleSelect = () => {},
   isEven = false,
+  onUpdateAlert = () => {},
 }) {
   const themeColors = useThemeColors();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const riskConfig = RISK_CONFIG[securityAlert.risk] || RISK_CONFIG.low;
   const RiskIcon = riskConfig.icon;
 
-  const handleRowClick = (e) => {
-    // The row will open the modal
+  const handleRowClick = () => {
     setIsModalOpen(true);
   };
 
   const handleMarkResolved = () => {
-    console.log("Mark as resolved:", securityAlert.id);
-    // Backend integration: API call to mark as resolved
+    onUpdateAlert(securityAlert.id, { status: "resolved" });
+    setIsModalOpen(false);
   };
 
   const handleMarkFalsePositive = () => {
-    console.log("Mark as false positive:", securityAlert.id);
-    // Backend integration: API call to mark as false positive
+    onUpdateAlert(securityAlert.id, { status: "removed" });
+    setIsModalOpen(false);
   };
 
   const handleDownload = () => {
-    console.log("Download alert:", securityAlert.id);
-    // Backend integration: API call to download alert details
+    const data = JSON.stringify(securityAlert._raw || securityAlert, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `alert-${securityAlert.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleViewDetails = () => {
@@ -127,6 +133,10 @@ function SecurityAlertsItem({
     activity: {
       color: themeColors.textSecondary,
       fontSize: "14px",
+      overflow: "hidden",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
     },
     riskBadge: {
       display: "inline-flex",
@@ -162,7 +172,7 @@ function SecurityAlertsItem({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            handleRowClick(e);
+            handleRowClick();
           }
         }}
         onMouseEnter={(e) => {
@@ -189,7 +199,7 @@ function SecurityAlertsItem({
         <div style={styles.date}>
           {securityAlert.displayDate || securityAlert.date}
         </div>
-        <div style={styles.activity}>{securityAlert.activity}</div>
+        <div style={styles.activity}>{securityAlert.description || securityAlert.activity}</div>
         <div style={styles.riskBadge}>
           <RiskIcon width="16px" height="16px" />
           {riskConfig.label}
@@ -208,6 +218,9 @@ function SecurityAlertsItem({
         alert={securityAlert}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onMarkResolved={handleMarkResolved}
+        onMarkFalsePositive={handleMarkFalsePositive}
+        onDownload={handleDownload}
       />
     </>
   );
