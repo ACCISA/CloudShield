@@ -1,50 +1,8 @@
 import { VPNConfig, mapVPNConfig } from "../models/VPN";
 import APIService from "../utils/APIService";
+import { decodeJwtClaims, getAuthFromLocalStorage } from "../utils/jwtLocalStorage";
 
-type AuthSnapshot = {
-  accessToken?: string;
-};
 
-type JwtClaims = {
-  org_id?: string;
-  email?: string;
-  full_name?: string;
-  username?: string;
-};
-
-function getStoredAuth(): AuthSnapshot | null {
-  const snapshot = window.authStore?.loadAuth();
-  if (snapshot?.accessToken) {
-    return { accessToken: snapshot.accessToken };
-  }
-
-  const raw = localStorage.getItem("cloudshield.auth");
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw) as AuthSnapshot;
-    return parsed?.accessToken ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function decodeJwtClaims(token: string): JwtClaims {
-  try {
-    const payloadPart = token.split(".")[1];
-    if (!payloadPart) return {};
-    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
-        .join(""),
-    );
-    return (JSON.parse(json) || {}) as JwtClaims;
-  } catch {
-    return {};
-  }
-}
 
 function deriveUsername(claims: JwtClaims): string {
   let username = "";
@@ -73,7 +31,8 @@ class VPNService {
   }
 
  public async getVPNConfig(): Promise<VPNConfig> {
-    const auth = getStoredAuth();
+
+    const auth = window.authStore?.loadAuth() || getAuthFromLocalStorage();
     const claims = auth?.accessToken ? decodeJwtClaims(auth.accessToken) : {};
 
     const orgId = claims.org_id?.trim() || "";

@@ -1,4 +1,8 @@
 import { useState, type KeyboardEvent } from "react";
+import {
+  saveOrgIdFromToken,
+  saveAuthToLocalStorage,
+} from "../../utils/jwtLocalStorage";
 import AuthService from "../../services/AuthService";
 import AuthCard from "../../components/auth/AuthCard";
 import AuthTextField from "../../components/auth/AuthTextField";
@@ -43,7 +47,6 @@ export default function LoginCard() {
         password,
         useTwoFactor ? twoFactorCode.trim() : null,
       );
-      
 
       if (!data.access_token) {
         throw new Error(
@@ -57,19 +60,20 @@ export default function LoginCard() {
         expiresIn: data.expires_in,
         email: sanitizedEmail,
       });
+      // Save org_id to localStorage from JWT
+      if (data.access_token) {
+        saveOrgIdFromToken(data.access_token);
+      }
       if (!window.authStore) {
         const expiresAt = data.expires_in
           ? Date.now() + data.expires_in * 1000
           : undefined;
-        localStorage.setItem(
-          "cloudshield.auth",
-          JSON.stringify({
-            accessToken: data.access_token,
-            tokenType: data.token_type || "Bearer",
-            expiresAt,
-            email: sanitizedEmail,
-          }),
-        );
+        saveAuthToLocalStorage({
+          accessToken: data.access_token,
+          tokenType: data.token_type || "Bearer",
+          expiresAt,
+          email: sanitizedEmail,
+        });
       }
       window.dispatchEvent(new Event("auth-changed"));
 
