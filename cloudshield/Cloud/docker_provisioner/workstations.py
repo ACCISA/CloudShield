@@ -153,7 +153,7 @@ def import_oem(oem_path):
 def import_software(org_id, template_id, software_id):
     pass
 
-def prepare_software(org_id, templated_id, software,oem_path,logger):
+def prepare_software(org_id, template_id, software,oem_path,logger):
     """
     Move chosen software files for custom templates
     """
