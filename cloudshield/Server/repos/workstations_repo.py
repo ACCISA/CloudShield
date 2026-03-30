@@ -1,5 +1,6 @@
 from __future__ import annotations
 from bson import ObjectId
+from bson.errors import InvalidId
 from typing import List
 from models import Workstation,WorkstationTemplate,WorkstationStatus
 
@@ -56,30 +57,37 @@ def get_workstation(*, db, org_id: str, vm_id: str):
     except Exception:
         return None
 
-def insert_workstation(*, db, org_id: str, template_id: str):
+def insert_workstation(*, db, org_id: str, template_id: str, status=None):
     """
     Writes an Inventory document for org_id.
     Reusable from any workflow that generates or refreshes assets.
     """
+    if status is None:
+        status = WorkstationStatus.INACTIVE
     ws_db = db.workstations
     return ws_db.insert_one(
     Workstation(
         org_id=org_id,
         template_id=template_id,
-        status=WorkstationStatus.INACTIVE
+        status=status
         ).model_dump(by_alias=True)
     )
 def update_workstation_template(db, template_id: str, **updates):
     """
-    Updates specific fields of a workstation document by its ID.
-    Usage: update_workstation(db, "some_id", status=WorkstationStatus.ACTIVE)
+    Updates specific fields of a workstation template document by its ID.
+    Usage: update_workstation_template(db, "some_id", is_ready=True)
     """
     ws_db = db.workstation_templates
 
     update_data = {k: v for k, v in updates.items() if v is not None}
 
+    try:
+        oid = ObjectId(template_id)
+    except (InvalidId, TypeError):
+        oid = template_id
+
     result = ws_db.update_one(
-        {"_id": template_id},
+        {"_id": oid},
         {"$set": update_data}
     )
 
@@ -94,8 +102,13 @@ def update_workstation(db, workstation_id: str, **updates):
 
     update_data = {k: v for k, v in updates.items() if v is not None}
 
+    try:
+        oid = ObjectId(workstation_id)
+    except (InvalidId, TypeError):
+        oid = workstation_id
+
     result = ws_db.update_one(
-        {"_id": workstation_id},
+        {"_id": oid},
         {"$set": update_data}
     )
 
@@ -115,23 +128,23 @@ def get_workstations(db, org_id: str):
 
     return workstations
 
-def get_available_workstations(db, user_id: str):
+def get_available_workstation(db, user_id):
     """
     Get workstations that are available to a user
     """
 
     groups_db = db.access_groups
 
-    user_groups = groups_db.find({"_id": 1, "members":user_id}) # Get the groups the user is in
-    
-    workstation_template_cursor = db.workstation_tempaltes.find({ # Get the templates that these groups have access to
-        "access_groups":{"$in":user_groups}
+    user_groups = list(groups_db.find({"_id": 1, "members": user_id}))
+
+    workstation_template_cursor = db.workstation_templates.find({
+        "access_groups": {"$in": user_groups}
     })
 
-    template_ids = list(workstation_template_cursor)
+    template_ids = [str(doc["_id"]) for doc in workstation_template_cursor]
 
-    workstations_cursor = db.workstations.find({ # find active workstations that use the workstation templates
-        "template_id": {"$in":template_ids},
+    workstations_cursor = db.workstations.find({
+        "template_id": {"$in": template_ids},
         "status": "ACTIVE"
     })
 

@@ -7,6 +7,20 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 try:
+    from cloudshield.Server.utils.logging_setup import get_logger
+except ImportError:
+    try:
+        from .logging_setup import get_logger  # type: ignore[no-redef]
+    except ImportError:
+        get_logger = None  # type: ignore[assignment]
+
+if get_logger is not None:
+    logger = get_logger("api")
+else:
+    import logging
+    logger = logging.getLogger("cloudshield.utils.database")
+
+try:
     from cloudshield.Server.models import Inventory
 except ImportError:
     try:
@@ -59,27 +73,29 @@ try:
     users_public = db_emp["users_public"]
     orgs = db_admin["orgs"]
     audit = db_admin["audit"]    
-    activity = db_admin["activity"]
+    activity = db["activity"]
 
     try:
         orgs.create_index("company_name", unique=True)
     except Exception as e:
-        print(f"[database.py] Note: orgs index creation skipped: {e}")
+        logger.warning("orgs index creation skipped: %s", e)
 
     organizations = db_admin["organizations"]
 
     access_groups = db_admin["access_groups"]
     try:
-        access_groups.create_index("name", unique=True)
+        access_groups.create_index("org_id")
+        access_groups.create_index([("org_id", 1), ("created_at", -1)])
+        access_groups.create_index([("org_id", 1), ("name", 1)], unique=True)
     except Exception as e:
-        print(f"[database.py] Note: access_groups index creation skipped: {e}")
+        logger.warning("access_groups index creation skipped: %s", e)
 
     # VPN config files collection
     vpn_configs = db_admin["vpn_configs"]
     try:
         vpn_configs.create_index([("org_id", 1), ("username", 1)], unique=True)
     except Exception as e:
-        print(f"[database.py] Note: vpn_configs index creation skipped: {e}")
+        logger.warning("vpn_configs index creation skipped: %s", e)
 
     # File shares collection with indexes
     shares = db_admin["shares"]
@@ -90,7 +106,7 @@ try:
         shares.create_index([("org_id", 1), ("drive", 1)], unique=True)
         shares.create_index("org_id")
     except Exception as e:
-        print(f"[database.py] Note: shares index creation skipped: {e}")
+        logger.warning("shares index creation skipped: %s", e)
 
     # Users may share the same email across different orgs.
     # Replace legacy global unique email index with org-scoped uniqueness.
@@ -100,13 +116,13 @@ try:
         if legacy_email_index and legacy_email_index.get("key") == [("email", 1)]:
             users_admin.drop_index("email_1")
     except Exception as e:
-        print(f"[database.py] Note: legacy users email index migration skipped: {e}")
+        logger.warning("legacy users email index migration skipped: %s", e)
 
     try:
         users_admin.create_index([("org_id", 1), ("email", 1)], unique=True)
         users_admin.create_index("email")
     except Exception as e:
-        print(f"[database.py] Note: users email/org indexes creation skipped: {e}")
+        logger.warning("users email/org indexes creation skipped: %s", e)
     
     # Performance optimization: Add text index for efficient user search
     # This enables fast search on email and full_name fields (10x faster than regex)
@@ -118,15 +134,15 @@ try:
     except Exception as e:
         # Index creation may fail if it already exists with different options
         # or if text indexes conflict - this is non-critical for startup
-        print(f"[database.py] Note: Text index creation skipped: {e}")
+        logger.warning("Text index creation skipped: %s", e)
 
 
     organizations.create_index("package")
     organizations.create_index("provisioning_status")
 
-    print(f"[database.py] Connected to MongoDB DB='{DB_NAME}' (admin+employee clients ready)")
+    logger.info("Connected to MongoDB DB='%s' (admin+employee clients ready)", DB_NAME)
 except PyMongoError as e:
-    print(f"[database.py] MongoDB connection failed: {e}")
+    logger.critical("MongoDB connection failed: %s", e)
     raise
 
 def org_filter(org_id: str) -> dict:

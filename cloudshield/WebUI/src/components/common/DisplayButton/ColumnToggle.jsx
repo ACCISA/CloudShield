@@ -47,10 +47,13 @@ export default function ColumnToggle({ label, checked, onChange }) {
           height: "20px",
           borderRadius: "10px",
           backgroundColor: checked
-            ? themeColors.secondary
-            : themeColors.border,
+            ? themeColors.secondary || "#4CAF50"
+            : themeColors.lightOverlaySubtle || "rgba(255,255,255,0.26)",
+          border: checked
+            ? "1px solid transparent"
+            : "1px solid rgba(255,255,255,0.18)",
           position: "relative",
-          transition: "background-color 0.2s ease",
+          transition: "background-color 0.2s ease, border-color 0.2s ease",
         }}
       >
         <div
@@ -58,7 +61,8 @@ export default function ColumnToggle({ label, checked, onChange }) {
             width: "16px",
             height: "16px",
             borderRadius: "8px",
-            backgroundColor: checked ? themeColors.bgPrimary : themeColors.textTertiary,
+            backgroundColor: checked ? "#FFFFFF" : "rgba(255,255,255,0.9)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.35)",
             position: "absolute",
             top: "2px",
             left: checked ? "22px" : "2px",

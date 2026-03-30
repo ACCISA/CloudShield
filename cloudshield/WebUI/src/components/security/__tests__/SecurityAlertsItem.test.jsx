@@ -122,15 +122,13 @@ describe("SecurityAlertsItem Component", () => {
     isSelected: false,
     onToggleSelect: jest.fn(),
     isEven: false,
+    onUpdateAlert: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "log").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    console.log.mockRestore();
+    global.URL.createObjectURL = jest.fn(() => "blob:alert");
+    global.URL.revokeObjectURL = jest.fn();
   });
 
   describe("Basic Rendering", () => {
@@ -319,31 +317,44 @@ describe("SecurityAlertsItem Component", () => {
       });
     });
 
-    it("logs when 'Mark as resolved' is clicked", () => {
-      render(<SecurityAlertsItem {...defaultProps} />);
+    it("updates the alert when 'Mark as resolved' is clicked", () => {
+      const onUpdateAlert = jest.fn();
+      render(
+        <SecurityAlertsItem
+          {...defaultProps}
+          onUpdateAlert={onUpdateAlert}
+        />,
+      );
 
       const markResolvedButton = screen.getByText("Mark as resolved");
       fireEvent.click(markResolvedButton);
 
-      expect(console.log).toHaveBeenCalledWith("Mark as resolved:", 1);
+      expect(onUpdateAlert).toHaveBeenCalledWith(1, { status: "resolved" });
     });
 
-    it("logs when 'Mark as false positive' is clicked", () => {
-      render(<SecurityAlertsItem {...defaultProps} />);
+    it("updates the alert when 'Mark as false positive' is clicked", () => {
+      const onUpdateAlert = jest.fn();
+      render(
+        <SecurityAlertsItem
+          {...defaultProps}
+          onUpdateAlert={onUpdateAlert}
+        />,
+      );
 
       const falsePositiveButton = screen.getByText("Mark as false positive");
       fireEvent.click(falsePositiveButton);
 
-      expect(console.log).toHaveBeenCalledWith("Mark as false positive:", 1);
+      expect(onUpdateAlert).toHaveBeenCalledWith(1, { status: "removed" });
     });
 
-    it("logs when 'Download' is clicked", () => {
+    it("downloads the alert payload when 'Download' is clicked", () => {
       render(<SecurityAlertsItem {...defaultProps} />);
 
       const downloadButton = screen.getByText("Download");
       fireEvent.click(downloadButton);
 
-      expect(console.log).toHaveBeenCalledWith("Download alert:", 1);
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:alert");
     });
   });
 
@@ -560,8 +571,7 @@ describe("SecurityAlertsItem Component", () => {
       expect(
         screen.queryByTestId("security-alert-modal"),
       ).not.toBeInTheDocument();
-      // But action should be logged
-      expect(console.log).toHaveBeenCalledWith("Download alert:", 1);
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
 
     it("stops propagation for edit button keydown events", () => {

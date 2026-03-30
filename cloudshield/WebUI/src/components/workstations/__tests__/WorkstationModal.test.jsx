@@ -55,6 +55,16 @@ jest.mock("../../../utils/modalHelpers", () => {
     fetchUsers: jest.fn(),
     fetchGroups: jest.fn(),
     fetchSoftware: jest.fn(),
+    createImageUploadHandler: jest.fn((setFormData, fieldName) => {
+      return async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setFormData((prev) => ({
+          ...prev,
+          [fieldName]: `data:image/png;base64,${file.name}`,
+        }));
+      };
+    }),
   };
 });
 
@@ -226,13 +236,13 @@ describe("WorkstationModal", () => {
     it("should render workstation icon upload section", () => {
       render(<WorkstationModal {...defaultProps} />);
       expect(screen.getByText("Workstation Icon")).toBeInTheDocument();
-      expect(screen.getByText("Upload Image")).toBeInTheDocument();
+      expect(screen.getAllByText("Upload Image")).toHaveLength(2);
     });
 
     it("should render desktop background upload section", () => {
       render(<WorkstationModal {...defaultProps} />);
       expect(screen.getByText("Desktop Background")).toBeInTheDocument();
-      expect(screen.getAllByText("Upload Background")).toHaveLength(1);
+      expect(screen.getAllByText("Upload Background")).toHaveLength(2);
     });
 
     it("should show strength tier specifications", () => {
@@ -254,24 +264,10 @@ describe("WorkstationModal", () => {
       });
       const inputs = container.querySelectorAll('input[type="file"]');
       const workstationInput = inputs[0];
-
-      const mockReader = {
-        readAsDataURL: jest.fn(),
-        onloadend: null,
-        result: "data:image/png;base64,workstation123",
-      };
-      global.FileReader = jest.fn(() => mockReader);
-
-      Object.defineProperty(workstationInput, "files", {
-        value: [file],
-        writable: false,
-      });
-
-      fireEvent.change(workstationInput);
-      mockReader.onloadend();
+      fireEvent.change(workstationInput, { target: { files: [file] } });
 
       await waitFor(() => {
-        expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
+        expect(screen.getByAltText("Workstation icon")).toBeInTheDocument();
       });
     });
 
@@ -280,24 +276,10 @@ describe("WorkstationModal", () => {
       const file = new File(["bg"], "background.png", { type: "image/png" });
       const inputs = container.querySelectorAll('input[type="file"]');
       const backgroundInput = inputs[1];
-
-      const mockReader = {
-        readAsDataURL: jest.fn(),
-        onloadend: null,
-        result: "data:image/png;base64,bg123",
-      };
-      global.FileReader = jest.fn(() => mockReader);
-
-      Object.defineProperty(backgroundInput, "files", {
-        value: [file],
-        writable: false,
-      });
-
-      fireEvent.change(backgroundInput);
-      mockReader.onloadend();
+      fireEvent.change(backgroundInput, { target: { files: [file] } });
 
       await waitFor(() => {
-        expect(mockReader.readAsDataURL).toHaveBeenCalledWith(file);
+        expect(screen.getByAltText("Desktop background")).toBeInTheDocument();
       });
     });
 
@@ -305,21 +287,7 @@ describe("WorkstationModal", () => {
       const { container } = render(<WorkstationModal {...defaultProps} />);
       const file = new File(["image"], "test.png", { type: "image/png" });
       const inputs = container.querySelectorAll('input[type="file"]');
-
-      const mockReader = {
-        readAsDataURL: jest.fn(),
-        onloadend: null,
-        result: "data:image/png;base64,abc123",
-      };
-      global.FileReader = jest.fn(() => mockReader);
-
-      Object.defineProperty(inputs[0], "files", {
-        value: [file],
-        writable: false,
-      });
-
-      fireEvent.change(inputs[0]);
-      mockReader.onloadend();
+      fireEvent.change(inputs[0], { target: { files: [file] } });
 
       await waitFor(() => {
         const preview = container.querySelector(
@@ -333,21 +301,7 @@ describe("WorkstationModal", () => {
       const { container } = render(<WorkstationModal {...defaultProps} />);
       const file = new File(["image"], "test.png", { type: "image/png" });
       const inputs = container.querySelectorAll('input[type="file"]');
-
-      const mockReader = {
-        readAsDataURL: jest.fn(),
-        onloadend: null,
-        result: "data:image/png;base64,abc123",
-      };
-      global.FileReader = jest.fn(() => mockReader);
-
-      Object.defineProperty(inputs[0], "files", {
-        value: [file],
-        writable: false,
-      });
-
-      fireEvent.change(inputs[0]);
-      mockReader.onloadend();
+      fireEvent.change(inputs[0], { target: { files: [file] } });
 
       await waitFor(() => {
         const removeBtn = container.querySelector(
@@ -357,7 +311,7 @@ describe("WorkstationModal", () => {
         fireEvent.click(removeBtn);
       });
 
-      expect(screen.getByText("Upload Image")).toBeInTheDocument();
+      expect(screen.getAllByText("Upload Image")).toHaveLength(2);
     });
   });
 
@@ -870,7 +824,7 @@ describe("WorkstationModal", () => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
             name: "New Workstation",
-            strength: "basic",
+            description: "basic",
           }),
         );
       });
@@ -970,7 +924,7 @@ describe("WorkstationModal", () => {
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
-            users: expect.arrayContaining([
+            members: expect.arrayContaining([
               expect.objectContaining({ id: "1" }),
             ]),
           }),
@@ -1289,8 +1243,8 @@ describe("WorkstationModal", () => {
       await waitFor(() => {
         expect(onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
-            users: [],
-            groups: [],
+            members: [],
+            access_groups: [],
             software: [],
           }),
         );

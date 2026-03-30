@@ -178,16 +178,3 @@
   color: #111827;
   word-break: break-word;
 }
-
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .display-icon-card {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-
-  .hover-card {
-    min-width: 240px;
-  }
-}

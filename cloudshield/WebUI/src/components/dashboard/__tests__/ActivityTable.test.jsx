@@ -328,8 +328,11 @@ describe("ActivityTable Component", () => {
       render(<ActivityTable {...baseProps} activities={activities} />);
 
       // Check that Charlie and Alice activities have formatted dates
-      expect(screen.getByText("1/3/2026")).toBeInTheDocument();
-      expect(screen.getByText("1/1/2026")).toBeInTheDocument();
+      // Use same logic as the date-fns mock to stay locale-agnostic
+      const charlie = new Date("2026-01-03T10:30:00.000Z").toLocaleDateString();
+      const alice = new Date("2026-01-01T10:30:00.000Z").toLocaleDateString();
+      expect(screen.getByText(charlie)).toBeInTheDocument();
+      expect(screen.getByText(alice)).toBeInTheDocument();
     });
 
     test("handles different date formats", () => {
@@ -356,7 +359,8 @@ describe("ActivityTable Component", () => {
         />
       );
 
-      expect(screen.getByText(/3\/(14|15)\/2026/)).toBeInTheDocument();
+      const march15 = new Date("2026-03-15").toLocaleDateString();
+      expect(screen.getByText(march15)).toBeInTheDocument();
     });
   });
 

@@ -46,7 +46,7 @@ jobs:
       - name: Install test requirements
         run: |
           python -m pip install --upgrade pip
-          if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt || true; fi
+          if [ -f cloudshield/Agent/requirements.txt ]; then pip install -r cloudshield/Agent/requirements.txt; fi
           pip install pytest pytest-cov coverage
 
       - name: Prepare coverage directory
@@ -79,7 +79,7 @@ jobs:
       - name: Install test requirements
         run: |
           python -m pip install --upgrade pip
-          if [ -f cloudshield/ThreatDetection/requirements.txt ]; then pip install -r cloudshield/ThreatDetection/requirements.txt || true; fi
+          if [ -f cloudshield/ThreatDetection/requirements.txt ]; then pip install -r cloudshield/ThreatDetection/requirements.txt; fi
           pip install pytest pytest-cov
       - name: Prepare coverage directory
         run: mkdir -p tests/python/coverage/threat_detection
@@ -116,7 +116,7 @@ jobs:
       - name: Install test requirements
         run: |
           python -m pip install --upgrade pip
-          if [ -f cloudshield/Server/requirements.txt ]; then pip install -r cloudshield/Server/requirements.txt || true; fi
+          if [ -f cloudshield/Server/requirements.txt ]; then pip install -r cloudshield/Server/requirements.txt; fi
           pip install pytest pytest-cov
 
       - name: Prepare coverage directory
@@ -159,7 +159,7 @@ jobs:
       - name: Install test requirements
         run: |
           python -m pip install --upgrade pip
-          if [ -f cloudshield/Cloud/requirements.txt ]; then pip install -r cloudshield/Cloud/requirements.txt || true; fi
+          if [ -f cloudshield/Cloud/requirements.txt ]; then pip install -r cloudshield/Cloud/requirements.txt; fi
           pip install pytest pytest-cov
 
       - name: Prepare coverage directory
@@ -204,7 +204,7 @@ jobs:
 
       - name: Run DesktopUI tests with coverage
         working-directory: cloudshield/DesktopUI
-        run: npm run test:coverage || echo "⚠️ JS tests failed but continuing..."
+        run: npm run test:coverage
 
       - name: Collect JS coverage
         run: |
@@ -240,7 +240,7 @@ jobs:
 
       - name: Run WebUI tests with coverage
         working-directory: cloudshield/WebUI
-        run: npm run test:coverage -- --passWithNoTests || echo "⚠️ JS tests failed but continuing..."
+        run: npm run test:coverage -- --passWithNoTests
 
       - name: Collect JS coverage
         run: |
@@ -338,8 +338,8 @@ jobs:
             -Dsonar.c.file.suffixes=- \
             -Dsonar.cpp.file.suffixes=- \
             -Dsonar.objc.file.suffixes=- \
-            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/mockData.js,**/__mocks__/fileMock.js,**/WebUI/babel.config.cjs,**/DesktopUI/**/vitest.**.ts,,**/DesktopUI/src/main.tsx,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,cloudshield/**/GroupsIcon.jsx,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
-            -Dsonar.exclusions=**/tests/**,**/__mocks__/fileMock.js,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/__tests__/**,**/mockData.js,**/WebUI/src/main.jsx,**/DesktopUI/src/main.tsx,**/DesktopUI/**/vitest.**.ts,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/DesktopUI/dist-electron/**,**/WebUI/src/App.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/GroupsIcon.jsx,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
+            -Dsonar.coverage.exclusions=**/tests/**,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/mockData.js,**/mockSoftware.js,**/WebUI/src/data/assets/**,**/__mocks__/fileMock.js,**/WebUI/babel.config.cjs,**/DesktopUI/**/vitest.**.ts,,**/DesktopUI/src/main.tsx,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/WebUI/src/main.jsx,**/WebUI/src/App.jsx,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,**/__tests__/**,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,cloudshield/**/GroupsIcon.jsx,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
+            -Dsonar.exclusions=**/tests/**,**/__mocks__/fileMock.js,**/WebUI/src/__mocks__/**,**/WebUI/e2e/**,**/__tests__/**,**/mockData.js,**/mockSoftware.js,**/WebUI/src/data/assets/**,**/WebUI/src/main.jsx,**/DesktopUI/src/main.tsx,**/DesktopUI/**/vitest.**.ts,**/DesktopUI/src/vitest.**.ts,**/DesktopUI/electron/**,**/DesktopUI/src/App.tsx,**/DesktopUI/src/models/**,**/DesktopUI/src/utils/**,**/DesktopUI/src/mocks/**,**/DesktopUI/src/services/**,**/DesktopUI/dist-electron/**,**/WebUI/src/App.jsx,**/WebUI/src/App.jsx,**/WebUI/babel.config.cjs,**/WebUI/jest.config.cjs,**/WebUI/jest.setup.js,cloudshield/**/templates/**/*.tf,cloudshield/Cloud/templates/**/*.tf,cloudshield/**/agent_pb2.py,cloudshield/**/agent_pb2_grpc.py,cloudshield/**/*_pb2.py,cloudshield/**/GroupsIcon.jsx,cloudshield/**/*_pb2_grpc.py,cloudshield/**/logger.py,**/*.html,**/bootstrap/**,**/__init__.py,**/docker_provisioner/**,**.sh,**/assets/** \
             -Dsonar.python.coverage.reportPaths=tests/python/coverage/agent/coverage.xml,tests/python/coverage/server/coverage.xml,tests/python/coverage/cloud/coverage.xml,tests/python/coverage/threat_detection/coverage.xml,*.html \
             -Dsonar.javascript.lcov.reportPaths=tests/js/coverage/desktopui/lcov.info,tests/js/coverage/webui/lcov.info || (echo "SonarCloud analysis failed" && exit 1) \
 

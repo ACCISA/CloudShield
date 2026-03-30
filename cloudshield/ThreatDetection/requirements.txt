@@ -1,6 +1,7 @@
 grpcio
-elasticsearch
+elasticsearch>=8.0,<9.0
 grpcio-tools
 psutil
 pyinstaller
 schedule
+requests

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import UploadIcon from "../../assets/ImageUploadIcon.jsx";
@@ -193,10 +194,12 @@ export default function WorkstationModal({
   const handleWorkstationImageUpload = createImageUploadHandler(
     setFormData,
     "workstationImage",
+    { maxWidth: 256, maxHeight: 256 },
   );
   const handleDesktopBackgroundUpload = createImageUploadHandler(
     setFormData,
     "desktopBackground",
+    { maxWidth: 1280, maxHeight: 720 },
   );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
@@ -296,7 +299,17 @@ export default function WorkstationModal({
         </div>
 
         {/* Content */}
-        <main className="workstation-modal-content">{renderStepContent()}</main>
+        <main className="workstation-modal-content">
+          {isSubmitting ? (
+            <SubmittingOverlay
+              label={
+                isEditMode ? "Saving changes..." : "Creating workstation..."
+              }
+            />
+          ) : (
+            renderStepContent()
+          )}
+        </main>
 
         {/* Footer */}
         <footer className="workstation-modal-actions">
@@ -338,7 +351,14 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 Next
               </button>
@@ -347,7 +367,14 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 {isSubmitting
                   ? "Saving..."
@@ -581,9 +608,23 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
+                </span>
               </div>
             </label>
           )}
@@ -616,9 +657,23 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
               />
               <div className="workstation-modal-image-placeholder">
                 <span className="workstation-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Background</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Background
+                </span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Background
+                </span>
               </div>
             </label>
           )}
@@ -891,7 +946,7 @@ function SoftwareStep({
                   }}
                 >
                   <div className="workstation-modal-dropdown-item-icon">
-                    {software.icon}
+                    <SoftwareVisual software={software} />
                   </div>
                   <div className="workstation-modal-dropdown-item-info">
                     <div className="workstation-modal-dropdown-item-name">
@@ -930,7 +985,7 @@ function SoftwareStep({
                   ×
                 </button>
                 <div className="workstation-modal-selected-card-icon">
-                  {software.icon}
+                  <SoftwareVisual software={software} />
                 </div>
                 <span className="workstation-modal-selected-card-name">
                   {software.name}
@@ -944,14 +999,30 @@ function SoftwareStep({
   );
 }
 
-SoftwareStep.propTypes = {
-  searchTerm: PropTypes.string.isRequired,
-  setSearchTerm: PropTypes.func.isRequired,
-  filteredItems: PropTypes.arrayOf(modalItemShape).isRequired,
-  selectedItems: PropTypes.arrayOf(modalItemShape).isRequired,
-  allSelected: PropTypes.bool,
-  onToggle: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
-  totalItems: PropTypes.array.isRequired,
-  onAllChange: PropTypes.func.isRequired,
+function SoftwareVisual({ software }) {
+  if (software?.picture) {
+    return (
+      <img
+        src={software.picture}
+        alt={software.name || "Software"}
+        style={{ width: 24, height: 24, borderRadius: 4, objectFit: "cover" }}
+      />
+    );
+  }
+
+  if (software?.icon) return software.icon;
+
+  return (
+    <span style={{ fontSize: "0.75rem", fontWeight: 700 }}>
+      {(software?.name || "?").slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+SoftwareVisual.propTypes = {
+  software: PropTypes.shape({
+    name: PropTypes.string,
+    picture: PropTypes.string,
+    icon: PropTypes.node,
+  }),
 };

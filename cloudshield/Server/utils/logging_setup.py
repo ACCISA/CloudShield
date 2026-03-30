@@ -1,9 +1,45 @@
 """Centralized logging configuration for CloudShield with job-specific logging."""
+import contextvars
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
+
+# ---------------------------------------------------------------------------
+# Correlation ID — propagated from HTTP request → RQ job via job.meta
+# ---------------------------------------------------------------------------
+
+_correlation_id: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "correlation_id", default="-"
+)
+
+
+def set_correlation_id(cid: str) -> contextvars.Token:
+    """Set correlation ID for the current execution context.
+
+    Returns a token that can be passed to clear_correlation_id() to restore
+    the previous value (important for nested contexts).
+    """
+    return _correlation_id.set(cid)
+
+
+def clear_correlation_id(token: contextvars.Token) -> None:
+    """Restore the correlation ID that was active before set_correlation_id()."""
+    _correlation_id.reset(token)
+
+
+class CorrelationFilter(logging.Filter):
+    """Inject ``correlation_id`` into every log record.
+
+    Attach this filter to handlers so that the format string can reference
+    ``%(correlation_id)s``.  The value is drawn from a ContextVar, so it is
+    automatically isolated between threads and async tasks.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        record.correlation_id = _correlation_id.get()  # type: ignore[attr-defined]
+        return True
 
 BASE_LOG_DIR = Path(os.getenv("CLOUDSHIELD_LOG_DIR", "logs"))
 BASE_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -18,16 +54,18 @@ BACKUP_COUNT = 5
 
 def _create_formatter() -> logging.Formatter:
     """Create consistent log format for all CloudShield logs."""
-    fmt = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    fmt = "%(asctime)s | %(levelname)-8s | %(name)s | %(correlation_id)s | %(message)s"
     return logging.Formatter(fmt)
 
 
 def _add_handlers(logger: logging.Logger, log_path: Path):
     """Attach console and rotating file handlers to logger."""
     formatter = _create_formatter()
+    correlation_filter = CorrelationFilter()
 
     console = logging.StreamHandler()
     console.setFormatter(formatter)
+    console.addFilter(correlation_filter)
     logger.addHandler(console)
 
     try:
@@ -43,6 +81,7 @@ def _add_handlers(logger: logging.Logger, log_path: Path):
         )
     else:
         file_handler.setFormatter(formatter)
+        file_handler.addFilter(correlation_filter)
         logger.addHandler(file_handler)
 
 
@@ -104,6 +143,7 @@ def get_job_log_path(job_id: str) -> Path:
 
 def cleanup_old_logs(days: int = 30):
     """Remove job logs older than specified days."""
+    logger = get_logger("api")
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     deleted = 0
     for log_file in JOB_LOG_DIR.glob("job_*.log"):
@@ -112,5 +152,5 @@ def cleanup_old_logs(days: int = 30):
                 log_file.unlink()
                 deleted += 1
         except Exception as e:
-            print(f"Could not delete {log_file}: {e}")
-    print(f"Cleanup complete: deleted {deleted} old logs (> {days} days)")
+            logger.warning("Could not delete %s: %s", log_file, e)
+    logger.info("Cleanup complete: deleted %d old logs (> %d days)", deleted, days)

@@ -3,6 +3,8 @@ import csv
 import io
 import importlib
 import json
+import secrets
+import string
 from collections.abc import Mapping
 
 from flask import Blueprint, request, jsonify, g
@@ -30,6 +32,11 @@ from utils.logging_setup import get_logger  # noqa: E402
 
 logger = get_logger("users_routes")
 
+def _generate_password():
+    alphabet = string.ascii_letters + string.digits + "!@#%^&()-_=+[]{};:,.<>?"
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
+
+
 users_bp = Blueprint('users', __name__) # Admin-only user management routes
 orgs_bp = Blueprint("organizations", __name__) # Organization-related routes (e.g., get my org)
 """
@@ -47,6 +54,7 @@ Security:
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
+ERR_VALIDATION_FAILED = "Validation failed"
 _IMPORTED_OBJECT_ID = ObjectId
 _IMPORTED_DB_ADMIN = db_admin
 
@@ -158,13 +166,15 @@ def _handle_user_create(current_user):
     create_user(user_data, current_user=current_user, reason=reason)
     # Generate the DC username from the user's full name unless explicitly provided.
     username = user_data.username or derive_username(user_data.full_name)
+    # Use provided password or generate one for DC account creation
+    dc_password = user_data.password or _generate_password()
     logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
     # Queue DC user creation task via service dispatcher
     job = service_dispatcher(
         service_name="dc_add_user",
         org_id=user_data.org_id,
         username=username,
-        password=user_data.password,
+        password=dc_password,
         email=user_data.email,
     )
     
@@ -258,14 +268,14 @@ def create_user_endpoint():
         return jsonify(resp_json), status_code
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
         # e.g., duplicate email
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        logger.error(e)
+        logger.exception("User create failed for actor=%s org_id=%s", (g.user or {}).get("email"), (g.user or {}).get("org_id"))
         return jsonify({"error": INTERNAL_SERVER_ERROR, "details": str(e)}), 500
 
 @users_bp.route("/users/<user_id>", methods=["GET"])
@@ -285,6 +295,7 @@ def get_user_endpoint(user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
     except Exception:
+        logger.exception("User read failed user_id=%s actor=%s", user_id, (g.user or {}).get("email"))
         return jsonify({"error": INTERNAL_SERVER_ERROR}), 500
 
 @users_bp.route("/users/<user_id>", methods=["PATCH"])
@@ -323,7 +334,7 @@ def update_user_endpoint(user_id):
         return jsonify({"message": "User updated"}), 200
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
@@ -442,7 +453,7 @@ def signup_admin_endpoint():
 
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
 
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
@@ -539,6 +550,7 @@ def import_users_csv():
     """
     try:
         from security import is_bcrypt_string
+        from security.passwords import hash_password
         from datetime import datetime, timezone
         from utils import users_admin, log_audit
 
@@ -615,15 +627,19 @@ def import_users_csv():
                     continue
 
 
-                if password_hash and is_bcrypt_string(password_hash):
+                if not password_hash:
+                    errors.append({
+                        "row": row_num,
+                        "error": "Missing password_hash for user import; user not created"
+                    })
+                    continue
+
+                if is_bcrypt_string(password_hash):
                     # Use the pre-hashed password directly (migration from another system)
                     final_password_hash = password_hash
                 else:
-                    errors.append({
-                        "row": row_num,
-                        "error": "Missing or invalid password_hash for user import; user not created"
-                    })
-                    continue
+                    # Accept plaintext in password_hash for convenience and hash it server-side.
+                    final_password_hash = hash_password(password_hash)
 
                 # Insert user directly (bypassing create_user to handle pre-hashed passwords)
                 user_doc = {

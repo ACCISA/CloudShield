@@ -578,7 +578,7 @@ def test_get_available_workstations_success(mock_db):
     ]
     mock_db.workstations.find.return_value = mock_workstations
 
-    result = ws_repo.get_available_workstations(mock_db, user_id)
+    result = ws_repo.get_available_workstation(mock_db, user_id)
 
     # Verify the groups query
     mock_db.access_groups.find.assert_called_once_with(
@@ -602,7 +602,7 @@ def test_get_available_workstations_user_no_groups(mock_db):
     # Workstations query will return empty
     mock_db.workstations.find.return_value = []
 
-    result = ws_repo.get_available_workstations(mock_db, user_id)
+    result = ws_repo.get_available_workstation(mock_db, user_id)
 
     assert result == []
 
@@ -616,7 +616,7 @@ def test_get_available_workstations_no_templates(mock_db):
     mock_db.workstation_tempaltes.find.return_value = []
     mock_db.workstations.find.return_value = []
 
-    result = ws_repo.get_available_workstations(mock_db, user_id)
+    result = ws_repo.get_available_workstation(mock_db, user_id)
 
     assert result == []
 
@@ -633,7 +633,7 @@ def test_get_available_workstations_inactive_excluded(mock_db):
     # Return only ACTIVE workstations (INACTIVE are filtered by status query)
     mock_db.workstations.find.return_value = []
 
-    result = ws_repo.get_available_workstations(mock_db, user_id)
+    result = ws_repo.get_available_workstation(mock_db, user_id)
 
     # Verify the workstations query includes status filter
     call_args = mock_db.workstations.find.call_args
@@ -669,6 +669,6 @@ def test_get_available_workstations_multiple_groups(mock_db):
     ]
     mock_db.workstations.find.return_value = mock_workstations
 
-    result = ws_repo.get_available_workstations(mock_db, user_id)
+    result = ws_repo.get_available_workstation(mock_db, user_id)
 
     assert len(result) == 2

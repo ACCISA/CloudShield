@@ -16,7 +16,6 @@ import { apiGet } from "../api/client.js";
 
 import { safeAsync } from "../lib/safeAsync.js";
 import { getUserErrorMessage } from "../lib/errors.js";
-import { formatShares } from "../lib/format.js";
 
 function normalizeActivityItem(item, index) {
   const createdAt = item?.created_at || item?.date || item?.timestamp;
@@ -88,14 +87,14 @@ export default function DashboardPage() {
 
     try {
       const response = await safeAsync(() =>
-        apiGet(`/activity/${org_id}?page=${page}&limit=${itemsPerPage}`)
+        apiGet(`/activity/${org_id}?page=${page}&limit=${itemsPerPage}`),
       );
       const data =
         typeof response?.json === "function" ? await response.json() : response;
 
       const items = Array.isArray(data?.items) ? data.items : [];
       const normalized = items.map((item, idx) =>
-        normalizeActivityItem(item, idx)
+        normalizeActivityItem(item, idx),
       );
 
       setActivities(normalized);
@@ -185,7 +184,10 @@ export default function DashboardPage() {
                 alignItems: "center",
               }}
             >
-              <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 600 }}>
+              <Typography
+                variant="h6"
+                sx={{ color: "text.primary", fontWeight: 600 }}
+              >
                 Cloud Infrastructure Provisioning
               </Typography>
               <Typography variant="body2" sx={{ color: "#aaa" }}>
@@ -203,7 +205,8 @@ export default function DashboardPage() {
                 borderRadius: 4,
                 backgroundColor: themeColors.isDark ? "#333" : "#e8e8e8",
                 "& .MuiLinearProgress-bar": {
-                  background: "linear-gradient(90deg, #6a4fcf 0%, #ad8bff 100%)",
+                  background:
+                    "linear-gradient(90deg, #6a4fcf 0%, #ad8bff 100%)",
                 },
               }}
             />
@@ -236,7 +239,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Shares"
-            value={formatShares(stats.shares ?? (statsLoading ? "…" : 0))}
+            value={statsLoading ? "…" : (stats.shares ?? 0)}
             gradientFrom="#c57a1c"
             gradientTo="#f0a24f"
             onAdd={handleAddFile}

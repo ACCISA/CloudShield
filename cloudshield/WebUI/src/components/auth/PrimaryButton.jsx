@@ -1,43 +1,27 @@
-/**
- * PrimaryButton.jsx
- *
- * Purpose:
- * Styled primary action button used across auth screens and forms.
- */
-import React from 'react';
-import { Button } from '@mui/material';
+import React from "react";
+import PropTypes from "prop-types";
+import "../../pages/auth.css";
 
-export default function PrimaryButton({ children, fullWidth = true, ...rest }) {
+export default function PrimaryButton({
+  children,
+  fullWidth = true,
+  style,
+  ...rest
+}) {
   return (
-    <Button
+    <button
+      type="button"
+      className="auth-btn"
+      style={fullWidth ? style : { ...style, width: "auto" }}
       {...rest}
-      fullWidth={fullWidth}
-      sx={{
-        backgroundColor: "var(--text-primary)",
-        color: "var(--bg-primary)",
-        fontSize: '1rem',
-        fontWeight: 500,
-        textTransform: 'none',
-        lineHeight: 1.3,
-        borderRadius: '14px',
-        paddingY: '14px',
-        paddingX: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.05)', // Reduced from the massive 64px shadow
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          backgroundColor: "var(--text-primary)",
-          opacity: 0.9, // Soft hover effect
-        },
-        '&:active': {
-          transform: 'scale(0.98)'
-        },
-        '&:disabled': {
-          backgroundColor: "var(--action-hover)",
-          color: "var(--text-secondary)",
-        }
-      }}
     >
       {children}
-    </Button>
+    </button>
   );
 }
+
+PrimaryButton.propTypes = {
+  children: PropTypes.node,
+  fullWidth: PropTypes.bool,
+  style: PropTypes.object,
+};

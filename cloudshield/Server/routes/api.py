@@ -20,7 +20,7 @@ from services import (
 from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
-from cloudshield.Server.utils.database import db_admin
+from cloudshield.Server.utils.database import db_admin, db
 
 logger = get_logger("api")
 
@@ -29,6 +29,15 @@ api_bp = Blueprint("api", __name__)
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 ERROR_USER_REQUIRED = "username is required"
+ERROR_SHARE_NAME_REQUIRED = "share_name is required"
+ERROR_GROUP_NAME_REQUIRED = "group_name is required"
+
+
+def _coerce_int(val):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
 
 
 @api_bp.route("/organization/<org_id>", methods=["GET"])
@@ -142,7 +151,7 @@ def task_delete_file_share():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error":"share_name is required"}), 422
+        return jsonify({"error":ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(service_name="dc_delete_file_share", org_id=org_id, share_name=share_name)
 
@@ -162,7 +171,7 @@ def task_create_file_share():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error":"share_name is required"}), 422
+        return jsonify({"error":ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_create_file_share",
@@ -469,7 +478,7 @@ def task_dc_add_user_to_group():
     if username is None:
         return jsonify({"error":ERROR_USER_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_add_user_to_group",
@@ -504,7 +513,7 @@ def task_dc_add_group():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_add_group",
@@ -534,7 +543,7 @@ def task_dc_remove_group():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_remove_group",
@@ -566,7 +575,7 @@ def task_dc_update_file_share():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error": "share_name is required"}), 422
+        return jsonify({"error": ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_update_file_share",
@@ -634,12 +643,6 @@ def task_provision():
     """
     data = request.get_json() or {}
 
-    def _coerce_int(val):
-        try:
-            return int(val)
-        except (TypeError, ValueError):
-            return None
-
     logger.info("[API] Received /task/provision POST request")
     org_id = data.get("org_id")
 
@@ -669,20 +672,20 @@ def task_provision():
     # Check if the environment is already provisioned
     is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
     filter_with_status = dict(org_filter(org_id))
-    filter_with_status["status"] = "complete"
+    filter_with_status["status"] = {"$in": ["complete", "completed", "provisioning"]}
 
     provisioned = organizations.find_one(filter_with_status)
-    
+
     if provisioned and not is_testing:
         logger.warning("Provisioning already completed for the requested organization.")
         return jsonify({"error": "Environment already provisioned"}), 400
 
     _seed_workstations(org_id, workstation_count)
 
-    # Update MongoDB to mark the environment as provisioned
+    # Mark the environment as provisioning (the async job will set "completed" on success)
     organizations.update_one(
         org_filter(org_id),
-        {"$set": {"status": "complete"}},
+        {"$set": {"status": "provisioning"}},
         upsert=True
     )
 
@@ -897,7 +900,7 @@ def get_my_organization_metrics():
         return jsonify({"error": "org_id missing from token"}), 401
 
     # Collections for counting documents related to the organization
-    users_col = db_admin["users"]
+    users_col = db["users"]
     workstations_col = db_admin["workstations"]
     access_groups_col = db_admin["access_groups"]
     shares_col = db_admin["shares"]

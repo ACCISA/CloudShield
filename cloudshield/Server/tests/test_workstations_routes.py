@@ -67,34 +67,59 @@ class TestGetAvailableWorkstationsRoute:
 
 
 class TestGetWorkstationsRoute:
-    """Test GET /workstations route - parameter validation (lines 46-53)."""
+    """Test GET /workstations route - reads org_id from auth token (g.user)."""
 
-    def test_route_missing_org_id_returns_400(self, client):
-        """Test line 51: missing org_id parameter returns 400 error."""
-        response = client.get('/api/workstations')
+    def test_route_missing_org_id_returns_400(self, app):
+        """Test: missing org_id in auth token returns 400 error."""
+        from cloudshield.Server.routes.workstations import workstations_bp
+        no_org_app = Flask(__name__ + "_no_org")
+        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @no_org_app.before_request
+        def inject_user_no_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin"}
+
+        with no_org_app.test_client() as c:
+            response = c.get('/api/workstations')
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
 
-    def test_route_with_org_id_param_succeeds(self, client):
-        """Test line 47-49: route accepts org_id parameter."""
-        with patch('cloudshield.Server.routes.workstations.get_workstations') as mock_repo:
-            mock_repo.return_value = [{'id': 'ws-1'}]
-            response = client.get('/api/workstations?org_id=org-123')
+    def test_route_with_org_id_in_token_succeeds(self, client):
+        """Test: route returns 200 when auth token contains org_id."""
+        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
+            mock_collection = MagicMock()
+            mock_collection.find.return_value = []
+            mock_db.__getitem__.return_value = mock_collection
+            response = client.get('/api/workstations')
             assert response.status_code == 200
 
-    def test_route_with_empty_org_id_returns_error(self, client):
-        """Test line 50: empty org_id parameter is treated as missing."""
-        response = client.get('/api/workstations?org_id=')
+    def test_route_with_empty_org_id_returns_error(self, app):
+        """Test: empty org_id in auth token is treated as missing."""
+        from cloudshield.Server.routes.workstations import workstations_bp
+        empty_org_app = Flask(__name__ + "_empty_org")
+        empty_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @empty_org_app.before_request
+        def inject_user_empty_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin", "org_id": ""}
+
+        with empty_org_app.test_client() as c:
+            response = c.get('/api/workstations')
         assert response.status_code == 400
 
-    def test_route_org_id_passed_to_repo(self, client):
-        """Test line 49: org_id is passed to get_workstations function."""
-        with patch('cloudshield.Server.routes.workstations.get_workstations') as mock_repo:
-            mock_repo.return_value = []
-            response = client.get('/api/workstations?org_id=test-org')
-            assert mock_repo.called
-            assert 'test-org' in str(mock_repo.call_args)
+    def test_route_org_id_scopes_query(self, client):
+        """Test: org_id from token is used to scope the DB query."""
+        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
+            mock_collection = MagicMock()
+            mock_collection.find.return_value = []
+            mock_db.__getitem__.return_value = mock_collection
+            client.get('/api/workstations')
+            call_args = mock_collection.find.call_args
+            assert call_args is not None
+            assert 'test-org' in str(call_args)
 
 
 class TestCreateDefaultRoute:
@@ -470,16 +495,23 @@ class TestLineSpecificCoverage:
                 # Some falsy values might be accepted as strings
                 assert response.status_code in [200, 400, 500]
 
-    def test_line_50_get_workstations_org_id_falsy_check(self, client):
+    def test_line_50_get_workstations_org_id_falsy_check(self, app):
         """
-        Test line 50-51: if not org_id: return error
-        This triggers when org_id is None, empty string, or falsy value
+        Test: if not org_id in g.user: return 400 error
+        This triggers when org_id is None or empty string in the auth token.
         """
-        response_missing = client.get('/api/workstations')
+        from cloudshield.Server.routes.workstations import workstations_bp
+        no_org_app = Flask(__name__ + "_falsy_org")
+        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
+
+        @no_org_app.before_request
+        def inject_no_org():
+            from flask import g
+            g.user = {"id": "test-user", "role": "admin", "org_id": None}
+
+        with no_org_app.test_client() as c:
+            response_missing = c.get('/api/workstations')
         assert response_missing.status_code == 400
-        
-        response_empty = client.get('/api/workstations?org_id=')
-        assert response_empty.status_code == 400
 
     def test_line_70_create_default_validation_chain(self, client):
         """
@@ -530,3 +562,209 @@ class TestLineSpecificCoverage:
         """
         response_empty = client.get('/api/workstations/update?id=ws-123&status=')
         assert response_empty.status_code == 200  # Returns 200 with error json
+
+
+# ── New coverage: get_assigned_workstations, create_workstation, list_templates ──
+
+
+@pytest.fixture
+def mocked_app(monkeypatch):
+    """App fixture with db_admin and service_dispatcher mocked."""
+    from unittest.mock import MagicMock
+    import cloudshield.Server.routes.workstations as ws_mod
+
+    mock_db_admin = MagicMock()
+    mock_db = MagicMock()
+    monkeypatch.setattr(ws_mod, "db_admin", mock_db_admin)
+    monkeypatch.setattr(ws_mod, "db", mock_db)
+
+    class DummyJob:
+        id = "job-999"
+
+    monkeypatch.setattr(ws_mod, "service_dispatcher", lambda **kw: DummyJob())
+
+    from cloudshield.Server.routes.workstations import workstations_bp
+    from flask import Flask, g
+
+    app = Flask(__name__)
+    app.register_blueprint(workstations_bp, url_prefix="/api")
+
+    @app.before_request
+    def inject_admin():
+        g.user = {"id": "u1", "role": "admin", "org_id": "org-1", "email": "a@b.com"}
+
+    return app, mock_db_admin
+
+
+class TestGetAssignedWorkstations:
+    def test_admin_gets_all_org_workstations(self, mocked_app):
+        app, mock_db_admin = mocked_app
+        mock_col = MagicMock()
+        mock_col.find.return_value = [{"_id": "abc", "name": "ws1"}]
+        mock_db_admin.__getitem__.return_value = mock_col
+
+        with app.test_client() as c:
+            resp = c.get("/api/workstations/assigned")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["_id"] == "abc"
+
+    def test_non_admin_scopes_to_user(self, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+        mock_db_admin = MagicMock()
+        mock_db = MagicMock()
+        monkeypatch.setattr(ws_mod, "db_admin", mock_db_admin)
+        monkeypatch.setattr(ws_mod, "db", mock_db)
+
+        mock_col = MagicMock()
+        mock_col.find.return_value = []
+        mock_db_admin.__getitem__.return_value = mock_col
+
+        from cloudshield.Server.routes.workstations import workstations_bp
+        from flask import Flask, g
+
+        app = Flask(__name__ + "_nonadmin")
+        app.register_blueprint(workstations_bp, url_prefix="/api")
+
+        @app.before_request
+        def inject_user():
+            g.user = {"id": "u2", "role": "user", "org_id": "org-1", "email": "u@b.com"}
+
+        with app.test_client() as c:
+            resp = c.get("/api/workstations/assigned")
+        assert resp.status_code == 200
+        query_arg = mock_col.find.call_args[0][0]
+        assert "$or" in query_arg
+
+
+class TestCreateWorkstation:
+    def test_non_admin_forbidden(self, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
+        monkeypatch.setattr(ws_mod, "db", MagicMock())
+
+        from cloudshield.Server.routes.workstations import workstations_bp
+        from flask import Flask, g
+
+        app = Flask(__name__ + "_forbid")
+        app.register_blueprint(workstations_bp, url_prefix="/api")
+
+        @app.before_request
+        def inject_user():
+            g.user = {"id": "u3", "role": "user", "org_id": "org-1"}
+
+        with app.test_client() as c:
+            resp = c.post("/api/workstations", json={"name": "ws"})
+        assert resp.status_code == 403
+
+    def test_missing_org_id_returns_400(self, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
+        monkeypatch.setattr(ws_mod, "db", MagicMock())
+
+        from cloudshield.Server.routes.workstations import workstations_bp
+        from flask import Flask, g
+
+        app = Flask(__name__ + "_noorg")
+        app.register_blueprint(workstations_bp, url_prefix="/api")
+
+        @app.before_request
+        def inject_admin_no_org():
+            g.user = {"id": "u4", "role": "admin", "org_id": None}
+
+        with app.test_client() as c:
+            resp = c.post("/api/workstations", json={"name": "ws"})
+        assert resp.status_code == 400
+
+    def test_creates_workstation_returns_201(self, mocked_app):
+        app, mock_db_admin = mocked_app
+        mock_col = MagicMock()
+        mock_col.insert_one.return_value = MagicMock(inserted_id="ws-id-1")
+        mock_db_admin.__getitem__.return_value = mock_col
+
+        with app.test_client() as c:
+            resp = c.post("/api/workstations", json={"name": "My WS"})
+        assert resp.status_code == 201
+        assert "id" in resp.get_json()
+
+    def test_creates_workstation_with_groups(self, mocked_app):
+        app, mock_db_admin = mocked_app
+        mock_ws_col = MagicMock()
+        mock_ws_col.insert_one.return_value = MagicMock(inserted_id="ws-id-2")
+        mock_ag_col = MagicMock()
+        mock_db_admin.__getitem__.side_effect = lambda k: mock_ws_col if k == "workstations" else mock_ag_col
+
+        with app.test_client() as c:
+            resp = c.post("/api/workstations", json={
+                "name": "My WS",
+                "groups": ["507f1f77bcf86cd799439011"],
+            })
+        assert resp.status_code == 201
+        mock_ag_col.update_many.assert_called_once()
+
+
+class TestListTemplates:
+    def test_missing_org_id_returns_400(self, mocked_app):
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.get("/api/workstations/templates")
+        assert resp.status_code == 400
+
+    def test_returns_templates(self, mocked_app, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+        monkeypatch.setattr(
+            ws_mod, "get_workstation_templates",
+            lambda db, org_id: [{"id": "tpl-1", "name": "Default"}],
+        )
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.get("/api/workstations/templates?org_id=org-1")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data["templates"]) == 1
+
+
+class TestCreateDefaultExceptionPath:
+    """Test POST /workstations/templates exception path (lines 163-165)."""
+
+    def test_insert_template_failure_returns_500(self, mocked_app, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+
+        monkeypatch.setattr(
+            ws_mod,
+            "insert_workstation_template",
+            MagicMock(side_effect=Exception("DB error")),
+        )
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.post("/api/workstations/templates", json={
+                "org_id": "org-1",
+                "name": "ws",
+                "description": "test",
+                "software": ["app1"],
+                "access_groups": ["grp1"],
+                "members": [],
+            })
+        assert resp.status_code == 500
+        data = resp.get_json()
+        assert "error" in data
+        assert data["error"] == "Failed to create workstation template"
+
+
+class TestStartAndUpdateRoutes:
+    def test_start_success_returns_job_id(self, mocked_app):
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.post("/api/workstations/start", json={
+                "org_id": "org-1", "template_id": "tpl-1"
+            })
+        assert resp.status_code == 202
+        assert resp.get_json()["job_id"] == "job-999"
+
+    def test_update_success_returns_job_id(self, mocked_app):
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.get("/api/workstations/update?id=ws-1&status=ready")
+        assert resp.status_code == 202
+        assert resp.get_json()["job_id"] == "job-999"

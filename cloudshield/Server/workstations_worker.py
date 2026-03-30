@@ -9,7 +9,7 @@ UTC = timezone.utc
 
 try:
     from rq import SimpleWorker
-except Exception:
+except ImportError:
     SimpleWorker = None  # type: ignore
 
 if __name__ == "__main__":

@@ -1,0 +1,379 @@
+/* ─────────────────────────────────────────────
+   Shared styles for Login and Signup pages
+   ───────────────────────────────────────────── */
+
+/* ── Page shells ── */
+.auth-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.signup-page {
+  min-height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 40px;
+  box-sizing: border-box;
+}
+
+.signup-inner {
+  display: flex;
+  flex-direction: row;
+  gap: 44px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1260px;
+}
+
+.signup-form-col {
+  flex: 0 0 400px;
+}
+
+.signup-plans-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.signup-plans-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 18px;
+}
+
+.signup-plans-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+/* ── Card shell (login + signup form) ── */
+.auth-card {
+  width: 100%;
+  background-color: var(--bg-secondary);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 36px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.auth-card--login {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.auth-card__logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  object-fit: contain;
+  margin-bottom: 18px;
+}
+
+.auth-card__title {
+  margin: 0 0 6px;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.auth-card__subtitle {
+  margin: 0 0 26px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-card__body {
+  width: 100%;
+}
+
+/* ── Labels ── */
+.auth-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* ── Input wrapper ── */
+.auth-input-wrap {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+/* ── Text inputs ── */
+.auth-input {
+  width: 100%;
+  padding: 10px 13px;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.auth-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+.auth-input:hover {
+  border-color: var(--input-border);
+}
+
+.auth-input:focus {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 3px var(--lightOverlay);
+}
+
+.auth-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-end {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+/* ── Password label row ── */
+.auth-password-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.auth-show-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.auth-show-toggle:hover {
+  color: var(--text-primary);
+}
+
+/* ── Primary button ── */
+.auth-btn {
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--bg-primary);
+  background-color: var(--text-primary);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    transform 0.1s ease;
+  font-family: inherit;
+  margin-top: 6px;
+  letter-spacing: 0.01em;
+}
+
+.auth-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.auth-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.auth-btn:disabled {
+  background-color: var(--action-hover);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+/* ── Error banner ── */
+.auth-error {
+  width: 100%;
+  padding: 10px 13px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.28);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  line-height: 1.4;
+}
+
+/* ── Field-level validation error ── */
+.auth-field-error {
+  color: #f87171;
+  font-size: 0.8rem;
+  margin: -8px 0 10px;
+  line-height: 1.3;
+}
+
+/* ── Nav link ("Already have an account?") ── */
+.auth-nav-link {
+  display: block;
+  width: 100%;
+  margin: 18px 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border);
+  letter-spacing: 0.01em;
+}
+
+.auth-nav-link:hover {
+  color: var(--text-primary);
+  text-decoration-color: var(--text-primary);
+}
+
+/* ── Dev bypass banner (signup only) ── */
+.signup-bypass-banner {
+  width: 100%;
+  padding: 9px 13px;
+  background-color: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.77rem;
+  font-weight: 600;
+  color: #facc15;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+}
+
+/* ── Plan card ── */
+.plan-card {
+  flex: 1 1 240px;
+  max-width: 320px;
+  background-color: var(--bg-secondary);
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  padding: 20px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.plan-card:hover {
+  background-color: var(--bg-tertiary, #161616);
+  border-color: var(--border);
+}
+
+.plan-card:focus-visible {
+  box-shadow: 0 0 0 3px var(--lightOverlay);
+}
+
+.plan-card.selected {
+  border: 2px solid #4ade80;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.22);
+}
+
+.plan-card__price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.plan-card__period {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.plan-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-card__tag {
+  background-color: #4ade80;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.plan-card__desc {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+
+.plan-card__divider {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 0 0 12px;
+}
+
+.plan-card__features-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 7px;
+}
+
+.plan-card__feature {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
+}
+
+.plan-card__check {
+  color: #4ade80;
+  flex-shrink: 0;
+}

@@ -1,10 +1,13 @@
 """Read-only user endpoints with RBAC and view-based data filtering."""
 from importlib import import_module
 
+import logging
 from flask import Blueprint, request, jsonify, g
 from bson import ObjectId
 from bson.errors import InvalidId
-from cloudshield.Server.utils.database import users_admin, users_public 
+from cloudshield.Server.utils.database import users_admin, users_public
+
+logger = logging.getLogger("cloudshield.routes.users_read")
 
 users_read_bp = Blueprint("users_read", __name__)
 
@@ -176,11 +179,7 @@ def get_user(user_id: str):
 
     try:
         oid = ObjectId(user_id)
-        print(oid)
-        print(ObjectId)
-        print(type(ObjectId))
-        print(type(oid))
-        print(user_id)
+        logger.debug("Resolved user_id %r to ObjectId %s", user_id, oid)
     except (ValueError, TypeError, InvalidId):
         return jsonify({"error": "Not found"}), 404
 

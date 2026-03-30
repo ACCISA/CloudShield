@@ -2,8 +2,10 @@
  * Shared utilities for modals (Groups, Employees, Workstations, etc.)
  */
 
+import { compressImage } from "../lib/compressImage.js";
 import { listUsers } from "../services/usersApi.js";
 import { apiGet } from "../api/client";
+import { MOCK_SOFTWARE } from "../data/mockSoftware.js";
 
 /**
  * Resolves the organization ID from currentUser or localStorage
@@ -110,7 +112,12 @@ export const fetchGroups = async (
   setAllGroups = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetGroups(setAllGroups, openToast, "Missing org_id for groups fetch");
+  if (!orgId)
+    return _resetGroups(
+      setAllGroups,
+      openToast,
+      "Missing org_id for groups fetch",
+    );
   if (!accessToken) return _resetGroups(setAllGroups);
 
   try {
@@ -134,7 +141,9 @@ export const fetchGroups = async (
     }
 
     const data = await res.json();
-    const groups = Array.isArray(data) ? data : data.access_groups || data.groups || [];
+    const groups = Array.isArray(data)
+      ? data
+      : data.access_groups || data.groups || [];
 
     const normalized = groups.map((g) => ({
       id: String(g.id || g._id || ""),
@@ -242,7 +251,12 @@ export const fetchWorkstations = async (
   setAllWorkstations = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetWorkstations(setAllWorkstations, openToast, "Missing org_id for workstations fetch");
+  if (!orgId)
+    return _resetWorkstations(
+      setAllWorkstations,
+      openToast,
+      "Missing org_id for workstations fetch",
+    );
   if (!accessToken) return _resetWorkstations(setAllWorkstations);
 
   try {
@@ -254,22 +268,12 @@ export const fetchWorkstations = async (
       ]),
     );
 
-    const res = await apiGet(
-      `/workstations?org_id=${encodeURIComponent(orgId)}`,
-    );
-
-    if (!res.ok) {
-      if (res.status === 404 || res.status === 405) {
-        console.warn(`Workstations API not available (${res.status})`);
-      }
-      return _resetWorkstations(setAllWorkstations);
-    }
+    const res = await apiGet(`/workstations?org_id=${encodeURIComponent(orgId)}`);
 
     const data = await res.json();
     const workstations = Array.isArray(data)
       ? data
       : data.items || data.workstations || [];
-
 
     const normalized = workstations.map((w) => ({
       members: Array.isArray(w.members) ? w.members : [],
@@ -292,10 +296,49 @@ export const fetchWorkstations = async (
       currentUser: (Array.isArray(w.members) ? w.members : [])
         .map((memberId) => userMap.get(String(memberId)))
         .find(Boolean) || null,
-      online: w.online || w.status === "online" || false,
+      online: w.online || ["online", "active", "connected"].includes((w.status || "").toLowerCase()) || false,
       ipAddress: w.ip_address || w.ipAddress || "",
       org_id: w.org_id,
+      _isVm: true,
     }));
+
+    // Merge in templates that are still building (is_ready=false).
+    // Fetch independently so a failure here doesn't break the main workstations list.
+    try {
+      const templatesRes = await apiGet(
+        `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
+      );
+      const tData = await templatesRes.json();
+      const templates = Array.isArray(tData)
+        ? tData
+        : tData.templates || tData.items || [];
+      const buildingTemplates = templates
+        .filter((t) => t.is_ready === false)
+        .map((t) => ({
+          id: String(t._id || t.id || ""),
+          _id: String(t._id || t.id || ""),
+          name: t.name || "Untitled Template",
+          strength: t.description || "",
+          software: Array.isArray(t.software) ? t.software : [],
+          groups: Array.isArray(t.access_groups) ? t.access_groups : [],
+          members: Array.isArray(t.members) ? t.members : [],
+          users: [],
+          usersCount: Array.isArray(t.members) ? t.members.length : 0,
+          currentUser: null,
+          status: "building",
+          online: false,
+          ipAddress: "",
+          org_id: t.org_id,
+          _isTemplate: true,
+        }));
+
+      // Avoid duplicating: skip templates whose ID already appears in VM rows.
+      const vmIds = new Set(normalized.map((w) => w.id));
+      const newTemplates = buildingTemplates.filter((t) => !vmIds.has(t.id));
+      normalized.unshift(...newTemplates);
+    } catch (e) {
+      console.warn("Could not fetch workstation templates:", e.message);
+    }
 
     setAllWorkstations?.(normalized);
     return normalized;
@@ -314,47 +357,61 @@ const _resetSoftware = (setAllSoftware, openToast, toastMsg) => {
   return [];
 };
 
+const _normalizeSoftware = (software) =>
+  software.map((s) => ({
+    id: String(s.id || s._id || ""),
+    _id: String(s._id || s.id || ""),
+    name: s.name || "Untitled Software",
+    version: s.version || "",
+    vendor: s.vendor || "",
+    picture: s.picture || s.image || "",
+    category: s.category || s.vendor || "",
+    icon: s.icon,
+  }));
+
+const _useMockSoftware = (setAllSoftware) => {
+  const normalized = _normalizeSoftware(MOCK_SOFTWARE);
+  setAllSoftware?.(normalized);
+  return normalized;
+};
+
 export const fetchSoftware = async (
   orgId,
   accessToken,
   setAllSoftware = null,
   openToast = null,
 ) => {
-  if (!orgId) return _resetSoftware(setAllSoftware, openToast, "Missing org_id for software fetch");
+  if (!orgId)
+    return _resetSoftware(
+      setAllSoftware,
+      openToast,
+      "Missing org_id for software fetch",
+    );
   if (!accessToken) return _resetSoftware(setAllSoftware);
 
   try {
-
-    const res = await apiGet(
-      `/software?org_id=${encodeURIComponent(orgId)}`,
-      {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+    const res = await apiGet(`/software?org_id=${encodeURIComponent(orgId)}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-    );
+    });
 
-    if (!res.ok) return _resetSoftware(setAllSoftware);
+    if (!res.ok) return _useMockSoftware(setAllSoftware);
 
     const data = await res.json();
     const software = Array.isArray(data) ? data : data.software || [];
 
-    const normalized = software.map((s) => ({
-      id: String(s.id || s._id || ""),
-      _id: String(s._id || s.id || ""),
-      name: s.name || "Untitled Software",
-      version: s.version || "",
-      vendor: s.vendor || "",
-    }));
+    if (!software.length) return _useMockSoftware(setAllSoftware);
+
+    const normalized = _normalizeSoftware(software);
 
     setAllSoftware?.(normalized);
     return normalized;
   } catch (e) {
     console.error("Error fetching software:", e);
-    openToast?.(e?.message || "Failed to load software");
-    return _resetSoftware(setAllSoftware);
+    return _useMockSoftware(setAllSoftware);
   }
 };
 
@@ -371,16 +428,23 @@ export const fetchSoftware = async (
 export const createImageUploadHandler = (
   setFormData,
   fieldName = "profileImage",
+  compressOptions = {},
 ) => {
-  return (e) => {
+  return async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file, compressOptions);
+      setFormData((prev) => ({ ...prev, [fieldName]: dataUrl }));
+    } catch {
+      // Fallback: read as-is if compression fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 };
 

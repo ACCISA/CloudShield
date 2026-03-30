@@ -1,13 +1,16 @@
 from __future__ import annotations
+import logging
 from typing import Iterable, List, Dict, Any
 from models import EC2Instance
+
+logger = logging.getLogger("cloudshield.adapters.terraform_to_models")
 
 def map_metadata_to_ec2_instances(metadata: Iterable[Dict[str, Any]]) -> List[EC2Instance]:
     """
     Transforms provisioner metadata (dicts) --> domain EC2Instance models.
     Centralizes field mapping for reuse.
     """
-    print(metadata)
+    logger.debug("map_metadata_to_ec2_instances input: %s", metadata)
     assets: List[EC2Instance] = []
     for asset in metadata:
         assets.append(

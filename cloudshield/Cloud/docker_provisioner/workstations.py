@@ -1,10 +1,11 @@
 import os
 import uuid
 import socket
+import subprocess
+import tempfile
 import time
 import shutil
 import random
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from python_on_whales import DockerClient
@@ -46,10 +47,6 @@ def copy_image(org_id, template_id, vm_path, job = None, updater = None, logger 
 
     template_path = template_vm_path / org_id / template_id
 
-    failed_status = {
-            "status":False,
-            "reason":""
-    }
 
     files = [
         (str(template_path / 'data.img'), str(vm_path / 'data.img')),
@@ -100,24 +97,31 @@ def set_workstation_update_id(org_id, template_id, update_id, logger):
 
 def create_auto_configure_scripts(variables: dict, org_id, template_id, server_logger):
     """
-    Reads all .ps1 files in a folder and replaces variable placeholders
-    with values provided in the variables dictionary.
+    Reads all .ps1 files in a folder (and helpers/ subfolder) and replaces
+    variable placeholders with values provided in the variables dictionary.
     """
     source_folder = storage_path / "software" / org_id / template_id
     server_logger.info(f"OEM source folder {str(source_folder)}")
+
+    def _substitute_file(path: Path):
+        with open(str(path), 'r', encoding='utf-8') as file:
+            content = file.read()
+        new_content = content
+        for key, value in variables.items():
+            new_content = new_content.replace(key.upper(), str(value))
+        server_logger.info(f"Update OEM script {path}")
+        with open(str(path), 'w', encoding='utf-8') as file:
+            file.write(new_content)
+
     for filename in os.listdir(str(source_folder)):
         if filename.endswith(".ps1"):
-            source_path = source_folder / filename
+            _substitute_file(source_folder / filename)
 
-            with open(str(source_path), 'r', encoding='utf-8') as file:
-                content = file.read()
-
-            new_content = content
-            for key, value in variables.items():
-                new_content = new_content.replace(key.upper(), str(value))
-            server_logger.info(f"Update OEM script {source_path}")
-            with open(str(source_path), 'w', encoding='utf-8') as file:
-                file.write(new_content)
+    helpers_folder = source_folder / "helpers"
+    if helpers_folder.is_dir():
+        for filename in os.listdir(str(helpers_folder)):
+            if filename.endswith(".ps1"):
+                _substitute_file(helpers_folder / filename)
 
 
 
@@ -161,8 +165,64 @@ def prepare_software(org_id, templated_id, software,oem_path,logger):
     import_oem(oem_path)
     for soft in software:
         logger.info(f"Importing software (software_id={soft}")
-        import_software(org_id, template_id, soft)
+        import_software(org_id, templated_id, soft)
 
+
+
+def _efi_partition_offset(img: str) -> int | None:
+    """Return the byte offset of the EFI System Partition in a disk image, or None."""
+    result = subprocess.run(
+        ["fdisk", "-l", "-o", "Start,Type", img],
+        capture_output=True, text=True
+    )
+    for line in result.stdout.splitlines():
+        if "EFI" not in line:
+            continue
+        try:
+            return int(line.split()[0]) * 512
+        except (ValueError, IndexError):
+            continue
+    return None
+
+
+def _inject_startup_nsh(disk_image_path: Path, server_logger):
+    """
+    Writes EFI/startup.nsh to the EFI System Partition of the disk image.
+    This makes OVMF auto-boot Windows even when no NVRAM boot entry is registered.
+    Uses mtools to write directly into the FAT32 partition without mounting.
+    """
+    try:
+        img = str(disk_image_path)
+        if not os.path.exists(img):
+            server_logger.warning(f"_inject_startup_nsh: disk image not found at {img}")
+            return
+
+        # Find the EFI partition (partition 1) byte offset via fdisk
+        offset_bytes = _efi_partition_offset(img) or 2048 * 512
+        if offset_bytes == 2048 * 512:
+            server_logger.warning("_inject_startup_nsh: could not parse EFI partition offset, using default 1048576")
+
+        startup_content = b"\\EFI\\Microsoft\\Boot\\bootmgfw.efi\r\n"
+        mtools_img = f"{img}@@{offset_bytes}"
+
+        with tempfile.NamedTemporaryFile(suffix=".nsh", delete=False) as tmp:
+            tmp.write(startup_content)
+            tmp_path = tmp.name
+
+        try:
+            result = subprocess.run(
+                ["mcopy", "-i", mtools_img, "-o", tmp_path, "::/startup.nsh"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                server_logger.info("_inject_startup_nsh: startup.nsh written to EFI partition")
+            else:
+                server_logger.warning(f"_inject_startup_nsh: mcopy failed: {result.stderr}")
+        finally:
+            os.unlink(tmp_path)
+
+    except Exception as e:
+        server_logger.warning(f"_inject_startup_nsh: non-fatal error: {e}")
 
 
 def provision_default_workstation(org_data, template_id, software, job = None, updater = None, logger = None):
@@ -170,7 +230,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     global PROVISIONING_STATE
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     org_id = org_data["id"]
 
@@ -184,11 +245,29 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
 
     prepare_software(org_id, template_id, software,oem_path, logger)
     
+    # Resolve the ThreatDetection container IP on the org network dynamically
+    td_ip = os.getenv("THREAT_DETECTION_IP", "")
+    if not td_ip:
+        try:
+            td_containers = docker_whales.ps(filters={"name": f"threat-detection-{org_id}"})
+            if td_containers:
+                org_net = f"{org_id}-net"
+                td_ip = td_containers[0].network_settings.networks.get(org_net, {}).ip_address or ""
+        except Exception as _e:
+            logger.warning(f"Could not resolve ThreatDetection IP dynamically: {_e}")
+    if not td_ip:
+        td_ip = "172.28.0.10"
+        logger.warning(f"Using fallback THREAT_DETECTION_IP={td_ip}")
+    else:
+        logger.info(f"Resolved THREAT_DETECTION_IP={td_ip}")
+
     create_auto_configure_scripts({
         "domain_name":org_data["realm_name"].lower(),
         "admin_user":"administrator",
         "admin_pass":org_data["dc_admin_password"],
-        "samba_ip":org_data["samba_ip"]}, org_id, template_id, logger) 
+        "samba_ip":org_data["samba_ip"],
+        "threat_detection_ip":td_ip,
+    }, org_id, template_id, logger)
 
     #set_workstation_update_id(org_id, template_org_id, template_id, update_id, logger)
     
@@ -198,9 +277,14 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "templates" / org_id / template_id
     host_oem_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "software" / org_id / template_id
     host_iso_path = Path(os.getenv("WINDOWS_ISO_PATH"))
-    
+
     logger.info(f"mounting storage path {str(host_vm_storage_path/'storage')}")
     logger.info(f"mounting oem path {str(oem_path)} from {str(host_oem_storage_path)}")
+
+    # Build the image separately first so compose.run(detach=True) only outputs the
+    # container ID — if the build happens inside compose.run, its output pollutes stdout
+    # and python-on-whales incorrectly uses the build log as the container ID.
+    docker.compose.build(services=["workstation"])
 
     container_ws = docker.compose.run(
             service="workstation",
@@ -210,7 +294,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
                 (str(host_iso_path), "/boot.iso", "rw")
             ],
             detach=True,
-            tty=False
+            tty=False,
+            build=False
     )
     
     container_ws_id = container_ws.id
@@ -223,9 +308,12 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
 
     updater(job, "initializing image")
 
-    wait_for_rdp(container_ws_ip, logger=logger)
-    
-    docker.kill(container_ws_id)
+    wait_for_rdp(container_ws_ip, timeout_minutes=90, logger=logger)
+
+    docker.stop(container_ws_id)
+    docker.remove(container_ws_id)
+
+    _inject_startup_nsh(template_vm_path / org_id / template_id / "data.img", logger)
 
     updater(job, "workstation image created")
 
@@ -253,11 +341,55 @@ networks:
     override_path.write_text(override_yaml, encoding="utf-8")
 
 
+def _register_workstation_agent(org_id: str, container_id: str, agent_ip: str, server_logger):
+    """
+    Upsert this workstation's agent entry into agents.json and sync it to
+    the running ThreatDetection container so the agent can connect via gRPC.
+    """
+    try:
+        import json as _json
+        agents_file = storage_path / org_id / "td_agents" / "agents.json"
+        agent_id = "*"  # Accept any Windows hostname from this container IP
+
+        # Load existing payload
+        try:
+            payload = _json.loads(agents_file.read_text(encoding="utf-8"))
+        except Exception:
+            payload = {"agents": []}
+
+        agents = payload.setdefault("agents", [])
+
+        # Upsert: replace existing entry for same agent_id/ip or append
+        existing = next((a for a in agents if a.get("agent_id") == agent_id or a.get("ip") == agent_ip), None)
+        if existing:
+            existing["agent_id"] = agent_id
+            existing["ip"] = agent_ip
+            existing["hostname"] = f"{org_id}-workstation"
+        else:
+            agents.append({"agent_id": agent_id, "ip": agent_ip, "hostname": f"{org_id}-workstation"})
+
+        agents_file.write_text(_json.dumps(payload, indent=4), encoding="utf-8")
+        server_logger.info(f"Registered agent {agent_id} ({agent_ip}) in agents.json")
+
+        # Sync to the running ThreatDetection container
+        td_name = f"threat-detection-{org_id}"
+        td_containers = docker_whales.ps(filters={"name": td_name})
+        for td in td_containers:
+            dest = f"{td.id}:/app/cloudshield/ThreatDetection/org_agents/agents.json"
+            try:
+                docker_whales.copy(str(agents_file), dest)
+                server_logger.info(f"Synced agents.json to {td_name}")
+            except Exception as e:
+                server_logger.warning(f"Could not sync agents.json to {td_name}: {e}")
+    except Exception as e:
+        server_logger.warning(f"_register_workstation_agent non-fatal error: {e}")
+
 
 def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = None, logger = None):
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     vm_path = Path("/data/workstations/") / org_id / vm_id
     vm_path.mkdir(parents=True, exist_ok=True)
@@ -302,17 +434,21 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
 
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
 
+    org_docker.compose.build(services=["workstation"])
     container_ws = org_docker.compose.run(
             service="workstation",
             command=["skip"],
             name=name,
             volumes=[(str(host_vm_storage_path), "/storage", "rw")],
             detach=True,
-            tty=False
+            tty=False,
+            build=False
     )
 
-    container_ws_id = container_ws.id
     container_ws_ip = container_ws.network_settings.networks[external_network_name].ip_address
+
+    # Register this workstation's agent with the ThreatDetection allowlist
+    _register_workstation_agent(org_id, container_ws.id, container_ws_ip, logger)
 
     updater(job, "waiting for workstation startup completion")
 
@@ -331,7 +467,8 @@ def provision_update(workstation_id, status, job = None, updater = None, logger 
     global PROVISIONING_STATE
 
     if updater is None:
-        updater = lambda *args, **kwargs: None
+        def updater(*args, **kwargs):
+            return None
 
     if status == 1:
         container_id = PROVISIONING_STATE.get(workstation_id)

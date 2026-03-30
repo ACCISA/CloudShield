@@ -1,13 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { Box, Typography, TextField, Button, Avatar, Divider, IconButton } from "@mui/material";
+import { compressImage } from "../../lib/compressImage.js";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Avatar,
+  Divider,
+  IconButton,
+} from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
 const SectionLabel = ({ title, subtitle, themeColors }) => (
   <Box sx={{ width: 260, flexShrink: 0 }}>
-    <Typography sx={{ color: themeColors.text, fontWeight: 600, fontSize: "0.95rem" }}>{title}</Typography>
+    <Typography
+      sx={{ color: themeColors.text, fontWeight: 600, fontSize: "0.95rem" }}
+    >
+      {title}
+    </Typography>
     {subtitle && (
-      <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.8rem", mt: 0.5, lineHeight: 1.4 }}>
+      <Typography
+        sx={{
+          color: themeColors.textSecondary,
+          fontSize: "0.8rem",
+          mt: 0.5,
+          lineHeight: 1.4,
+        }}
+      >
         {subtitle}
       </Typography>
     )}
@@ -48,12 +68,20 @@ export default function BasicInfoTab({ userData, onSave }) {
     }
   }, [userData]);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setProfileImage(ev.target.result);
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file, {
+        maxWidth: 256,
+        maxHeight: 256,
+      });
+      setProfileImage(dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => setProfileImage(ev.target.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   const validate = () => {
@@ -69,7 +97,10 @@ export default function BasicInfoTab({ userData, onSave }) {
 
   const handleSave = async () => {
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
     setErrors({});
     setSaving(true);
 
@@ -81,12 +112,13 @@ export default function BasicInfoTab({ userData, onSave }) {
     if (newFullName !== userData?.full_name) payload.full_name = newFullName;
     if (newEmail !== userData?.email) payload.email = newEmail;
     if (newPassword) payload.password = newPassword;
-    if (profileImage && profileImage !== userData?.profile_image) payload.profile_image = profileImage;
+    if (profileImage && profileImage !== userData?.profile_image)
+      payload.profile_image = profileImage;
 
     // If nothing changed and no password is set, just return
     if (Object.keys(payload).length === 0) {
-        setSaving(false);
-        return;
+      setSaving(false);
+      return;
     }
 
     await onSave(payload);
@@ -97,10 +129,19 @@ export default function BasicInfoTab({ userData, onSave }) {
 
   return (
     <Box>
-      <Typography sx={{ color: themeColors.text, fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
+      <Typography
+        sx={{
+          color: themeColors.text,
+          fontWeight: 700,
+          fontSize: "1.1rem",
+          mb: 0.5,
+        }}
+      >
         Basic Info
       </Typography>
-      <Typography sx={{ color: themeColors.textSecondary, fontSize: "0.85rem", mb: 3 }}>
+      <Typography
+        sx={{ color: themeColors.textSecondary, fontSize: "0.85rem", mb: 3 }}
+      >
         Take a look at your personal information
       </Typography>
 
@@ -109,14 +150,34 @@ export default function BasicInfoTab({ userData, onSave }) {
       {/* Profile Picture and Name Side by Side */}
       <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4, gap: 4 }}>
         {/* Profile Picture */}
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0 }}>
-          <Typography sx={{ color: themeColors.text, fontWeight: 600, fontSize: "0.9rem", mb: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 1,
+            flexShrink: 0,
+          }}
+        >
+          <Typography
+            sx={{
+              color: themeColors.text,
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              mb: 1,
+            }}
+          >
             Profile picture
           </Typography>
           <Box sx={{ position: "relative" }}>
             <Avatar
               src={profileImage || undefined}
-              sx={{ width: 80, height: 80, backgroundColor: themeColors.bgTertiary, fontSize: "1.5rem" }}
+              sx={{
+                width: 80,
+                height: 80,
+                backgroundColor: themeColors.bgTertiary,
+                fontSize: "1.5rem",
+              }}
             >
               {!profileImage && (fullName?.[0] || "U").toUpperCase()}
             </Avatar>
@@ -133,9 +194,17 @@ export default function BasicInfoTab({ userData, onSave }) {
               }}
               size="small"
             >
-              <EditOutlinedIcon sx={{ fontSize: "0.85rem", color: themeColors.text }} />
+              <EditOutlinedIcon
+                sx={{ fontSize: "0.85rem", color: themeColors.text }}
+              />
             </IconButton>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleImageChange} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleImageChange}
+            />
           </Box>
         </Box>
 
@@ -225,7 +294,10 @@ export default function BasicInfoTab({ userData, onSave }) {
           textTransform: "none",
           padding: "10px 28px",
           "&:hover": { backgroundColor: themeColors.primaryHover },
-          "&:disabled": { backgroundColor: themeColors.bgTertiary, color: themeColors.textSecondary },
+          "&:disabled": {
+            backgroundColor: themeColors.bgTertiary,
+            color: themeColors.textSecondary,
+          },
         }}
       >
         {saving ? "Saving..." : "Save changes"}

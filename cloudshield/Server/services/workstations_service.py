@@ -4,26 +4,23 @@ from utils import get_logger, workstations_queue
 logger = get_logger("workstations")
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
     from cloudshield.Server.tasks import ws_create_default as _task # type: ignore
 
-    if requesting_user_id is None:
-        return _task(org_id, name, description, software, access_groups, members)
+    return _task(org_id, name, description, software, access_groups, members, requesting_user_id, template_id, vm_ids)
 
-    return _task(org_id, name, description, software, access_groups, members, requesting_user_id)
-
-def ws_start(org_id, template_id):
+def ws_start(org_id, template_id, vm_id=None):
     from cloudshield.Server.tasks import ws_start as _task # type: ignore
 
-    return _task(org_id, template_id)
+    return _task(org_id, template_id, vm_id)
 
 def ws_provision_update(workstation_id, status):
     from cloudshield.Server.tasks import ws_provision_update as _task # type: ignore
 
-    return _task
+    return _task(workstation_id, status)
 
-def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
-    enqueue_args = [
+def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
+    job = workstations_queue.enqueue(
         ws_create_default,
         org_id,
         name,
@@ -31,19 +28,20 @@ def enqueue_ws_create_default(org_id, name, description, software, access_groups
         software,
         access_groups,
         members,
-    ]
-    if requesting_user_id is not None:
-        enqueue_args.append(requesting_user_id)
-
-    job = workstations_queue.enqueue(*enqueue_args)
+        requesting_user_id,
+        template_id,
+        vm_ids,
+        job_timeout=-1,  # Windows install can take 60+ min; no timeout
+    )
     logger.info("Enqueued ws_create_default")
     return job
 
-def enqueue_ws_start(org_id, template_id):
+def enqueue_ws_start(org_id, template_id, vm_id=None):
     job = workstations_queue.enqueue(
             ws_start,
             org_id,
-            template_id
+            template_id,
+            vm_id,
     )
     logger.info("Enqueue ws_start")
     return job

@@ -9,6 +9,9 @@ set -Eeuo pipefail
 
 cd /run
 
+# Use E1000 NIC model instead of VirtIO for better Windows 11 compatibility
+: "${ADAPTER:="e1000"}"
+
 . start.sh      # Startup hook
 . utils.sh      # Load functions
 . reset.sh      # Initialize system

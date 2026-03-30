@@ -29,7 +29,7 @@ const RISK_CONFIG = {
   },
 };
 
-function SecurityAlertModal({ alert, isOpen, onClose }) {
+function SecurityAlertModal({ alert, isOpen, onClose, onMarkResolved, onMarkFalsePositive, onDownload }) {
   const themeColors = useThemeColors();
   const [isHoveredResolve, setIsHoveredResolve] = useState(false);
   
@@ -52,16 +52,16 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
   const riskConfig = RISK_CONFIG[alert.risk] || RISK_CONFIG.low;
 
   const handleMarkFalsePositive = () => {
-    console.log("Mark as false positive:", alert.id);
+    if (onMarkFalsePositive) onMarkFalsePositive();
     onClose();
   };
 
   const handleDownload = () => {
-    console.log("Download alert:", alert.id);
+    if (onDownload) onDownload();
   };
 
   const handleMarkResolved = () => {
-    console.log("Mark as resolved:", alert.id);
+    if (onMarkResolved) onMarkResolved();
     onClose();
   };
 
@@ -78,10 +78,9 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
         source: alert.source,
         description: alert.description
       };
-      
+
       const response = await explainSecurityAlert(payload);
-      
-      // Assuming apiPost automatically parses JSON and returns the body
+
       if (response && response.explanation) {
         setAiAnalysis(response.explanation);
       } else {
@@ -386,8 +385,7 @@ function SecurityAlertModal({ alert, isOpen, onClose }) {
           <div style={styles.descriptionSection}>
             <div style={styles.descriptionLabel}>DESCRIPTION</div>
             <p style={styles.descriptionText}>
-              {alert.description ||
-                "A potentially malicious file was uploaded to a group. The file executed a background process shortly after upload."}
+              {alert.description || "No description available."}
             </p>
             
             {/* AI Explanation Box */}

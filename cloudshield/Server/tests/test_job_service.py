@@ -394,3 +394,34 @@ def test_enqueue_org_welcome_email_if_ready_enqueues_and_sets_marker(monkeypatch
     assert calls["enqueue_args"] == ("org1", "admin-123")
     assert calls["update_doc"]["$set"]["welcome_email_enqueued"] is True
     assert "welcome_email_enqueued_at" in calls["update_doc"]["$set"]
+
+
+def test_get_job_status_with_no_metadata(monkeypatch):
+    """Test get_job_status when job.meta is empty."""
+    job = DummyJob(status="finished", result={"ok": True}, meta={})
+
+    def fake_fetch(job_id, connection):
+        return job
+
+    monkeypatch.setattr(job_service.Job, "fetch", fake_fetch)
+    payload, code = job_service.get_job_status("jid")
+    
+    assert code == 200
+    assert payload["status"] == "finished"
+    assert payload["result"]["ok"] is True
+
+
+def test_health_status_redis_up(monkeypatch):
+    """Test health check when Redis is healthy."""
+    ping_works = []
+
+    def fake_ping():
+        ping_works.append(True)
+        return True
+
+    monkeypatch.setattr(job_service, "redis_conn", types.SimpleNamespace(ping=fake_ping))
+    payload, code = job_service.health_status()
+
+    assert code == 200
+    assert payload["redis"] is True
+    assert len(ping_works) == 1

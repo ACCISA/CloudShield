@@ -57,53 +57,51 @@ describe("StatCard Component", () => {
     });
   });
 
-  describe("Gradients", () => {
-    test("applies custom gradient colors", () => {
+  describe("Background colors", () => {
+    test("applies custom card color", () => {
       const { container } = render(
         <StatCard
           title="Custom"
           value="99"
           gradientFrom="#ff0000"
           gradientTo="#00ff00"
-        />
+        />,
       );
       const box = container.firstChild;
       expect(box).toHaveStyle({
-        background: "linear-gradient(135deg, #ff0000 0%, #00ff00 100%)",
+        backgroundColor: "#ff0000",
       });
     });
 
-    test("applies default gradient colors when not provided", () => {
-      const { container } = render(
-        <StatCard title="Default" value="100" />
-      );
+    test("applies default card color when not provided", () => {
+      const { container } = render(<StatCard title="Default" value="100" />);
       const box = container.firstChild;
       expect(box).toHaveStyle({
-        background: "linear-gradient(135deg, #6a5acd 0%, #9f7aea 100%)",
+        backgroundColor: "#6a5acd",
       });
     });
 
-    test("applies both custom gradients", () => {
+    test("uses gradientFrom as flat background color", () => {
       const { container } = render(
         <StatCard
           title="Test"
           value="50"
           gradientFrom="#1a1a1a"
           gradientTo="#ffffff"
-        />
+        />,
       );
       const box = container.firstChild;
       expect(box).toHaveStyle({
-        background: "linear-gradient(135deg, #1a1a1a 0%, #ffffff 100%)",
+        backgroundColor: "#1a1a1a",
       });
     });
 
-    test("applies custom from gradient only", () => {
+    test("applies custom background color", () => {
       const { container } = render(
-        <StatCard title="Test" value="50" gradientFrom="#000000" />
+        <StatCard title="Test" value="50" gradientFrom="#000000" />,
       );
       const box = container.firstChild;
-      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #555555 0%, #bbbbbb 100%)" });
+      expect(box).toHaveStyle({ backgroundColor: "#000000" });
     });
   });
 
@@ -145,7 +143,7 @@ describe("StatCard Component", () => {
     test("button is keyboard accessible", () => {
       const handleAdd = jest.fn();
       const { container } = render(
-        <StatCard title="Files" value="250" onAdd={handleAdd} />
+        <StatCard title="Files" value="250" onAdd={handleAdd} />,
       );
       const button = container.querySelector("button");
       expect(button).toBeInTheDocument();
@@ -155,7 +153,7 @@ describe("StatCard Component", () => {
   describe("Loading States", () => {
     test("renders loading state", () => {
       const { container } = render(
-        <StatCard title="Files" value="250" loading={true} />
+        <StatCard title="Files" value="250" loading={true} />,
       );
       // Component should render loading indicator
       expect(container).toBeInTheDocument();
@@ -163,14 +161,14 @@ describe("StatCard Component", () => {
 
     test("loads are skeletons shown during loading", () => {
       const { container } = render(
-        <StatCard title="Loading" value="---" loading={true} />
+        <StatCard title="Loading" value="---" loading={true} />,
       );
       expect(container).toBeInTheDocument();
     });
 
     test("hides loading state when loading is false", () => {
       const { container } = render(
-        <StatCard title="Files" value="250" loading={false} />
+        <StatCard title="Files" value="250" loading={false} />,
       );
       expect(screen.getByText("Files")).toBeInTheDocument();
       expect(screen.getByText("250")).toBeInTheDocument();
@@ -178,7 +176,7 @@ describe("StatCard Component", () => {
 
     test("transitions from loading to loaded state", () => {
       const { rerender } = render(
-        <StatCard title="Files" value="250" loading={true} />
+        <StatCard title="Files" value="250" loading={true} />,
       );
 
       rerender(<StatCard title="Files" value="250" loading={false} />);
@@ -191,50 +189,28 @@ describe("StatCard Component", () => {
   describe("Error States", () => {
     test("renders error message when error prop provided", () => {
       render(
-        <StatCard
-          title="Cards"
-          value="250"
-          error="Failed to load data"
-        />
+        <StatCard title="Cards" value="250" error="Failed to load data" />,
       );
       expect(screen.getByText("Failed to load data")).toBeInTheDocument();
     });
 
     test("shows error message instead of value", () => {
-      render(
-        <StatCard
-          title="Cards"
-          value="250"
-          error="Connection error"
-        />
-      );
+      render(<StatCard title="Cards" value="250" error="Connection error" />);
       expect(screen.getByText("Connection error")).toBeInTheDocument();
     });
 
     test("handles empty error string", () => {
-      render(
-        <StatCard title="Cards" value="250" error="" />
-      );
+      render(<StatCard title="Cards" value="250" error="" />);
       expect(screen.getByText("250")).toBeInTheDocument();
     });
 
     test("displays different error messages", () => {
       const { rerender } = render(
-        <StatCard
-          title="Cards"
-          value="250"
-          error="Error 1"
-        />
+        <StatCard title="Cards" value="250" error="Error 1" />,
       );
       expect(screen.getByText("Error 1")).toBeInTheDocument();
 
-      rerender(
-        <StatCard
-          title="Cards"
-          value="250"
-          error="Error 2"
-        />
-      );
+      rerender(<StatCard title="Cards" value="250" error="Error 2" />);
       expect(screen.getByText("Error 2")).toBeInTheDocument();
       expect(screen.queryByText("Error 1")).not.toBeInTheDocument();
     });
@@ -251,9 +227,7 @@ describe("StatCard Component", () => {
 
   describe("Props Updates", () => {
     test("updates value when prop changes", () => {
-      const { rerender } = render(
-        <StatCard title="Users" value="100" />
-      );
+      const { rerender } = render(<StatCard title="Users" value="100" />);
       expect(screen.getByText("100")).toBeInTheDocument();
 
       rerender(<StatCard title="Users" value="150" />);
@@ -261,9 +235,7 @@ describe("StatCard Component", () => {
     });
 
     test("updates title when prop changes", () => {
-      const { rerender } = render(
-        <StatCard title="Old Title" value="100" />
-      );
+      const { rerender } = render(<StatCard title="Old Title" value="100" />);
       expect(screen.getByText("Old Title")).toBeInTheDocument();
 
       rerender(<StatCard title="New Title" value="100" />);
@@ -277,10 +249,10 @@ describe("StatCard Component", () => {
           value="100"
           gradientFrom="#ff0000"
           gradientTo="#00ff00"
-        />
+        />,
       );
       let box = container.firstChild;
-      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #ff0000 0%, #00ff00 100%)" });
+      expect(box).toHaveStyle({ backgroundColor: "#ff0000" });
 
       rerender(
         <StatCard
@@ -288,30 +260,24 @@ describe("StatCard Component", () => {
           value="100"
           gradientFrom="#0000ff"
           gradientTo="#ffff00"
-        />
+        />,
       );
       box = container.firstChild;
-      expect(box).toHaveStyle({ background: "linear-gradient(135deg, #0000ff 0%, #ffff00 100%)" });
+      expect(box).toHaveStyle({ backgroundColor: "#0000ff" });
     });
   });
 
   describe("Accessibility", () => {
     test("has accessible structure", () => {
       const { container } = render(
-        <StatCard title="Accessible Card" value="100" />
+        <StatCard title="Accessible Card" value="100" />,
       );
       expect(container).toBeInTheDocument();
     });
 
     test("add button is accessible", () => {
       const handleAdd = jest.fn();
-      render(
-        <StatCard
-          title="Card"
-          value="100"
-          onAdd={handleAdd}
-        />
-      );
+      render(<StatCard title="Card" value="100" onAdd={handleAdd} />);
       const button = screen.getByRole("button");
       expect(button).toBeInTheDocument();
     });
@@ -323,7 +289,7 @@ describe("StatCard Component", () => {
           value="100"
           gradientFrom="#000000"
           gradientTo="#ffffff"
-        />
+        />,
       );
       expect(screen.getByText("High Contrast")).toBeInTheDocument();
     });
@@ -331,73 +297,39 @@ describe("StatCard Component", () => {
 
   describe("Edge Cases", () => {
     test("handles very large numbers", () => {
-      render(
-        <StatCard
-          title="Big Numbers"
-          value="999999999999"
-        />
-      );
+      render(<StatCard title="Big Numbers" value="999999999999" />);
       expect(screen.getByText("999999999999")).toBeInTheDocument();
     });
 
     test("handles special characters in title", () => {
-      render(
-        <StatCard
-          title="Title @#$%^&*()"
-          value="100"
-        />
-      );
+      render(<StatCard title="Title @#$%^&*()" value="100" />);
       expect(screen.getByText("Title @#$%^&*()")).toBeInTheDocument();
     });
 
     test("handles special characters in value", () => {
-      render(
-        <StatCard
-          title="Special Value"
-          value="$99.99 USD"
-        />
-      );
+      render(<StatCard title="Special Value" value="$99.99 USD" />);
       expect(screen.getByText("$99.99 USD")).toBeInTheDocument();
     });
 
     test("handles very long title", () => {
       const longTitle = "A".repeat(100);
-      render(
-        <StatCard
-          title={longTitle}
-          value="100"
-        />
-      );
+      render(<StatCard title={longTitle} value="100" />);
       expect(screen.getByText(longTitle)).toBeInTheDocument();
     });
 
     test("handles whitespace in values", () => {
-      render(
-        <StatCard
-          title="Whitespace"
-          value="  100  "
-        />
-      );
+      render(<StatCard title="Whitespace" value="  100  " />);
       expect(screen.getByText(/100/)).toBeInTheDocument();
     });
 
     test("handles null value gracefully", () => {
-      render(
-        <StatCard
-          title="Null Value"
-          value={null}
-        />
-      );
+      render(<StatCard title="Null Value" value={null} />);
       expect(screen.getByText("Null Value")).toBeInTheDocument();
     });
 
     test("handles undefined onAdd", () => {
       const { container } = render(
-        <StatCard
-          title="Test"
-          value="100"
-          onAdd={undefined}
-        />
+        <StatCard title="Test" value="100" onAdd={undefined} />,
       );
       expect(container.querySelector("button")).not.toBeInTheDocument();
     });
@@ -405,19 +337,12 @@ describe("StatCard Component", () => {
 
   describe("Responsive Behavior", () => {
     test("renders correctly on different viewport sizes", () => {
-      const { container } = render(
-        <StatCard title="Responsive" value="100" />
-      );
+      const { container } = render(<StatCard title="Responsive" value="100" />);
       expect(container).toBeInTheDocument();
     });
 
     test("maintains layout with long values", () => {
-      render(
-        <StatCard
-          title="Performance"
-          value="99.999% Uptime"
-        />
-      );
+      render(<StatCard title="Performance" value="99.999% Uptime" />);
       expect(screen.getByText("99.999% Uptime")).toBeInTheDocument();
     });
   });
@@ -435,17 +360,17 @@ describe("StatCard Component", () => {
 
   it("applies error gradient when error is present", () => {
     const { container } = render(
-      <StatCard title="Users" value="150" error="Failed to load" />
+      <StatCard title="Users" value="150" error="Failed to load" />,
     );
     const box = container.firstChild;
     expect(box).toHaveStyle({
-      background: "linear-gradient(135deg, #e53e3e 0%, #fc8181 100%)",
+      backgroundColor: "#e53e3e",
     });
   });
 
   it("does not show add button in loading state", () => {
     render(
-      <StatCard title="Users" value="150" loading={true} onAdd={() => {}} />
+      <StatCard title="Users" value="150" loading={true} onAdd={() => {}} />,
     );
     const button = screen.queryByRole("button");
     expect(button).not.toBeInTheDocument();
@@ -453,11 +378,9 @@ describe("StatCard Component", () => {
 
   it("does not show add button in error state", () => {
     render(
-      <StatCard title="Users" value="150" error="Error" onAdd={() => {}} />
+      <StatCard title="Users" value="150" error="Error" onAdd={() => {}} />,
     );
     const button = screen.queryByRole("button");
     expect(button).not.toBeInTheDocument();
   });
-
-
 });

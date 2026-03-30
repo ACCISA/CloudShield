@@ -16,15 +16,29 @@ from pydantic import ValidationError
 from pymongo.errors import DuplicateKeyError, OperationFailure
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from flask_limiter.errors import RateLimitExceeded
+
 from utils import get_logger  # type: ignore
-from provisioner import init_cloud
+from utils.logging_setup import set_correlation_id, clear_correlation_id
+try:
+    from cloudshield.Server.extensions import limiter  # type: ignore
+except ImportError:
+    from extensions import limiter  # type: ignore
+try:
+    from cloudshield.Cloud.provisioner import init_cloud  # type: ignore
+except ImportError:
+    try:
+        from provisioner import init_cloud  # type: ignore
+    except ImportError:
+        def init_cloud():
+            return None
 
 # Prefer package-qualified imports so tests can monkeypatch `cloudshield.Server.routes.*`
 # and so the app uses a single module path.
 try:
     from cloudshield.Server.routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp, threat_bp, billing_bp  # type: ignore
     from cloudshield.Server.routes.tickets import tickets_bp
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     from routes import api_bp, auth_bp, users_bp, users_read_bp, access_groups_bp, workstations_bp, activity_bp, threat_bp, billing_bp  # type: ignore
     from routes.tickets import tickets_bp
 
@@ -49,7 +63,8 @@ try:
         from cloudshield.Server.routes.audit import audit_bp # type: ignore[import]
     except ImportError:
         from routes.audit import audit_bp # type: ignore[import]
-except Exception:  # pragma: no cover
+except Exception:  # pragma: no cover  # noqa: BLE001 — module-level init error, must stay active
+    logging.getLogger("cloudshield.server").warning("audit_bp could not be loaded; audit routes disabled")
     audit_bp = None
 
 load_dotenv()
@@ -70,6 +85,10 @@ def create_app() -> Flask:
         x_host=1,  # Trust the X-Forwarded-Host header
         x_prefix=1 # Trust the X-Forwarded-Prefix header
     )
+
+    # --- Rate limiter ---
+    limiter.init_app(app)
+
     # --- 2. INITIALIZE CORS ---
     # This enables Cross-Origin Resource Sharing for all routes    
     CORS(
@@ -157,6 +176,7 @@ def _ensure_json_on_writes():
     """Enforce JSON content-type for write operations and handle CORS preflights."""
     g.start_time = time()
     _request_id()
+    g._correlation_token = set_correlation_id(f"req:{g.request_id}")
 
     # 1. ALWAYS respond to OPTIONS requests so CORS preflight can pass with a valid status
     if request.method == "OPTIONS":
@@ -175,8 +195,22 @@ def _ensure_json_on_writes():
 
 
 @app.after_request
-def _add_performance_headers(response):
-    """Add response time tracking and log slow requests."""
+def _add_response_headers(response):
+    """Add security headers and response time tracking."""
+    # Restore correlation ID context
+    if hasattr(g, "_correlation_token"):
+        clear_correlation_id(g._correlation_token)
+
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = "default-src 'none'"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers.pop("Server", None)
+
+    # Performance tracking
     if hasattr(g, 'start_time'):
         elapsed_ms = (time() - g.start_time) * 1000
         response.headers['X-Response-Time'] = f"{elapsed_ms:.2f}ms"
@@ -218,6 +252,10 @@ def _handle_mongo_failure(e: Exception):
 @app.errorhandler(HTTPException)
 def _handle_http_exception(e: HTTPException):
     return _error_json(e.name or "HTTP Error", f"HTTP_{e.code}", e.description, e.code)
+
+@app.errorhandler(RateLimitExceeded)
+def _handle_rate_limit(e: RateLimitExceeded):
+    return _error_json("Too many requests", "RATE_LIMITED", str(e.description), 429)
 
 @app.errorhandler(Exception)
 def _handle_generic(e: Exception):

@@ -8,7 +8,12 @@ RPC_METHOD_MAPPING = {
     "/infra_service.v1.InfraService/RemoveUser": "Removed a user",
     "/infra_service.v1.InfraService/AddWorkstation": "Provisioned a workstation",
     "/infra_service.v1.InfraService/CreateShare": "Created a file share",
-    # Add other GRPC methods here
+    # Threat detection events
+    "threat.snort": "Snort IDS alert triggered",
+    "threat.anomaly": "Anomalous network behaviour detected",
+    "threat.threat_intel": "Known-bad IP match detected",
+    "threat.traffic_spike": "Traffic rate spike detected",
+    "threat.fail2ban": "Fail2ban IP ban recorded",
 }
 
 class ActivityLog(BaseModel):

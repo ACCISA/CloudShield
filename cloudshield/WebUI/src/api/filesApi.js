@@ -4,42 +4,58 @@
 
 import { apiGet, apiPatch, apiPost } from "./client";
 
+async function readApiData(response) {
+  if (!response) return {};
+  if (typeof response.json === "function") {
+    return response.json();
+  }
+  return response;
+}
+
 /**
  * Fetch all file shares for an organization
  */
 export async function fetchFileShares(orgId) {
-  const data = await apiGet(`/file_shares?org_id=${encodeURIComponent(orgId)}`);
+  const response = await apiGet(`/file_shares?org_id=${encodeURIComponent(orgId)}`);
+  const data = await readApiData(response);
   return data.shares || [];
 }
 
 /**
  * Create a new file share (dispatches async job)
  */
-export async function createFileShare({ orgId, name, users, groups, description, maxSize }) {
+export async function createFileShare({
+  orgId,
+  name,
+  users,
+  groups,
+  description,
+  maxSize,
+}) {
   const body = {
     org_id: orgId,
     share_name: name,
     users: users || [],
     groups: groups || [],
   };
-  
+
   // Only include optional fields if they have values
   if (description) body.description = description;
   if (maxSize) body.max_size = parseInt(maxSize, 10); // Store as GB (just the number user entered)
 
-  return apiPost("/task/dc/create_file_share", body);
+  const response = await apiPost("/task/dc/create_file_share", body);
+  return readApiData(response);
 }
 
 /**
  * Update file share metadata
  */
 export async function updateFileShare(orgId, shareName, updates) {
-  console.log("updateFileShare API call:", { orgId, shareName, updates });
-  const result = await apiPatch(
+  const response = await apiPatch(
     `/file_shares/${encodeURIComponent(orgId)}/${encodeURIComponent(shareName)}`,
     updates,
   );
-  console.log("updateFileShare API response:", result);
+  const result = await readApiData(response);
   return result;
 }
 
@@ -47,10 +63,11 @@ export async function updateFileShare(orgId, shareName, updates) {
  * Delete a file share (dispatches async job)
  */
 export async function deleteFileShare(orgId, shareName) {
-  return apiPost("/task/dc/delete_file_share", {
+  const response = await apiPost("/task/dc/delete_file_share", {
     org_id: orgId,
     share_name: shareName,
   });
+  return readApiData(response);
 }
 
 /**
@@ -59,10 +76,11 @@ export async function deleteFileShare(orgId, shareName) {
  * @param {boolean} summary - If true, returns only essential fields (for dropdowns/selection)
  */
 export async function fetchUsers(orgId, summary = true) {
-  const url = summary 
+  const url = summary
     ? `/organizations/${encodeURIComponent(orgId)}/users?summary=1`
     : `/organizations/${encodeURIComponent(orgId)}/users`;
-  const data = await apiGet(url);
+  const response = await apiGet(url);
+  const data = await readApiData(response);
   return data.items || [];
 }
 
@@ -76,7 +94,8 @@ export async function fetchGroups(orgId, summary = true) {
   const url = summary
     ? "/access-groups?summary=1"
     : "/access-groups";
-  const data = await apiGet(url);
+  const response = await apiGet(url);
+  const data = await readApiData(response);
   return data.access_groups || [];
 }
 

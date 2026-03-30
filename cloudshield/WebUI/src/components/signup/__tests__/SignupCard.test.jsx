@@ -3,9 +3,6 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SignupCard from '../SignupCard';
 
-// Mock the logo import
-jest.mock('../../../assets/cloudshield_logo_white.png', () => 'mocked-logo.png');
-
 describe('SignupCard', () => {
   it('renders children correctly', () => {
     render(
@@ -25,25 +22,22 @@ describe('SignupCard', () => {
       </SignupCard>
     );
 
-    const logo = screen.getByAltText('Company Logo');
+    const logo = screen.getByAltText('CloudShield');
     expect(logo).toBeInTheDocument();
     expect(logo.getAttribute('src')).toContain('cloudshield_logo_black.png');
   });
 
-  it('applies correct styling to logo', () => {
-    render(
+  it('applies the expected card and logo classes', () => {
+    const { container } = render(
       <SignupCard>
         <div>Content</div>
       </SignupCard>
     );
 
-    const logo = screen.getByAltText('Company Logo');
-    expect(logo).toHaveStyle({
-      width: '60px',
-      height: '60px',
-      borderRadius: '12px',
-      objectFit: 'contain',
-    });
+    const card = container.firstChild;
+    const logo = screen.getByAltText('CloudShield');
+    expect(card).toHaveClass('auth-card');
+    expect(logo).toHaveClass('auth-card__logo');
   });
 
   it('renders with multiple children', () => {
@@ -64,19 +58,19 @@ describe('SignupCard', () => {
     const { container } = render(<SignupCard />);
     
     // Should still render the card structure and logo
-    expect(screen.getByAltText('Company Logo')).toBeInTheDocument();
-    expect(container.querySelector('[class*="MuiPaper"]')).toBeInTheDocument();
+    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 
-  it('applies Paper component styles', () => {
+  it('renders the auth card body wrapper', () => {
     const { container } = render(
       <SignupCard>
         <div>Content</div>
       </SignupCard>
     );
 
-    const paper = container.querySelector('[class*="MuiPaper"]');
-    expect(paper).toBeInTheDocument();
+    const body = container.querySelector('.auth-card__body');
+    expect(body).toBeInTheDocument();
   });
 
   it('renders with complex nested children', () => {
@@ -96,15 +90,15 @@ describe('SignupCard', () => {
     expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument();
   });
 
-  it('maintains proper structure with Box wrapper', () => {
+  it('maintains the expected auth card structure', () => {
     const { container } = render(
       <SignupCard>
         <div data-testid="content">Content</div>
       </SignupCard>
     );
 
-    const boxes = container.querySelectorAll('[class*="MuiBox"]');
-    expect(boxes.length).toBeGreaterThan(0);
+    expect(container.querySelector('.auth-card')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card__body')).toBeInTheDocument();
   });
 
   it('renders correctly when children is a string', () => {
@@ -130,14 +124,14 @@ describe('SignupCard', () => {
   it('handles null children gracefully', () => {
     const { container } = render(<SignupCard>{null}</SignupCard>);
 
-    expect(screen.getByAltText('Company Logo')).toBeInTheDocument();
-    expect(container.querySelector('[class*="MuiPaper"]')).toBeInTheDocument();
+    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 
   it('handles undefined children gracefully', () => {
     const { container } = render(<SignupCard>{undefined}</SignupCard>);
 
-    expect(screen.getByAltText('Company Logo')).toBeInTheDocument();
-    expect(container.querySelector('[class*="MuiPaper"]')).toBeInTheDocument();
+    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 });

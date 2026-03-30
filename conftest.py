@@ -4,6 +4,81 @@ import types
 from unittest.mock import MagicMock
 import os
 
+# Signal extensions.py to use in-memory rate-limit storage instead of Redis.
+os.environ.setdefault("FLASK_TESTING", "1")
+
+# Ensure the namespace package `google` is initialized from installed deps
+# (protobuf/genai) before tests add any lightweight stubs with setdefault().
+try:
+    import google.protobuf  # noqa: F401
+except Exception:
+    pass
+
+try:
+    import stripe as _stripe  # noqa: F401
+    _stripe_is_stub = False
+except Exception:
+    _stripe = types.ModuleType("stripe")
+    _stripe_is_stub = True
+
+# Only construct a synthetic Stripe surface when Stripe is not installed.
+# If Stripe is available, let tests patch exactly what they need locally.
+if _stripe_is_stub:
+    if not hasattr(_stripe, "checkout"):
+        _stripe.checkout = types.SimpleNamespace()
+    if not hasattr(_stripe.checkout, "Session"):
+        _stripe.checkout.Session = types.SimpleNamespace()
+    if not hasattr(_stripe.checkout.Session, "create"):
+        _stripe.checkout.Session.create = lambda *a, **k: None
+
+    if not hasattr(_stripe, "Customer"):
+        _stripe.Customer = types.SimpleNamespace()
+    if not hasattr(_stripe.Customer, "retrieve"):
+        _stripe.Customer.retrieve = lambda *a, **k: {}
+
+    if not hasattr(_stripe, "Subscription"):
+        _stripe.Subscription = types.SimpleNamespace()
+    if not hasattr(_stripe.Subscription, "list"):
+        _stripe.Subscription.list = lambda *a, **k: types.SimpleNamespace(data=[])
+    if not hasattr(_stripe.Subscription, "retrieve"):
+        _stripe.Subscription.retrieve = lambda *a, **k: None
+
+    if not hasattr(_stripe, "PaymentMethod"):
+        _stripe.PaymentMethod = types.SimpleNamespace()
+    if not hasattr(_stripe.PaymentMethod, "retrieve"):
+        _stripe.PaymentMethod.retrieve = lambda *a, **k: None
+    if not hasattr(_stripe.PaymentMethod, "list"):
+        _stripe.PaymentMethod.list = lambda *a, **k: types.SimpleNamespace(data=[])
+
+    if not hasattr(_stripe, "Invoice"):
+        _stripe.Invoice = types.SimpleNamespace()
+    if not hasattr(_stripe.Invoice, "list"):
+        _stripe.Invoice.list = lambda *a, **k: types.SimpleNamespace(data=[])
+
+    if not hasattr(_stripe, "Webhook"):
+        _stripe.Webhook = types.SimpleNamespace()
+    if not hasattr(_stripe.Webhook, "construct_event"):
+        _stripe.Webhook.construct_event = lambda *a, **k: {}
+
+    if not hasattr(_stripe, "billing_portal"):
+        _stripe.billing_portal = types.SimpleNamespace()
+    if not hasattr(_stripe.billing_portal, "Session"):
+        _stripe.billing_portal.Session = types.SimpleNamespace()
+    if not hasattr(_stripe.billing_portal.Session, "create"):
+        _stripe.billing_portal.Session.create = lambda *a, **k: None
+
+    if not hasattr(_stripe, "error"):
+        _stripe.error = types.SimpleNamespace()
+    if not hasattr(_stripe.error, "StripeError"):
+        _stripe.error.StripeError = Exception
+    if not hasattr(_stripe.error, "SignatureVerificationError"):
+        _stripe.error.SignatureVerificationError = Exception
+
+    if not hasattr(_stripe, "api_key"):
+        _stripe.api_key = None
+
+sys.modules["stripe"] = _stripe
+
 def _stub_module(name, attrs=None):
     if name in sys.modules:
         return sys.modules[name]
@@ -106,7 +181,6 @@ except Exception:
         return _BCRYPT_PREFIX + b64[:_SALT_LEN]
 
     def _hashpw(password: bytes, salt: bytes) -> bytes:
-        print("heeerre")
         if len(password) > 72:
             raise ValueError("password cannot be longer than 72 bytes")
         # Produce a stable, bcrypt-shaped hash that depends on both password and salt.
@@ -299,7 +373,8 @@ except Exception:
     class _FakeQueue:
         """Minimal stand-in for rq.Queue used by redis_client/task enqueue."""
 
-        def __init__(self, *args, connection=None, default_timeout=None, **kwargs):  # noqa: ARG002
+        def __init__(self, name=None, connection=None, default_timeout=None, *args, **kwargs):  # noqa: ARG002
+            self.name = name
             self.connection = connection
             self.default_timeout = default_timeout
 
@@ -378,12 +453,12 @@ _stub_module(
     "provisioner",
     {
         "provision_network_terraform": _provision_network_terraform_stub,
-        "provision_workstation":_provision_workstation,
+        "provision_workstation": _provision_workstation,
+        "provision_workstation_vm": _provision_workstation,
         "destroy_infra": _destroy_stub,
         "get_target_dir": _get_target_dir_stub,
         "provision_default_workstation": _provision_default_workstation,
         "provision_custom_workstation": _provision_default_workstation,
-        "provision_workstation_vm": _provision_workstation_vm,
-        "init_cloud": _init_cloud
+        "init_cloud": lambda: None,
     },
 )

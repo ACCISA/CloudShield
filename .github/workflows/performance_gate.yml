@@ -1,0 +1,51 @@
+name: Performance Gate
+
+on: [pull_request]
+
+jobs:
+  performance_gate:
+    name: API Performance Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r cloudshield/Server/requirements.txt || true
+          pip install pytest
+
+      - name: Run performance gate tests
+        env:
+          PYTHONPATH: cloudshield/Server:cloudshield/Cloud
+          PERF_RESULTS_OUTPUT: tests/perf/results.json
+        run: |
+          pytest cloudshield/Server/tests/test_performance.py \
+            -v \
+            --tb=short \
+            -s
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: tests/perf/results.json
+          if-no-files-found: warn
+
+      - name: Print results summary
+        if: always()
+        run: |
+          if [ -f tests/perf/results.json ]; then
+            echo "## Performance Gate Results" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat tests/perf/results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

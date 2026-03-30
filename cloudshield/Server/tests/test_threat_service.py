@@ -141,7 +141,7 @@ class TestEsClient:
         mock_es_mod = MagicMock()
         mock_instance = MagicMock()
         mock_es_mod.Elasticsearch.return_value = mock_instance
-        mock_instance.ping.side_effect = Exception("connection refused")
+        mock_instance.ping.side_effect = OSError("connection refused")
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
             result = ts._es_client()
@@ -501,3 +501,212 @@ class TestGetDashboardSummaryExtended:
         result = ts.get_dashboard_summary()
         # The aggregation value (99) should NOT be overwritten by count (3)
         assert result["by_source"]["snort_alerts"] == 99
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# update_alert_status
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestUpdateAlertStatus:
+    def test_no_es_returns_false(self):
+        ts = _fresh_module()
+        with patch.object(ts, "_es_client", return_value=None):
+            assert ts.update_alert_status("alert-1", "resolved") is False
+
+    def test_without_org_id_uses_term_query(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.return_value = {"updated": 1}
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts.update_alert_status("alert-1", "resolved")
+            assert result is True
+            body = mock_es.update_by_query.call_args[1]["body"]
+            assert "term" in body["query"]
+
+    def test_with_org_id_uses_bool_query(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.return_value = {"updated": 1}
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts.update_alert_status("alert-1", "resolved", org_id="org-123")
+            assert result is True
+            body = mock_es.update_by_query.call_args[1]["body"]
+            assert "bool" in body["query"]
+
+    def test_zero_updated_returns_false(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.return_value = {"updated": 0}
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.update_alert_status("alert-1", "resolved") is False
+
+    def test_es_exception_returns_false(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.side_effect = Exception("ES down")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.update_alert_status("alert-1", "resolved") is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# get_unified_alerts
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestGetUnifiedAlerts:
+    def test_no_org_id_delegates_to_es_recent(self):
+        ts = _fresh_module()
+        captured = {}
+        def fake_recent(index, size):
+            captured["index"] = index
+            captured["size"] = size
+            return [{"alert_id": "x1"}]
+        with patch.object(ts, "_es_recent", fake_recent):
+            result = ts.get_unified_alerts(limit=10)
+            assert len(result) == 1
+            assert captured["index"] == "unified_alerts"
+            assert captured["size"] == 10
+
+    def test_with_org_id_no_es_returns_empty(self):
+        ts = _fresh_module()
+        with patch.object(ts, "_es_client", return_value=None):
+            assert ts.get_unified_alerts(org_id="org-123") == []
+
+    def test_with_org_id_returns_sources(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.return_value = {
+            "hits": {"hits": [
+                {"_source": {"alert_id": "a1"}},
+                {"_source": {"alert_id": "a2"}},
+            ]}
+        }
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts.get_unified_alerts(org_id="org-123")
+            assert len(result) == 2
+            assert result[0]["alert_id"] == "a1"
+
+    def test_with_org_id_es_exception_returns_empty(self):
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = Exception("ES error")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.get_unified_alerts(org_id="org-123") == []
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ingest_threat_alerts
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestIngestThreatAlerts:
+    def _call(self, alerts, org_id="org-test"):
+        import cloudshield.Server.services.threat_service as ts
+        mock_col = MagicMock()
+        mock_log_audit = MagicMock()
+        with patch("cloudshield.Server.utils.database.activity", mock_col), \
+             patch("cloudshield.Server.utils.audit.log_audit", mock_log_audit):
+            result = ts.ingest_threat_alerts(alerts, org_id=org_id)
+        return result, mock_col, mock_log_audit
+
+    def test_medium_severity_ingested_no_audit(self):
+        alerts = [{"alert_id": "a1", "source": "snort", "severity": "MEDIUM"}]
+        result, col, audit = self._call(alerts)
+        assert result["ingested"] == 1
+        assert result["audit_written"] == 0
+        assert result["errors"] == 0
+        col.insert_one.assert_called_once()
+        audit.assert_not_called()
+
+    def test_high_severity_writes_audit(self):
+        alerts = [{"alert_id": "a2", "source": "anomaly", "severity": "HIGH",
+                   "title": "High risk event"}]
+        result, col, audit = self._call(alerts)
+        assert result["ingested"] == 1
+        assert result["audit_written"] == 1
+        audit.assert_called_once()
+
+    def test_critical_severity_writes_audit(self):
+        alerts = [{"alert_id": "a3", "source": "snort", "severity": "CRITICAL"}]
+        result, _, audit = self._call(alerts)
+        assert result["audit_written"] == 1
+        call_kwargs = audit.call_args[1]
+        assert call_kwargs["severity"] == "critical"
+
+    def test_activity_insert_error_counts_as_error(self):
+        import cloudshield.Server.services.threat_service as ts
+        mock_col = MagicMock()
+        mock_col.insert_one.side_effect = Exception("DB down")
+        with patch("cloudshield.Server.utils.database.activity", mock_col):
+            result = ts.ingest_threat_alerts(
+                [{"alert_id": "a4", "source": "snort", "severity": "LOW"}],
+                org_id="org-1",
+            )
+        assert result["errors"] == 1
+        assert result["ingested"] == 0
+
+    def test_multiple_alerts_mixed_severity(self):
+        alerts = [
+            {"alert_id": "x1", "source": "snort", "severity": "HIGH"},
+            {"alert_id": "x2", "source": "snort", "severity": "LOW"},
+            {"alert_id": "x3", "source": "anomaly", "severity": "CRITICAL"},
+        ]
+        result, _, audit = self._call(alerts)
+        assert result["ingested"] == 3
+        assert result["audit_written"] == 2
+        assert result["errors"] == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Additional branch coverage for new code
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestEsClientPingReturnsFalse:
+    def test_ping_returns_false_returns_none(self):
+        """_es_client returns None and logs warning when ping() returns False."""
+        ts = _fresh_module()
+        mock_es_mod = MagicMock()
+        mock_instance = MagicMock()
+        mock_es_mod.Elasticsearch.return_value = mock_instance
+        mock_instance.ping.return_value = False
+        with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
+            result = ts._es_client()
+        assert result is None
+
+
+class TestEsRecentMalformedResponse:
+    def test_key_error_in_response_returns_empty(self):
+        """_es_recent returns [] when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = KeyError("hits")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts._es_recent("snort_alerts")
+        assert result == []
+
+    def test_type_error_in_response_returns_empty(self):
+        """_es_recent returns [] when ES response raises TypeError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = TypeError("NoneType")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts._es_recent("anomaly_alerts")
+        assert result == []
+
+
+class TestUpdateAlertStatusMalformedResponse:
+    def test_key_error_returns_false(self):
+        """update_alert_status returns False when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.side_effect = KeyError("updated")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.update_alert_status("a1", "resolved") is False
+
+
+class TestGetUnifiedAlertsMalformedResponse:
+    def test_key_error_with_org_id_returns_empty(self):
+        """get_unified_alerts returns [] when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = KeyError("hits")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.get_unified_alerts(org_id="org-1") == []

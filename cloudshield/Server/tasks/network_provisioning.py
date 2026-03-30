@@ -179,9 +179,9 @@ def _import_terraform_provisioner():
         Path("/var/lib/cloudshield/terraform/provisioner.py"),
     ]
     for p in candidates:
-        if p.exists():
-            spec = importlib.util.spec_from_file_location("cloudshield_terraform_provisioner", str(p))
-            if spec and spec.loader:
+        spec = importlib.util.spec_from_file_location("cloudshield_terraform_provisioner", str(p))
+        if spec and spec.loader:
+            try:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)  # type: ignore[attr-defined]
                 return (
@@ -190,6 +190,8 @@ def _import_terraform_provisioner():
                     getattr(module, "destroy_infra"),
                     getattr(module, "provision_workstation"),
                 )
+            except (FileNotFoundError, OSError, AttributeError):
+                continue
 
     raise ModuleNotFoundError(
         "Terraform provisioner not found inside this container. "
@@ -292,6 +294,49 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
 
     set_progress("starting")
 
+    # In api-test we intentionally use docker-backed provisioning, not terraform.
+    mode = (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower()
+    if mode == "docker":
+        base_dir = Path(CLOUDSHIELD_JOBS_DIR)
+        templates_dir = base_dir / "templates"
+        generated_dir = base_dir / "terraform" / "generated" / org_id
+
+        org_doc = organizations.find_one(org_filter(org_id)) or {}
+        docker_org_data = {
+            "org_id": org_id,
+            "domain_name": org_doc.get("domain_name"),
+            "realm_name": org_doc.get("realm_name"),
+            "dc_admin_password": org_doc.get("dc_admin_password"),
+        }
+
+        try:
+            set_progress("provisioning docker workstations")
+            docker_fn = provision_network_docker or _import_provision_network_docker()
+            metadata = docker_fn(
+                org_data=docker_org_data,
+                region=region,
+                templates_dir=str(templates_dir),
+                generated_dir=str(generated_dir),
+                count=count,
+                server_logger=logger,
+            )
+
+            if not metadata:
+                set_progress("failed")
+                return {
+                    "message": "Docker workstation provisioning returned no metadata",
+                    "metadata": [],
+                }
+
+            set_progress("completed")
+            return {
+                "message": "Provisioning workstations complete",
+                "metadata": metadata,
+            }
+        except Exception as e:
+            set_progress(f"failed: {e}")
+            raise
+
     tf_get_target_dir = get_target_dir
     if tf_get_target_dir is None:
         _, tf_get_target_dir, _, _ = _import_terraform_provisioner()
@@ -338,7 +383,7 @@ def provision_workstations(org_id: str, region: str = "ca-central-1", count: int
         set_progress("completed")
         return {
             "message": "Provisioning workstations complete",
-            "work_dir": str(target_dir_res),
+            "work_dir": str(target_dir_res).replace("\\", "/"),
             "new_workstation_count": count + initial_count,
             "logs_tail": logs_tail,
         }
@@ -411,6 +456,21 @@ def provision_network(
                 if job is not None:
                     job.meta["details"] = "Docker provisioning returned no metadata"
                 return {"status": "error", "message": "Docker provisioning returned no metadata"}
+
+            # Link Docker container IDs back to seeded workstation documents
+            # so the workstation callback can find them by container_id.
+            try:
+                workstations_col = db_admin["workstations"]
+                for entry in metadata:
+                    if entry.get("os") == "windows11" and entry.get("instance_id"):
+                        workstations_col.update_one(
+                            {"org_id": org_id, "status": "provisioning", "container_id": {"$exists": False}},
+                            {"$set": {"container_id": entry["instance_id"]}},
+                        )
+                        logger.info("Linked container_id=%s to seeded workstation for org %s",
+                                    entry["instance_id"], org_id)
+            except Exception as link_err:
+                logger.error("Failed to link container IDs to workstation docs: %s", link_err)
 
             try:
                 assets_raw = map_metadata_to_ec2_instances(metadata)
@@ -487,32 +547,8 @@ def provision_network(
         # Same post-success behavior for the terraform path.
         _enqueue_welcome_email_post_success(org_id, logger)
         return {"status": "success", "message": "Provisioning complete", "metadata": metadata}
-
-
-        logger.info("Metadata from provisioner: %s", metadata)
-
-        assets = map_metadata_to_ec2_instances(metadata)
-
-        res = insert_inventory(db=db, org_id=org_id, assets=assets)
-
-        logger.info("Stored assets in Inventory (inventory_id=%s)", getattr(res, "inserted_id", None))
-
-        logger.info("Provisioning complete for org %s", org_id)
-
-
-
-        return {"message": "Provisioning complete", "work_dir": str(generated_dir), "metadata": metadata}
-
-        
-
-        return {
-            "message": "Provisioning complete",
-            "org_id": org_id,
-            "region": region,
-            "work_dir": str(generated_dir),
-            "metadata": metadata
-        }
     except Exception as e:
+        logger.exception("Provisioning failed org_id=%s job_id=%s", org_id, job_id)
         set_progress(f"failed: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         raise
@@ -562,7 +598,7 @@ def destroy_environment(org_id: str, force: bool = False):
         return {"message": "Destroy complete", "removed_dir": True}
 
     except Exception as e:
-        logger.error(e)
+        logger.exception("Destroy environment failed org_id=%s job_id=%s", org_id, job_id)
         set_progress(f"failed destroy: {e}")
         _update_org_provisioning_status(org_id, "failed", job_id, logger)
         # tests expect None on exception

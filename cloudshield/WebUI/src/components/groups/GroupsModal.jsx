@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import SubmittingOverlay from "../common/SubmittingOverlay/SubmittingOverlay.jsx";
 import PropTypes from "prop-types";
 import DisplayIcon from "../common/DisplayIcon/DisplayIcon.jsx";
 import Checkbox from "../common/Checkbox/Checkbox.jsx";
@@ -204,7 +205,11 @@ export default function GroupsModal({
     onClose,
   });
 
-  const handleImageUpload = createImageUploadHandler(setFormData, "groupImage");
+  const handleImageUpload = createImageUploadHandler(
+    setFormData,
+    "groupImage",
+    { maxWidth: 256, maxHeight: 256 },
+  );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
 
@@ -242,7 +247,10 @@ export default function GroupsModal({
     fieldErrors,
   });
 
-  const isNextDisabled = currentStep === 0 && (!formData.groupName.trim() || !validateGroupName(formData.groupName).valid);
+  const isNextDisabled =
+    currentStep === 0 &&
+    (!formData.groupName.trim() ||
+      !validateGroupName(formData.groupName).valid);
 
   const submitLabel = isSubmitting
     ? "Saving..."
@@ -296,7 +304,15 @@ export default function GroupsModal({
         </div>
 
         {/* Content */}
-        <main className="groups-modal-content">{renderStepContent()}</main>
+        <main className="groups-modal-content">
+          {isSubmitting ? (
+            <SubmittingOverlay
+              label={isEditMode ? "Saving changes..." : "Creating group..."}
+            />
+          ) : (
+            renderStepContent()
+          )}
+        </main>
 
         {/* Footer */}
         <footer className="groups-modal-actions">
@@ -338,7 +354,10 @@ export default function GroupsModal({
                 className="groups-modal-btn groups-modal-btn-primary"
                 onClick={() => handleNavigate(1)}
                 disabled={isNextDisabled}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 Next
               </button>
@@ -347,7 +366,10 @@ export default function GroupsModal({
                 className="groups-modal-btn groups-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                style={{ backgroundColor: "var(--text-primary)", color: "var(--bg-primary)" }}
+                style={{
+                  backgroundColor: "var(--text-primary)",
+                  color: "var(--bg-primary)",
+                }}
               >
                 {submitLabel}
               </button>
@@ -360,7 +382,12 @@ export default function GroupsModal({
 }
 
 // Sub-components
-function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors = {} }) {
+function BasicInfoStep({
+  formData,
+  setFormData,
+  handleImageUpload,
+  fieldErrors = {},
+}) {
   return (
     <div className="groups-modal-step">
       <div className="groups-modal-form-group">
@@ -376,7 +403,9 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors =
           maxLength={64}
         />
         {fieldErrors.groupName && (
-          <span className="groups-modal-field-error">{fieldErrors.groupName}</span>
+          <span className="groups-modal-field-error">
+            {fieldErrors.groupName}
+          </span>
         )}
       </div>
 
@@ -419,9 +448,15 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload, fieldErrors =
               />
               <div className="groups-modal-image-placeholder">
                 <span className="groups-modal-image-icon">
-                  <UploadIcon width={48} height={48} fill="var(--text-tertiary)" />
+                  <UploadIcon
+                    width={48}
+                    height={48}
+                    fill="var(--text-tertiary)"
+                  />
                 </span>
-                <span style={{color: "var(--text-secondary)"}}>Upload Image</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  Upload Image
+                </span>
               </div>
             </label>
           )}
@@ -536,7 +571,11 @@ function SelectionStep({
           {items.length === 0 ? (
             <div
               className="groups-modal-dropdown-item"
-              style={{ opacity: 0.7, cursor: "default", color: "var(--text-secondary)" }}
+              style={{
+                opacity: 0.7,
+                cursor: "default",
+                color: "var(--text-secondary)",
+              }}
             >
               No results
             </div>

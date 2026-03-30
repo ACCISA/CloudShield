@@ -348,42 +348,6 @@
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .file-wizard-dialog {
-    width: 100%;
-    max-width: 100vw;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
-  .file-wizard-stepper {
-    padding: 20px 16px;
-  }
-
-  .file-wizard-step-label {
-    font-size: 11px;
-  }
-
-  .file-wizard-content {
-    padding: 24px 20px;
-  }
-
-  .file-wizard-actions {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .file-wizard-actions-left,
-  .file-wizard-actions-right {
-    width: 100%;
-  }
-
-  .file-wizard-btn {
-    flex: 1;
-  }
-}
-
 /* Validation error styling */
 .file-wizard-input.input-error {
   border-color: #ef5350;

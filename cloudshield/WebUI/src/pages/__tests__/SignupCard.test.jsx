@@ -106,6 +106,7 @@ describe("SignupPage (additional coverage)", () => {
 
   const VALID_EMAIL = "test@example.com";
   const VALID_COMPANY = "Acme Corp";
+  const VALID_ADMIN_NAME = "Jane Doe";
   const VALID_PASSWORD = "ValidPass123!";
 
   const renderSignupPage = (props = {}) =>
@@ -121,6 +122,9 @@ describe("SignupPage (additional coverage)", () => {
     });
     fireEvent.change(screen.getByTestId("password-field"), {
       target: { value: VALID_PASSWORD },
+    });
+    fireEvent.change(screen.getByTestId("auth-field-admin-name"), {
+      target: { value: VALID_ADMIN_NAME },
     });
     fireEvent.change(screen.getByTestId("auth-field-company-name"), {
       target: { value: VALID_COMPANY },
@@ -142,7 +146,7 @@ describe("SignupPage (additional coverage)", () => {
     expect(screen.getByText("Create Your Organization")).toBeInTheDocument();
   });
 
-  it("hides plan cards while submitting (shows loading state)", async () => {
+  it("shows a submitting state while signup is pending", async () => {
     // Never resolve: keeps submitting=true without flake
     apiPost.mockImplementationOnce(() => new Promise(() => {}));
 
@@ -158,9 +162,9 @@ describe("SignupPage (additional coverage)", () => {
       expect(screen.getByText("Redirecting to payment...")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("plan-card-basic")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("plan-card-pro")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("plan-card-enterprise")).not.toBeInTheDocument();
+    expect(screen.getByTestId("plan-card-basic")).toBeInTheDocument();
+    expect(screen.getByTestId("plan-card-pro")).toBeInTheDocument();
+    expect(screen.getByTestId("plan-card-enterprise")).toBeInTheDocument();
   });
 
   it("does not block navigation if localStorage throws", async () => {
@@ -214,10 +218,11 @@ describe("SignupPage (additional coverage)", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("renders inside PageShell and keeps the signup card visible", () => {
-    renderSignupPage();
+  it("renders the signup layout and keeps the signup card visible", () => {
+    const { container } = renderSignupPage();
 
-    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(container.querySelector(".signup-page")).toBeInTheDocument();
+    expect(container.querySelector(".signup-inner")).toBeInTheDocument();
     expect(screen.getByTestId("signup-card")).toBeInTheDocument();
     expect(screen.getByText("Your Plan Overview")).toBeInTheDocument();
   });
