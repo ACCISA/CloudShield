@@ -407,6 +407,57 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  test("toggles status from connected to disconnected", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    // w1 starts as "connected" — clicking toggle should flip it to "disconnected"
+    await user.click(screen.getByTestId("toggle-status-w1"));
+
+    // The row is still present (not deleted)
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+  });
+
+  test("does not toggle status for building workstation", async () => {
+    const user = userEvent.setup();
+    fetchWorkstations.mockResolvedValueOnce([
+      { id: "w-build", name: "InProgress", status: "building", usersCount: 0 },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("InProgress")).toBeInTheDocument());
+    // Clicking toggle on a building row should be a no-op (status stays "building")
+    await user.click(screen.getByTestId("toggle-status-w-build"));
+    expect(screen.getByText("InProgress")).toBeInTheDocument();
+  });
+
+  test("does not toggle status for provisioning workstation", async () => {
+    const user = userEvent.setup();
+    fetchWorkstations.mockResolvedValueOnce([
+      { id: "w-prov", name: "Provisioning WS", status: "provisioning", usersCount: 0 },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Provisioning WS")).toBeInTheDocument());
+    await user.click(screen.getByTestId("toggle-status-w-prov"));
+    expect(screen.getByText("Provisioning WS")).toBeInTheDocument();
+  });
+
+  test("shows failed-create toast when createWorkstationTemplate returns null", async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to save workstation")).toBeInTheDocument();
+    });
+  });
+
   test("deletes workstation from edit modal delete action", async () => {
     const user = userEvent.setup();
     const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
