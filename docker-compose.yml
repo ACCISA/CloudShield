@@ -121,6 +121,7 @@ services:
 
   threat-detection:
     profiles: ["template"]
+    image: app-threat-detection:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.server
