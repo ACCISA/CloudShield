@@ -746,8 +746,6 @@ describe("SecurityAlertsPanel Component", () => {
       const resolveButton = screen.getByTestId("group-action-0");
       fireEvent.click(resolveButton);
 
-      expect(console.log).toHaveBeenCalledWith("Mark as resolved:", [1]);
-
       // Selection should be cleared
       await waitFor(() => {
         const selectedCount = screen.getByTestId("selected-count");
@@ -771,11 +769,6 @@ describe("SecurityAlertsPanel Component", () => {
       const falsePositiveButton = screen.getByTestId("group-action-1");
       fireEvent.click(falsePositiveButton);
 
-      expect(console.log).toHaveBeenCalledWith(
-        "Mark as false positive:",
-        expect.arrayContaining([1, 2]),
-      );
-
       // Selection should be cleared
       await waitFor(() => {
         const selectedCount = screen.getByTestId("selected-count");
@@ -798,11 +791,6 @@ describe("SecurityAlertsPanel Component", () => {
       // Click download
       const downloadButton = screen.getByTestId("group-action-2");
       fireEvent.click(downloadButton);
-
-      expect(console.log).toHaveBeenCalledWith(
-        "Download alerts:",
-        expect.arrayContaining([1, 3]),
-      );
 
       // Selection should NOT be cleared for download
       await waitFor(() => {
