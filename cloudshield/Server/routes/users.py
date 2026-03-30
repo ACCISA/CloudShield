@@ -7,11 +7,6 @@ import secrets
 import string
 from collections.abc import Mapping
 
-
-def _generate_password():
-    alphabet = string.ascii_letters + string.digits + "!@#%^&()-_=+[]{};:,.<>?"
-    return ''.join(secrets.choice(alphabet) for _ in range(16))
-
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 from security import require_auth, require_role
@@ -36,6 +31,11 @@ from services import (  # noqa: E402
 from utils.logging_setup import get_logger  # noqa: E402
 
 logger = get_logger("users_routes")
+
+def _generate_password():
+    alphabet = string.ascii_letters + string.digits + "!@#%^&()-_=+[]{};:,.<>?"
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
+
 
 users_bp = Blueprint('users', __name__) # Admin-only user management routes
 orgs_bp = Blueprint("organizations", __name__) # Organization-related routes (e.g., get my org)
