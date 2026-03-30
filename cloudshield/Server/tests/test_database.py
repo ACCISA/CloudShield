@@ -414,14 +414,13 @@ def _import_database_with_custom_users(monkeypatch, users_admin_mock):
         "users": users_admin_mock,
         "orgs": orgs,
         "audit": audit,
-        "activity": activity,
         "organizations": organizations,
         "access_groups": access_groups,
         "vpn_configs": vpn_configs,
         "shares": shares,
     }
     db_emp = {"users_public": users_public}
-    db_client = {"itam": itam}
+    db_client = {"itam": itam, "activity": activity}
 
     admin_client = _FakeClient(db_admin)
     emp_client = _FakeClient(db_emp)

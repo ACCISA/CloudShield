@@ -756,6 +756,88 @@ describe("modalHelpers", () => {
       const result = await fetchWorkstations("org123", "token123");
       expect(result[0].name).toBe("Untitled Workstation");
     });
+
+    it("should normalize offline status to disconnected", async () => {
+      apiGet.mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "ws-off", name: "Offline WS", status: "offline" }],
+      });
+      const result = await fetchWorkstations("org123", "token123");
+      expect(result[0].status).toBe("disconnected");
+    });
+
+    it("should merge building templates (is_ready=false) at the front of the list", async () => {
+      // First call: /workstations returns empty list
+      // Second call: /workstations/templates returns one building template
+      apiGet
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            templates: [
+              {
+                _id: "tpl-1",
+                name: "Building WS",
+                description: "in progress",
+                software: ["sw1"],
+                access_groups: ["grp1"],
+                members: ["u1"],
+                is_ready: false,
+                org_id: "org123",
+              },
+            ],
+          }),
+        });
+
+      const result = await fetchWorkstations("org123", "token123");
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: "tpl-1",
+        name: "Building WS",
+        status: "building",
+        online: false,
+        _isTemplate: true,
+      });
+    });
+
+    it("should skip building templates whose id already exists in VM rows", async () => {
+      apiGet
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ _id: "tpl-1", id: "tpl-1", name: "Running WS", status: "active" }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            templates: [{ _id: "tpl-1", name: "Building WS", is_ready: false }],
+          }),
+        });
+
+      const result = await fetchWorkstations("org123", "token123");
+      // tpl-1 should appear once only (the VM row, not the template row)
+      expect(result.filter((r) => r.id === "tpl-1")).toHaveLength(1);
+      expect(result[0]._isTemplate).toBeUndefined();
+    });
+
+    it("should gracefully handle template fetch failure", async () => {
+      apiGet
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: "ws-ok", name: "OK WS", status: "active" }],
+        })
+        .mockRejectedValueOnce(new Error("templates API down"));
+
+      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const result = await fetchWorkstations("org123", "token123");
+      // Should still return the VM rows without crashing
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("ws-ok");
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe("fetchSoftware", () => {

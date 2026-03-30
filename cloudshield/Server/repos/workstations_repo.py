@@ -1,5 +1,6 @@
 from __future__ import annotations
 from bson import ObjectId
+from bson.errors import InvalidId
 from typing import List
 from models import Workstation,WorkstationTemplate,WorkstationStatus
 
@@ -56,30 +57,37 @@ def get_workstation(*, db, org_id: str, vm_id: str):
     except Exception:
         return None
 
-def insert_workstation(*, db, org_id: str, template_id: str):
+def insert_workstation(*, db, org_id: str, template_id: str, status=None):
     """
     Writes an Inventory document for org_id.
     Reusable from any workflow that generates or refreshes assets.
     """
+    if status is None:
+        status = WorkstationStatus.INACTIVE
     ws_db = db.workstations
     return ws_db.insert_one(
     Workstation(
         org_id=org_id,
         template_id=template_id,
-        status=WorkstationStatus.INACTIVE
+        status=status
         ).model_dump(by_alias=True)
     )
 def update_workstation_template(db, template_id: str, **updates):
     """
-    Updates specific fields of a workstation document by its ID.
-    Usage: update_workstation(db, "some_id", status=WorkstationStatus.ACTIVE)
+    Updates specific fields of a workstation template document by its ID.
+    Usage: update_workstation_template(db, "some_id", is_ready=True)
     """
     ws_db = db.workstation_templates
 
     update_data = {k: v for k, v in updates.items() if v is not None}
 
+    try:
+        oid = ObjectId(template_id)
+    except (InvalidId, TypeError):
+        oid = template_id
+
     result = ws_db.update_one(
-        {"_id": template_id},
+        {"_id": oid},
         {"$set": update_data}
     )
 
@@ -94,8 +102,13 @@ def update_workstation(db, workstation_id: str, **updates):
 
     update_data = {k: v for k, v in updates.items() if v is not None}
 
+    try:
+        oid = ObjectId(workstation_id)
+    except (InvalidId, TypeError):
+        oid = workstation_id
+
     result = ws_db.update_one(
-        {"_id": workstation_id},
+        {"_id": oid},
         {"$set": update_data}
     )
 

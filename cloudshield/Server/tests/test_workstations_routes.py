@@ -725,6 +725,33 @@ class TestListTemplates:
         assert len(data["templates"]) == 1
 
 
+class TestCreateDefaultExceptionPath:
+    """Test POST /workstations/templates exception path (lines 163-165)."""
+
+    def test_insert_template_failure_returns_500(self, mocked_app, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+
+        monkeypatch.setattr(
+            ws_mod,
+            "insert_workstation_template",
+            MagicMock(side_effect=Exception("DB error")),
+        )
+        app, _ = mocked_app
+        with app.test_client() as c:
+            resp = c.post("/api/workstations/templates", json={
+                "org_id": "org-1",
+                "name": "ws",
+                "description": "test",
+                "software": ["app1"],
+                "access_groups": ["grp1"],
+                "members": [],
+            })
+        assert resp.status_code == 500
+        data = resp.get_json()
+        assert "error" in data
+        assert data["error"] == "Failed to create workstation template"
+
+
 class TestStartAndUpdateRoutes:
     def test_start_success_returns_job_id(self, mocked_app):
         app, _ = mocked_app

@@ -27,18 +27,25 @@ def _enqueue_workstation_ready_email(requesting_user_id, workstation_name, logge
     except Exception as exc:
         logger.error("Failed to enqueue workstation ready email: %s", exc)
 
-def start_workstations(org_id, template_id, access_groups, members, logger):
+def start_workstations(org_id, template_id, access_groups, members, logger, vm_ids=None):
     group_members = get_unique_members_by_ids(db, access_groups)
     all_members = group_members + members
     unique_members = set(all_members)
     amount = len(unique_members)
 
     logger.info(f"Starting {amount}")
-    for _ in range(amount):
-        service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id)
+    pre_inserted = list(vm_ids or [])
+    for i in range(amount):
+        # Use a pre-inserted stub if available, otherwise insert a new one.
+        if i < len(pre_inserted):
+            vm_id = pre_inserted[i]
+        else:
+            ws = insert_workstation(db=db, org_id=org_id, template_id=template_id, status=WorkstationStatus.PROVISIONING)
+            vm_id = str(ws.inserted_id)
+        service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id, vm_id=vm_id)
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
     """
     Create a default workstation
     """
@@ -60,28 +67,30 @@ def ws_create_default(org_id, name, description, software, access_groups, member
         logger.error(f"Orginization not found (org_id={org_id})")
         update_job(job, "org not found")
         return
-    try:
-        ws_template = insert_workstation_template(
-            db=db,
-            name=name,
-            org_id=org_id,
-            description=description,
-            software=software,
-            is_ready=True,
-            access_groups=access_groups,
-            members=members
-        )
-    except Exception as e:
-        logger.error(e)
-        logger.error("Failed to insert workstation template to database")
-        return
+    if template_id is None:
+        # Fallback: insert template if not pre-inserted by the route handler
+        try:
+            ws_template = insert_workstation_template(
+                db=db,
+                name=name,
+                org_id=org_id,
+                description=description,
+                software=software,
+                is_ready=False,
+                access_groups=access_groups,
+                members=members
+            )
+        except Exception as e:
+            logger.error(e)
+            logger.error("Failed to insert workstation template to database")
+            return
 
-    if ws_template is None:
-        logger.error("Failed to insert vm template to database")
-        update_job(job, "failed to create template db")
-        return
-    
-    template_id = str(ws_template.inserted_id)
+        if ws_template is None:
+            logger.error("Failed to insert vm template to database")
+            update_job(job, "failed to create template db")
+            return
+
+        template_id = str(ws_template.inserted_id)
 
     update_job(job, "starting ws_create_default")
 
@@ -132,12 +141,12 @@ def ws_create_default(org_id, name, description, software, access_groups, member
     logger.info("Successfully created workstation template")
     _enqueue_workstation_ready_email(requesting_user_id, name, logger)
 
-    start_workstations(org_id, template_id, access_groups, members, logger)
+    start_workstations(org_id, template_id, access_groups, members, logger, vm_ids=vm_ids)
 
     return {"result":{"template_id":template_id}}
 
   
-def ws_start(org_id, template_id):
+def ws_start(org_id, template_id, vm_id=None):
 
     job = get_current_job()
     job_id = job.id if job else "unknown"
@@ -147,7 +156,7 @@ def ws_start(org_id, template_id):
     set_correlation_id(cid)
 
     logger = get_logger("job", job_id=job_id)
-    
+
     ws_template = get_workstation_template(db=db, org_id=org_id, template_id=template_id)
 
     if ws_template is None:
@@ -160,8 +169,9 @@ def ws_start(org_id, template_id):
         update_job(job, "image not ready")
         return
 
-    ws = insert_workstation(db=db, org_id=org_id, template_id=template_id)
-    vm_id = ws.inserted_id
+    if vm_id is None:
+        ws = insert_workstation(db=db, org_id=org_id, template_id=template_id, status=WorkstationStatus.PROVISIONING)
+        vm_id = ws.inserted_id
     logger.info(f"Added workstation to database (vm_id={vm_id})")
 
     update_job(job, "starting ws_start")
