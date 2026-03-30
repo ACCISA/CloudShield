@@ -16,7 +16,9 @@ python-on-whales
 grpcio
 protobuf
 flask-cors
+Flask-Limiter[redis]
 jinja2
 stripe
 google-genai
+elasticsearch>=8.0,<9.0
 grpcio-tools

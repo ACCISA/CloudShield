@@ -1,0 +1,7 @@
+# Exclude everything by default, then allow only what Dockerfile.server needs
+**
+
+# Allow cloudshield package init and ThreatDetection only
+!cloudshield/__init__.py
+!cloudshield/ThreatDetection/**
+!cloudshield/ThreatDetection/requirements.txt

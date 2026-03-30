@@ -2,21 +2,36 @@
 # Make sure that dynamic variables are capitalized and set by the docker_provisioner
 # This script should serve as a template and its variables should be set at by the API server
 
-$adapterName = "Ethernet"
 $dnsServers = @("SAMBA_IP")
 $domainName = "DOMAIN_NAME"
 $adminUser = "ADMIN_USER"
 $adminPass = "ADMIN_PASS"
-$computerName = "COMPUTER_NAME"
+$apiServerIp = "API_SERVER_IP"
+$workstationId = "WORKSTATION_UPDATE_ID_PLACEHOLDER"
 
 # In our docker_provisioner we must make sure to set the DOMAIN_NAME, SAMBA_IP, ADMIN_USER and ADMIN_PASS
+
+# Dynamically detect the active network adapter instead of hardcoding "Ethernet".
+# VirtIO drivers may name the adapter differently across Windows versions.
+$adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notlike '*Loopback*' } | Select-Object -First 1
+if (-not $adapter) {
+	Write-Host "ERROR: No active network adapter found. Retrying in 10 seconds..."
+	Start-Sleep -Seconds 10
+	$adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+}
+if (-not $adapter) {
+	Write-Host "ERROR: Still no active network adapter. Skipping DNS/domain setup."
+	exit 1
+}
+$adapterName = $adapter.Name
+Write-Host "Detected network adapter: $adapterName ($($adapter.InterfaceDescription))"
 
 # check if WORKGROUP
 $sysInfo = Get-WmiObject -Class Win32_ComputerSystem
 $isWorkgroup = $sysInfo.PartofDomain -eq $false
 
 # check dns match
-$currentDns = (Get-DnsClientServerAddress -InterfaceAlias $adapterName).ServerAddresses
+$currentDns = (Get-DnsClientServerAddress -InterfaceAlias $adapterName -AddressFamily IPv4 -ErrorAction SilentlyContinue).ServerAddresses
 $dnsMatch = ($currentDns -contains $dnsServers[0])
 
 Write-Host "Starting workstation setup"
@@ -24,16 +39,16 @@ Write-Host "Starting workstation setup"
 if (-not $dnsMatch) {
 	try {
 		Set-DnsClientServerAddress -InterfaceAlias $adapterName -ServerAddresses $dnsServers
-		Write-Host "DNS set to $($dnsServers -join ', ')"
+		Write-Host "DNS set to $($dnsServers -join ', ') on adapter $adapterName"
 	} catch {
-		Write-Host "Failed to set DNS: $_"
+		Write-Host "Failed to set DNS on adapter $adapterName : $_"
 	}
 }
 
 
 if ($isWorkgroup) {
 	try {
-		
+
 		# create a sched task as a fallback for domain join
 		$TaskName = "OEMStartupScript"
 		$ScriptPath = "C:\OEM\setup_workstation.ps1"
@@ -67,5 +82,23 @@ if ($isWorkgroup) {
 
 	} catch {
 		Write-Host "Failed to join domain: $_"
+	}
+} else {
+	# Already domain-joined (post-reboot run). Notify the API and clean up.
+	Write-Host "Workstation is already domain-joined. Sending API callback..."
+
+	try {
+		curl.exe -s -o NUL -w "%{http_code}" "http://${apiServerIp}:5050/workstations/update/?id=${workstationId}&status=online"
+		Write-Host "API callback sent successfully."
+	} catch {
+		Write-Host "API callback failed: $_"
+	}
+
+	# Unregister this scheduled task - setup is complete
+	$TaskName = "OEMStartupScript"
+	$existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+	if ($existing) {
+		Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+		Write-Host "Unregistered scheduled task '$TaskName' - setup complete."
 	}
 }

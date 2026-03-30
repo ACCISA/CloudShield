@@ -159,9 +159,9 @@ describe("UserRow", () => {
     expect(defaultProps.onToggleSelect).toHaveBeenCalled();
   });
 
-  it("hides checkbox on mobile", () => {
+  it("keeps the checkbox visible even when isMobile is passed", () => {
     render(<UserRow {...defaultProps} isMobile={true} />);
-    expect(screen.queryByTestId("row-checkbox")).not.toBeInTheDocument();
+    expect(screen.getByTestId("row-checkbox")).toBeInTheDocument();
   });
 
   it("renders divider when not last row", () => {
@@ -303,7 +303,7 @@ describe("UserRow", () => {
     expect(leadingCircle).toBeInTheDocument();
   });
 
-  describe("responsive breakpoints (getResponsiveStyles)", () => {
+  describe("window width does not change inline row styles", () => {
     const originalInnerWidth = window.innerWidth;
 
     afterEach(() => {
@@ -322,70 +322,68 @@ describe("UserRow", () => {
       });
     }
 
-    // ---- Mobile (< 768) ----
-    it("applies mobile row styles when width < 768", () => {
+    it("keeps the default row spacing when width < 768", () => {
       setWidth(500);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const row = container.firstChild;
-      expect(row.style.gap).toBe("8px");
-      expect(row.style.padding).toBe("10px 6px");
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
     });
 
-    it("applies mobile name fontSize when width < 768", () => {
+    it("does not apply a width-specific inline font size to the name", () => {
       setWidth(375);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const nameEl = container.querySelector('[style*="font-weight"]');
       expect(nameEl).not.toBeNull();
-      expect(nameEl.style.fontSize).toBe("0.95rem");
+      expect(nameEl.style.fontSize).toBe("");
     });
 
-    it("applies mobile email fontSize when width < 768", () => {
+    it("keeps the default email font size when width < 768", () => {
       setWidth(375);
       render(<UserRow {...defaultProps} />);
 
       const emailEl = screen.getByText("↳ john@example.com");
-      expect(emailEl.style.fontSize).toBe("0.8rem");
+      expect(emailEl.style.fontSize).toBe("0.85rem");
     });
 
-    it("applies mobile nameSection gap when width < 768", () => {
+    it("keeps the default nameSection gap when width < 768", () => {
       setWidth(600);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const nameSections = container.querySelectorAll('[style*="align-items: center"]');
       const nameSection = Array.from(nameSections).find(
-        (el) => el.style.gap === "8px" && el.style.display === "flex"
+        (el) => el.style.gap === "10px" && el.style.display === "flex"
       );
       expect(nameSection).toBeTruthy();
     });
 
-    it("uses mobile styles at boundary width 767", () => {
+    it("keeps the default row spacing at width 767", () => {
       setWidth(767);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const row = container.firstChild;
-      expect(row.style.gap).toBe("8px");
-      expect(row.style.padding).toBe("10px 6px");
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
     });
 
-    // ---- Tablet (768 – 1023) ----
-    it("applies tablet row styles when width is 768", () => {
+    it("keeps the default row spacing at width 768", () => {
       setWidth(768);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const row = container.firstChild;
-      expect(row.style.gap).toBe("10px");
-      expect(row.style.padding).toBe("11px 7px");
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
     });
 
-    it("applies tablet row styles when width is 1023", () => {
+    it("keeps the default row spacing at width 1023", () => {
       setWidth(1023);
       const { container } = render(<UserRow {...defaultProps} />);
 
       const row = container.firstChild;
-      expect(row.style.gap).toBe("10px");
-      expect(row.style.padding).toBe("11px 7px");
+      expect(row.style.gap).toBe("12px");
+      expect(row.style.padding).toBe("12px 8px");
     });
 
     it("does not apply mobile name fontSize at tablet width", () => {

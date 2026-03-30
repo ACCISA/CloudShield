@@ -26,10 +26,25 @@ def service_dispatcher(service_name: str, *args, **kwargs):
         - Validates that the requested service is registered.
         - Logs the service dispatch event (without sensitive payloads).
         - Calls the corresponding 'enqueue_*' function to queue the job.
+        - Propagates the HTTP request_id into job.meta so logs can be
+          correlated across the request → worker boundary.
     """
     if service_name not in SERVICES:
         raise ValueError(f"Unknown service called: {service_name}")
 
     service = SERVICES[service_name]
-    return service(*args, **kwargs)
+    job = service(*args, **kwargs)
+
+    # Propagate the HTTP request_id into RQ job metadata so that the task
+    # worker can include it in its log lines (cross-boundary correlation).
+    try:
+        from flask import g
+        request_id = getattr(g, "request_id", None)
+        if request_id and job is not None and hasattr(job, "meta"):
+            job.meta["_request_id"] = request_id
+            job.save_meta()
+    except RuntimeError:
+        pass  # Not inside a Flask request context (e.g. called from a worker)
+
+    return job
 

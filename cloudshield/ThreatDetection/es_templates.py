@@ -145,6 +145,62 @@ TRAFFIC_SPIKES_MAPPING: dict[str, Any] = {
 }
 
 
+# Beacon / C2 heartbeat detections
+BEACON_ALERTS_MAPPING: dict[str, Any] = {
+    "mappings": {
+        "properties": {
+            "agent_id":       {"type": "keyword"},
+            "dst_ip":         {"type": "ip", "ignore_malformed": True},
+            "dst_port":       {"type": "integer"},
+            "timestamp":      {"type": "date", "format": "epoch_second"},
+            "interval_mean":  {"type": "float"},
+            "interval_cv":    {"type": "float"},
+            "sample_count":   {"type": "integer"},
+            "is_beacon":      {"type": "boolean"},
+            "process_name":   {"type": "keyword"},
+        }
+    },
+    "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+}
+
+# LOLBin / process-network correlation alerts
+PROC_NET_ALERTS_MAPPING: dict[str, Any] = {
+    "mappings": {
+        "properties": {
+            "alert_id":    {"type": "keyword"},
+            "agent_id":    {"type": "keyword"},
+            "source":      {"type": "keyword"},
+            "severity":    {"type": "keyword"},
+            "timestamp":   {"type": "date", "format": "epoch_second"},
+            "title":       {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+            "description": {"type": "text"},
+            "dst_ip":      {"type": "ip", "ignore_malformed": True},
+            "dst_port":    {"type": "integer"},
+            "rule_id":     {"type": "keyword"},
+            "details":     {"type": "object", "enabled": False},
+        }
+    },
+    "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+}
+
+# Cross-source correlation escalation alerts
+CORRELATION_ALERTS_MAPPING: dict[str, Any] = {
+    "mappings": {
+        "properties": {
+            "alert_id":    {"type": "keyword"},
+            "agent_id":    {"type": "keyword"},
+            "source":      {"type": "keyword"},
+            "severity":    {"type": "keyword"},
+            "timestamp":   {"type": "date", "format": "epoch_second"},
+            "title":       {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+            "description": {"type": "text"},
+            "rule_id":     {"type": "keyword"},
+            "details":     {"type": "object", "enabled": False},
+        }
+    },
+    "settings": {"number_of_shards": 1, "number_of_replicas": 0},
+}
+
 # Master registry: index name → mapping body
 INDEX_TEMPLATES: dict[str, dict] = {
     "unified_alerts":     UNIFIED_ALERTS_MAPPING,
@@ -153,6 +209,9 @@ INDEX_TEMPLATES: dict[str, dict] = {
     "threat_intel_hits":  THREAT_INTEL_HITS_MAPPING,
     "net_conns":          NET_CONNS_MAPPING,
     "traffic_spikes":     TRAFFIC_SPIKES_MAPPING,
+    "beacon_alerts":      BEACON_ALERTS_MAPPING,
+    "proc_net_alerts":    PROC_NET_ALERTS_MAPPING,
+    "correlation_alerts": CORRELATION_ALERTS_MAPPING,
 }
 
 

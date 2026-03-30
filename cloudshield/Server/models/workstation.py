@@ -10,6 +10,7 @@ class Software(BaseModel):
 class WorkstationStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
+    PROVISIONING = "provisioning"
 
 class WorkstationTemplate(BaseModel):
     name: str

@@ -14,6 +14,7 @@ function SecurityAlertsTable({
   onToggleSelectAll = () => {},
   hasNoAlerts = false,
   hasNoResults = false,
+  onUpdateAlert = () => {},
 }) {
   const themeColors = useThemeColors();
   const styles = {
@@ -120,6 +121,7 @@ function SecurityAlertsTable({
               isSelected={selectedAlerts.has(alert.id)}
               onToggleSelect={onToggleSelect}
               isEven={index % 2 === 0}
+              onUpdateAlert={onUpdateAlert}
             />
           ))
         )}
@@ -137,6 +139,7 @@ SecurityAlertsTable.propTypes = {
   onToggleSelectAll: PropTypes.func,
   hasNoAlerts: PropTypes.bool,
   hasNoResults: PropTypes.bool,
+  onUpdateAlert: PropTypes.func,
 };
 
 export default SecurityAlertsTable;

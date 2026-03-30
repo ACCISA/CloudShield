@@ -258,7 +258,7 @@ describe("WorkstationList", () => {
     expect(screen.queryByText("2 hours ago")).not.toBeInTheDocument();
   });
 
-  it("hides header and selection column on mobile", () => {
+  it("does not change structure based on window width alone", () => {
     Object.defineProperty(window, "innerWidth", {
       writable: true,
       configurable: true,
@@ -274,11 +274,11 @@ describe("WorkstationList", () => {
       />,
     );
 
-    expect(screen.queryByText("Name/Number")).not.toBeInTheDocument();
-    expect(screen.queryByText("Users")).not.toBeInTheDocument();
-    expect(screen.queryByText("Current")).not.toBeInTheDocument();
-    expect(screen.queryByText("Last Used")).not.toBeInTheDocument();
-    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.getByText("Name/Number")).toBeInTheDocument();
+    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Current")).toBeInTheDocument();
+    expect(screen.getByText("Last Used")).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(mockRows.length + 1);
   });
 
   it("renders safely with empty rows", () => {

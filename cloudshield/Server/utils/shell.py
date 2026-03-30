@@ -1,5 +1,6 @@
 from __future__ import annotations
 import subprocess
+from collections import deque
 from typing import Optional, List
 
 def run_stream(cmd: list[str], *, cwd: str, env: Optional[dict] = None, logger=None, tail_keep: int = 50) -> List[str]:
@@ -12,7 +13,10 @@ def run_stream(cmd: list[str], *, cwd: str, env: Optional[dict] = None, logger=N
         logger.debug("Executing command: %s (cwd=%s)", " ".join(cmd), cwd)
 
 
-    all_output: List[str] = [] # Collect all output lines for tail return`
+    # Keep a bounded output tail to prevent unbounded memory growth.
+    # We retain at least 30 lines to provide useful failure context.
+    tail_window = max(30, tail_keep)
+    output_tail: deque[str] = deque(maxlen=tail_window)
 
     proc = subprocess.Popen(
         cmd,
@@ -25,7 +29,7 @@ def run_stream(cmd: list[str], *, cwd: str, env: Optional[dict] = None, logger=N
     assert proc.stdout is not None
     for line in proc.stdout:
         stripped = line.rstrip("\n")
-        all_output.append(stripped)
+        output_tail.append(stripped)
         if logger:
             logger.debug("[cmd] %s", stripped)
 
@@ -34,12 +38,14 @@ def run_stream(cmd: list[str], *, cwd: str, env: Optional[dict] = None, logger=N
     if proc.returncode != 0:
         if logger:
             logger.error("Command failed (%s): rc=%s", " ".join(cmd), proc.returncode)
-            logger.error("Last %d lines:\n%s", min(30, len(all_output)), "\n".join(all_output[-30:]))
+            tail_lines = list(output_tail)[-30:]
+            logger.error("Last %d lines:\n%s", len(tail_lines), "\n".join(tail_lines))
         raise subprocess.CalledProcessError(proc.returncode, cmd)
 
 
     if logger:
         logger.debug("Command succeeded: %s", " ".join(cmd))
 
-
-    return all_output[-tail_keep:]
+    if tail_keep <= 0:
+        return []
+    return list(output_tail)[-tail_keep:]

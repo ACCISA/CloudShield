@@ -173,12 +173,26 @@ startInstall() {
     ISO="$TMP/$ISO"
 
     if [ -f "$BOOT" ] && [ -s "$BOOT" ]; then
-      mv -f "$BOOT" "$ISO"
+      if ! mv -f "$BOOT" "$ISO" 2>/dev/null; then
+        # BOOT can be a bind-mounted read-only ISO. Use it directly to avoid
+        # duplicating large files into /storage and running out of space.
+        ISO="$BOOT"
+        info "Using mounted ISO source directly."
+      fi
     fi
 
   fi
 
-  rm -f "$BOOT"
+  rm -f "$BOOT" 2>/dev/null || true
+
+  # When the source ISO is bind-mounted read-only at $BOOT, removal can fail.
+  # In that case, switch the output target so buildImage can write a new ISO.
+  if [ -f "$BOOT" ]; then
+    local generated_boot="$STORAGE/windows.generated.iso"
+    rm -f "$generated_boot" 2>/dev/null || true
+    BOOT="$generated_boot"
+    info "Using alternate output path for generated ISO: $BOOT"
+  fi
 
   find "$STORAGE" -maxdepth 1 -type f -iname 'data.*' -not -iname '*.iso' -delete
   find "$STORAGE" -maxdepth 1 -type f -iname 'windows.*' -not -iname '*.iso' -delete
@@ -1147,7 +1161,14 @@ removeImage() {
   [ ! -f "$iso" ] && return 0
   [ -n "$CUSTOM" ] && return 0
 
-  rm -f "$iso" 2> /dev/null || warn "failed to remove $iso !"
+  if ! rm -f "$iso" 2> /dev/null; then
+    # A file-level bind mount for the source ISO cannot be deleted from here.
+    if awk -v p="$iso" '$5==p {found=1} END{exit(found?0:1)}' /proc/self/mountinfo 2>/dev/null; then
+      info "Keeping mounted source ISO at $iso"
+    else
+      warn "failed to remove $iso !"
+    fi
+  fi
 
   return 0
 }

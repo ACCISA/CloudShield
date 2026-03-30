@@ -209,7 +209,7 @@ export default function EmployeesModal({
       }
     }
     if (newStep >= 0 && newStep < STEPS.length) {
-      setCurrentStep(newStep);
+      navigateStep(direction);
     }
   };
 
@@ -223,7 +223,7 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
-    // Password is optional in create mode - only validate if provided
+    // Password is optional in create mode (auto-generated if blank), but must be valid if provided.
     if (!isEditMode && formData.password) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
@@ -284,8 +284,16 @@ export default function EmployeesModal({
   );
   const toggleSelection = createToggleSelectionHandler(setFormData);
   const removeSelection = createRemoveSelectionHandler(setFormData);
+  const navigateStep = useMemo(
+    () => createNavigationHandler(setCurrentStep, STEPS.length),
+    [],
+  );
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
+  const basicInfoValid = useMemo(
+    () => Object.keys(getBasicInfoErrors()).length === 0,
+    [formData, isEditMode],
+  );
 
   if (!open) return null;
 
@@ -368,7 +376,13 @@ export default function EmployeesModal({
         <main className="employees-modal-content">
           {isCreating || isSubmitting ? (
             <SubmittingOverlay
-              label={isEditMode ? "Saving changes..." : "Creating user..."}
+              label={
+                isCreating
+                  ? (isEditMode ? "Saving changes..." : "Creating user...")
+                  : "Saving..."
+              }
+              message={isCreating ? creationMessage : null}
+              progress={isCreating ? creationProgress : null}
             />
           ) : (
             renderStepContent()
@@ -425,6 +439,7 @@ export default function EmployeesModal({
                 <button
                   className="employees-modal-btn employees-modal-btn-primary"
                   onClick={() => handleNavigate(1)}
+                  disabled={currentStep === 0 && !basicInfoValid}
                 >
                   Next
                 </button>
@@ -580,7 +595,7 @@ function BasicInfoStep({
 
       {!isEditMode && (
         <div className="employees-modal-form-group">
-          <label className="employees-modal-label">Password (optional)</label>
+          <label className="employees-modal-label">Password</label>
           <input
             type="password"
             className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}
@@ -622,7 +637,7 @@ function SelectionStep({
       renderItem: (item) => ({
         icon: <DisplayIcon type="workstation" data={item} size="small" />,
         name: item.name,
-        detail: `${item.online ? "🟢 Online" : "🔴 Offline"} • ${item.ipAddress}`,
+        detail: `${item.online ? "🟢 Online" : ["building", "provisioning"].includes((item.status || "").toLowerCase()) ? "🟡 Building" : "🔴 Offline"} • ${item.ipAddress}`,
       }),
     },
     groups: {

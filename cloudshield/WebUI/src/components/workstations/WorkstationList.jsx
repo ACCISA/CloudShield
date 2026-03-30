@@ -193,11 +193,11 @@ function UsersPill({ row }) {
 function getStatusLightColors(status) {
   const normalized = (status || "").toLowerCase();
 
-  if (normalized === "connected") {
+  if (["connected", "active", "online"].includes(normalized)) {
     return { outerColor: "#1F381F", innerColor: "#04C40A" };
   }
 
-  if (normalized === "provisioning") {
+  if (normalized === "provisioning" || normalized === "building") {
     return { outerColor: "#3F2A08", innerColor: "#F0B429" };
   }
 
@@ -249,6 +249,8 @@ function WorkstationRow({
   isSelected,
   onToggleSelect,
 }) {
+  const currentDisplayUser = r.currentUser || null;
+  const statusColors = getStatusLightColors(r.status);
   return (
     <>
       <HoverableRow

@@ -12,6 +12,29 @@ JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "cloudshield-app")
 JWT_EXPIRES_MINUTES = int(os.getenv("JWT_EXPIRES_MINUTES", "60"))
 
 
+def _validate_jwt_secret(secret: str | None) -> str:
+    """Validate JWT secret at runtime and fail fast on weak/missing config."""
+    if not secret:
+        raise RuntimeError("JWT_SECRET is not configured; refusing to issue/verify tokens")
+
+    normalized = secret.strip()
+    weak_values = {
+        "secret",
+        "changeme",
+        "change-me",
+        "default",
+        "password",
+        "jwt_secret",
+        "jwt-secret",
+        "replace-me",
+    }
+    if len(normalized) < 12 or normalized.lower() in weak_values:
+        raise RuntimeError(
+            "JWT_SECRET is weak; use a random secret with at least 12 characters"
+        )
+    return secret
+
+
 def issue_token(sub: str, role: str, org_id: str, email: str, full_name: str):
     """
     Generate JWT access token with user claims.
@@ -39,6 +62,8 @@ def issue_token(sub: str, role: str, org_id: str, email: str, full_name: str):
     if jwt is None:  # pragma: no cover
         raise RuntimeError("PyJWT is required to issue tokens (install 'PyJWT')")
 
+    secret = _validate_jwt_secret(JWT_SECRET)
+
     now = int(time.time())
     payload = {
         "sub": sub,
@@ -51,7 +76,7 @@ def issue_token(sub: str, role: str, org_id: str, email: str, full_name: str):
         "iat": now - 10,
         "exp": now + (JWT_EXPIRES_MINUTES * 60)
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, secret, algorithm="HS256")
 
 
 def verify_token(token: str):
@@ -76,9 +101,11 @@ def verify_token(token: str):
     if jwt is None:  # pragma: no cover
         raise RuntimeError("PyJWT is required to verify tokens (install 'PyJWT')")
 
+    secret = _validate_jwt_secret(JWT_SECRET)
+
     return jwt.decode(
         token,
-        JWT_SECRET,
+        secret,
         algorithms=["HS256"],
         audience=JWT_AUDIENCE,
         issuer=JWT_ISSUER,

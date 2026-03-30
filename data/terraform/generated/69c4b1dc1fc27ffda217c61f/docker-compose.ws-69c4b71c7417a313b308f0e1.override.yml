@@ -1,0 +1,8 @@
+services:
+  workstation:
+    networks: [org_net]
+
+networks:
+  org_net:
+    external: true
+    name: 69c4b1dc1fc27ffda217c61f-net

@@ -39,24 +39,30 @@ const styles = {
   iconStatusRow: { marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" },
 };
 
-const TRACKED_WORKSTATIONS_KEY = "tracked_workstation_creations";
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const isFailedProgress = (progress) => {
-  const normalized = (progress || "").toLowerCase();
-  return (
-    normalized === "failed" ||
-    normalized === "org not found" ||
-    normalized === "template not found" ||
-    normalized === "image not ready" ||
-    normalized.startsWith("failed")
-  );
-};
-
-const getIconStatusColors = (status) => {
-  const normalized = (status || "").toLowerCase();
-  if (normalized === "connected") {
-    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+export const createWorkstationTemplate = async (orgId, payload) => {
+  try {
+    const token = localStorage.getItem("jwt");
+    const res = await fetch(`/api/workstations/templates`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        org_id: orgId,
+        name: payload.name,
+        description: payload.description,
+        software: (payload.software || []).map((s) => s.id || s._id || s),
+        access_groups: (payload.access_groups || []).map((g) => g.id || g._id || g),
+        members: (payload.members || []).map((u) => u.id || u._id || u),
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to create workstation template");
+    return await res.json();
+  } catch (e) {
+    console.error(e);
+    return null;
   }
   if (normalized === "provisioning") {
     return { outerColor: "#3F2A08", innerColor: "#F0B429" };
@@ -137,21 +143,8 @@ export default function WorkstationsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const setTrackedEntries = useCallback((updater) => {
-    const nextEntries =
-      typeof updater === "function" ? updater(readTrackedWorkstations()) : updater;
-    writeTrackedWorkstations(nextEntries);
-    return nextEntries;
-  }, []);
-
-  const loadRows = useCallback(async () => {
-    const orgId = localStorage.getItem("org_id");
-    const token = localStorage.getItem("jwt");
-    const serverRows = await fetchWorkstations(orgId, token);
-    const trackedEntries = readTrackedWorkstations();
-    setRows(mergeWorkstationRows(serverRows, trackedEntries));
-  }, []);
+  const { toast, showToast, hideToast } = useToast(6000);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (location.state?.openModal) { setOpenModal(true); setEditRow(null); window.history.replaceState({}, document.title); }
@@ -305,34 +298,23 @@ export default function WorkstationsPage() {
   }, [pollCreateJob]);
 
   const handleCreate = async (payload) => {
-    const newRow = {
-      id: `ws-${Date.now()}`,
-      name: payload.name,
-      strength: payload.description || "",
-      usersCount: payload.members?.length || 0,
-      users: payload.members || [],
-      currentUser: payload.members?.[0] || null,
-      status: "provisioning",
-      online: false,
-      groups: payload.access_groups || [],
-      software: payload.software || [],
-    };
-
-    setRows((prev) => [newRow, ...prev]);
-
-    const created = await createWorkstation(payload);
-    if (!created) {
-      setRows((prev) => prev.filter((row) => row.id !== newRow.id));
-      return;
+    const orgId = localStorage.getItem("org_id");
+    const created = await createWorkstationTemplate(orgId, payload);
+    if (created) {
+      const newRow = {
+        id: created.template_id || created.job_id || `ws-${Date.now()}`,
+        name: payload.name,
+        code: "WS-NEW",
+        usersCount: payload.members?.length || 0,
+        users: payload.members || [],
+        currentUser: payload.members?.[0] || null,
+        lastUsed: "—",
+        status: "building",
+        _isTemplate: true,
+      };
+      setRows((prev) => [newRow, ...prev]);
     }
-
-    if (created.job_id) {
-      setTrackedEntries((entries) => [
-        ...entries.filter((entry) => entry.jobId !== created.job_id),
-        { jobId: created.job_id, row: newRow },
-      ]);
-      pollCreateJob(created.job_id, newRow.id);
-    }
+    return Boolean(created);
   };
 
   const handleEditSave = (id, changes) =>
@@ -355,7 +337,18 @@ export default function WorkstationsPage() {
     setRows((prev) => prev.filter((r) => r.id !== id));
     setTrackedEntries((entries) => entries.filter((entry) => entry.row?.id !== id));
   };
-  
+  const handleToggleStatus = (id) =>
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (["building", "provisioning"].includes((r.status || "").toLowerCase())) return r;
+        return {
+          ...r,
+          status: r.status === "connected" ? "disconnected" : "connected",
+        };
+      }),
+    );
+
   const handleRefresh = useCallback(async () => {
     setError(""); setLoading(true);
     try {
@@ -455,7 +448,50 @@ export default function WorkstationsPage() {
           </div>
         )}
 
-        {openModal && <WorkstationModal open={openModal} onClose={() => { setOpenModal(false); setEditRow(null); }} workstationData={editRow} onSubmit={(p) => { if (editRow) handleEditSave(editRow.id, p); else handleCreate(p); setOpenModal(false); setEditRow(null); }} onDelete={editRow ? () => { handleDelete(editRow.id); setOpenModal(false); setEditRow(null); } : undefined} />}
+        {openModal && (
+          <WorkstationModal
+            open={openModal}
+            onClose={() => {
+              setOpenModal(false);
+              setEditRow(null);
+            }}
+            workstationData={editRow}
+            onSubmit={async (p) => {
+              try {
+                if (editRow) {
+                  handleEditSave(editRow.id, p);
+                  showToast("Workstation updated");
+                  globalThis.dispatchEvent(new Event("metrics:invalidate"));
+                } else {
+                  const created = await handleCreate(p);
+                  if (created) {
+                    showToast("Workstation template queued — provisioning in background");
+                    globalThis.dispatchEvent(new Event("metrics:invalidate"));
+                  } else {
+                    showToast("Failed to save workstation", "error");
+                  }
+                }
+              } catch {
+                showToast("Failed to save workstation", "error");
+              }
+            }}
+            onDelete={
+              editRow
+                ? () => {
+                    handleDelete(editRow.id);
+                    setOpenModal(false);
+                    setEditRow(null);
+                  }
+                : undefined
+            }
+          />
+        )}
+        <Toast
+          msg={toast.msg}
+          type={toast.type}
+          open={toast.open}
+          onClose={hideToast}
+        />
       </div>
     </PageShell>
   );

@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage, { createWorkstation } from "../WorkstationsPage";
+import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
 
 jest.mock("../../hooks/useClickLogger", () => ({
@@ -168,7 +168,7 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-describe("createWorkstation", () => {
+describe("createWorkstationTemplate", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
@@ -181,22 +181,31 @@ describe("createWorkstation", () => {
     jest.clearAllMocks();
   });
 
-  test("posts payload and returns response", async () => {
+  test("posts full template payload to /api/workstations/templates", async () => {
     localStorage.setItem("jwt", "token-123");
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: jest.fn().mockResolvedValue({ id: "ws-1" }),
+      json: jest.fn().mockResolvedValue({ job_id: "job-1" }),
     });
 
-    const result = await createWorkstation("org-1", "WS 1", "10.0.0.1", [
-      { id: "g1" },
-    ]);
+    const result = await createWorkstationTemplate("org-1", {
+      name: "WS 1",
+      description: "basic",
+      software: [{ id: "s1" }],
+      access_groups: [{ id: "g1" }],
+      members: [{ id: "u1" }],
+    });
 
-    expect(result).toEqual({ id: "ws-1" });
+    expect(result).toEqual({ job_id: "job-1" });
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/workstations",
+      "/api/workstations/templates",
       expect.objectContaining({ method: "POST" }),
     );
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.org_id).toBe("org-1");
+    expect(body.access_groups).toEqual(["g1"]);
+    expect(body.members).toEqual(["u1"]);
+    expect(body.software).toEqual(["s1"]);
   });
 });
 
@@ -395,6 +404,57 @@ describe("WorkstationsPage", () => {
     await user.click(screen.getByRole("button", { name: "close" }));
     await waitFor(() => {
       expect(screen.queryByTestId("workstation-modal")).not.toBeInTheDocument();
+    });
+  });
+
+  test("toggles status from connected to disconnected", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    // w1 starts as "connected" — clicking toggle should flip it to "disconnected"
+    await user.click(screen.getByTestId("toggle-status-w1"));
+
+    // The row is still present (not deleted)
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+  });
+
+  test("does not toggle status for building workstation", async () => {
+    const user = userEvent.setup();
+    fetchWorkstations.mockResolvedValueOnce([
+      { id: "w-build", name: "InProgress", status: "building", usersCount: 0 },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("InProgress")).toBeInTheDocument());
+    // Clicking toggle on a building row should be a no-op (status stays "building")
+    await user.click(screen.getByTestId("toggle-status-w-build"));
+    expect(screen.getByText("InProgress")).toBeInTheDocument();
+  });
+
+  test("does not toggle status for provisioning workstation", async () => {
+    const user = userEvent.setup();
+    fetchWorkstations.mockResolvedValueOnce([
+      { id: "w-prov", name: "Provisioning WS", status: "provisioning", usersCount: 0 },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Provisioning WS")).toBeInTheDocument());
+    await user.click(screen.getByTestId("toggle-status-w-prov"));
+    expect(screen.getByText("Provisioning WS")).toBeInTheDocument();
+  });
+
+  test("shows failed-create toast when createWorkstationTemplate returns null", async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to save workstation")).toBeInTheDocument();
     });
   });
 

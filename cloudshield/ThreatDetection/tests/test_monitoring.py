@@ -229,3 +229,111 @@ class TestThreatIntelChecker:
             assert checker.refresh_feeds() == 0
         finally:
             mod._HAS_REQUESTS = original
+
+    def test_init_default_feeds_when_no_feed_urls(self):
+        """When feed_urls is not passed, DEFAULT_FEEDS are used."""
+        from cloudshield.ThreatDetection.monitoring.threat_intel import DEFAULT_FEEDS
+        checker = ThreatIntelChecker(seed_ips=[])
+        assert checker._feeds == DEFAULT_FEEDS
+
+    def test_add_invalid_cidr_returns_zero(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        result = checker._add("not-a-cidr/99")
+        assert result == 0
+
+    def test_get_source_from_ip_source_dict(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        checker._add("11.22.33.44", label="feodo_tracker")
+        assert checker.get_source("11.22.33.44") == "feodo_tracker"
+
+    def test_get_source_cidr_match(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        checker._add("10.20.0.0/16", label="spamhaus_drop")
+        assert checker.get_source("10.20.1.5") == "spamhaus_drop"
+
+    def test_get_source_invalid_ip_returns_blocklist(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        assert checker.get_source("not-an-ip") == "blocklist"
+
+    def test_get_source_unknown_ip_returns_blocklist(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        assert checker.get_source("8.8.4.4") == "blocklist"
+
+    def test_is_bad_invalid_ip_returns_false(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        assert checker.is_bad("not-an-ip") is False
+
+    def test_last_refresh_property(self):
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        assert checker.last_refresh < 1.0  # initially zero, well below any real timestamp
+
+    def test_refresh_feeds_success(self, monkeypatch):
+        """refresh_feeds with mocked requests adds IPs from feed."""
+        import cloudshield.ThreatDetection.monitoring.threat_intel as mod
+
+        class FakeResp:
+            text = "1.1.1.1\n2.2.2.2\n# comment\n\n3.3.3.3\n"
+            def raise_for_status(self):  # NOSONAR - intentionally empty; no HTTP error to simulate
+                pass
+
+        fake_get_calls = []
+        def fake_get(url, timeout):
+            fake_get_calls.append(url)
+            return FakeResp()
+
+        monkeypatch.setattr(mod, "_requests", type("R", (), {"get": staticmethod(fake_get)})())
+        monkeypatch.setattr(mod, "_HAS_REQUESTS", True)
+
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=["http://fake-feed.test/list.txt"])
+        total = checker.refresh_feeds()
+        assert total == 3
+        assert checker.is_bad("1.1.1.1") is True
+        assert checker.last_refresh > 0.0
+
+    def test_refresh_feeds_strip_comment(self, monkeypatch):
+        """strip_comment=True removes inline ; comments."""
+        import cloudshield.ThreatDetection.monitoring.threat_intel as mod
+
+        class FakeResp:
+            text = "10.0.0.0/8 ; SBL12345\n"
+            def raise_for_status(self):  # NOSONAR - intentionally empty; no HTTP error to simulate
+                pass
+
+        monkeypatch.setattr(mod, "_requests", type("R", (), {"get": staticmethod(lambda url, timeout: FakeResp())})())
+        monkeypatch.setattr(mod, "_HAS_REQUESTS", True)
+
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        # Use a single feed with strip_comment=True
+        checker._feeds = [("http://fake.test/drop.txt", "spamhaus_drop", True)]
+        total = checker.refresh_feeds()
+        assert total == 1
+        assert checker.is_bad("10.1.2.3") is True
+
+    def test_refresh_feeds_exception_continues(self, monkeypatch):
+        """A failing feed is skipped; other feeds still processed."""
+        import cloudshield.ThreatDetection.monitoring.threat_intel as mod
+
+        call_count = [0]
+
+        class FakeResp:
+            text = "5.5.5.5\n"
+            def raise_for_status(self):  # NOSONAR - intentionally empty; no HTTP error to simulate
+                pass
+
+        def fake_get(url, timeout):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ConnectionError("network down")
+            return FakeResp()
+
+        monkeypatch.setattr(mod, "_requests", type("R", (), {"get": staticmethod(fake_get)})())
+        monkeypatch.setattr(mod, "_HAS_REQUESTS", True)
+
+        checker = ThreatIntelChecker(seed_ips=[], feed_urls=[])
+        checker._feeds = [
+            ("http://fail.test/list.txt", "bad_feed", False),
+            ("http://ok.test/list.txt", "good_feed", False),
+        ]
+        total = checker.refresh_feeds()
+        assert total == 1
+        assert checker.is_bad("5.5.5.5") is True

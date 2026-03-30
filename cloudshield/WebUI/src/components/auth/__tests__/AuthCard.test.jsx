@@ -12,33 +12,35 @@ describe('AuthCard', () => {
     expect(screen.getByText('Form Content')).toBeInTheDocument();
   });
 
-  it('displays logo placeholder', () => {
+  it('displays the CloudShield logo', () => {
     render(
       <AuthCard>
         <div>Content</div>
       </AuthCard>
     );
-    expect(screen.getByText('LOGO')).toBeInTheDocument();
+    const logo = screen.getByAltText('CloudShield');
+    expect(logo).toBeInTheDocument();
+    expect(logo.getAttribute('src')).toContain('cloudshield_logo_black.png');
   });
 
-  it('displays footer text', () => {
+  it('displays the login title and subtitle', () => {
     render(
       <AuthCard>
         <div>Content</div>
       </AuthCard>
     );
-    // Use the typographic apostrophe (U+2019) that's actually in the component
-    expect(screen.getByText("Can’t log in?")).toBeInTheDocument();
-    expect(screen.getByText('Secure Login with 2FA')).toBeInTheDocument();
+    expect(screen.getByText('Welcome back')).toBeInTheDocument();
+    expect(screen.getByText('Sign in to your CloudShield account')).toBeInTheDocument();
   });
 
-  it('applies correct styling', () => {
+  it('applies the auth card classes', () => {
     const { container } = render(
       <AuthCard>
         <div>Content</div>
       </AuthCard>
     );
-    const paper = container.querySelector('.MuiPaper-root');
-    expect(paper).toBeInTheDocument();
+    const card = container.firstChild;
+    expect(card).toHaveClass('auth-card', 'auth-card--login');
+    expect(container.querySelector('.auth-card__body')).toBeInTheDocument();
   });
 });

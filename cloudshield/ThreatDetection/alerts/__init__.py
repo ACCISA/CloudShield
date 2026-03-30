@@ -96,6 +96,12 @@ class Alert:
     # Enrichment (optional payload)
     details: dict = field(default_factory=dict)
 
+    # Ownership
+    org_id: str = ""             # organisation that owns this ThreatDetection deployment
+
+    # Lifecycle
+    status: str = "unresolved"   # unresolved | resolved | false_positive
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -192,6 +198,42 @@ def alert_from_threat_intel(hit_dict: dict) -> Alert:
         title=f"Known-bad IP: {ip}",
         description=hit_dict.get("reason", ""),
         details=hit_dict,
+    )
+    a.compute_id()
+    return a
+
+
+def alert_from_beacon(beacon_dict: dict) -> Alert:
+    """
+    Create an :class:`Alert` from a beacon-detector result dict.
+
+    Expected keys: ``agent_id``, ``dst_ip``, ``dst_port``, ``interval_mean``,
+    ``interval_cv``, ``sample_count``, ``process_name``.
+    """
+    now = int(time.time())
+    interval = beacon_dict.get("interval_mean", 0)
+    cv = beacon_dict.get("interval_cv", 0)
+    proc = beacon_dict.get("process_name", "")
+    count = beacon_dict.get("sample_count", 0)
+
+    a = Alert(
+        source="beacon",
+        severity=Severity.HIGH.value,
+        timestamp=beacon_dict.get("timestamp", now),
+        first_seen=now,
+        last_seen=now,
+        agent_id=beacon_dict.get("agent_id", ""),
+        dst_ip=beacon_dict.get("dst_ip", ""),
+        dst_port=int(beacon_dict.get("dst_port", 0)),
+        rule_id="beacon_detection",
+        title="C2 beacon pattern detected",
+        description=(
+            f"{'Process ' + proc + ' is making' if proc else 'Making'} "
+            f"highly-regular connections to {beacon_dict.get('dst_ip', 'unknown')} "
+            f"every ~{interval:.0f}s (CV={cv:.2f}, {count} samples). "
+            f"This pattern is consistent with C2 implant heartbeat traffic."
+        ),
+        details=beacon_dict,
     )
     a.compute_id()
     return a

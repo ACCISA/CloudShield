@@ -41,13 +41,25 @@ CloudShield has four main components:
    - Employees log in, the app opens an OpenVPN tunnel, then connects to the workstation over RDP.  
    - Electron is used so the app can perform OS-level actions like launching RDP.  
 
-3. **Backend Cloud Services**  
-   - Python services use provider SDKs (AWS/Azure) to create EC2 VMs, configure VPC networking, and wire S3 storage.  
+3. **Backend Cloud Services**
+   - Python services use provider SDKs (AWS/Azure) to create EC2 VMs, configure VPC networking, and wire S3 storage.
    - Samba Active Directory with roaming profiles for consistent user experience across workstations.
 
-4. **IAM, Security & Threat Detection**  
-   - RBAC/SSO for tenants.  
-   - Lightweight agent forwards logs/metrics for anomaly detection and alerts.  
+4. **IAM, Security & Threat Detection**
+   - RBAC/SSO for tenants.
+   - Lightweight agent forwards logs/metrics for anomaly detection and alerts.
+
+### Component Map
+
+| Component       | Folder                        | Run                                      | Test                          |
+|-----------------|-------------------------------|------------------------------------------|-------------------------------|
+| Server          | `cloudshield/Server`          | `docker compose up api-test`             | `pytest cloudshield/Server`   |
+| Cloud           | `cloudshield/Cloud`           | loaded by Server task queue              | `pytest cloudshield/Cloud`    |
+| ThreatDetection | `cloudshield/ThreatDetection` | `python cloudshield/ThreatDetection/server.py` | `pytest cloudshield/ThreatDetection` |
+| RPCNode         | `cloudshield/RPCNode`         | `cmake build && ./protobuf -vpn\|-samba` | manual                        |
+| Agent           | `cloudshield/Agent`           | `python cloudshield/Agent/main.py`       | `pytest cloudshield/Agent`    |
+| WebUI           | `cloudshield/WebUI`           | `npm run dev`                            | `npm test`                    |
+| DesktopUI       | `cloudshield/DesktopUI`       | `npm run dev`                            | `npm test`                    |
 
 ---
 
@@ -81,10 +93,10 @@ pip install -r requirements.txt
 python main.py
 
 # Web UI
-cd webui && npm ci && cd ..
+cd cloudshield/WebUI && npm ci && cd ../..
 
 # Desktop UI
-cd desktop && npm ci && cd ..
+cd cloudshield/DesktopUI && npm ci && cd ../..
 ```
 
 ---
@@ -101,7 +113,7 @@ export MONGO_URL=<>
 export MONGO_DB=<>
 ```
 
-Optionally, you can plase these env variables in .env at the root directory.
+Optionally, you can place these env variables in .env at the root directory.
 Note: 
 Backend services use Python SDKs to provision EC2/S3/VPC including AMI builds. Credentials must be configured.  
 MongoDB should be run locally or via a managed cluster.  
@@ -130,8 +142,8 @@ docker compose build <service>
 
 3. Run containers
 ```bash
-docker compose run
-docker compose run <service>
+docker compose up
+docker compose up <service>
 ```
 
 4. Enter containers for debug
@@ -140,18 +152,95 @@ docker ps # get the container id
 docker exec -it <container_id> bash
 ```
 
-Cloudshield will hold all necessary files and states in /var/lib/cloudshield/
+CloudShield will hold all necessary files and states in /var/lib/cloudshield/
 
-### Local API Developement
+### Container Security & Hardening
+
+**Development vs. Production Deployments:**
+
+CloudShield maintains separate Dockerfile definitions for development and production environments to balance developer experience with security hardening.
+
+**Development Containers** (`docker/Dockerfile.*`)
+- Source code mounted via volumes for live editing
+- Includes development tools, debuggers, verbose logging
+- Runs on localhost with relaxed network policies
+- Use with `docker-compose.yml` for local development
+
+**Production Containers** (`docker/Dockerfile.*.prod`)
+- Hardened images with multi-stage builds to reduce attack surface
+- Minimal system packages (no build tools in final image)
+- Non-root user execution
+- Health checks for orchestrator monitoring
+- Pinned dependency versions for reproducibility
+- Use with `docker-compose.prod.yml` for production deployment
+
+**Container Hardening Checklist:**
+
+All container images must adhere to security best practices. Refer to [CONTAINER_HARDENING.md](./docs/CONTAINER_HARDENING.md) for a comprehensive checklist covering:
+- Base image versioning and minimization
+- Multi-stage builds
+- Non-root user setup
+- Dependency pinning
+- Health checks
+- Resource limits
+- Filesystem security
+- Network isolation
+
+**Quick Start - Development:**
+```bash
+# Build and run development containers (with live-reload volumes)
+docker compose build
+docker compose up redis api-test ui elasticsearch
+```
+
+**Dev Service Profiles:**
+- Default `docker compose up` starts: `redis`, `api-test`, `ui`, `elasticsearch`.
+- Template profile starts only when explicitly requested by provisioning/signup flow: `openvpn-test`, `samba-test`, `workstation`, `threat-detection`.
+- Manual profile service: `api` (used only when explicitly requested).
+
+```bash
+# Start template-profile services manually (if needed)
+docker compose --profile template up openvpn-test samba-test workstation threat-detection
+
+# Start manual profile service (if needed)
+docker compose --profile manual up api
+```
+
+**Quick Start - Production:**
+```bash
+# Build hardened production images
+docker compose -f docker-compose.prod.yml build
+
+# Set required environment variables
+export MONGO_URL=mongodb://...
+export JWT_SECRET=...
+export REDIS_PASSWORD=...
+
+# Deploy production stack (with resource limits and health checks)
+docker compose -f docker-compose.prod.yml up -d
+
+# Monitor health
+docker compose -f docker-compose.prod.yml ps
+```
+
+**PR Review Requirement:**
+When reviewed, all Dockerfile changes must be checked against the [hardening checklist](./docs/CONTAINER_HARDENING.md) to ensure:
+- Base image is pinned (not `latest`)
+- Multi-stage build used for compiled languages
+- Non-root user configured
+- Health checks present
+- No secrets in image layers
+
+### Local API Development
 
 To optimize resource utilization and developer feedback loops, all development and testing of domain-controller-interacting APIs is performed locally using containerized environments (Docker). For provisioning, we now utilize a custom script via the provision endpoint, effectively replacing the cloud-based Terraform provisioner. This mechanism facilitates the rapid deployment of necessary containers, decoupling the development process from cloud infrastructure provisioning latency, thereby ensuring a quicker, more cost-effective development workflow.
 
 ```
 docker network create --driver bridge --subnet 172.23.1.0/24 --gateway 172.23.1.1 vpc_net
 docker compose build api-test
-docker compose run api-test
+docker compose up api-test
 ```
-You can test the API by connecting to the apit-test container's IP address. Full details regarding the provisioned containers and their configuration are available in the docker-compose.yml file.
+You can test the API by connecting to the api-test container's IP address. Full details regarding the provisioned containers and their configuration are available in docker-compose.yml.
 
 ---
 
@@ -167,6 +256,17 @@ You can test the API by connecting to the apit-test container's IP address. Full
 ### Notes on Images & Storage
 - **Images:** Workstations launch from hardened AMIs with CloudShield Agent.  
 - **Storage:** Organization data stored in S3, exposed as mapped drives.  
+
+---
+
+## Documentation Index
+
+Use the documents below as the canonical references:
+
+- Container deployment model and environment split: [docs/CONTAINER_DEPLOYMENT_GUIDE.md](docs/CONTAINER_DEPLOYMENT_GUIDE.md)
+- Container security rules and PR checklist details: [docs/CONTAINER_HARDENING.md](docs/CONTAINER_HARDENING.md)
+- API and route-level error contracts: [docs/error_contract.md](docs/error_contract.md)
+- Performance validation evidence: [docs/performance_evidence.md](docs/performance_evidence.md)
 
 ---
 

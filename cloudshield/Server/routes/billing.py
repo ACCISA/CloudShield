@@ -30,6 +30,17 @@ PACKAGE_LIMITS = {
     "enterprise": {"workstations": 100, "users": 500}
 }
 
+
+def _error_response(message: str, code: str, details, status: int):
+    payload = {
+        "message": message,
+        "code": code,
+        "details": details,
+        # Keep legacy key for backward compatibility with current clients/tests.
+        "error": message,
+    }
+    return jsonify(payload), status
+
 def is_subscription_canceling(sub):
     """
     Returns True if a subscription is scheduled to cancel or already canceled.
@@ -68,9 +79,15 @@ def create_checkout():
             metadata={"org_id": org_id, "package_type": PRICE_TO_PACKAGE.get(price_id, "basic")}
         )
         return jsonify({"url": session.url})
+    except stripe.error.StripeError as e:
+        logger.warning("Stripe checkout failed org_id=%s price_id=%s: %s", (request.json or {}).get("org_id"), (request.json or {}).get("price_id"), e)
+        return _error_response("Billing provider error", "BILLING_PROVIDER_ERROR", str(e), 400)
+    except (TypeError, ValueError, AttributeError) as e:
+        logger.warning("Invalid checkout request payload: %s", e)
+        return _error_response("Invalid request", "BAD_REQUEST", str(e), 400)
     except Exception as e:
-        logger.error(f"Stripe Checkout Error: {e}")
-        return jsonify({"error": str(e)}), 400
+        logger.exception("Unexpected checkout failure")
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 @billing_bp.route('/payment-method/<org_id>', methods=['GET'])
 def get_payment_method(org_id):
@@ -169,8 +186,8 @@ def get_payment_method(org_id):
         }), 200
 
     except Exception as e:
-        logger.error(f"Error fetching payment method: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.exception("Payment method fetch failed org_id=%s", org_id)
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 @billing_bp.route('/invoices/<org_id>', methods=['GET'])
 def get_invoices(org_id):
@@ -186,7 +203,8 @@ def get_invoices(org_id):
             "status": inv.status.capitalize(), "url": inv.invoice_pdf
         } for inv in invoices.data]), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.exception("Invoice fetch failed org_id=%s", org_id)
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 @billing_bp.route('/webhook', methods=['POST'])
 def stripe_webhook():
@@ -194,8 +212,9 @@ def stripe_webhook():
     sig_header = request.headers.get('STRIPE_SIGNATURE')
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except Exception:
-        return jsonify({"error": "Invalid Webhook Signature"}), 400
+    except (ValueError, stripe.error.SignatureVerificationError) as e:
+        logger.warning("Invalid Stripe webhook signature: %s", e)
+        return _error_response("Invalid webhook signature", "BAD_WEBHOOK_SIGNATURE", str(e), 400)
 
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
@@ -256,9 +275,12 @@ def create_portal_session():
             return_url=f"{UI_BASE_URL}/settings?status=success",
         )
         return jsonify({"url": session.url})
+    except stripe.error.StripeError as e:
+        logger.warning("Billing portal session creation failed org_id=%s: %s", (request.json or {}).get("org_id"), e)
+        return _error_response("Billing provider error", "BILLING_PROVIDER_ERROR", str(e), 400)
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 400
+        logger.exception("Unexpected billing portal session error")
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 def update_org_subscription(org_id, package, stripe_cust_id, status):
     limits = PACKAGE_LIMITS.get(package, PACKAGE_LIMITS['basic'])

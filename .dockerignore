@@ -1,9 +1,80 @@
+# Version control
 .git
+.gitignore
+.gitattributes
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
 venv/
 **/venv/**
-*.pyc
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node/JavaScript
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.eslintcache
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.env.local
+
+.DS_Store
+
+# Application artifacts
 *.log
-**/node_modules/
+logs/
+localdata/
+.pytest_cache/
+.ruff_cache/
+
+# Large/binary files (don't include in build context)
+**/*.iso
+**/*.qcow2
+**/*.vmdk
+**/*.vhd
+**/*.img
 docker/workstation/storage/
-win11x64.iso
+
+# Development & test artifacts
+conftest.py
+pytest.ini
+.github/
+tests/
+*_test.py
+test_*.py
+
+# Documentation
+docs/
+README.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+

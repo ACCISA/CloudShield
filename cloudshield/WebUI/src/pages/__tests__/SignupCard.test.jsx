@@ -218,10 +218,11 @@ describe("SignupPage (additional coverage)", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("renders inside PageShell and keeps the signup card visible", () => {
-    renderSignupPage();
+  it("renders the signup layout and keeps the signup card visible", () => {
+    const { container } = renderSignupPage();
 
-    expect(screen.getByTestId("page-shell")).toBeInTheDocument();
+    expect(container.querySelector(".signup-page")).toBeInTheDocument();
+    expect(container.querySelector(".signup-inner")).toBeInTheDocument();
     expect(screen.getByTestId("signup-card")).toBeInTheDocument();
     expect(screen.getByText("Your Plan Overview")).toBeInTheDocument();
   });
