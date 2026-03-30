@@ -55,7 +55,6 @@ export default function FileShareWizardModal({
   const [availableUsers, setAvailableUsers] = useState([]);
   const [availableGroups, setAvailableGroups] = useState([]);
   const { currentUser } = useAuth();
-  const themeColors = useThemeColors();
 
   const normalizeUsers = (usersData) =>
     (Array.isArray(usersData) ? usersData : []).map((u) => {
@@ -455,6 +454,8 @@ function BasicInfoStep({
   isEditMode,
   fieldErrors = {},
 }) {
+  const themeColors = useThemeColors();
+
   return (
     <div className="file-wizard-step">
       <div className="file-wizard-form-group">

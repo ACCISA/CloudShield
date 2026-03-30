@@ -2,8 +2,13 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
+import WorkstationsPage, {
+  createWorkstationTemplate,
+  updateWorkstationTemplate,
+  deleteWorkstationTemplate,
+} from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
+import { apiDelete, apiPatch, apiPost } from "../../api/client.js";
 
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
@@ -15,6 +20,12 @@ jest.mock("../../hooks/useThemeColors.js", () => ({
 
 jest.mock("../../utils/modalHelpers.jsx", () => ({
   fetchWorkstations: jest.fn(),
+}));
+
+jest.mock("../../api/client.js", () => ({
+  apiPost: jest.fn(),
+  apiPatch: jest.fn(),
+  apiDelete: jest.fn(),
 }));
 
 jest.mock("../../lib/safeAsync", () => ({
@@ -169,22 +180,17 @@ const renderPage = () =>
   );
 
 describe("createWorkstationTemplate", () => {
-  const originalFetch = global.fetch;
-
   beforeEach(() => {
-    global.fetch = jest.fn();
     localStorage.clear();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
     jest.clearAllMocks();
   });
 
   test("posts full template payload to /api/workstations/templates", async () => {
-    localStorage.setItem("jwt", "token-123");
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
+    apiPost.mockResolvedValueOnce({
       json: jest.fn().mockResolvedValue({ job_id: "job-1" }),
     });
 
@@ -197,15 +203,68 @@ describe("createWorkstationTemplate", () => {
     });
 
     expect(result).toEqual({ job_id: "job-1" });
-    expect(global.fetch).toHaveBeenCalledWith(
-      "/api/workstations/templates",
-      expect.objectContaining({ method: "POST" }),
+    expect(apiPost).toHaveBeenCalledWith(
+      "/workstations/templates",
+      expect.objectContaining({
+        org_id: "org-1",
+        access_groups: ["g1"],
+        members: ["u1"],
+        software: ["s1"],
+      }),
     );
-    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body.org_id).toBe("org-1");
-    expect(body.access_groups).toEqual(["g1"]);
-    expect(body.members).toEqual(["u1"]);
-    expect(body.software).toEqual(["s1"]);
+  });
+});
+
+describe("workstation template mutations", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("patches workstation templates on update", async () => {
+    apiPatch.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({ template: { _id: "tpl-1" } }),
+    });
+
+    const result = await updateWorkstationTemplate("tpl-1", {
+      name: "WS 1",
+      description: "basic",
+      software: [{ id: "s1" }],
+      access_groups: [{ id: "g1" }],
+      members: [{ id: "u1" }],
+    });
+
+    expect(result).toEqual({ template: { _id: "tpl-1" } });
+    expect(apiPatch).toHaveBeenCalledWith(
+      "/workstations/templates/tpl-1",
+      expect.objectContaining({
+        name: "WS 1",
+        description: "basic",
+        software: ["s1"],
+        access_groups: ["g1"],
+        members: ["u1"],
+      }),
+    );
+  });
+
+  test("deletes workstation templates", async () => {
+    apiDelete.mockResolvedValueOnce(null);
+
+    await deleteWorkstationTemplate("tpl-1");
+
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/templates/tpl-1");
+  });
+
+  test("deletes live workstations when source is workstation", async () => {
+    apiDelete.mockResolvedValueOnce(null);
+
+    await deleteWorkstationTemplate("ws-1", { source: "workstation" });
+
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/ws-1");
   });
 });
 
@@ -219,6 +278,7 @@ describe("WorkstationsPage", () => {
         code: "A",
         status: "connected",
         usersCount: 0,
+        source: "template",
       },
       {
         id: "w2",
@@ -226,12 +286,16 @@ describe("WorkstationsPage", () => {
         code: "B",
         status: "disconnected",
         usersCount: 0,
+        source: "template",
       },
     ]);
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
+    apiPost.mockResolvedValue({
       json: jest.fn().mockResolvedValue({ id: "new" }),
     });
+    apiPatch.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ template: { _id: "w1" } }),
+    });
+    apiDelete.mockResolvedValue(null);
   });
 
   test("loads and renders workstation rows", async () => {
@@ -372,6 +436,10 @@ describe("WorkstationsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Workstation updated")).toBeInTheDocument();
     });
+    expect(apiPatch).toHaveBeenCalledWith(
+      "/workstations/templates/w1",
+      expect.any(Object),
+    );
     expect(dispatchSpy).toHaveBeenCalled();
 
     dispatchSpy.mockRestore();
@@ -379,7 +447,7 @@ describe("WorkstationsPage", () => {
 
   test("shows error toast when create submit fails", async () => {
     const user = userEvent.setup();
-    global.fetch.mockRejectedValueOnce(new Error("create failed"));
+    apiPost.mockRejectedValueOnce(new Error("create failed"));
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
@@ -421,6 +489,35 @@ describe("WorkstationsPage", () => {
       expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
       expect(screen.queryByTestId("workstation-modal")).not.toBeInTheDocument();
     });
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/templates/w1");
+
+    confirmSpy.mockRestore();
+  });
+
+  test("deletes live workstation rows through the live delete endpoint", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    fetchWorkstations.mockResolvedValueOnce([
+      {
+        id: "w1",
+        name: "Alpha",
+        code: "A",
+        status: "connected",
+        usersCount: 0,
+        source: "workstation",
+      },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    await user.click(screen.getByTestId("edit-w1"));
+    await user.click(screen.getByRole("button", { name: "delete-current" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("Alpha")).not.toBeInTheDocument(),
+    );
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/w1");
 
     confirmSpy.mockRestore();
   });

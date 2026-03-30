@@ -419,6 +419,37 @@ def test_dc_create_file_share_unknown(monkeypatch):
     assert result["status"] == "UNKNOWN"
 
 
+def test_dc_create_file_share_docker_fallback_without_nodes(monkeypatch):
+    from tasks.dc_management import dc_create_file_share
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {})
+
+    mock_create_share = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.create_share", mock_create_share)
+    mock_proxy = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_create_file_share("test_org", "data", ["alice"], ["staff"], "description", 20)
+
+    assert result["status"] == "SUCCESS"
+    mock_create_share.assert_called_once_with(
+        org_id="test_org",
+        name="data",
+        users=["alice"],
+        groups=["staff"],
+        description="description",
+        current_size="7",
+        max_size=20,
+    )
+    mock_proxy.assert_not_called()
+
+
 
 def test_dc_create_file_share_success(monkeypatch):
     """Test that dc_add_user persists user data when command succeeds"""
@@ -990,6 +1021,29 @@ def test_dc_delete_file_share_unknown(monkeypatch):
 
     # Assert persist_domain_user was called with correct args
     assert result["status"] == "UNKNOWN"
+
+
+def test_dc_delete_file_share_docker_fallback_without_nodes(monkeypatch):
+    from tasks.dc_management import dc_delete_file_share
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: None)
+
+    mock_delete_share = unittest.mock.MagicMock(return_value=True)
+    monkeypatch.setattr("tasks.dc_management.delete_share", mock_delete_share)
+    mock_proxy = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
+
+    result = dc_delete_file_share("test_org", "data")
+
+    assert result["status"] == "SUCCESS"
+    mock_delete_share.assert_called_once_with(org_id="test_org", name="data")
+    mock_proxy.assert_not_called()
 
 
 def test_dc_restart_samba_service_unknown(monkeypatch):
@@ -1817,4 +1871,3 @@ def test_dc_update_file_share_defaults_none_lists(monkeypatch):
     # Verify the request was built with empty lists, not None
     assert list(captured["request"].groups) == []
     assert list(captured["request"].users) == []
-

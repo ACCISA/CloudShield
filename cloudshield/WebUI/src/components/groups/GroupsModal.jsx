@@ -27,6 +27,179 @@ import {
 
 const STEPS = ["Basic Info", "Users", "Workstations", "Shares"];
 
+function getModalItemId(item) {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item);
+  }
+
+  return String(
+    item.id ||
+      item._id ||
+      item.email ||
+      item.username ||
+      item.name ||
+      item.group_name ||
+      item.groupName ||
+      item.workstationName ||
+      item.hostname ||
+      item.shareName ||
+      "",
+  );
+}
+
+function getModalItemAliases(item) {
+  if (item === null || item === undefined) return [];
+  if (typeof item === "string" || typeof item === "number") {
+    return [String(item).toLowerCase()];
+  }
+
+  const aliases = [
+    item.id,
+    item._id,
+    item.email,
+    item.username,
+    item.name,
+    item.group_name,
+    item.groupName,
+    item.workstationName,
+    item.hostname,
+    item.shareName,
+  ];
+
+  if (item.firstName || item.lastName) {
+    aliases.push(`${item.firstName || ""} ${item.lastName || ""}`.trim());
+  }
+
+  return Array.from(
+    new Set(
+      aliases
+        .filter(Boolean)
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function reconcileSelectedItems(selectedItems, availableItems, normalizeFallback) {
+  const available = Array.isArray(availableItems) ? availableItems : [];
+  const selected = Array.isArray(selectedItems) ? selectedItems : [];
+
+  if (selected.length === 0 || available.length === 0) {
+    return selected.map((item) => normalizeFallback(item));
+  }
+
+  const lookup = new Map();
+  available.forEach((item) => {
+    getModalItemAliases(item).forEach((alias) => {
+      if (!lookup.has(alias)) {
+        lookup.set(alias, item);
+      }
+    });
+  });
+
+  const seen = new Set();
+  const resolved = [];
+
+  selected.forEach((item) => {
+    const match = getModalItemAliases(item)
+      .map((alias) => lookup.get(alias))
+      .find(Boolean);
+    const normalized = match || normalizeFallback(item);
+    const key = getModalItemId(normalized) || getModalItemAliases(normalized)[0];
+
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    resolved.push(normalized);
+  });
+
+  return resolved;
+}
+
+function areSelectionsEqual(left, right) {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+
+  return left.every(
+    (item, index) => getModalItemId(item) === getModalItemId(right[index]),
+  );
+}
+
+function normalizeUserSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return {
+      id: value,
+      _id: value,
+      firstName: value,
+      lastName: "",
+      email: "",
+      title: "",
+    };
+  }
+
+  const id = getModalItemId(item);
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    firstName: item?.firstName || "",
+    lastName: item?.lastName || "",
+    email: item?.email || "",
+    title: item?.title || item?.role || "",
+  };
+}
+
+function normalizeWorkstationSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return { id: value, _id: value, name: value, workstationName: value };
+  }
+
+  const id = getModalItemId(item);
+  const name = item?.name || item?.workstationName || item?.hostname || id;
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    name,
+    workstationName: name,
+    ipAddress: item?.ipAddress || item?.ip_address || "",
+    online: Boolean(item?.online || item?.status === "online"),
+  };
+}
+
+function normalizeFileSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return {
+      id: value,
+      _id: value,
+      name: value,
+      shareName: value,
+      type: "document",
+      size: "",
+      drive: "",
+      description: "",
+    };
+  }
+
+  const id = getModalItemId(item);
+  const name = item?.name || item?.shareName || item?.drive || id;
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    name,
+    shareName: name,
+    type: item?.type || "document",
+    size: item?.size || (item?.drive ? `Drive ${item.drive}` : ""),
+    drive: item?.drive || "",
+    description: item?.description || "",
+  };
+}
+
 /**
  * GroupsModal - Multi-step wizard for creating/editing groups
  */
@@ -114,6 +287,9 @@ export default function GroupsModal({
         selectedUsers: groupData.users || [],
         selectedWorkstations: groupData.workstations || [],
         selectedFiles: seedFiles,
+        allUsers: false,
+        allWorkstations: false,
+        allFiles: false,
       });
     } else {
       setFormData({
@@ -123,6 +299,9 @@ export default function GroupsModal({
         selectedUsers: [],
         selectedWorkstations: [],
         selectedFiles: [],
+        allUsers: false,
+        allWorkstations: false,
+        allFiles: false,
       });
     }
 
@@ -133,6 +312,69 @@ export default function GroupsModal({
     fetchWorkstationsAll();
     fetchFileSharesAll();
   }, [open, groupData, isEditMode, accessToken]);
+
+  useEffect(() => {
+    if (!open || allUsers.length === 0) return;
+
+    setFormData((prev) => {
+      const nextUsers = reconcileSelectedItems(
+        prev.selectedUsers,
+        allUsers,
+        normalizeUserSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedUsers, nextUsers)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedUsers: nextUsers,
+      };
+    });
+  }, [open, allUsers]);
+
+  useEffect(() => {
+    if (!open || allWorkstations.length === 0) return;
+
+    setFormData((prev) => {
+      const nextWorkstations = reconcileSelectedItems(
+        prev.selectedWorkstations,
+        allWorkstations,
+        normalizeWorkstationSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedWorkstations, nextWorkstations)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedWorkstations: nextWorkstations,
+      };
+    });
+  }, [open, allWorkstations]);
+
+  useEffect(() => {
+    if (!open || allFiles.length === 0) return;
+
+    setFormData((prev) => {
+      const nextFiles = reconcileSelectedItems(
+        prev.selectedFiles,
+        allFiles,
+        normalizeFileSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedFiles, nextFiles)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedFiles: nextFiles,
+      };
+    });
+  }, [open, allFiles]);
 
   // Filter lists
   const filteredUsers = useMemo(() => {
@@ -581,12 +823,15 @@ function SelectionStep({
             </div>
           ) : (
             items.map((item) => {
-              const isSelected = selectedItems.some((i) => i.id === item.id);
+              const itemId = getModalItemId(item);
+              const isSelected = selectedItems.some(
+                (i) => getModalItemId(i) === itemId,
+              );
               const rendered = config.renderItem(item);
 
               return (
                 <div
-                  key={item.id}
+                  key={itemId}
                   className={`groups-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggle(item)}
                 >
@@ -618,12 +863,13 @@ function SelectionStep({
           <div className="groups-modal-selected-cards">
             {selectedItems.map((item) => {
               const rendered = config.renderItem(item);
+              const itemId = getModalItemId(item);
               return (
-                <div key={item.id} className="groups-modal-selected-card">
+                <div key={itemId} className="groups-modal-selected-card">
                   <button
                     type="button"
                     className="groups-modal-card-remove-btn"
-                    onClick={() => onRemove(item.id)}
+                    onClick={() => onRemove(itemId)}
                   >
                     ×
                   </button>

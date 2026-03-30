@@ -20,7 +20,7 @@ from services import (
 from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
-from cloudshield.Server.utils.database import db_admin
+from cloudshield.Server.utils.database import db_admin, db
 
 logger = get_logger("api")
 
@@ -898,13 +898,13 @@ def get_my_organization_metrics():
 
     # Collections for counting documents related to the organization
     users_col = db_admin["users"]
-    workstations_col = db_admin["workstations"]
+    workstation_templates_col = db["workstation_templates"]
     access_groups_col = db_admin["access_groups"]
     shares_col = db_admin["shares"]
 
     stats = {
         "users": users_col.count_documents({"org_id": org_id}),
-        "workstations": workstations_col.count_documents({"org_id": org_id}),
+        "workstations": workstation_templates_col.count_documents({"org_id": org_id}),
         "access_groups": access_groups_col.count_documents({"org_id": org_id}),
         "shares": shares_col.count_documents({"org_id": org_id}),
     }

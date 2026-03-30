@@ -2,6 +2,7 @@ import re
 import uuid
 import base64
 import grpc
+import os
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
@@ -36,6 +37,68 @@ UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
 USER_NOT_FOUND="User not found"
 INVALID_GROUP="invalid group name"
+
+
+def _is_docker_mode() -> bool:
+    return (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower() == "docker"
+
+
+def _has_share_proxy_nodes(nodes) -> bool:
+    return bool(nodes) and "DOMAIN_CONTROLLER" in nodes and "OPENVPN" in nodes
+
+
+def _persist_local_share_create(org_id: str, share_name: str, users: list, groups: list, description: str, max_size: int, logger):
+    logger.warning(
+        "Using local docker fallback for file share create (org_id=%s, share_name=%s)",
+        org_id,
+        share_name,
+    )
+    try:
+        effective_max_size = max_size if max_size is not None else "50"
+        mock_current_size = "7"
+        create_share(
+            org_id=org_id,
+            name=share_name,
+            users=users or [],
+            groups=groups or [],
+            description=description,
+            current_size=mock_current_size,
+            max_size=effective_max_size,
+        )
+    except Exception as exc:
+        logger.error("Failed to persist local docker file share: %s", exc)
+        return {
+            "status": "FAILED",
+            "message": "Failed to create local docker file share",
+        }
+    return {
+        "status": "SUCCESS",
+        "message": "Successfully created local docker file share",
+    }
+
+
+def _delete_local_share(org_id: str, share_name: str, logger):
+    logger.warning(
+        "Using local docker fallback for file share delete (org_id=%s, share_name=%s)",
+        org_id,
+        share_name,
+    )
+    try:
+        deleted = delete_share(org_id=org_id, name=share_name)
+    except Exception as exc:
+        logger.error("Failed to delete local docker file share: %s", exc)
+        return {
+            "status": "FAILED",
+            "message": "Failed to delete local docker file share",
+        }
+
+    if deleted:
+        return {
+            "status": "SUCCESS",
+            "message": "Successfully deleted local docker file share",
+        }
+
+    return {"status": "SHARE_NOT_FOUND", "message": "Failed to find samba file share"}
 
 def validate_username(username: str, logger=None):
     """
@@ -98,7 +161,18 @@ def dc_create_file_share(
 
     if not nodes:
         logger.error("Inventory is empty for org_id=%s", org_id)
-    
+
+    if _is_docker_mode() and not _has_share_proxy_nodes(nodes):
+        return _persist_local_share_create(
+            org_id,
+            share_name,
+            users,
+            groups,
+            description,
+            max_size,
+            logger,
+        )
+
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name, share_size="100M")
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
@@ -155,8 +229,11 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
         job.meta["progress"] = "stating dc_delete_file_share"
         job.save_meta()
 
-    nodes = get_server_nodes(org_id)
-    
+    nodes = get_server_nodes(org_id) or {}
+
+    if _is_docker_mode() and not _has_share_proxy_nodes(nodes):
+        return _delete_local_share(org_id, share_name, logger)
+
     request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)

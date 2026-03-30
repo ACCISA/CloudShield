@@ -10,6 +10,7 @@ Tests cover all uncovered lines:
 """
 from unittest.mock import Mock, patch, MagicMock
 import pytest
+from bson import ObjectId
 from flask import Flask, g
 import json
 
@@ -704,6 +705,67 @@ class TestCreateWorkstation:
         mock_ag_col.update_many.assert_called_once()
 
 
+class TestDeleteWorkstation:
+    def test_delete_live_workstation_forbidden_for_non_admin(self, monkeypatch):
+        import cloudshield.Server.routes.workstations as ws_mod
+        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
+        monkeypatch.setattr(ws_mod, "db", MagicMock())
+
+        from cloudshield.Server.routes.workstations import workstations_bp
+        from flask import Flask, g
+
+        app = Flask(__name__ + "_delete_forbid")
+        app.register_blueprint(workstations_bp, url_prefix="/api")
+
+        @app.before_request
+        def inject_user():
+            g.user = {"id": "u5", "role": "user", "org_id": "org-1"}
+
+        with app.test_client() as c:
+            resp = c.delete("/api/workstations/507f1f77bcf86cd799439011")
+        assert resp.status_code == 403
+
+    def test_delete_live_workstation_returns_204_and_cleans_groups(self, mocked_app):
+        app, mock_db_admin = mocked_app
+        workstation_id = "507f1f77bcf86cd799439011"
+        workstation_oid = ObjectId(workstation_id)
+        mock_ws_col = MagicMock()
+        mock_ws_col.find_one.return_value = {
+            "_id": workstation_oid,
+            "org_id": "org-1",
+            "name": "My WS",
+        }
+        mock_ag_col = MagicMock()
+        mock_db_admin.__getitem__.side_effect = (
+            lambda k: mock_ws_col if k == "workstations" else mock_ag_col
+        )
+
+        with app.test_client() as c:
+            resp = c.delete(f"/api/workstations/{workstation_id}")
+
+        assert resp.status_code == 204
+        mock_ws_col.delete_one.assert_called_once_with(
+            {"_id": workstation_oid, "org_id": "org-1"},
+        )
+        mock_ag_col.update_many.assert_called_once_with(
+            {"org_id": "org-1"},
+            {"$pull": {"workstations": workstation_id}},
+        )
+
+    def test_delete_live_workstation_returns_404_when_missing(self, mocked_app):
+        app, mock_db_admin = mocked_app
+        workstation_id = "507f1f77bcf86cd799439011"
+        mock_ws_col = MagicMock()
+        mock_ws_col.find_one.return_value = None
+        mock_db_admin.__getitem__.return_value = mock_ws_col
+
+        with app.test_client() as c:
+            resp = c.delete(f"/api/workstations/{workstation_id}")
+
+        assert resp.status_code == 404
+        assert resp.get_json()["error"] == "workstation not found"
+
+
 class TestListTemplates:
     def test_missing_org_id_returns_400(self, mocked_app):
         app, _ = mocked_app
@@ -723,6 +785,79 @@ class TestListTemplates:
         assert resp.status_code == 200
         data = resp.get_json()
         assert len(data["templates"]) == 1
+
+
+class TestTemplateMutations:
+    def test_updates_template(self, mocked_app):
+        import cloudshield.Server.routes.workstations as ws_mod
+
+        app, _ = mocked_app
+        template_id = "507f1f77bcf86cd799439011"
+        template_oid = ObjectId(template_id)
+        template_coll = MagicMock()
+        template_coll.find_one.side_effect = [
+            {"_id": template_oid, "org_id": "org-1", "name": "Old"},
+            {"_id": template_oid, "org_id": "org-1", "name": "New"},
+        ]
+        template_coll.update_one.return_value = MagicMock(matched_count=1)
+        ws_mod.db.workstation_templates = template_coll
+
+        with app.test_client() as c:
+            resp = c.patch(
+                f"/api/workstations/templates/{template_id}",
+                json={"name": "New", "members": ["u1"], "software": ["s1"]},
+            )
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["template"]["_id"] == template_id
+        assert data["template"]["name"] == "New"
+        template_coll.update_one.assert_called_once()
+
+    def test_deletes_template(self, mocked_app):
+        import cloudshield.Server.routes.workstations as ws_mod
+
+        app, _ = mocked_app
+        template_id = "507f1f77bcf86cd799439011"
+        template_oid = ObjectId(template_id)
+        template_coll = MagicMock()
+        template_coll.find_one.return_value = {
+            "_id": template_oid,
+            "org_id": "org-1",
+            "name": "Delete Me",
+        }
+        template_coll.delete_one.return_value = MagicMock(deleted_count=1)
+        ws_mod.db.workstation_templates = template_coll
+
+        with app.test_client() as c:
+            resp = c.delete(f"/api/workstations/templates/{template_id}")
+
+        assert resp.status_code == 204
+        template_coll.delete_one.assert_called_once_with(
+            {"_id": template_oid, "org_id": "org-1"},
+        )
+
+    def test_deletes_template_with_string_id(self, mocked_app):
+        import cloudshield.Server.routes.workstations as ws_mod
+
+        app, _ = mocked_app
+        template_id = "legacy-template-id"
+        template_coll = MagicMock()
+        template_coll.find_one.return_value = {
+            "_id": template_id,
+            "org_id": "org-1",
+            "name": "Delete Me",
+        }
+        template_coll.delete_one.return_value = MagicMock(deleted_count=1)
+        ws_mod.db.workstation_templates = template_coll
+
+        with app.test_client() as c:
+            resp = c.delete(f"/api/workstations/templates/{template_id}")
+
+        assert resp.status_code == 204
+        template_coll.delete_one.assert_called_once_with(
+            {"_id": template_id, "org_id": "org-1"},
+        )
 
 
 class TestStartAndUpdateRoutes:

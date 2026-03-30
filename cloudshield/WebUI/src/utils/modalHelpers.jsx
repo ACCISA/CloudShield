@@ -29,6 +29,42 @@ export const resolveOrgId = async (currentUser) => {
 };
 
 /**
+ * Resolves an access token from context or localStorage.
+ * Modal flows often open before AuthContext finishes hydrating.
+ */
+export const resolveAccessToken = (accessToken = null) => {
+  if (accessToken) return accessToken;
+
+  try {
+    return localStorage.getItem("jwt") || null;
+  } catch (e) {
+    console.error("Error reading jwt from localStorage:", e);
+    return null;
+  }
+};
+
+const getModalItemId = (item) => {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item);
+  }
+
+  return String(
+    item.id ||
+      item._id ||
+      item.email ||
+      item.username ||
+      item.name ||
+      item.group_name ||
+      item.groupName ||
+      item.workstationName ||
+      item.hostname ||
+      item.shareName ||
+      "",
+  );
+};
+
+/**
  * Fetches file shares for a given org_id
  * @param {string} orgId - The organization ID
  * @param {Function} setAllFiles - State setter function for file shares
@@ -112,13 +148,14 @@ export const fetchGroups = async (
   setAllGroups = null,
   openToast = null,
 ) => {
+  const token = resolveAccessToken(accessToken);
   if (!orgId)
     return _resetGroups(
       setAllGroups,
       openToast,
       "Missing org_id for groups fetch",
     );
-  if (!accessToken) return _resetGroups(setAllGroups);
+  if (!token) return _resetGroups(setAllGroups);
 
   try {
     const res = await apiGet(
@@ -128,7 +165,7 @@ export const fetchGroups = async (
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
       },
     );
@@ -150,7 +187,20 @@ export const fetchGroups = async (
       _id: String(g._id || g.id || ""),
       name: g.group_name || g.name || "Untitled Group",
       members: Array.isArray(g.members) ? g.members : [],
+      memberCount:
+        typeof g.member_count === "number"
+          ? g.member_count
+          : Array.isArray(g.members_info)
+            ? g.members_info.length
+            : Array.isArray(g.members)
+              ? g.members.length
+              : 0,
       users: g.users || [],
+      description: g.description || "",
+      group_image: g.group_image || null,
+      workstations: Array.isArray(g.workstations) ? g.workstations : [],
+      file_shares: Array.isArray(g.file_shares) ? g.file_shares : [],
+      members_info: Array.isArray(g.members_info) ? g.members_info : [],
       files: g.files || [],
       org_id: g.org_id,
     }));
@@ -189,13 +239,14 @@ export const fetchUsers = async (
   openToast = null,
 ) => {
   try {
-    if (!accessToken) {
+    const token = resolveAccessToken(accessToken);
+    if (!token) {
       if (setAllUsers) setAllUsers([]);
       return [];
     }
 
     const data = await listUsers({
-      token: accessToken,
+      token,
       search: "",
       limit: 200,
       offset: 0,
@@ -251,16 +302,17 @@ export const fetchWorkstations = async (
   setAllWorkstations = null,
   openToast = null,
 ) => {
+  const token = resolveAccessToken(accessToken);
   if (!orgId)
     return _resetWorkstations(
       setAllWorkstations,
       openToast,
       "Missing org_id for workstations fetch",
     );
-  if (!accessToken) return _resetWorkstations(setAllWorkstations);
+  if (!token) return _resetWorkstations(setAllWorkstations);
 
   try {
-    const allUsers = await fetchUsers(accessToken);
+    const allUsers = await fetchUsers(token);
     const userMap = new Map(
       (Array.isArray(allUsers) ? allUsers : []).map((user) => [
         String(user.id || user._id || ""),
@@ -268,48 +320,137 @@ export const fetchWorkstations = async (
       ]),
     );
 
-    const res = await apiGet(
+    const requestOptions = {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const workstationPaths = [
+      `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
       `/workstations?org_id=${encodeURIComponent(orgId)}`,
-    );
+    ];
 
-    if (!res.ok) {
-      if (res.status === 404 || res.status === 405) {
-        console.warn(`Workstations API not available (${res.status})`);
+    let data = null;
+    let source = "template";
+
+    for (const path of workstationPaths) {
+      try {
+        const res = await apiGet(path, requestOptions);
+
+        if (!res.ok) {
+          if (res.status === 404 || res.status === 405) continue;
+          return _resetWorkstations(setAllWorkstations);
+        }
+
+        data = await res.json();
+        source = path.startsWith("/workstations/templates")
+          ? "template"
+          : "workstation";
+        break;
+      } catch (error) {
+        if (error?.status === 404 || error?.status === 405) continue;
+        throw error;
       }
+    }
+
+    if (!data) {
       return _resetWorkstations(setAllWorkstations);
     }
 
-    const data = await res.json();
     const workstations = Array.isArray(data)
       ? data
-      : data.items || data.workstations || [];
+      : data.templates || data.items || data.workstations || [];
 
 
-    const normalized = workstations.map((w) => ({
-      members: Array.isArray(w.members) ? w.members : [],
-      status:
-        (w.status || "").toLowerCase() === "online"
-          ? "connected"
-          : (w.status || "").toLowerCase() === "offline"
-            ? "disconnected"
-            : w.status || "disconnected",
-      id: String(w.id || w._id || ""),
-      _id: String(w._id || w.id || ""),
-      name: w.name || "Untitled Workstation",
-      strength: w.description || "",
-      software: Array.isArray(w.software) ? w.software : [],
-      groups: Array.isArray(w.access_groups) ? w.access_groups : [],
-      users: (Array.isArray(w.members) ? w.members : [])
+    const normalized = workstations.map((w) => {
+      const id = String(w.id || w._id || w.template_id || "");
+      const members = Array.isArray(w.members)
+        ? w.members
+        : Array.isArray(w.users)
+          ? w.users
+          : [];
+      const memberIds = members
+        .map((member) => getModalItemId(member))
+        .filter(Boolean);
+      const groups = Array.isArray(w.access_groups || w.groups)
+        ? (w.access_groups || w.groups).map((group) => {
+            if (typeof group === "string") {
+              return { id: group, _id: group, name: group };
+            }
+
+            return {
+              ...group,
+              id: String(
+                group?.id || group?._id || group?.name || group?.group_name || "",
+              ),
+              _id: String(
+                group?._id || group?.id || group?.name || group?.group_name || "",
+              ),
+              name: group?.group_name || group?.name || "Untitled Group",
+              memberCount:
+                typeof group?.member_count === "number"
+                  ? group.member_count
+                  : Array.isArray(group?.members)
+                    ? group.members.length
+                    : 0,
+            };
+          })
+        : [];
+      const software = Array.isArray(w.software)
+        ? w.software.map((item) => {
+            if (typeof item === "string") {
+              return { id: item, _id: item, name: item };
+            }
+
+            return {
+              ...item,
+              id: String(item?.id || item?._id || item?.name || ""),
+              _id: String(item?._id || item?.id || item?.name || ""),
+              name: item?.name || "Untitled Software",
+            };
+          })
+        : [];
+      const normalizedStatus = String(w.status || "").toLowerCase();
+      const status = ["online", "active"].includes(normalizedStatus)
+        ? "connected"
+        : ["offline", "inactive"].includes(normalizedStatus)
+          ? "disconnected"
+          : normalizedStatus
+            ? normalizedStatus
+            : w.is_ready === false
+              ? "provisioning"
+              : w.is_ready === true
+                ? "connected"
+                : "disconnected";
+      const resolvedUsers = memberIds
         .map((memberId) => userMap.get(String(memberId)))
-        .filter(Boolean),
-      usersCount: Array.isArray(w.members) ? w.members.length : 0,
-      currentUser: (Array.isArray(w.members) ? w.members : [])
-        .map((memberId) => userMap.get(String(memberId)))
-        .find(Boolean) || null,
-      online: w.online || w.status === "online" || false,
-      ipAddress: w.ip_address || w.ipAddress || "",
-      org_id: w.org_id,
-    }));
+        .filter(Boolean);
+
+      return {
+        members: memberIds,
+        source,
+        status,
+        id,
+        _id: String(w._id || w.id || w.template_id || ""),
+        name: w.name || "Untitled Workstation",
+        code: w.code || (id ? `WS-${id.slice(-4).toUpperCase()}` : "WS"),
+        strength: w.description || "",
+        description: w.description || "",
+        software,
+        groups,
+        users: resolvedUsers,
+        usersCount: memberIds.length,
+        currentUser: resolvedUsers[0] || null,
+        lastUsed: w.last_used || w.lastUsed || w.updated_at || "—",
+        online:
+          w.online || ["connected", "active", "online"].includes(status),
+        ipAddress: w.ip_address || w.ipAddress || w.ipv4_address || "",
+        org_id: w.org_id,
+        isReady: w.is_ready,
+      };
+    });
 
     setAllWorkstations?.(normalized);
     return normalized;
@@ -352,20 +493,21 @@ export const fetchSoftware = async (
   setAllSoftware = null,
   openToast = null,
 ) => {
+  const token = resolveAccessToken(accessToken);
   if (!orgId)
     return _resetSoftware(
       setAllSoftware,
       openToast,
       "Missing org_id for software fetch",
     );
-  if (!accessToken) return _resetSoftware(setAllSoftware);
+  if (!token) return _resetSoftware(setAllSoftware);
 
   try {
     const res = await apiGet(`/software?org_id=${encodeURIComponent(orgId)}`, {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -381,7 +523,9 @@ export const fetchSoftware = async (
     setAllSoftware?.(normalized);
     return normalized;
   } catch (e) {
-    console.error("Error fetching software:", e);
+    if (e?.status !== 404 && e?.status !== 405) {
+      console.error("Error fetching software:", e);
+    }
     return _useMockSoftware(setAllSoftware);
   }
 };
@@ -428,13 +572,14 @@ export const createToggleSelectionHandler = (setFormData) => {
   return (type, item) => {
     setFormData((prev) => {
       const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      const selected = prev[key];
-      const isSelected = selected.some((i) => i.id === item.id);
+      const selected = Array.isArray(prev[key]) ? prev[key] : [];
+      const itemId = getModalItemId(item);
+      const isSelected = selected.some((i) => getModalItemId(i) === itemId);
 
       return {
         ...prev,
         [key]: isSelected
-          ? selected.filter((i) => i.id !== item.id)
+          ? selected.filter((i) => getModalItemId(i) !== itemId)
           : [...selected, item],
       };
     });
@@ -450,9 +595,12 @@ export const createRemoveSelectionHandler = (setFormData) => {
   return (type, id) => {
     setFormData((prev) => {
       const key = `selected${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      const targetId = getModalItemId(id);
       return {
         ...prev,
-        [key]: prev[key].filter((i) => i.id !== id),
+        [key]: (Array.isArray(prev[key]) ? prev[key] : []).filter(
+          (i) => getModalItemId(i) !== targetId,
+        ),
       };
     });
   };

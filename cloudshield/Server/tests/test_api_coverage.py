@@ -878,7 +878,7 @@ def test_get_my_organization_metrics_org_id_missing_returns_401(client):
 def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch):
     """
     Covers:
-      users_col/workstations_col/access_groups_col/shares_col count_documents
+      users_col/workstation_templates_col/access_groups_col/shares_col count_documents
       return jsonify({"stats": stats}), 200
     """
     import cloudshield.Server.routes.api as api_mod
@@ -888,25 +888,31 @@ def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch)
     org_id = "org_abc"
 
     users_col = MagicMock()
-    workstations_col = MagicMock()
+    workstation_templates_col = MagicMock()
     access_groups_col = MagicMock()
     shares_col = MagicMock()
 
     users_col.count_documents.return_value = 11
-    workstations_col.count_documents.return_value = 3
+    workstation_templates_col.count_documents.return_value = 3
     access_groups_col.count_documents.return_value = 7
     shares_col.count_documents.return_value = 2
 
-    class DummyDB:
+    class DummyAdminDB:
         def __getitem__(self, name):
             return {
                 "users": users_col,
-                "workstations": workstations_col,
                 "access_groups": access_groups_col,
                 "shares": shares_col,
             }[name]
 
-    monkeypatch.setattr(api_mod, "db_admin", DummyDB())
+    class DummyPrimaryDB:
+        def __getitem__(self, name):
+            return {
+                "workstation_templates": workstation_templates_col,
+            }[name]
+
+    monkeypatch.setattr(api_mod, "db_admin", DummyAdminDB())
+    monkeypatch.setattr(api_mod, "db", DummyPrimaryDB())
 
     with client.application.test_request_context("/api/organizations/me/metrics", method="GET"):
         g.user = {"org_id": org_id}
@@ -924,6 +930,6 @@ def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch)
 
     # Verify correct query filter used in count_documents calls
     users_col.count_documents.assert_called_once_with({"org_id": org_id})
-    workstations_col.count_documents.assert_called_once_with({"org_id": org_id})
+    workstation_templates_col.count_documents.assert_called_once_with({"org_id": org_id})
     access_groups_col.count_documents.assert_called_once_with({"org_id": org_id})
     shares_col.count_documents.assert_called_once_with({"org_id": org_id})

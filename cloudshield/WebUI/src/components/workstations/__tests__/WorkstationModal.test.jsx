@@ -236,13 +236,13 @@ describe("WorkstationModal", () => {
     it("should render workstation icon upload section", () => {
       render(<WorkstationModal {...defaultProps} />);
       expect(screen.getByText("Workstation Icon")).toBeInTheDocument();
-      expect(screen.getAllByText("Upload Image")).toHaveLength(2);
+      expect(screen.getByText("Upload Image")).toBeInTheDocument();
     });
 
     it("should render desktop background upload section", () => {
       render(<WorkstationModal {...defaultProps} />);
       expect(screen.getByText("Desktop Background")).toBeInTheDocument();
-      expect(screen.getAllByText("Upload Background")).toHaveLength(2);
+      expect(screen.getByText("Upload Background")).toBeInTheDocument();
     });
 
     it("should show strength tier specifications", () => {
@@ -311,7 +311,7 @@ describe("WorkstationModal", () => {
         fireEvent.click(removeBtn);
       });
 
-      expect(screen.getAllByText("Upload Image")).toHaveLength(2);
+      expect(screen.getByText("Upload Image")).toBeInTheDocument();
     });
   });
 

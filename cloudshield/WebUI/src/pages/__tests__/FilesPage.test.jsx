@@ -30,6 +30,7 @@ jest.mock("../../api/filesApi", () => ({
   createFileShare: jest.fn(),
   updateFileShare: jest.fn(),
   deleteFileShare: jest.fn(),
+  fetchJobStatus: jest.fn(),
   fetchUsers: jest.fn(),
   fetchGroups: jest.fn(),
   fetchFileShares: jest.fn(),
@@ -258,6 +259,10 @@ describe("FilesPage", () => {
     filesApi.createFileShare.mockResolvedValue({ job_id: "job-create" });
     filesApi.updateFileShare.mockResolvedValue({ success: true });
     filesApi.deleteFileShare.mockResolvedValue({ job_id: "job-delete" });
+    filesApi.fetchJobStatus.mockResolvedValue({
+      status: "succeeded",
+      message: "done",
+    });
 
     global.confirm = jest.fn(() => true);
     global.alert = jest.fn();
@@ -393,6 +398,47 @@ describe("FilesPage", () => {
     await waitFor(() => {
       expect(filesApi.fetchFileShares).toHaveBeenCalledWith("local-org-999");
     });
+  });
+
+  it("polls job status and shows success after creating a share", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("create-button"));
+    await user.click(screen.getByTestId("modal-submit"));
+
+    await waitFor(() => {
+      expect(filesApi.createFileShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: "test-org-123",
+          name: "Test Share",
+        }),
+      );
+      expect(filesApi.fetchJobStatus).toHaveBeenCalledWith("job-create");
+    });
+
+    expect(
+      await screen.findByText('Share "Test Share" created'),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the backend job failure message when share creation fails", async () => {
+    const user = userEvent.setup();
+    filesApi.fetchJobStatus.mockResolvedValueOnce({
+      status: "failed",
+      message: "Failed to proxy rpc request",
+    });
+
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("create-button"));
+    await user.click(screen.getByTestId("modal-submit"));
+
+    expect(
+      await screen.findByText(
+        "Failed to create share: Failed to proxy rpc request",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("select-all works in icons layout", async () => {

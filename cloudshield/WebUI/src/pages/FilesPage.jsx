@@ -34,6 +34,7 @@ import {
   createFileShare,
   updateFileShare,
   deleteFileShare,
+  fetchJobStatus,
   fetchUsers,
   fetchGroups,
   fetchFileShares,
@@ -87,6 +88,8 @@ const FileIcon = () => (
     <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" />
   </svg>
 );
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function StorageCell({ currentSize, maxSize }) {
   const max =
@@ -259,6 +262,41 @@ export default function FilesPage() {
     return [];
   };
 
+  const clearPendingShare = useCallback((setter, shareName) => {
+    setter((prev) => {
+      if (!prev.has(shareName)) return prev;
+      const next = new Set(prev);
+      next.delete(shareName);
+      return next;
+    });
+  }, []);
+
+  const pollFileShareJob = useCallback(async (jobId) => {
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 300; attempt += 1) {
+      try {
+        const task = await fetchJobStatus(jobId);
+        lastError = null;
+
+        if (task.status === "succeeded" || task.status === "failed") {
+          return task;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+
+      await wait(2000);
+    }
+
+    if (lastError) throw lastError;
+
+    return {
+      status: "running",
+      message: "The task is still running in the background.",
+    };
+  }, []);
+
   const fetchTree = useCallback(
     async ({ initial = false } = {}) => {
       if (initial) setIsInitialLoading(true);
@@ -277,11 +315,54 @@ export default function FilesPage() {
     [orgId],
   );
 
+  const monitorShareJob = useCallback(
+    async ({ action, shareName, jobId, pendingSetter }) => {
+      try {
+        const task = await pollFileShareJob(jobId);
+
+        clearPendingShare(pendingSetter, shareName);
+
+        if (task.status === "failed") {
+          await fetchTree();
+          showToast(
+            `Failed to ${action} share: ${task.message || "Unknown error"}`,
+            "error",
+          );
+          return;
+        }
+
+        if (task.status === "running") {
+          await fetchTree();
+          showToast(
+            `Share ${action} for "${shareName}" is still in progress. Check back shortly.`,
+          );
+          return;
+        }
+
+        await fetchTree();
+        window.dispatchEvent(new Event("metrics:invalidate"));
+        showToast(
+          action === "create"
+            ? `Share "${shareName}" created`
+            : `Share "${shareName}" deleted`,
+        );
+      } catch (err) {
+        clearPendingShare(pendingSetter, shareName);
+        await fetchTree();
+        showToast(
+          `Failed to ${action} share: ${getUserErrorMessage(err)}`,
+          "error",
+        );
+      }
+    },
+    [clearPendingShare, fetchTree, pollFileShareJob, showToast],
+  );
+
   const handleCreateShare = useCallback(
     async (data) => {
       try {
         setCreatingShares((prev) => new Set(prev).add(data.shareName));
-        await createFileShare({
+        const response = await createFileShare({
           orgId,
           name: data.shareName,
           users: data.users,
@@ -289,54 +370,27 @@ export default function FilesPage() {
           description: data.description,
           maxSize: data.maxSize,
         });
+        const jobId = response?.job_id;
+        if (!jobId) {
+          throw new Error("No job ID returned for file share creation.");
+        }
         setUploadOpen(false);
-
-        let attempts = 0;
-        const maxAttempts = 15;
-        const pollInterval = setInterval(async () => {
-          attempts++;
-          const currentShares = await fetchFileShares(orgId);
-          const shareExists = currentShares?.some(
-            (s) => s.share?.name === data.shareName,
-          );
-
-          if (shareExists) {
-            clearInterval(pollInterval);
-            setCreatingShares((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(data.shareName);
-              return newSet;
-            });
-            await fetchTree();
-            window.dispatchEvent(new Event("metrics:invalidate"));
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            setCreatingShares((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(data.shareName);
-              return newSet;
-            });
-            await fetchTree();
-            showToast(
-              `File share "${data.shareName}" is taking longer than expected. Please refresh.`,
-              "error",
-            );
-          }
-        }, 2000);
+        void monitorShareJob({
+          action: "create",
+          shareName: data.shareName,
+          jobId,
+          pendingSetter: setCreatingShares,
+        });
       } catch (err) {
         console.error("Failed to create share:", err);
-        setCreatingShares((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.shareName);
-          return newSet;
-        });
+        clearPendingShare(setCreatingShares, data.shareName);
         showToast(
           `Failed to create share: ${getUserErrorMessage(err)}`,
           "error",
         );
       }
     },
-    [orgId, fetchTree],
+    [clearPendingShare, monitorShareJob, orgId, showToast],
   );
 
   const handleEditShare = useCallback(
@@ -365,22 +419,32 @@ export default function FilesPage() {
 
   const handleDeleteShare = useCallback(async () => {
     if (!editTarget) return;
+    const shareName = editTarget.name;
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${editTarget.name}"? This action cannot be undone.`,
+      `Are you sure you want to delete "${shareName}"? This action cannot be undone.`,
     );
     if (!confirmed) return;
 
     try {
-      await deleteFileShare(orgId, editTarget.name);
+      setDeletingShares((prev) => new Set(prev).add(shareName));
+      const response = await deleteFileShare(orgId, shareName);
+      const jobId = response?.job_id;
+      if (!jobId) {
+        throw new Error("No job ID returned for file share deletion.");
+      }
       setEditTarget(null);
-      fetchTree();
-      showToast("Share deleted");
-      window.dispatchEvent(new Event("metrics:invalidate"));
+      void monitorShareJob({
+        action: "delete",
+        shareName,
+        jobId,
+        pendingSetter: setDeletingShares,
+      });
     } catch (err) {
       console.error("Failed to delete share:", err);
+      clearPendingShare(setDeletingShares, shareName);
       showToast(`Failed to delete share: ${getUserErrorMessage(err)}`, "error");
     }
-  }, [orgId, editTarget, fetchTree]);
+  }, [clearPendingShare, editTarget, monitorShareJob, orgId, showToast]);
 
   useEffect(() => {
     fetchTree({ initial: true });
@@ -493,53 +557,27 @@ export default function FilesPage() {
 
       try {
         setDeletingShares((prev) => new Set(prev).add(node.name));
-        await deleteFileShare(orgId, node.name);
-
-        let attempts = 0;
-        const maxAttempts = 15;
-        const pollInterval = setInterval(async () => {
-          attempts++;
-          const currentShares = await fetchFileShares(orgId);
-          const shareStillExists = currentShares?.some(
-            (s) => s.share?.name === node.name,
-          );
-
-          if (!shareStillExists) {
-            clearInterval(pollInterval);
-            setDeletingShares((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(node.name);
-              return newSet;
-            });
-            await fetchTree();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            setDeletingShares((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(node.name);
-              return newSet;
-            });
-            await fetchTree();
-            showToast(
-              "Delete is taking longer than expected. Please refresh.",
-              "error",
-            );
-          }
-        }, 2000);
+        const response = await deleteFileShare(orgId, node.name);
+        const jobId = response?.job_id;
+        if (!jobId) {
+          throw new Error("No job ID returned for file share deletion.");
+        }
+        void monitorShareJob({
+          action: "delete",
+          shareName: node.name,
+          jobId,
+          pendingSetter: setDeletingShares,
+        });
       } catch (err) {
         console.error("Failed to delete share:", err);
-        setDeletingShares((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(node.name);
-          return newSet;
-        });
+        clearPendingShare(setDeletingShares, node.name);
         showToast(
           `Failed to delete share: ${getUserErrorMessage(err)}`,
           "error",
         );
       }
     },
-    [orgId, fetchTree],
+    [clearPendingShare, monitorShareJob, orgId, showToast],
   );
 
   const handleLayoutChange = (next) => {

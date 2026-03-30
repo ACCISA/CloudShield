@@ -11,6 +11,41 @@ error will contain any error that occurred during fetching
 import { useEffect, useState } from "react";
 import { apiGet } from "../api/client";
 
+function getStoredOrgId() {
+  try {
+    return localStorage.getItem("org_id");
+  } catch {
+    return null;
+  }
+}
+
+async function fetchScopedWorkstationCount(orgId) {
+  if (!orgId) return null;
+
+  const paths = [
+    `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
+    `/workstations?org_id=${encodeURIComponent(orgId)}`,
+  ];
+
+  for (const path of paths) {
+    try {
+      const response = await apiGet(path);
+      const data = await response.json();
+      const items = Array.isArray(data)
+        ? data
+        : data.templates || data.items || data.workstations || [];
+      return Array.isArray(items) ? items.length : 0;
+    } catch (error) {
+      if (error?.status === 404 || error?.status === 405) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return null;
+}
+
 export function useOrgMetrics() {
   const [stats, setStats] = useState({
     users: 0,
@@ -23,7 +58,21 @@ export function useOrgMetrics() {
   const [refetchKey, setRefetchKey] = useState(0);
 
   useEffect(() => {
-    const handleInvalidate = () => setRefetchKey((k) => k + 1);
+    const handleInvalidate = (event) => {
+      const patchedWorkstations = event?.detail?.workstations;
+      if (typeof patchedWorkstations === "number") {
+        setStats((prev) => ({
+          ...prev,
+          workstations: patchedWorkstations,
+        }));
+      }
+
+      if (event?.detail?.skipRefetch) {
+        return;
+      }
+
+      setRefetchKey((k) => k + 1);
+    };
     window.addEventListener("metrics:invalidate", handleInvalidate);
     return () =>
       window.removeEventListener("metrics:invalidate", handleInvalidate);
@@ -39,12 +88,23 @@ export function useOrgMetrics() {
 
         const _raw = await apiGet("/organizations/me/metrics"); // { stats: { users, workstations, access_groups, shares } }
         const res = await _raw.json();
+        const orgId = getStoredOrgId();
+        let workstationCount = res.stats?.workstations ?? 0;
+
+        try {
+          const scopedCount = await fetchScopedWorkstationCount(orgId);
+          if (typeof scopedCount === "number") {
+            workstationCount = scopedCount;
+          }
+        } catch {
+          // Fall back to metrics payload if workstation-specific source is unavailable.
+        }
 
         if (!mounted) return;
 
         setStats({
           users: res.stats?.users ?? 0,
-          workstations: res.stats?.workstations ?? 0,
+          workstations: workstationCount,
           groups: res.stats?.access_groups ?? 0, // mapping happens once here
           shares: res.stats?.shares ?? 0,
         });

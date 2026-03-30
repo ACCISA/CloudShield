@@ -4,7 +4,7 @@
  * 
  */
 
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { useOrgMetrics } from "../useOrgMetrics";
 import { apiGet } from "../api/client";
 
@@ -24,6 +24,7 @@ function deferred() {
 describe("useOrgMetrics", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
   });
 
   it("initializes with default stats, loading=true, error=null", () => {
@@ -65,6 +66,106 @@ describe("useOrgMetrics", () => {
       groups: 2,
       shares: 3,
     });
+  });
+
+  it("overrides workstation count with the workstation page source when org_id is present", async () => {
+    localStorage.setItem("org_id", "org-1");
+
+    apiGet
+      .mockReturnValueOnce({
+        json: async () => ({
+          stats: { users: 10, workstations: 60, access_groups: 2, shares: 3 },
+        }),
+      })
+      .mockReturnValueOnce({
+        json: async () => ({
+          templates: [{ _id: "w1" }, { _id: "w2" }, { _id: "w3" }, { _id: "w4" }],
+        }),
+      });
+
+    const { result } = renderHook(() => useOrgMetrics());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(apiGet).toHaveBeenNthCalledWith(1, "/organizations/me/metrics");
+    expect(apiGet).toHaveBeenNthCalledWith(
+      2,
+      "/workstations/templates?org_id=org-1",
+    );
+    expect(result.current.stats).toEqual({
+      users: 10,
+      workstations: 4,
+      groups: 2,
+      shares: 3,
+    });
+  });
+
+  it("falls back to metrics workstation count when the workstation source fails", async () => {
+    localStorage.setItem("org_id", "org-1");
+
+    apiGet
+      .mockReturnValueOnce({
+        json: async () => ({
+          stats: { users: 10, workstations: 6, access_groups: 2, shares: 3 },
+        }),
+      })
+      .mockRejectedValueOnce(new Error("workstations unavailable"));
+
+    const { result } = renderHook(() => useOrgMetrics());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.stats).toEqual({
+      users: 10,
+      workstations: 6,
+      groups: 2,
+      shares: 3,
+    });
+  });
+
+  it("applies workstation count patches immediately without refetch when requested", async () => {
+    localStorage.setItem("org_id", "org-1");
+
+    apiGet
+      .mockReturnValueOnce({
+        json: async () => ({
+          stats: { users: 10, workstations: 4, access_groups: 2, shares: 3 },
+        }),
+      })
+      .mockReturnValueOnce({
+        json: async () => ({
+          templates: [{ _id: "w1" }, { _id: "w2" }, { _id: "w3" }, { _id: "w4" }],
+        }),
+      });
+
+    const { result } = renderHook(() => useOrgMetrics());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("metrics:invalidate", {
+          detail: {
+            workstations: 5,
+            skipRefetch: true,
+          },
+        }),
+      );
+    });
+
+    expect(result.current.stats).toEqual({
+      users: 10,
+      workstations: 5,
+      groups: 2,
+      shares: 3,
+    });
+    expect(apiGet).toHaveBeenCalledTimes(2);
   });
 
   it("defaults missing stats fields to 0 (covers ?. and ?? fallbacks)", async () => {

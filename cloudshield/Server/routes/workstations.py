@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from bson import ObjectId
+from datetime import datetime, timezone
 from flask import Blueprint, g, request, jsonify
 
 from utils.logging_setup import get_logger
@@ -19,6 +20,35 @@ ERROR_TEMPLATE_ID_REQUIRED = "template_id is required"
 ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
 ERROR_STATUS_REQUIRED = "status is required"
 ERROR_USER_ID_REQUIRED = "user_id is required"
+
+
+def _serialize_doc(doc):
+    if not doc:
+        return None
+
+    serialized = dict(doc)
+    if "_id" in serialized:
+        serialized["_id"] = str(serialized["_id"])
+    return serialized
+
+
+def _candidate_ids(raw_id: str):
+    candidates = []
+    try:
+        candidates.append(ObjectId(raw_id))
+    except Exception:
+        pass
+
+    candidates.append(raw_id)
+    return candidates
+
+
+def _find_org_scoped_doc(collection, raw_id: str, org_id: str):
+    for candidate_id in _candidate_ids(raw_id):
+        doc = collection.find_one({"_id": candidate_id, "org_id": org_id})
+        if doc:
+            return doc, candidate_id
+    return None, None
 
 
 @workstations_bp.route("/workstations/assigned", methods=["GET"])
@@ -113,6 +143,40 @@ def create_workstation():
     return jsonify({"id": workstation_id}), 201
 
 
+@workstations_bp.route("/workstations/<workstation_id>", methods=["DELETE"])
+@require_auth
+def delete_workstation(workstation_id: str):
+    user = g.user
+    role = user.get("role")
+    org_id = user.get("org_id")
+
+    if role != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+
+    if not org_id:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
+
+    collection = db_admin["workstations"]
+    existing, matched_id = _find_org_scoped_doc(collection, workstation_id, org_id)
+    if not existing:
+        return jsonify({"error": "workstation not found"}), 404
+
+    collection.delete_one({"_id": matched_id, "org_id": org_id})
+
+    try:
+        access_groups_collection = db_admin["access_groups"]
+    except (KeyError, TypeError):
+        access_groups_collection = None
+
+    if access_groups_collection is not None:
+        access_groups_collection.update_many(
+            {"org_id": org_id},
+            {"$pull": {"workstations": workstation_id}},
+        )
+
+    return "", 204
+
+
 @workstations_bp.route("/workstation/available", methods=["GET"])
 @require_auth
 def get_available_workstations_api():
@@ -172,6 +236,70 @@ def list_templates():
     # fetch other doucments from the ids stored in templates
 
     return jsonify({"templates":templates}), 200
+
+
+@workstations_bp.route("/workstations/templates/<template_id>", methods=["PATCH"])
+@require_auth
+def update_template(template_id: str):
+    user = g.user
+    role = user.get("role")
+    org_id = user.get("org_id")
+
+    if role != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+
+    if not org_id:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
+
+    collection = db.workstation_templates
+    existing, matched_id = _find_org_scoped_doc(collection, template_id, org_id)
+    if not existing:
+        return jsonify({"error": "workstation template not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    set_doc = {}
+
+    if "name" in data:
+        set_doc["name"] = data.get("name") or "Workstation"
+    if "description" in data:
+        set_doc["description"] = data.get("description") or ""
+    if "software" in data:
+        set_doc["software"] = data.get("software") or []
+    if "access_groups" in data:
+        set_doc["access_groups"] = data.get("access_groups") or []
+    if "members" in data:
+        set_doc["members"] = data.get("members") or []
+
+    if not set_doc:
+        return jsonify({"template": _serialize_doc(existing)}), 200
+
+    set_doc["updated_at"] = datetime.now(timezone.utc)
+    collection.update_one({"_id": matched_id, "org_id": org_id}, {"$set": set_doc})
+    updated = collection.find_one({"_id": matched_id, "org_id": org_id})
+
+    return jsonify({"template": _serialize_doc(updated)}), 200
+
+
+@workstations_bp.route("/workstations/templates/<template_id>", methods=["DELETE"])
+@require_auth
+def delete_template(template_id: str):
+    user = g.user
+    role = user.get("role")
+    org_id = user.get("org_id")
+
+    if role != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+
+    if not org_id:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
+
+    collection = db.workstation_templates
+    existing, matched_id = _find_org_scoped_doc(collection, template_id, org_id)
+    if not existing:
+        return jsonify({"error": "workstation template not found"}), 404
+
+    collection.delete_one({"_id": matched_id, "org_id": org_id})
+    return "", 204
 
 @workstations_bp.route("/workstations/start", methods=["POST"])
 @require_auth
