@@ -907,6 +907,7 @@ def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch)
             }[name]
 
     monkeypatch.setattr(api_mod, "db_admin", DummyDB())
+    monkeypatch.setattr(api_mod, "db", DummyDB())
 
     with client.application.test_request_context("/api/organizations/me/metrics", method="GET"):
         g.user = {"org_id": org_id}

@@ -140,9 +140,11 @@ def test_start_workstations_success(mock_dependencies):
 
     # Verify service_dispatcher was called 3 times (once per member)
     assert workstations_module.service_dispatcher.call_count == 3
-    workstations_module.service_dispatcher.assert_called_with(
-        service_name="ws_start", org_id=org_id, template_id=template_id
-    )
+    last_call = workstations_module.service_dispatcher.call_args
+    assert last_call.kwargs["service_name"] == "ws_start"
+    assert last_call.kwargs["org_id"] == org_id
+    assert last_call.kwargs["template_id"] == template_id
+    assert "vm_id" in last_call.kwargs
 
 
 def test_start_workstations_no_members(mock_dependencies):
