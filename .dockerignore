@@ -36,6 +36,7 @@ yarn-error.log
 *.swo
 *~
 .env.local
+
 .DS_Store
 
 # Application artifacts
