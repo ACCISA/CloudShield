@@ -176,6 +176,7 @@ services:
       - ./docker:/app/docker
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKSTATIONS_MOUNT_DIR}:/data
     networks:
       - vpc_net
       - cloudshield_net

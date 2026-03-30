@@ -972,11 +972,13 @@ def provision_workstation_docker(
 
     host_port = _pick_workstation_host_port(org_subnet_cidr)
 
+    org_docker.compose.build(services=["workstation"])
     container_ws = org_docker.compose.run(
         service="workstation",
         publish=[(host_port, 8006)],
         detach=True,
         tty=False,
+        build=False,
     )
 
     container_id_ws = container_ws.id
@@ -1185,11 +1187,13 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     os.environ["REALM_NAME"] = realm_name
     os.environ["REALM_NAME_LWR"] = realm_name.lower()
 
+    org_docker.compose.build(services=["samba-test"])
     container_dc = org_docker.compose.run(
         name="samba-test-"+str(org_id),
         service="samba-test",
         detach=True,
         tty=False,
+        build=False,
         envs={
             "DOMAIN_NAME": domain_name,
             "DC_ADMIN_PASSWORD": dc_admin_password,
@@ -1203,11 +1207,13 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
     container_dc_ip = container_dc.network_settings.networks[org_network_name].ip_address
     server_logger.info(f"samba-test container id: {container_id_samba} | IP: {container_dc_ip}")
 
+    org_docker.compose.build(services=["openvpn-test"])
     container_vpn = org_docker.compose.run(
         name="openvpn-test-"+str(org_id),
         service="openvpn-test",
         detach=True,
         tty=False,
+        build=False,
         envs={
             "OPENVPN_PORT": "1194",
             "OPENVPN_PROTOCOL": "udp",

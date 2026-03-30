@@ -277,9 +277,14 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "templates" / org_id / template_id
     host_oem_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / "software" / org_id / template_id
     host_iso_path = Path(os.getenv("WINDOWS_ISO_PATH"))
-    
+
     logger.info(f"mounting storage path {str(host_vm_storage_path/'storage')}")
     logger.info(f"mounting oem path {str(oem_path)} from {str(host_oem_storage_path)}")
+
+    # Build the image separately first so compose.run(detach=True) only outputs the
+    # container ID — if the build happens inside compose.run, its output pollutes stdout
+    # and python-on-whales incorrectly uses the build log as the container ID.
+    docker.compose.build(services=["workstation"])
 
     container_ws = docker.compose.run(
             service="workstation",
@@ -289,7 +294,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
                 (str(host_iso_path), "/boot.iso", "rw")
             ],
             detach=True,
-            tty=False
+            tty=False,
+            build=False
     )
     
     container_ws_id = container_ws.id
@@ -428,13 +434,15 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
 
     host_vm_storage_path = Path(os.getenv("WORKSTATIONS_MOUNT_DIR")) / "workstations" / org_id / vm_id
 
+    org_docker.compose.build(services=["workstation"])
     container_ws = org_docker.compose.run(
             service="workstation",
             command=["skip"],
             name=name,
             volumes=[(str(host_vm_storage_path), "/storage", "rw")],
             detach=True,
-            tty=False
+            tty=False,
+            build=False
     )
 
     container_ws_ip = container_ws.network_settings.networks[external_network_name].ip_address
