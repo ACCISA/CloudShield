@@ -197,7 +197,7 @@ function getStatusLightColors(status) {
     return { outerColor: "#1F381F", innerColor: "#04C40A" };
   }
 
-  if (normalized === "provisioning") {
+  if (normalized === "provisioning" || normalized === "building") {
     return { outerColor: "#3F2A08", innerColor: "#F0B429" };
   }
 

@@ -8,7 +8,8 @@ from utils.logging_setup import get_logger
 from services import service_dispatcher
 from cloudshield.Server.security.guards import require_auth
 from utils import db, db_admin
-from repos import get_workstation_templates
+from repos import get_workstation_templates, insert_workstation_template, insert_workstation, get_unique_members_by_ids
+from models import WorkstationStatus
 
 logger = get_logger("workstations")
 
@@ -146,6 +147,24 @@ def create_default():
 
     members = data.get("members", [])
 
+    # Insert the template immediately so it's visible in the UI before the
+    # background job runs (is_ready=False until provisioning completes).
+    try:
+        ws_template = insert_workstation_template(
+            db=db,
+            name=name,
+            org_id=org_id,
+            description=description,
+            software=software,
+            is_ready=False,
+            access_groups=access_groups,
+            members=members,
+        )
+        template_id = str(ws_template.inserted_id)
+    except Exception as e:
+        logger.error("Failed to pre-insert workstation template: %s", e)
+        return jsonify({"error": "Failed to create workstation template"}), 500
+
     job = service_dispatcher(
         service_name="ws_create_default",
         org_id=org_id,
@@ -154,9 +173,10 @@ def create_default():
         software=software,
         access_groups=access_groups,
         members=members,
+        template_id=template_id,
     )
 
-    return jsonify({"job_id": job.id}), 202
+    return jsonify({"job_id": job.id, "template_id": template_id}), 202
 
 
 @workstations_bp.route("/workstations/templates", methods=["GET"])

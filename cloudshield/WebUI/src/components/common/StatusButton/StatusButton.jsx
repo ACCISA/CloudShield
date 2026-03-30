@@ -70,20 +70,23 @@ export default function StatusButton({
   const normalizedStatus = (status || "").toLowerCase();
   const isConnected = ["connected", "active", "online"].includes(normalizedStatus);
   const isProvisioning = normalizedStatus === "provisioning";
+  const isBuilding = normalizedStatus === "building";
   const buttonStyle = isConnected
     ? styles.connected
-    : isProvisioning
+    : isProvisioning || isBuilding
       ? styles.provisioning
       : styles.disconnected;
   const isMobile = windowWidth < 768;
   const showIconOnly = compact || isMobile;
   const label = isConnected
     ? "Ready"
-    : isProvisioning
-      ? "Provisioning"
-      : normalizedStatus === "failed"
-        ? "Failed"
-        : "Unavailable";
+    : isBuilding
+      ? "Building template"
+      : isProvisioning
+        ? "Provisioning"
+        : normalizedStatus === "failed"
+          ? "Failed"
+          : "Unavailable";
 
   return (
     <button
@@ -97,7 +100,7 @@ export default function StatusButton({
       disabled={!onClick}
     >
       <span style={styles.iconWrapper}>
-        {isConnected || isProvisioning ? (
+        {isConnected || isProvisioning || isBuilding ? (
           <ConnectIcon width={14} height={14} color="var(--text-primary)" />
         ) : (
           <DisconnectIcon width={14} height={14} color="var(--text-primary)" />

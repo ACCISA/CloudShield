@@ -234,10 +234,11 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     username = requested_username.strip() if isinstance(requested_username, str) else ""
     username = username or derive_username(user_data.full_name)
 
+    final_password = user_data.password or gen_password()
     user_doc = {
         "email": user_data.email,
         "username": username,
-        "password": hash_password(user_data.password),
+        "password": hash_password(final_password),
         "org_id": org_id, # This is now the 24-char ObjectId string
         "role": user_data.role,
         "full_name": user_data.full_name,

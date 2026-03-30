@@ -20,7 +20,7 @@ from services import (
 from security import require_auth
 from utils.logging_setup import get_logger
 from utils import organizations, org_filter
-from cloudshield.Server.utils.database import db_admin
+from cloudshield.Server.utils.database import db_admin, db
 
 logger = get_logger("api")
 
@@ -897,7 +897,7 @@ def get_my_organization_metrics():
         return jsonify({"error": "org_id missing from token"}), 401
 
     # Collections for counting documents related to the organization
-    users_col = db_admin["users"]
+    users_col = db["users"]
     workstations_col = db_admin["workstations"]
     access_groups_col = db_admin["access_groups"]
     shares_col = db_admin["shares"]

@@ -1156,7 +1156,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
                 if "cloudshield_net" in _nets and any(
                     x in _c.name for x in ("cs-api", "cloudshield-api", "api")
                 ):
-                    _cs_server_url = f"http://{_nets['cloudshield_net'].ip_address}:5050"
+                    _cs_server_url = f"http://{_c.name}:5050"
                     break
         except Exception:
             pass

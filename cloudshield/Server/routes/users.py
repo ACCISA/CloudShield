@@ -3,7 +3,14 @@ import csv
 import io
 import importlib
 import json
+import secrets
+import string
 from collections.abc import Mapping
+
+
+def _generate_password():
+    alphabet = string.ascii_letters + string.digits + "!@#%^&()-_=+[]{};:,.<>?"
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
 
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
@@ -158,13 +165,15 @@ def _handle_user_create(current_user):
     create_user(user_data, current_user=current_user, reason=reason)
     # Generate the DC username from the user's full name unless explicitly provided.
     username = user_data.username or derive_username(user_data.full_name)
+    # Use provided password or generate one for DC account creation
+    dc_password = user_data.password or _generate_password()
     logger.info(f"Queuing DC user creation for org_id={user_data.org_id}, username={username}")
     # Queue DC user creation task via service dispatcher
     job = service_dispatcher(
         service_name="dc_add_user",
         org_id=user_data.org_id,
         username=username,
-        password=user_data.password,
+        password=dc_password,
         email=user_data.email,
     )
     
