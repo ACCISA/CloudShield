@@ -11,9 +11,25 @@
  *   - onClick: callback when button is clicked
  *   - compact: boolean (optional) - force icon-only mode
  */
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import ConnectIcon from "../../../assets/ConnectIcon.jsx";
 import DisconnectIcon from "../../../assets/DisconnectIcon.jsx";
+
+const CONNECTED_STATUSES = ["connected", "active", "online"];
+const PENDING_STATUSES = ["provisioning", "building"];
+
+const STATUS_LABELS = {
+  building: "Building template",
+  provisioning: "Provisioning",
+  failed: "Failed",
+};
+
+const STATUS_STYLES = {
+  connected: { borderColor: "#116e34" },
+  pending: { borderColor: "#a16207" },
+  disconnected: { borderColor: "#7c1d1d" },
+};
 
 const styles = {
   button: {
@@ -38,15 +54,6 @@ const styles = {
     width: "32px",
     height: "32px",
   },
-  connected: {
-    borderColor: "#116e34",
-  },
-  provisioning: {
-    borderColor: "#a16207",
-  },
-  disconnected: {
-    borderColor: "#7c1d1d",
-  },
   iconWrapper: {
     display: "flex",
     alignItems: "center",
@@ -54,11 +61,18 @@ const styles = {
   },
 };
 
-export default function StatusButton({
-  status = "disconnected",
-  onClick,
-  compact,
-}) {
+function getButtonStyle(normalizedStatus) {
+  if (CONNECTED_STATUSES.includes(normalizedStatus)) return STATUS_STYLES.connected;
+  if (PENDING_STATUSES.includes(normalizedStatus)) return STATUS_STYLES.pending;
+  return STATUS_STYLES.disconnected;
+}
+
+function getLabel(normalizedStatus) {
+  if (CONNECTED_STATUSES.includes(normalizedStatus)) return "Ready";
+  return STATUS_LABELS[normalizedStatus] || "Unavailable";
+}
+
+export default function StatusButton({ status, onClick, compact }) {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -68,25 +82,11 @@ export default function StatusButton({
   }, []);
 
   const normalizedStatus = (status || "").toLowerCase();
-  const isConnected = ["connected", "active", "online"].includes(normalizedStatus);
-  const isProvisioning = normalizedStatus === "provisioning";
-  const isBuilding = normalizedStatus === "building";
-  const buttonStyle = isConnected
-    ? styles.connected
-    : isProvisioning || isBuilding
-      ? styles.provisioning
-      : styles.disconnected;
-  const isMobile = windowWidth < 768;
-  const showIconOnly = compact || isMobile;
-  const label = isConnected
-    ? "Ready"
-    : isBuilding
-      ? "Building template"
-      : isProvisioning
-        ? "Provisioning"
-        : normalizedStatus === "failed"
-          ? "Failed"
-          : "Unavailable";
+  const isConnected = CONNECTED_STATUSES.includes(normalizedStatus);
+  const isPending = PENDING_STATUSES.includes(normalizedStatus);
+  const showIconOnly = compact || windowWidth < 768;
+  const buttonStyle = getButtonStyle(normalizedStatus);
+  const label = getLabel(normalizedStatus);
 
   return (
     <button
@@ -100,7 +100,7 @@ export default function StatusButton({
       disabled={!onClick}
     >
       <span style={styles.iconWrapper}>
-        {isConnected || isProvisioning || isBuilding ? (
+        {isConnected || isPending ? (
           <ConnectIcon width={14} height={14} color="var(--text-primary)" />
         ) : (
           <DisconnectIcon width={14} height={14} color="var(--text-primary)" />
@@ -110,3 +110,15 @@ export default function StatusButton({
     </button>
   );
 }
+
+StatusButton.propTypes = {
+  status: PropTypes.string,
+  onClick: PropTypes.func,
+  compact: PropTypes.bool,
+};
+
+StatusButton.defaultProps = {
+  status: "disconnected",
+  onClick: undefined,
+  compact: false,
+};

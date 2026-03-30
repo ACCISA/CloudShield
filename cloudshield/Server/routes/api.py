@@ -29,6 +29,15 @@ api_bp = Blueprint("api", __name__)
 # Error messages
 ERROR_ORG_ID_REQUIRED = "org_id is required"
 ERROR_USER_REQUIRED = "username is required"
+ERROR_SHARE_NAME_REQUIRED = "share_name is required"
+ERROR_GROUP_NAME_REQUIRED = "group_name is required"
+
+
+def _coerce_int(val):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
 
 
 @api_bp.route("/organization/<org_id>", methods=["GET"])
@@ -142,7 +151,7 @@ def task_delete_file_share():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error":"share_name is required"}), 422
+        return jsonify({"error":ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(service_name="dc_delete_file_share", org_id=org_id, share_name=share_name)
 
@@ -162,7 +171,7 @@ def task_create_file_share():
     if org_id is None:
         return jsonify({"error":ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error":"share_name is required"}), 422
+        return jsonify({"error":ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_create_file_share",
@@ -469,7 +478,7 @@ def task_dc_add_user_to_group():
     if username is None:
         return jsonify({"error":ERROR_USER_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_add_user_to_group",
@@ -504,7 +513,7 @@ def task_dc_add_group():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_add_group",
@@ -534,7 +543,7 @@ def task_dc_remove_group():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if group_name is None:
-        return jsonify({"error": "group_name is required"}), 422
+        return jsonify({"error": ERROR_GROUP_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_remove_group",
@@ -566,7 +575,7 @@ def task_dc_update_file_share():
     if org_id is None:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 422
     if share_name is None:
-        return jsonify({"error": "share_name is required"}), 422
+        return jsonify({"error": ERROR_SHARE_NAME_REQUIRED}), 422
 
     job = service_dispatcher(
         service_name="dc_update_file_share",
@@ -633,12 +642,6 @@ def task_provision():
         - Dispatches an async job "provision_network" with the supplied parameters.
     """
     data = request.get_json() or {}
-
-    def _coerce_int(val):
-        try:
-            return int(val)
-        except (TypeError, ValueError):
-            return None
 
     logger.info("[API] Received /task/provision POST request")
     org_id = data.get("org_id")

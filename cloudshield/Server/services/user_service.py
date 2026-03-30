@@ -45,6 +45,38 @@ def enforce_org_user_limit(org_id: str, additional_users: int = 1) -> None:
         raise ValueError("User limit reached for this organization")
 
 
+def _gen_password() -> str:
+    """Generate a random 16-character password."""
+    friendly_punctuation = "!@#%^&()-_=+[]{};:,.<>?"
+    alphabet = string.ascii_letters + string.digits + friendly_punctuation
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
+
+
+def _resolve_org_id(user_data, current_user, org_name, package, domain_name, realm_name, dc_admin_password) -> str:
+    """Resolve org_id for user creation: validate existing org (admin) or create new (signup)."""
+    if current_user is not None:
+        _must_admin(current_user)
+        if not user_data.org_id:
+            raise ValueError("org_id is required when creating users as an admin")
+        try:
+            ObjectId(user_data.org_id)
+        except InvalidId:
+            raise ValueError("Invalid organization ID format")
+        return user_data.org_id
+    # Public signup path
+    org_id, _ = _create_org_for_signup(org_name, package, domain_name, realm_name, dc_admin_password)
+    if getattr(user_data, "role", None) != "admin":
+        raise PermissionError("Public signup can only create an admin user.")
+    return org_id
+
+
+def _build_create_actor(current_user, org_id) -> dict:
+    """Build the audit actor dict for user creation."""
+    if current_user is not None:
+        return {"id": current_user["id"], "role": current_user["role"], "org_id": current_user["org_id"]}
+    return {"system": "public_signup", "role": "admin", "org_id": org_id}
+
+
 def _create_org_for_signup(org_name: Optional[str], package: str, domain_name, realm_name, dc_admin_password) -> tuple[str, dict]:
     """Create an organization and return its auto-generated MongoDB ObjectId string."""
     org_model = OrganizationCreate(
@@ -176,47 +208,22 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
         - Public-signup welcome email is sent after successful provisioning.
     """
 
+    import re
     # Determine package for this signup
     package = (user_data.package_type or "basic").strip() if isinstance(getattr(user_data, "package_type", None), str) else "basic"
     org_name = getattr(user_data, "company_name", None) or getattr(user_data, "full_name", None)
     # Build a valid AD domain name: lowercase, hyphens instead of spaces/underscores,
     # append .local, and derive the Kerberos realm (uppercase FQDN).
-    import re
     _slug = re.sub(r'[^a-z0-9]+', '-', org_name.lower()).strip('-')[:15]  # NetBIOS ≤15 chars
     domain_name = f"{_slug}.local"          # e.g. "cloudshield-test.local"
     realm_name  = domain_name.upper()        # e.g. "CLOUDSHIELD-TEST.LOCAL"
-    
-    def gen_password():
-        friendly_punctuation = "!@#%^&()-_=+[]{};:,.<>?"
-        alphabet = string.ascii_letters + string.digits + friendly_punctuation
-        password = ''.join(secrets.choice(alphabet) for _ in range(16))
-        return password
 
-
-    dc_admin_password = gen_password()
+    dc_admin_password = _gen_password()
 
     # -----------------------------
     # Auth / permission rules + org provisioning
     # -----------------------------
-    if current_user is not None:
-        # Dashboard/admin creation: enforce admin and require explicit org_id
-        _must_admin(current_user)
-        if not user_data.org_id:
-            raise ValueError("org_id is required when creating users as an admin")
-        
-        org_id = user_data.org_id
-        # Look up by ObjectId
-        try:
-            org_doc = organizations.find_one({"_id": ObjectId(org_id)}, {"user_limit": 1}) or {}
-        except InvalidId:
-            raise ValueError("Invalid organization ID format")
-    else:
-        # Public signup: create org using Mongo ObjectId
-        org_id, org_doc = _create_org_for_signup(org_name, package, domain_name, realm_name, dc_admin_password)
-
-        # Optional hardening: force role admin on public signup
-        if getattr(user_data, "role", None) != "admin":
-            raise PermissionError("Public signup can only create an admin user.")
+    org_id = _resolve_org_id(user_data, current_user, org_name, package, domain_name, realm_name, dc_admin_password)
 
     # -----------------------------
     # Uniqueness / limits
@@ -234,7 +241,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     username = requested_username.strip() if isinstance(requested_username, str) else ""
     username = username or derive_username(user_data.full_name)
 
-    final_password = user_data.password or gen_password()
+    final_password = user_data.password or _gen_password()
     user_doc = {
         "email": user_data.email,
         "username": username,
@@ -253,19 +260,7 @@ def create_user(user_data: UserCreate, current_user: Optional[dict], reason: str
     # -----------------------------
     # Audit logging
     # -----------------------------
-    if current_user is not None:
-        actor = {
-            "id": current_user["id"],
-            "role": current_user["role"],
-            "org_id": current_user["org_id"],
-        }
-    else:
-        actor = {
-            "system": "public_signup",
-            "role": "admin",
-            "org_id": org_id,
-        }
-
+    actor = _build_create_actor(current_user, org_id)
     log_audit(
         action="create",
         actor=actor,

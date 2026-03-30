@@ -914,6 +914,42 @@ class TestUsersRoutes:
         data = response.get_json()
         assert "dc_sync_warning" in data
 
+    def test_handle_user_create_generates_password_when_none(self, monkeypatch):
+        """Test that _generate_password() is called when user_data.password is None (line 170)."""
+        import cloudshield.Server.routes.users as users_module
+
+        generated = {"pwd": None}
+
+        class _DummyUserCreate:
+            def __init__(self, **kwargs):
+                self.username = None
+                self.full_name = "No Pwd"
+                self.email = "nopwd@example.com"
+                self.org_id = "org1"
+                self.password = None  # No password provided
+
+        def _fake_generate_password():
+            generated["pwd"] = "auto-generated-pwd"
+            return generated["pwd"]
+
+        monkeypatch.setattr(users_module, "UserCreate", _DummyUserCreate)
+        monkeypatch.setattr(users_module, "_generate_password", _fake_generate_password)
+        monkeypatch.setattr(users_module, "_extract_reason", lambda: None)
+        monkeypatch.setattr(users_module, "create_user", lambda ud, current_user=None, reason=None: None)
+        monkeypatch.setattr(
+            users_module,
+            "service_dispatcher",
+            lambda **kwargs: types.SimpleNamespace(id="job-pwd"),
+        )
+
+        app = Flask(__name__)
+        with app.test_request_context("/users", method="POST", json={"email": "nopwd@example.com", "full_name": "No Pwd"}):
+            response, status = users_module._handle_user_create({"id": "admin"})
+
+        assert status == 202
+        # _generate_password() must have been called
+        assert generated["pwd"] == "auto-generated-pwd"
+
     def test_get_current_user_endpoint_when_id_already_present(self):
         import cloudshield.Server.routes.users as users_module
 

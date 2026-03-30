@@ -54,6 +54,7 @@ Security:
 """
 
 INTERNAL_SERVER_ERROR = "Internal server error"
+ERR_VALIDATION_FAILED = "Validation failed"
 _IMPORTED_OBJECT_ID = ObjectId
 _IMPORTED_DB_ADMIN = db_admin
 
@@ -267,7 +268,7 @@ def create_user_endpoint():
         return jsonify(resp_json), status_code
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
@@ -333,7 +334,7 @@ def update_user_endpoint(user_id):
         return jsonify({"message": "User updated"}), 200
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
@@ -452,7 +453,7 @@ def signup_admin_endpoint():
 
     except ValidationError as e:
         safe_errors = [_make_json_safe(err) for err in e.errors()]
-        return jsonify({"error": "Validation failed", "details": safe_errors}), 400
+        return jsonify({"error": ERR_VALIDATION_FAILED, "details": safe_errors}), 400
 
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403

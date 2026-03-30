@@ -162,6 +162,48 @@ def test_start_workstations_no_members(mock_dependencies):
     workstations_module.service_dispatcher.assert_not_called()
 
 
+def test_start_workstations_uses_pre_inserted_vm_ids(mock_dependencies):
+    """Test start_workstations uses vm_ids when provided instead of inserting new ones."""
+    mock_unique_members = ["user-1", "user-2"]
+    workstations_module.get_unique_members_by_ids.return_value = mock_unique_members
+
+    logger = MagicMock()
+    org_id = "org-1"
+    template_id = "template-1"
+    access_groups = []
+    pre_vm_ids = ["vm-pre-1", "vm-pre-2"]
+
+    workstations_module.start_workstations(org_id, template_id, access_groups, [], logger, vm_ids=pre_vm_ids)
+
+    # insert_workstation should NOT be called since pre-inserted ids cover all members
+    workstations_module.insert_workstation.assert_not_called()
+
+    # service_dispatcher should be called with the pre-inserted vm_ids
+    calls = workstations_module.service_dispatcher.call_args_list
+    assert len(calls) == 2
+    vm_ids_used = [c.kwargs["vm_id"] for c in calls]
+    assert "vm-pre-1" in vm_ids_used
+    assert "vm-pre-2" in vm_ids_used
+
+
+def test_start_workstations_mixed_pre_inserted_and_new(mock_dependencies):
+    """Test start_workstations uses pre-inserted for first N, inserts new for remainder."""
+    mock_unique_members = ["user-1", "user-2", "user-3"]
+    workstations_module.get_unique_members_by_ids.return_value = mock_unique_members
+
+    mock_ws = MagicMock()
+    mock_ws.inserted_id = "ws-new-id"
+    workstations_module.insert_workstation.return_value = mock_ws
+
+    logger = MagicMock()
+    # Only 1 pre-inserted id, but 3 members — 2 need to be inserted
+    workstations_module.start_workstations("org-1", "tpl-1", [], [], logger, vm_ids=["vm-pre-1"])
+
+    # insert_workstation should be called for the 2 remaining members
+    assert workstations_module.insert_workstation.call_count == 2
+    assert workstations_module.service_dispatcher.call_count == 3
+
+
 def test_enqueue_workstation_ready_email_skips_missing_requester_id():
     logger = MagicMock()
 
