@@ -1,6 +1,7 @@
 import re
 import uuid
 import base64
+import grpc
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
@@ -497,8 +498,11 @@ def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger):
 
         logger.error("CreateVPNClient returned status=%s", vpn_response.status)
         return {"status": "FAILED", "message": "gRPC call returned non-success status"}
+    except grpc.RpcError as exc:
+        logger.error("VPN gRPC call failed org_id=%s username=%s: %s", org_id, username, exc)
+        return {"status": "FAILED", "message": str(exc)}
     except Exception as exc:
-        logger.error("VPN config creation failed for %s: %s", username, exc)
+        logger.exception("VPN config creation failed org_id=%s username=%s", org_id, username)
         return {"status": "FAILED", "message": str(exc)}
 
 

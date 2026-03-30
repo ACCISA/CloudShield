@@ -1,0 +1,55 @@
+# Production-hardened Dockerfile for CloudShield Agent
+# Multi-stage build to minimize image size and attack surface
+# Non-root execution with pinned dependencies
+
+# Build stage
+FROM python:3.10-slim AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# Copy only requirements for optimal layer caching
+COPY cloudshield/Agent/requirements.txt .
+
+# Create virtual environment and install pinned dependencies
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip==24.0 setuptools==69.2.0 wheel==0.43.0 && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Runtime stage
+FROM python:3.10-slim
+
+# Create non-root user for running application
+RUN groupadd -r agent && useradd -r -g agent -u 1001 agent
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Copy virtual environment from builder
+COPY --from=builder --chown=agent:agent /opt/venv /opt/venv
+
+WORKDIR /app
+RUN chown -R agent:agent /app && chmod 755 /app
+
+# Copy application code (minimal, read-only)
+COPY --chown=agent:agent cloudshield/__init__.py /app/cloudshield/
+COPY --chown=agent:agent cloudshield/Agent/ /app/cloudshield/Agent/
+
+# Create logs directory with appropriate permissions
+RUN mkdir -p /app/logs && \
+    chown -R agent:agent /app/logs && \
+    chmod 755 /app/logs
+
+# Set security context
+USER agent
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
+
+CMD ["python3", "cloudshield/Agent/main.py"]

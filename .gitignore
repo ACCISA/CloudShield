@@ -131,8 +131,8 @@ localdata/**/oem/
 
 cloudshield/WebUI/coverage/
 
-# Worksations folder
-worksations/
+# Workstations folder
+workstations/
 
 .scannerwork/
 *.iso

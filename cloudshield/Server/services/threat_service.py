@@ -15,6 +15,7 @@ import errors.
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from datetime import datetime, timezone
@@ -28,6 +29,8 @@ _anomaly_detector = None
 _threat_intel = None
 _geo_checker = None
 _fail2ban = None
+
+logger = logging.getLogger("cloudshield.server.threat_service")
 
 
 def _get_anomaly_detector():
@@ -68,11 +71,21 @@ def _es_client():
     """Return an Elasticsearch client or None when unavailable."""
     try:
         from elasticsearch import Elasticsearch
+        from elastic_transport import ConnectionError as ESConnectionError, TransportError
+    except ImportError:
+        logger.debug("Elasticsearch dependencies are not installed; threat queries disabled")
+        return None
+
+    es_url = os.environ.get("ES_URL", "http://localhost:9200")
+    try:
         es_url = os.environ.get("ES_URL", "http://localhost:9200")
         es = Elasticsearch(es_url)
-        es.ping()
+        if not es.ping():
+            logger.warning("Elasticsearch ping failed for ES_URL=%s", es_url)
+            return None
         return es
-    except Exception:
+    except (ESConnectionError, TransportError, OSError, ValueError) as exc:
+        logger.warning("Elasticsearch unavailable for ES_URL=%s: %s", es_url, exc)
         return None
 
 
@@ -90,8 +103,13 @@ def _es_recent(index: str, size: int = 50) -> list[dict]:
                 "size": size,
             },
         )
-        return [hit["_source"] for hit in resp["hits"]["hits"]]
-    except Exception:
+        hits = (resp.get("hits") or {}).get("hits") or []
+        return [hit.get("_source", {}) for hit in hits if isinstance(hit, dict)]
+    except (KeyError, TypeError, ValueError) as exc:
+        logger.warning("Malformed Elasticsearch response for index=%s size=%s: %s", index, size, exc)
+        return []
+    except Exception as exc:
+        logger.warning("Elasticsearch recent-query failed for index=%s size=%s: %s", index, size, exc)
         return []
 
 
@@ -223,7 +241,23 @@ def update_alert_status(alert_id: str, status: str, org_id: str = "") -> bool:
             conflicts="proceed",
         )
         return (resp.get("updated", 0) or 0) > 0
-    except Exception:
+    except (KeyError, TypeError, ValueError) as exc:
+        logger.warning(
+            "Invalid response while updating alert status alert_id=%s org_id=%s status=%s: %s",
+            alert_id,
+            org_id,
+            status,
+            exc,
+        )
+        return False
+    except Exception as exc:
+        logger.warning(
+            "Failed to update alert status alert_id=%s org_id=%s status=%s: %s",
+            alert_id,
+            org_id,
+            status,
+            exc,
+        )
         return False
 
 
@@ -256,8 +290,13 @@ def get_unified_alerts(limit: int = 50, org_id: str = "") -> list[dict]:
                 "collapse": {"field": "alert_id"},
             },
         )
-        return [hit["_source"] for hit in resp["hits"]["hits"]]
-    except Exception:
+        hits = (resp.get("hits") or {}).get("hits") or []
+        return [hit.get("_source", {}) for hit in hits if isinstance(hit, dict)]
+    except (KeyError, TypeError, ValueError) as exc:
+        logger.warning("Malformed unified alerts response for org_id=%s limit=%s: %s", org_id, limit, exc)
+        return []
+    except Exception as exc:
+        logger.warning("Unified alerts query failed for org_id=%s limit=%s: %s", org_id, limit, exc)
         return []
 
 
@@ -324,7 +363,13 @@ def ingest_threat_alerts(alerts: list[dict], org_id: str = "system") -> dict:
         try:
             activity_col.insert_one(activity_doc)
             ingested += 1
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "Failed to ingest alert into activity log alert_id=%s org_id=%s: %s",
+                alert.get("alert_id"),
+                org_id,
+                exc,
+            )
             errors += 1
             continue
 
@@ -349,8 +394,13 @@ def ingest_threat_alerts(alerts: list[dict], org_id: str = "system") -> dict:
                     },
                 )
                 audit_written += 1
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "Failed to write threat audit entry alert_id=%s org_id=%s: %s",
+                    alert.get("alert_id"),
+                    org_id,
+                    exc,
+                )
 
     return {"ingested": ingested, "audit_written": audit_written, "errors": errors}
 
@@ -415,8 +465,8 @@ def get_dashboard_summary(hours: int = 24) -> dict:
             for b in resp["aggregations"]["top_dst"]["buckets"]
             if b["key"]
         ]
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed unified_alerts aggregation for dashboard summary hours=%s: %s", hours, exc)
 
     # — Recent 10 alerts  ───────────────────────────────────────────────
     try:
@@ -429,8 +479,8 @@ def get_dashboard_summary(hours: int = 24) -> dict:
             size=10,
         )
         result["recent_alerts"] = [h["_source"] for h in recent["hits"]["hits"]]
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Failed to query recent unified alerts for dashboard summary hours=%s: %s", hours, exc)
 
     # — Per-index fallback counts  ──────────────────────────────────────
     for idx in ("snort_alerts", "anomaly_alerts", "threat_intel_hits", "traffic_spikes"):
@@ -440,7 +490,7 @@ def get_dashboard_summary(hours: int = 24) -> dict:
                 body={"query": {"range": {"timestamp": {"gte": cutoff}}}},
             )
             result["by_source"].setdefault(idx, c["count"])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to count alerts for index=%s cutoff=%s: %s", idx, cutoff, exc)
 
     return result

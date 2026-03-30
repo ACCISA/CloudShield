@@ -141,7 +141,7 @@ class TestEsClient:
         mock_es_mod = MagicMock()
         mock_instance = MagicMock()
         mock_es_mod.Elasticsearch.return_value = mock_instance
-        mock_instance.ping.side_effect = Exception("connection refused")
+        mock_instance.ping.side_effect = OSError("connection refused")
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
             result = ts._es_client()
@@ -653,3 +653,60 @@ class TestIngestThreatAlerts:
         assert result["ingested"] == 3
         assert result["audit_written"] == 2
         assert result["errors"] == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Additional branch coverage for new code
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestEsClientPingReturnsFalse:
+    def test_ping_returns_false_returns_none(self):
+        """_es_client returns None and logs warning when ping() returns False."""
+        ts = _fresh_module()
+        mock_es_mod = MagicMock()
+        mock_instance = MagicMock()
+        mock_es_mod.Elasticsearch.return_value = mock_instance
+        mock_instance.ping.return_value = False
+        with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
+            result = ts._es_client()
+        assert result is None
+
+
+class TestEsRecentMalformedResponse:
+    def test_key_error_in_response_returns_empty(self):
+        """_es_recent returns [] when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = KeyError("hits")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts._es_recent("snort_alerts")
+        assert result == []
+
+    def test_type_error_in_response_returns_empty(self):
+        """_es_recent returns [] when ES response raises TypeError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = TypeError("NoneType")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            result = ts._es_recent("anomaly_alerts")
+        assert result == []
+
+
+class TestUpdateAlertStatusMalformedResponse:
+    def test_key_error_returns_false(self):
+        """update_alert_status returns False when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.update_by_query.side_effect = KeyError("updated")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.update_alert_status("a1", "resolved") is False
+
+
+class TestGetUnifiedAlertsMalformedResponse:
+    def test_key_error_with_org_id_returns_empty(self):
+        """get_unified_alerts returns [] when ES response raises KeyError."""
+        ts = _fresh_module()
+        mock_es = MagicMock()
+        mock_es.search.side_effect = KeyError("hits")
+        with patch.object(ts, "_es_client", return_value=mock_es):
+            assert ts.get_unified_alerts(org_id="org-1") == []

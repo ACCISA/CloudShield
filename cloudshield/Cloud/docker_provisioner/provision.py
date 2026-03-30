@@ -834,14 +834,14 @@ def _resolve_windows_iso_path(server_logger) -> str:
         if not os.path.exists(container_iso):
             server_logger.error(
                 f"Windows ISO not found at {container_iso} (host: {iso}). "
-                "Download it with install_iso.sh or set WINDOWS_ISO_PATH to a valid path."
+                "Download it with scripts/install_iso.sh or set WINDOWS_ISO_PATH to a valid path."
             )
             raise FileNotFoundError(f"Windows ISO missing: {iso}")
         size = os.path.getsize(container_iso)
         if size < 1_000_000_000:
             server_logger.error(
                 f"Windows ISO at {container_iso} is only {size} bytes — likely a placeholder. "
-                "Re-download with install_iso.sh."
+                "Re-download with scripts/install_iso.sh."
             )
             raise ValueError(f"Windows ISO too small ({size} bytes): {iso}")
         server_logger.info(f"Windows ISO validated: {size / 1e9:.1f} GB")

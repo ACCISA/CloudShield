@@ -64,7 +64,7 @@ def test_get_logger_job_and_helpers(tmp_path, monkeypatch):
     assert summary["job_id"] == "abc"
     assert "size_bytes" in summary
 
-def test_cleanup_old_logs(tmp_path, monkeypatch, capsys):
+def test_cleanup_old_logs(tmp_path, monkeypatch, caplog):
     """Ensure cleanup_old_logs removes only logs older than N days."""
     # Point log directories to a temporary location
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
@@ -72,7 +72,7 @@ def test_cleanup_old_logs(tmp_path, monkeypatch, capsys):
     import sys
     monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
     monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
-        
+
     import importlib
     ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
 
@@ -86,21 +86,29 @@ def test_cleanup_old_logs(tmp_path, monkeypatch, capsys):
     old_mtime = time.time() - (31 * 24 * 3600)
     os.utime(old_log, (old_mtime, old_mtime))
 
-    # Run cleanup (threshold = 30 days)
-    ls.cleanup_old_logs(days=30)
-
-    # Capture printed output
-    out = capsys.readouterr().out
+    # cleanup_old_logs uses cloudshield.api logger (propagate=False); attach caplog handler.
+    api_logger = logging.getLogger("cloudshield.api")
+    api_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(logging.INFO):
+            ls.cleanup_old_logs(days=30)
+    finally:
+        api_logger.removeHandler(caplog.handler)
 
     # Validate: old_log deleted, new_log kept
     assert not old_log.exists()
     assert new_log.exists()
-    assert "deleted 1 old logs" in out
+    assert "deleted 1 old logs" in caplog.text
 
     # Re-run cleanup with no old logs → should delete 0
-    ls.cleanup_old_logs(days=30)
-    out2 = capsys.readouterr().out
-    assert "deleted 0 old logs" in out2
+    caplog.clear()
+    api_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(logging.INFO):
+            ls.cleanup_old_logs(days=30)
+    finally:
+        api_logger.removeHandler(caplog.handler)
+    assert "deleted 0 old logs" in caplog.text
 
 
 def test_get_logger_permission_error_falls_back_to_console(
@@ -158,17 +166,17 @@ def test_summarize_job_log_missing_file(tmp_path, monkeypatch):
     assert summary["log_path"].endswith("job_does_not_exist.log")
 
 
-def test_cleanup_old_logs_handles_unlink_errors(tmp_path, monkeypatch, capsys):
+def test_cleanup_old_logs_handles_unlink_errors(tmp_path, monkeypatch, caplog):
     """
     If deleting an old job log raises an exception, cleanup_old_logs should
-    catch it and print the 'Could not delete ...' message (exercise the
+    catch it and log the 'Could not delete ...' message (exercise the
     generic Exception branch).
     """
     monkeypatch.setenv("CLOUDSHIELD_LOG_DIR", str(tmp_path))
     import sys
     monkeypatch.delitem(sys.modules, "cloudshield.Server.utils.logging_setup", raising=False)
     monkeypatch.delitem(sys.modules, "utils.logging_setup", raising=False) # Catch the shorter alias too
-        
+
     import importlib
     ls = importlib.import_module("cloudshield.Server.utils.logging_setup")
     # Create an old log file that should be deleted
@@ -183,8 +191,13 @@ def test_cleanup_old_logs_handles_unlink_errors(tmp_path, monkeypatch, capsys):
 
     monkeypatch.setattr(ls.Path, "unlink", fail_unlink)
 
-    ls.cleanup_old_logs(days=30)
-    out = capsys.readouterr().out
+    api_logger = logging.getLogger("cloudshield.api")
+    api_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(logging.WARNING):
+            ls.cleanup_old_logs(days=30)
+    finally:
+        api_logger.removeHandler(caplog.handler)
 
-    assert "Could not delete" in out
-    assert "job_err.log" in out
+    assert "Could not delete" in caplog.text
+    assert "job_err.log" in caplog.text

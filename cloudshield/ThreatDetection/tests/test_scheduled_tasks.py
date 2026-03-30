@@ -436,3 +436,24 @@ class TestPollFail2ban:
         mgr.all_jail_statuses.return_value = []
         # Should not raise
         _poll_fail2ban(mgr, MagicMock(), logger=None)
+
+
+class TestPushAlertsImportError:
+    def test_import_error_with_logger_logs_warning(self, monkeypatch):
+        """When requests is not installed, logs warning and returns without posting."""
+        import sys
+        monkeypatch.setitem(sys.modules, "requests", None)
+
+        logger = MagicMock()
+        _push_alerts_to_server([{"id": "x"}], "http://server:5000", "org-1", logger)
+
+        logger.warning.assert_called_once()
+        assert "Requests" in str(logger.warning.call_args) or "dependency" in str(logger.warning.call_args).lower()
+
+    def test_import_error_without_logger_does_not_raise(self, monkeypatch):
+        """When requests is not installed and no logger, returns silently."""
+        import sys
+        monkeypatch.setitem(sys.modules, "requests", None)
+
+        # Should not raise
+        _push_alerts_to_server([{"id": "x"}], "http://server:5000", "org-1")

@@ -238,17 +238,6 @@ describe('filesApi', () => {
   });
 
   describe('updateFileShare', () => {
-    // Mock console.log to avoid cluttering test output
-    let consoleLogSpy;
-
-    beforeEach(() => {
-      consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    });
-
-    afterEach(() => {
-      consoleLogSpy.mockRestore();
-    });
-
     it('should update file share successfully', async () => {
       const mockResponse = { share: { name: 'Share1', description: 'Updated' } };
       const updates = { description: 'Updated description' };
@@ -272,39 +261,6 @@ describe('filesApi', () => {
         })
       );
       expect(result).toEqual(mockResponse);
-    });
-
-    it('should log API call details', async () => {
-      const updates = { description: 'New desc' };
-
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({}),
-      });
-
-      await updateFileShare('org123', 'Share1', updates);
-
-      expect(consoleLogSpy).toHaveBeenCalledWith('updateFileShare API call:', {
-        orgId: 'org123',
-        shareName: 'Share1',
-        updates,
-      });
-    });
-
-    it('should log API response', async () => {
-      const mockResponse = { success: true };
-
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      await updateFileShare('org123', 'Share1', {});
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'updateFileShare API response:',
-        mockResponse
-      );
     });
 
     it('should handle updating multiple fields', async () => {

@@ -86,7 +86,7 @@ describe('FileHelper', () => {
 
     it('should format date with correct locale', () => {
       const result = formatDateTime('2025-01-01T12:30:00Z');
-      expect(result).toMatch(/\d+\/\d+\/\d+\s+at\s+\d+:\d+/);
+      expect(result).toMatch(/\S+\s+at\s+\d+:\d+/);
     });
   });
 

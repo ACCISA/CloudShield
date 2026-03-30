@@ -1,7 +1,14 @@
-import pathlib
+import importlib.util
+from pathlib import Path
+from unittest.mock import MagicMock
+
 import pytest
-import cloudshield.Server.tasks as tasks
-import rq
+
+_NP_PATH = Path(__file__).resolve().parents[1] / "tasks" / "network_provisioning.py"
+_NP_SPEC = importlib.util.spec_from_file_location("_test_network_provisioning_edge", _NP_PATH)
+np = importlib.util.module_from_spec(_NP_SPEC)
+assert _NP_SPEC and _NP_SPEC.loader
+_NP_SPEC.loader.exec_module(np)
 
 
 class DummyJob:
@@ -13,77 +20,63 @@ class DummyJob:
         pass
 
 
-@pytest.mark.skip(reason="Provision stub returns dict instead of list - complex mocking required")
 def test_provision_overwrite_existing_dir(monkeypatch, tmp_path):
-    # Mock provision_main to simulate successful provisioning
-    def fake_provision_main(args):
-        return {"name": "test-instance","message": "Provisioning complete"}
-    
-    monkeypatch.setattr("cloudshield.Server.tasks.provision_network", fake_provision_main)
-    
-    # Mock get_current_job from rq
-    monkeypatch.setattr("cloudshield.Server.tasks.network_provisioning.get_current_job", lambda: DummyJob())
-    
-    base_dir = tmp_path
-    generated_dir = base_dir / "Cloud" / "terraform" / "generated" / "acme"
-    generated_dir.mkdir(parents=True)
-    (generated_dir / "old.txt").write_text("old")
+    job = DummyJob()
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "fallback-job")
+    monkeypatch.setattr(np, "get_logger", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(np, "_detect_mode", lambda *_: "terraform")
+    monkeypatch.setattr(np, "CLOUDSHIELD_JOBS_DIR", str(tmp_path))
+    monkeypatch.setattr(np, "organizations", type("_Org", (), {"find_one": staticmethod(lambda *_: {"workstation_limit": 1})})())
+    monkeypatch.setattr(np, "org_filter", lambda org_id: {"_id": org_id})
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda *a, **k: None)
+    monkeypatch.setattr(np, "set_progress", lambda text: job.meta.__setitem__("progress", text))
+    monkeypatch.setattr(np, "map_metadata_to_ec2_instances", lambda m: m)
+    monkeypatch.setattr(np, "_validate_inventory_assets", lambda lg, oid, assets: assets)
+    monkeypatch.setattr(np, "insert_inventory", lambda **k: None)
+    monkeypatch.setattr(np, "_enqueue_welcome_email_post_success", lambda *a, **k: None)
+    monkeypatch.setattr(np, "provision_network_terraform", lambda **k: {"name": "test-instance", "instance_id": "i-123"})
+    monkeypatch.setattr(np, "provision_workstation", None)
 
-    def fake_resolve(self):
-        return (base_dir / "dummy" / "dummy.py")
-
-    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve, raising=False)
-    monkeypatch.setattr(rq, "get_current_job", lambda: DummyJob())
-
-    res = tasks.provision_network("acme")
-    print(res)
-    assert res["message"].startswith("Provisioning complete")
+    res = np.provision_network("acme")
+    assert res["status"] == "success"
+    assert isinstance(res["metadata"], list)
+    assert job.meta.get("progress") == "completed"
 
 
-@pytest.mark.skip(reason="Provision stub returns dict instead of list - complex mocking required")
 def test_provision_failure_updates_meta(monkeypatch, tmp_path):
-    # Mock provision_main to raise an error
     job = DummyJob()
-    def fake_provision_main(args):
-        job.meta["progress"] = "failed"
-        return "failed"
-    
-    monkeypatch.setattr("cloudshield.Server.tasks.provision_network", fake_provision_main)
+    monkeypatch.setattr(np, "get_current_job", lambda: job)
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "fallback-job")
+    monkeypatch.setattr(np, "get_logger", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(np, "_detect_mode", lambda *_: "terraform")
+    monkeypatch.setattr(np, "CLOUDSHIELD_JOBS_DIR", str(tmp_path))
+    monkeypatch.setattr(np, "organizations", type("_Org", (), {"find_one": staticmethod(lambda *_: {"workstation_limit": 1})})())
+    monkeypatch.setattr(np, "org_filter", lambda org_id: {"_id": org_id})
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda *a, **k: None)
+    monkeypatch.setattr(np, "set_progress", lambda text: job.meta.__setitem__("progress", text))
+    monkeypatch.setattr(np, "provision_network_terraform", lambda **k: (_ for _ in ()).throw(RuntimeError("boom")))
 
-    base_dir = tmp_path
+    with pytest.raises(RuntimeError):
+        np.provision_network("oops")
 
-    def fake_resolve(self):
-        return (base_dir / "dummy" / "dummy.py")
-
-    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve, raising=False)
-
-    # Capture job meta and ensure it's updated on failure
-    job = DummyJob()
-    monkeypatch.setattr("cloudshield.Server.tasks.network_provisioning.get_current_job", lambda: job)
-
-    tasks.provision_network("oops")
-
-    assert "failed" == job.meta.get("progress", "")
+    assert job.meta.get("progress", "").startswith("failed")
 
 
-@pytest.mark.skip(reason="Path resolution mocking conflicts with actual implementation")
 def test_destroy_failure_force_cleanup(monkeypatch, tmp_path):
-    # Mock destroy_infra to raise an error
-    def fake_destroy(org_id, region="ca-central-1", force_empty_s3=False):
-        raise RuntimeError("destroy failed")
-    
-    monkeypatch.setattr("cloudshield.Server.tasks.destroy_environment", fake_destroy)
-    
-    base_dir = tmp_path
-    work_dir = base_dir / "Cloud" / "terraform" / "generated" / "org1"
+    work_dir = tmp_path / "terraform" / "generated" / "org1"
     work_dir.mkdir(parents=True)
     (work_dir / "keep.txt").write_text("x")
 
-    def fake_resolve(self):
-        return (base_dir / "dummy" / "dummy.py")
+    monkeypatch.setattr(np, "CLOUDSHIELD_JOBS_DIR", str(tmp_path))
+    monkeypatch.setattr(np, "_detect_mode", lambda *_: "terraform")
+    monkeypatch.setattr(np, "get_current_job", lambda: DummyJob())
+    monkeypatch.setattr(np, "get_job_id_fallback", lambda: "fallback-job")
+    monkeypatch.setattr(np, "get_logger", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(np, "set_progress", lambda *_: None)
+    monkeypatch.setattr(np, "_update_org_provisioning_status", lambda *a, **k: None)
+    monkeypatch.setattr(np, "destroy_infra", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("destroy failed")))
 
-    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve, raising=False)
-
-    with pytest.raises(RuntimeError):
-        tasks.destroy_environment("org1", force_empty_s3=True)
+    res = np.destroy_environment("org1", force=True)
+    assert res is None
 

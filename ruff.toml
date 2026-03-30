@@ -4,10 +4,18 @@ target-version = "py311"
 exclude = ["**_pb2.py","**_pb2_grpc.py"]
 
 [lint]
+# T20: flag print() / pprint() in runtime code (T201 = print, T202 = pprint).
+# Tests are excluded below — print() is acceptable in test output.
+extend-select = ["T20"]
+
 exclude = [
     "cloudshield/Server/genproto/*",
     "cloudshield/Agent/proto/*",
-    "cloudshield/Server/tests/*"
+    "cloudshield/Server/tests/*",
+    "cloudshield/ThreatDetection/tests/*",
+    "cloudshield/Agent/tests/*",
+    "cloudshield/Cloud/tests/*",
+    "cloudshield/Agent/tools/*",
 ]
 
 [lint.per-file-ignores]

@@ -51,13 +51,11 @@ export async function createFileShare({
  * Update file share metadata
  */
 export async function updateFileShare(orgId, shareName, updates) {
-  console.log("updateFileShare API call:", { orgId, shareName, updates });
   const response = await apiPatch(
     `/file_shares/${encodeURIComponent(orgId)}/${encodeURIComponent(shareName)}`,
     updates,
   );
   const result = await readApiData(response);
-  console.log("updateFileShare API response:", result);
   return result;
 }
 

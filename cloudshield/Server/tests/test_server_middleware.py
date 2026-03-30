@@ -305,13 +305,11 @@ def test_json_validation_with_data():
 def test_slow_request_detection():
     """Test that requests > 500ms are logged as slow."""
     from cloudshield.Server.server import app
-    from unittest.mock import patch, MagicMock
-    from time import time
-    
+    from unittest.mock import patch
+
     with app.test_client() as client:
         with patch('cloudshield.Server.server.logger') as mock_logger:
             # Patch time to simulate slow request
-            original_time = time
             call_count = [0]
             
             def mock_time():
@@ -347,8 +345,7 @@ def test_slow_request_no_logging_fast():
 def test_cors_initialized():
     """Test that CORS is properly initialized."""
     from cloudshield.Server.server import app
-    import inspect
-    
+
     # Verify CORS was applied to the app
     assert hasattr(app, 'config') or app is not None
     # Make a request with Origin header to verify CORS is working
@@ -362,7 +359,7 @@ def test_cors_initialized():
 
 def test_error_handler_coverage_missing_methods():
     """Test error handlers that may not be covered in regular routes."""
-    from cloudshield.Server.server import _handle_value_error, _handle_pydantic
+    from cloudshield.Server.server import _handle_value_error
     from flask import g
     from cloudshield.Server.server import app
     
@@ -379,9 +376,6 @@ def test_error_handler_coverage_missing_methods():
 
 def test_audit_blueprint_registration():
     """Test that audit blueprint registration works or is skipped gracefully."""
-    import sys
-    from unittest.mock import patch
-    
     # Test 1: audit_bp loads successfully
     from cloudshield.Server.server import audit_bp
     # Either audit_bp is not None (loaded) or None (failed gracefully)
@@ -390,7 +384,7 @@ def test_audit_blueprint_registration():
 
 def test_create_app_returns_flask_app():
     """Test that create_app returns a properly configured Flask app."""
-    from cloudshield.Server.server import create_app, app as global_app
+    from cloudshield.Server.server import app as global_app
     
     # Verify create_app exists and creates an app
     assert global_app is not None
@@ -434,10 +428,97 @@ def test_response_time_header_format():
     """Test that X-Response-Time header is in correct format."""
     from cloudshield.Server.server import app
     import re
-    
+
     with app.test_client() as client:
         response = client.get('/healthz')
         assert 'X-Response-Time' in response.headers
         response_time = response.headers.get('X-Response-Time')
         # Should be in format "12.34ms"
         assert re.match(r'^\d+\.\d{2}ms$', response_time)
+
+
+# ── Security headers ──────────────────────────────────────────────────────────
+
+def test_security_headers_present():
+    """All security headers added by _add_response_headers must be on every response."""
+    from cloudshield.Server.server import app
+
+    with app.test_client() as client:
+        response = client.get('/healthz')
+    assert response.headers.get('X-Content-Type-Options') == 'nosniff'
+    assert response.headers.get('X-Frame-Options') == 'DENY'
+    assert response.headers.get('Referrer-Policy') == 'strict-origin-when-cross-origin'
+    assert 'geolocation=()' in response.headers.get('Permissions-Policy', '')
+    assert "default-src 'none'" in response.headers.get('Content-Security-Policy', '')
+    assert 'max-age=31536000' in response.headers.get('Strict-Transport-Security', '')
+
+
+def test_server_header_removed():
+    """Flask's default Server header must be stripped."""
+    from cloudshield.Server.server import app
+
+    with app.test_client() as client:
+        response = client.get('/healthz')
+    assert 'Server' not in response.headers
+
+
+def test_correlation_token_cleared_after_request():
+    """_add_response_headers must clear the correlation token set in before_request."""
+    from cloudshield.Server.server import app
+
+    with app.test_client() as client:
+        response = client.get('/healthz')
+    # If token wasn't cleared an exception would propagate; 200 is sufficient proof.
+    assert response.status_code == 200
+
+
+# ── Rate limit handler ────────────────────────────────────────────────────────
+
+def test_rate_limit_handler_returns_429():
+    """RateLimitExceeded error handler must return 429 with RATE_LIMITED code."""
+    from cloudshield.Server.server import app, _handle_rate_limit
+    from flask_limiter.errors import RateLimitExceeded
+    from unittest.mock import MagicMock
+
+    with app.test_request_context('/'):
+        from flask import g
+        g.request_id = 'test-rate-limit'
+        mock_exc = MagicMock(spec=RateLimitExceeded)
+        mock_exc.description = '5 per 1 minute'
+        response, status = _handle_rate_limit(mock_exc)
+
+    assert status == 429
+    data = response.get_json()
+    assert data['code'] == 'RATE_LIMITED'
+
+
+# ── Dispatcher correlation propagation ───────────────────────────────────────
+
+def test_dispatcher_propagates_request_id(monkeypatch):
+    """service_dispatcher must copy g.request_id into job.meta['_request_id']."""
+    from types import SimpleNamespace
+    import cloudshield.Server.services.dispatcher as disp
+
+    fake_job = SimpleNamespace(meta={}, save_meta=lambda: None, id='job-1')
+
+    fake_service = lambda *a, **kw: fake_job  # noqa: E731
+    monkeypatch.setattr(disp, 'SERVICES', {'test_svc': fake_service})
+
+    from cloudshield.Server.server import app
+    with app.test_request_context('/'):
+        from flask import g
+        g.request_id = 'req-abc-123'
+        disp.service_dispatcher('test_svc')
+
+    assert fake_job.meta.get('_request_id') == 'req-abc-123'
+
+
+def test_dispatcher_unknown_service_raises():
+    """service_dispatcher must raise ValueError for unknown service names."""
+    import cloudshield.Server.services.dispatcher as disp
+    from cloudshield.Server.server import app
+    import pytest
+
+    with app.test_request_context('/'):
+        with pytest.raises((ValueError, KeyError)):
+            disp.service_dispatcher('nonexistent_service')

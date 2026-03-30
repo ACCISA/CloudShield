@@ -26,7 +26,16 @@ try:
     _rate_monitor = TrafficRateMonitor()
     _alert_dedup = AlertDeduplicator()
     _HAS_DETECTORS = True
-except Exception:
+except ImportError as exc:
+    servicer_logger.warning(f"Optional detection modules unavailable; running without detectors: {exc}")
+    _anomaly_detector = None
+    _beacon_detector = None
+    _threat_intel = None
+    _rate_monitor = None
+    _alert_dedup = None
+    _HAS_DETECTORS = False
+except Exception as exc:
+    servicer_logger.error(f"Detector initialization failed; running without detectors: {exc}")
     _anomaly_detector = None
     _beacon_detector = None
     _threat_intel = None
@@ -63,7 +72,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
 
 
     def SendWorkstationInit(self, request, context):
-        print(f"[INIT] Agent {request.agent_id} from domain {request.domain}")
+        servicer_logger.info(f"Agent {request.agent_id} registered from domain {request.domain}")
         return agent_pb2.Ack(success=True, message="Workstation registered")
 
     def SendProcessList(self, request, context):
@@ -118,7 +127,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 servicer_logger.warning(f"Detected {len(anomalies)} anomalous connections from {agent_id}")
             return len(anomalies)
         except Exception as exc:
-            servicer_logger.error(f"Anomaly detection error: {exc}")
+            servicer_logger.error(f"Anomaly detection error agent_id={agent_id} batch_size={len(conn_dicts)}: {exc}")
             return 0
 
     def _run_threat_intel(self, conn_dicts: list, agent_id: str) -> int:
@@ -135,7 +144,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 servicer_logger.warning(f"Threat-intel: {len(hits)} known-bad IP matches from {agent_id}")
             return len(hits)
         except Exception as exc:
-            servicer_logger.error(f"Threat-intel check error: {exc}")
+            servicer_logger.error(f"Threat-intel check error agent_id={agent_id} batch_size={len(conn_dicts)}: {exc}")
             return 0
 
     def _run_traffic_spike(self, conn_dicts: list, agent_id: str, timestamp: int) -> bool:
@@ -154,7 +163,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                     _alert_dedup.ingest(alert_from_traffic_spike(spike.to_dict()))
             return spike.is_spike
         except Exception as exc:
-            servicer_logger.error(f"Traffic-rate monitor error: {exc}")
+            servicer_logger.error(f"Traffic-rate monitor error agent_id={agent_id} batch_size={len(conn_dicts)}: {exc}")
             return False
 
     def _run_beacon(self, conn_dicts: list, agent_id: str) -> int:
@@ -171,7 +180,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                 servicer_logger.warning(f"Beacon patterns detected from {agent_id}: {[b.dst_ip for b in beacons]}")
             return len(beacons)
         except Exception as exc:
-            servicer_logger.error(f"Beacon detection error: {exc}")
+            servicer_logger.error(f"Beacon detection error agent_id={agent_id} batch_size={len(conn_dicts)}: {exc}")
             return 0
 
     def _run_proc_net_correlation(self, conn_dicts: list, agent_id: str) -> None:
@@ -217,7 +226,7 @@ class AgentServiceServicer(agent_pb2_grpc.AgentServiceServicer):
                     _alert_dedup.ingest(a)
                     servicer_logger.warning(f"LOLBin external connection: {proc} → {r_ip} on {agent_id}")
         except Exception as exc:
-            servicer_logger.error(f"Process-network correlation error: {exc}")
+            servicer_logger.error(f"Process-network correlation error agent_id={agent_id} batch_size={len(conn_dicts)}: {exc}")
 
     def _run_cross_source_correlation(
         self, agent_id: str, anomaly_count: int, intel_count: int, spike: bool, beacon_count: int

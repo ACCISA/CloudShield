@@ -28,6 +28,17 @@ logger = get_logger("tickets")
 tickets_bp = Blueprint("tickets", __name__)
 
 
+def _error_response(message: str, code: str, details, status: int):
+    payload = {
+        "message": message,
+        "code": code,
+        "details": details,
+        # Keep legacy key for backward compatibility with existing clients/tests.
+        "error": message,
+    }
+    return jsonify(payload), status
+
+
 def _require_org_id() -> str:
     """Helper to safely extract org_id from the authenticated user context."""
     org_id = (getattr(g, "user", {}) or {}).get("org_id")
@@ -64,10 +75,10 @@ def create_ticket():
         }), 201
 
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 400
+        return _error_response("Validation failed", "VALIDATION_ERROR", e.errors(), 400)
     except Exception as e:
-        logger.error("Failed to create ticket: %s", e)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception("Failed to create ticket org_id=%s actor=%s", (getattr(g, "user", {}) or {}).get("org_id"), (getattr(g, "user", {}) or {}).get("email"))
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 
 @tickets_bp.route("/tickets", methods=["GET"])
@@ -93,8 +104,8 @@ def get_tickets():
         return jsonify({"tickets": items}), 200
 
     except Exception as e:
-        logger.error("Failed to fetch tickets: %s", e)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception("Failed to fetch tickets org_id=%s actor=%s", (getattr(g, "user", {}) or {}).get("org_id"), (getattr(g, "user", {}) or {}).get("email"))
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 
 @tickets_bp.route("/tickets/<ticket_id>", methods=["GET"])
@@ -124,8 +135,8 @@ def get_ticket_detail(ticket_id: str):
         return jsonify(result), 200
 
     except Exception as e:
-        logger.error("Failed to fetch ticket detail: %s", e)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception("Failed to fetch ticket detail ticket_id=%s org_id=%s actor=%s", ticket_id, (getattr(g, "user", {}) or {}).get("org_id"), (getattr(g, "user", {}) or {}).get("email"))
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 
 @tickets_bp.route("/tickets/<ticket_id>/reply", methods=["POST"])
@@ -168,8 +179,8 @@ def add_reply(ticket_id: str):
         return jsonify({"message": "Reply added successfully"}), 201
 
     except Exception as e:
-        logger.error("Failed to add reply: %s", e)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception("Failed to add ticket reply ticket_id=%s org_id=%s actor=%s", ticket_id, (getattr(g, "user", {}) or {}).get("org_id"), (getattr(g, "user", {}) or {}).get("email"))
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
 
 
 @tickets_bp.route("/tickets/<ticket_id>/status", methods=["PATCH"])
@@ -204,5 +215,5 @@ def update_status(ticket_id: str):
         return jsonify({"message": "Ticket updated", "ticket": ticket_to_json(updated_doc)}), 200
 
     except Exception as e:
-        logger.error("Failed to update ticket: %s", e)
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.exception("Failed to update ticket ticket_id=%s org_id=%s actor=%s", ticket_id, (getattr(g, "user", {}) or {}).get("org_id"), (getattr(g, "user", {}) or {}).get("email"))
+        return _error_response("Internal server error", "INTERNAL_ERROR", str(e), 500)
