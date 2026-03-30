@@ -58,6 +58,10 @@ services:
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    ports:
+      - "1194:1194/udp"
+    networks:
+      - vpn_internal
 
   samba-test:
     profiles: ["template"] # Starts only when template provisioning flow requests it
@@ -117,7 +121,7 @@ services:
       - NET_ADMIN
     restart: "no"
     networks:
-      vpc_net:
+      - vpn_internal
 
   threat-detection:
     profiles: ["template"]
@@ -261,6 +265,13 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/16
+
+  vpn_internal:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
 
 volumes:
   ui_node_modules:

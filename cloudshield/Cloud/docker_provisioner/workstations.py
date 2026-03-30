@@ -300,7 +300,7 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
     
     container_ws_id = container_ws.id
     logger.info(container_ws.network_settings.networks.keys())
-    container_ws_ip = container_ws.network_settings.networks["vpc_net"].ip_address
+    container_ws_ip = container_ws.network_settings.networks["app_vpn_internal"].ip_address
 
     PROVISIONING_STATE[update_id] = container_ws_id
 
