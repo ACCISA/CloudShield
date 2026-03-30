@@ -121,6 +121,7 @@ services:
 
   threat-detection:
     profiles: ["template"]
+    image: app-threat-detection:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.server
@@ -176,6 +177,7 @@ services:
       - ./docker:/app/docker
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKSTATIONS_MOUNT_DIR}:/data
     networks:
       - vpc_net
       - cloudshield_net
