@@ -1,0 +1,17 @@
+[Unit]
+Description=CloudShield Production API Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cedric
+WorkingDirectory=/home/cedric/CloudShield
+RemainAfterExit=yes
+ExecStart=/usr/bin/docker compose -f /home/cedric/CloudShield/docker-compose.prod.yml up -d redis elasticsearch api-test api-worker workstations-worker
+ExecStop=/usr/bin/docker compose -f /home/cedric/CloudShield/docker-compose.prod.yml stop api-test api-worker workstations-worker elasticsearch redis
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
