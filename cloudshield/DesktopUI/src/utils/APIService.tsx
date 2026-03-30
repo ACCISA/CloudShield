@@ -89,11 +89,19 @@ class APIService {
     };
   }
 
-  private buildUrl(endpoint: string): string {
+  private buildUrl(endpoint: string, orgIdParam?: boolean): string {
     const base = APIService.baseUrl.endsWith("/")
       ? APIService.baseUrl
       : `${APIService.baseUrl}/`;
-    const normalizedEndpoint = endpoint.trim().replace(/^\/+/, "");
+    let normalizedEndpoint = endpoint.trim().replace(/^\/+/, "");
+    if (orgIdParam) {
+      const orgId = localStorage.getItem("org_id");
+      if (orgId) {
+        normalizedEndpoint +=
+          (normalizedEndpoint.includes("?") ? "&" : "?") +
+          `org_id=${encodeURIComponent(orgId)}`;
+      }
+    }
     return `${base}${normalizedEndpoint}`;
   }
 
@@ -128,9 +136,13 @@ class APIService {
     return { body: JSON.stringify(body), contentType: "application/json" };
   }
 
-  public async get(endpoint: string, options: ApiRequestOptions = {}): Promise<Response> {
+  public async get(
+    endpoint: string,
+    options: ApiRequestOptions = {},
+    orgIdParam?: boolean,
+  ): Promise<Response> {
     const headers = this.withAuthHeaders(options.headers, options.skipAuth);
-    return fetch(this.buildUrl(endpoint), {
+    return fetch(this.buildUrl(endpoint, orgIdParam), {
       ...options,
       method: "GET",
       headers,
@@ -140,14 +152,15 @@ class APIService {
   public async post(
     endpoint: string,
     body?: unknown,
-    options: ApiRequestOptions = {}
+    options: ApiRequestOptions = {},
+    orgIdParam?: boolean,
   ): Promise<Response> {
     const { body: normalizedBody, contentType } = this.normalizeBody(body);
     const headers = this.withAuthHeaders(options.headers, options.skipAuth);
     if (contentType && !headers.has("Content-Type")) {
       headers.set("Content-Type", contentType);
     }
-    return fetch(this.buildUrl(endpoint), {
+    return fetch(this.buildUrl(endpoint, orgIdParam), {
       ...options,
       method: "POST",
       headers,
@@ -155,16 +168,21 @@ class APIService {
     });
   }
 
-  public static async get(endpoint: string, options: ApiRequestOptions = {}) {
-    return APIService.getInstance().get(endpoint, options);
+  public static async get(
+    endpoint: string,
+    options: ApiRequestOptions = {},
+    orgIdParam?: boolean,
+  ) {
+    return APIService.getInstance().get(endpoint, options, orgIdParam);
   }
 
   public static async post(
     endpoint: string,
     body?: unknown,
-    options: ApiRequestOptions = {}
+    options: ApiRequestOptions = {},
+    orgIdParam?: boolean,
   ) {
-    return APIService.getInstance().post(endpoint, body, options);
+    return APIService.getInstance().post(endpoint, body, options, orgIdParam);
   }
 }
 
