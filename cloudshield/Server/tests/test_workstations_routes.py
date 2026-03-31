@@ -498,9 +498,7 @@ def mocked_app(monkeypatch):
     from unittest.mock import MagicMock
     import cloudshield.Server.routes.workstations as ws_mod
 
-    mock_db_admin = MagicMock()
     mock_db = MagicMock()
-    monkeypatch.setattr(ws_mod, "db_admin", mock_db_admin)
     monkeypatch.setattr(ws_mod, "db", mock_db)
 
     class DummyJob:
@@ -518,11 +516,11 @@ def mocked_app(monkeypatch):
     def inject_admin():
         g.user = {"id": "u1", "role": "admin", "org_id": "org-1", "email": "a@b.com"}
 
-    return app, mock_db_admin
+    return app
 
 class TestListTemplates:
     def test_missing_org_id_returns_400(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/templates")
         assert resp.status_code == 400
@@ -533,7 +531,7 @@ class TestListTemplates:
             ws_mod, "get_workstation_templates",
             lambda db, org_id: [{"id": "tpl-1", "name": "Default"}],
         )
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/templates?org_id=org-1")
         assert resp.status_code == 200
@@ -552,7 +550,7 @@ class TestCreateDefaultExceptionPath:
             "insert_workstation_template",
             MagicMock(side_effect=Exception("DB error")),
         )
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.post("/api/workstations/templates", json={
                 "org_id": "org-1",
@@ -570,7 +568,7 @@ class TestCreateDefaultExceptionPath:
 
 class TestStartAndUpdateRoutes:
     def test_start_success_returns_job_id(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.post("/api/workstations/start", json={
                 "org_id": "org-1", "template_id": "tpl-1"
@@ -579,7 +577,7 @@ class TestStartAndUpdateRoutes:
         assert resp.get_json()["job_id"] == "job-999"
 
     def test_update_success_returns_job_id(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/update?id=ws-1&status=ready")
         assert resp.status_code == 202
