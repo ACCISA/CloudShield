@@ -432,12 +432,15 @@ def test_dc_create_file_share_docker_fallback_without_nodes(monkeypatch):
 
     mock_create_share = unittest.mock.MagicMock()
     monkeypatch.setattr("tasks.dc_management.create_share", mock_create_share)
+    mock_create_local_samba_share = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management._create_local_samba_share", mock_create_local_samba_share)
     mock_proxy = unittest.mock.MagicMock()
     monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
 
     result = dc_create_file_share("test_org", "data", ["alice"], ["staff"], "description", 20)
 
     assert result["status"] == "SUCCESS"
+    mock_create_local_samba_share.assert_called_once_with("data", ["alice"], ["staff"], unittest.mock.ANY)
     mock_create_share.assert_called_once_with(
         org_id="test_org",
         name="data",
@@ -448,6 +451,29 @@ def test_dc_create_file_share_docker_fallback_without_nodes(monkeypatch):
         max_size=20,
     )
     mock_proxy.assert_not_called()
+
+
+def test_dc_create_file_share_docker_fallback_returns_failed_when_samba_share_create_fails(monkeypatch):
+    from tasks.dc_management import dc_create_file_share
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {})
+    monkeypatch.setattr(
+        "tasks.dc_management._create_local_samba_share",
+        unittest.mock.MagicMock(side_effect=RuntimeError("boom")),
+    )
+    mock_create_share = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.create_share", mock_create_share)
+
+    result = dc_create_file_share("test_org", "data")
+
+    assert result["status"] == "FAILED"
+    mock_create_share.assert_not_called()
 
 
 

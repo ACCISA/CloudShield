@@ -3,6 +3,7 @@ import uuid
 import base64
 import grpc
 import os
+import subprocess
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
@@ -37,6 +38,7 @@ UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
 USER_NOT_FOUND="User not found"
 INVALID_GROUP="invalid group name"
+SHARE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 def _is_docker_mode() -> bool:
@@ -47,6 +49,125 @@ def _has_share_proxy_nodes(nodes) -> bool:
     return bool(nodes) and "DOMAIN_CONTROLLER" in nodes and "OPENVPN" in nodes
 
 
+def _validate_share_name(share_name: str):
+    if not SHARE_NAME_RE.fullmatch((share_name or "").strip()):
+        raise ValueError(f"Invalid share name: {share_name!r}")
+
+
+def _run_docker_command(cmd: list[str], logger):
+    logger.debug("Running docker command: %s", " ".join(cmd))
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def _get_local_samba_container_name(logger) -> str:
+    result = _run_docker_command(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            "label=com.docker.compose.service=samba-test",
+            "--format",
+            "{{.Names}}",
+        ],
+        logger,
+    )
+    candidates = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if candidates:
+        return candidates[0]
+
+    fallback = _run_docker_command(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            "name=samba-test",
+            "--format",
+            "{{.Names}}",
+        ],
+        logger,
+    )
+    candidates = [line.strip() for line in fallback.stdout.splitlines() if line.strip()]
+    if candidates:
+        return candidates[0]
+
+    raise RuntimeError("No running samba-test container found")
+
+
+def _format_valid_users(users: list | None, groups: list | None) -> str:
+    entries = []
+    for user in users or []:
+        if user:
+            entries.append(str(user).strip())
+    for group in groups or []:
+        if not group:
+            continue
+        group_name = str(group).strip()
+        if " " in group_name:
+            entries.append(f'@"{group_name}"')
+        else:
+            entries.append(f"@{group_name}")
+    if not entries:
+        return '@"Domain Users"'
+    return ", ".join(entries)
+
+
+def _create_local_samba_share(share_name: str, users: list | None, groups: list | None, logger):
+    _validate_share_name(share_name)
+    container_name = _get_local_samba_container_name(logger)
+    valid_users = _format_valid_users(users, groups)
+
+    script = """
+from pathlib import Path
+import sys
+
+share_name = sys.argv[1]
+valid_users = sys.argv[2]
+share_path = Path("/srv/samba/shares") / share_name
+share_path.mkdir(parents=True, exist_ok=True)
+share_path.chmod(0o777)
+
+conf_path = Path("/etc/samba/smb.conf")
+header = f"[{share_name}]"
+lines = conf_path.read_text(encoding="utf-8").splitlines()
+for line in lines:
+    if line.strip().lower() == header.lower():
+        sys.exit(0)
+
+block = [
+    "",
+    header,
+    f"    path = {share_path}",
+    "    browseable = yes",
+    "    read only = no",
+    f"    valid users = {valid_users}",
+    "    force user = root",
+    "    force group = root",
+    "    create mask = 0770",
+    "    directory mask = 0770",
+]
+with conf_path.open("a", encoding="utf-8") as handle:
+    handle.write("\\n".join(block) + "\\n")
+"""
+
+    _run_docker_command(
+        ["docker", "exec", container_name, "python3", "-c", script, share_name, valid_users],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "testparm", "-s"],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "systemctl", "restart", "samba-ad-dc"],
+        logger,
+    )
+
+
 def _persist_local_share_create(org_id: str, share_name: str, users: list, groups: list, description: str, max_size: int, logger):
     logger.warning(
         "Using local docker fallback for file share create (org_id=%s, share_name=%s)",
@@ -54,6 +175,7 @@ def _persist_local_share_create(org_id: str, share_name: str, users: list, group
         share_name,
     )
     try:
+        _create_local_samba_share(share_name, users, groups, logger)
         effective_max_size = max_size if max_size is not None else "50"
         mock_current_size = "7"
         create_share(
