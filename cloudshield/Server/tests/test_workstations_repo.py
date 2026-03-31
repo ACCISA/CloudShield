@@ -573,7 +573,7 @@ def test_get_available_workstations_success(mock_db):
         {
             "_id": ws_id,
             "template_id": str(template_id),
-            "status": "ACTIVE"
+            "status": "active"
         }
     ]
     mock_db.workstations.find.return_value = mock_workstations
@@ -582,11 +582,11 @@ def test_get_available_workstations_success(mock_db):
 
     # Verify the groups query
     mock_db.access_groups.find.assert_called_once_with(
-        {"_id": 1, "members": user_id}
+        {"members": user_id}
     )
 
     assert len(result) == 1
-    assert result[0]["status"] == "ACTIVE"
+    assert result[0]["status"] == "active"
 
 
 def test_get_available_workstations_user_no_groups(mock_db):
@@ -638,7 +638,7 @@ def test_get_available_workstations_inactive_excluded(mock_db):
     # Verify the workstations query includes status filter
     call_args = mock_db.workstations.find.call_args
     query = call_args[0][0]
-    assert query["status"] == "ACTIVE"
+    assert query["status"] == "active"
 
 
 def test_get_available_workstations_multiple_groups(mock_db):
@@ -672,3 +672,485 @@ def test_get_available_workstations_multiple_groups(mock_db):
     result = ws_repo.get_available_workstation(mock_db, user_id)
 
     assert len(result) == 2
+
+
+# ==================== Tests for uncovered functions ====================
+
+# Tests for get_assigned_workstation
+def test_get_assigned_workstation_returns_none(mock_db):
+    """Test that get_assigned_workstation returns None (pass statement)."""
+    result = ws_repo.get_assigned_workstation(db=mock_db, user_id="user-1")
+    assert result is None
+
+
+# Tests for release_assigned_workstation
+def test_release_assigned_workstation_success(mock_db):
+    """Test successful release of a workstation."""
+    user_id = "user-123"
+    mock_result = MagicMock()
+    mock_result.modified_count = 1
+    mock_db.workstations.update_one.return_value = mock_result
+
+    result = ws_repo.release_assigned_workstation(db=mock_db, user_id=user_id)
+
+    # Verify update_one was called with correct filter
+    mock_db.workstations.update_one.assert_called_once()
+    call_args = mock_db.workstations.update_one.call_args
+    
+    # Check the filter
+    filter_doc = call_args[0][0]
+    assert filter_doc == {"cur_user_id": user_id}
+    
+    # Check the update operation
+    update_doc = call_args[0][1]
+    assert update_doc["$set"]["cur_user_id"] is None
+    assert update_doc["$set"]["status"] == "active"
+    
+    # Verify result
+    assert result is True
+
+
+def test_release_assigned_workstation_not_found(mock_db):
+    """Test release when workstation is not found."""
+    user_id = "user-456"
+    mock_result = MagicMock()
+    mock_result.modified_count = 0
+    mock_db.workstations.update_one.return_value = mock_result
+
+    result = ws_repo.release_assigned_workstation(db=mock_db, user_id=user_id)
+
+    assert result is False
+
+
+def test_release_assigned_workstation_clears_user_and_status(mock_db):
+    """Test that release clears user and resets status."""
+    user_id = "user-789"
+    mock_result = MagicMock()
+    mock_result.modified_count = 1
+    mock_db.workstations.update_one.return_value = mock_result
+
+    ws_repo.release_assigned_workstation(db=mock_db, user_id=user_id)
+
+    # Verify the correct update fields
+    call_args = mock_db.workstations.update_one.call_args
+    update_doc = call_args[0][1]
+    assert update_doc["$set"]["cur_user_id"] is None
+    assert update_doc["$set"]["status"] == "active"
+
+
+# Tests for set_assigned_workstation
+def test_set_assigned_workstation_success(mock_db):
+    """Test successful assignment of a workstation to a user."""
+    user_id = "user-123"
+    vm_id = "507f1f77bcf86cd799439012"
+    mock_result = MagicMock()
+    mock_result.modified_count = 1
+    mock_db.workstations.update_one.return_value = mock_result
+
+    result = ws_repo.set_assigned_workstation(db=mock_db, user_id=user_id, vm_id=vm_id)
+
+    # Verify update_one was called with correct filter
+    mock_db.workstations.update_one.assert_called_once()
+    call_args = mock_db.workstations.update_one.call_args
+    
+    # Check the filter uses ObjectId
+    filter_doc = call_args[0][0]
+    assert filter_doc == {"_id": ObjectId(vm_id)}
+    
+    # Check the update operation
+    update_doc = call_args[0][1]
+    assert update_doc["$set"]["cur_user_id"] == user_id
+    assert update_doc["$set"]["status"] == "used"
+    
+    # Verify result
+    assert result is True
+
+
+def test_set_assigned_workstation_not_found(mock_db):
+    """Test assignment when workstation is not found."""
+    user_id = "user-456"
+    vm_id = "507f1f77bcf86cd799439013"
+    mock_result = MagicMock()
+    mock_result.modified_count = 0
+    mock_db.workstations.update_one.return_value = mock_result
+
+    result = ws_repo.set_assigned_workstation(db=mock_db, user_id=user_id, vm_id=vm_id)
+
+    assert result is False
+
+
+def test_set_assigned_workstation_sets_user_and_status(mock_db):
+    """Test that assignment sets user and status correctly."""
+    user_id = "user-789"
+    vm_id = "507f1f77bcf86cd799439014"
+    mock_result = MagicMock()
+    mock_result.modified_count = 1
+    mock_db.workstations.update_one.return_value = mock_result
+
+    ws_repo.set_assigned_workstation(db=mock_db, user_id=user_id, vm_id=vm_id)
+
+    # Verify the correct update fields
+    call_args = mock_db.workstations.update_one.call_args
+    update_doc = call_args[0][1]
+    assert update_doc["$set"]["cur_user_id"] == user_id
+    assert update_doc["$set"]["status"] == "used"
+
+
+def test_set_assigned_workstation_invalid_vm_id(mock_db):
+    """Test assignment with invalid VM ID."""
+    user_id = "user-123"
+    vm_id = "invalid-id"
+    mock_db.workstations.update_one.side_effect = Exception("Invalid ObjectId")
+
+    with pytest.raises(Exception):
+        ws_repo.set_assigned_workstation(db=mock_db, user_id=user_id, vm_id=vm_id)
+
+
+# Tests for get_assigned_workstation_templates
+def test_get_assigned_workstation_templates_empty(mock_db):
+    """Test when no templates are assigned to user."""
+    user_id = "user-123"
+    mock_db.workstation_templates.find.return_value = []
+
+    result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert result == []
+
+
+def test_get_assigned_workstation_templates_user_in_members(mock_db):
+    """Test templates where user is directly in members list."""
+    user_id = "user-123"
+    template_id = ObjectId()
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "members": ["user-123", "user-456"],
+        "access_groups": []
+    }
+    mock_db.workstation_templates.find.return_value = [mock_template]
+
+    result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 1
+    assert result[0]["_id"] == str(template_id)
+    assert result[0]["members"] == ["user-123", "user-456"]
+
+
+def test_get_assigned_workstation_templates_user_in_access_group(mock_db):
+    """Test templates where user is in an access group."""
+    user_id = "user-123"
+    template_id = ObjectId()
+    group_id = ObjectId()
+    
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "members": [],
+        "access_groups": [str(group_id)]
+    }
+    mock_group = {
+        "_id": group_id,
+        "members": ["user-123", "user-456"]
+    }
+    
+    mock_db.workstation_templates.find.return_value = [mock_template]
+    
+    with patch('cloudshield.Server.repos.workstations_repo.get_access_group_by_id') as mock_get_group:
+        mock_get_group.return_value = mock_group
+        
+        result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 1
+    assert result[0]["_id"] == str(template_id)
+
+
+def test_get_assigned_workstation_templates_user_not_in_group(mock_db):
+    """Test templates where user is not in any group."""
+    user_id = "user-123"
+    template_id = ObjectId()
+    group_id = ObjectId()
+    
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "members": [],
+        "access_groups": [str(group_id)]
+    }
+    mock_group = {
+        "_id": group_id,
+        "members": ["user-456", "user-789"]
+    }
+    
+    mock_db.workstation_templates.find.return_value = [mock_template]
+    
+    with patch('cloudshield.Server.repos.workstations_repo.get_access_group_by_id') as mock_get_group:
+        mock_get_group.return_value = mock_group
+        
+        result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 0
+
+
+def test_get_assigned_workstation_templates_group_not_found(mock_db):
+    """Test handling when access group is not found."""
+    user_id = "user-123"
+    template_id = ObjectId()
+    group_id = ObjectId()
+    
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "members": [],
+        "access_groups": [str(group_id)]
+    }
+    
+    mock_db.workstation_templates.find.return_value = [mock_template]
+    
+    with patch('cloudshield.Server.repos.workstations_repo.get_access_group_by_id') as mock_get_group:
+        mock_get_group.return_value = None
+        
+        result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 0
+
+
+def test_get_assigned_workstation_templates_group_exception(mock_db):
+    """Test handling when access group lookup raises exception."""
+    user_id = "user-123"
+    template_id = ObjectId()
+    group_id = ObjectId()
+    
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "members": [],
+        "access_groups": [str(group_id)]
+    }
+    
+    mock_db.workstation_templates.find.return_value = [mock_template]
+    
+    with patch('cloudshield.Server.repos.workstations_repo.get_access_group_by_id') as mock_get_group:
+        mock_get_group.side_effect = Exception("Database error")
+        
+        result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 0
+
+
+def test_get_assigned_workstation_templates_multiple_templates_mixed(mock_db):
+    """Test with mix of user in members, in group, and not assigned."""
+    user_id = "user-123"
+    template_id1 = ObjectId()
+    template_id2 = ObjectId()
+    template_id3 = ObjectId()
+    group_id = ObjectId()
+    
+    mock_templates = [
+        {
+            "_id": template_id1,
+            "name": "Template 1 - Direct Member",
+            "members": ["user-123"],
+            "access_groups": []
+        },
+        {
+            "_id": template_id2,
+            "name": "Template 2 - Via Group",
+            "members": [],
+            "access_groups": [str(group_id)]
+        },
+        {
+            "_id": template_id3,
+            "name": "Template 3 - Not Assigned",
+            "members": [],
+            "access_groups": []
+        }
+    ]
+    
+    mock_group = {
+        "_id": group_id,
+        "members": ["user-123"]
+    }
+    
+    mock_db.workstation_templates.find.return_value = mock_templates
+    
+    with patch('cloudshield.Server.repos.workstations_repo.get_access_group_by_id') as mock_get_group:
+        mock_get_group.return_value = mock_group
+        
+        result = ws_repo.get_assigned_workstation_templates(db=mock_db, user_id=user_id)
+
+    assert len(result) == 2
+    assert result[0]["_id"] == str(template_id1)
+    assert result[1]["_id"] == str(template_id2)
+
+
+# Tests for get_workstation_templates
+def test_get_workstation_templates_success(mock_db):
+    """Test successful retrieval of workstation templates."""
+    org_id = "org-1"
+    template_id1 = ObjectId()
+    template_id2 = ObjectId()
+    
+    mock_templates = [
+        {
+            "_id": template_id1,
+            "name": "Template 1",
+            "org_id": org_id
+        },
+        {
+            "_id": template_id2,
+            "name": "Template 2",
+            "org_id": org_id
+        }
+    ]
+    mock_db.workstation_templates.find.return_value = mock_templates
+
+    result = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id)
+
+    # Verify find was called with correct filter
+    mock_db.workstation_templates.find.assert_called_once_with({"org_id": org_id})
+    
+    # Verify ObjectIds were converted to strings
+    assert len(result) == 2
+    assert result[0]["_id"] == str(template_id1)
+    assert result[1]["_id"] == str(template_id2)
+
+
+def test_get_workstation_templates_empty(mock_db):
+    """Test when no templates exist for the org."""
+    org_id = "org-1"
+    mock_db.workstation_templates.find.return_value = []
+
+    result = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id)
+
+    assert result == []
+    mock_db.workstation_templates.find.assert_called_once_with({"org_id": org_id})
+
+
+def test_get_workstation_templates_exception(mock_db):
+    """Test handling when database query raises exception."""
+    org_id = "org-1"
+    mock_db.workstation_templates.find.side_effect = Exception("Database error")
+
+    result = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id)
+
+    assert result == []
+
+
+def test_get_workstation_templates_single(mock_db):
+    """Test with single template."""
+    org_id = "org-1"
+    template_id = ObjectId()
+    
+    mock_template = {
+        "_id": template_id,
+        "name": "Template 1",
+        "org_id": org_id,
+        "description": "Test template"
+    }
+    mock_db.workstation_templates.find.return_value = [mock_template]
+
+    result = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id)
+
+    assert len(result) == 1
+    assert result[0]["_id"] == str(template_id)
+    assert result[0]["name"] == "Template 1"
+    assert result[0]["description"] == "Test template"
+
+
+def test_get_workstation_templates_different_orgs(mock_db):
+    """Test queries for different organizations."""
+    org_id1 = "org-1"
+    org_id2 = "org-2"
+    template_id1 = ObjectId()
+    template_id2 = ObjectId()
+    
+    mock_template1 = {
+        "_id": template_id1,
+        "name": "Template 1",
+        "org_id": org_id1
+    }
+    mock_template2 = {
+        "_id": template_id2,
+        "name": "Template 2",
+        "org_id": org_id2
+    }
+    
+    # First call returns template1, second call returns template2
+    mock_db.workstation_templates.find.side_effect = [[mock_template1], [mock_template2]]
+
+    result1 = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id1)
+    result2 = ws_repo.get_workstation_templates(db=mock_db, org_id=org_id2)
+
+    assert len(result1) == 1
+    assert len(result2) == 1
+    assert result1[0]["org_id"] == org_id1
+    assert result2[0]["org_id"] == org_id2
+
+
+# Tests for insert_workstation with custom status
+def test_insert_workstation_with_custom_status(mock_db, mock_workstation, mock_workstation_status):
+    """Test insertion with custom status parameter."""
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id = ObjectId()
+    mock_db.workstations.insert_one.return_value = mock_insert_result
+
+    result = ws_repo.insert_workstation(
+        db=mock_db,
+        org_id="org-1",
+        template_id="template-1",
+        status="ACTIVE"
+    )
+
+    # Verify the workstation model was created with custom status
+    mock_workstation.assert_called_once_with(
+        org_id="org-1",
+        template_id="template-1",
+        status="ACTIVE"
+    )
+
+    # Verify insert_one was called
+    mock_db.workstations.insert_one.assert_called_once()
+    assert result == mock_insert_result
+
+
+def test_insert_workstation_status_none_uses_default(mock_db, mock_workstation, mock_workstation_status):
+    """Test that status=None uses the default INACTIVE status."""
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id = ObjectId()
+    mock_db.workstations.insert_one.return_value = mock_insert_result
+
+    result = ws_repo.insert_workstation(
+        db=mock_db,
+        org_id="org-1",
+        template_id="template-1",
+        status=None
+    )
+
+    # Verify the workstation model was created with INACTIVE status
+    mock_workstation.assert_called_once_with(
+        org_id="org-1",
+        template_id="template-1",
+        status="INACTIVE"
+    )
+
+    assert result == mock_insert_result
+
+
+def test_insert_workstation_status_provisioning(mock_db, mock_workstation, mock_workstation_status):
+    """Test insertion with PROVISIONING status."""
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id = ObjectId()
+    mock_db.workstations.insert_one.return_value = mock_insert_result
+
+    result = ws_repo.insert_workstation(
+        db=mock_db,
+        org_id="org-1",
+        template_id="template-1",
+        status="PROVISIONING"
+    )
+
+    # Verify custom status was used
+    call_args = mock_workstation.call_args
+    assert call_args[1]["status"] == "PROVISIONING"
+    
+    assert result == mock_insert_result

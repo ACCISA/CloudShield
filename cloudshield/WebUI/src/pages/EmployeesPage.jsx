@@ -23,7 +23,7 @@ import EditButton from "../components/common/EditButton/EditButton.jsx";
 import EditIcon from "../assets/EditIcon.jsx";
 import TrashIcon from "../assets/TrashIcon.jsx";
 import ActiveIcon from "../assets/ActiveIcon.jsx";
-import { sharedIconViewStyles, getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
+import { getSharedIconViewStyles } from "../components/common/styles/iconViewStyles.js";
 import { managementToolbarStyles } from "../components/common/styles/managementToolbarStyles.js";
 import PageShell from "../components/layout/PageShell.jsx";
 import TableSurface from "../components/table/TableSurface.jsx";
@@ -39,7 +39,7 @@ import { listUsers, deleteUser, createUser, updateUser } from "../services/users
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
-import {apiPost, apiGet, apiPatch, apiUploadFile} from "../api/client";
+import {apiGet, apiPatch, apiUploadFile} from "../api/client";
 
 const CustomToast = ({ msg, type = "success", onClose }) => {
   if (!msg) return null;
@@ -143,7 +143,7 @@ export default function EmployeesPage() {
   // Resolve org_id with a localStorage fallback; return null when unavailable.
   const orgId = useMemo(() => {
     if (currentUser?.org_id && currentUser.org_id !== "default-org") return currentUser.org_id;
-    try { const stored = localStorage.getItem("org_id"); if (stored) return stored; } catch (e) {}
+    try { const stored = localStorage.getItem("org_id"); if (stored) return stored; } catch (e) {console.log(e)}
     return null;
   }, [currentUser]);
 
@@ -354,7 +354,7 @@ export default function EmployeesPage() {
       setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       openToast("User deleted successfully");
       if (!user && modalEmployee) { setModalOpen(false); setModalEmployee(null); }
-    } catch (error) {}
+    } catch (error) {console.log("failed to delete user")}
   };
 
   const [currentPage, setCurrentPage] = useState(1);
