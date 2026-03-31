@@ -59,7 +59,7 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     ports:
-      - "1194:1194/udp"
+      - "1194:1194/tcp"
     networks:
       - vpn_internal
 
