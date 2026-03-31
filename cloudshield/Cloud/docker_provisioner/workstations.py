@@ -157,12 +157,26 @@ def import_oem(oem_path):
 def import_software(org_id, template_id, software_id):
     pass
 
-def prepare_software(org_id, template_id, software,oem_path,logger):
+def import_background(oem_path, wallpaper_path):
+    dest_path = os.path.join(oem_path, "background.png")
+    if os.path.exists(wallpaper_path):
+        try:
+            shutil.move(wallpaper_path, dest_path)
+            return True
+        except Exception as e:
+            return False
+    return False
+
+
+def prepare_software(org_id, template_id, software,oem_path,wallpaper_path,logger):
     """
     Move chosen software files for custom templates
     """
     logger.info("Importing default OEM scripts")
     import_oem(oem_path)
+    status = import_background(wallpaper_path)
+    if not status:
+        logger.error(f"Failed to import background image into oem dir (path={wallpaper_path})")
     for soft in software:
         logger.info(f"Importing software (software_id={soft}")
         import_software(org_id, templated_id, soft)
@@ -225,7 +239,7 @@ def _inject_startup_nsh(disk_image_path: Path, server_logger):
         server_logger.warning(f"_inject_startup_nsh: non-fatal error: {e}")
 
 
-def provision_default_workstation(org_data, template_id, software, job = None, updater = None, logger = None):
+def provision_default_workstation(org_data, template_id, software, wallpaper = None, job = None, updater = None, logger = None):
 
     global PROVISIONING_STATE
 
@@ -243,7 +257,7 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
 
     update_id = uuid.uuid4()
 
-    prepare_software(org_id, template_id, software,oem_path, logger)
+    prepare_software(org_id, template_id, software,oem_path, wallpapaer, logger)
     
     # Resolve the ThreatDetection container IP on the org network dynamically
     td_ip = os.getenv("THREAT_DETECTION_IP", "")

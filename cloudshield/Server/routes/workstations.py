@@ -95,6 +95,25 @@ def get_assigned_templates():
 
     return jsonify({"templates": workstation_templates_list}), 200
 
+def save_wallpaper_tmp(wallpaper_data):
+    if wallpaper_data and "," in wallpaper_data:
+        try:
+            header, encoded = wallpaper_data.split(",", 1)
+            image_bytes = base64.b64decode(encoded)
+
+            random_name = f"{uuid.uuid4()}.png"
+
+            file_path = os.path.join(tempfile.gettempdir(), random_name)
+
+            with open(file_path, "wb") as f:
+                f.write(image_bytes)
+
+            return file_path
+        except Exception as e:
+            return None
+    return None
+
+
 @workstations_bp.route("/workstations/templates", methods=["POST"])
 @require_auth
 def create_default():
@@ -106,7 +125,7 @@ def create_default():
     org_id = data.get("org_id")
     name = data.get("name")
     description = data.get("description")
-    software = data.get("software")
+    saoftware = data.get("software")
     access_groups = data.get("access_groups")
     for arg, val in {"org_id": org_id, "name": name, "description": description, "software": software, "access_groups": access_groups}.items():
         if val is None:
@@ -114,6 +133,10 @@ def create_default():
             return jsonify({"error": f"{arg} is required"}), 400
 
     members = data.get("members", [])
+    wallpaper = data.get("wallpaper", None)
+    if wallpaper is not None:
+        # Strip the header (data:image/png;base64,)
+        wallpaper_path = save_wallpaper_tmp(wallpaper)
 
     # Insert the template immediately so it's visible in the UI before the
     # background job runs (is_ready=False until provisioning completes).
@@ -126,7 +149,7 @@ def create_default():
             software=software,
             is_ready=False,
             access_groups=access_groups,
-            members=members,
+            members=members
         )
         template_id = str(ws_template.inserted_id)
     except Exception as e:
@@ -142,6 +165,7 @@ def create_default():
         access_groups=access_groups,
         members=members,
         template_id=template_id,
+        wallpaper=wallpaper_path
     )
 
     return jsonify({"job_id": job.id, "template_id": template_id}), 202

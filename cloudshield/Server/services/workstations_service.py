@@ -19,7 +19,7 @@ def ws_provision_update(workstation_id, status):
 
     return _task(workstation_id, status)
 
-def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
+def enqueue_ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None, wallpaper=None):
     job = workstations_queue.enqueue(
         ws_create_default,
         org_id,
@@ -31,6 +31,7 @@ def enqueue_ws_create_default(org_id, name, description, software, access_groups
         requesting_user_id,
         template_id,
         vm_ids,
+        wallpaper,
         job_timeout=-1,  # Windows install can take 60+ min; no timeout
     )
     logger.info("Enqueued ws_create_default")

@@ -10,7 +10,7 @@ import rq
 from utils import task_queue, redis_conn, get_logger
 from utils.database import db_admin, organizations, org_filter
 
-JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "1200"))
+JOB_TIMEOUT = int(os.getenv("CLOUDSHIELD_JOB_TIMEOUT", "3600"))
 Job = rq.job.Job  # type: ignore[attr-defined]
 logger = get_logger("service")
 

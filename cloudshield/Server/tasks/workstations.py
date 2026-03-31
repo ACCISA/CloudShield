@@ -45,7 +45,7 @@ def start_workstations(org_id, template_id, access_groups, members, logger, vm_i
         service_dispatcher(service_name="ws_start", org_id=org_id, template_id=template_id, vm_id=vm_id)
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None, wallpaper=None):
     """
     Create a default workstation
     """
@@ -126,6 +126,7 @@ def ws_create_default(org_id, name, description, software, access_groups, member
         org_data=org_doc,
         template_id=template_id,
         software=software,
+        wallpaper=wallpaper,
         job=job,
         updater=update_job,
         logger=logger
