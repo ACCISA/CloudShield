@@ -99,20 +99,22 @@ def _get_local_samba_container_name(logger) -> str:
 
 
 def _format_valid_users(users: list | None, groups: list | None) -> str:
-    entries = []
+    entries = ['@"Domain Admins"']
     for user in users or []:
         if user:
-            entries.append(str(user).strip())
+            normalized = str(user).strip()
+            if normalized and normalized not in entries:
+                entries.append(normalized)
     for group in groups or []:
         if not group:
             continue
         group_name = str(group).strip()
         if " " in group_name:
-            entries.append(f'@"{group_name}"')
+            entry = f'@"{group_name}"'
         else:
-            entries.append(f"@{group_name}")
-    if not entries:
-        return '@"Domain Users"'
+            entry = f"@{group_name}"
+        if entry not in entries:
+            entries.append(entry)
     return ", ".join(entries)
 
 
@@ -168,6 +170,65 @@ with conf_path.open("a", encoding="utf-8") as handle:
     )
 
 
+def _delete_local_samba_share(share_name: str, logger):
+    _validate_share_name(share_name)
+    container_name = _get_local_samba_container_name(logger)
+
+    script = """
+from pathlib import Path
+import shutil
+import sys
+
+share_name = sys.argv[1]
+conf_path = Path("/etc/samba/smb.conf")
+header = f"[{share_name}]"
+lines = conf_path.read_text(encoding="utf-8").splitlines()
+new_lines = []
+inside_block = False
+found = False
+
+for line in lines:
+    stripped = line.strip()
+    if stripped.lower() == header.lower():
+        inside_block = True
+        found = True
+        continue
+    if inside_block and stripped.startswith("[") and stripped.endswith("]"):
+        inside_block = False
+    if not inside_block:
+        new_lines.append(line)
+
+conf_path.write_text("\\n".join(new_lines).rstrip() + "\\n", encoding="utf-8")
+
+share_path = Path("/srv/samba/shares") / share_name
+if share_path.exists():
+    shutil.rmtree(share_path)
+    found = True
+
+raise SystemExit(0 if found else 3)
+"""
+
+    try:
+        _run_docker_command(
+            ["docker", "exec", container_name, "python3", "-c", script, share_name],
+            logger,
+        )
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode != 3:
+            raise
+        return False
+
+    _run_docker_command(
+        ["docker", "exec", container_name, "testparm", "-s"],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "systemctl", "restart", "samba-ad-dc"],
+        logger,
+    )
+    return True
+
+
 def _persist_local_share_create(org_id: str, share_name: str, users: list, groups: list, description: str, max_size: int, logger):
     logger.warning(
         "Using local docker fallback for file share create (org_id=%s, share_name=%s)",
@@ -206,6 +267,7 @@ def _delete_local_share(org_id: str, share_name: str, logger):
         share_name,
     )
     try:
+        samba_deleted = _delete_local_samba_share(share_name, logger)
         deleted = delete_share(org_id=org_id, name=share_name)
     except Exception as exc:
         logger.error("Failed to delete local docker file share: %s", exc)
@@ -214,7 +276,7 @@ def _delete_local_share(org_id: str, share_name: str, logger):
             "message": "Failed to delete local docker file share",
         }
 
-    if deleted:
+    if deleted or samba_deleted:
         return {
             "status": "SUCCESS",
             "message": "Successfully deleted local docker file share",
@@ -300,7 +362,8 @@ def dc_create_file_share(
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
     if proxy_response is None:
-        return PROXY_FAIL_MESSAGE
+        logger.error("Failed to proxy CreateSambaFileShare for org_id=%s share_name=%s", org_id, share_name)
+        raise RuntimeError(PROXY_FAIL_MESSAGE["message"])
 
 
     response = infra_pb2.CreateSambaFileShareDataAck()

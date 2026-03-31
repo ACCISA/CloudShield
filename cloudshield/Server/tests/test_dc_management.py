@@ -1,6 +1,7 @@
 import unittest.mock
 import logging
 import types
+import pytest
 
 from genproto.infra_service import infra_service_pb2 as infra_pb2
 from genproto.vpn_service import vpn_service_pb2
@@ -419,6 +420,24 @@ def test_dc_create_file_share_unknown(monkeypatch):
     assert result["status"] == "UNKNOWN"
 
 
+def test_dc_create_file_share_proxy_fail_raises(monkeypatch):
+    from tasks.dc_management import dc_create_file_share
+
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr(
+        "tasks.dc_management.get_server_nodes",
+        lambda org_id: {"DOMAIN_CONTROLLER": True, "OPENVPN": True},
+    )
+    monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", lambda *args, **kwargs: None)
+
+    with pytest.raises(RuntimeError, match="Failed to proxy rpc request"):
+        dc_create_file_share("test_org", "data")
+
+
 def test_dc_create_file_share_docker_fallback_without_nodes(monkeypatch):
     from tasks.dc_management import dc_create_file_share
 
@@ -451,6 +470,45 @@ def test_dc_create_file_share_docker_fallback_without_nodes(monkeypatch):
         max_size=20,
     )
     mock_proxy.assert_not_called()
+
+
+def test_dc_create_file_share_docker_fallback_accepts_integer_max_size(monkeypatch):
+    from tasks.dc_management import dc_create_file_share
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: {})
+    monkeypatch.setattr(
+        "tasks.dc_management._create_local_samba_share",
+        unittest.mock.MagicMock(),
+    )
+
+    captured = {}
+
+    def fake_create_share(**kwargs):
+        captured.update(kwargs)
+        return {"id": "share-1"}
+
+    monkeypatch.setattr("tasks.dc_management.create_share", fake_create_share)
+
+    result = dc_create_file_share("test_org", "data", [], [], "description", 9)
+
+    assert result["status"] == "SUCCESS"
+    assert captured["max_size"] == 9
+
+
+def test_format_valid_users_always_includes_domain_admins():
+    from tasks.dc_management import _format_valid_users
+
+    result = _format_valid_users(["alice"], ["eng"])
+
+    assert '@"Domain Admins"' in result
+    assert "alice" in result
+    assert "@eng" in result
 
 
 def test_dc_create_file_share_docker_fallback_returns_failed_when_samba_share_create_fails(monkeypatch):
@@ -1062,14 +1120,39 @@ def test_dc_delete_file_share_docker_fallback_without_nodes(monkeypatch):
 
     mock_delete_share = unittest.mock.MagicMock(return_value=True)
     monkeypatch.setattr("tasks.dc_management.delete_share", mock_delete_share)
+    mock_delete_local_samba_share = unittest.mock.MagicMock(return_value=True)
+    monkeypatch.setattr("tasks.dc_management._delete_local_samba_share", mock_delete_local_samba_share)
     mock_proxy = unittest.mock.MagicMock()
     monkeypatch.setattr("tasks.dc_management.proxy_rpc_request", mock_proxy)
 
     result = dc_delete_file_share("test_org", "data")
 
     assert result["status"] == "SUCCESS"
+    mock_delete_local_samba_share.assert_called_once_with("data", unittest.mock.ANY)
     mock_delete_share.assert_called_once_with(org_id="test_org", name="data")
     mock_proxy.assert_not_called()
+
+
+def test_dc_delete_file_share_docker_fallback_returns_success_when_only_samba_share_exists(monkeypatch):
+    from tasks.dc_management import dc_delete_file_share
+
+    monkeypatch.setenv("DEPLOYMENT_MODE", "docker")
+    monkeypatch.setattr("tasks.dc_management.get_current_job", lambda: None)
+    monkeypatch.setattr(
+        "tasks.dc_management.get_logger",
+        lambda name, job_id=None: logging.getLogger(),
+    )
+    monkeypatch.setattr("tasks.dc_management.get_server_nodes", lambda org_id: None)
+    monkeypatch.setattr(
+        "tasks.dc_management._delete_local_samba_share",
+        unittest.mock.MagicMock(return_value=True),
+    )
+    mock_delete_share = unittest.mock.MagicMock(return_value=False)
+    monkeypatch.setattr("tasks.dc_management.delete_share", mock_delete_share)
+
+    result = dc_delete_file_share("test_org", "data")
+
+    assert result["status"] == "SUCCESS"
 
 
 def test_dc_restart_samba_service_unknown(monkeypatch):

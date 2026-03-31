@@ -14,185 +14,176 @@
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
+
+PROTOBUF_PRAGMA_INIT_SEG
+
+namespace _pb = ::PROTOBUF_NAMESPACE_ID;
+namespace _pbi = _pb::internal;
+
 namespace vpn_service {
 namespace v1 {
-class CreateVPNClientDataDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<CreateVPNClientData> _instance;
-} _CreateVPNClientData_default_instance_;
-class CreateVPNClientDataAckDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<CreateVPNClientDataAck> _instance;
-} _CreateVPNClientDataAck_default_instance_;
-class OpenSSHTunnelDataDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<OpenSSHTunnelData> _instance;
-} _OpenSSHTunnelData_default_instance_;
-class OpenSSHTunnelDataAckDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<OpenSSHTunnelDataAck> _instance;
-} _OpenSSHTunnelDataAck_default_instance_;
-class RelayDataDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RelayData> _instance;
-} _RelayData_default_instance_;
-class RelayDataAckDefaultTypeInternal {
- public:
-  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RelayDataAck> _instance;
-} _RelayDataAck_default_instance_;
+PROTOBUF_CONSTEXPR CreateVPNClientData::CreateVPNClientData(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.client_name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct CreateVPNClientDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateVPNClientDataDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateVPNClientDataDefaultTypeInternal() {}
+  union {
+    CreateVPNClientData _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateVPNClientDataDefaultTypeInternal _CreateVPNClientData_default_instance_;
+PROTOBUF_CONSTEXPR CreateVPNClientDataAck::CreateVPNClientDataAck(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.filename_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.content_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.status_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct CreateVPNClientDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CreateVPNClientDataAckDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CreateVPNClientDataAckDefaultTypeInternal() {}
+  union {
+    CreateVPNClientDataAck _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateVPNClientDataAckDefaultTypeInternal _CreateVPNClientDataAck_default_instance_;
+PROTOBUF_CONSTEXPR OpenSSHTunnelData::OpenSSHTunnelData(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.ipv4_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.port_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.key_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct OpenSSHTunnelDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR OpenSSHTunnelDataDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~OpenSSHTunnelDataDefaultTypeInternal() {}
+  union {
+    OpenSSHTunnelData _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OpenSSHTunnelDataDefaultTypeInternal _OpenSSHTunnelData_default_instance_;
+PROTOBUF_CONSTEXPR OpenSSHTunnelDataAck::OpenSSHTunnelDataAck(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.port_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.status_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct OpenSSHTunnelDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR OpenSSHTunnelDataAckDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~OpenSSHTunnelDataAckDefaultTypeInternal() {}
+  union {
+    OpenSSHTunnelDataAck _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OpenSSHTunnelDataAckDefaultTypeInternal _OpenSSHTunnelDataAck_default_instance_;
+PROTOBUF_CONSTEXPR RelayData::RelayData(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.ipv4_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.port_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.method_name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.data_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct RelayDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RelayDataDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RelayDataDefaultTypeInternal() {}
+  union {
+    RelayData _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RelayDataDefaultTypeInternal _RelayData_default_instance_;
+PROTOBUF_CONSTEXPR RelayDataAck::RelayDataAck(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.response_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.status_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct RelayDataAckDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RelayDataAckDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RelayDataAckDefaultTypeInternal() {}
+  union {
+    RelayDataAck _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RelayDataAckDefaultTypeInternal _RelayDataAck_default_instance_;
 }  // namespace v1
 }  // namespace vpn_service
-static void InitDefaultsscc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+static ::_pb::Metadata file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[6];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_infra_5fservice_2fvpn_5fservice_2eproto[1];
+static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_infra_5fservice_2fvpn_5fservice_2eproto = nullptr;
 
-  {
-    void* ptr = &::vpn_service::v1::_CreateVPNClientData_default_instance_;
-    new (ptr) ::vpn_service::v1::CreateVPNClientData();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::CreateVPNClientData::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static void InitDefaultsscc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::vpn_service::v1::_CreateVPNClientDataAck_default_instance_;
-    new (ptr) ::vpn_service::v1::CreateVPNClientDataAck();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::CreateVPNClientDataAck::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static void InitDefaultsscc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::vpn_service::v1::_OpenSSHTunnelData_default_instance_;
-    new (ptr) ::vpn_service::v1::OpenSSHTunnelData();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::OpenSSHTunnelData::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static void InitDefaultsscc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::vpn_service::v1::_OpenSSHTunnelDataAck_default_instance_;
-    new (ptr) ::vpn_service::v1::OpenSSHTunnelDataAck();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::OpenSSHTunnelDataAck::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static void InitDefaultsscc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::vpn_service::v1::_RelayData_default_instance_;
-    new (ptr) ::vpn_service::v1::RelayData();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::RelayData::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static void InitDefaultsscc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  {
-    void* ptr = &::vpn_service::v1::_RelayDataAck_default_instance_;
-    new (ptr) ::vpn_service::v1::RelayDataAck();
-    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::vpn_service::v1::RelayDataAck::InitAsDefaultInstance();
-}
-
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto}, {}};
-
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[6];
-static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_infra_5fservice_2fvpn_5fservice_2eproto[1];
-static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_infra_5fservice_2fvpn_5fservice_2eproto = nullptr;
-
-const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_infra_5fservice_2fvpn_5fservice_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+const uint32_t TableStruct_infra_5fservice_2fvpn_5fservice_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientData, client_name_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientData, _impl_.client_name_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, status_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, filename_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, content_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, _impl_.status_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, _impl_.filename_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::CreateVPNClientDataAck, _impl_.content_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, ipv4_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, port_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, key_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, _impl_.ipv4_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, _impl_.port_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelData, _impl_.key_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelDataAck, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelDataAck, status_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelDataAck, port_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelDataAck, _impl_.status_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::OpenSSHTunnelDataAck, _impl_.port_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, ipv4_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, port_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, method_name_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, data_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, _impl_.ipv4_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, _impl_.port_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, _impl_.method_name_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayData, _impl_.data_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayDataAck, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayDataAck, status_),
-  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayDataAck, response_),
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayDataAck, _impl_.status_),
+  PROTOBUF_FIELD_OFFSET(::vpn_service::v1::RelayDataAck, _impl_.response_),
 };
-static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, sizeof(::vpn_service::v1::CreateVPNClientData)},
-  { 6, -1, sizeof(::vpn_service::v1::CreateVPNClientDataAck)},
-  { 14, -1, sizeof(::vpn_service::v1::OpenSSHTunnelData)},
-  { 22, -1, sizeof(::vpn_service::v1::OpenSSHTunnelDataAck)},
-  { 29, -1, sizeof(::vpn_service::v1::RelayData)},
-  { 38, -1, sizeof(::vpn_service::v1::RelayDataAck)},
+static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+  { 0, -1, -1, sizeof(::vpn_service::v1::CreateVPNClientData)},
+  { 7, -1, -1, sizeof(::vpn_service::v1::CreateVPNClientDataAck)},
+  { 16, -1, -1, sizeof(::vpn_service::v1::OpenSSHTunnelData)},
+  { 25, -1, -1, sizeof(::vpn_service::v1::OpenSSHTunnelDataAck)},
+  { 33, -1, -1, sizeof(::vpn_service::v1::RelayData)},
+  { 43, -1, -1, sizeof(::vpn_service::v1::RelayDataAck)},
 };
 
-static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_CreateVPNClientData_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_CreateVPNClientDataAck_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_OpenSSHTunnelData_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_OpenSSHTunnelDataAck_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_RelayData_default_instance_),
-  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::vpn_service::v1::_RelayDataAck_default_instance_),
+static const ::_pb::Message* const file_default_instances[] = {
+  &::vpn_service::v1::_CreateVPNClientData_default_instance_._instance,
+  &::vpn_service::v1::_CreateVPNClientDataAck_default_instance_._instance,
+  &::vpn_service::v1::_OpenSSHTunnelData_default_instance_._instance,
+  &::vpn_service::v1::_OpenSSHTunnelDataAck_default_instance_._instance,
+  &::vpn_service::v1::_RelayData_default_instance_._instance,
+  &::vpn_service::v1::_RelayDataAck_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_infra_5fservice_2fvpn_5fservice_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -218,26 +209,21 @@ const char descriptor_table_protodef_infra_5fservice_2fvpn_5fservice_2eproto[] P
   "\022@\n\005Relay\022\031.vpn_service.v1.RelayData\032\034.v"
   "pn_service.v1.RelayDataAckb\006proto3"
   ;
-static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_deps[1] = {
+static ::_pbi::once_flag descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once;
+const ::_pbi::DescriptorTable descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto = {
+    false, false, 834, descriptor_table_protodef_infra_5fservice_2fvpn_5fservice_2eproto,
+    "infra_service/vpn_service.proto",
+    &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once, nullptr, 0, 6,
+    schemas, file_default_instances, TableStruct_infra_5fservice_2fvpn_5fservice_2eproto::offsets,
+    file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto, file_level_enum_descriptors_infra_5fservice_2fvpn_5fservice_2eproto,
+    file_level_service_descriptors_infra_5fservice_2fvpn_5fservice_2eproto,
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_sccs[6] = {
-  &scc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto.base,
-  &scc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base,
-  &scc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto.base,
-  &scc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base,
-  &scc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto.base,
-  &scc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base,
-};
-static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once;
-const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto = {
-  false, false, descriptor_table_protodef_infra_5fservice_2fvpn_5fservice_2eproto, "infra_service/vpn_service.proto", 834,
-  &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once, descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_sccs, descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_deps, 6, 0,
-  schemas, file_default_instances, TableStruct_infra_5fservice_2fvpn_5fservice_2eproto::offsets,
-  file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto, 6, file_level_enum_descriptors_infra_5fservice_2fvpn_5fservice_2eproto, file_level_service_descriptors_infra_5fservice_2fvpn_5fservice_2eproto,
-};
+PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter() {
+  return &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto;
+}
 
 // Force running AddDescriptors() at dynamic initialization time.
-static bool dynamic_init_dummy_infra_5fservice_2fvpn_5fservice_2eproto = (static_cast<void>(::PROTOBUF_NAMESPACE_ID::internal::AddDescriptors(&descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto)), true);
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_infra_5fservice_2fvpn_5fservice_2eproto(&descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto);
 namespace vpn_service {
 namespace v1 {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* Status_descriptor() {
@@ -259,117 +245,124 @@ bool Status_IsValid(int value) {
 
 // ===================================================================
 
-void CreateVPNClientData::InitAsDefaultInstance() {
-}
 class CreateVPNClientData::_Internal {
  public:
 };
 
-CreateVPNClientData::CreateVPNClientData(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+CreateVPNClientData::CreateVPNClientData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.CreateVPNClientData)
 }
 CreateVPNClientData::CreateVPNClientData(const CreateVPNClientData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  CreateVPNClientData* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.client_name_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  client_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.client_name_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.client_name_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_client_name().empty()) {
-    client_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_client_name(),
-      GetArena());
+    _this->_impl_.client_name_.Set(from._internal_client_name(), 
+      _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.CreateVPNClientData)
 }
 
-void CreateVPNClientData::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  client_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void CreateVPNClientData::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.client_name_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.client_name_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.client_name_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 CreateVPNClientData::~CreateVPNClientData() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.CreateVPNClientData)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void CreateVPNClientData::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  client_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void CreateVPNClientData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.client_name_.Destroy();
 }
 
-void CreateVPNClientData::ArenaDtor(void* object) {
-  CreateVPNClientData* _this = reinterpret_cast< CreateVPNClientData* >(object);
-  (void)_this;
-}
-void CreateVPNClientData::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void CreateVPNClientData::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const CreateVPNClientData& CreateVPNClientData::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_CreateVPNClientData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void CreateVPNClientData::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.CreateVPNClientData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  client_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _impl_.client_name_.ClearToEmpty();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* CreateVPNClientData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* CreateVPNClientData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // string client_name = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           auto str = _internal_mutable_client_name();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.CreateVPNClientData.client_name"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.CreateVPNClientData.client_name"));
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* CreateVPNClientData::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* CreateVPNClientData::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.CreateVPNClientData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // string client_name = 1;
-  if (this->client_name().size() > 0) {
+  if (!this->_internal_client_name().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_client_name().data(), static_cast<int>(this->_internal_client_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -379,7 +372,7 @@ failure:
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.CreateVPNClientData)
@@ -390,58 +383,39 @@ size_t CreateVPNClientData::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.CreateVPNClientData)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // string client_name = 1;
-  if (this->client_name().size() > 0) {
+  if (!this->_internal_client_name().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_client_name());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void CreateVPNClientData::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.CreateVPNClientData)
-  GOOGLE_DCHECK_NE(&from, this);
-  const CreateVPNClientData* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<CreateVPNClientData>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.CreateVPNClientData)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.CreateVPNClientData)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData CreateVPNClientData::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    CreateVPNClientData::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CreateVPNClientData::GetClassData() const { return &_class_data_; }
 
-void CreateVPNClientData::MergeFrom(const CreateVPNClientData& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.CreateVPNClientData)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void CreateVPNClientData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<CreateVPNClientData*>(&to_msg);
+  auto& from = static_cast<const CreateVPNClientData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.CreateVPNClientData)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.client_name().size() > 0) {
-    _internal_set_client_name(from._internal_client_name());
+  if (!from._internal_client_name().empty()) {
+    _this->_internal_set_client_name(from._internal_client_name());
   }
-}
-
-void CreateVPNClientData::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.CreateVPNClientData)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void CreateVPNClientData::CopyFrom(const CreateVPNClientData& from) {
@@ -457,162 +431,186 @@ bool CreateVPNClientData::IsInitialized() const {
 
 void CreateVPNClientData::InternalSwap(CreateVPNClientData* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  client_name_.Swap(&other->client_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.client_name_, lhs_arena,
+      &other->_impl_.client_name_, rhs_arena
+  );
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata CreateVPNClientData::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[0]);
 }
-
 
 // ===================================================================
 
-void CreateVPNClientDataAck::InitAsDefaultInstance() {
-}
 class CreateVPNClientDataAck::_Internal {
  public:
 };
 
-CreateVPNClientDataAck::CreateVPNClientDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+CreateVPNClientDataAck::CreateVPNClientDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.CreateVPNClientDataAck)
 }
 CreateVPNClientDataAck::CreateVPNClientDataAck(const CreateVPNClientDataAck& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  CreateVPNClientDataAck* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.filename_){}
+    , decltype(_impl_.content_){}
+    , decltype(_impl_.status_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  filename_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.filename_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.filename_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_filename().empty()) {
-    filename_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_filename(),
-      GetArena());
+    _this->_impl_.filename_.Set(from._internal_filename(), 
+      _this->GetArenaForAllocation());
   }
-  content_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.content_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.content_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_content().empty()) {
-    content_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_content(),
-      GetArena());
+    _this->_impl_.content_.Set(from._internal_content(), 
+      _this->GetArenaForAllocation());
   }
-  status_ = from.status_;
+  _this->_impl_.status_ = from._impl_.status_;
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.CreateVPNClientDataAck)
 }
 
-void CreateVPNClientDataAck::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  filename_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  content_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  status_ = 0;
+inline void CreateVPNClientDataAck::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.filename_){}
+    , decltype(_impl_.content_){}
+    , decltype(_impl_.status_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.filename_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.filename_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.content_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.content_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 CreateVPNClientDataAck::~CreateVPNClientDataAck() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.CreateVPNClientDataAck)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void CreateVPNClientDataAck::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  filename_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  content_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void CreateVPNClientDataAck::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.filename_.Destroy();
+  _impl_.content_.Destroy();
 }
 
-void CreateVPNClientDataAck::ArenaDtor(void* object) {
-  CreateVPNClientDataAck* _this = reinterpret_cast< CreateVPNClientDataAck* >(object);
-  (void)_this;
-}
-void CreateVPNClientDataAck::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void CreateVPNClientDataAck::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const CreateVPNClientDataAck& CreateVPNClientDataAck::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_CreateVPNClientDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void CreateVPNClientDataAck::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.CreateVPNClientDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  filename_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  content_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  status_ = 0;
+  _impl_.filename_.ClearToEmpty();
+  _impl_.content_.ClearToEmpty();
+  _impl_.status_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* CreateVPNClientDataAck::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* CreateVPNClientDataAck::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // .vpn_service.v1.Status status = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
           _internal_set_status(static_cast<::vpn_service::v1::Status>(val));
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // string filename = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_filename();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.CreateVPNClientDataAck.filename"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.CreateVPNClientDataAck.filename"));
+        } else
+          goto handle_unusual;
         continue;
       // bytes content = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_content();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* CreateVPNClientDataAck::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* CreateVPNClientDataAck::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.CreateVPNClientDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
       1, this->_internal_status(), target);
   }
 
   // string filename = 2;
-  if (this->filename().size() > 0) {
+  if (!this->_internal_filename().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_filename().data(), static_cast<int>(this->_internal_filename().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -622,13 +620,13 @@ failure:
   }
 
   // bytes content = 3;
-  if (this->content().size() > 0) {
+  if (!this->_internal_content().empty()) {
     target = stream->WriteBytesMaybeAliased(
         3, this->_internal_content(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.CreateVPNClientDataAck)
@@ -639,77 +637,58 @@ size_t CreateVPNClientDataAck::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.CreateVPNClientDataAck)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // string filename = 2;
-  if (this->filename().size() > 0) {
+  if (!this->_internal_filename().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_filename());
   }
 
   // bytes content = 3;
-  if (this->content().size() > 0) {
+  if (!this->_internal_content().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
         this->_internal_content());
   }
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_status());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void CreateVPNClientDataAck::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.CreateVPNClientDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  const CreateVPNClientDataAck* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<CreateVPNClientDataAck>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.CreateVPNClientDataAck)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.CreateVPNClientDataAck)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData CreateVPNClientDataAck::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    CreateVPNClientDataAck::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CreateVPNClientDataAck::GetClassData() const { return &_class_data_; }
 
-void CreateVPNClientDataAck::MergeFrom(const CreateVPNClientDataAck& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.CreateVPNClientDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void CreateVPNClientDataAck::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<CreateVPNClientDataAck*>(&to_msg);
+  auto& from = static_cast<const CreateVPNClientDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.CreateVPNClientDataAck)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.filename().size() > 0) {
-    _internal_set_filename(from._internal_filename());
+  if (!from._internal_filename().empty()) {
+    _this->_internal_set_filename(from._internal_filename());
   }
-  if (from.content().size() > 0) {
-    _internal_set_content(from._internal_content());
+  if (!from._internal_content().empty()) {
+    _this->_internal_set_content(from._internal_content());
   }
-  if (from.status() != 0) {
-    _internal_set_status(from._internal_status());
+  if (from._internal_status() != 0) {
+    _this->_internal_set_status(from._internal_status());
   }
-}
-
-void CreateVPNClientDataAck::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.CreateVPNClientDataAck)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void CreateVPNClientDataAck::CopyFrom(const CreateVPNClientDataAck& from) {
@@ -725,164 +704,198 @@ bool CreateVPNClientDataAck::IsInitialized() const {
 
 void CreateVPNClientDataAck::InternalSwap(CreateVPNClientDataAck* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  filename_.Swap(&other->filename_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  content_.Swap(&other->content_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  swap(status_, other->status_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.filename_, lhs_arena,
+      &other->_impl_.filename_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.content_, lhs_arena,
+      &other->_impl_.content_, rhs_arena
+  );
+  swap(_impl_.status_, other->_impl_.status_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata CreateVPNClientDataAck::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[1]);
 }
-
 
 // ===================================================================
 
-void OpenSSHTunnelData::InitAsDefaultInstance() {
-}
 class OpenSSHTunnelData::_Internal {
  public:
 };
 
-OpenSSHTunnelData::OpenSSHTunnelData(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+OpenSSHTunnelData::OpenSSHTunnelData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.OpenSSHTunnelData)
 }
 OpenSSHTunnelData::OpenSSHTunnelData(const OpenSSHTunnelData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  OpenSSHTunnelData* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.ipv4_){}
+    , decltype(_impl_.port_){}
+    , decltype(_impl_.key_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ipv4_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.ipv4_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ipv4_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_ipv4().empty()) {
-    ipv4_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_ipv4(),
-      GetArena());
+    _this->_impl_.ipv4_.Set(from._internal_ipv4(), 
+      _this->GetArenaForAllocation());
   }
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_port().empty()) {
-    port_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_port(),
-      GetArena());
+    _this->_impl_.port_.Set(from._internal_port(), 
+      _this->GetArenaForAllocation());
   }
-  key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.key_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.key_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_key(),
-      GetArena());
+    _this->_impl_.key_.Set(from._internal_key(), 
+      _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.OpenSSHTunnelData)
 }
 
-void OpenSSHTunnelData::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  ipv4_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void OpenSSHTunnelData::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.ipv4_){}
+    , decltype(_impl_.port_){}
+    , decltype(_impl_.key_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.ipv4_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ipv4_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.key_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.key_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 OpenSSHTunnelData::~OpenSSHTunnelData() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.OpenSSHTunnelData)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void OpenSSHTunnelData::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  ipv4_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  port_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void OpenSSHTunnelData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.ipv4_.Destroy();
+  _impl_.port_.Destroy();
+  _impl_.key_.Destroy();
 }
 
-void OpenSSHTunnelData::ArenaDtor(void* object) {
-  OpenSSHTunnelData* _this = reinterpret_cast< OpenSSHTunnelData* >(object);
-  (void)_this;
-}
-void OpenSSHTunnelData::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void OpenSSHTunnelData::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const OpenSSHTunnelData& OpenSSHTunnelData::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_OpenSSHTunnelData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void OpenSSHTunnelData::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.OpenSSHTunnelData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ipv4_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  port_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  key_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _impl_.ipv4_.ClearToEmpty();
+  _impl_.port_.ClearToEmpty();
+  _impl_.key_.ClearToEmpty();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* OpenSSHTunnelData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* OpenSSHTunnelData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // string ipv4 = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           auto str = _internal_mutable_ipv4();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.ipv4"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.ipv4"));
+        } else
+          goto handle_unusual;
         continue;
       // string port = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_port();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.port"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.port"));
+        } else
+          goto handle_unusual;
         continue;
       // string key = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_key();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.key"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelData.key"));
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* OpenSSHTunnelData::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* OpenSSHTunnelData::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.OpenSSHTunnelData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // string ipv4 = 1;
-  if (this->ipv4().size() > 0) {
+  if (!this->_internal_ipv4().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_ipv4().data(), static_cast<int>(this->_internal_ipv4().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -892,7 +905,7 @@ failure:
   }
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_port().data(), static_cast<int>(this->_internal_port().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -902,7 +915,7 @@ failure:
   }
 
   // string key = 3;
-  if (this->key().size() > 0) {
+  if (!this->_internal_key().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_key().data(), static_cast<int>(this->_internal_key().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -912,7 +925,7 @@ failure:
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.OpenSSHTunnelData)
@@ -923,78 +936,59 @@ size_t OpenSSHTunnelData::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.OpenSSHTunnelData)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // string ipv4 = 1;
-  if (this->ipv4().size() > 0) {
+  if (!this->_internal_ipv4().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_ipv4());
   }
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_port());
   }
 
   // string key = 3;
-  if (this->key().size() > 0) {
+  if (!this->_internal_key().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_key());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void OpenSSHTunnelData::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.OpenSSHTunnelData)
-  GOOGLE_DCHECK_NE(&from, this);
-  const OpenSSHTunnelData* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<OpenSSHTunnelData>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.OpenSSHTunnelData)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.OpenSSHTunnelData)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData OpenSSHTunnelData::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    OpenSSHTunnelData::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*OpenSSHTunnelData::GetClassData() const { return &_class_data_; }
 
-void OpenSSHTunnelData::MergeFrom(const OpenSSHTunnelData& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.OpenSSHTunnelData)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void OpenSSHTunnelData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<OpenSSHTunnelData*>(&to_msg);
+  auto& from = static_cast<const OpenSSHTunnelData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.OpenSSHTunnelData)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.ipv4().size() > 0) {
-    _internal_set_ipv4(from._internal_ipv4());
+  if (!from._internal_ipv4().empty()) {
+    _this->_internal_set_ipv4(from._internal_ipv4());
   }
-  if (from.port().size() > 0) {
-    _internal_set_port(from._internal_port());
+  if (!from._internal_port().empty()) {
+    _this->_internal_set_port(from._internal_port());
   }
-  if (from.key().size() > 0) {
-    _internal_set_key(from._internal_key());
+  if (!from._internal_key().empty()) {
+    _this->_internal_set_key(from._internal_key());
   }
-}
-
-void OpenSSHTunnelData::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.OpenSSHTunnelData)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void OpenSSHTunnelData::CopyFrom(const OpenSSHTunnelData& from) {
@@ -1010,148 +1004,169 @@ bool OpenSSHTunnelData::IsInitialized() const {
 
 void OpenSSHTunnelData::InternalSwap(OpenSSHTunnelData* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  ipv4_.Swap(&other->ipv4_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  port_.Swap(&other->port_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  key_.Swap(&other->key_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.ipv4_, lhs_arena,
+      &other->_impl_.ipv4_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.port_, lhs_arena,
+      &other->_impl_.port_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.key_, lhs_arena,
+      &other->_impl_.key_, rhs_arena
+  );
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata OpenSSHTunnelData::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[2]);
 }
-
 
 // ===================================================================
 
-void OpenSSHTunnelDataAck::InitAsDefaultInstance() {
-}
 class OpenSSHTunnelDataAck::_Internal {
  public:
 };
 
-OpenSSHTunnelDataAck::OpenSSHTunnelDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+OpenSSHTunnelDataAck::OpenSSHTunnelDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.OpenSSHTunnelDataAck)
 }
 OpenSSHTunnelDataAck::OpenSSHTunnelDataAck(const OpenSSHTunnelDataAck& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  OpenSSHTunnelDataAck* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.port_){}
+    , decltype(_impl_.status_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_port().empty()) {
-    port_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_port(),
-      GetArena());
+    _this->_impl_.port_.Set(from._internal_port(), 
+      _this->GetArenaForAllocation());
   }
-  status_ = from.status_;
+  _this->_impl_.status_ = from._impl_.status_;
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.OpenSSHTunnelDataAck)
 }
 
-void OpenSSHTunnelDataAck::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  status_ = 0;
+inline void OpenSSHTunnelDataAck::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.port_){}
+    , decltype(_impl_.status_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 OpenSSHTunnelDataAck::~OpenSSHTunnelDataAck() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.OpenSSHTunnelDataAck)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void OpenSSHTunnelDataAck::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  port_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void OpenSSHTunnelDataAck::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.port_.Destroy();
 }
 
-void OpenSSHTunnelDataAck::ArenaDtor(void* object) {
-  OpenSSHTunnelDataAck* _this = reinterpret_cast< OpenSSHTunnelDataAck* >(object);
-  (void)_this;
-}
-void OpenSSHTunnelDataAck::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void OpenSSHTunnelDataAck::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const OpenSSHTunnelDataAck& OpenSSHTunnelDataAck::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_OpenSSHTunnelDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void OpenSSHTunnelDataAck::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.OpenSSHTunnelDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  port_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  status_ = 0;
+  _impl_.port_.ClearToEmpty();
+  _impl_.status_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* OpenSSHTunnelDataAck::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* OpenSSHTunnelDataAck::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // .vpn_service.v1.Status status = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
           _internal_set_status(static_cast<::vpn_service::v1::Status>(val));
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // string port = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_port();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelDataAck.port"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.OpenSSHTunnelDataAck.port"));
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* OpenSSHTunnelDataAck::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* OpenSSHTunnelDataAck::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.OpenSSHTunnelDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
       1, this->_internal_status(), target);
   }
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_port().data(), static_cast<int>(this->_internal_port().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -1161,7 +1176,7 @@ failure:
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.OpenSSHTunnelDataAck)
@@ -1172,67 +1187,48 @@ size_t OpenSSHTunnelDataAck::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.OpenSSHTunnelDataAck)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_port());
   }
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_status());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void OpenSSHTunnelDataAck::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.OpenSSHTunnelDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  const OpenSSHTunnelDataAck* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<OpenSSHTunnelDataAck>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.OpenSSHTunnelDataAck)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.OpenSSHTunnelDataAck)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData OpenSSHTunnelDataAck::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    OpenSSHTunnelDataAck::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*OpenSSHTunnelDataAck::GetClassData() const { return &_class_data_; }
 
-void OpenSSHTunnelDataAck::MergeFrom(const OpenSSHTunnelDataAck& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.OpenSSHTunnelDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void OpenSSHTunnelDataAck::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<OpenSSHTunnelDataAck*>(&to_msg);
+  auto& from = static_cast<const OpenSSHTunnelDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.OpenSSHTunnelDataAck)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.port().size() > 0) {
-    _internal_set_port(from._internal_port());
+  if (!from._internal_port().empty()) {
+    _this->_internal_set_port(from._internal_port());
   }
-  if (from.status() != 0) {
-    _internal_set_status(from._internal_status());
+  if (from._internal_status() != 0) {
+    _this->_internal_set_status(from._internal_status());
   }
-}
-
-void OpenSSHTunnelDataAck::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.OpenSSHTunnelDataAck)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void OpenSSHTunnelDataAck::CopyFrom(const OpenSSHTunnelDataAck& from) {
@@ -1248,179 +1244,219 @@ bool OpenSSHTunnelDataAck::IsInitialized() const {
 
 void OpenSSHTunnelDataAck::InternalSwap(OpenSSHTunnelDataAck* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  port_.Swap(&other->port_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  swap(status_, other->status_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.port_, lhs_arena,
+      &other->_impl_.port_, rhs_arena
+  );
+  swap(_impl_.status_, other->_impl_.status_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata OpenSSHTunnelDataAck::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[3]);
 }
-
 
 // ===================================================================
 
-void RelayData::InitAsDefaultInstance() {
-}
 class RelayData::_Internal {
  public:
 };
 
-RelayData::RelayData(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+RelayData::RelayData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.RelayData)
 }
 RelayData::RelayData(const RelayData& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  RelayData* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.ipv4_){}
+    , decltype(_impl_.port_){}
+    , decltype(_impl_.method_name_){}
+    , decltype(_impl_.data_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ipv4_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.ipv4_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ipv4_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_ipv4().empty()) {
-    ipv4_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_ipv4(),
-      GetArena());
+    _this->_impl_.ipv4_.Set(from._internal_ipv4(), 
+      _this->GetArenaForAllocation());
   }
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_port().empty()) {
-    port_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_port(),
-      GetArena());
+    _this->_impl_.port_.Set(from._internal_port(), 
+      _this->GetArenaForAllocation());
   }
-  method_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.method_name_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.method_name_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_method_name().empty()) {
-    method_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_method_name(),
-      GetArena());
+    _this->_impl_.method_name_.Set(from._internal_method_name(), 
+      _this->GetArenaForAllocation());
   }
-  data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.data_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.data_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_data().empty()) {
-    data_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_data(),
-      GetArena());
+    _this->_impl_.data_.Set(from._internal_data(), 
+      _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.RelayData)
 }
 
-void RelayData::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  ipv4_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  port_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  method_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void RelayData::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.ipv4_){}
+    , decltype(_impl_.port_){}
+    , decltype(_impl_.method_name_){}
+    , decltype(_impl_.data_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.ipv4_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ipv4_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.port_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.port_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.method_name_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.method_name_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.data_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.data_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 RelayData::~RelayData() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.RelayData)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void RelayData::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  ipv4_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  port_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  method_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  data_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void RelayData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.ipv4_.Destroy();
+  _impl_.port_.Destroy();
+  _impl_.method_name_.Destroy();
+  _impl_.data_.Destroy();
 }
 
-void RelayData::ArenaDtor(void* object) {
-  RelayData* _this = reinterpret_cast< RelayData* >(object);
-  (void)_this;
-}
-void RelayData::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void RelayData::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const RelayData& RelayData::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RelayData_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void RelayData::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.RelayData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ipv4_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  port_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  method_name_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  data_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  _impl_.ipv4_.ClearToEmpty();
+  _impl_.port_.ClearToEmpty();
+  _impl_.method_name_.ClearToEmpty();
+  _impl_.data_.ClearToEmpty();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* RelayData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* RelayData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // string ipv4 = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           auto str = _internal_mutable_ipv4();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.RelayData.ipv4"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.RelayData.ipv4"));
+        } else
+          goto handle_unusual;
         continue;
       // string port = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_port();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.RelayData.port"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.RelayData.port"));
+        } else
+          goto handle_unusual;
         continue;
       // string method_name = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_method_name();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "vpn_service.v1.RelayData.method_name"));
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+          CHK_(::_pbi::VerifyUTF8(str, "vpn_service.v1.RelayData.method_name"));
+        } else
+          goto handle_unusual;
         continue;
       // bytes data = 4;
       case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           auto str = _internal_mutable_data();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* RelayData::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* RelayData::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.RelayData)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // string ipv4 = 1;
-  if (this->ipv4().size() > 0) {
+  if (!this->_internal_ipv4().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_ipv4().data(), static_cast<int>(this->_internal_ipv4().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -1430,7 +1466,7 @@ failure:
   }
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_port().data(), static_cast<int>(this->_internal_port().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -1440,7 +1476,7 @@ failure:
   }
 
   // string method_name = 3;
-  if (this->method_name().size() > 0) {
+  if (!this->_internal_method_name().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_method_name().data(), static_cast<int>(this->_internal_method_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
@@ -1450,13 +1486,13 @@ failure:
   }
 
   // bytes data = 4;
-  if (this->data().size() > 0) {
+  if (!this->_internal_data().empty()) {
     target = stream->WriteBytesMaybeAliased(
         4, this->_internal_data(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.RelayData)
@@ -1467,88 +1503,69 @@ size_t RelayData::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.RelayData)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // string ipv4 = 1;
-  if (this->ipv4().size() > 0) {
+  if (!this->_internal_ipv4().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_ipv4());
   }
 
   // string port = 2;
-  if (this->port().size() > 0) {
+  if (!this->_internal_port().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_port());
   }
 
   // string method_name = 3;
-  if (this->method_name().size() > 0) {
+  if (!this->_internal_method_name().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_method_name());
   }
 
   // bytes data = 4;
-  if (this->data().size() > 0) {
+  if (!this->_internal_data().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
         this->_internal_data());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void RelayData::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.RelayData)
-  GOOGLE_DCHECK_NE(&from, this);
-  const RelayData* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RelayData>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.RelayData)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.RelayData)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData RelayData::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    RelayData::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RelayData::GetClassData() const { return &_class_data_; }
 
-void RelayData::MergeFrom(const RelayData& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.RelayData)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void RelayData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<RelayData*>(&to_msg);
+  auto& from = static_cast<const RelayData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.RelayData)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.ipv4().size() > 0) {
-    _internal_set_ipv4(from._internal_ipv4());
+  if (!from._internal_ipv4().empty()) {
+    _this->_internal_set_ipv4(from._internal_ipv4());
   }
-  if (from.port().size() > 0) {
-    _internal_set_port(from._internal_port());
+  if (!from._internal_port().empty()) {
+    _this->_internal_set_port(from._internal_port());
   }
-  if (from.method_name().size() > 0) {
-    _internal_set_method_name(from._internal_method_name());
+  if (!from._internal_method_name().empty()) {
+    _this->_internal_set_method_name(from._internal_method_name());
   }
-  if (from.data().size() > 0) {
-    _internal_set_data(from._internal_data());
+  if (!from._internal_data().empty()) {
+    _this->_internal_set_data(from._internal_data());
   }
-}
-
-void RelayData::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.RelayData)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void RelayData::CopyFrom(const RelayData& from) {
@@ -1564,154 +1581,178 @@ bool RelayData::IsInitialized() const {
 
 void RelayData::InternalSwap(RelayData* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  ipv4_.Swap(&other->ipv4_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  port_.Swap(&other->port_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  method_name_.Swap(&other->method_name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  data_.Swap(&other->data_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.ipv4_, lhs_arena,
+      &other->_impl_.ipv4_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.port_, lhs_arena,
+      &other->_impl_.port_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.method_name_, lhs_arena,
+      &other->_impl_.method_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.data_, lhs_arena,
+      &other->_impl_.data_, rhs_arena
+  );
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata RelayData::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[4]);
 }
-
 
 // ===================================================================
 
-void RelayDataAck::InitAsDefaultInstance() {
-}
 class RelayDataAck::_Internal {
  public:
 };
 
-RelayDataAck::RelayDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
-  SharedCtor();
-  RegisterArenaDtor(arena);
+RelayDataAck::RelayDataAck(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
   // @@protoc_insertion_point(arena_constructor:vpn_service.v1.RelayDataAck)
 }
 RelayDataAck::RelayDataAck(const RelayDataAck& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
+  RelayDataAck* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.response_){}
+    , decltype(_impl_.status_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  response_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  _impl_.response_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.response_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_response().empty()) {
-    response_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), from._internal_response(),
-      GetArena());
+    _this->_impl_.response_.Set(from._internal_response(), 
+      _this->GetArenaForAllocation());
   }
-  status_ = from.status_;
+  _this->_impl_.status_ = from._impl_.status_;
   // @@protoc_insertion_point(copy_constructor:vpn_service.v1.RelayDataAck)
 }
 
-void RelayDataAck::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  response_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  status_ = 0;
+inline void RelayDataAck::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.response_){}
+    , decltype(_impl_.status_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.response_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.response_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 RelayDataAck::~RelayDataAck() {
   // @@protoc_insertion_point(destructor:vpn_service.v1.RelayDataAck)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
-  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void RelayDataAck::SharedDtor() {
-  GOOGLE_DCHECK(GetArena() == nullptr);
-  response_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+inline void RelayDataAck::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.response_.Destroy();
 }
 
-void RelayDataAck::ArenaDtor(void* object) {
-  RelayDataAck* _this = reinterpret_cast< RelayDataAck* >(object);
-  (void)_this;
-}
-void RelayDataAck::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
-}
 void RelayDataAck::SetCachedSize(int size) const {
-  _cached_size_.Set(size);
+  _impl_._cached_size_.Set(size);
 }
-const RelayDataAck& RelayDataAck::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RelayDataAck_infra_5fservice_2fvpn_5fservice_2eproto.base);
-  return *internal_default_instance();
-}
-
 
 void RelayDataAck::Clear() {
 // @@protoc_insertion_point(message_clear_start:vpn_service.v1.RelayDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  response_.ClearToEmpty(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  status_ = 0;
+  _impl_.response_.ClearToEmpty();
+  _impl_.status_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* RelayDataAck::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* RelayDataAck::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  ::PROTOBUF_NAMESPACE_ID::Arena* arena = GetArena(); (void)arena;
   while (!ctx->Done(&ptr)) {
-    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
-    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
-    CHK_(ptr);
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
       // .vpn_service.v1.Status status = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          ::PROTOBUF_NAMESPACE_ID::uint64 val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
           _internal_set_status(static_cast<::vpn_service::v1::Status>(val));
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
       // bytes response = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_response();
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-        } else goto handle_unusual;
+        } else
+          goto handle_unusual;
         continue;
-      default: {
-      handle_unusual:
-        if ((tag & 7) == 4 || tag == 0) {
-          ctx->SetLastTag(tag);
-          goto success;
-        }
-        ptr = UnknownFieldParse(tag,
-            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-            ptr, ctx);
-        CHK_(ptr != nullptr);
-        continue;
-      }
+      default:
+        goto handle_unusual;
     }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
   }  // while
-success:
+message_done:
   return ptr;
 failure:
   ptr = nullptr;
-  goto success;
+  goto message_done;
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* RelayDataAck::_InternalSerialize(
-    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+uint8_t* RelayDataAck::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:vpn_service.v1.RelayDataAck)
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
       1, this->_internal_status(), target);
   }
 
   // bytes response = 2;
-  if (this->response().size() > 0) {
+  if (!this->_internal_response().empty()) {
     target = stream->WriteBytesMaybeAliased(
         2, this->_internal_response(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:vpn_service.v1.RelayDataAck)
@@ -1722,67 +1763,48 @@ size_t RelayDataAck::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:vpn_service.v1.RelayDataAck)
   size_t total_size = 0;
 
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   // bytes response = 2;
-  if (this->response().size() > 0) {
+  if (!this->_internal_response().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
         this->_internal_response());
   }
 
   // .vpn_service.v1.Status status = 1;
-  if (this->status() != 0) {
+  if (this->_internal_status() != 0) {
     total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_status());
   }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
-        _internal_metadata_, total_size, &_cached_size_);
-  }
-  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
-  SetCachedSize(cached_size);
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void RelayDataAck::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:vpn_service.v1.RelayDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  const RelayDataAck* source =
-      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RelayDataAck>(
-          &from);
-  if (source == nullptr) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:vpn_service.v1.RelayDataAck)
-    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:vpn_service.v1.RelayDataAck)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData RelayDataAck::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    RelayDataAck::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RelayDataAck::GetClassData() const { return &_class_data_; }
 
-void RelayDataAck::MergeFrom(const RelayDataAck& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.RelayDataAck)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+
+void RelayDataAck::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<RelayDataAck*>(&to_msg);
+  auto& from = static_cast<const RelayDataAck&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:vpn_service.v1.RelayDataAck)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.response().size() > 0) {
-    _internal_set_response(from._internal_response());
+  if (!from._internal_response().empty()) {
+    _this->_internal_set_response(from._internal_response());
   }
-  if (from.status() != 0) {
-    _internal_set_status(from._internal_status());
+  if (from._internal_status() != 0) {
+    _this->_internal_set_status(from._internal_status());
   }
-}
-
-void RelayDataAck::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:vpn_service.v1.RelayDataAck)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void RelayDataAck::CopyFrom(const RelayDataAck& from) {
@@ -1798,36 +1820,48 @@ bool RelayDataAck::IsInitialized() const {
 
 void RelayDataAck::InternalSwap(RelayDataAck* other) {
   using std::swap;
-  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  response_.Swap(&other->response_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  swap(status_, other->status_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.response_, lhs_arena,
+      &other->_impl_.response_, rhs_arena
+  );
+  swap(_impl_.status_, other->_impl_.status_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata RelayDataAck::GetMetadata() const {
-  return GetMetadataStatic();
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_getter, &descriptor_table_infra_5fservice_2fvpn_5fservice_2eproto_once,
+      file_level_metadata_infra_5fservice_2fvpn_5fservice_2eproto[5]);
 }
-
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace v1
 }  // namespace vpn_service
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::CreateVPNClientData* Arena::CreateMaybeMessage< ::vpn_service::v1::CreateVPNClientData >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::CreateVPNClientData*
+Arena::CreateMaybeMessage< ::vpn_service::v1::CreateVPNClientData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::CreateVPNClientData >(arena);
 }
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::CreateVPNClientDataAck* Arena::CreateMaybeMessage< ::vpn_service::v1::CreateVPNClientDataAck >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::CreateVPNClientDataAck*
+Arena::CreateMaybeMessage< ::vpn_service::v1::CreateVPNClientDataAck >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::CreateVPNClientDataAck >(arena);
 }
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::OpenSSHTunnelData* Arena::CreateMaybeMessage< ::vpn_service::v1::OpenSSHTunnelData >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::OpenSSHTunnelData*
+Arena::CreateMaybeMessage< ::vpn_service::v1::OpenSSHTunnelData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::OpenSSHTunnelData >(arena);
 }
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::OpenSSHTunnelDataAck* Arena::CreateMaybeMessage< ::vpn_service::v1::OpenSSHTunnelDataAck >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::OpenSSHTunnelDataAck*
+Arena::CreateMaybeMessage< ::vpn_service::v1::OpenSSHTunnelDataAck >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::OpenSSHTunnelDataAck >(arena);
 }
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::RelayData* Arena::CreateMaybeMessage< ::vpn_service::v1::RelayData >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::RelayData*
+Arena::CreateMaybeMessage< ::vpn_service::v1::RelayData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::RelayData >(arena);
 }
-template<> PROTOBUF_NOINLINE ::vpn_service::v1::RelayDataAck* Arena::CreateMaybeMessage< ::vpn_service::v1::RelayDataAck >(Arena* arena) {
+template<> PROTOBUF_NOINLINE ::vpn_service::v1::RelayDataAck*
+Arena::CreateMaybeMessage< ::vpn_service::v1::RelayDataAck >(Arena* arena) {
   return Arena::CreateMessageInternal< ::vpn_service::v1::RelayDataAck >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE

@@ -14,6 +14,13 @@ DRIVE_LETTERS = [chr(c) for c in range(ord("A"), ord("Z") + 1)]
 RESERVED_DRIVES = {"C"}
 logger = get_logger("service")
 
+
+def _normalize_size_value(value: str | int | None) -> str | None:
+    """Normalize size-like values to the string form expected by the share models."""
+    if value is None:
+        return None
+    return str(value)
+
 def _normalize_drive_letter(value: str) -> str:
     """
     Normalize a drive letter to uppercase and strip whitespace.
@@ -74,8 +81,8 @@ def create_share(
     users: List[str] | None = None,
     description: str | None = None,
     owner: str | None = None,
-    current_size: str | None = None,
-    max_size: str | None = None,
+    current_size: str | int | None = None,
+    max_size: str | int | None = None,
 ) -> dict:
     """
     Create a new file share record with auto-allocated drive letter.
@@ -121,8 +128,8 @@ def create_share(
         drive=drive,
         description=description,
         owner=owner,
-        current_size=current_size or "0",
-        max_size=max_size,
+        current_size=_normalize_size_value(current_size) or "0",
+        max_size=_normalize_size_value(max_size),
     )
     logger.info("Validated file share model: %s", share_model)
     share_doc = create_fileshare_doc(share_model)

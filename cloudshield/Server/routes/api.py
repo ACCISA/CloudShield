@@ -907,7 +907,7 @@ def get_my_organization_metrics():
 
     stats = {
         "users": users_col.count_documents({"org_id": org_id}),
-        "workstations": workstation_templates_col.count_documents({"org_id": org_id}),
+        "workstations": workstations_col.count_documents({"org_id": org_id}),
         "access_groups": access_groups_col.count_documents({"org_id": org_id}),
         "shares": shares_col.count_documents({"org_id": org_id}),
     }
