@@ -3,6 +3,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import List
 from models import Workstation,WorkstationTemplate,WorkstationStatus
+from .access_groups_repo import get_access_group_by_id
 
 def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str], members: List[str]):
     """
@@ -20,6 +21,36 @@ def insert_workstation_template(*, db, org_id: str, name: str, description: str,
         access_groups=access_groups,
         members=members
         ).model_dump(by_alias=True))
+
+def get_assigned_workstation_templates(*, db, user_id: str):
+    ws_db = db.workstation_templates
+    assigned_templates = []
+
+    all_templates = list(ws_db.find({}))
+
+    for doc in all_templates:
+        if user_id in doc.get("members", []):
+            doc["_id"] = str(doc["_id"])
+            assigned_templates.append(doc)
+            continue
+
+        group_ids = doc.get("access_groups", [])
+        is_in_group = False
+
+        for group_id in group_ids:
+            try:
+                group = get_access_group_by_id(group_id)
+                if group and user_id in group.get("members", []):
+                    is_in_group = True
+                    break
+            except Exception:
+                continue
+
+        if is_in_group:
+            doc["_id"] = str(doc["_id"])
+            assigned_templates.append(doc)
+
+    return assigned_templates
 
 def get_workstation_templates(*, db, org_id: str):
     ws_db = db.workstation_templates

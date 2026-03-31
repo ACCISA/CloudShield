@@ -126,6 +126,20 @@ def get_available_workstations_api():
 
     return jsonify({"workstations": workstations_list}), 200
 
+@workstations_bp.route("/workstations/templates/assigned", methods=["GET"])
+@require_auth
+def get_assigned_templates():
+
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
+
+    from repos import get_assigned_workstation_templates
+    workstation_templates_list = get_assigned_workstation_templates(db=db, user_id=user_id)
+
+    return jsonify({"templates": workstation_templates_list}), 200
+
 @workstations_bp.route("/workstations/templates", methods=["POST"])
 @require_auth
 def create_default():

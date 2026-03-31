@@ -36,11 +36,10 @@ import { safeAsync } from "../lib/safeAsync.js";
 import { useThemeColors } from "../hooks/useThemeColors.js";
 
 import { listUsers, deleteUser, createUser, updateUser } from "../services/usersApi.js";
-import { apiGet, apiPatch, apiUploadFile } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAsyncTask } from "../hooks/useAsyncTask.js";
 
-import {apiPost, apiGet, apiPatch} from "../api/client";
+import {apiPost, apiGet, apiPatch, apiUploadFile} from "../api/client";
 
 const CustomToast = ({ msg, type = "success", onClose }) => {
   if (!msg) return null;

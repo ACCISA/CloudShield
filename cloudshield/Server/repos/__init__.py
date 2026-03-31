@@ -10,7 +10,7 @@ from .workstations_repo import get_workstation_templates as get_workstation_temp
 from .workstations_repo import get_workstation as get_workstation
 from .workstations_repo import get_workstations as get_workstations
 from .workstations_repo import get_available_workstation as get_available_workstation
-
+from .workstations_repo import get_assigned_workstation_templates as get_assigned_workstation_templates
 from .access_groups_repo import get_members_amount_by_id as get_members_amount_by_id
 from .access_groups_repo import get_unique_members_by_ids as get_unique_members_by_ids
 from .access_groups_repo import get_access_group_by_id as get_access_group_by_id

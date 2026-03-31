@@ -127,6 +127,15 @@ services:
       dockerfile: docker/Dockerfile.server
     environment:
       CLOUDSHIELD_RUNTIME: "1"
+      AGENTS_FILE: /app/cloudshield/ThreatDetection/org_agents/agents.json
+      ES_URL: http://elasticsearch:9200
+    volumes:
+      - ${WORKSTATIONS_MOUNT_DIR}/workstations/${CLOUDSHIELD_DEV_ORG:-dev}/td_agents:/app/cloudshield/ThreatDetection/org_agents
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.${VPC_OCTET:-1}.15"
+      cloudshield_net:
+        ipv4_address: 172.28.0.15
 
   api-test:
     build:

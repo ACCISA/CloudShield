@@ -895,8 +895,6 @@ def _write_compose_override_for_org(
         "  samba-test:\n"
         "    networks: [org_net]\n"
         "  openvpn-test:\n"
-        "    ports:\n"
-        "      - 1194:1194/udp\n"
         "    networks: [org_net]\n"
         f"{td_service}"
         "  workstation:\n"
