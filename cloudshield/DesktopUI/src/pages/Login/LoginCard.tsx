@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import {
   saveOrgIdFromToken,
   saveAuthToLocalStorage,
+  saveUserIdFromToken,
 } from "../../utils/jwtLocalStorage";
 import AuthService from "../../services/AuthService";
 import AuthCard from "../../components/auth/AuthCard";
@@ -60,9 +61,10 @@ export default function LoginCard() {
         expiresIn: data.expires_in,
         email: sanitizedEmail,
       });
-      // Save org_id to localStorage from JWT
+      // Save org_id and user_id to localStorage from JWT
       if (data.access_token) {
         saveOrgIdFromToken(data.access_token);
+        saveUserIdFromToken(data.access_token);
       }
       if (!window.authStore) {
         const expiresAt = data.expires_in

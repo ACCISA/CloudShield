@@ -30,6 +30,15 @@ export function saveOrgIdFromToken(token: string) {
   }
 }
 
+export function saveUserIdFromToken(token: string) {
+  const claims = decodeJwtClaims(token);
+  // Use user_id if present, otherwise use sub (standard JWT subject claim)
+  const userId = claims.user_id || claims.sub;
+  if (userId) {
+    localStorage.setItem("user_id", userId);
+  }
+}
+
 /**
  * Get org_id from localStorage.
  */
