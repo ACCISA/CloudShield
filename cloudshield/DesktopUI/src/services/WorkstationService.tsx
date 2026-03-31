@@ -18,7 +18,12 @@ class WorkstationService {
   }
 
   public async getWorkstationTemplates(): Promise<WorkstationTemplate[]> {
-    const response = await APIService.get("workstations/templates", {}, true);
+    const response = await APIService.get(
+      "workstations/templates/assigned",
+      {},
+      true,
+      true,
+    );
     if (response.status === 200) {
       const data = await response.json();
       if (Array.isArray(data.templates)) {
@@ -30,25 +35,33 @@ class WorkstationService {
     }
   }
 
-  public async getWorkstations(): Promise<Workstation[]> {
-
+  public async assignWorkStation(template_id: string): Promise<Workstation> {
     const response = await APIService.get(
-      "workstation/available",
+      `workstations/assign?template_id=${template_id}`,
       {},
       false,
       true,
     );
     if (response.status === 200) {
-      let workstations: Workstation[] = [];
-      const body = response.body;
-      if (Array.isArray(body["workstations"])) {
-        workstations = body["workstations"].map((item) => {
-          return mapWorkstation(item);
-        });
-      }
-      return workstations;
+      const data = await response.json();
+      return mapWorkstation(data["workstation"]);
     } else {
-      throw new Error(response.status.toString() + response.body);
+      throw new Error(response.status.toString() + (await response.text()));
+    }
+  }
+
+  public async releaseWorkStation(): Promise<boolean> {
+    const response = await APIService.get(
+      "workstations/release",
+      {},
+      false,
+      true,
+    );
+    if (response.status === 200) {
+      const data = await response.json();
+      return data["status"];
+    } else {
+      throw new Error(response.status.toString() + (await response.text()));
     }
   }
 }

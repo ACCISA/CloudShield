@@ -24,7 +24,7 @@ class OrgService {
     }
 
     const payload = await response.json();
-    return mapOrganization(payload);
+    return mapOrganization(payload["organization"]);
   }
 }
 

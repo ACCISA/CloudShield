@@ -192,13 +192,24 @@ export default function WorkstationsPage() {
     });
   }, [listItems, searchQuery]);
 
-  const handleTemplateUse = async () => {
+  const handleTemplateUse = async (template_id: string) => {
     try {
       setIsLoadingWorkstations(true);
-      const workstationspool = await WorkstationService.getWorkstations();
-      // For demo purposes, we just select the first workstation from the pool
-      const workstation = workstationspool[0] || null;
+      const workstation =
+        await WorkstationService.assignWorkStation(template_id);
       setSelectedWorkstation(workstation);
+    } finally {
+      setIsLoadingWorkstations(false);
+    }
+  };
+
+  const handleTemplateDisconnect = async () => {
+    try {
+      setIsLoadingWorkstations(true);
+      await WorkstationService.releaseWorkStation();
+      setSelectedWorkstation(null);
+      setRdpStatus(null);
+      killRDP();
     } finally {
       setIsLoadingWorkstations(false);
     }
@@ -335,7 +346,7 @@ export default function WorkstationsPage() {
                         <button
                           type="button"
                           disabled={!item.is_ready}
-                          onClick={handleTemplateUse}
+                          onClick={() => handleTemplateUse(item._id)}
                           className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
                         >
                           {actionLabel}
@@ -426,7 +437,7 @@ export default function WorkstationsPage() {
                       <button
                         type="button"
                         disabled={!item.is_ready}
-                        onClick={handleTemplateUse}
+                        onClick={() => handleTemplateUse(item._id)}
                         className={`mt-5 w-full rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
                       >
                         {actionLabel}
@@ -494,9 +505,7 @@ export default function WorkstationsPage() {
               </button>
               <button
                 onClick={() => {
-                  setSelectedWorkstation(null);
-                  setRdpStatus(null);
-                  killRDP();
+                  handleTemplateDisconnect();
                 }}
                 className="mt-4 rounded-lg border border-white/10 bg-[#A41010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
               >
