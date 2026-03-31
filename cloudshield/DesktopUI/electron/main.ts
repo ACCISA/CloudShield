@@ -471,6 +471,7 @@ ipcMain.handle(
           `/u:${params.username}`,
           `/p:${params.password}`,
           `/v:${params.ip}`,
+          "/f",
           "/cert:tofu",
         ]);
         let error = "";
