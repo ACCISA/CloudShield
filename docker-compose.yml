@@ -189,6 +189,7 @@ services:
     networks:
       - vpc_net
       - cloudshield_net
+      - vpn_internal
 
   api:
     profiles: ["manual"]
