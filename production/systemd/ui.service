@@ -1,0 +1,18 @@
+[Unit]
+Description=CloudShield Production UI
+Requires=docker.service api-test.service
+After=docker.service api-test.service network-online.target
+Wants=network-online.target
+PartOf=api-test.service
+
+[Service]
+Type=oneshot
+User=cedric
+WorkingDirectory=/home/cedric/CloudShield
+RemainAfterExit=yes
+ExecStart=/usr/bin/docker compose -f /home/cedric/CloudShield/docker-compose.prod.yml up -d ui
+ExecStop=/usr/bin/docker compose -f /home/cedric/CloudShield/docker-compose.prod.yml stop ui
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
