@@ -443,7 +443,7 @@ ipcMain.handle(
         if (isWin) {
           // Fallback to Windows built-in RDP client
           const mstsc = "mstsc.exe";
-          const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
+          const child = spawn(mstsc, ["/v:" + params.ip, "/f"]); //NOSONAR typescript:S4036
           child.on("error", (err) => {
             if (settled) return;
             settled = true;
