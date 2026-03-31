@@ -5,6 +5,7 @@ import {
   saveUserIdFromToken,
 } from "../../utils/jwtLocalStorage";
 import AuthService from "../../services/AuthService";
+import { setSessionPassword } from "../../utils/passwordMemory";
 import AuthCard from "../../components/auth/AuthCard";
 import AuthTextField from "../../components/auth/AuthTextField";
 import PasswordField from "../../components/auth/PasswordField";
@@ -61,6 +62,8 @@ export default function LoginCard() {
         expiresIn: data.expires_in,
         email: sanitizedEmail,
       });
+      // Store password in memory for session use (not persisted)
+      setSessionPassword(password);
       // Save org_id and user_id to localStorage from JWT
       if (data.access_token) {
         saveOrgIdFromToken(data.access_token);
