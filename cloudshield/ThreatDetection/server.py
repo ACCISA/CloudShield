@@ -7,10 +7,9 @@ from concurrent import futures
 
 import proto.agent_pb2_grpc as agent_pb2_grpc
 
-from utils import get_agents, is_valid_agent
 from servicer import AgentServiceServicer
 from state import state_manager
-from logger import state_logger, server_logger, interceptor_logger
+from logger import state_logger, server_logger
 
 # ── Threat-detection subsystem imports (graceful) ───────────────────────────
 try:
@@ -39,53 +38,10 @@ def log_heartbeat(agent_id, method):
     heartbeats[agent_id].append(method)
 
 
-class ClientIPInterceptor(grpc.ServerInterceptor):
-    """gRPC interceptor for IP-based agent authentication and heartbeat tracking."""
-
-    def intercept_service(self, continuation, handler_call_details):
-        method_name = handler_call_details.method
-        handler = continuation(handler_call_details)
-        if handler is None:
-            return None
-
-        if handler.unary_unary:
-            def new_unary_unary(request, context):
-                peer = context.peer()
-                agent_id = getattr(request, "agent_id", None)
-                if peer.startswith("ipv4:"):
-                    ip = peer.split(":")[1]
-                elif peer.startswith("ipv6:"):
-                    ip = peer.split("]:")[0][5:]
-                else:
-                    ip = "unknown"
-                # Re-read agents.json on every call so newly provisioned
-                # workstations are admitted without a server restart.
-                current_agents = get_agents()
-                if not is_valid_agent(current_agents, ip, agent_id):
-                    interceptor_logger.warning("invalid agent tried to talk to grpc")
-                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid Agent")
-
-                if agent_id is None:
-                    interceptor_logger.warning("rpc message received with no agent_id")
-                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Invalid RPC call")
-                
-                log_heartbeat(agent_id, method_name)
-                return handler.unary_unary(request, context)
-
-            return grpc.unary_unary_rpc_method_handler(
-                new_unary_unary,
-                request_deserializer=handler.request_deserializer,
-                response_serializer=handler.response_serializer
-            )
-
-        return handler
-
-
 def serve(bind_address="0.0.0.0:50051"):
-    """Start gRPC server with agent authentication interceptor."""
+    """Start gRPC server."""
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),
-        interceptors=[ClientIPInterceptor()]
     )
 
     agent_pb2_grpc.add_AgentServiceServicer_to_server(
