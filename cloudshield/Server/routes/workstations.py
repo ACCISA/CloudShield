@@ -1,9 +1,6 @@
 """Workstations API endpoints."""
 from __future__ import annotations
-
-from bson import ObjectId
 from flask import Blueprint, g, request, jsonify
-
 from utils.logging_setup import get_logger
 from services import service_dispatcher
 from cloudshield.Server.security.guards import require_auth
@@ -67,51 +64,15 @@ def get_workstations_api():
 
     return jsonify({"items": items}), 200
 
-
-@workstations_bp.route("/workstations", methods=["POST"])
+@workstations_bp.route("/workstation", methods=["GET"])
 @require_auth
-def create_workstation():
-    user = g.user
-    role = user.get("role")
-    org_id = user.get("org_id")
+def get_workstations_avail():
+    pass
 
-    if role != "admin":
-        return jsonify({"error": "Forbidden"}), 403
-
-    if not org_id:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
-
-    data = request.get_json() or {}
-    name = data.get("name", "Workstation")
-    groups = data.get("groups", [])
-
-    collection = db_admin["workstations"]
-
-    doc = {
-        "org_id": org_id,
-        "name": name,
-        "status": "offline",
-        "assigned_user": None,
-        "assigned_user_id": None,
-    }
-
-    result = collection.insert_one(doc)
-    workstation_id = str(result.inserted_id)
-
-    if groups:
-        try:
-            access_groups_collection = db_admin["access_groups"]
-        except (KeyError, TypeError):
-            access_groups_collection = None
-        if access_groups_collection is not None:
-            group_oids = [ObjectId(gid) for gid in groups]
-            access_groups_collection.update_many(
-                {"_id": {"$in": group_oids}, "org_id": org_id},
-                {"$addToSet": {"workstations": workstation_id}},
-            )
-
-    return jsonify({"id": workstation_id}), 201
-
+@workstations_bp.route("/workstation/release", methods=["POST"])
+@require_auth
+def release_workstation():
+    pass
 
 @workstations_bp.route("/workstation/available", methods=["GET"])
 @require_auth

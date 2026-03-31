@@ -7,3 +7,4 @@ boto3
 grpcio-tools
 elasticsearch>=8.0,<9.0
 flask_cors
+flask_limiter
