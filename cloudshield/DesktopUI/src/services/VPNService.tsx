@@ -1,20 +1,10 @@
 import { VPNConfig, mapVPNConfig } from "../models/VPN";
 import APIService from "../utils/APIService";
 import { decodeJwtClaims, getAuthFromLocalStorage } from "../utils/jwtLocalStorage";
+import { deriveUsername } from "../utils/usernameUtil";
 
 
 
-function deriveUsername(claims: JwtClaims): string {
-  let username = "";
-  if (claims.username?.trim()) username = claims.username.trim();
-  if (claims.email?.includes("@")) username = claims.email.split("@")[0].trim();
-  if (claims.full_name?.trim())
-    username = claims.full_name.trim().toLowerCase();
-  console.log("Derived username:", username);
-  let firstNameLetter = username.charAt(0);
-  let lastName = username.split(" ")[1];
-  return firstNameLetter + "_" + lastName;
-}
 
 class VPNService {
     private static instance: VPNService | null = null;

@@ -13,7 +13,10 @@ import CreateButton from "../../components/common/CreateButton";
 import Checkbox from "../../components/common/Checkbox";
 import EmptyState from "../../components/common/EmptyState";
 import Panel from "../../components/common/Panel";
-
+import OrgService from "../../services/OrgService";
+import { deriveUsername } from "../../utils/usernameUtil";
+import { decodeJwtClaims } from "../../utils/jwtLocalStorage";
+import { getSessionPassword } from "../../utils/passwordMemory";
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -134,9 +137,20 @@ export default function WorkstationsPage() {
       setRdpStatus("Error: Workstation IP is missing");
       return;
     }
-    //TODO: Get creds from Domain Controller
-    const rdpUsername = "demo";
-    const rdpPassword = "demo"; //NOSONAR typescript:S2068
+
+    const org = await OrgService.getOrganization();
+    const domain = org.domain_name;
+    // Extract username from JWT claims
+    let username = "";
+    if (accessToken) {
+      const claims = decodeJwtClaims(accessToken);
+      username = deriveUsername(claims);
+    }
+    const rdpPassword = getSessionPassword();
+    if (rdpPassword == null) {
+      throw new Error("RDP Pass not set");
+    }
+    let rdpUsername = `${domain}\\${username}`;
 
     try {
       setRdpStatus("Launching RDP client...");
