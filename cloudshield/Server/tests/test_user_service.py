@@ -1146,3 +1146,54 @@ class TestUserService:
         assert result == str(existing_id)
         mocks['users_admin'].insert_one.assert_called_once()
         assert mocks['users_admin'].find_one.call_count == 2
+
+
+class TestHelperFunctions:
+    """Tests for module-level helper functions added during refactoring."""
+
+    def test_gen_password_returns_16_char_string(self):
+        from cloudshield.Server.services.user_service import _gen_password
+        pwd = _gen_password()
+        assert isinstance(pwd, str)
+        assert len(pwd) == 16
+
+    def test_gen_password_different_each_call(self):
+        from cloudshield.Server.services.user_service import _gen_password
+        # Very unlikely to get the same password twice
+        assert _gen_password() != _gen_password()
+
+    def test_build_create_actor_with_current_user(self):
+        from cloudshield.Server.services.user_service import _build_create_actor
+        current_user = {"id": "u1", "role": "admin", "org_id": "org-1"}
+        actor = _build_create_actor(current_user, "org-1")
+        assert actor == {"id": "u1", "role": "admin", "org_id": "org-1"}
+
+    def test_build_create_actor_without_current_user(self):
+        from cloudshield.Server.services.user_service import _build_create_actor
+        actor = _build_create_actor(None, "org-99")
+        assert actor == {"system": "public_signup", "role": "admin", "org_id": "org-99"}
+
+    def test_resolve_org_id_admin_no_org_id_raises(self, monkeypatch):
+        import cloudshield.Server.services.user_service as svc
+        mock_user = {"id": "u1", "role": "admin", "org_id": "org-1"}
+        user_data = unittest.mock.MagicMock()
+        user_data.org_id = None
+        with pytest.raises(ValueError, match="org_id is required"):
+            svc._resolve_org_id(user_data, mock_user, None, None, None, None, None)
+
+    def test_resolve_org_id_admin_invalid_org_id_raises(self):
+        import cloudshield.Server.services.user_service as svc
+        mock_user = {"id": "u1", "role": "admin", "org_id": "org-1"}
+        user_data = unittest.mock.MagicMock()
+        user_data.org_id = "not-a-valid-objectid!!!"
+        with pytest.raises(ValueError, match="Invalid organization ID format"):
+            svc._resolve_org_id(user_data, mock_user, None, None, None, None, None)
+
+    def test_resolve_org_id_admin_valid_returns_org_id(self):
+        import cloudshield.Server.services.user_service as svc
+        valid_id = "507f1f77bcf86cd799439011"
+        mock_user = {"id": "u1", "role": "admin", "org_id": "org-1"}
+        user_data = unittest.mock.MagicMock()
+        user_data.org_id = valid_id
+        result = svc._resolve_org_id(user_data, mock_user, None, None, None, None, None)
+        assert result == valid_id

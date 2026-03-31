@@ -361,96 +361,72 @@ export const fetchWorkstations = async (
 
     const workstations = Array.isArray(data)
       ? data
-      : data.templates || data.items || data.workstations || [];
+      : data.items || data.workstations || [];
 
-
-    const normalized = workstations.map((w) => {
-      const id = String(w.id || w._id || w.template_id || "");
-      const members = Array.isArray(w.members)
-        ? w.members
-        : Array.isArray(w.users)
-          ? w.users
-          : [];
-      const memberIds = members
-        .map((member) => getModalItemId(member))
-        .filter(Boolean);
-      const groups = Array.isArray(w.access_groups || w.groups)
-        ? (w.access_groups || w.groups).map((group) => {
-            if (typeof group === "string") {
-              return { id: group, _id: group, name: group };
-            }
-
-            return {
-              ...group,
-              id: String(
-                group?.id || group?._id || group?.name || group?.group_name || "",
-              ),
-              _id: String(
-                group?._id || group?.id || group?.name || group?.group_name || "",
-              ),
-              name: group?.group_name || group?.name || "Untitled Group",
-              memberCount:
-                typeof group?.member_count === "number"
-                  ? group.member_count
-                  : Array.isArray(group?.members)
-                    ? group.members.length
-                    : 0,
-            };
-          })
-        : [];
-      const software = Array.isArray(w.software)
-        ? w.software.map((item) => {
-            if (typeof item === "string") {
-              return { id: item, _id: item, name: item };
-            }
-
-            return {
-              ...item,
-              id: String(item?.id || item?._id || item?.name || ""),
-              _id: String(item?._id || item?.id || item?.name || ""),
-              name: item?.name || "Untitled Software",
-            };
-          })
-        : [];
-      const normalizedStatus = String(w.status || "").toLowerCase();
-      const status = ["online", "active"].includes(normalizedStatus)
-        ? "connected"
-        : ["offline", "inactive"].includes(normalizedStatus)
-          ? "disconnected"
-          : normalizedStatus
-            ? normalizedStatus
-            : w.is_ready === false
-              ? "provisioning"
-              : w.is_ready === true
-                ? "connected"
-                : "disconnected";
-      const resolvedUsers = memberIds
+    const normalized = workstations.map((w) => ({
+      members: Array.isArray(w.members) ? w.members : [],
+      status:
+        (w.status || "").toLowerCase() === "online"
+          ? "connected"
+          : (w.status || "").toLowerCase() === "offline"
+            ? "disconnected"
+            : w.status || "disconnected",
+      id: String(w.id || w._id || ""),
+      _id: String(w._id || w.id || ""),
+      name: w.name || "Untitled Workstation",
+      strength: w.description || "",
+      software: Array.isArray(w.software) ? w.software : [],
+      groups: Array.isArray(w.access_groups) ? w.access_groups : [],
+      users: (Array.isArray(w.members) ? w.members : [])
         .map((memberId) => userMap.get(String(memberId)))
-        .filter(Boolean);
+        .filter(Boolean),
+      usersCount: Array.isArray(w.members) ? w.members.length : 0,
+      currentUser: (Array.isArray(w.members) ? w.members : [])
+        .map((memberId) => userMap.get(String(memberId)))
+        .find(Boolean) || null,
+      online: w.online || ["online", "active", "connected"].includes((w.status || "").toLowerCase()) || false,
+      ipAddress: w.ip_address || w.ipAddress || "",
+      org_id: w.org_id,
+      _isVm: true,
+    }));
 
-      return {
-        members: memberIds,
-        source,
-        status,
-        id,
-        _id: String(w._id || w.id || w.template_id || ""),
-        name: w.name || "Untitled Workstation",
-        code: w.code || (id ? `WS-${id.slice(-4).toUpperCase()}` : "WS"),
-        strength: w.description || "",
-        description: w.description || "",
-        software,
-        groups,
-        users: resolvedUsers,
-        usersCount: memberIds.length,
-        currentUser: resolvedUsers[0] || null,
-        lastUsed: w.last_used || w.lastUsed || w.updated_at || "—",
-        online:
-          w.online || ["connected", "active", "online"].includes(status),
-        ipAddress: w.ip_address || w.ipAddress || w.ipv4_address || "",
-        org_id: w.org_id,
-        isReady: w.is_ready,
-      };
-    });
+    // Merge in templates that are still building (is_ready=false).
+    // Fetch independently so a failure here doesn't break the main workstations list.
+    try {
+      const templatesRes = await apiGet(
+        `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
+      );
+      const tData = await templatesRes.json();
+      const templates = Array.isArray(tData)
+        ? tData
+        : tData.templates || tData.items || [];
+      const buildingTemplates = templates
+        .filter((t) => t.is_ready === false)
+        .map((t) => ({
+          id: String(t._id || t.id || ""),
+          _id: String(t._id || t.id || ""),
+          name: t.name || "Untitled Template",
+          strength: t.description || "",
+          software: Array.isArray(t.software) ? t.software : [],
+          groups: Array.isArray(t.access_groups) ? t.access_groups : [],
+          members: Array.isArray(t.members) ? t.members : [],
+          users: [],
+          usersCount: Array.isArray(t.members) ? t.members.length : 0,
+          currentUser: null,
+          status: "building",
+          online: false,
+          ipAddress: "",
+          org_id: t.org_id,
+          _isTemplate: true,
+        }));
+
+      // Avoid duplicating: skip templates whose ID already appears in VM rows.
+      const vmIds = new Set(normalized.map((w) => w.id));
+      const newTemplates = buildingTemplates.filter((t) => !vmIds.has(t.id));
+      normalized.unshift(...newTemplates);
+    } catch (e) {
+      console.warn("Could not fetch workstation templates:", e.message);
+    }
 
     setAllWorkstations?.(normalized);
     return normalized;

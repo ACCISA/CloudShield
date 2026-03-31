@@ -73,7 +73,7 @@ try:
     users_public = db_emp["users_public"]
     orgs = db_admin["orgs"]
     audit = db_admin["audit"]    
-    activity = db_admin["activity"]
+    activity = db["activity"]
 
     try:
         orgs.create_index("company_name", unique=True)

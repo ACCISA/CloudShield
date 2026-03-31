@@ -238,8 +238,7 @@ export default function WorkstationsPage() {
     const created = await createWorkstationTemplate(orgId, payload);
     if (created) {
       const newRow = {
-        id: created.job_id || `ws-${Date.now()}`,
-        source: "template",
+        id: created.template_id || created.job_id || `ws-${Date.now()}`,
         name: payload.name,
         code: "WS-NEW",
         strength: payload.description || "",
@@ -251,7 +250,8 @@ export default function WorkstationsPage() {
         software: payload.software || [],
         currentUser: payload.members?.[0] || null,
         lastUsed: "—",
-        status: "provisioning",
+        status: "building",
+        _isTemplate: true,
       };
       let nextCount = 0;
       setRows((prev) => {
@@ -317,14 +317,14 @@ export default function WorkstationsPage() {
   };
   const handleToggleStatus = (id) =>
     setRows((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              status: r.status === "connected" ? "disconnected" : "connected",
-            }
-          : r,
-      ),
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (["building", "provisioning"].includes((r.status || "").toLowerCase())) return r;
+        return {
+          ...r,
+          status: r.status === "connected" ? "disconnected" : "connected",
+        };
+      }),
     );
 
   const handleRefresh = useCallback(async () => {

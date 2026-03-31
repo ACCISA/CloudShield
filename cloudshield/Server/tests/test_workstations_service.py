@@ -99,7 +99,12 @@ def test_enqueue_ws_create_default(mock_dependencies):
         "Test WS",
         "Test",
         ["software1"],
-        ["group1"],[]
+        ["group1"],
+        [],
+        None,
+        None,
+        None,
+        job_timeout=-1,
     )
 
     # Verify logger was called
@@ -120,7 +125,8 @@ def test_enqueue_ws_start(mock_dependencies):
     mock_dependencies["queue"].enqueue.assert_called_once_with(
         ws_service.ws_start,
         "org-1",
-        "template-1"
+        "template-1",
+        None,
     )
 
     # Verify logger was called
@@ -261,7 +267,7 @@ def test_ws_create_default_with_empty_software(mock_dependencies, monkeypatch):
 
     # Verify task was called with empty software
     mock_task.assert_called_once_with(
-        "org-1", "Test WS", "Test", [], ["group1"],[]
+        "org-1", "Test WS", "Test", [], ["group1"], [], None, None, None
     )
 
 
@@ -285,7 +291,7 @@ def test_ws_create_default_with_multiple_access_groups(mock_dependencies, monkey
 
     # Verify task was called with all access groups
     mock_task.assert_called_once_with(
-        "org-1", "Test WS", "Test", ["software1"], access_groups, []
+        "org-1", "Test WS", "Test", ["software1"], access_groups, [], None, None, None
     )
 
 
@@ -315,6 +321,8 @@ def test_ws_create_default_with_requesting_user_id(mock_dependencies, monkeypatc
         ["group1"],
         [],
         "user-123",
+        None,
+        None,
     )
 
 
@@ -446,6 +454,9 @@ def test_enqueue_ws_create_default_appends_requesting_user_id(mock_dependencies)
         ["group1"],
         [],
         "user-123",
+        None,
+        None,
+        job_timeout=-1,
     )
 
 

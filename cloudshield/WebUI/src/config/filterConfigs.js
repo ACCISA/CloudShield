@@ -17,6 +17,8 @@ const STATUS_OPTIONS = {
     { value: "connected", label: "Connected" },
     { value: "disconnected", label: "Disconnected" },
     { value: "busy", label: "Busy" },
+    { value: "building", label: "Building template" },
+    { value: "provisioning", label: "Provisioning" },
   ],
   user: [
     { value: "active", label: "Active" },

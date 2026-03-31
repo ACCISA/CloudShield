@@ -787,77 +787,31 @@ class TestListTemplates:
         assert len(data["templates"]) == 1
 
 
-class TestTemplateMutations:
-    def test_updates_template(self, mocked_app):
+class TestCreateDefaultExceptionPath:
+    """Test POST /workstations/templates exception path (lines 163-165)."""
+
+    def test_insert_template_failure_returns_500(self, mocked_app, monkeypatch):
         import cloudshield.Server.routes.workstations as ws_mod
 
+        monkeypatch.setattr(
+            ws_mod,
+            "insert_workstation_template",
+            MagicMock(side_effect=Exception("DB error")),
+        )
         app, _ = mocked_app
-        template_id = "507f1f77bcf86cd799439011"
-        template_oid = ObjectId(template_id)
-        template_coll = MagicMock()
-        template_coll.find_one.side_effect = [
-            {"_id": template_oid, "org_id": "org-1", "name": "Old"},
-            {"_id": template_oid, "org_id": "org-1", "name": "New"},
-        ]
-        template_coll.update_one.return_value = MagicMock(matched_count=1)
-        ws_mod.db.workstation_templates = template_coll
-
         with app.test_client() as c:
-            resp = c.patch(
-                f"/api/workstations/templates/{template_id}",
-                json={"name": "New", "members": ["u1"], "software": ["s1"]},
-            )
-
-        assert resp.status_code == 200
+            resp = c.post("/api/workstations/templates", json={
+                "org_id": "org-1",
+                "name": "ws",
+                "description": "test",
+                "software": ["app1"],
+                "access_groups": ["grp1"],
+                "members": [],
+            })
+        assert resp.status_code == 500
         data = resp.get_json()
-        assert data["template"]["_id"] == template_id
-        assert data["template"]["name"] == "New"
-        template_coll.update_one.assert_called_once()
-
-    def test_deletes_template(self, mocked_app):
-        import cloudshield.Server.routes.workstations as ws_mod
-
-        app, _ = mocked_app
-        template_id = "507f1f77bcf86cd799439011"
-        template_oid = ObjectId(template_id)
-        template_coll = MagicMock()
-        template_coll.find_one.return_value = {
-            "_id": template_oid,
-            "org_id": "org-1",
-            "name": "Delete Me",
-        }
-        template_coll.delete_one.return_value = MagicMock(deleted_count=1)
-        ws_mod.db.workstation_templates = template_coll
-
-        with app.test_client() as c:
-            resp = c.delete(f"/api/workstations/templates/{template_id}")
-
-        assert resp.status_code == 204
-        template_coll.delete_one.assert_called_once_with(
-            {"_id": template_oid, "org_id": "org-1"},
-        )
-
-    def test_deletes_template_with_string_id(self, mocked_app):
-        import cloudshield.Server.routes.workstations as ws_mod
-
-        app, _ = mocked_app
-        template_id = "legacy-template-id"
-        template_coll = MagicMock()
-        template_coll.find_one.return_value = {
-            "_id": template_id,
-            "org_id": "org-1",
-            "name": "Delete Me",
-        }
-        template_coll.delete_one.return_value = MagicMock(deleted_count=1)
-        ws_mod.db.workstation_templates = template_coll
-
-        with app.test_client() as c:
-            resp = c.delete(f"/api/workstations/templates/{template_id}")
-
-        assert resp.status_code == 204
-        template_coll.delete_one.assert_called_once_with(
-            {"_id": template_id, "org_id": "org-1"},
-        )
+        assert "error" in data
+        assert data["error"] == "Failed to create workstation template"
 
 
 class TestStartAndUpdateRoutes:

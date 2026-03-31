@@ -905,14 +905,8 @@ def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch)
                 "shares": shares_col,
             }[name]
 
-    class DummyPrimaryDB:
-        def __getitem__(self, name):
-            return {
-                "workstation_templates": workstation_templates_col,
-            }[name]
-
-    monkeypatch.setattr(api_mod, "db_admin", DummyAdminDB())
-    monkeypatch.setattr(api_mod, "db", DummyPrimaryDB())
+    monkeypatch.setattr(api_mod, "db_admin", DummyDB())
+    monkeypatch.setattr(api_mod, "db", DummyDB())
 
     with client.application.test_request_context("/api/organizations/me/metrics", method="GET"):
         g.user = {"org_id": org_id}

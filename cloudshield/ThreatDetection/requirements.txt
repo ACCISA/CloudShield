@@ -4,3 +4,4 @@ grpcio-tools
 psutil
 pyinstaller
 schedule
+requests

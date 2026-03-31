@@ -461,8 +461,8 @@ export default function EmployeesModal({
     if (!em.valid) errs.email = em.error;
     const jt = validateJobTitle(formData.jobTitle);
     if (!jt.valid) errs.jobTitle = jt.error;
-    // Password is required in create mode.
-    if (!isEditMode) {
+    // Password is optional in create mode (auto-generated if blank), but must be valid if provided.
+    if (!isEditMode && formData.password) {
       const pw = validatePassword(formData.password);
       if (!pw.valid) errs.password = pw.error;
     }
@@ -833,7 +833,7 @@ function BasicInfoStep({
 
       {!isEditMode && (
         <div className="employees-modal-form-group">
-          <label className="employees-modal-label">Password (optional)</label>
+          <label className="employees-modal-label">Password</label>
           <input
             type="password"
             className={`employees-modal-input${fieldErrors.password ? " input-error" : ""}`}
@@ -875,7 +875,7 @@ function SelectionStep({
       renderItem: (item) => ({
         icon: <DisplayIcon type="workstation" data={item} size="small" />,
         name: item.name,
-        detail: `${item.online ? "🟢 Online" : "🔴 Offline"} • ${item.ipAddress}`,
+        detail: `${item.online ? "🟢 Online" : ["building", "provisioning"].includes((item.status || "").toLowerCase()) ? "🟡 Building" : "🔴 Offline"} • ${item.ipAddress}`,
       }),
     },
     groups: {
