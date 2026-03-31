@@ -3,6 +3,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import List
 from models import Workstation,WorkstationTemplate,WorkstationStatus
+from .access_groups_repo import get_access_group_by_id
 
 def insert_workstation_template(*, db, org_id: str, name: str, description: str, software: List[str], is_ready: bool, access_groups: List[str], members: List[str]):
     """
@@ -20,6 +21,72 @@ def insert_workstation_template(*, db, org_id: str, name: str, description: str,
         access_groups=access_groups,
         members=members
         ).model_dump(by_alias=True))
+
+def get_assigned_workstation(*, db, user_id: str):
+    pass
+
+def release_assigned_workstation(*, db, user_id: str):
+    """
+    Releases a workstation by clearing the current user and
+    resetting the status to ACTIVE.
+    """
+    result = db.workstations.update_one(
+        {"cur_user_id": user_id},
+        {
+            "$set": {
+                "cur_user_id": None,
+                "status": "active"
+            }
+        }
+    )
+
+    return result.modified_count > 0
+
+def set_assigned_workstation(*, db, user_id: str, vm_id: str):
+    """
+    Assigns a specific workstation to a user and marks it as used.
+    """
+    result = db.workstations.update_one(
+        {"_id": ObjectId(vm_id)}, 
+        {
+            "$set": {
+                "cur_user_id": user_id,
+                "status": "used"
+            }
+        }
+    )
+    
+    return result.modified_count > 0
+
+def get_assigned_workstation_templates(*, db, user_id: str):
+    ws_db = db.workstation_templates
+    assigned_templates = []
+
+    all_templates = list(ws_db.find({}))
+
+    for doc in all_templates:
+        if user_id in doc.get("members", []):
+            doc["_id"] = str(doc["_id"])
+            assigned_templates.append(doc)
+            continue
+
+        group_ids = doc.get("access_groups", [])
+        is_in_group = False
+
+        for group_id in group_ids:
+            try:
+                group = get_access_group_by_id(db=db, group_id=group_id)
+                if group and user_id in group.get("members", []):
+                    is_in_group = True
+                    break
+            except Exception:
+                continue
+
+        if is_in_group:
+            doc["_id"] = str(doc["_id"])
+            assigned_templates.append(doc)
+
+    return assigned_templates
 
 def get_workstation_templates(*, db, org_id: str):
     ws_db = db.workstation_templates
@@ -131,22 +198,32 @@ def get_workstations(db, org_id: str):
 def get_available_workstation(db, user_id):
     """
     Get workstations that are available to a user
+    A User can be given access through access_groups or direct membership access
     """
 
     groups_db = db.access_groups
 
-    user_groups = list(groups_db.find({"_id": 1, "members": user_id}))
+    user_groups = list(groups_db.find({"members": user_id}))
+    group_ids = [doc["_id"] for doc in user_groups]
 
     workstation_template_cursor = db.workstation_templates.find({
-        "access_groups": {"$in": user_groups}
+        "$or": [
+            {"access_groups": {"$in": group_ids}},
+            {"members": user_id} 
+        ]
     })
 
     template_ids = [str(doc["_id"]) for doc in workstation_template_cursor]
 
     workstations_cursor = db.workstations.find({
         "template_id": {"$in": template_ids},
-        "status": "ACTIVE"
+        "status": "active"
     })
+    
+    workstations = []
+    for doc in workstations_cursor:
+        doc["_id"] = str(doc["_id"])
+        workstations.append(doc)
 
-    return list(workstations_cursor)
+    return workstations
 

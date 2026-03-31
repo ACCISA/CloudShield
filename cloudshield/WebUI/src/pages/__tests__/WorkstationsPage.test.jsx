@@ -4,6 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
+import * as clientApi from "../../api/client.js";
+
+jest.mock("../../api/client.js", () => ({
+  apiGet: jest.fn(),
+  apiPatch: jest.fn(),
+  apiPost: jest.fn(),
+  apiDelete: jest.fn(),
+  apiUploadFile: jest.fn(),
+}));
 
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
@@ -169,21 +178,15 @@ const renderPage = () =>
   );
 
 describe("createWorkstationTemplate", () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
-    global.fetch = jest.fn();
     localStorage.clear();
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
     jest.clearAllMocks();
   });
 
   test("posts full template payload to /api/workstations/templates", async () => {
     localStorage.setItem("jwt", "token-123");
-    global.fetch.mockResolvedValueOnce({
+    clientApi.apiPost.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ job_id: "job-1" }),
     });
@@ -197,11 +200,11 @@ describe("createWorkstationTemplate", () => {
     });
 
     expect(result).toEqual({ job_id: "job-1" });
-    expect(global.fetch).toHaveBeenCalledWith(
-      "/api/workstations/templates",
-      expect.objectContaining({ method: "POST" }),
+    expect(clientApi.apiPost).toHaveBeenCalledWith(
+      "/workstations/templates",
+      expect.objectContaining({ name: "WS 1" }),
     );
-    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    const body = clientApi.apiPost.mock.calls[0][1];
     expect(body.org_id).toBe("org-1");
     expect(body.access_groups).toEqual(["g1"]);
     expect(body.members).toEqual(["u1"]);
@@ -379,7 +382,7 @@ describe("WorkstationsPage", () => {
 
   test("shows error toast when create submit fails", async () => {
     const user = userEvent.setup();
-    global.fetch.mockRejectedValueOnce(new Error("create failed"));
+    clientApi.apiPost.mockRejectedValueOnce(new Error("create failed"));
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
@@ -446,7 +449,7 @@ describe("WorkstationsPage", () => {
 
   test("shows failed-create toast when createWorkstationTemplate returns null", async () => {
     const user = userEvent.setup();
-    global.fetch.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
+    clientApi.apiPost.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());

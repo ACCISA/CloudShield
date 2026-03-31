@@ -31,6 +31,7 @@ import { managementToolbarStyles } from "../components/common/styles/managementT
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
 import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
+import { apiPost } from "../api/client.js";
 
 const styles = {
   ...managementToolbarStyles,
@@ -56,22 +57,14 @@ const styles = {
 export const createWorkstationTemplate = async (orgId, payload) => {
   try {
     const token = localStorage.getItem("jwt");
-    const res = await fetch(`/api/workstations/templates`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
+    const res = await apiPost(`/workstations/templates`, {
         org_id: orgId,
         name: payload.name,
         description: payload.description,
         software: (payload.software || []).map((s) => s.id || s._id || s),
         access_groups: (payload.access_groups || []).map((g) => g.id || g._id || g),
         members: (payload.members || []).map((u) => u.id || u._id || u),
-      }),
-    });
+      });
     if (!res.ok) throw new Error("Failed to create workstation template");
     return await res.json();
   } catch (e) {

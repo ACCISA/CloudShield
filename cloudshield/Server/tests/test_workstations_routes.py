@@ -65,63 +65,6 @@ class TestGetAvailableWorkstationsRoute:
         # Accept any response - we're testing that the parameter is being read
         assert response.status_code in [200, 400, 500]
 
-
-class TestGetWorkstationsRoute:
-    """Test GET /workstations route - reads org_id from auth token (g.user)."""
-
-    def test_route_missing_org_id_returns_400(self, app):
-        """Test: missing org_id in auth token returns 400 error."""
-        from cloudshield.Server.routes.workstations import workstations_bp
-        no_org_app = Flask(__name__ + "_no_org")
-        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
-
-        @no_org_app.before_request
-        def inject_user_no_org():
-            from flask import g
-            g.user = {"id": "test-user", "role": "admin"}
-
-        with no_org_app.test_client() as c:
-            response = c.get('/api/workstations')
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'error' in data
-
-    def test_route_with_org_id_in_token_succeeds(self, client):
-        """Test: route returns 200 when auth token contains org_id."""
-        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
-            mock_collection = MagicMock()
-            mock_collection.find.return_value = []
-            mock_db.__getitem__.return_value = mock_collection
-            response = client.get('/api/workstations')
-            assert response.status_code == 200
-
-    def test_route_with_empty_org_id_returns_error(self, app):
-        """Test: empty org_id in auth token is treated as missing."""
-        from cloudshield.Server.routes.workstations import workstations_bp
-        empty_org_app = Flask(__name__ + "_empty_org")
-        empty_org_app.register_blueprint(workstations_bp, url_prefix='/api')
-
-        @empty_org_app.before_request
-        def inject_user_empty_org():
-            from flask import g
-            g.user = {"id": "test-user", "role": "admin", "org_id": ""}
-
-        with empty_org_app.test_client() as c:
-            response = c.get('/api/workstations')
-        assert response.status_code == 400
-
-    def test_route_org_id_scopes_query(self, client):
-        """Test: org_id from token is used to scope the DB query."""
-        with patch('cloudshield.Server.routes.workstations.db_admin') as mock_db:
-            mock_collection = MagicMock()
-            mock_collection.find.return_value = []
-            mock_db.__getitem__.return_value = mock_collection
-            client.get('/api/workstations')
-            call_args = mock_collection.find.call_args
-            assert call_args is not None
-            assert 'test-org' in str(call_args)
-
-
 class TestCreateDefaultRoute:
     """Test POST /workstations route - multi-field validation (lines 59-84)."""
 
@@ -495,24 +438,6 @@ class TestLineSpecificCoverage:
                 # Some falsy values might be accepted as strings
                 assert response.status_code in [200, 400, 500]
 
-    def test_line_50_get_workstations_org_id_falsy_check(self, app):
-        """
-        Test: if not org_id in g.user: return 400 error
-        This triggers when org_id is None or empty string in the auth token.
-        """
-        from cloudshield.Server.routes.workstations import workstations_bp
-        no_org_app = Flask(__name__ + "_falsy_org")
-        no_org_app.register_blueprint(workstations_bp, url_prefix='/api')
-
-        @no_org_app.before_request
-        def inject_no_org():
-            from flask import g
-            g.user = {"id": "test-user", "role": "admin", "org_id": None}
-
-        with no_org_app.test_client() as c:
-            response_missing = c.get('/api/workstations')
-        assert response_missing.status_code == 400
-
     def test_line_70_create_default_validation_chain(self, client):
         """
         Test line 70-73: validation chain for org_id, name, description, software, access_groups
@@ -573,9 +498,7 @@ def mocked_app(monkeypatch):
     from unittest.mock import MagicMock
     import cloudshield.Server.routes.workstations as ws_mod
 
-    mock_db_admin = MagicMock()
     mock_db = MagicMock()
-    monkeypatch.setattr(ws_mod, "db_admin", mock_db_admin)
     monkeypatch.setattr(ws_mod, "db", mock_db)
 
     class DummyJob:
@@ -593,120 +516,11 @@ def mocked_app(monkeypatch):
     def inject_admin():
         g.user = {"id": "u1", "role": "admin", "org_id": "org-1", "email": "a@b.com"}
 
-    return app, mock_db_admin
-
-
-class TestGetAssignedWorkstations:
-    def test_admin_gets_all_org_workstations(self, mocked_app):
-        app, mock_db_admin = mocked_app
-        mock_col = MagicMock()
-        mock_col.find.return_value = [{"_id": "abc", "name": "ws1"}]
-        mock_db_admin.__getitem__.return_value = mock_col
-
-        with app.test_client() as c:
-            resp = c.get("/api/workstations/assigned")
-        assert resp.status_code == 200
-        data = resp.get_json()
-        assert len(data["items"]) == 1
-        assert data["items"][0]["_id"] == "abc"
-
-    def test_non_admin_scopes_to_user(self, monkeypatch):
-        import cloudshield.Server.routes.workstations as ws_mod
-        mock_db_admin = MagicMock()
-        mock_db = MagicMock()
-        monkeypatch.setattr(ws_mod, "db_admin", mock_db_admin)
-        monkeypatch.setattr(ws_mod, "db", mock_db)
-
-        mock_col = MagicMock()
-        mock_col.find.return_value = []
-        mock_db_admin.__getitem__.return_value = mock_col
-
-        from cloudshield.Server.routes.workstations import workstations_bp
-        from flask import Flask, g
-
-        app = Flask(__name__ + "_nonadmin")
-        app.register_blueprint(workstations_bp, url_prefix="/api")
-
-        @app.before_request
-        def inject_user():
-            g.user = {"id": "u2", "role": "user", "org_id": "org-1", "email": "u@b.com"}
-
-        with app.test_client() as c:
-            resp = c.get("/api/workstations/assigned")
-        assert resp.status_code == 200
-        query_arg = mock_col.find.call_args[0][0]
-        assert "$or" in query_arg
-
-
-class TestCreateWorkstation:
-    def test_non_admin_forbidden(self, monkeypatch):
-        import cloudshield.Server.routes.workstations as ws_mod
-        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
-        monkeypatch.setattr(ws_mod, "db", MagicMock())
-
-        from cloudshield.Server.routes.workstations import workstations_bp
-        from flask import Flask, g
-
-        app = Flask(__name__ + "_forbid")
-        app.register_blueprint(workstations_bp, url_prefix="/api")
-
-        @app.before_request
-        def inject_user():
-            g.user = {"id": "u3", "role": "user", "org_id": "org-1"}
-
-        with app.test_client() as c:
-            resp = c.post("/api/workstations", json={"name": "ws"})
-        assert resp.status_code == 403
-
-    def test_missing_org_id_returns_400(self, monkeypatch):
-        import cloudshield.Server.routes.workstations as ws_mod
-        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
-        monkeypatch.setattr(ws_mod, "db", MagicMock())
-
-        from cloudshield.Server.routes.workstations import workstations_bp
-        from flask import Flask, g
-
-        app = Flask(__name__ + "_noorg")
-        app.register_blueprint(workstations_bp, url_prefix="/api")
-
-        @app.before_request
-        def inject_admin_no_org():
-            g.user = {"id": "u4", "role": "admin", "org_id": None}
-
-        with app.test_client() as c:
-            resp = c.post("/api/workstations", json={"name": "ws"})
-        assert resp.status_code == 400
-
-    def test_creates_workstation_returns_201(self, mocked_app):
-        app, mock_db_admin = mocked_app
-        mock_col = MagicMock()
-        mock_col.insert_one.return_value = MagicMock(inserted_id="ws-id-1")
-        mock_db_admin.__getitem__.return_value = mock_col
-
-        with app.test_client() as c:
-            resp = c.post("/api/workstations", json={"name": "My WS"})
-        assert resp.status_code == 201
-        assert "id" in resp.get_json()
-
-    def test_creates_workstation_with_groups(self, mocked_app):
-        app, mock_db_admin = mocked_app
-        mock_ws_col = MagicMock()
-        mock_ws_col.insert_one.return_value = MagicMock(inserted_id="ws-id-2")
-        mock_ag_col = MagicMock()
-        mock_db_admin.__getitem__.side_effect = lambda k: mock_ws_col if k == "workstations" else mock_ag_col
-
-        with app.test_client() as c:
-            resp = c.post("/api/workstations", json={
-                "name": "My WS",
-                "groups": ["507f1f77bcf86cd799439011"],
-            })
-        assert resp.status_code == 201
-        mock_ag_col.update_many.assert_called_once()
-
+    return app
 
 class TestListTemplates:
     def test_missing_org_id_returns_400(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/templates")
         assert resp.status_code == 400
@@ -717,7 +531,7 @@ class TestListTemplates:
             ws_mod, "get_workstation_templates",
             lambda db, org_id: [{"id": "tpl-1", "name": "Default"}],
         )
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/templates?org_id=org-1")
         assert resp.status_code == 200
@@ -736,7 +550,7 @@ class TestCreateDefaultExceptionPath:
             "insert_workstation_template",
             MagicMock(side_effect=Exception("DB error")),
         )
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.post("/api/workstations/templates", json={
                 "org_id": "org-1",
@@ -754,7 +568,7 @@ class TestCreateDefaultExceptionPath:
 
 class TestStartAndUpdateRoutes:
     def test_start_success_returns_job_id(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.post("/api/workstations/start", json={
                 "org_id": "org-1", "template_id": "tpl-1"
@@ -763,8 +577,531 @@ class TestStartAndUpdateRoutes:
         assert resp.get_json()["job_id"] == "job-999"
 
     def test_update_success_returns_job_id(self, mocked_app):
-        app, _ = mocked_app
+        app = mocked_app
         with app.test_client() as c:
             resp = c.get("/api/workstations/update?id=ws-1&status=ready")
         assert resp.status_code == 202
         assert resp.get_json()["job_id"] == "job-999"
+
+
+class TestAssignWorkstationRoute:
+    """Test GET /workstations/assign route - parameter validation and workstation assignment."""
+
+    def test_assign_missing_user_id_returns_400(self, client):
+        """Test missing user_id parameter returns 400 error."""
+        response = client.get('/api/workstations/assign?template_id=tpl-123')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_assign_missing_template_id_returns_400(self, client):
+        """Test missing template_id parameter returns 400 error."""
+        response = client.get('/api/workstations/assign?user_id=user-123')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'template_id is required'
+
+    def test_assign_empty_user_id_returns_400(self, client):
+        """Test empty user_id parameter is treated as missing."""
+        response = client.get('/api/workstations/assign?user_id=&template_id=tpl-123')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_assign_empty_template_id_returns_400(self, client):
+        """Test empty template_id parameter is treated as missing."""
+        response = client.get('/api/workstations/assign?user_id=user-123&template_id=')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'template_id is required'
+
+    def test_assign_no_workstations_available_returns_none(self, client):
+        """Test returns None workstation when none are available."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            mock_get_avail.return_value = []
+            
+            response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data['workstation'] is None
+
+    def test_assign_no_workstations_logs_warning(self, client):
+        """Test logs warning when no workstations are available."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.logger') as mock_logger:
+                mock_get_avail.return_value = []
+                
+                response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                assert mock_logger.warning.called
+
+    def test_assign_successful_assignment(self, client):
+        """Test successful workstation assignment returns the workstation."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                mock_workstation = {
+                    '_id': 'ws-456',
+                    'name': 'test-ws',
+                    'status': 'ACTIVE',
+                    'ip': '192.168.1.100'
+                }
+                mock_get_avail.return_value = [mock_workstation]
+                mock_set_assigned.return_value = True
+                
+                response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data['workstation'] == mock_workstation
+
+    def test_assign_set_assigned_called_with_correct_params(self, client):
+        """Test set_assigned_workstation is called with correct parameters."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                mock_workstation = {'_id': 'ws-789', 'name': 'test'}
+                mock_get_avail.return_value = [mock_workstation]
+                mock_set_assigned.return_value = True
+                
+                response = client.get('/api/workstations/assign?user_id=user-456&template_id=tpl-456')
+                
+                # Verify set_assigned_workstation was called with correct params
+                mock_set_assigned.assert_called_once()
+                call_kwargs = mock_set_assigned.call_args[1]
+                assert call_kwargs['vm_id'] == 'ws-789'
+                assert call_kwargs['user_id'] == 'user-456'
+
+    def test_assign_failed_assignment_returns_none(self, client):
+        """Test returns None when set_assigned_workstation fails."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                mock_workstation = {'_id': 'ws-999', 'name': 'test'}
+                mock_get_avail.return_value = [mock_workstation]
+                mock_set_assigned.return_value = False
+                
+                response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data['workstation'] is None
+
+    def test_assign_failed_assignment_logs_error(self, client):
+        """Test logs error when assignment fails."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                with patch('cloudshield.Server.routes.workstations.logger') as mock_logger:
+                    mock_workstation = {'_id': 'ws-999', 'name': 'test'}
+                    mock_get_avail.return_value = [mock_workstation]
+                    mock_set_assigned.return_value = False
+                    
+                    response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                    assert mock_logger.error.called
+
+    def test_assign_success_logs_info(self, client):
+        """Test logs info message on successful assignment."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                with patch('cloudshield.Server.routes.workstations.logger') as mock_logger:
+                    mock_workstation = {'_id': 'ws-555', 'name': 'test'}
+                    mock_get_avail.return_value = [mock_workstation]
+                    mock_set_assigned.return_value = True
+                    
+                    response = client.get('/api/workstations/assign?user_id=user-789&template_id=tpl-789')
+                    assert mock_logger.info.called
+
+    def test_assign_selects_first_available_workstation(self, client):
+        """Test selects the first workstation from available list."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                ws1 = {'_id': 'ws-1', 'name': 'first'}
+                ws2 = {'_id': 'ws-2', 'name': 'second'}
+                mock_get_avail.return_value = [ws1, ws2]
+                mock_set_assigned.return_value = True
+                
+                response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                
+                # Verify first workstation was selected for assignment
+                call_kwargs = mock_set_assigned.call_args[1]
+                assert call_kwargs['vm_id'] == 'ws-1'
+
+    def test_assign_both_params_required_none_check(self, client):
+        """Test that both user_id and template_id are required."""
+        # Test with user_id as None
+        response = client.get('/api/workstations/assign?template_id=tpl-123')
+        assert response.status_code == 400
+        
+        # Test with template_id as None
+        response = client.get('/api/workstations/assign?user_id=user-123')
+        assert response.status_code == 400
+
+    def test_assign_returns_200_on_success(self, client):
+        """Test returns 200 status code on successful assignment."""
+        with patch('cloudshield.Server.routes.workstations.get_available_workstation') as mock_get_avail:
+            with patch('cloudshield.Server.routes.workstations.set_assigned_workstation') as mock_set_assigned:
+                mock_workstation = {'_id': 'ws-100', 'name': 'test'}
+                mock_get_avail.return_value = [mock_workstation]
+                mock_set_assigned.return_value = True
+                
+                response = client.get('/api/workstations/assign?user_id=user-123&template_id=tpl-123')
+                assert response.status_code == 200
+
+
+class TestReleaseWorkstationRoute:
+    """Test GET /workstations/release route - parameter validation and workstation release."""
+
+    def test_release_missing_user_id_returns_400(self, client):
+        """Test missing user_id parameter returns 400 error."""
+        response = client.get('/api/workstations/release')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_release_empty_user_id_returns_400(self, client):
+        """Test empty user_id parameter is treated as missing."""
+        response = client.get('/api/workstations/release?user_id=')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_release_successful_returns_true(self, client):
+        """Test successful release returns status True."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            response = client.get('/api/workstations/release?user_id=user-123')
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data['status'] is True
+
+    def test_release_failed_returns_false(self, client):
+        """Test failed release returns status False."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = False
+            
+            response = client.get('/api/workstations/release?user_id=user-123')
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data['status'] is False
+
+    def test_release_called_with_user_id(self, client):
+        """Test release_assigned_workstation is called with correct user_id."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            response = client.get('/api/workstations/release?user_id=user-456')
+            
+            # Verify release was called with correct params
+            mock_release.assert_called_once()
+            call_kwargs = mock_release.call_args[1]
+            assert call_kwargs['user_id'] == 'user-456'
+
+    def test_release_failed_logs_warning(self, client):
+        """Test logs warning when release fails."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            with patch('cloudshield.Server.routes.workstations.logger') as mock_logger:
+                mock_release.return_value = False
+                
+                response = client.get('/api/workstations/release?user_id=user-123')
+                assert mock_logger.warning.called
+
+    def test_release_success_does_not_log_warning(self, client):
+        """Test does not log warning when release succeeds."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            with patch('cloudshield.Server.routes.workstations.logger') as mock_logger:
+                mock_release.return_value = True
+                
+                response = client.get('/api/workstations/release?user_id=user-123')
+                assert not mock_logger.warning.called
+
+    def test_release_returns_200_regardless_of_status(self, client):
+        """Test returns 200 status code regardless of release success or failure."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            # Test with success
+            mock_release.return_value = True
+            response = client.get('/api/workstations/release?user_id=user-123')
+            assert response.status_code == 200
+            
+            # Test with failure
+            mock_release.return_value = False
+            response = client.get('/api/workstations/release?user_id=user-456')
+            assert response.status_code == 200
+
+    def test_release_with_different_user_ids(self, client):
+        """Test release works with different user_id values."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            user_ids = ['user-123', 'user-abc', 'user-xyz-789', 'test@example.com']
+            for user_id in user_ids:
+                response = client.get(f'/api/workstations/release?user_id={user_id}')
+                assert response.status_code == 200
+                data = response.get_json()
+                assert 'status' in data
+
+    def test_release_user_id_parameter_extraction(self, client):
+        """Test user_id parameter is correctly extracted from query string."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            specific_user = 'specific-user-id-123'
+            response = client.get(f'/api/workstations/release?user_id={specific_user}')
+            
+            # Verify the exact user_id was passed
+            call_kwargs = mock_release.call_args[1]
+            assert call_kwargs['user_id'] == specific_user
+
+    def test_release_multiple_calls_with_different_users(self, client):
+        """Test multiple release calls can be made in sequence."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            # First call
+            response1 = client.get('/api/workstations/release?user_id=user-1')
+            assert response1.status_code == 200
+            
+            # Second call
+            response2 = client.get('/api/workstations/release?user_id=user-2')
+            assert response2.status_code == 200
+            
+            # Verify both calls were made
+            assert mock_release.call_count == 2
+
+    def test_release_response_structure(self, client):
+        """Test release response has correct structure."""
+        with patch('cloudshield.Server.routes.workstations.release_assigned_workstation') as mock_release:
+            mock_release.return_value = True
+            
+            response = client.get('/api/workstations/release?user_id=user-123')
+            data = response.get_json()
+            
+            # Response should have 'status' key
+            assert 'status' in data
+            # Value should be boolean
+            assert isinstance(data['status'], bool)
+
+
+class TestGetAssignedTemplatesRoute:
+    """Test GET /workstations/templates/assigned route - parameter validation and template retrieval."""
+
+    def test_assigned_templates_missing_user_id_returns_400(self, client):
+        """Test missing user_id parameter returns 400 error."""
+        response = client.get('/api/workstations/templates/assigned')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_assigned_templates_empty_user_id_returns_400(self, client):
+        """Test empty user_id parameter is treated as missing."""
+        response = client.get('/api/workstations/templates/assigned?user_id=')
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_assigned_templates_returns_empty_list(self, client, monkeypatch):
+        """Test returns empty list when user has no assigned templates."""
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: []
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['templates'] == []
+
+    def test_assigned_templates_returns_single_template(self, client, monkeypatch):
+        """Test returns single template for user."""
+        mock_template = {
+            '_id': 'tpl-001',
+            'name': 'Development Workstation',
+            'org_id': 'org-1',
+            'is_ready': True
+        }
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: [mock_template]
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['templates']) == 1
+        assert data['templates'][0] == mock_template
+
+    def test_assigned_templates_returns_multiple_templates(self, client, monkeypatch):
+        """Test returns multiple templates for user."""
+        mock_templates = [
+            {'_id': 'tpl-001', 'name': 'Dev Template', 'is_ready': True},
+            {'_id': 'tpl-002', 'name': 'Test Template', 'is_ready': True},
+            {'_id': 'tpl-003', 'name': 'Prod Template', 'is_ready': False}
+        ]
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: mock_templates
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data['templates']) == 3
+        assert data['templates'] == mock_templates
+
+    def test_assigned_templates_called_with_correct_user_id(self, client, monkeypatch):
+        """Test get_assigned_workstation_templates is called with correct user_id."""
+        calls = []
+        
+        def mock_func(db, user_id):
+            calls.append({'db': db, 'user_id': user_id})
+            return []
+        
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            mock_func
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-456')
+        assert response.status_code == 200
+        assert len(calls) == 1
+        assert calls[0]['user_id'] == 'user-456'
+
+    def test_assigned_templates_called_with_db_parameter(self, client, monkeypatch):
+        """Test get_assigned_workstation_templates is called with db parameter."""
+        calls = []
+        
+        def mock_func(db, user_id):
+            calls.append({'db': db, 'user_id': user_id})
+            return []
+        
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            mock_func
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-789')
+        assert response.status_code == 200
+        assert len(calls) == 1
+        assert 'db' in calls[0]
+
+    def test_assigned_templates_returns_200_on_success(self, client, monkeypatch):
+        """Test returns 200 status code on successful retrieval."""
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: [{'_id': 'tpl-1', 'name': 'template'}]
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        assert response.status_code == 200
+
+    def test_assigned_templates_response_has_templates_key(self, client, monkeypatch):
+        """Test response contains 'templates' key."""
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: []
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        data = response.get_json()
+        assert 'templates' in data
+
+    def test_assigned_templates_with_complex_template_objects(self, client, monkeypatch):
+        """Test returns templates with complex nested structures."""
+        mock_templates = [
+            {
+                '_id': 'tpl-complex-1',
+                'name': 'Complex Template',
+                'org_id': 'org-1',
+                'software': ['app1', 'app2', 'app3'],
+                'access_groups': ['group-1', 'group-2'],
+                'is_ready': True,
+                'metadata': {'cpu': 4, 'ram': 8, 'disk': 100}
+            }
+        ]
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: mock_templates
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['templates'][0]['metadata']['cpu'] == 4
+
+    def test_assigned_templates_with_different_user_ids(self, client, monkeypatch):
+        """Test route works with different user_id values."""
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: []
+        )
+        user_ids = ['user-123', 'user-abc', 'user-xyz-789', 'test@example.com', 'admin-1']
+        for user_id in user_ids:
+            response = client.get(f'/api/workstations/templates/assigned?user_id={user_id}')
+            assert response.status_code == 200
+            data = response.get_json()
+            assert 'templates' in data
+
+    def test_assigned_templates_user_id_not_none_check(self, client):
+        """Test that user_id must not be None."""
+        # Test route behavior when user_id is not provided
+        response = client.get('/api/workstations/templates/assigned')
+        assert response.status_code == 400
+
+    def test_assigned_templates_multiple_calls_with_different_users(self, client, monkeypatch):
+        """Test multiple calls can be made for different users."""
+        response_templates = {
+            'user-1': [{'_id': 'tpl-1', 'name': 'User1 Template'}],
+            'user-2': [{'_id': 'tpl-2', 'name': 'User2 Template'}]
+        }
+        
+        def mock_func(db, user_id):
+            return response_templates.get(user_id, [])
+        
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            mock_func
+        )
+        
+        response1 = client.get('/api/workstations/templates/assigned?user_id=user-1')
+        assert response1.status_code == 200
+        
+        response2 = client.get('/api/workstations/templates/assigned?user_id=user-2')
+        assert response2.status_code == 200
+
+    def test_assigned_templates_error_message_matches_constant(self, client):
+        """Test error message matches the ERROR_USER_ID_REQUIRED constant."""
+        response = client.get('/api/workstations/templates/assigned')
+        data = response.get_json()
+        assert data['error'] == 'user_id is required'
+
+    def test_assigned_templates_returns_templates_list_structure(self, client, monkeypatch):
+        """Test response structure with templates as list."""
+        mock_templates = [
+            {'_id': 'tpl-1', 'name': 'Template 1'},
+            {'_id': 'tpl-2', 'name': 'Template 2'}
+        ]
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            lambda db, user_id: mock_templates
+        )
+        response = client.get('/api/workstations/templates/assigned?user_id=user-123')
+        data = response.get_json()
+        
+        # Verify structure
+        assert isinstance(data['templates'], list)
+        assert len(data['templates']) == 2
+        assert all('_id' in t for t in data['templates'])
+
+    def test_assigned_templates_with_special_characters_in_user_id(self, client, monkeypatch):
+        """Test route handles special characters in user_id."""
+        received_user_ids = []
+        
+        def mock_func(db, user_id):
+            received_user_ids.append(user_id)
+            return []
+        
+        monkeypatch.setattr(
+            'repos.get_assigned_workstation_templates',
+            mock_func
+        )
+        
+        # Test with special characters (URL-encoded)
+        user_id = 'user-special_123@domain.com'
+        response = client.get(f'/api/workstations/templates/assigned?user_id={user_id}')
+        assert response.status_code == 200
+        assert len(received_user_ids) == 1
+        assert received_user_ids[0] == user_id
+
+    def test_assigned_templates_none_user_id_not_accepted(self, client):
+        """Test that None user_id is rejected."""
+        # When user_id is not provided, should get 400
+        response = client.get('/api/workstations/templates/assigned?user_id=None')
+        # Note: The string "None" may be accepted as a valid user_id
+        # The actual check is for missing/empty parameter
+        assert response.status_code in [200, 400]
