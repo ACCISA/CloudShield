@@ -1,14 +1,11 @@
 """Workstations API endpoints."""
 from __future__ import annotations
-
-from bson import ObjectId
-from flask import Blueprint, g, request, jsonify
-
+from flask import Blueprint, request, jsonify
 from utils.logging_setup import get_logger
 from services import service_dispatcher
 from cloudshield.Server.security.guards import require_auth
-from utils import db, db_admin
-from repos import get_workstation_templates, insert_workstation_template
+from utils import db
+from repos import get_workstation_templates, insert_workstation_template, get_available_workstation, set_assigned_workstation, release_assigned_workstation
 
 logger = get_logger("workstations")
 
@@ -20,111 +17,83 @@ ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
 ERROR_STATUS_REQUIRED = "status is required"
 ERROR_USER_ID_REQUIRED = "user_id is required"
 
-
-@workstations_bp.route("/workstations/assigned", methods=["GET"])
+@workstations_bp.route("/workstations/assign", methods=["GET"])
 @require_auth
-def get_assigned_workstations():
-    user = g.user
-    org_id = user.get("org_id")
-    role = user.get("role")
-    user_id = user.get("id")
+def get_workstations_avail():
+    """
+    This route is used to find a ACTIVE workstation vm and assign it to a user.
+    This route should be used by the DesktopUI
+    """
+    user_id = request.args.get("user_id")
+    template_id = request.args.get("template_id")
+    
+    if not user_id:
+        return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
 
-    collection = db_admin["workstations"]
+    if not template_id:
+        return jsonify({"error": ERROR_TEMPLATE_ID_REQUIRED}), 400
 
-    if role == "admin":
-        query = {"org_id": org_id}
-    else:
-        email = user.get("email", "")
-        query = {
-            "org_id": org_id,
-            "$or": [
-                {"assigned_user_id": user_id},
-                {"assigned_user": user_id},
-                {"assigned_user": email},
-            ],
-        }
+    available_workstations = get_available_workstation(db, user_id=user_id)
 
-    items = list(collection.find(query))
-    for item in items:
-        item["_id"] = str(item["_id"])
+    if len(available_workstations) == 0:
+        logger.warning(f"No workstations are currently available (user_id={user_id}, tempalte_id={template_id})")
+        return jsonify({"workstation":None}), 200
+    
+    assigned_workstation = available_workstations[0]
+    vm_id = assigned_workstation["_id"]
 
-    return jsonify({"items": items}), 200
+    if not set_assigned_workstation(db=db, vm_id=vm_id, user_id=user_id):
+        logger.error(f"Failed to assgign workstation to user (user_id={user_id}, vm_id={vm_id})")
+        return jsonify({"workstation":None}), 200
 
+    logger.info(f"Assigned workstation to user (user_id={user_id}, vm_id={vm_id})")
 
-@workstations_bp.route("/workstations", methods=["GET"])
+    return jsonify({"workstation": assigned_workstation}), 200
+
+@workstations_bp.route("/workstations/release", methods=["GET"])
 @require_auth
-def get_workstations_api():
-    user = g.user
-    org_id = user.get("org_id")
-
-    if not org_id:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
-
-    collection = db_admin["workstations"]
-    items = list(collection.find({"org_id": org_id}))
-    for item in items:
-        item["_id"] = str(item["_id"])
-
-    return jsonify({"items": items}), 200
-
-
-@workstations_bp.route("/workstations", methods=["POST"])
-@require_auth
-def create_workstation():
-    user = g.user
-    role = user.get("role")
-    org_id = user.get("org_id")
-
-    if role != "admin":
-        return jsonify({"error": "Forbidden"}), 403
-
-    if not org_id:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
-
-    data = request.get_json() or {}
-    name = data.get("name", "Workstation")
-    groups = data.get("groups", [])
-
-    collection = db_admin["workstations"]
-
-    doc = {
-        "org_id": org_id,
-        "name": name,
-        "status": "offline",
-        "assigned_user": None,
-        "assigned_user_id": None,
-    }
-
-    result = collection.insert_one(doc)
-    workstation_id = str(result.inserted_id)
-
-    if groups:
-        try:
-            access_groups_collection = db_admin["access_groups"]
-        except (KeyError, TypeError):
-            access_groups_collection = None
-        if access_groups_collection is not None:
-            group_oids = [ObjectId(gid) for gid in groups]
-            access_groups_collection.update_many(
-                {"_id": {"$in": group_oids}, "org_id": org_id},
-                {"$addToSet": {"workstations": workstation_id}},
-            )
-
-    return jsonify({"id": workstation_id}), 201
-
-
-@workstations_bp.route("/workstation/available", methods=["GET"])
-@require_auth
-def get_available_workstations_api():
+def release_workstation():
     user_id = request.args.get("user_id")
 
     if not user_id:
         return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
 
-    from repos import get_available_workstation
+    status = release_assigned_workstation(db=db, user_id=user_id)
+    if status is False:
+        # From the desktop UI's perspective it does not matter if we failed to release a VM. Howerver we should be notified about it
+        logger.warning(f"Failed to release assigned workstation (user_id={user_id})")
+
+    return jsonify({"status":status}), 200
+    
+
+@workstations_bp.route("/workstation/available", methods=["GET"])
+@require_auth
+def get_available_workstations_api():
+    """
+    Note: This route is for debugging purposes, we dont need to have a route that pulls the available vms since this is abastracted from the user
+    """
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
+
     workstations_list = get_available_workstation(db, user_id=user_id)
 
     return jsonify({"workstations": workstations_list}), 200
+
+@workstations_bp.route("/workstations/templates/assigned", methods=["GET"])
+@require_auth
+def get_assigned_templates():
+
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
+
+    from repos import get_assigned_workstation_templates
+    workstation_templates_list = get_assigned_workstation_templates(db=db, user_id=user_id)
+
+    return jsonify({"templates": workstation_templates_list}), 200
 
 @workstations_bp.route("/workstations/templates", methods=["POST"])
 @require_auth

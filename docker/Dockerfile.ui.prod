@@ -1,57 +1,41 @@
-# Production-hardened Dockerfile for CloudShield WebUI
-# Multi-stage build: Node.js build stage + minimal runtime stage
-# Optimized for production deployment
+FROM node:22-bookworm-slim AS builder
 
-# Build stage: Install dependencies and build assets
-FROM node:22-alpine AS builder
+ARG VITE_API_BASE_URL
+ARG VITE_API_ACCESS_TOKEN
+ARG VITE_PUBLIC_POSTHOG_KEY
+ARG VITE_PUBLIC_POSTHOG_HOST
+ARG VITE_POSTHOG_ENABLED
+ARG VITE_STRIPE_PUBLIC_KEY
 
 ENV CI=true \
-    NODE_ENV=production
+    NODE_ENV=production \
+    VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_API_ACCESS_TOKEN=$VITE_API_ACCESS_TOKEN \
+    VITE_PUBLIC_POSTHOG_KEY=$VITE_PUBLIC_POSTHOG_KEY \
+    VITE_PUBLIC_POSTHOG_HOST=$VITE_PUBLIC_POSTHOG_HOST \
+    VITE_POSTHOG_ENABLED=$VITE_POSTHOG_ENABLED \
+    VITE_STRIPE_PUBLIC_KEY=$VITE_STRIPE_PUBLIC_KEY
 
 WORKDIR /app
 
-# Copy package files only for layer caching
 COPY cloudshield/WebUI/package*.json ./
+RUN npm ci
 
-# Install dependencies (frozen version)
-RUN npm ci --only=production && \
-    npm cache clean --force
+COPY cloudshield/WebUI/ ./
+RUN npm run build
 
-# Copy source code
-COPY cloudshield/WebUI/ .
-
-# Build static assets (vite production build)
-RUN npm run build 2>&1 || echo "Build completed with status"
-
-# Runtime stage: Serve built artifacts only
-FROM node:22-alpine
-
-# Create non-root user for running application
-RUN addgroup -g 1002 -S web && adduser -u 1002 -S web -G web
-
-ENV NODE_ENV=production
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Install serve package (lightweight HTTP server)
-RUN npm install --global serve@14.2.0 && \
-    npm cache clean --force
+RUN npm install -g serve@14.2.0 \
+    && addgroup --system web \
+    && adduser --system --ingroup web web
 
-# Copy built assets from builder
-COPY --from=builder --chown=web:web /app/dist /app/dist
+COPY --from=builder /app/dist /app/dist
 
-# Create logs directory
-RUN mkdir -p /app/logs && \
-    chown web:web /app/logs && \
-    chmod 755 /app/logs
-
-# Set security context
 USER web
 
 EXPOSE 5173
-
-# Health check
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:5173 || exit 1
 
 CMD ["serve", "-s", "dist", "-l", "5173"]

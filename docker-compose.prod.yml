@@ -1,259 +1,194 @@
-version: '3.9'
+x-api-env: &api_env
+  AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+  AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+  AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION}"
+  MONGO_URL: "${MONGO_URL}"
+  MONGO_DB: "${MONGO_DB}"
+  CLOUDSHIELD_DEV_TOKEN: "${CLOUDSHIELD_DEV_TOKEN}"
+  CLOUDSHIELD_DEV_EMAIL: "${CLOUDSHIELD_DEV_EMAIL}"
+  CLOUDSHIELD_DEV_ROLE: "${CLOUDSHIELD_DEV_ROLE}"
+  CLOUDSHIELD_DEV_ORG: "${CLOUDSHIELD_DEV_ORG}"
+  JWT_SECRET: "${JWT_SECRET}"
+  JWT_ISS: "${JWT_ISS}"
+  JWT_AUD: "${JWT_AUD}"
+  JWT_EXPIRE_SECONDS: "${JWT_EXPIRE_SECONDS}"
+  EMAIL_ENABLED: "${EMAIL_ENABLED}"
+  SMTP_HOST: "${SMTP_HOST}"
+  SMTP_PORT: "${SMTP_PORT}"
+  SMTP_USER: "${SMTP_USER}"
+  SMTP_PASSWORD: "${SMTP_PASSWORD}"
+  SMTP_FROM: "${SMTP_FROM}"
+  SMTP_USE_TLS: "${SMTP_USE_TLS}"
+  DESKTOP_APP_DOWNLOAD_URL_WINDOWS: "${DESKTOP_APP_DOWNLOAD_URL_WINDOWS}"
+  DESKTOP_APP_DOWNLOAD_URL_MAC: "${DESKTOP_APP_DOWNLOAD_URL_MAC}"
+  DESKTOP_APP_DOWNLOAD_URL_LINUX: "${DESKTOP_APP_DOWNLOAD_URL_LINUX}"
+  DEPLOYMENT_MODE: "docker"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_URL: "redis://redis:6379/0"
+  ES_URL: "http://elasticsearch:9200"
+  WORKSTATIONS_MOUNT_DIR: "${WORKSTATIONS_MOUNT_DIR}"
+  WINDOWS_ISO_PATH: "${WINDOWS_ISO_PATH}"
+  KVM: "Y"
+  GEMINI_API_KEY: "${GEMINI_API_KEY}"
+  CLOUDSHIELD_SERVER_URL: "${CLOUDSHIELD_SERVER_URL:-https://real.encs.concordia.ca}"
+  CLOUDSHIELD_LOG_DIR: "/tmp/cloudshield-logs"
+  CS_API_CONTAINER: "cs-api-prod"
+  CS_UI_CONTAINER: "cs-ui-prod"
+  TZ: "UTC"
 
-# Production deployment manifest for CloudShield
-# Features:
-# - Hardened images with multi-stage builds
-# - Resource limits to prevent DoS
-# - Non-root user execution
-# - Health checks for orchestrator monitoring
-# - Minimal logging and debug tooling
-# - Security-focused network configuration
-
-networks:
-  vpc_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: "172.23.0.0/16"
-  cloudshield_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: "172.28.0.0/16"
-
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  es_data:
-    driver: local
+x-api-volumes: &api_volumes
+  - ${WORKSTATIONS_MOUNT_DIR}:/data
+  - ${CLOUDSHIELD_DATA_MOUNT_DIR}:/var/lib/cloudshield/terraform
+  - /var/run/docker.sock:/var/run/docker.sock
 
 services:
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--stop-writes-on-bgsave-error", "no", "--requirepass", "${REDIS_PASSWORD}"]
+    container_name: cloudshield-redis-prod
+    command: ["redis-server", "--stop-writes-on-bgsave-error", "no"]
     ports:
-      - "127.0.0.1:6379:6379"  # Localhost only for production
-    networks:
-      vpc_net:
-        ipv4_address: "172.23.0.5"
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
       timeout: 3s
-      retries: 3
+      retries: 20
     volumes:
       - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    environment:
-      - TZ=UTC
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api_test
-    image: cloudshield/api:${VERSION:-latest}
-    container_name: cs-api-prod
-    environment:
-      - MONGO_URL=${MONGO_URL}
-      - MONGO_DB=${MONGO_DB}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_ISS=${JWT_ISS}
-      - JWT_AUD=${JWT_AUD}
-      - JWT_EXPIRE_SECONDS=${JWT_EXPIRE_SECONDS}
-      - EMAIL_ENABLED=${EMAIL_ENABLED}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_USE_TLS=${SMTP_USE_TLS}
-      - DEPLOYMENT_MODE=docker
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - ES_URL=http://elasticsearch:9200
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - CLOUDSHIELD_SERVER_URL=${CLOUDSHIELD_SERVER_URL}
-      - LOG_LEVEL=INFO
-      - TZ=UTC
-    depends_on:
-      redis:
-        condition: service_healthy
-    ports:
-      - "5050:5050"
     networks:
       vpc_net:
-        ipv4_address: "172.23.0.2"
-      cloudshield_net:
-        ipv4_address: 172.28.0.30
+        ipv4_address: "172.23.1.5"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    container_name: cloudshield-elasticsearch-prod
+    environment:
+      discovery.type: "single-node"
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "127.0.0.1:9200:9200"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
     volumes:
-      - ${CLOUDSHIELD_DATA_MOUNT_DIR}:/var/lib/cloudshield:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 512M
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/log
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      cloudshield_net:
+        ipv4_address: "172.28.0.5"
 
-  threat-detection:
+  api-test:
     build:
       context: .
-      dockerfile: docker/Dockerfile.server.prod
-    image: cloudshield/threat-detection:${VERSION:-latest}
-    container_name: cs-threat-detection-prod
-    environment:
-      - ES_URL=http://elasticsearch:9200
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - LOG_LEVEL=INFO
-      - TZ=UTC
+      dockerfile: docker/Dockerfile.api_test.prod
+    image: cloudshield-api-test:prod
+    container_name: cs-api-prod
+    command: ["python", "/app/cloudshield/Server/server.py"]
+    environment: *api_env
+    volumes: *api_volumes
     depends_on:
       redis:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     ports:
-      - "50051:50051"
+      - "127.0.0.1:5050:5050"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:5050/healthz >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
     networks:
       vpc_net:
-        ipv4_address: "172.23.0.3"
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "python", "-c", "import grpc; print('OK')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+        ipv4_address: "172.23.1.30"
+      cloudshield_net:
+        ipv4_address: "172.28.0.30"
+
+  api-worker:
+    image: cloudshield-api-test:prod
+    container_name: cs-api-worker-prod
+    command: ["rq", "worker", "api", "--url", "redis://redis:6379/0"]
+    working_dir: /app/cloudshield/Server
+    environment: *api_env
+    volumes: *api_volumes
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/log
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.1.31"
+      cloudshield_net:
+        ipv4_address: "172.28.0.31"
+
+  workstations-worker:
+    image: cloudshield-api-test:prod
+    container_name: cs-workstations-worker-prod
+    command: ["rq", "worker", "workstations", "--url", "redis://redis:6379/0"]
+    working_dir: /app/cloudshield/Server
+    environment: *api_env
+    volumes: *api_volumes
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.1.32"
+      cloudshield_net:
+        ipv4_address: "172.28.0.32"
 
   ui:
     build:
       context: .
       dockerfile: docker/Dockerfile.ui.prod
       args:
-        NODE_ENV: production
-    image: cloudshield/ui:${VERSION:-latest}
+        VITE_API_BASE_URL: "${VITE_API_BASE_URL}"
+        VITE_API_ACCESS_TOKEN: "${VITE_API_ACCESS_TOKEN}"
+        VITE_PUBLIC_POSTHOG_KEY: "${VITE_PUBLIC_POSTHOG_KEY}"
+        VITE_PUBLIC_POSTHOG_HOST: "${VITE_PUBLIC_POSTHOG_HOST}"
+        VITE_POSTHOG_ENABLED: "${VITE_POSTHOG_ENABLED}"
+        VITE_STRIPE_PUBLIC_KEY: "${VITE_STRIPE_PUBLIC_KEY}"
+    image: cloudshield-ui:prod
     container_name: cs-ui-prod
+    depends_on:
+      api-test:
+        condition: service_started
     environment:
-      - NODE_ENV=production
-      - TZ=UTC
+      TZ: "UTC"
     ports:
-      - "5173:5173"
-    networks:
-      vpc_net:
-        ipv4_address: "172.23.0.20"
-      cloudshield_net:
-        ipv4_address: 172.28.0.20
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      - "127.0.0.1:5173:5173"
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-
-  # Elasticsearch service for threat detection data
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-    ports:
-      - "9200:9200"
-    networks:
-      vpc_net:
-        ipv4_address: "172.23.0.6"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:5173 || exit 1"]
+      interval: 15s
       timeout: 5s
-      retries: 3
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+      retries: 10
+    networks:
+      vpc_net:
+        ipv4_address: "172.23.1.20"
+      cloudshield_net:
+        ipv4_address: "172.28.0.20"
+
+networks:
+  vpc_net:
+    external: true
+    name: ${VPC_NET_NAME:-vpc_net}
+
+  cloudshield_net:
+    external: true
+    name: ${CLOUDSHIELD_NET_NAME:-cloudshield_cloudshield_net}
+
+volumes:
+  redis_data:
+  es_data:
