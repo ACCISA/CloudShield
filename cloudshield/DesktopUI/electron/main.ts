@@ -223,7 +223,7 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     }
   }
 
-  let command = process.platform === "linux" ? "/usr/sbin/openvpn" : "openvpn";
+  let command = "openvpn";
   const args: string[] = ["--config", ovpnPath, "--writepid", pidFilePath];
 
 
