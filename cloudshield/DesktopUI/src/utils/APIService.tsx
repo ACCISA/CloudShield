@@ -89,17 +89,32 @@ class APIService {
     };
   }
 
-  private buildUrl(endpoint: string, orgIdParam?: boolean): string {
+  private buildUrl(
+    endpoint: string,
+    orgIdParam?: boolean,
+    userIdParam?: boolean,
+  ): string {
     const base = APIService.baseUrl.endsWith("/")
       ? APIService.baseUrl
       : `${APIService.baseUrl}/`;
     let normalizedEndpoint = endpoint.trim().replace(/^\/+/, "");
+    let paramAdded = false;
     if (orgIdParam) {
       const orgId = localStorage.getItem("org_id");
       if (orgId) {
         normalizedEndpoint +=
           (normalizedEndpoint.includes("?") ? "&" : "?") +
           `org_id=${encodeURIComponent(orgId)}`;
+        paramAdded = true;
+      }
+    }
+    if (userIdParam) {
+      const userId = localStorage.getItem("user_id");
+      console.log("user id", userId);
+      if (userId) {
+        normalizedEndpoint +=
+          (normalizedEndpoint.includes("?") || paramAdded ? "&" : "?") +
+          `user_id=${encodeURIComponent(userId)}`;
       }
     }
     return `${base}${normalizedEndpoint}`;
@@ -140,9 +155,10 @@ class APIService {
     endpoint: string,
     options: ApiRequestOptions = {},
     orgIdParam?: boolean,
+    userIdParam?: boolean,
   ): Promise<Response> {
     const headers = this.withAuthHeaders(options.headers, options.skipAuth);
-    return fetch(this.buildUrl(endpoint, orgIdParam), {
+    return fetch(this.buildUrl(endpoint, orgIdParam, userIdParam), {
       ...options,
       method: "GET",
       headers,
@@ -154,13 +170,14 @@ class APIService {
     body?: unknown,
     options: ApiRequestOptions = {},
     orgIdParam?: boolean,
+    userIdParam?: boolean,
   ): Promise<Response> {
     const { body: normalizedBody, contentType } = this.normalizeBody(body);
     const headers = this.withAuthHeaders(options.headers, options.skipAuth);
     if (contentType && !headers.has("Content-Type")) {
       headers.set("Content-Type", contentType);
     }
-    return fetch(this.buildUrl(endpoint, orgIdParam), {
+    return fetch(this.buildUrl(endpoint, orgIdParam, userIdParam), {
       ...options,
       method: "POST",
       headers,
@@ -172,8 +189,14 @@ class APIService {
     endpoint: string,
     options: ApiRequestOptions = {},
     orgIdParam?: boolean,
+    userIdParam?: boolean,
   ) {
-    return APIService.getInstance().get(endpoint, options, orgIdParam);
+    return APIService.getInstance().get(
+      endpoint,
+      options,
+      orgIdParam,
+      userIdParam,
+    );
   }
 
   public static async post(
@@ -181,8 +204,15 @@ class APIService {
     body?: unknown,
     options: ApiRequestOptions = {},
     orgIdParam?: boolean,
+    userIdParam?: boolean,
   ) {
-    return APIService.getInstance().post(endpoint, body, options, orgIdParam);
+    return APIService.getInstance().post(
+      endpoint,
+      body,
+      options,
+      orgIdParam,
+      userIdParam,
+    );
   }
 }
 

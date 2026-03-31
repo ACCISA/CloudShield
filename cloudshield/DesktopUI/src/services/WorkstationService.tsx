@@ -1,13 +1,8 @@
 // import APIService from "../utils/APIService";
-import {
-  // mapWorkstationTemplate,
-  Workstation,
-  WorkstationTemplate,
-} from "../models/Workstations";
-import { mockWorkstations } from "../mocks/WorkstationsMock";
+import { Workstation, WorkstationTemplate } from "../models/Workstations";
 
 import APIService from "../utils/APIService";
-import { mapWorkstationTemplate } from "../models/Workstations";
+import { mapWorkstationTemplate, mapWorkstation } from "../models/Workstations";
 class WorkstationService {
   private static instance: WorkstationService | null = null;
 
@@ -36,26 +31,25 @@ class WorkstationService {
   }
 
   public async getWorkstations(): Promise<Workstation[]> {
-    // TODO: Replace with real API call when backend is ready
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(mockWorkstations);
-      }, 500); // Simulate network delay
-    });
-    // const response = await APIService.get("workstations/pool");
-    // if (response.status === 200) {
-    //     let workstations: Workstation[] = [];
-    //     const body = response.body;
-    //     if (Array.isArray(body)) {
-    //         workstations = body.map((item) => {
-    //             return mapWorkstation(item);
-    //         });
-    //     }
-    //     return workstations;
-    // }
-    // else{
-    //     throw new Error(response.status.toString() + response.body);
-    // }
+
+    const response = await APIService.get(
+      "workstation/available",
+      {},
+      false,
+      true,
+    );
+    if (response.status === 200) {
+      let workstations: Workstation[] = [];
+      const body = response.body;
+      if (Array.isArray(body["workstations"])) {
+        workstations = body["workstations"].map((item) => {
+          return mapWorkstation(item);
+        });
+      }
+      return workstations;
+    } else {
+      throw new Error(response.status.toString() + response.body);
+    }
   }
 }
 
