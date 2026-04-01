@@ -8,6 +8,7 @@ import WorkstationService from "../../services/WorkstationService";
 import SearchField from "../../components/common/SearchField";
 import DisplayButton from "../../components/common/DisplayButton";
 import RefreshButton from "../../components/common/RefreshButton";
+import Pagination from "../../components/common/Pagination";
 import DisplayIcon from "../../components/common/DisplayIcon";
 import ConnectIcon from "../../assets/ConnectIcon";
 import BuildingTemplateIcon from "../../assets/BuildingTemplateIcon";
@@ -21,6 +22,7 @@ import { getSessionPassword } from "../../utils/passwordMemory";
 const BYPASS_AUTH_VPN =
   (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
     (import.meta.env.DEV ? "true" : "false")) === "true";
+const ITEMS_PER_PAGE = 8;
 
 type TemplateStatus = "connected" | "building";
 
@@ -98,6 +100,7 @@ export default function WorkstationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingWorkstations, setIsLoadingWorkstations] =
     useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedWorkstation, setSelectedWorkstation] =
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
@@ -230,8 +233,8 @@ export default function WorkstationsPage() {
   };
 
   const listItems = useMemo(() => {
-    return templateItems.map((item) => {
-      const key = `${item.org_id || "org"}-${item.name || "template"}`;
+    return templateItems.map((item, index) => {
+      const key = `${item._id || "template"}-${item.org_id || "org"}-${item.name || "template"}-${index}`;
       const description = (
         item.description || "(No Description)"
       ).toLowerCase();
@@ -253,6 +256,23 @@ export default function WorkstationsPage() {
       );
     });
   }, [listItems, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, refreshIndex, layout]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
 
   const handleTemplateUse = async (template_id: string) => {
     try {
@@ -339,7 +359,7 @@ export default function WorkstationsPage() {
             <Panel className="-mt-3.75">
               {layout === "list" ? (
                 <div data-testid="workstations-list-view">
-                  {filteredItems.map((item, index) => {
+                  {paginatedItems.map((item, index) => {
                     const status: TemplateStatus = item.is_ready
                       ? "connected"
                       : "building";
@@ -347,40 +367,41 @@ export default function WorkstationsPage() {
                     const templateId = item.org_id || "—";
 
                     return (
-                      <div
-                        key={item.key}
-                        className={`flex flex-col gap-4 border-b border-white/5 px-5 py-4 md:flex-row md:items-center md:justify-between ${
-                          index === filteredItems.length - 1 ? "border-b-0" : ""
-                        }`}
-                      >
-                        <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
-                          <div className="flex items-center gap-3">
-                            <DisplayIcon
-                              type="workstation"
-                              data={item}
-                              size="medium"
-                            />
-                            <div>
-                              <div className="text-sm font-semibold text-white/90">
-                                {item.name || "Workstation"}
-                              </div>
-                              <div className="text-xs text-white/50">
-                                ↳ {templateId}
+                      <div key={item.key}>
+                        <div className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                          <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
+                            <div className="flex items-center gap-3">
+                              <DisplayIcon
+                                type="workstation"
+                                data={item}
+                                size="medium"
+                              />
+                              <div>
+                                <div className="text-sm font-semibold text-white/90">
+                                  {item.name || "Workstation"}
+                                </div>
+                                <div className="text-xs text-white/50">
+                                  ↳ {templateId}
+                                </div>
                               </div>
                             </div>
                           </div>
+
+                          <div className="flex items-center gap-3">
+                            <StatusButton
+                              status={status}
+                              onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                            />
+                            <ActiveIcon
+                              outerColor={statusMeta.outerDot}
+                              innerColor={statusMeta.innerDot}
+                            />
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <StatusButton
-                            status={status}
-                            onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
-                          />
-                          <ActiveIcon
-                            outerColor={statusMeta.outerDot}
-                            innerColor={statusMeta.innerDot}
-                          />
-                        </div>
+                        {index < paginatedItems.length - 1 && (
+                          <div className="mx-4 border-t border-white/8" />
+                        )}
                       </div>
                     );
                   })}
@@ -390,7 +411,7 @@ export default function WorkstationsPage() {
                   data-testid="workstations-icons-view"
                   className="grid gap-4 p-5 sm:grid-cols-2"
                 >
-                  {filteredItems.map((item) => {
+                  {paginatedItems.map((item) => {
                     const status: TemplateStatus = item.is_ready
                       ? "connected"
                       : "building";
@@ -431,6 +452,15 @@ export default function WorkstationsPage() {
                 </div>
               )}
             </Panel>
+
+            <Pagination
+              totalItems={filteredItems.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              itemLabel="workstations"
+              testId="workstations-pagination"
+            />
           </>
         )}
 
