@@ -22,7 +22,7 @@ import { getSessionPassword } from "../../utils/passwordMemory";
 const BYPASS_AUTH_VPN =
   (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
     (import.meta.env.DEV ? "true" : "false")) === "true";
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 9;
 
 type TemplateStatus = "connected" | "building";
 
@@ -410,7 +410,7 @@ export default function WorkstationsPage() {
             ) : (
               <div
                 data-testid="workstations-icons-view"
-                className="grid gap-4 pt-1 sm:grid-cols-2"
+                className="grid gap-4 pt-1 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {paginatedItems.map((item) => {
                   const status: TemplateStatus = item.is_ready
@@ -424,20 +424,24 @@ export default function WorkstationsPage() {
                       key={item.key}
                       className="rounded-2xl border border-white/8 bg-white/2 p-4"
                     >
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-white/90">
-                              {item.name || "Workstation"}
-                            </div>
-                            <div className="truncate text-xs text-white/50">
-                              ↳ {templateId}
-                            </div>
+                      <div className="mb-4 flex flex-col items-center text-center">
+                        <DisplayIcon
+                          type="workstation"
+                          data={item}
+                          size="large"
+                          className="mx-auto"
+                        />
+                        <div className="mt-3 min-w-0">
+                          <div className="truncate text-sm font-semibold text-white/90">
+                            {item.name || "Workstation"}
+                          </div>
+                          <div className="truncate text-xs text-white/50">
+                            ↳ {templateId}
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between">
+                      <div className="mt-4 flex items-center justify-center gap-3">
                         <StatusButton
                           status={status}
                           onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
