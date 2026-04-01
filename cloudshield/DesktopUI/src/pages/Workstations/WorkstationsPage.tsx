@@ -9,7 +9,6 @@ import SoftwarePopup from "./SoftwarePopup";
 import SearchField from "../../components/common/SearchField";
 import DisplayButton from "../../components/common/DisplayButton";
 import RefreshButton from "../../components/common/RefreshButton";
-import CreateButton from "../../components/common/CreateButton";
 import Checkbox from "../../components/common/Checkbox";
 import EmptyState from "../../components/common/EmptyState";
 import Panel from "../../components/common/Panel";
@@ -17,6 +16,10 @@ import OrgService from "../../services/OrgService";
 import { deriveUsername } from "../../utils/usernameUtil";
 import { decodeJwtClaims } from "../../utils/jwtLocalStorage";
 import { getSessionPassword } from "../../utils/passwordMemory";
+
+const BYPASS_AUTH_VPN =
+  (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
+    (import.meta.env.DEV ? "true" : "false")) === "true";
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -62,13 +65,13 @@ export default function WorkstationsPage() {
     let isMounted = true;
 
     const fetchWorkstationTemplates = async () => {
-      if (!accessToken) {
+      if (!BYPASS_AUTH_VPN && !accessToken) {
         setError("Missing access token. Please sign in.");
         setIsLoadingTemplates(false);
         return;
       }
 
-      if (tokenExpired) {
+      if (!BYPASS_AUTH_VPN && tokenExpired) {
         setError("Session expired. Please sign in again.");
         setIsLoadingTemplates(false);
         return;
@@ -236,7 +239,6 @@ export default function WorkstationsPage() {
             >
               Logout
             </button>
-            <CreateButton />
           </div>
         </div>
 
