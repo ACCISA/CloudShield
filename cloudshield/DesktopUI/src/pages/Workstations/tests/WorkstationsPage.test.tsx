@@ -410,4 +410,44 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  it("kills RDP process on disconnect when pid is set", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+    runXfreerdpMock.mockResolvedValueOnce({
+      success: true,
+      pid: 9876,
+      message: "xfreerdp3 launched",
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+
+    render(<WorkstationsPage />);
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByText("Use")[0]);
+    await waitFor(() => {
+      expect(screen.getByText("Launch RDP")).toBeTruthy();
+      expect(screen.getByText("Disconnect")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+    await waitFor(() => {
+      expect(screen.getByText("Connected! (PID: 9876)")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Disconnect"));
+    await waitFor(() => {
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+      expect(killProcessMock).toHaveBeenCalledWith(9876);
+    });
+  });
+
 });
