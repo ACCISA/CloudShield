@@ -1,5 +1,11 @@
 import { useState, type KeyboardEvent } from "react";
+import {
+  saveOrgIdFromToken,
+  saveAuthToLocalStorage,
+  saveUserIdFromToken,
+} from "../../utils/jwtLocalStorage";
 import AuthService from "../../services/AuthService";
+import { setSessionPassword } from "../../utils/passwordMemory";
 import AuthCard from "../../components/auth/AuthCard";
 import AuthTextField from "../../components/auth/AuthTextField";
 import PasswordField from "../../components/auth/PasswordField";
@@ -9,8 +15,6 @@ import PrimaryButton from "../../components/auth/PrimaryButton";
 export default function LoginCard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [useTwoFactor, setUseTwoFactor] = useState(false);
-  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [showHelp, setShowHelp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,22 +32,8 @@ export default function LoginCard() {
     setIsLoading(true);
     setError("");
 
-    if (useTwoFactor) {
-      const trimmed = twoFactorCode.trim();
-      if (!/^[0-9]{6}$/.test(trimmed)) {
-        setIsLoading(false);
-        setError("Enter a valid 6-digit 2FA code.");
-        return;
-      }
-    }
-
     try {
-      const data = await AuthService.login(
-        sanitizedEmail,
-        password,
-        useTwoFactor ? twoFactorCode.trim() : null,
-      );
-      
+      const data = await AuthService.login(sanitizedEmail, password, null);
 
       if (!data.access_token) {
         throw new Error(
@@ -57,19 +47,23 @@ export default function LoginCard() {
         expiresIn: data.expires_in,
         email: sanitizedEmail,
       });
+      // Store password in memory for session use (not persisted)
+      setSessionPassword(password);
+      // Save org_id and user_id to localStorage from JWT
+      if (data.access_token) {
+        saveOrgIdFromToken(data.access_token);
+        saveUserIdFromToken(data.access_token);
+      }
       if (!window.authStore) {
         const expiresAt = data.expires_in
           ? Date.now() + data.expires_in * 1000
           : undefined;
-        localStorage.setItem(
-          "cloudshield.auth",
-          JSON.stringify({
-            accessToken: data.access_token,
-            tokenType: data.token_type || "Bearer",
-            expiresAt,
-            email: sanitizedEmail,
-          }),
-        );
+        saveAuthToLocalStorage({
+          accessToken: data.access_token,
+          tokenType: data.token_type || "Bearer",
+          expiresAt,
+          email: sanitizedEmail,
+        });
       }
       window.dispatchEvent(new Event("auth-changed"));
 
@@ -120,38 +114,6 @@ export default function LoginCard() {
         />
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-white/70">
-            <button
-              type="button"
-              onClick={() => setUseTwoFactor((prev) => !prev)}
-              className="underline"
-            >
-              {useTwoFactor ? "Disable 2FA" : "Secure login with 2FA"}
-            </button>
-            {useTwoFactor && (
-              <span className="rounded-full border border-white/20 px-2 py-1 text-[10px] uppercase tracking-wide">
-                2FA enabled
-              </span>
-            )}
-          </div>
-
-          {useTwoFactor && (
-            <div className="space-y-2">
-              <AuthTextField
-                label="2FA code"
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value)}
-                onKeyDown={handleKeyDown}
-                inputMode="numeric"
-                placeholder="123456"
-                maxLength={6}
-              />
-              <p className="text-xs text-white/50">
-                Enter the 6-digit code from your authenticator app.
-              </p>
-            </div>
-          )}
-
           <PrimaryButton onClick={handleLogin} disabled={isLoading}>
             {isLoading ? "Signing in..." : "Login"}
           </PrimaryButton>
@@ -170,7 +132,7 @@ export default function LoginCard() {
 
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 text-left text-white shadow-[0_24px_64px_rgba(0,0,0,0.6)]">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 text-left text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Can't log in?</h2>
@@ -191,7 +153,6 @@ export default function LoginCard() {
               <li>Confirm you are using the correct email address.</li>
               <li>Ask your org admin to reset your password.</li>
               <li>Check that your account is marked active in CloudShield.</li>
-              <li>If 2FA is enabled, enter the current 6-digit code.</li>
             </ol>
 
             <div className="mt-5 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
