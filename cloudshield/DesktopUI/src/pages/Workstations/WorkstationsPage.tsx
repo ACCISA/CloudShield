@@ -314,12 +314,12 @@ export default function WorkstationsPage() {
               className="shrink-0"
             />
           </div>
-          <div className="flex min-w-max flex-nowrap items-center gap-3">
+          <div className="flex h-12 min-w-max flex-nowrap items-center gap-3">
             <RefreshButton onClick={handleRefresh} className="shrink-0" />
             <button
               type="button"
               onClick={handleLogout}
-              className="shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
+              className="inline-flex h-full shrink-0 items-center justify-center rounded-lg border border-white bg-white px-4 text-sm font-semibold leading-none text-black transition hover:bg-white/90"
             >
               Logout
             </button>
@@ -377,7 +377,7 @@ export default function WorkstationsPage() {
                                 size="medium"
                               />
                               <div>
-                                <div className="text-sm font-semibold text-white/90">
+                                <div className="template-name text-sm font-semibold text-white/90">
                                   {item.name || "Workstation"}
                                 </div>
                                 <div className="text-xs text-white/50">
@@ -432,7 +432,7 @@ export default function WorkstationsPage() {
                           className="mx-auto"
                         />
                         <div className="mt-3 min-w-0">
-                          <div className="truncate text-sm font-semibold text-white/90">
+                          <div className="template-name truncate text-sm font-semibold text-white/90">
                             {item.name || "Workstation"}
                           </div>
                           <div className="truncate text-xs text-white/50">

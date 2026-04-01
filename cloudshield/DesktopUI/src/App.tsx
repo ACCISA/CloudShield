@@ -129,7 +129,7 @@ function App() {
     BYPASS_AUTH_VPN || (isAuthenticated && vpnState.status === "connected");
 
   return (
-    <>
+    <div className="desktop-app">
       {!isAuthenticated ? (
         <LoginPage />
       ) : canAccessWorkstations ? (
@@ -143,7 +143,7 @@ function App() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 
