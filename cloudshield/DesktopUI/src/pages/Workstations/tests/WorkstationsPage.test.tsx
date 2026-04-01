@@ -208,7 +208,10 @@ describe("WorkstationsPage", () => {
     delete window.authStore;
     localStorage.setItem(
       "cloudshield.auth",
-      JSON.stringify({ accessToken: "local-token", expiresAt: Date.now() + 60000 })
+      JSON.stringify({
+        accessToken: "local-token",
+        expiresAt: Date.now() + 60000,
+      }),
     );
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
@@ -342,7 +345,6 @@ describe("WorkstationsPage", () => {
   });
 
   it("rejects rdp when workstation ip isn't available", async () => {
-
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() + 60000,
@@ -354,7 +356,7 @@ describe("WorkstationsPage", () => {
         _id: `template-${index + 1}`,
       })),
     );
-    
+
     assignWorkStationMock.mockResolvedValueOnce({
       ...mockWorkstations[0],
       ipv4_address: "",
@@ -374,9 +376,7 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getByText("Launch RDP"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Error: Workstation IP is missing"),
-      ).toBeTruthy();
+      expect(screen.getByText("Error: Workstation IP is missing")).toBeTruthy();
       expect(runXfreerdpMock).not.toHaveBeenCalled();
     });
   });
@@ -400,7 +400,9 @@ describe("WorkstationsPage", () => {
     );
     assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
     render(<WorkstationsPage />);
-    expect((await screen.findAllByText("Windows 10 Pro")).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText("Windows 10 Pro")).length,
+    ).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
@@ -453,5 +455,4 @@ describe("WorkstationsPage", () => {
       expect(killProcessMock).toHaveBeenCalledWith(9876);
     });
   });
-
 });
