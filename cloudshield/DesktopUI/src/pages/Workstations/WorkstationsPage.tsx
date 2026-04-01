@@ -9,6 +9,8 @@ import SearchField from "../../components/common/SearchField";
 import DisplayButton from "../../components/common/DisplayButton";
 import RefreshButton from "../../components/common/RefreshButton";
 import DisplayIcon from "../../components/common/DisplayIcon";
+import ConnectIcon from "../../assets/ConnectIcon";
+import BuildingTemplateIcon from "../../assets/BuildingTemplateIcon";
 import EmptyState from "../../components/common/EmptyState";
 import Panel from "../../components/common/Panel";
 import OrgService from "../../services/OrgService";
@@ -19,6 +21,74 @@ import { getSessionPassword } from "../../utils/passwordMemory";
 const BYPASS_AUTH_VPN =
   (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
     (import.meta.env.DEV ? "true" : "false")) === "true";
+
+type TemplateStatus = "connected" | "building";
+
+const getStatusMeta = (status: TemplateStatus) => {
+  if (status === "connected") {
+    return {
+      label: "Connect",
+      borderClass: "border-[#116e34]",
+      outerDot: "#1F381F",
+      innerDot: "#04C40A",
+    };
+  }
+
+  return {
+    label: "Building template",
+    borderClass: "border-[#a16207]",
+    outerDot: "#3F2A08",
+    innerDot: "#F0B429",
+  };
+};
+
+function ActiveIcon({ outerColor, innerColor }: { outerColor: string; innerColor: string }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="6" fill={outerColor} />
+      <circle cx="6" cy="6" r="2.5" fill={innerColor} />
+    </svg>
+  );
+}
+
+function StatusButton({
+  status,
+  onClick,
+}: {
+  status: TemplateStatus;
+  onClick?: () => void;
+}) {
+  const meta = getStatusMeta(status);
+  const isDisabled = !onClick;
+
+  return (
+    <button
+      type="button"
+      disabled={isDisabled}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-[22px] border-[1.5px] bg-transparent px-4 py-1.5 text-sm font-medium text-white transition ${meta.borderClass} ${
+        isDisabled ? "cursor-not-allowed opacity-85" : "hover:bg-white/4"
+      }`}
+    >
+      <span className="flex items-center justify-center">
+        {status === "connected" ? (
+          <ConnectIcon width={14} height={14} color="currentColor" />
+        ) : (
+          <BuildingTemplateIcon width={14} height={14} color="currentColor" />
+        )}
+      </span>
+      <span>{meta.label}</span>
+    </button>
+  );
+}
+
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -270,10 +340,10 @@ export default function WorkstationsPage() {
               {layout === "list" ? (
                 <div data-testid="workstations-list-view">
                   {filteredItems.map((item, index) => {
-                    const actionClasses = item.is_ready
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                      : "border-amber-500/40 bg-amber-500/10 text-amber-100";
-                    const actionLabel = item.is_ready ? "Connect" : "Not Ready";
+                    const status: TemplateStatus = item.is_ready
+                      ? "connected"
+                      : "building";
+                    const statusMeta = getStatusMeta(status);
                     const templateId = item.org_id || "—";
 
                     return (
@@ -302,14 +372,14 @@ export default function WorkstationsPage() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            disabled={!item.is_ready}
-                            onClick={() => handleTemplateUse(item._id)}
-                            className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
-                          >
-                            {actionLabel}
-                          </button>
+                          <StatusButton
+                            status={status}
+                            onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                          />
+                          <ActiveIcon
+                            outerColor={statusMeta.outerDot}
+                            innerColor={statusMeta.innerDot}
+                          />
                         </div>
                       </div>
                     );
@@ -321,10 +391,10 @@ export default function WorkstationsPage() {
                   className="grid gap-4 p-5 sm:grid-cols-2"
                 >
                   {filteredItems.map((item) => {
-                    const actionClasses = item.is_ready
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                      : "border-amber-500/40 bg-amber-500/10 text-amber-100";
-                    const actionLabel = item.is_ready ? "Connect" : "Not Ready";
+                    const status: TemplateStatus = item.is_ready
+                      ? "connected"
+                      : "building";
+                    const statusMeta = getStatusMeta(status);
                     const templateId = item.org_id || "—";
 
                     return (
@@ -345,14 +415,16 @@ export default function WorkstationsPage() {
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          disabled={!item.is_ready}
-                          onClick={() => handleTemplateUse(item._id)}
-                          className={`mt-4 w-full rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
-                        >
-                          {actionLabel}
-                        </button>
+                        <div className="mt-4 flex items-center justify-between">
+                          <StatusButton
+                            status={status}
+                            onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                          />
+                          <ActiveIcon
+                            outerColor={statusMeta.outerDot}
+                            innerColor={statusMeta.innerDot}
+                          />
+                        </div>
                       </div>
                     );
                   })}
