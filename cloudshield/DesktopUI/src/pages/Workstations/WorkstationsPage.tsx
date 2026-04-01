@@ -18,10 +18,6 @@ import OrgService from "../../services/OrgService";
 import { deriveUsername } from "../../utils/usernameUtil";
 import { decodeJwtClaims } from "../../utils/jwtLocalStorage";
 import { getSessionPassword } from "../../utils/passwordMemory";
-
-const BYPASS_AUTH_VPN =
-  (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
-    (import.meta.env.DEV ? "true" : "false")) === "true";
 const ITEMS_PER_PAGE = 9;
 
 type TemplateStatus = "connected" | "building";
@@ -133,13 +129,13 @@ export default function WorkstationsPage() {
     let isMounted = true;
 
     const fetchWorkstationTemplates = async () => {
-      if (!BYPASS_AUTH_VPN && !accessToken) {
+      if (!accessToken) {
         setError("Missing access token. Please sign in.");
         setIsLoadingTemplates(false);
         return;
       }
 
-      if (!BYPASS_AUTH_VPN && tokenExpired) {
+      if (tokenExpired) {
         setError("Session expired. Please sign in again.");
         setIsLoadingTemplates(false);
         return;
