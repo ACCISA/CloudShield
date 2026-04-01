@@ -6,6 +6,8 @@ import {
   type ButtonHTMLAttributes,
 } from "react";
 import DisplayIcon from "../../assets/DisplayButton/DisplayIcon";
+import ListIcon from "../../assets/DisplayButton/ListIcon";
+import ImageIcon from "../../assets/DisplayButton/ImageIcon";
 
 type LayoutOption = "list" | "icons";
 
@@ -28,47 +30,6 @@ const layoutOptions: Array<{
     label: "Icons",
   },
 ];
-
-function ListLayoutIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="28"
-      height="21"
-      viewBox="0 0 28 21"
-      fill="none"
-      stroke={active ? "#fff" : "rgba(255,255,255,0.45)"}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 4h24" />
-      <path d="M2 10.5h24" />
-      <path d="M2 17h24" />
-    </svg>
-  );
-}
-
-function IconLayoutIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={active ? "#fff" : "rgba(255,255,255,0.6)"}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="4" y="4" width="7" height="7" rx="1.25" />
-      <rect x="13" y="4" width="7" height="7" rx="1.25" />
-      <rect x="4" y="13" width="7" height="7" rx="1.25" />
-      <rect x="13" y="13" width="7" height="7" rx="1.25" />
-    </svg>
-  );
-}
 
 export default function DisplayButton({
   layout = "list",
@@ -162,9 +123,17 @@ export default function DisplayButton({
                   >
                     <div className="flex h-8 w-8 items-center justify-center">
                       {option.value === "list" ? (
-                        <ListLayoutIcon active={isActive} />
+                        <ListIcon
+                          width={28}
+                          height={21}
+                          color={isActive ? "#fff" : "rgba(255,255,255,0.45)"}
+                        />
                       ) : (
-                        <IconLayoutIcon active={isActive} />
+                        <ImageIcon
+                          width={32}
+                          height={32}
+                          color={isActive ? "#fff" : "rgba(255,255,255,0.6)"}
+                        />
                       )}
                     </div>
                     <span

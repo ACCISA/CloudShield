@@ -300,7 +300,7 @@ export default function WorkstationsPage() {
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
-        <div className="flex items-center justify-between gap-3 overflow-x-auto">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-max flex-1 flex-nowrap items-center gap-3">
             <SearchField
               value={searchQuery}
@@ -356,8 +356,8 @@ export default function WorkstationsPage() {
               </div>
             )}
 
-            <Panel className="-mt-3.75">
-              {layout === "list" ? (
+            {layout === "list" ? (
+              <Panel className="-mt-3.75">
                 <div data-testid="workstations-list-view">
                   {paginatedItems.map((item, index) => {
                     const status: TemplateStatus = item.is_ready
@@ -406,52 +406,52 @@ export default function WorkstationsPage() {
                     );
                   })}
                 </div>
-              ) : (
-                <div
-                  data-testid="workstations-icons-view"
-                  className="grid gap-4 p-5 sm:grid-cols-2"
-                >
-                  {paginatedItems.map((item) => {
-                    const status: TemplateStatus = item.is_ready
-                      ? "connected"
-                      : "building";
-                    const statusMeta = getStatusMeta(status);
-                    const templateId = item.org_id || "—";
+              </Panel>
+            ) : (
+              <div
+                data-testid="workstations-icons-view"
+                className="grid gap-4 pt-1 sm:grid-cols-2"
+              >
+                {paginatedItems.map((item) => {
+                  const status: TemplateStatus = item.is_ready
+                    ? "connected"
+                    : "building";
+                  const statusMeta = getStatusMeta(status);
+                  const templateId = item.org_id || "—";
 
-                    return (
-                      <div
-                        key={item.key}
-                        className="rounded-2xl border border-white/8 bg-white/2 p-4"
-                      >
-                        <div className="mb-4 flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-white/90">
-                                {item.name || "Workstation"}
-                              </div>
-                              <div className="truncate text-xs text-white/50">
-                                ↳ {templateId}
-                              </div>
+                  return (
+                    <div
+                      key={item.key}
+                      className="rounded-2xl border border-white/8 bg-white/2 p-4"
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-white/90">
+                              {item.name || "Workstation"}
+                            </div>
+                            <div className="truncate text-xs text-white/50">
+                              ↳ {templateId}
                             </div>
                           </div>
                         </div>
-
-                        <div className="mt-4 flex items-center justify-between">
-                          <StatusButton
-                            status={status}
-                            onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
-                          />
-                          <ActiveIcon
-                            outerColor={statusMeta.outerDot}
-                            innerColor={statusMeta.innerDot}
-                          />
-                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Panel>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <StatusButton
+                          status={status}
+                          onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                        />
+                        <ActiveIcon
+                          outerColor={statusMeta.outerDot}
+                          innerColor={statusMeta.innerDot}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <Pagination
               totalItems={filteredItems.length}
