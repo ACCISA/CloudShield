@@ -168,15 +168,16 @@ def import_background(oem_path, wallpaper_path):
     return False
 
 
-def prepare_software(org_id, template_id, software,oem_path,wallpaper_path,logger):
+def prepare_software(org_id, template_id, software,oem_path, wallpaper_path, logger):
     """
     Move chosen software files for custom templates
     """
     logger.info("Importing default OEM scripts")
     import_oem(oem_path)
-    status = import_background(wallpaper_path)
-    if not status:
-        logger.error(f"Failed to import background image into oem dir (path={wallpaper_path})")
+    if wallpaper_path is not None:
+        status = import_background(oem_path, wallpaper_path)
+        if not status:
+            logger.error(f"Failed to import background image into oem dir (path={wallpaper_path})")
     for soft in software:
         logger.info(f"Importing software (software_id={soft}")
         import_software(org_id, templated_id, soft)
@@ -257,7 +258,7 @@ def provision_default_workstation(org_data, template_id, software, wallpaper = N
 
     update_id = uuid.uuid4()
 
-    prepare_software(org_id, template_id, software,oem_path, wallpapaer, logger)
+    prepare_software(org_id, template_id, software,oem_path, wallpaper, logger)
     
     # Resolve the ThreatDetection container IP on the org network dynamically
     td_ip = os.getenv("THREAT_DETECTION_IP", "")

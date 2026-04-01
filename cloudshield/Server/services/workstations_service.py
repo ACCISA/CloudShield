@@ -4,10 +4,10 @@ from utils import get_logger, workstations_queue
 logger = get_logger("workstations")
 
 
-def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, vm_ids=None):
+def ws_create_default(org_id, name, description, software, access_groups, members, requesting_user_id=None, template_id=None, wallpaper=None, vm_ids=None):
     from cloudshield.Server.tasks import ws_create_default as _task # type: ignore
 
-    return _task(org_id, name, description, software, access_groups, members, requesting_user_id, template_id, vm_ids)
+    return _task(org_id, name, description, software, access_groups, members, requesting_user_id, template_id, wallpaper, vm_ids)
 
 def ws_start(org_id, template_id, vm_id=None):
     from cloudshield.Server.tasks import ws_start as _task # type: ignore

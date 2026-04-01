@@ -162,7 +162,7 @@ export default function WorkstationModal({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await onSubmit?.({
+      const payload = {
         name: formData.name,
         description: formData.strength,
         image: formData.workstationImage,
@@ -173,8 +173,10 @@ export default function WorkstationModal({
         allGroups: formData.allGroups,
         software: formData.selectedSoftware,
         allSoftware: formData.allSoftware,
-        wallpaper: formData.wallpaper,
-      });
+      };
+      console.log("WorkstationModal handleSubmit payload:", payload);
+      console.log("desktopBackground value:", formData.desktopBackground);
+      await onSubmit?.(payload);
       onClose();
     } catch (error) {
       console.error("Failed to submit workstation:", error);
@@ -436,6 +438,11 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
     typeof handleImageUpload === "object"
       ? handleImageUpload.desktopBackground
       : handleImageUpload;
+
+  console.log("[BasicInfoStep] handleImageUpload type:", typeof handleImageUpload);
+  console.log("[BasicInfoStep] handleImageUpload is object:", typeof handleImageUpload === "object");
+  console.log("[BasicInfoStep] desktopBackgroundHandler:", typeof desktopBackgroundHandler);
+  console.log("[BasicInfoStep] formData.desktopBackground:", formData.desktopBackground?.substring?.(0, 50) || formData.desktopBackground);
 
   return (
     <div className="workstation-modal-step workstation-modal-step-scrollable">

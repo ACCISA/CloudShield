@@ -7,6 +7,11 @@ from cloudshield.Server.security.guards import require_auth
 from utils import db
 from repos import get_workstation_templates, insert_workstation_template, get_available_workstation, set_assigned_workstation, release_assigned_workstation
 
+import uuid
+import base64
+import os
+import tempfile
+
 logger = get_logger("workstations")
 
 workstations_bp = Blueprint("workstations", __name__)
@@ -110,6 +115,8 @@ def save_wallpaper_tmp(wallpaper_data):
 
             return file_path
         except Exception as e:
+            logger.error("Failed to save desktop background")
+            logger.error(e)
             return None
     return None
 
@@ -125,7 +132,7 @@ def create_default():
     org_id = data.get("org_id")
     name = data.get("name")
     description = data.get("description")
-    saoftware = data.get("software")
+    software = data.get("software")
     access_groups = data.get("access_groups")
     for arg, val in {"org_id": org_id, "name": name, "description": description, "software": software, "access_groups": access_groups}.items():
         if val is None:
@@ -134,9 +141,12 @@ def create_default():
 
     members = data.get("members", [])
     wallpaper = data.get("wallpaper", None)
+    wallpaper_path = None  # Initialize to None
     if wallpaper is not None:
         # Strip the header (data:image/png;base64,)
         wallpaper_path = save_wallpaper_tmp(wallpaper)
+        if wallpaper_path is not None:
+            logger.info(f"Saved desktop background to tmp (path={wallpaper_path})")
 
     # Insert the template immediately so it's visible in the UI before the
     # background job runs (is_ready=False until provisioning completes).

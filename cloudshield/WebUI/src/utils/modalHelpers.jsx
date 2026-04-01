@@ -432,17 +432,37 @@ export const createImageUploadHandler = (
 ) => {
   return async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    console.log(`[${fieldName}] File selected:`, file?.name, file?.size);
+    if (!file) {
+      console.log(`[${fieldName}] No file selected, returning`);
+      return;
+    }
 
     try {
+      console.log(`[${fieldName}] Starting compression with options:`, compressOptions);
       const dataUrl = await compressImage(file, compressOptions);
-      setFormData((prev) => ({ ...prev, [fieldName]: dataUrl }));
-    } catch {
+      console.log(`[${fieldName}] Compression successful, updating formData`);
+      setFormData((prev) => {
+        const updated = { ...prev, [fieldName]: dataUrl };
+        console.log(`[${fieldName}] FormData updated:`, { field: fieldName, hasData: Boolean(dataUrl) });
+        return updated;
+      });
+    } catch (error) {
+      console.error(`[${fieldName}] Compression failed:`, error);
       // Fallback: read as-is if compression fails
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, [fieldName]: reader.result }));
+        console.log(`[${fieldName}] Fallback: FileReader completed, updating formData`);
+        setFormData((prev) => {
+          const updated = { ...prev, [fieldName]: reader.result };
+          console.log(`[${fieldName}] FormData updated (fallback):`, { field: fieldName, hasData: Boolean(reader.result) });
+          return updated;
+        });
       };
+      reader.onerror = (err) => {
+        console.error(`[${fieldName}] FileReader error:`, err);
+      };
+      console.log(`[${fieldName}] Starting FileReader fallback`);
       reader.readAsDataURL(file);
     }
   };

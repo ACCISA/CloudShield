@@ -57,15 +57,24 @@ const styles = {
 export const createWorkstationTemplate = async (orgId, payload) => {
   try {
     const token = localStorage.getItem("jwt");
-    const res = await apiPost(`/workstations/templates`, {
-        org_id: orgId,
-        name: payload.name,
-        description: payload.description,
-        software: (payload.software || []).map((s) => s.id || s._id || s),
-        access_groups: (payload.access_groups || []).map((g) => g.id || g._id || g),
-        members: (payload.members || []).map((u) => u.id || u._id || u),
-        wallpaper: payload.wallpaper
-      });
+    console.log("[createWorkstationTemplate] Received payload:", payload);
+    console.log("[createWorkstationTemplate] payload.wallpaper:", payload.wallpaper);
+    console.log("[createWorkstationTemplate] payload.desktopBackground:", payload.desktopBackground);
+    console.log("[createWorkstationTemplate] payload.image:", payload.image);
+    
+    const requestBody = {
+      org_id: orgId,
+      name: payload.name,
+      description: payload.description,
+      software: (payload.software || []).map((s) => s.id || s._id || s),
+      access_groups: (payload.access_groups || []).map((g) => g.id || g._id || g),
+      members: (payload.members || []).map((u) => u.id || u._id || u),
+      wallpaper: payload.desktopBackground,
+    };
+    
+    console.log("[createWorkstationTemplate] Request body to API:", requestBody);
+    
+    const res = await apiPost(`/workstations/templates`, requestBody);
     if (!res.ok) throw new Error("Failed to create workstation template");
     return await res.json();
   } catch (e) {

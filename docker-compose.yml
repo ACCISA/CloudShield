@@ -187,6 +187,7 @@ services:
       - ./logs:/app/logs
       - /var/run/docker.sock:/var/run/docker.sock
       - ${WORKSTATIONS_MOUNT_DIR}:/data
+      - ${CLOUDSHIELD_DATA_MOUNT_DIR}:/var/lib/cloudshield
     networks:
       - vpc_net
       - cloudshield_net
