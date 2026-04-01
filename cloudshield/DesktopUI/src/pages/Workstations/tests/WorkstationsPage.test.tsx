@@ -324,7 +324,7 @@ describe("WorkstationsPage", () => {
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
@@ -364,7 +364,7 @@ describe("WorkstationsPage", () => {
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
@@ -401,7 +401,7 @@ describe("WorkstationsPage", () => {
     assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
     render(<WorkstationsPage />);
     expect((await screen.findAllByText("Windows 10 Pro")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByText("Connect")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
       expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
@@ -436,7 +436,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(screen.getByText("Launch RDP")).toBeTruthy();
       expect(screen.getByText("Disconnect")).toBeTruthy();
