@@ -295,6 +295,88 @@ describe("WorkstationsPage", () => {
     dispatchSpy.mockRestore();
   });
 
+  it("rejects rdp when electron isn't available", async () => {
+    if (global.window.electronAPI) {
+      (
+        global.window.electronAPI as unknown as {
+          runXfreerdp?: ElectronAPI["runXfreerdp"];
+        }
+      ).runXfreerdp = undefined;
+    }
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+
+    getWorkstationTemplatesMock.mockResolvedValueOnce(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByText("Use")[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
+      expect(screen.getByText("Launch RDP")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Electron API not available"),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when workstation ip isn't available", async () => {
+
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+
+    getWorkstationTemplatesMock.mockResolvedValueOnce(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    
+    assignWorkStationMock.mockResolvedValueOnce({
+      ...mockWorkstations[0],
+      ipv4_address: "",
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByText("Use")[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
+      expect(screen.getByText("Launch RDP")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Launch RDP"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Workstation IP is missing"),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+    });
+  });
+
   it("handles RDP launch", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
