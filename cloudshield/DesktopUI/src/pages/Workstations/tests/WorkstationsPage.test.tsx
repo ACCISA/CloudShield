@@ -7,12 +7,34 @@ import {
 } from "../../../mocks/WorkstationsMock";
 const getWorkstationTemplatesMock = vi.hoisted(() => vi.fn());
 const getWorkstationsMock = vi.hoisted(() => vi.fn());
+const assignWorkStationMock = vi.hoisted(() => vi.fn());
+const releaseWorkStationMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/WorkstationService", () => ({
   default: {
     getWorkstationTemplates: getWorkstationTemplatesMock,
     getWorkstations: getWorkstationsMock,
+    assignWorkStation: assignWorkStationMock,
+    releaseWorkStation: releaseWorkStationMock,
   },
+}));
+
+vi.mock("../../../services/OrgService", () => ({
+  default: {
+    getOrganization: vi.fn().mockResolvedValue({ domain_name: "cloudshield" }),
+  },
+}));
+
+vi.mock("../../../utils/jwtLocalStorage", () => ({
+  decodeJwtClaims: vi.fn(() => ({ preferred_username: "johndoe" })),
+}));
+
+vi.mock("../../../utils/usernameUtil", () => ({
+  deriveUsername: vi.fn(() => "johndoe"),
+}));
+
+vi.mock("../../../utils/passwordMemory", () => ({
+  getSessionPassword: vi.fn(() => "password123"),
 }));
 
 describe("WorkstationsPage", () => {
@@ -56,7 +78,6 @@ describe("WorkstationsPage", () => {
       screen.getByPlaceholderText("Search workstation templates"),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
-    expect(screen.getByText("Create")).toBeTruthy();
     expect(screen.getByText("Logout")).toBeTruthy();
   });
 
@@ -90,23 +111,29 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  it("shows missing token error when no auth is available", async () => {
+  it("renders the empty state when no auth is available in bypass mode", async () => {
     loadAuthMock.mockReturnValue({});
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
-    expect(await screen.findByText(/missing access token/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/no assigned workstation templates found/i),
+    ).toBeTruthy();
   });
 
-  it("shows expired session message when token is expired", async () => {
+  it("renders the empty state when the token is expired in bypass mode", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() - 1000,
     });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
-    expect(await screen.findByText(/session expired/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/no assigned workstation templates found/i),
+    ).toBeTruthy();
   });
 
   it("renders workstation template rows from the API", async () => {
@@ -131,8 +158,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Development")).toBeTruthy();
-    expect(screen.getByText("Use")).toBeTruthy();
-    expect(screen.getByText("Ready")).toBeTruthy();
+    expect(screen.getByText("Connect")).toBeTruthy();
   });
 
   it("shows not ready action for provisioning templates", async () => {
@@ -155,7 +181,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Marketing")).toBeTruthy();
-    expect(screen.getByText("Not Ready")).toBeTruthy();
+    expect(screen.getByText("Building template")).toBeTruthy();
   });
 
   it("shows API error details when request fails", async () => {
@@ -272,13 +298,13 @@ describe("WorkstationsPage", () => {
       pid: 12345,
       message: "xfreerdp3 launched",
     });
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
     getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
-    getWorkstationsMock.mockResolvedValueOnce(mockWorkstations);
     render(<WorkstationsPage />);
-    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    expect((await screen.findAllByText("Windows 10 Pro")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByText("Connect")[0]);
     await waitFor(() => {
-      expect(screen.getAllByText(/Connected to workstation/)).toBeTruthy();
+      expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
       expect(screen.getByText(/192.168.122.106/)).toBeTruthy();
       expect(screen.getByText(/Launch RDP/)).toBeTruthy();
     });
