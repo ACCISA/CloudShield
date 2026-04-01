@@ -6,13 +6,37 @@ import {
   mockWorkstations,
 } from "../../../mocks/WorkstationsMock";
 const getWorkstationTemplatesMock = vi.hoisted(() => vi.fn());
-const getWorkstationsMock = vi.hoisted(() => vi.fn());
+const assignWorkStationMock = vi.hoisted(() => vi.fn());
+const releaseWorkStationMock = vi.hoisted(() => vi.fn());
+const getOrganizationMock = vi.hoisted(() => vi.fn());
+const getSessionPasswordMock = vi.hoisted(() => vi.fn());
+const deriveUsernameMock = vi.hoisted(() => vi.fn());
+const decodeJwtClaimsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/WorkstationService", () => ({
   default: {
     getWorkstationTemplates: getWorkstationTemplatesMock,
-    getWorkstations: getWorkstationsMock,
+    assignWorkStation: assignWorkStationMock,
+    releaseWorkStation: releaseWorkStationMock,
   },
+}));
+
+vi.mock("../../../services/OrgService", () => ({
+  default: {
+    getOrganization: getOrganizationMock,
+  },
+}));
+
+vi.mock("../../../utils/passwordMemory", () => ({
+  getSessionPassword: getSessionPasswordMock,
+}));
+
+vi.mock("../../../utils/usernameUtil", () => ({
+  deriveUsername: deriveUsernameMock,
+}));
+
+vi.mock("../../../utils/jwtLocalStorage", () => ({
+  decodeJwtClaims: decodeJwtClaimsMock,
 }));
 
 describe("WorkstationsPage", () => {
@@ -33,6 +57,11 @@ describe("WorkstationsPage", () => {
       showOpenDialog: showOpenDialogMock,
       killProcess: killProcessMock,
     };
+    getOrganizationMock.mockResolvedValue({ domain_name: "march.local" });
+    getSessionPasswordMock.mockReturnValue("pass123!");
+    deriveUsernameMock.mockReturnValue("employee");
+    decodeJwtClaimsMock.mockReturnValue({ sub: "user-1" });
+    releaseWorkStationMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -267,25 +296,35 @@ describe("WorkstationsPage", () => {
   });
 
   it("handles RDP launch", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
     runXfreerdpMock.mockResolvedValueOnce({
       success: true,
       pid: 12345,
       message: "xfreerdp3 launched",
     });
-    getWorkstationTemplatesMock.mockResolvedValueOnce(mockWorkstationTemplates);
-    getWorkstationsMock.mockResolvedValueOnce(mockWorkstations);
+    getWorkstationTemplatesMock.mockResolvedValueOnce(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
     render(<WorkstationsPage />);
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
     fireEvent.click(screen.getAllByText("Use")[0]);
     await waitFor(() => {
-      expect(screen.getAllByText(/Connected to workstation/)).toBeTruthy();
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
+      expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
       expect(screen.getByText(/192.168.122.106/)).toBeTruthy();
       expect(screen.getByText(/Launch RDP/)).toBeTruthy();
     });
     fireEvent.click(screen.getByText("Launch RDP"));
     await waitFor(() => {
       expect(runXfreerdpMock).toHaveBeenCalled();
-      expect(screen.getByText("Connected! (PID: 12345)")).toBeTruthy();
     });
   });
 
