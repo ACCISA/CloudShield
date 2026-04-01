@@ -58,7 +58,6 @@ export default function SearchField({
       style={{
         backgroundColor: isFocused || isHovered ? "#151515" : "#111111",
         border: `1px solid ${isFocused || isHovered ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.10)"}`,
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
