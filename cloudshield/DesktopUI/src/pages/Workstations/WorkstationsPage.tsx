@@ -221,21 +221,26 @@ export default function WorkstationsPage() {
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
+        <div className="flex items-center justify-between gap-3 overflow-x-auto">
+          <div className="flex min-w-max flex-1 flex-nowrap items-center gap-3">
             <SearchField
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search workstation templates"
+              className="w-90 shrink-0"
             />
-            <DisplayButton layout={layout} onLayoutChange={setLayout} />
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={setLayout}
+              className="shrink-0"
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <RefreshButton onClick={handleRefresh} />
+          <div className="flex min-w-max flex-nowrap items-center gap-3">
+            <RefreshButton onClick={handleRefresh} className="shrink-0" />
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
+              className="shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
             >
               Logout
             </button>
