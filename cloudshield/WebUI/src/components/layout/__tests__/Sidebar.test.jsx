@@ -291,7 +291,9 @@ describe("Sidebar", () => {
     it("opens a confirmation modal before signing out", () => {
       renderSidebar({ mode: "full" });
       fireEvent.click(screen.getByLabelText("Sign out"));
-      expect(screen.getByText("Confirm Sign Out")).toBeInTheDocument();
+      expect(
+        screen.getByText(/are you sure you want to sign out\?/i),
+      ).toBeInTheDocument();
       expect(mockLogout).not.toHaveBeenCalled();
     });
 
@@ -308,7 +310,9 @@ describe("Sidebar", () => {
       fireEvent.click(screen.getByLabelText("Sign out"));
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
       return waitFor(() => {
-        expect(screen.queryByText("Confirm Sign Out")).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/are you sure you want to sign out\?/i),
+        ).not.toBeInTheDocument();
         expect(mockLogout).not.toHaveBeenCalled();
       });
     });
@@ -328,7 +332,9 @@ describe("Sidebar", () => {
       const signOut = screen.getByLabelText("Sign out");
 
       fireEvent.keyDown(signOut, { key: "Enter" });
-      expect(screen.getByText("Confirm Sign Out")).toBeInTheDocument();
+      expect(
+        screen.getByText(/are you sure you want to sign out\?/i),
+      ).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
