@@ -58,6 +58,8 @@ services:
       - openvpn_client_name=${OPENVPN_CLIENT_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    ports:
+      - "1194:1194/tcp"
 
   samba-test:
     profiles: ["template"] # Starts only when template provisioning flow requests it
@@ -97,6 +99,10 @@ services:
       - /dev/loop-control:/dev/loop-control
 
   workstation:
+    ports:
+      - 8006:8006
+      - 3389:3389/tcp
+      - 3389:3389/udp
     profiles: ["template"] # Starts only when template provisioning flow requests it
     image: cs-workstation-template:latest
     build:

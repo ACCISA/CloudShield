@@ -7,9 +7,15 @@ import type { VPNState } from "./models/VPN";
 import VPNLoadingScreen from "./pages/VPN/VPNLoadingScreen";
 
 const DEFAULT_VPN_STATE: VPNState = { status: "disconnected" };
+const BYPASS_AUTH_VPN =
+  (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
+    (import.meta.env.DEV ? "true" : "false")) === "true";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (BYPASS_AUTH_VPN) {
+      return true;
+    }
     const snapshot = window.authStore?.loadAuth();
     if (snapshot?.accessToken) {
       return true;
@@ -23,10 +29,18 @@ function App() {
       return false;
     }
   });
-  const [vpnState, setVpnState] = useState<VPNState>(DEFAULT_VPN_STATE);
+  const [vpnState, setVpnState] = useState<VPNState>(
+    BYPASS_AUTH_VPN ? { status: "connected" } : DEFAULT_VPN_STATE,
+  );
   const vpnConnectInFlight = useRef(false);
 
   useEffect(() => {
+    if (BYPASS_AUTH_VPN) {
+      setIsAuthenticated(true);
+      setVpnState({ status: "connected" });
+      return;
+    }
+
     const tryConnectVPN = async () => {
       if (vpnConnectInFlight.current) return;
       vpnConnectInFlight.current = true;
@@ -65,7 +79,7 @@ function App() {
       }
     };
 
-    const handleAuthChanged = async() => {
+    const handleAuthChanged = async () => {
       const snapshot = window.authStore?.loadAuth();
       if (snapshot?.accessToken) {
         setIsAuthenticated(true);
@@ -111,7 +125,8 @@ function App() {
     };
   }, []);
 
-  const canAccessWorkstations = isAuthenticated && vpnState.status === "connected";
+  const canAccessWorkstations =
+    BYPASS_AUTH_VPN || (isAuthenticated && vpnState.status === "connected");
 
   return (
     <>

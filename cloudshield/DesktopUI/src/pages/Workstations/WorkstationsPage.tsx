@@ -5,14 +5,91 @@ import type {
   Workstation,
 } from "../../models/Workstations";
 import WorkstationService from "../../services/WorkstationService";
-import SoftwarePopup from "./SoftwarePopup";
 import SearchField from "../../components/common/SearchField";
 import DisplayButton from "../../components/common/DisplayButton";
 import RefreshButton from "../../components/common/RefreshButton";
-import CreateButton from "../../components/common/CreateButton";
-import Checkbox from "../../components/common/Checkbox";
+import Pagination from "../../components/common/Pagination";
+import DisplayIcon from "../../components/common/DisplayIcon";
+import ConnectIcon from "../../assets/ConnectIcon";
+import BuildingTemplateIcon from "../../assets/BuildingTemplateIcon";
 import EmptyState from "../../components/common/EmptyState";
 import Panel from "../../components/common/Panel";
+import OrgService from "../../services/OrgService";
+import { deriveUsername } from "../../utils/usernameUtil";
+import { decodeJwtClaims } from "../../utils/jwtLocalStorage";
+import { getSessionPassword } from "../../utils/passwordMemory";
+
+const BYPASS_AUTH_VPN =
+  (import.meta.env.VITE_DESKTOP_BYPASS_AUTH ??
+    (import.meta.env.DEV ? "true" : "false")) === "true";
+const ITEMS_PER_PAGE = 9;
+
+type TemplateStatus = "connected" | "building";
+
+const getStatusMeta = (status: TemplateStatus) => {
+  if (status === "connected") {
+    return {
+      label: "Connect",
+      borderClass: "border-[#116e34]",
+      outerDot: "#1F381F",
+      innerDot: "#04C40A",
+    };
+  }
+
+  return {
+    label: "Building template",
+    borderClass: "border-[#a16207]",
+    outerDot: "#3F2A08",
+    innerDot: "#F0B429",
+  };
+};
+
+function ActiveIcon({ outerColor, innerColor }: { outerColor: string; innerColor: string }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="6" fill={outerColor} />
+      <circle cx="6" cy="6" r="2.5" fill={innerColor} />
+    </svg>
+  );
+}
+
+function StatusButton({
+  status,
+  onClick,
+}: {
+  status: TemplateStatus;
+  onClick?: () => void;
+}) {
+  const meta = getStatusMeta(status);
+  const isDisabled = !onClick;
+
+  return (
+    <button
+      type="button"
+      disabled={isDisabled}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-[22px] border-[1.5px] bg-transparent px-4 py-1.5 text-sm font-medium text-white transition ${meta.borderClass} ${
+        isDisabled ? "cursor-not-allowed opacity-85" : "hover:bg-white/4"
+      }`}
+    >
+      <span className="flex items-center justify-center">
+        {status === "connected" ? (
+          <ConnectIcon width={14} height={14} color="currentColor" />
+        ) : (
+          <BuildingTemplateIcon width={14} height={14} color="currentColor" />
+        )}
+      </span>
+      <span>{meta.label}</span>
+    </button>
+  );
+}
 
 export default function WorkstationsPage() {
   const [templateItems, setTemplateItems] = useState<WorkstationTemplate[]>([]);
@@ -21,16 +98,13 @@ export default function WorkstationsPage() {
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [layout, setLayout] = useState<"list" | "icons">("list");
   const [searchQuery, setSearchQuery] = useState("");
-  const [hoveredSoftwareIndex, setHoveredSoftwareIndex] = useState<
-    number | null
-  >(null);
   const [isLoadingWorkstations, setIsLoadingWorkstations] =
     useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedWorkstation, setSelectedWorkstation] =
     useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
   const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
-  const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -59,13 +133,13 @@ export default function WorkstationsPage() {
     let isMounted = true;
 
     const fetchWorkstationTemplates = async () => {
-      if (!accessToken) {
+      if (!BYPASS_AUTH_VPN && !accessToken) {
         setError("Missing access token. Please sign in.");
         setIsLoadingTemplates(false);
         return;
       }
 
-      if (tokenExpired) {
+      if (!BYPASS_AUTH_VPN && tokenExpired) {
         setError("Session expired. Please sign in again.");
         setIsLoadingTemplates(false);
         return;
@@ -104,12 +178,6 @@ export default function WorkstationsPage() {
     setRefreshIndex((prev) => prev + 1);
   };
 
-  const toggleTemplateSelection = (key: string) => {
-    setSelectedTemplateKeys((prev) =>
-      prev.includes(key) ? prev.filter((entry) => entry !== key) : [...prev, key]
-    );
-  };
-
   const handleLogout = () => {
     window.authStore?.clearAuth();
     localStorage.removeItem("cloudshield.auth");
@@ -134,9 +202,20 @@ export default function WorkstationsPage() {
       setRdpStatus("Error: Workstation IP is missing");
       return;
     }
-    //TODO: Get creds from Domain Controller
-    const rdpUsername = "demo";
-    const rdpPassword = "demo"; //NOSONAR typescript:S2068
+
+    const org = await OrgService.getOrganization();
+    const domain = org.domain_name;
+    // Extract username from JWT claims
+    let username = "";
+    if (accessToken) {
+      const claims = decodeJwtClaims(accessToken);
+      username = deriveUsername(claims);
+    }
+    const rdpPassword = getSessionPassword();
+    if (rdpPassword == null) {
+      throw new Error("RDP Pass not set");
+    }
+    let rdpUsername = `${domain}\\${username}`;
 
     try {
       setRdpStatus("Launching RDP client...");
@@ -154,8 +233,8 @@ export default function WorkstationsPage() {
   };
 
   const listItems = useMemo(() => {
-    return templateItems.map((item) => {
-      const key = `${item.org_id || "org"}-${item.name || "template"}`;
+    return templateItems.map((item, index) => {
+      const key = `${item._id || "template"}-${item.org_id || "org"}-${item.name || "template"}-${index}`;
       const description = (
         item.description || "(No Description)"
       ).toLowerCase();
@@ -178,13 +257,41 @@ export default function WorkstationsPage() {
     });
   }, [listItems, searchQuery]);
 
-  const handleTemplateUse = async () => {
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, refreshIndex, layout]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  const handleTemplateUse = async (template_id: string) => {
     try {
       setIsLoadingWorkstations(true);
-      const workstationspool = await WorkstationService.getWorkstations();
-      // For demo purposes, we just select the first workstation from the pool
-      const workstation = workstationspool[0] || null;
+      const workstation =
+        await WorkstationService.assignWorkStation(template_id);
       setSelectedWorkstation(workstation);
+    } finally {
+      setIsLoadingWorkstations(false);
+    }
+  };
+
+  const handleTemplateDisconnect = async () => {
+    try {
+      setIsLoadingWorkstations(true);
+      await WorkstationService.releaseWorkStation();
+      setSelectedWorkstation(null);
+      setRdpStatus(null);
+      killRDP();
     } finally {
       setIsLoadingWorkstations(false);
     }
@@ -193,25 +300,29 @@ export default function WorkstationsPage() {
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-max flex-1 flex-nowrap items-center gap-3">
             <SearchField
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search workstation templates"
+              className="w-90 shrink-0"
             />
-            <DisplayButton layout={layout} onLayoutChange={setLayout} />
+            <DisplayButton
+              layout={layout}
+              onLayoutChange={setLayout}
+              className="shrink-0"
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <RefreshButton onClick={handleRefresh} />
+          <div className="flex min-w-max flex-nowrap items-center gap-3">
+            <RefreshButton onClick={handleRefresh} className="shrink-0" />
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
+              className="shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
             >
               Logout
             </button>
-            <CreateButton />
           </div>
         </div>
 
@@ -222,7 +333,7 @@ export default function WorkstationsPage() {
         )}
 
         {!isLoadingTemplates && error && (
-          <Panel className="border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200 shadow-none">
+          <Panel className="border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200">
             {error}
           </Panel>
         )}
@@ -235,194 +346,126 @@ export default function WorkstationsPage() {
         )}
 
         {!isLoadingTemplates && !error && filteredItems.length > 0 && (
-          <Panel>
-            {layout === "list" ? (
-              <div data-testid="workstations-list-view">
-                {filteredItems.map((item, index) => {
-                  const actionClasses = item.is_ready
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                    : "border-amber-500/40 bg-amber-500/10 text-amber-100";
-                  const actionLabel = item.is_ready ? "Use" : "Not Ready";
-                  const statusDot = item.is_ready
-                    ? "bg-emerald-500"
-                    : "bg-amber-500";
-                  const softwareCount = item.software?.length ?? 0;
-                  const accessGroupCount = item.access_groups?.length ?? 0;
-                  const readyLabel = item.is_ready ? "Ready" : "Unavailable";
-                  const templateId = item.org_id || "—";
-
-                  return (
-                    <div
-                      key={item.key}
-                      className={`flex flex-col gap-4 border-b border-white/5 px-5 py-4 md:flex-row md:items-center md:justify-between ${
-                        index === filteredItems.length - 1 ? "border-b-0" : ""
-                      }`}
-                    >
-                      <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={selectedTemplateKeys.includes(item.key)}
-                            onChange={() => toggleTemplateSelection(item.key)}
-                            ariaLabel={`Select ${item.name || "Workstation"}`}
-                          />
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#0f0f0f]" />
-                          <div>
-                            <div className="text-sm font-semibold text-white/90">
-                              {item.name || "Workstation"}
-                            </div>
-                            <div className="text-xs text-white/50">
-                              ↳ {templateId}
-                            </div>
-                            <div className="text-xs text-white/40">
-                              {item.description || "No description"}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-6 text-xs text-white/60">
-                          <div
-                            className="relative"
-                            onMouseEnter={() => setHoveredSoftwareIndex(index)}
-                            onMouseLeave={() => setHoveredSoftwareIndex(null)}
-                          >
-                            <div className="text-[11px] uppercase text-white/40">
-                              Software
-                            </div>
-                            <div className="text-sm text-white/80">
-                              {softwareCount}
-                            </div>
-                            {hoveredSoftwareIndex === index &&
-                              softwareCount > 0 && (
-                                <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-white/10 bg-[#0f0f0f] p-3 text-xs text-white/80 shadow-[0_24px_64px_rgba(0,0,0,0.5)]">
-                                  <SoftwarePopup softwares={item.software} />
-                                </div>
-                              )}
-                          </div>
-                          <div>
-                            <div className="text-[11px] uppercase text-white/40">
-                              Access groups
-                            </div>
-                            <div className="text-sm text-white/80">
-                              {accessGroupCount}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] uppercase text-white/40">
-                              Status
-                            </div>
-                            <div className="text-sm text-white/80">
-                              {readyLabel}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          disabled={!item.is_ready}
-                          onClick={handleTemplateUse}
-                          className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
-                        >
-                          {actionLabel}
-                        </button>
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${statusDot}`}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+          <>
+            {layout === "list" && (
+              <div className="flex items-center justify-between px-5 pt-2">
+                <span className="text-[0.85rem] text-white/70">
+                  Name/Number
+                </span>
+                <div className="w-24" />
               </div>
+            )}
+
+            {layout === "list" ? (
+              <Panel className="-mt-3.75">
+                <div data-testid="workstations-list-view">
+                  {paginatedItems.map((item, index) => {
+                    const status: TemplateStatus = item.is_ready
+                      ? "connected"
+                      : "building";
+                    const statusMeta = getStatusMeta(status);
+                    const templateId = item.org_id || "—";
+
+                    return (
+                      <div key={item.key}>
+                        <div className="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                          <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-6">
+                            <div className="flex items-center gap-3">
+                              <DisplayIcon
+                                type="workstation"
+                                data={item}
+                                size="medium"
+                              />
+                              <div>
+                                <div className="text-sm font-semibold text-white/90">
+                                  {item.name || "Workstation"}
+                                </div>
+                                <div className="text-xs text-white/50">
+                                  ↳ {templateId}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <StatusButton
+                              status={status}
+                              onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                            />
+                            <ActiveIcon
+                              outerColor={statusMeta.outerDot}
+                              innerColor={statusMeta.innerDot}
+                            />
+                          </div>
+                        </div>
+
+                        {index < paginatedItems.length - 1 && (
+                          <div className="mx-4 border-t border-white/8" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
             ) : (
               <div
                 data-testid="workstations-icons-view"
-                className="grid gap-4 p-5 sm:grid-cols-2"
+                className="grid gap-4 pt-1 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {filteredItems.map((item) => {
-                  const actionClasses = item.is_ready
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                    : "border-amber-500/40 bg-amber-500/10 text-amber-100";
-                  const actionLabel = item.is_ready ? "Use" : "Not Ready";
-                  const statusDot = item.is_ready
-                    ? "bg-emerald-500"
-                    : "bg-amber-500";
-                  const softwareCount = item.software?.length ?? 0;
-                  const accessGroupCount = item.access_groups?.length ?? 0;
-                  const readyLabel = item.is_ready ? "Ready" : "Unavailable";
+                {paginatedItems.map((item) => {
+                  const status: TemplateStatus = item.is_ready
+                    ? "connected"
+                    : "building";
+                  const statusMeta = getStatusMeta(status);
                   const templateId = item.org_id || "—";
 
                   return (
                     <div
                       key={item.key}
-                      className="rounded-2xl border border-white/8 bg-white/[0.02] p-4"
+                      className="rounded-2xl border border-white/8 bg-white/2 p-4"
                     >
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <Checkbox
-                            checked={selectedTemplateKeys.includes(item.key)}
-                            onChange={() => toggleTemplateSelection(item.key)}
-                            ariaLabel={`Select ${item.name || "Workstation"}`}
-                          />
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-white/90">
-                              {item.name || "Workstation"}
-                            </div>
-                            <div className="truncate text-xs text-white/50">
-                              ↳ {templateId}
-                            </div>
+                      <div className="mb-4 flex flex-col items-center text-center">
+                        <DisplayIcon
+                          type="workstation"
+                          data={item}
+                          size="large"
+                          className="mx-auto"
+                        />
+                        <div className="mt-3 min-w-0">
+                          <div className="truncate text-sm font-semibold text-white/90">
+                            {item.name || "Workstation"}
+                          </div>
+                          <div className="truncate text-xs text-white/50">
+                            ↳ {templateId}
                           </div>
                         </div>
-                        <span
-                          className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${statusDot}`}
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-center gap-3">
+                        <StatusButton
+                          status={status}
+                          onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                        />
+                        <ActiveIcon
+                          outerColor={statusMeta.outerDot}
+                          innerColor={statusMeta.innerDot}
                         />
                       </div>
-
-                      <p className="mb-4 min-h-10 text-xs text-white/40">
-                        {item.description || "No description"}
-                      </p>
-
-                      <div className="space-y-3 text-xs text-white/60">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="uppercase text-white/40">
-                            Software
-                          </span>
-                          <span className="text-sm text-white/80">
-                            {softwareCount}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="uppercase text-white/40">
-                            Access groups
-                          </span>
-                          <span className="text-sm text-white/80">
-                            {accessGroupCount}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="uppercase text-white/40">
-                            Status
-                          </span>
-                          <span className="text-sm text-white/80">
-                            {readyLabel}
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={!item.is_ready}
-                        onClick={handleTemplateUse}
-                        className={`mt-5 w-full rounded-full border px-4 py-2 text-xs font-semibold transition ${actionClasses}`}
-                      >
-                        {actionLabel}
-                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
-          </Panel>
+
+            <Pagination
+              totalItems={filteredItems.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              itemLabel="workstations"
+              testId="workstations-pagination"
+            />
+          </>
         )}
 
         {!isLoadingWorkstations && !selectedWorkstation && (
@@ -480,9 +523,7 @@ export default function WorkstationsPage() {
               </button>
               <button
                 onClick={() => {
-                  setSelectedWorkstation(null);
-                  setRdpStatus(null);
-                  killRDP();
+                  handleTemplateDisconnect();
                 }}
                 className="mt-4 rounded-lg border border-white/10 bg-[#A41010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
               >
