@@ -25,7 +25,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl --output /dev/null --silent --head --fail -u elastic:${ES_LOCAL_PASSWORD} http://elasticsearch:9200",
+          "curl --output /dev/null --silent --head --fail -u elastic:${ES_LOCAL_PASSWORD} http://cloudshield-elasticsearch-run-c772165c6f36:9200",
         ]
       interval: 10s
       timeout: 10s
@@ -43,7 +43,7 @@ services:
         echo "Setup the kibana_system password";
         start_time=$$(date +%s);
         timeout=60;
-        until curl -s -u "elastic:${ES_LOCAL_PASSWORD}" -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_LOCAL_PASSWORD}\"}" -H "Content-Type: application/json" | grep -q "^{}"; do
+        until curl -s -u "elastic:${ES_LOCAL_PASSWORD}" -X POST http://cloudshield-elasticsearch-run-c772165c6f36:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_LOCAL_PASSWORD}\"}" -H "Content-Type: application/json" | grep -q "^{}"; do
           if [ $$(($$(date +%s) - $$start_time)) -ge $$timeout ]; then
             echo "Error: Elasticsearch timeout";
             exit 1;
@@ -65,7 +65,7 @@ services:
       - 127.0.0.1:${KIBANA_LOCAL_PORT}:5601
     environment:
       - SERVER_NAME=kibana
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=http://cloudshield-elasticsearch-run-c772165c6f36:9200
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_LOCAL_PASSWORD}
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}

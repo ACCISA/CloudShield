@@ -777,7 +777,7 @@ def provision_threat_detection_docker(
 
     envs = {
         "CLOUDSHIELD_RUNTIME": "1",
-        "ES_URL": "http://elasticsearch:9200",
+        "ES_URL": "http://cloudshield-elasticsearch-run-c772165c6f36:9200",
     }
     if org_id:
         envs["CLOUDSHIELD_ORG_ID"] = org_id
@@ -885,7 +885,7 @@ def _write_compose_override_for_org(
             "    environment:\n"
             "      CLOUDSHIELD_RUNTIME: '1'\n"
             "      AGENTS_FILE: /app/cloudshield/ThreatDetection/org_agents/agents.json\n"
-            "      ES_URL: 'http://elasticsearch:9200'\n"
+            "      ES_URL: 'http://cloudshield-elasticsearch-run-c772165c6f36:9200'\n"
             + (f"      CLOUDSHIELD_ORG_ID: '{org_id}'\n" if org_id else "")
             + (f"      CLOUDSHIELD_SERVER_URL: '{server_url}'\n" if server_url else "")
         )
