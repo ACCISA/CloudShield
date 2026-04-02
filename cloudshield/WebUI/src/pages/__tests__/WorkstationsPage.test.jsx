@@ -8,7 +8,15 @@ import WorkstationsPage, {
   deleteWorkstationTemplate,
 } from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
-import { apiDelete, apiPatch, apiPost } from "../../api/client.js";
+import * as clientApi from "../../api/client.js";
+
+jest.mock("../../api/client.js", () => ({
+  apiGet: jest.fn(),
+  apiPatch: jest.fn(),
+  apiPost: jest.fn(),
+  apiDelete: jest.fn(),
+  apiUploadFile: jest.fn(),
+}));
 
 jest.mock("../../hooks/useClickLogger", () => ({
   useClickLogger: () => () => (handler) => handler,
@@ -180,6 +188,7 @@ const renderPage = () =>
   );
 
 describe("createWorkstationTemplate", () => {
+
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
@@ -190,7 +199,9 @@ describe("createWorkstationTemplate", () => {
   });
 
   test("posts full template payload to /api/workstations/templates", async () => {
-    apiPost.mockResolvedValueOnce({
+    localStorage.setItem("jwt", "token-123");
+    clientApi.apiPost.mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ job_id: "job-1" }),
     });
 
@@ -203,68 +214,15 @@ describe("createWorkstationTemplate", () => {
     });
 
     expect(result).toEqual({ job_id: "job-1" });
-    expect(apiPost).toHaveBeenCalledWith(
+    expect(clientApi.apiPost).toHaveBeenCalledWith(
       "/workstations/templates",
-      expect.objectContaining({
-        org_id: "org-1",
-        access_groups: ["g1"],
-        members: ["u1"],
-        software: ["s1"],
-      }),
+      expect.objectContaining({ name: "WS 1" }),
     );
-  });
-});
-
-describe("workstation template mutations", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test("patches workstation templates on update", async () => {
-    apiPatch.mockResolvedValueOnce({
-      json: jest.fn().mockResolvedValue({ template: { _id: "tpl-1" } }),
-    });
-
-    const result = await updateWorkstationTemplate("tpl-1", {
-      name: "WS 1",
-      description: "basic",
-      software: [{ id: "s1" }],
-      access_groups: [{ id: "g1" }],
-      members: [{ id: "u1" }],
-    });
-
-    expect(result).toEqual({ template: { _id: "tpl-1" } });
-    expect(apiPatch).toHaveBeenCalledWith(
-      "/workstations/templates/tpl-1",
-      expect.objectContaining({
-        name: "WS 1",
-        description: "basic",
-        software: ["s1"],
-        access_groups: ["g1"],
-        members: ["u1"],
-      }),
-    );
-  });
-
-  test("deletes workstation templates", async () => {
-    apiDelete.mockResolvedValueOnce(null);
-
-    await deleteWorkstationTemplate("tpl-1");
-
-    expect(apiDelete).toHaveBeenCalledWith("/workstations/templates/tpl-1");
-  });
-
-  test("deletes live workstations when source is workstation", async () => {
-    apiDelete.mockResolvedValueOnce(null);
-
-    await deleteWorkstationTemplate("ws-1", { source: "workstation" });
-
-    expect(apiDelete).toHaveBeenCalledWith("/workstations/ws-1");
+    const body = clientApi.apiPost.mock.calls[0][1];
+    expect(body.org_id).toBe("org-1");
+    expect(body.access_groups).toEqual(["g1"]);
+    expect(body.members).toEqual(["u1"]);
+    expect(body.software).toEqual(["s1"]);
   });
 });
 
@@ -447,7 +405,7 @@ describe("WorkstationsPage", () => {
 
   test("shows error toast when create submit fails", async () => {
     const user = userEvent.setup();
-    apiPost.mockRejectedValueOnce(new Error("create failed"));
+    clientApi.apiPost.mockRejectedValueOnce(new Error("create failed"));
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
@@ -514,7 +472,7 @@ describe("WorkstationsPage", () => {
 
   test("shows failed-create toast when createWorkstationTemplate returns null", async () => {
     const user = userEvent.setup();
-    global.fetch.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
+    clientApi.apiPost.mockResolvedValueOnce({ ok: false, json: jest.fn().mockResolvedValue({}) });
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());

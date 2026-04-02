@@ -270,29 +270,29 @@ export default function WorkstationsPage() {
       prev.map((r) =>
         r.id === row.id
           ? {
-              ...r,
-              name: changes.name ?? r.name,
-              strength: changes.description ?? r.strength,
-              description: changes.description ?? r.description,
-              desktopBackground:
-                changes.desktopBackground ?? r.desktopBackground,
-              wallpaper: changes.wallpaper ?? r.wallpaper,
-              image: changes.image ?? r.image,
-              members:
-                changes.members?.map(
-                  (member) => member.id || member._id || member,
-                ) ?? r.members,
-              users: changes.members ?? r.users,
-              usersCount: changes.members?.length ?? r.usersCount,
-              currentUser:
-                changes.members && changes.members.length > 0
-                  ? changes.members[0]
-                  : changes.members
-                    ? null
-                    : r.currentUser,
-              groups: changes.access_groups ?? r.groups,
-              software: changes.software ?? r.software,
-            }
+            ...r,
+            name: changes.name ?? r.name,
+            strength: changes.description ?? r.strength,
+            description: changes.description ?? r.description,
+            desktopBackground:
+              changes.desktopBackground ?? r.desktopBackground,
+            wallpaper: changes.wallpaper ?? r.wallpaper,
+            image: changes.image ?? r.image,
+            members:
+              changes.members?.map(
+                (member) => member.id || member._id || member,
+              ) ?? r.members,
+            users: changes.members ?? r.users,
+            usersCount: changes.members?.length ?? r.usersCount,
+            currentUser:
+              changes.members && changes.members.length > 0
+                ? changes.members[0]
+                : changes.members
+                  ? null
+                  : r.currentUser,
+            groups: changes.access_groups ?? r.groups,
+            software: changes.software ?? r.software,
+          }
           : r,
       ),
     );
@@ -504,9 +504,9 @@ export default function WorkstationsPage() {
                     row.currentUser && row.currentUser !== "—"
                       ? typeof row.currentUser === "string"
                         ? {
-                            firstName: row.currentUser.split(" ")[0],
-                            lastName: row.currentUser.split(" ")[1] || "",
-                          }
+                          firstName: row.currentUser.split(" ")[0],
+                          lastName: row.currentUser.split(" ")[1] || "",
+                        }
                         : row.currentUser
                       : null;
 
@@ -550,7 +550,7 @@ export default function WorkstationsPage() {
                               ),
                               label: "delete workstation",
                               color: "#D51616",
-                                onClick: () => handleDelete(row),
+                              onClick: () => handleDelete(row),
                             },
                           ]}
                         />
@@ -651,16 +651,16 @@ export default function WorkstationsPage() {
             onDelete={
               editRow
                 ? async () => {
-                    try {
-                      await handleDelete(editRow);
-                      setOpenModal(false);
-                      setEditRow(null);
-                      showToast("Workstation deleted");
-                      globalThis.dispatchEvent(new Event("metrics:invalidate"));
-                    } catch (error) {
-                      showToast("Failed to delete workstation", "error");
-                    }
+                  try {
+                    await handleDelete(editRow);
+                    setOpenModal(false);
+                    setEditRow(null);
+                    showToast("Workstation deleted");
+                    globalThis.dispatchEvent(new Event("metrics:invalidate"));
+                  } catch (error) {
+                    showToast("Failed to delete workstation", "error");
                   }
+                }
                 : undefined
             }
           />

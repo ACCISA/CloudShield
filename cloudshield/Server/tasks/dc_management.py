@@ -346,7 +346,7 @@ def dc_create_file_share(
     if not nodes:
         logger.error("Inventory is empty for org_id=%s", org_id)
 
-    if _is_docker_mode() and not _has_share_proxy_nodes(nodes):
+    if _is_docker_mode():
         return _persist_local_share_create(
             org_id,
             share_name,
@@ -416,7 +416,7 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
 
     nodes = get_server_nodes(org_id) or {}
 
-    if _is_docker_mode() and not _has_share_proxy_nodes(nodes):
+    if _is_docker_mode():
         return _delete_local_share(org_id, share_name, logger)
 
     request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)

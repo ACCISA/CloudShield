@@ -223,7 +223,7 @@ ipcMain.handle("vpn:connect", async (_event, params: VPNConnectInput = {}) => {
     }
   }
 
-  let command = process.platform === "linux" ? "/usr/sbin/openvpn" : "openvpn";
+  let command = "openvpn";
   const args: string[] = ["--config", ovpnPath, "--writepid", pidFilePath];
 
 
@@ -443,7 +443,7 @@ ipcMain.handle(
         if (isWin) {
           // Fallback to Windows built-in RDP client
           const mstsc = "mstsc.exe";
-          const child = spawn(mstsc, ["/v:" + params.ip]); //NOSONAR typescript:S4036
+          const child = spawn(mstsc, ["/v:" + params.ip, "/f"]); //NOSONAR typescript:S4036
           child.on("error", (err) => {
             if (settled) return;
             settled = true;
@@ -471,6 +471,7 @@ ipcMain.handle(
           `/u:${params.username}`,
           `/p:${params.password}`,
           `/v:${params.ip}`,
+          "/f",
           "/cert:tofu",
         ]);
         let error = "";

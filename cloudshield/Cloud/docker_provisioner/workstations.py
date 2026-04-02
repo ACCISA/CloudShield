@@ -157,7 +157,7 @@ def import_oem(oem_path):
 def import_software(org_id, template_id, software_id):
     pass
 
-def prepare_software(org_id, templated_id, software,oem_path,logger):
+def prepare_software(org_id, template_id, software,oem_path,logger):
     """
     Move chosen software files for custom templates
     """
@@ -295,7 +295,8 @@ def provision_default_workstation(org_data, template_id, software, job = None, u
             ],
             detach=True,
             tty=False,
-            build=False
+            build=False,
+            service_ports=True
     )
     
     container_ws_id = container_ws.id
@@ -442,7 +443,8 @@ def provision_workstation_vm(org_id, template_id, vm_id, job = None, updater = N
             volumes=[(str(host_vm_storage_path), "/storage", "rw")],
             detach=True,
             tty=False,
-            build=False
+            build=False,
+            service_ports=True
     )
 
     container_ws_ip = container_ws.network_settings.networks[external_network_name].ip_address

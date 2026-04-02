@@ -978,7 +978,8 @@ def provision_workstation_docker(
         publish=[(host_port, 8006)],
         detach=True,
         tty=False,
-        build=False,
+        service_ports=True,
+        build=False
     )
 
     container_id_ws = container_ws.id
@@ -1200,6 +1201,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "REALM_NAME": realm_name,
             "REALM_NAME_LWR": realm_name.lower(),
         },
+        service_ports=True
     )
 
     container_id_samba = container_dc.id
@@ -1221,6 +1223,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "OPENVPN_DNS": container_dc_ip,
             "ORG_SUBNET_CIDR": org_subnet_cidr,
         },
+        service_ports=True
     )
 
     container_id_vpn = container_vpn.id
