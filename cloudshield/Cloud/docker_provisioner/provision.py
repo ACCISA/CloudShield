@@ -954,6 +954,37 @@ def _pick_workstation_host_port(org_subnet_cidr: str) -> int:
     return port
 
 
+def _reconnect_novnc(workstation_ip: str, org_network_name: str, server_logger) -> None:
+    """Stop the existing noVNC container and start a new one pointing at the new workstation."""
+    novnc_image = os.environ.get("NOVNC_IMAGE", "cs-novnc-test")
+    novnc_name = os.environ.get("NOVNC_CONTAINER", "cs-novnc-dev")
+    novnc_port = int(os.environ.get("NOVNC_PORT", "6080"))
+    try:
+        plain_docker = DockerClient()
+        existing = [c for c in plain_docker.ps(all=True) if c.name == novnc_name]
+        for c in existing:
+            try:
+                c.stop()
+                c.remove()
+            except Exception:
+                pass
+        plain_docker.container.run(
+            novnc_image,
+            name=novnc_name,
+            detach=True,
+            networks=[org_network_name],
+            envs={
+                "TARGET_HOST": workstation_ip,
+                "TARGET_PORT": "5900",
+                "LISTEN_PORT": str(novnc_port),
+            },
+            publish=[(novnc_port, novnc_port)],
+        )
+        server_logger.info(f"noVNC reconnected → {workstation_ip}:5900 (:{novnc_port})")
+    except Exception as exc:
+        server_logger.warning(f"Failed to reconnect noVNC: {exc}")
+
+
 def provision_workstation_docker(
     org_id,
     server_logger,
@@ -972,13 +1003,20 @@ def provision_workstation_docker(
 
     host_port = _pick_workstation_host_port(org_subnet_cidr)
 
+    # Delete the old Windows disk image so the new provisioning gets a fresh
+    # install with the correct OEM scripts (including the right SERVER_ADDR).
+    storage_dir = _workstation_storage_dir(org_id)
+    data_img = os.path.join(storage_dir, "data.img")
+    if os.path.exists(data_img):
+        os.remove(data_img)
+        server_logger.info(f"Deleted stale disk image: {data_img}")
+
     org_docker.compose.build(services=["workstation"])
     container_ws = org_docker.compose.run(
         service="workstation",
         publish=[(host_port, 8006)],
         detach=True,
         tty=False,
-        service_ports=True,
         build=False
     )
 
@@ -1057,6 +1095,8 @@ def provision_workstation_docker(
         return
 
     server_logger.info("Windows workstation installation has started, this will take some time")
+
+    _reconnect_novnc(container_ws_ip, org_network_name, server_logger)
 
     return {
         "port": str(host_port),
@@ -1148,8 +1188,9 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
 
     # Resolve the CloudShield Server URL so ThreatDetection can push alerts to it.
     # Look up the API container IP on cloudshield_net at provision time.
-    _cs_server_url = os.environ.get("CLOUDSHIELD_SERVER_URL", "")
-    if not _cs_server_url:
+    _cs_server_url = os.environ.get("CLOUDSHIELD_SERVER_URL", "").strip()
+    # 127.0.0.1 is meaningless inside a container — ignore it and look up the real API container.
+    if not _cs_server_url or "127.0.0.1" in _cs_server_url or "localhost" in _cs_server_url:
         try:
             _plain_docker = DockerClient()
             for _c in _plain_docker.ps():
@@ -1347,6 +1388,27 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
             "private_ip": td_ip,
             "public_ip": td_ip,
         })
+
+    # Provision the workstation now that td_ip is known so THREAT_DETECTION_IP
+    # is correctly substituted into the OEM agent install scripts.
+    td_agents_file = Path(td_agents_dir) / "agents.json" if td_agents_dir else None
+    ws_result = provision_workstation_docker(
+        org_id=org_id,
+        server_logger=server_logger,
+        org_docker=org_docker,
+        org_network_name=org_network_name,
+        samba_ip=container_dc_ip,
+        org_subnet_cidr=org_subnet_cidr,
+        threat_detection_ip=td_ip,
+        td_agents_file=td_agents_file,
+        td_container_id=td_container_id,
+        domain_name=domain_name,
+        admin_pass=dc_admin_password,
+    )
+    if ws_result:
+        metadata.append(ws_result)
+    else:
+        server_logger.error("Workstation provisioning failed for org %s", org_id)
 
     return metadata
 
