@@ -4,6 +4,7 @@ FROM node:22-alpine
 # Set working directory
 WORKDIR /app
 
+<<<<<<< HEAD
 # Seed dependencies into the image so Docker can populate the named
 # /app/node_modules volume on first run.
 COPY cloudshield/WebUI/package*.json ./
@@ -16,6 +17,10 @@ COPY cloudshield/WebUI/ ./
 COPY docker/ui-dev-entrypoint.sh /usr/local/bin/ui-dev-entrypoint
 RUN chmod +x /usr/local/bin/ui-dev-entrypoint
 
+=======
+COPY cloudshield/WebUI/package*.json ./
+RUN npm install
+>>>>>>> f06f1beaa730a46783fa3c63b83c891e1005e9c6
 # Expose Vite dev server port
 # Note: source is bind-mounted at runtime via docker-compose volumes
 EXPOSE 5173

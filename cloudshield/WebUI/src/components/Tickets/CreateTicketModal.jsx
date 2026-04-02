@@ -1,19 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { createTicket } from "../../api/ticketsApi";
+import CreateButton from "../common/CreateButton/CreateButton.jsx";
 import "./CreateTicketModal.css";
-
-const CATEGORY_OPTIONS = [
-  { value: "Network", label: "Network / VPN" },
-  { value: "Hardware", label: "Workstation" },
-  { value: "Access", label: "Access / IAM" },
-  { value: "General", label: "General" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: "Low", label: "Low" },
-  { value: "Medium", label: "Medium" },
-  { value: "High", label: "High / Urgent" },
-];
 
 const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
   const [title, setTitle] = useState("");
@@ -36,180 +25,202 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isSubmitting, onClose]);
 
-  if (!isOpen) return null;
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setPriority("Medium");
-    setCategory("General");
-    setError(null);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-    setError(null);
-
-    const fullDescription = `[Category: ${category}]\n\n${description}`;
-
-    try {
-      await createTicket({ title, description: fullDescription, priority });
-      resetForm();
-      onSuccess?.();
-      onClose?.();
-    } catch (err) {
-      setError(err?.message || "Failed to create ticket");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleBackdropClick = (event) => {
     if (event.target === event.currentTarget && !isSubmitting) {
       onClose?.();
     }
   };
 
+  const handleSubmit = async (event) => {
+    if (event) event.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    // Smart Hack: We prepend the category to the description so we don't
+    // have to rewrite the Python backend database schema just for this UI upgrade!
+    const fullDescription = `[Category: ${category}]\n\n${description}`;
+
+    try {
+      await createTicket({ title, description: fullDescription, priority });
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setPriority("Medium");
+      setCategory("General");
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.message || "Failed to create ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div
-      className="ticket-modal-overlay"
+    <div 
+      className="tickets-modal-overlay"
       onClick={handleBackdropClick}
       role="presentation"
     >
-      <div
-        className="ticket-modal-dialog"
+      <div 
+        className="tickets-modal-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="ticket-modal-title"
       >
-        <header className="ticket-modal-header">
-          <div>
-            <nav className="ticket-modal-breadcrumb" aria-label="Breadcrumb">
-              <span className="ticket-modal-breadcrumb-item inactive">
-                Support
+        <form onSubmit={handleSubmit}>
+          {/* HEADER */}
+          <header className="tickets-modal-header">
+            <nav className="tickets-modal-breadcrumb">
+              <span className="tickets-modal-breadcrumb-item inactive">
+                Tickets
               </span>
-              <span className="ticket-modal-breadcrumb-separator">›</span>
-              <span className="ticket-modal-breadcrumb-item active">
-                New Ticket
+              <span className="tickets-modal-breadcrumb-separator">›</span>
+              <span id="ticket-modal-title" className="tickets-modal-breadcrumb-item active">
+                Submit a Request
               </span>
             </nav>
-            <h2 id="ticket-modal-title" className="ticket-modal-title">
-              Submit a Request
-            </h2>
-          </div>
-          <button
-            type="button"
-            className="ticket-modal-close-btn"
-            onClick={onClose}
-            aria-label="Close"
-            disabled={isSubmitting}
-          >
-            ×
-          </button>
-        </header>
+            <button
+              type="button"
+              className="tickets-modal-close-btn"
+              onClick={onClose}
+              disabled={isSubmitting}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </header>
 
-        <form className="ticket-modal-form" onSubmit={handleSubmit}>
-          <main className="ticket-modal-content">
-            {error && <div className="ticket-modal-error">{error}</div>}
+          {/* BODY */}
+          <main className="tickets-modal-content">
+            {error && <div className="tickets-modal-error">{error}</div>}
 
-            <div className="ticket-modal-section">
-              <label className="ticket-modal-label" htmlFor="ticket-title">
+            <div className="tickets-modal-form-group">
+              <label htmlFor="ticket-title" className="tickets-modal-label">
                 1. What do you need help with?
               </label>
               <input
                 id="ticket-title"
                 type="text"
+                className="tickets-modal-input"
                 required
-                className="ticket-modal-input"
                 placeholder="e.g. Cannot connect to Workstation VPN"
                 value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                disabled={isSubmitting}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
 
-            <div className="ticket-modal-section">
-              <span className="ticket-modal-label">2. Issue Category</span>
-              <div className="ticket-modal-pill-grid" role="group">
-                {CATEGORY_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`ticket-modal-pill ${
-                      category === option.value ? "selected" : ""
-                    }`}
-                    onClick={() => setCategory(option.value)}
-                    disabled={isSubmitting}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+            <fieldset className="tickets-modal-form-group">
+              <legend className="tickets-modal-label">2. Issue Category</legend>
+              <div className="tickets-modal-toggle-group">
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${category === "Network" ? "selected" : ""}`}
+                  onClick={() => setCategory("Network")}
+                >
+                  Network / VPN
+                </button>
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${category === "Hardware" ? "selected" : ""}`}
+                  onClick={() => setCategory("Hardware")}
+                >
+                  Workstation
+                </button>
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${category === "Access" ? "selected" : ""}`}
+                  onClick={() => setCategory("Access")}
+                >
+                  Access / IAM
+                </button>
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${category === "General" ? "selected" : ""}`}
+                  onClick={() => setCategory("General")}
+                >
+                  General
+                </button>
               </div>
-            </div>
+            </fieldset>
 
-            <div className="ticket-modal-section">
-              <span className="ticket-modal-label">3. Priority Level</span>
-              <div className="ticket-modal-pill-grid" role="group">
-                {PRIORITY_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`ticket-modal-pill ticket-modal-pill--priority-${option.value.toLowerCase()} ${
-                      priority === option.value ? "selected" : ""
-                    }`}
-                    onClick={() => setPriority(option.value)}
-                    disabled={isSubmitting}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+            <fieldset className="tickets-modal-form-group">
+              <legend className="tickets-modal-label">3. Priority Level</legend>
+              <div className="tickets-modal-toggle-group">
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${priority === "Low" ? "selected priority-low" : ""}`}
+                  onClick={() => setPriority("Low")}
+                >
+                  Low
+                </button>
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${priority === "Medium" ? "selected priority-medium" : ""}`}
+                  onClick={() => setPriority("Medium")}
+                >
+                  Medium
+                </button>
+                <button
+                  type="button"
+                  className={`tickets-modal-toggle-btn ${priority === "High" ? "selected priority-high" : ""}`}
+                  onClick={() => setPriority("High")}
+                >
+                  High / Urgent
+                </button>
               </div>
-            </div>
+            </fieldset>
 
-            <div className="ticket-modal-section">
+            <div className="tickets-modal-form-group">
               <label
-                className="ticket-modal-label"
                 htmlFor="ticket-description"
+                className="tickets-modal-label"
               >
                 4. Description
               </label>
               <textarea
                 id="ticket-description"
+                className="tickets-modal-textarea"
                 required
-                rows={5}
-                className="ticket-modal-textarea"
                 placeholder="Please provide steps to reproduce, error codes, or any relevant details..."
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                disabled={isSubmitting}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
           </main>
 
-          <footer className="ticket-modal-actions">
-            <button
-              type="button"
-              className="ticket-modal-btn ticket-modal-btn-cancel"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="ticket-modal-btn ticket-modal-btn-primary"
-              disabled={isSubmitting || !title.trim() || !description.trim()}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Request"}
-            </button>
+          {/* FOOTER */}
+          <footer className="tickets-modal-actions">
+            <div className="tickets-modal-actions-right">
+              <button
+                type="button"
+                className="tickets-modal-btn tickets-modal-btn-navigate"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <CreateButton
+                buttonText={isSubmitting ? "Submitting..." : "Submit Request"}
+                onClick={handleSubmit}
+                disabled={isSubmitting || !title.trim() || !description.trim()}
+              />
+            </div>
           </footer>
         </form>
       </div>
     </div>
   );
+};
+
+CreateTicketModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func.isRequired,
 };
 
 export default CreateTicketModal;

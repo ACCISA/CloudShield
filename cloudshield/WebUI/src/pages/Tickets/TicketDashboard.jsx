@@ -11,244 +11,240 @@ import { useThemeColors } from "../../hooks/useThemeColors.js";
 import { useTickets } from "../../api/ticketsApi";
 import CreateTicketModal from "../../components/Tickets/CreateTicketModal";
 import { useAuth } from "../../context/AuthContext";
+import CreateButton from "../../components/common/CreateButton/CreateButton.jsx";
+import CreateTicketIcon from "../../assets/CreateTicketIcon.jsx";
 
 function TicketDashboard() {
-    const themeColors = useThemeColors();
-    const { tickets: rawTickets, loading, error, refreshTickets } = useTickets();
-    const { currentUser } = useAuth();
-    
-    // Fix 1: Ensure we handle the "items" wrapper from the backend
-    const tickets = useMemo(() => {
-        if (!rawTickets) return [];
-        return Array.isArray(rawTickets) ? rawTickets : (rawTickets.items || []);
-    }, [rawTickets]);
+  const themeColors = useThemeColors();
+  const { tickets: rawTickets, loading, error, refreshTickets } = useTickets();
+  const { currentUser } = useAuth();
 
-    const styles = {
-        page: {
-            padding: "32px",
-            maxWidth: "1400px",
-            margin: "0 auto",
-            color: themeColors.textPrimary,
-            fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-        },
-        header: {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "28px",
-        },
-        pageTitle: {
-            margin: 0,
-            fontSize: "1.25rem",
-            fontWeight: 600,
-        },
-        createBtn: {
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "8px 16px",
-            borderRadius: "8px",
-            border: "none",
-            backgroundColor: themeColors.textPrimary,
-            color: themeColors.bgPrimary,
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            transition: "background-color 0.15s",
-        },
-        metricsRow: {
-            display: "flex",
-            gap: "16px",
-            marginBottom: "28px",
-            flexWrap: "wrap",
-        },
-        metricCard: {
-            flex: "1 1 160px",
-            backgroundColor: themeColors.bgSecondary,
-            border: `1px solid ${themeColors.borderLight}`,
-            borderRadius: "12px",
-            padding: "20px",
-        },
-        metricLabel: {
-            fontSize: "0.72rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.8px",
-            color: themeColors.textSecondary,
-            marginBottom: "8px",
-        },
-        metricValue: {
-            fontSize: "1.75rem",
-            fontWeight: 500,
-            color: themeColors.textPrimary,
-        },
-        container: {
-            backgroundColor: themeColors.bgSecondary,
-            borderRadius: "16px",
-            padding: "16px",
-            border: `1px solid ${themeColors.borderLight}`,
-        },
-        containerHeader: {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "12px",
-        },
-        containerTitle: {
-            fontSize: "14px",
-            fontWeight: "500",
-            color: themeColors.textPrimary,
-            margin: 0,
-        },
-        headerRight: {
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-        },
-        tableWrapper: {
-            height: "340px",
-            display: "flex",
-            flexDirection: "column",
-        },
+  // Fix 1: Ensure we handle the "items" wrapper from the backend
+  const tickets = useMemo(() => {
+    if (!rawTickets) return [];
+    return Array.isArray(rawTickets) ? rawTickets : rawTickets.items || [];
+  }, [rawTickets]);
+
+  const styles = {
+    page: {
+      padding: "32px",
+      maxWidth: "1400px",
+      margin: "0 auto",
+      color: themeColors.textPrimary,
+      fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "28px",
+    },
+    pageTitle: {
+      margin: 0,
+      fontSize: "1.25rem",
+      fontWeight: 600,
+    },
+    metricsRow: {
+      display: "flex",
+      gap: "16px",
+      marginBottom: "28px",
+      flexWrap: "wrap",
+    },
+    metricCard: {
+      flex: "1 1 160px",
+      backgroundColor: themeColors.bgSecondary,
+      border: `1px solid ${themeColors.borderLight}`,
+      borderRadius: "12px",
+      padding: "20px",
+    },
+    metricLabel: {
+      fontSize: "0.72rem",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: "0.8px",
+      color: themeColors.textSecondary,
+      marginBottom: "8px",
+    },
+    metricValue: {
+      fontSize: "1.75rem",
+      fontWeight: 500,
+      color: themeColors.textPrimary,
+    },
+    container: {
+      backgroundColor: themeColors.bgSecondary,
+      borderRadius: "16px",
+      padding: "16px",
+      border: `1px solid ${themeColors.borderLight}`,
+    },
+    containerHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "12px",
+    },
+    containerTitle: {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: themeColors.textPrimary,
+      margin: 0,
+    },
+    headerRight: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    tableWrapper: {
+      height: "340px",
+      display: "flex",
+      flexDirection: "column",
+    },
+  };
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeFilters, setActiveFilters] = useState({
+    priority: new Set(),
+    status: new Set(),
+  });
+  const itemsPerPage = 6;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilters]);
+
+  // Fix 2: Use the global context user instead of the local fetch
+  const userEmail = currentUser?.email || "";
+  const isSuperAdmin = userEmail === "support@cloudshield.com";
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
+
+  const metrics = useMemo(() => {
+    return {
+      total: tickets.length,
+      open: tickets.filter((t) => t.status === "Open" || t.status === "Pending")
+        .length,
+      closed: tickets.filter((t) => t.status === "Closed").length,
+      highPriority: tickets.filter(
+        (t) => t.priority === "High" && t.status !== "Closed",
+      ).length,
     };
+  }, [tickets]);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [activeFilters, setActiveFilters] = useState({
-        priority: new Set(),
-        status: new Set(),
-    });
-    const itemsPerPage = 6;
+  const filteredTickets = useMemo(() => {
+    let result = tickets;
 
-    useEffect(() => { setCurrentPage(1); }, [searchQuery, activeFilters]);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (isSuperAdmin && t.org_id?.toLowerCase().includes(q)),
+      );
+    }
 
-    // Fix 2: Use the global context user instead of the local fetch
-    const userEmail = currentUser?.email || "";
-    const isSuperAdmin = userEmail === "support@cloudshield.com";
-    const handleFilterChange = createFilterChangeHandler(setActiveFilters);
+    if (activeFilters.priority.size > 0) {
+      result = result.filter((t) => activeFilters.priority.has(t.priority));
+    }
 
-    const metrics = useMemo(() => {
-        return {
-            total: tickets.length,
-            open: tickets.filter(t => t.status === "Open" || t.status === "Pending").length,
-            closed: tickets.filter(t => t.status === "Closed").length,
-            highPriority: tickets.filter(t => t.priority === "High" && t.status !== "Closed").length,
-        };
-    }, [tickets]);
+    if (activeFilters.status.size > 0) {
+      result = result.filter((t) => activeFilters.status.has(t.status));
+    }
 
-    const filteredTickets = useMemo(() => {
-        let result = tickets;
+    return result;
+  }, [tickets, searchQuery, activeFilters, isSuperAdmin]);
 
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(t =>
-                t.title.toLowerCase().includes(q) ||
-                (isSuperAdmin && t.org_id && t.org_id.toLowerCase().includes(q))
-            );
-        }
+  const paginatedTickets = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredTickets.slice(start, start + itemsPerPage);
+  }, [filteredTickets, currentPage]);
 
-        if (activeFilters.priority.size > 0) {
-            result = result.filter(t => activeFilters.priority.has(t.priority));
-        }
-
-        if (activeFilters.status.size > 0) {
-            result = result.filter(t => activeFilters.status.has(t.status));
-        }
-
-        return result;
-    }, [tickets, searchQuery, activeFilters, isSuperAdmin]);
-
-    const paginatedTickets = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredTickets.slice(start, start + itemsPerPage);
-    }, [filteredTickets, currentPage]);
-
-    if (loading) return <div style={{ padding: "32px", color: themeColors.textTertiary }}>Loading support tickets...</div>;
-    if (error) return <div style={{ padding: "32px", color: "#ff4d4f" }}>Error loading tickets: {error.message}</div>;
-
+  if (loading)
     return (
-        <div style={styles.page}>
-            <div style={styles.header}>
-                <h2 style={styles.pageTitle}>
-                    {isSuperAdmin ? "Global Support Helpdesk" : "Support Helpdesk"}
-                </h2>
-                {!isSuperAdmin && (
-                    <button
-                        style={styles.createBtn}
-                        onClick={() => setIsModalOpen(true)}
-                        onMouseEnter={e => {
-                            const isLight = themeColors.isDark === false;
-                            e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)';
-                        }}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = themeColors.textPrimary}
-                    >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Create Ticket
-                    </button>
-                )}
-            </div>
-
-            <div style={styles.metricsRow}>
-                {[
-                    { label: "Total Tickets",  value: metrics.total },
-                    { label: "Active Issues",  value: metrics.open },
-                    { label: "High Priority",  value: metrics.highPriority },
-                    { label: "Resolved",       value: metrics.closed },
-                ].map(({ label, value }) => (
-                    <div key={label} style={styles.metricCard}>
-                        <div style={styles.metricLabel}>{label}</div>
-                        <div style={styles.metricValue}>{value}</div>
-                    </div>
-                ))}
-            </div>
-
-            <div style={styles.container}>
-                <div style={styles.containerHeader}>
-                    <h3 style={styles.containerTitle}>Support Tickets</h3>
-                    <div style={styles.headerRight}>
-                        <SearchField
-                            placeholder="Search tickets"
-                            value={searchQuery}
-                            onChange={setSearchQuery}
-                        />
-                        <FilterButton
-                            filterGroups={TICKET_FILTERS}
-                            activeFilters={activeFilters}
-                            onFilterChange={handleFilterChange}
-                        />
-                        <RefreshButton onClick={refreshTickets} />
-                    </div>
-                </div>
-
-                <div style={styles.tableWrapper}>
-                    <TicketsTable
-                        tickets={paginatedTickets}
-                        isSuperAdmin={isSuperAdmin}
-                        hasNoTickets={tickets.length === 0}
-                        hasNoResults={filteredTickets.length === 0}
-                    />
-                </div>
-
-                <Pagination
-                    totalItems={filteredTickets.length}
-                    itemsPerPage={itemsPerPage}
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                    itemLabel="tickets"
-                />
-            </div>
-
-            <CreateTicketModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSuccess={refreshTickets}
-            />
-        </div>
+      <div style={{ padding: "32px", color: themeColors.textTertiary }}>
+        Loading support tickets...
+      </div>
     );
+  if (error)
+    return (
+      <div style={{ padding: "32px", color: "#ff4d4f" }}>
+        Error loading tickets: {error.message}
+      </div>
+    );
+
+  return (
+    <div style={styles.page}>
+      <div style={styles.header}>
+        <h2 style={styles.pageTitle}>
+          {isSuperAdmin ? "Global Support Helpdesk" : "Support Helpdesk"}
+        </h2>
+        {!isSuperAdmin && (
+          <CreateButton
+            icon={<CreateTicketIcon width={16} height={16} color="#111111" />}
+            buttonText="Create Ticket"
+            title="Create Ticket"
+            variant="light"
+            onClick={() => setIsModalOpen(true)}
+          />
+        )}
+      </div>
+
+      <div style={styles.metricsRow}>
+        {[
+          { label: "Total Tickets", value: metrics.total },
+          { label: "Active Issues", value: metrics.open },
+          { label: "High Priority", value: metrics.highPriority },
+          { label: "Resolved", value: metrics.closed },
+        ].map(({ label, value }) => (
+          <div key={label} style={styles.metricCard}>
+            <div style={styles.metricLabel}>{label}</div>
+            <div style={styles.metricValue}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={styles.container}>
+        <div style={styles.containerHeader}>
+          <h3 style={styles.containerTitle}>Support Tickets</h3>
+          <div style={styles.headerRight}>
+            <SearchField
+              placeholder="Search tickets"
+              value={searchQuery}
+              onChange={setSearchQuery}
+            />
+            <FilterButton
+              filterGroups={TICKET_FILTERS}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+            />
+            <RefreshButton onClick={refreshTickets} />
+          </div>
+        </div>
+
+        <div style={styles.tableWrapper}>
+          <TicketsTable
+            tickets={paginatedTickets}
+            isSuperAdmin={isSuperAdmin}
+            hasNoTickets={tickets.length === 0}
+            hasNoResults={filteredTickets.length === 0}
+          />
+        </div>
+
+        <Pagination
+          totalItems={filteredTickets.length}
+          itemsPerPage={itemsPerPage}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          itemLabel="tickets"
+        />
+      </div>
+
+      <CreateTicketModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={refreshTickets}
+      />
+    </div>
+  );
 }
 
 export default TicketDashboard;

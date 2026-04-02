@@ -1,24 +1,9 @@
 import { useState, type ButtonHTMLAttributes } from "react";
+import RefreshIcon from "../../assets/RefreshIcon";
 
 type RefreshButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & {
   onClick?: () => void | Promise<void>;
 };
-
-const RefreshIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    <path d="M21 3v6h-6" />
-  </svg>
-);
 
 export default function RefreshButton({
   onClick,
@@ -27,6 +12,7 @@ export default function RefreshButton({
   ...rest
 }: RefreshButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleClick = async () => {
     if (!onClick || disabled || isLoading) return;
@@ -46,12 +32,19 @@ export default function RefreshButton({
       {...rest}
       onClick={handleClick}
       disabled={disabled || isLoading}
-      className={`flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#101010] text-white/70 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title="Refresh"
+      className={`flex h-12 w-12 items-center justify-center rounded-[80px] border-0 bg-transparent text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()}
+      style={{
+        backgroundColor:
+          isHovered && !disabled && !isLoading ? "rgba(255,255,255,0.08)" : "transparent",
+      }}
     >
       {isLoading ? (
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
       ) : (
-        <RefreshIcon />
+        <RefreshIcon width={20} height={20} color="currentColor" />
       )}
     </button>
   );

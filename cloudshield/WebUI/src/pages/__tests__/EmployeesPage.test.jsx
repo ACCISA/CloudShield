@@ -509,7 +509,9 @@ describe("EmployeesPage", () => {
     renderPage();
     await screen.findByText("Alice");
 
-    await userEvent.type(screen.getByTestId("search-input"), "bob");
+    fireEvent.change(screen.getByTestId("search-input"), {
+      target: { value: "bob" },
+    });
     await waitFor(() =>
       expect(screen.getByTestId("user-count")).toHaveTextContent("1"),
     );
@@ -520,7 +522,9 @@ describe("EmployeesPage", () => {
     );
 
     await userEvent.click(screen.getByTestId("filter-clear-active"));
-    await userEvent.clear(screen.getByTestId("search-input"));
+    fireEvent.change(screen.getByTestId("search-input"), {
+      target: { value: "" },
+    });
     await waitFor(() =>
       expect(screen.getByTestId("sort-name")).toBeInTheDocument(),
     );

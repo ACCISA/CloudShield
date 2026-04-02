@@ -1,4 +1,9 @@
-import type { ChangeEvent, InputHTMLAttributes } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type InputHTMLAttributes,
+} from "react";
 
 type SearchFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -30,18 +35,43 @@ export default function SearchField({
   className = "",
   ...rest
 }: SearchFieldProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 600 : false,
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
     <div
-      className={`relative w-full max-w-sm rounded-xl border border-white/10 bg-[#0f0f0f] transition focus-within:border-white/30 hover:border-white/20 ${className}`.trim()}
+      className={`relative flex h-12 items-center rounded-lg px-6 transition-all duration-200 ${isMobile ? "w-full" : "w-90"} ${className}`.trim()}
+      style={{
+        backgroundColor: isFocused || isHovered ? "#151515" : "#111111",
+        border: `1px solid ${isFocused || isHovered ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.10)"}`,
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
+      <span className="pointer-events-none mr-2 text-white/50">
         <SearchIcon />
       </span>
       <input
         {...rest}
         value={value}
         onChange={onChange}
-        className="w-full bg-transparent py-2.5 pl-10 pr-3 text-sm text-white/80 placeholder:text-white/40 outline-none"
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className="w-full bg-transparent text-base font-medium text-white/80 placeholder:text-white/40 outline-none"
       />
     </div>
   );
