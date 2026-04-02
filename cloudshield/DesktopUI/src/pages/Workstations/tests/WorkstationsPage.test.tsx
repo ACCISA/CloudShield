@@ -45,8 +45,9 @@ describe("WorkstationsPage", () => {
   const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
   const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
+  const appWindow = globalThis as unknown as Window;
   beforeEach(() => {
-    window.authStore = {
+    appWindow.authStore = {
       saveAuth: vi.fn(),
       loadAuth: loadAuthMock,
       clearAuth: clearAuthMock,
@@ -65,8 +66,8 @@ describe("WorkstationsPage", () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    delete window.authStore;
+    vi.resetAllMocks();
+    delete appWindow.authStore;
     localStorage.clear();
   });
 
@@ -118,29 +119,29 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  it("renders the empty state when no auth is available in bypass mode", async () => {
+  it("shows an auth error when no auth is available", async () => {
     loadAuthMock.mockReturnValue({});
-    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
     expect(
-      await screen.findByText(/no assigned workstation templates found/i),
+      await screen.findByText(/missing access token\. please sign in\./i),
     ).toBeTruthy();
+    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
   });
 
-  it("renders the empty state when the token is expired in bypass mode", async () => {
+  it("shows an auth error when the token is expired", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() - 1000,
     });
-    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
     expect(
-      await screen.findByText(/no assigned workstation templates found/i),
+      await screen.findByText(/session expired\. please sign in again\./i),
     ).toBeTruthy();
+    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
   });
 
   it("renders workstation template rows from the API", async () => {
@@ -205,7 +206,7 @@ describe("WorkstationsPage", () => {
   });
 
   it("uses local storage auth when authStore is unavailable", async () => {
-    delete window.authStore;
+    delete appWindow.authStore;
     localStorage.setItem(
       "cloudshield.auth",
       JSON.stringify({
@@ -287,7 +288,7 @@ describe("WorkstationsPage", () => {
     });
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
     localStorage.setItem("cloudshield.auth", "{}");
-    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    const dispatchSpy = vi.spyOn(appWindow, "dispatchEvent");
 
     render(<WorkstationsPage />);
 
