@@ -486,6 +486,13 @@ ipcMain.handle(
         child.on("close", (code) => {
           if (settled) return;
           settled = true;
+          if (code === 12) {
+            return resolve({
+              success: true,
+              pid: child.pid,
+              message: "xfreerdp3 session closed by user",
+            });
+          }
           if (code !== 0) {
             if (error) console.log("[xfreerdp3 error output]:", error);
             if (/NEW HOST IDENTIFICATION!/i.test(error)) {
