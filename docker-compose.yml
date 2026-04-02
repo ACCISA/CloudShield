@@ -128,7 +128,7 @@ services:
     environment:
       CLOUDSHIELD_RUNTIME: "1"
       AGENTS_FILE: /app/cloudshield/ThreatDetection/org_agents/agents.json
-      ES_URL: http://elasticsearch:9200
+      ES_URL: http://cloudshield-elasticsearch-run-c772165c6f36:9200
     volumes:
       - ${WORKSTATIONS_MOUNT_DIR}/workstations/${CLOUDSHIELD_DEV_ORG:-dev}/td_agents:/app/cloudshield/ThreatDetection/org_agents
     networks:
@@ -170,7 +170,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
-      - ES_URL=http://elasticsearch:9200
+      - ES_URL=http://cloudshield-elasticsearch-run-c772165c6f36:9200
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
       - KVM=Y
@@ -226,7 +226,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis:6379/0
-      - ES_URL=http://elasticsearch:9200
+      - ES_URL=http://cloudshield-elasticsearch-run-c772165c6f36:9200
       - WORKSTATIONS_MOUNT_DIR=${WORKSTATIONS_MOUNT_DIR}
       - WINDOWS_ISO_PATH=${WINDOWS_ISO_PATH}
       - KVM=Y
