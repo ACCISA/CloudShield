@@ -517,12 +517,11 @@ def mocked_app(monkeypatch):
     def inject_admin():
         g.user = {"id": "u1", "role": "admin", "org_id": "org-1", "email": "a@b.com"}
 
-    return app
+    return app, mock_db
 
 class TestDeleteWorkstation:
     def test_delete_live_workstation_forbidden_for_non_admin(self, monkeypatch):
         import cloudshield.Server.routes.workstations as ws_mod
-        monkeypatch.setattr(ws_mod, "db_admin", MagicMock())
         monkeypatch.setattr(ws_mod, "db", MagicMock())
 
         from cloudshield.Server.routes.workstations import workstations_bp
@@ -540,7 +539,7 @@ class TestDeleteWorkstation:
         assert resp.status_code == 403
 
     def test_delete_live_workstation_returns_204_and_cleans_groups(self, mocked_app):
-        app, mock_db_admin = mocked_app
+        app, mock_db = mocked_app
         workstation_id = "507f1f77bcf86cd799439011"
         workstation_oid = ObjectId(workstation_id)
         mock_ws_col = MagicMock()
@@ -550,7 +549,7 @@ class TestDeleteWorkstation:
             "name": "My WS",
         }
         mock_ag_col = MagicMock()
-        mock_db_admin.__getitem__.side_effect = (
+        mock_db.__getitem__.side_effect = (
             lambda k: mock_ws_col if k == "workstations" else mock_ag_col
         )
 
@@ -567,11 +566,11 @@ class TestDeleteWorkstation:
         )
 
     def test_delete_live_workstation_returns_404_when_missing(self, mocked_app):
-        app, mock_db_admin = mocked_app
+        app, mock_db = mocked_app
         workstation_id = "507f1f77bcf86cd799439011"
         mock_ws_col = MagicMock()
         mock_ws_col.find_one.return_value = None
-        mock_db_admin.__getitem__.return_value = mock_ws_col
+        mock_db.__getitem__.return_value = mock_ws_col
 
         with app.test_client() as c:
             resp = c.delete(f"/api/workstations/{workstation_id}")

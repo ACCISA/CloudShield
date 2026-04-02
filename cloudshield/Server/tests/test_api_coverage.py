@@ -897,7 +897,7 @@ def test_get_my_organization_metrics_success_returns_counts(client, monkeypatch)
     access_groups_col.count_documents.return_value = 7
     shares_col.count_documents.return_value = 2
 
-    class DummyAdminDB:
+    class DummyDB:
         def __getitem__(self, name):
             return {
                 "users": users_col,
