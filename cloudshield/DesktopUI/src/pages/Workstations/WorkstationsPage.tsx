@@ -140,7 +140,7 @@ export default function WorkstationsPage() {
         const response = await WorkstationService.getWorkstationTemplates();
 
         if (isMounted) {
-          setTemplateItems(response);
+          setTemplateItems(Array.isArray(response) ? response : []);
         }
       } catch (err) {
         if (isMounted) {
@@ -238,7 +238,7 @@ export default function WorkstationsPage() {
   };
 
   const listItems = useMemo(() => {
-    return templateItems.map((item, index) => {
+    return (templateItems ?? []).map((item, index) => {
       const key = `${item._id || "template"}-${item.org_id || "org"}-${item.name || "template"}-${index}`;
       const description = (
         item.description || "(No Description)"
