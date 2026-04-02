@@ -12,48 +12,25 @@ jest.mock("../../api/client", () => ({
 }));
 jest.mock("../../components/Tickets/CreateTicketModal", () => ({
   __esModule: true,
-  default: ({ isOpen }) => (isOpen ? <div data-testid="create-modal" /> : null),
+  default: ({ isOpen }) => isOpen ? <div data-testid="create-modal" /> : null,
 }));
 
 import { useTickets } from "../../api/ticketsApi";
 import { apiGet } from "../../api/client";
 
 const mockTickets = [
-  {
-    id: "1",
-    title: "VPN issue",
-    priority: "High",
-    status: "Open",
-    created_at: "2026-03-09T10:00:00",
-    org_id: "org1",
-  },
-  {
-    id: "2",
-    title: "Password reset",
-    priority: "Medium",
-    status: "Pending",
-    created_at: "2026-03-09T09:00:00",
-    org_id: "org1",
-  },
-  {
-    id: "3",
-    title: "Drive access",
-    priority: "Low",
-    status: "Closed",
-    created_at: "2026-03-09T08:00:00",
-    org_id: "org1",
-  },
+  { id: "1", title: "VPN issue", priority: "High", status: "Open", created_at: "2026-03-09T10:00:00", org_id: "org1" },
+  { id: "2", title: "Password reset", priority: "Medium", status: "Pending", created_at: "2026-03-09T09:00:00", org_id: "org1" },
+  { id: "3", title: "Drive access", priority: "Low", status: "Closed", created_at: "2026-03-09T08:00:00", org_id: "org1" },
 ];
 
-const defaultCurrentUser = {
+const renderDashboard = (currentUser = {
   id: "user-1",
   email: "admin@org.com",
   full_name: "Admin User",
   role: "admin",
   org_id: "org1",
-};
-
-const renderDashboard = (currentUser = defaultCurrentUser) =>
+}) =>
   render(
     <AuthProvider
       initialState={{
@@ -65,7 +42,7 @@ const renderDashboard = (currentUser = defaultCurrentUser) =>
       <MemoryRouter>
         <TicketDashboard />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
 describe("TicketDashboard", () => {
@@ -81,18 +58,14 @@ describe("TicketDashboard", () => {
   afterEach(() => jest.clearAllMocks());
 
   it("renders the page title", async () => {
-    await act(async () => {
-      renderDashboard();
-    });
+    await act(async () => { renderDashboard(); });
     await waitFor(() => {
       expect(screen.getByText("Support Helpdesk")).toBeInTheDocument();
     });
   });
 
   it("renders metric cards with CSS-uppercase labels", async () => {
-    await act(async () => {
-      renderDashboard();
-    });
+    await act(async () => { renderDashboard(); });
     // Cards render mixed-case text; CSS handles visual uppercase
     expect(screen.getByText("Total Tickets")).toBeInTheDocument();
     expect(screen.getByText("Active Issues")).toBeInTheDocument();
@@ -101,52 +74,32 @@ describe("TicketDashboard", () => {
   });
 
   it("shows correct total ticket count", async () => {
-    await act(async () => {
-      renderDashboard();
-    });
+    await act(async () => { renderDashboard(); });
     await waitFor(() => {
       expect(screen.getByText("3")).toBeInTheDocument();
     });
   });
 
   it("shows loading state", async () => {
-    useTickets.mockReturnValue({
-      tickets: null,
-      loading: true,
-      error: null,
-      refreshTickets: jest.fn(),
-    });
-    await act(async () => {
-      renderDashboard();
-    });
+    useTickets.mockReturnValue({ tickets: null, loading: true, error: null, refreshTickets: jest.fn() });
+    await act(async () => { renderDashboard(); });
     expect(screen.getByText(/Loading support tickets/i)).toBeInTheDocument();
   });
 
   it("shows error state", async () => {
-    useTickets.mockReturnValue({
-      tickets: null,
-      loading: false,
-      error: { message: "Network error" },
-      refreshTickets: jest.fn(),
-    });
-    await act(async () => {
-      renderDashboard();
-    });
+    useTickets.mockReturnValue({ tickets: null, loading: false, error: { message: "Network error" }, refreshTickets: jest.fn() });
+    await act(async () => { renderDashboard(); });
     expect(screen.getByText(/Error loading tickets/i)).toBeInTheDocument();
   });
 
-  it("shows Create button for regular user", async () => {
-    await act(async () => {
-      renderDashboard();
-    });
+  it("shows Create Ticket button for regular user", async () => {
+    await act(async () => { renderDashboard(); });
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /Create/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Create Ticket")).toBeInTheDocument();
     });
   });
 
-  it("hides Create button for super admin", async () => {
+  it("hides Create Ticket button for super admin", async () => {
     await act(async () => {
       renderDashboard({
         id: "user-2",
@@ -157,9 +110,7 @@ describe("TicketDashboard", () => {
       });
     });
     await waitFor(() => {
-      expect(
-        screen.queryByRole("button", { name: /Create/i }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Create Ticket")).not.toBeInTheDocument();
     });
   });
 
@@ -179,9 +130,7 @@ describe("TicketDashboard", () => {
   });
 
   it("renders Support Tickets section header", async () => {
-    await act(async () => {
-      renderDashboard();
-    });
+    await act(async () => { renderDashboard(); });
     await waitFor(() => {
       expect(screen.getByText("Support Tickets")).toBeInTheDocument();
     });
