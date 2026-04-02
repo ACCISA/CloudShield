@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import cloudshieldLogo from '../../assets/cloudshield_logo_white.png';
+import CloudshieldIcon from '../../assets/CloudshieldIcon.jsx';
 
 const LandingNavbar = () => {
   return (
     <nav className="landing-navbar">
       <Link to="/" className="landing-logo">
-        <img src={cloudshieldLogo} alt="CloudShield Logo" />
+        <CloudshieldIcon width={32} height={32} />
         CloudShield
       </Link>
       

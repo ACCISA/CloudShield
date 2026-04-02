@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import cloudshieldLogo from "../assets/cloudshield_logo_white.png";
+import CloudshieldIcon from "../assets/CloudshieldIcon.jsx";
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
 
 import {apiGet, apiPost} from "../api/client"
@@ -196,13 +196,7 @@ export default function ProvisioningPage() {
           gap: 1,
         }}
       >
-        {cloudshieldLogo ? (
-          <img src={cloudshieldLogo} alt="Logo" style={{ height: "40px" }} />
-        ) : (
-          <Typography variant="h6" sx={{ m: 0 }}>
-            CloudShield
-          </Typography>
-        )}
+        <CloudshieldIcon width={40} height={40} />
       </Box>
 
       <Box sx={{ width: "100%", maxWidth: 700 }}>

@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import cloudshieldLogo from '../../assets/cloudshield_logo_white.png';
+import CloudshieldIcon from '../../assets/CloudshieldIcon.jsx';
 
 const Footer = () => {
   return (
     <footer className="landing-footer">
       <div className="landing-footer-content">
         <div className="landing-footer-logo">
-          <img src={cloudshieldLogo} alt="CloudShield Logo" style={{ height: '24px' }} />
+          <CloudshieldIcon width={24} height={24} />
           CloudShield
         </div>
         
