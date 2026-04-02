@@ -38,6 +38,33 @@ search ${realm_name_lwr}
 nameserver 172.23.0.10
 EOF
 
+# add logon.bat logon script
+sudo sed -i "/\[global\]/a \    logon script = logon.bat" /etc/samba/smb.conf
+
+sudo mv /usr/local/bin/logon.bat /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+sudo mv /usr/local/bin/SetWallpaper.ps1 /var/lib/samba/sysvol/${realm_name_lwr}/scripts/SetWallpaper.ps1
+sudo mv /usr/local/bin/MountDrives.ps1 /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
+sudo chmod --reference=/var/lib/samba/sysvol/${realm_name_lwr}/scripts /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+sudo chmod --reference=/var/lib/samba/sysvol/${realm_name_lwr}/scripts /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
+sudo chown root:"BUILTIN\administrators" /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+sudo chown root:"BUILTIN\administrators" /var/lib/samba/sysvol/${realm_name_lwr}/scripts/SetWallpaper.ps1
+sudo chown root:"BUILTIN\administrators" /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
+sudo chmod +x /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+sudo chmod +x /var/lib/samba/sysvol/${realm_name_lwr}/scripts/SetWallpaper.ps1
+sudo chmod +x /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
+chmod 755 /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+chmod 755 /var/lib/samba/sysvol/${realm_name_lwr}/scripts/SetWallpaper.ps1
+chmod 755 /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
+
+# set SERVER with netbios name in logon.bat and MountDrives.ps1
+sudo sed -i "s/SERVER/${netbios_name}/g" /var/lib/samba/sysvol/${realm_name_lwr}/scripts/logon.bat
+sudo sed -i "s/SERVER/${realm_name}/g" /var/lib/samba/sysvol/${realm_name_lwr}/scripts/MountDrives.ps1
+
 sudo samba-tool group add LinuxAdmins --gid-number=10005 --nis-domain=${domain_name}
 sudo samba-tool group addmembers "Domain Admins" LinuxAdmins
 

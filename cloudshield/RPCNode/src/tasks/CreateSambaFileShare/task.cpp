@@ -16,7 +16,7 @@ is::Status _add_share_conf(std::string share_name)
 		out_file << "	path = /srv/samba/shared/" << share_name << std::endl;
 		out_file << "	browseable = yes" << std::endl;
 		out_file << "	read only = no" << std::endl;
-		out_file << "	valid users = @\"Domain Users" << std::endl;
+		out_file << "	valid users = @\"Domain Users\"" << std::endl;
 		out_file << "	create mask = 0660" << std::endl;
 		out_file << "	directory mask = 2770" << std::endl;
 
@@ -120,4 +120,11 @@ is::Status _restart_samba_service()
 {
 	SafeExec::Run("systemctl", {"restart", "samba-ad-dc"});
 	return is::Status::SUCCESS;
+}
+
+is::Status _set_permissions(std::string share_name)
+{
+	std::string mount_path = "/srv/samba/shares/" + share_name;
+
+	SafeExec::Run("chown", {":BUILTIN\\users", mount_path});
 }

@@ -36,6 +36,9 @@ RUN mkdir -p /srv/samba/shares/
 
 # Copy entrypoint script
 COPY docker/samba-test-docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/samba/SetWallpaper.ps1 /usr/local/bin/SetWallpaper.ps1
+COPY docker/samba/MountDrives.ps1 /usr/local/bin/MountDrives.ps1
+COPY docker/samba/logon.bat /usr/local/bin/logon.bat
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh

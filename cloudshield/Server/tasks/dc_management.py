@@ -128,7 +128,7 @@ def dc_create_file_share(
                 groups=groups or [],
                 description=description,
                 current_size=mock_current_size,
-                max_size=effective_max_size,
+                max_size=str(effective_max_size),
             )
         except Exception as exc:
             logger.error(f"Failed to persist file share in database: {exc}")
