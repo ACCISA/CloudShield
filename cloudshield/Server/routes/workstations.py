@@ -5,7 +5,7 @@ from utils.logging_setup import get_logger
 from services import service_dispatcher
 from cloudshield.Server.security.guards import require_auth
 from utils import db
-from repos import get_workstation_templates, insert_workstation_template, get_available_workstation, set_assigned_workstation, release_assigned_workstation
+from repos import get_workstation_templates, get_workstations, insert_workstation_template, get_available_workstation, set_assigned_workstation, release_assigned_workstation
 
 import uuid
 import base64
@@ -21,6 +21,19 @@ ERROR_TEMPLATE_ID_REQUIRED = "template_id is required"
 ERROR_WORKSTATION_ID_REQUIRED = "workstation_id is required"
 ERROR_STATUS_REQUIRED = "status is required"
 ERROR_USER_ID_REQUIRED = "user_id is required"
+
+@workstations_bp.route("/workstations", methods=["GET"])
+@require_auth
+def list_workstations():
+    org_id = request.args.get("org_id")
+
+    if not org_id:
+        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
+
+    workstations_list = get_workstations(db, org_id=org_id)
+
+    return jsonify(workstations_list), 200
+
 
 @workstations_bp.route("/workstations/assign", methods=["GET"])
 @require_auth
