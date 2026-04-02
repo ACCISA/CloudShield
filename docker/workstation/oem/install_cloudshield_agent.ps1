@@ -75,5 +75,6 @@ Write-Host "[CloudShield] Agent installation complete."
 
 # Start the agent immediately — the scheduled task's startup trigger fires before
 # this script runs during OOBE, so the first launch must be done explicitly here.
+$LauncherCmdPath = "$InstallDir\launch_cloudshield_agent.cmd"
 Write-Host "[CloudShield] Starting agent now..."
 Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$LauncherCmdPath`"" -WorkingDirectory $InstallDir -WindowStyle Hidden
