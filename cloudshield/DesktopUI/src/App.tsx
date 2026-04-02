@@ -6,7 +6,15 @@ import VPNService from "./services/VPNService";
 import type { VPNState } from "./models/VPN";
 import VPNLoadingScreen from "./pages/VPN/VPNLoadingScreen";
 
-const DEFAULT_VPN_STATE: VPNState = { status: "disconnected" };
+function isTruthyEnvFlag(value: string | boolean | undefined): boolean {
+  if (typeof value === "boolean") return value;
+  return /^(1|true|yes|on)$/i.test(String(value ?? "").trim());
+}
+
+const SKIP_VPN = isTruthyEnvFlag(import.meta.env.VITE_SKIP_VPN);
+const DEFAULT_VPN_STATE: VPNState = SKIP_VPN
+  ? { status: "connected" }
+  : { status: "disconnected" };
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -28,6 +36,11 @@ function App() {
 
   useEffect(() => {
     const tryConnectVPN = async () => {
+      if (SKIP_VPN) {
+        setVpnState({ status: "connected" });
+        return;
+      }
+
       if (vpnConnectInFlight.current) return;
       vpnConnectInFlight.current = true;
 
@@ -58,6 +71,11 @@ function App() {
     };
 
     const disconnectVPN = async () => {
+      if (SKIP_VPN) {
+        setVpnState({ status: "connected" });
+        return;
+      }
+
       try {
         await window.vpnAPI?.disconnect();
       } catch (error) {
@@ -96,13 +114,19 @@ function App() {
       }
     };
 
-    const unsubscribeVPNState = window.vpnAPI?.onStateChanged((state) => {
-      setVpnState(state);
-    });
+    let unsubscribeVPNState: (() => void) | undefined;
+    if (SKIP_VPN) {
+      setVpnState({ status: "connected" });
+    } else {
+      unsubscribeVPNState = window.vpnAPI?.onStateChanged((state) => {
+        setVpnState(state);
+      });
 
-    void window.vpnAPI?.getState().then((state) => {
-      if (state) setVpnState(state);
-    });
+      void window.vpnAPI?.getState().then((state) => {
+        if (state) setVpnState(state);
+      });
+    }
+
     void handleAuthChanged();
     window.addEventListener("auth-changed", handleAuthChanged);
     return () => {
@@ -111,7 +135,8 @@ function App() {
     };
   }, []);
 
-  const canAccessWorkstations = isAuthenticated && vpnState.status === "connected";
+  const canAccessWorkstations =
+    isAuthenticated && (SKIP_VPN || vpnState.status === "connected");
 
   return (
     <div className="desktop-app">

@@ -4,7 +4,9 @@
 
 /* ── Page shells ── */
 .auth-page {
-  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,11 +15,12 @@
 }
 
 .signup-page {
-  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 48px 40px;
+  padding: 24px 40px;
   box-sizing: border-box;
 }
 

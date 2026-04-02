@@ -568,7 +568,8 @@ function SelectionStep({
               const rendered = config.renderItem(item);
 
               return (
-                <div
+                <button
+                  type="button"
                   key={item.id}
                   className={`files-modal-dropdown-item ${isSelected ? "selected" : ""}`}
                   onClick={() => onToggle(item)}
@@ -585,7 +586,7 @@ function SelectionStep({
                   {isSelected && (
                     <span className="files-modal-checkmark">✓</span>
                   )}
-                </div>
+                </button>
               );
             })
           )}
