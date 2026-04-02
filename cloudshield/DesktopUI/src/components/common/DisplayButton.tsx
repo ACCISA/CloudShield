@@ -5,6 +5,9 @@ import {
   useState,
   type ButtonHTMLAttributes,
 } from "react";
+import DisplayIcon from "../../assets/DisplayButton/DisplayIcon";
+import ListIcon from "../../assets/DisplayButton/ListIcon";
+import ImageIcon from "../../assets/DisplayButton/ImageIcon";
 
 type LayoutOption = "list" | "icons";
 
@@ -17,63 +20,16 @@ interface DisplayButtonProps
 const layoutOptions: Array<{
   value: LayoutOption;
   label: string;
-  description: string;
 }> = [
   {
     value: "list",
     label: "List",
-    description: "Compact rows",
   },
   {
     value: "icons",
     label: "Icons",
-    description: "Card grid",
   },
 ];
-
-function ListLayoutIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={active ? "#fff" : "rgba(255,255,255,0.6)"}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 6h12" />
-      <path d="M8 12h12" />
-      <path d="M8 18h12" />
-      <path d="M4 6h.01" />
-      <path d="M4 12h.01" />
-      <path d="M4 18h.01" />
-    </svg>
-  );
-}
-
-function IconLayoutIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={active ? "#fff" : "rgba(255,255,255,0.6)"}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="4" y="4" width="7" height="7" rx="1.5" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" />
-    </svg>
-  );
-}
 
 export default function DisplayButton({
   layout = "list",
@@ -111,7 +67,6 @@ export default function DisplayButton({
 
   const selectLayout = (nextLayout: LayoutOption) => {
     onLayoutChange?.(nextLayout);
-    setIsOpen(false);
   };
 
   return (
@@ -123,69 +78,77 @@ export default function DisplayButton({
         aria-expanded={isOpen}
         aria-controls={menuId}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center gap-2 rounded-xl border border-white/10 bg-[#101010] px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10 ${className}`.trim()}
+        className={`flex h-12 items-center gap-2 rounded-lg border border-white/10 bg-[#111111] px-4 text-sm font-medium text-white/80 transition-all duration-200 hover:border-white/20 hover:bg-[#151515] ${className}`.trim()}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4 6h16" />
-          <path d="M4 12h16" />
-          <path d="M4 18h16" />
-        </svg>
+        <DisplayIcon width={16} height={16} color="currentColor" />
         {children}
       </button>
 
       {isOpen && (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label="Display options"
-          className="absolute left-0 top-full z-20 mt-2 w-64 rounded-2xl border border-white/10 bg-[#0f0f0f] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            {layoutOptions.map((option) => {
-              const isActive = layout === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={isActive}
-                  onClick={() => selectLayout(option.value)}
-                  className={`flex h-28 flex-col items-center justify-center gap-2 rounded-xl border px-4 py-3 text-center transition ${
-                    isActive
-                      ? "border-white/20 bg-white/10"
-                      : "border-transparent bg-transparent hover:border-white/10 hover:bg-white/5"
-                  }`}
-                >
-                  {option.value === "list" ? (
-                    <ListLayoutIcon active={isActive} />
-                  ) : (
-                    <IconLayoutIcon active={isActive} />
-                  )}
-                  <span
-                    className={`text-sm ${
-                      isActive ? "font-semibold text-white" : "text-white/70"
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setIsOpen(false);
+              }
+            }}
+            role="button"
+            tabIndex={-1}
+            aria-label="Close display options"
+          />
+
+          <div
+            id={menuId}
+            role="menu"
+            aria-label="Display options"
+            className="absolute left-0 top-full z-20 mt-2 w-70 rounded-xl border border-white/10 bg-[#111111] p-3"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              {layoutOptions.map((option) => {
+                const isActive = layout === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    onClick={() => selectLayout(option.value)}
+                    className={`flex h-25 flex-col items-center justify-center gap-2 rounded-xl px-4 py-3 text-center transition-all duration-200 ${
+                      isActive
+                        ? "border border-white/20 bg-white/8"
+                        : "border border-transparent bg-transparent hover:bg-white/8"
                     }`}
                   >
-                    {option.label}
-                  </span>
-                  <span className="text-[11px] text-white/45">
-                    {option.description}
-                  </span>
-                </button>
-              );
-            })}
+                    <div className="flex h-8 w-8 items-center justify-center">
+                      {option.value === "list" ? (
+                        <ListIcon
+                          width={28}
+                          height={21}
+                          color={isActive ? "#fff" : "rgba(255,255,255,0.45)"}
+                        />
+                      ) : (
+                        <ImageIcon
+                          width={32}
+                          height={32}
+                          color={isActive ? "#fff" : "rgba(255,255,255,0.6)"}
+                        />
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm ${
+                        isActive ? "font-semibold text-white" : "text-white/70"
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

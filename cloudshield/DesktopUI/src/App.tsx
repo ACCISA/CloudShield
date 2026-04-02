@@ -65,7 +65,7 @@ function App() {
       }
     };
 
-    const handleAuthChanged = async() => {
+    const handleAuthChanged = async () => {
       const snapshot = window.authStore?.loadAuth();
       if (snapshot?.accessToken) {
         setIsAuthenticated(true);
@@ -111,10 +111,11 @@ function App() {
     };
   }, []);
 
-  const canAccessWorkstations = isAuthenticated && vpnState.status === "connected";
+  const canAccessWorkstations =
+    isAuthenticated && vpnState.status === "connected";
 
   return (
-    <>
+    <div className="desktop-app">
       {!isAuthenticated ? (
         <LoginPage />
       ) : canAccessWorkstations ? (
@@ -128,7 +129,7 @@ function App() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 

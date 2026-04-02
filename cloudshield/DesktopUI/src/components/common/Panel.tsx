@@ -10,7 +10,7 @@ export default function Panel({
   return (
     <div
       {...rest}
-      className={`rounded-2xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_64px_rgba(0,0,0,0.5)] ${className}`.trim()}
+      className={`rounded-2xl border border-white/10 bg-[#0f0f0f] ${className}`.trim()}
     >
       {children}
     </div>

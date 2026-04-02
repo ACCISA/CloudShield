@@ -47,6 +47,7 @@ const showMainWindow = () => {
 
 function createWindow() {
   win = new BrowserWindow({
+    minWidth: 980,
     icon: path.join(
       process.env.APP_ROOT,
       "src",

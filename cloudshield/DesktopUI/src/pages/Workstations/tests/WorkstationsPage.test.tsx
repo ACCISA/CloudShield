@@ -45,8 +45,9 @@ describe("WorkstationsPage", () => {
   const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
   const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
+  const appWindow = globalThis as unknown as Window;
   beforeEach(() => {
-    window.authStore = {
+    appWindow.authStore = {
       saveAuth: vi.fn(),
       loadAuth: loadAuthMock,
       clearAuth: clearAuthMock,
@@ -65,8 +66,8 @@ describe("WorkstationsPage", () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    delete window.authStore;
+    vi.resetAllMocks();
+    delete appWindow.authStore;
     localStorage.clear();
   });
 
@@ -85,7 +86,6 @@ describe("WorkstationsPage", () => {
       screen.getByPlaceholderText("Search workstation templates"),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
-    expect(screen.getByText("Create")).toBeTruthy();
     expect(screen.getByText("Logout")).toBeTruthy();
   });
 
@@ -119,15 +119,18 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  it("shows missing token error when no auth is available", async () => {
+  it("shows an auth error when no auth is available", async () => {
     loadAuthMock.mockReturnValue({});
 
     render(<WorkstationsPage />);
 
-    expect(await screen.findByText(/missing access token/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/missing access token\. please sign in\./i),
+    ).toBeTruthy();
+    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
   });
 
-  it("shows expired session message when token is expired", async () => {
+  it("shows an auth error when the token is expired", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() - 1000,
@@ -135,7 +138,10 @@ describe("WorkstationsPage", () => {
 
     render(<WorkstationsPage />);
 
-    expect(await screen.findByText(/session expired/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/session expired\. please sign in again\./i),
+    ).toBeTruthy();
+    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
   });
 
   it("renders workstation template rows from the API", async () => {
@@ -160,8 +166,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Development")).toBeTruthy();
-    expect(screen.getByText("Use")).toBeTruthy();
-    expect(screen.getByText("Ready")).toBeTruthy();
+    expect(screen.getByText("Connect")).toBeTruthy();
   });
 
   it("shows not ready action for provisioning templates", async () => {
@@ -184,7 +189,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Marketing")).toBeTruthy();
-    expect(screen.getByText("Not Ready")).toBeTruthy();
+    expect(screen.getByText("Building template")).toBeTruthy();
   });
 
   it("shows API error details when request fails", async () => {
@@ -201,10 +206,13 @@ describe("WorkstationsPage", () => {
   });
 
   it("uses local storage auth when authStore is unavailable", async () => {
-    delete window.authStore;
+    delete appWindow.authStore;
     localStorage.setItem(
       "cloudshield.auth",
-      JSON.stringify({ accessToken: "local-token", expiresAt: Date.now() + 60000 })
+      JSON.stringify({
+        accessToken: "local-token",
+        expiresAt: Date.now() + 60000,
+      }),
     );
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
@@ -280,7 +288,7 @@ describe("WorkstationsPage", () => {
     });
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
     localStorage.setItem("cloudshield.auth", "{}");
-    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    const dispatchSpy = vi.spyOn(appWindow, "dispatchEvent");
 
     render(<WorkstationsPage />);
 
@@ -320,7 +328,7 @@ describe("WorkstationsPage", () => {
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
@@ -338,7 +346,6 @@ describe("WorkstationsPage", () => {
   });
 
   it("rejects rdp when workstation ip isn't available", async () => {
-
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() + 60000,
@@ -350,7 +357,7 @@ describe("WorkstationsPage", () => {
         _id: `template-${index + 1}`,
       })),
     );
-    
+
     assignWorkStationMock.mockResolvedValueOnce({
       ...mockWorkstations[0],
       ipv4_address: "",
@@ -360,7 +367,7 @@ describe("WorkstationsPage", () => {
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
@@ -370,9 +377,7 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getByText("Launch RDP"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Error: Workstation IP is missing"),
-      ).toBeTruthy();
+      expect(screen.getByText("Error: Workstation IP is missing")).toBeTruthy();
       expect(runXfreerdpMock).not.toHaveBeenCalled();
     });
   });
@@ -396,8 +401,10 @@ describe("WorkstationsPage", () => {
     );
     assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
     render(<WorkstationsPage />);
-    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    expect(
+      (await screen.findAllByText("Windows 10 Pro")).length,
+    ).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
       expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
@@ -432,7 +439,7 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
 
-    fireEvent.click(screen.getAllByText("Use")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(screen.getByText("Launch RDP")).toBeTruthy();
       expect(screen.getByText("Disconnect")).toBeTruthy();
@@ -449,5 +456,4 @@ describe("WorkstationsPage", () => {
       expect(killProcessMock).toHaveBeenCalledWith(9876);
     });
   });
-
 });

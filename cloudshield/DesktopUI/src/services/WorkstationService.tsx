@@ -3,6 +3,7 @@ import { Workstation, WorkstationTemplate } from "../models/Workstations";
 
 import APIService from "../utils/APIService";
 import { mapWorkstationTemplate, mapWorkstation } from "../models/Workstations";
+
 class WorkstationService {
   private static instance: WorkstationService | null = null;
 
