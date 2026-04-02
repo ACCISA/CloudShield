@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import Sidebar from "../Sidebar";
+import Sidebar, { AccordionGrid, NavItem } from "../Sidebar";
 
 // Mock react-router-dom's useNavigate and useLocation to test navigation and active route marking
 const mockNavigate = jest.fn();
@@ -93,6 +93,10 @@ jest.mock("../../../assets/NavBar/FilesIcon", () => ({
 const { apiGet } = require("../../../api/client");
 const { useOrgMetrics } = require("../../../api/useOrgMetrics.js");
 
+const mockJsonResponse = (payload) => ({
+  json: jest.fn().mockResolvedValue(payload),
+});
+
 // Helper
 const renderSidebar = (props = {}, { route = "/" } = {}) => {
   mockPathname = route;
@@ -109,8 +113,12 @@ describe("Sidebar", () => {
     // Keep Sidebar stable: use default labels by returning matching data
     apiGet.mockReset();
     apiGet
-      .mockResolvedValueOnce({ user: { email: "admin@company.com" } })
-      .mockResolvedValueOnce({ organization: { name: "Company Inc." } });
+      .mockResolvedValueOnce(
+        mockJsonResponse({ user: { email: "admin@company.com" } }),
+      )
+      .mockResolvedValueOnce(
+        mockJsonResponse({ organization: { name: "Company Inc." } }),
+      );
 
     // Default stats: your tests expect "6"
     useOrgMetrics.mockReset();
@@ -169,6 +177,12 @@ describe("Sidebar", () => {
       expect(mockToggle).toHaveBeenCalledTimes(1);
     });
 
+    it("supports collapse toggle even when callback is not provided", () => {
+      renderSidebar({ collapsed: false });
+      fireEvent.click(screen.getByLabelText(/collapse sidebar/i));
+      expect(screen.getByLabelText(/collapse sidebar/i)).toBeInTheDocument();
+    });
+
     it("navigates when navigation item is clicked (assert navigate called)", () => {
       renderSidebar();
       fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
@@ -222,6 +236,22 @@ describe("Sidebar", () => {
   });
 
   describe("Company Block", () => {
+    it("loads company details from API responses", async () => {
+      apiGet.mockReset();
+      apiGet
+        .mockResolvedValueOnce(
+          mockJsonResponse({ user: { email: "owner@acme.dev" } }),
+        )
+        .mockResolvedValueOnce(
+          mockJsonResponse({ organization: { name: "Acme Labs" } }),
+        );
+
+      renderSidebar({ collapsed: false });
+
+      expect(await screen.findByText("Acme Labs")).toBeInTheDocument();
+      expect(screen.getByText("owner@acme.dev")).toBeInTheDocument();
+    });
+
     it("renders company name and email (default or loaded)", () => {
       renderSidebar({ collapsed: false });
 
@@ -273,6 +303,20 @@ describe("Sidebar", () => {
       expect(screen.queryByText("Company Inc.")).not.toBeInTheDocument();
       expect(screen.queryByText("admin@company.com")).not.toBeInTheDocument();
     });
+
+    it("falls back to defaults when profile requests fail", async () => {
+      apiGet.mockReset();
+      apiGet.mockRejectedValueOnce(new Error("network failure"));
+
+      renderSidebar({ collapsed: false });
+
+      await waitFor(() => {
+        expect(apiGet).toHaveBeenCalledWith("/users/me");
+      });
+
+      expect(screen.getByText("Company Inc.")).toBeInTheDocument();
+      expect(screen.getByText("admin@company.com")).toBeInTheDocument();
+    });
   });
 
   describe("Bottom Actions", () => {
@@ -286,6 +330,17 @@ describe("Sidebar", () => {
       renderSidebar({ mode: "full" });
       fireEvent.click(screen.getByLabelText("Settings"));
       expect(mockNavigate).toHaveBeenCalledWith("/settings");
+    });
+
+    it("navigates to tickets using click and keyboard", () => {
+      renderSidebar({ mode: "full" });
+
+      const tickets = screen.getByLabelText("Tickets");
+      fireEvent.click(tickets);
+      fireEvent.keyDown(tickets, { key: "Enter" });
+      fireEvent.keyDown(tickets, { key: " " });
+
+      expect(mockNavigate).toHaveBeenCalledWith("/tickets");
     });
 
     it("opens a confirmation modal before signing out", () => {
@@ -315,6 +370,18 @@ describe("Sidebar", () => {
         ).not.toBeInTheDocument();
         expect(mockLogout).not.toHaveBeenCalled();
       });
+    });
+
+    it("closes sign out modal on Escape key", async () => {
+      renderSidebar({ mode: "full" });
+      fireEvent.click(screen.getByLabelText("Sign out"));
+
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      expect(mockLogout).not.toHaveBeenCalled();
     });
 
     it("supports keyboard navigation for settings (Enter + Space)", () => {
@@ -383,6 +450,50 @@ describe("Sidebar", () => {
       expect(screen.queryByText("6")).not.toBeInTheDocument();
       expect(screen.queryByText("-")).not.toBeInTheDocument();
     });
+
+    it("shows loading placeholders for badges while metrics are loading", () => {
+      useOrgMetrics.mockReturnValue({
+        stats: {},
+        loading: true,
+      });
+
+      renderSidebar({ collapsed: false });
+
+      expect(
+        screen.getByRole("button", { name: "Workstations" }).textContent,
+      ).not.toContain("0");
+      expect(screen.getByRole("button", { name: "Employees" }).textContent).not.toContain(
+        "0",
+      );
+      expect(screen.getByRole("button", { name: "Groups" }).textContent).not.toContain(
+        "0",
+      );
+      expect(screen.getByRole("button", { name: "Shares" }).textContent).not.toContain(
+        "0",
+      );
+    });
+
+    it("falls back to zero counts when stats are missing and not loading", () => {
+      useOrgMetrics.mockReturnValue({
+        stats: {},
+        loading: false,
+      });
+
+      renderSidebar({ collapsed: false });
+
+      expect(
+        screen.getByRole("button", { name: "Workstations" }).textContent,
+      ).toContain("0");
+      expect(screen.getByRole("button", { name: "Employees" }).textContent).toContain(
+        "0",
+      );
+      expect(screen.getByRole("button", { name: "Groups" }).textContent).toContain(
+        "0",
+      );
+      expect(screen.getByRole("button", { name: "Shares" }).textContent).toContain(
+        "0",
+      );
+    });
   });
 
   
@@ -440,5 +551,40 @@ describe("Sidebar", () => {
 
     const shares = screen.getByRole("button", { name: "Shares" });
     expect(shares.textContent).toContain("33");
+  });
+
+  describe("Exported Helpers", () => {
+    it("renders a collapsed NavItem with string count and supports keyboard activation", () => {
+      const onNavigate = jest.fn();
+
+      render(
+        <NavItem
+          collapsed
+          icon={<span data-testid="raw-icon">I</span>}
+          label="Custom"
+          active={false}
+          count="-"
+          onNavigate={onNavigate}
+        />,
+      );
+
+      const navItemButton = screen.getByRole("button", { name: "Custom" });
+      expect(navItemButton.textContent).toContain("-");
+
+      fireEvent.keyDown(navItemButton, { key: " " });
+      expect(onNavigate).toHaveBeenCalledTimes(1);
+    });
+
+    it("navigates from AccordionGrid items on click and keyboard", () => {
+      render(<AccordionGrid items={[{ text: "All", to: "/all" }]} />);
+
+      const accordionItem = screen.getByRole("button", { name: "All" });
+      fireEvent.click(accordionItem);
+      fireEvent.keyDown(accordionItem, { key: "Enter" });
+      fireEvent.keyDown(accordionItem, { key: " " });
+
+      expect(mockNavigate).toHaveBeenCalledWith("/all");
+      expect(mockNavigate).toHaveBeenCalledTimes(3);
+    });
   });
 });
