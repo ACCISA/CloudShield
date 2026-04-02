@@ -4,3 +4,12 @@
   --color-faint-grey: #333;
   --color-text: #bcbcbc;
 }
+
+.desktop-app,
+.desktop-app * {
+  font-weight: 400 !important;
+}
+
+.desktop-app .template-name {
+  font-weight: 600 !important;
+}

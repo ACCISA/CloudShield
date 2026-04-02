@@ -18,19 +18,7 @@
  */
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from "@mui/material";
+import { Box, Typography, IconButton, Chip, Divider } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useThemeColors } from "../../hooks/useThemeColors.js";
 
@@ -681,39 +669,146 @@ export default function Sidebar({
         </Box>
       ) : null}
 
-      <Dialog
-        open={signOutDialogOpen}
-        onClose={() => setSignOutDialogOpen(false)}
-        aria-labelledby="sign-out-dialog-title"
-      >
-        <DialogTitle
-          id="sign-out-dialog-title"
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-        >
-          <WarningAmberRoundedIcon color="warning" />
-          Confirm Sign Out
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to sign out? Any unsaved changes may be lost.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setSignOutDialogOpen(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button
-            onClick={() => {
+      {signOutDialogOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="signout-modal-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 1300,
+            animation: "modalFade 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+          onClick={() => setSignOutDialogOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
               setSignOutDialogOpen(false);
-              handleSignOut();
+            }
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-light)",
+              borderRadius: "14px",
+              width: "440px",
+              maxWidth: "95vw",
+              boxShadow: "0 24px 64px rgba(0, 0, 0, 0.75)",
+              animation: "modalSlide 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              overflow: "hidden",
             }}
-            color="error"
-            variant="contained"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
-            Sign Out
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {/* Body */}
+            <div style={{ padding: "24px" }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.95rem",
+                  lineHeight: 1.6,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Are you sure you want to sign out? Any unsaved changes may be
+                lost.
+              </p>
+              <div
+                style={{
+                  marginTop: "16px",
+                  padding: "12px 16px",
+                  backgroundColor: "rgba(251, 146, 60, 0.08)",
+                  border: "1px solid rgba(251, 146, 60, 0.2)",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <WarningAmberRoundedIcon
+                  sx={{ fontSize: "1.2rem", color: "#fb923c" }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "var(--text-primary)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  You'll need to log in again to access your account.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                padding: "16px 24px",
+                borderTop: "1px solid var(--border-light)",
+              }}
+            >
+              <button
+                onClick={() => setSignOutDialogOpen(false)}
+                style={{
+                  padding: "14px 24px",
+                  fontSize: "1rem",
+                  fontWeight: 500,
+                  borderRadius: "14px",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "transparent",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  fontFamily: "inherit",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "var(--action-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setSignOutDialogOpen(false);
+                  handleSignOut();
+                }}
+                style={{
+                  padding: "14px 24px",
+                  fontSize: "1rem",
+                  fontWeight: 500,
+                  borderRadius: "14px",
+                  border: "none",
+                  backgroundColor: themeColors.primary,
+                  color: themeColors.primaryText,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  fontFamily: "inherit",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = themeColors.primaryHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = themeColors.primary;
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Box>
   );
 }

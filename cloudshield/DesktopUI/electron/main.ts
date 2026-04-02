@@ -47,6 +47,7 @@ const showMainWindow = () => {
 
 function createWindow() {
   win = new BrowserWindow({
+    minWidth: 980,
     icon: path.join(
       process.env.APP_ROOT,
       "src",
@@ -485,8 +486,22 @@ ipcMain.handle(
         child.on("close", (code) => {
           if (settled) return;
           settled = true;
+          if (code === 12) {
+            return resolve({
+              success: true,
+              pid: child.pid,
+              message: "xfreerdp3 session closed by user",
+            });
+          }
           if (code !== 0) {
             if (error) console.log("[xfreerdp3 error output]:", error);
+            if (/NEW HOST IDENTIFICATION!/i.test(error)) {
+              return reject(
+                new Error(
+                  `RDP certificate changed for ${params.ip}:3389. Remove the stale FreeRDP cached host key and retry.`,
+                ),
+              );
+            }
             return reject(
               new Error(`xfreerdp3 exited with code ${code ?? "unknown"}`),
             );

@@ -193,3 +193,24 @@ select {
   scrollbar-width: thin;
   scrollbar-color: var(--text-secondary) transparent;
 }
+
+/* Modal animations */
+@keyframes modalFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlide {
+  from {
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
