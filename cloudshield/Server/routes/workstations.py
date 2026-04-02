@@ -84,21 +84,7 @@ def get_workstations_avail():
 
     return jsonify({"workstation": assigned_workstation}), 200
 
-@workstations_bp.route("/workstations/release", methods=["GET"])
-@require_auth
-def get_workstations_api():
-    user = g.user
-    org_id = user.get("org_id")
 
-    if not org_id:
-        return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
-
-    collection = db_admin["workstations"]
-    items = list(collection.find({"org_id": org_id}))
-    for item in items:
-        item["_id"] = str(item["_id"])
-
-    return jsonify({"workstation": assigned_workstation}), 200
 
 @workstations_bp.route("/workstations/release", methods=["GET"])
 @require_auth
@@ -113,7 +99,7 @@ def release_workstation():
         # From the desktop UI's perspective it does not matter if we failed to release a VM. Howerver we should be notified about it
         logger.warning(f"Failed to release assigned workstation (user_id={user_id})")
 
-    return jsonify({"id": workstation_id}), 201
+    return jsonify({"status": status}), 200
 
 
 @workstations_bp.route("/workstations/<workstation_id>", methods=["DELETE"])
@@ -129,7 +115,7 @@ def delete_workstation(workstation_id: str):
     if not org_id:
         return jsonify({"error": ERROR_ORG_ID_REQUIRED}), 400
 
-    collection = db_admin["workstations"]
+    collection = db["workstations"]
     existing, matched_id = _find_org_scoped_doc(collection, workstation_id, org_id)
     if not existing:
         return jsonify({"error": "workstation not found"}), 404
@@ -137,7 +123,7 @@ def delete_workstation(workstation_id: str):
     collection.delete_one({"_id": matched_id, "org_id": org_id})
 
     try:
-        access_groups_collection = db_admin["access_groups"]
+        access_groups_collection = db["access_groups"]
     except (KeyError, TypeError):
         access_groups_collection = None
 
@@ -149,18 +135,7 @@ def delete_workstation(workstation_id: str):
 
     return "", 204
 
-def release_workstation():
-    user_id = request.args.get("user_id")
 
-    if not user_id:
-        return jsonify({"error": ERROR_USER_ID_REQUIRED}), 400
-
-    status = release_assigned_workstation(db=db, user_id=user_id)
-    if status is False:
-        # From the desktop UI's perspective it does not matter if we failed to release a VM. Howerver we should be notified about it
-        logger.warning(f"Failed to release assigned workstation (user_id={user_id})")
-
-    return jsonify({"status":status}), 200
     
 
 @workstations_bp.route("/workstation/available", methods=["GET"])
