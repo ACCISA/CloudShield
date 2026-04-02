@@ -199,21 +199,22 @@ export default function WorkstationsPage() {
       return;
     }
 
-    const org = await OrgService.getOrganization();
-    const domain = org.domain_name;
-    // Extract username from JWT claims
-    let username = "";
-    if (accessToken) {
-      const claims = decodeJwtClaims(accessToken);
-      username = deriveUsername(claims);
-    }
-    const rdpPassword = getSessionPassword();
-    if (rdpPassword == null) {
-      throw new Error("RDP Pass not set");
-    }
-    let rdpUsername = `${domain}\\${username}`;
-
     try {
+      const org = await OrgService.getOrganization();
+      const domain = org.domain_name;
+      // Extract username from JWT claims
+      let username = "";
+      if (accessToken) {
+        const claims = decodeJwtClaims(accessToken);
+        username = deriveUsername(claims);
+      }
+      const rdpPassword = getSessionPassword();
+      if (rdpPassword == null) {
+        setRdpStatus("Error: RDP password unavailable. Please sign in again.");
+        return;
+      }
+      const rdpUsername = `${domain}\\${username}`;
+
       setRdpStatus("Launching RDP client...");
       const result = (await window.electronAPI.runXfreerdp(
         rdpUsername,

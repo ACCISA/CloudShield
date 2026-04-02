@@ -488,6 +488,13 @@ ipcMain.handle(
           settled = true;
           if (code !== 0) {
             if (error) console.log("[xfreerdp3 error output]:", error);
+            if (/NEW HOST IDENTIFICATION!/i.test(error)) {
+              return reject(
+                new Error(
+                  `RDP certificate changed for ${params.ip}:3389. Remove the stale FreeRDP cached host key and retry.`,
+                ),
+              );
+            }
             return reject(
               new Error(`xfreerdp3 exited with code ${code ?? "unknown"}`),
             );
