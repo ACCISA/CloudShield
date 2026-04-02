@@ -46,6 +46,25 @@ describe("WorkstationsPage", () => {
   const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
   beforeEach(() => {
+    loadAuthMock.mockReset();
+    clearAuthMock.mockReset();
+    runXfreerdpMock.mockReset();
+    showOpenDialogMock.mockReset();
+    killProcessMock.mockReset();
+    getWorkstationTemplatesMock.mockReset();
+    assignWorkStationMock.mockReset();
+    releaseWorkStationMock.mockReset();
+    getOrganizationMock.mockReset();
+    getSessionPasswordMock.mockReset();
+    deriveUsernameMock.mockReset();
+    decodeJwtClaimsMock.mockReset();
+
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+
     window.authStore = {
       saveAuth: vi.fn(),
       loadAuth: loadAuthMock,
@@ -118,18 +137,16 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  it("renders the empty state when no auth is available in bypass mode", async () => {
+  it("shows auth error when no token is available", async () => {
     loadAuthMock.mockReturnValue({});
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
-    expect(
-      await screen.findByText(/no assigned workstation templates found/i),
-    ).toBeTruthy();
+    expect(await screen.findByText(/missing access token/i)).toBeTruthy();
   });
 
-  it("renders the empty state when the token is expired in bypass mode", async () => {
+  it("shows auth error when token is expired", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() - 1000,
@@ -138,9 +155,7 @@ describe("WorkstationsPage", () => {
 
     render(<WorkstationsPage />);
 
-    expect(
-      await screen.findByText(/no assigned workstation templates found/i),
-    ).toBeTruthy();
+    expect(await screen.findByText(/session expired/i)).toBeTruthy();
   });
 
   it("renders workstation template rows from the API", async () => {
@@ -321,26 +336,20 @@ describe("WorkstationsPage", () => {
         _id: `template-${index + 1}`,
       })),
     );
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
     assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
 
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
-
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Launch RDP"));
 
     await waitFor(() => {
       expect(
         screen.getByText("Error: Electron API not available"),
       ).toBeTruthy();
       expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(assignWorkStationMock).not.toHaveBeenCalled();
     });
   });
 
@@ -369,15 +378,9 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Launch RDP"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Error: Workstation IP is missing")).toBeTruthy();
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
       expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });
 
@@ -406,17 +409,12 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
-      expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
-      expect(screen.getByText(/192.168.122.106/)).toBeTruthy();
-      expect(screen.getByText(/Launch RDP/)).toBeTruthy();
-    });
-    fireEvent.click(screen.getByText("Launch RDP"));
-    await waitFor(() => {
       expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });
 
-  it("kills RDP process on disconnect when pid is set", async () => {
+  it("releases workstation after RDP session closes", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       tokenType: "Bearer",
@@ -440,19 +438,10 @@ describe("WorkstationsPage", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-      expect(screen.getByText("Disconnect")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Launch RDP"));
-    await waitFor(() => {
-      expect(screen.getByText("Connected! (PID: 9876)")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Disconnect"));
-    await waitFor(() => {
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
+      expect(runXfreerdpMock).toHaveBeenCalled();
       expect(releaseWorkStationMock).toHaveBeenCalled();
-      expect(killProcessMock).toHaveBeenCalledWith(9876);
+      expect(killProcessMock).not.toHaveBeenCalled();
     });
   });
 });
