@@ -1,5 +1,46 @@
 #include "tasks/openvpn.hpp"
 
+namespace {
+bool ReplaceLastRemoteDirective(std::string& config_content)
+{
+	std::istringstream input(config_content);
+	std::vector<std::string> lines;
+	std::string line;
+	int last_remote_index = -1;
+
+	while (std::getline(input, line)) {
+		if (!line.empty() && line.back() == '\r') {
+			line.pop_back();
+		}
+		if (line.rfind("remote ", 0) == 0) {
+			last_remote_index = static_cast<int>(lines.size());
+		}
+		lines.push_back(line);
+	}
+
+	if (last_remote_index < 0) {
+		return false;
+	}
+
+	lines[static_cast<size_t>(last_remote_index)] = "remote 127.0.0.1 1194";
+
+	const bool had_trailing_newline = !config_content.empty() && config_content.back() == '\n';
+	std::ostringstream output;
+	for (size_t i = 0; i < lines.size(); ++i) {
+		if (i > 0) {
+			output << '\n';
+		}
+		output << lines[i];
+	}
+	if (had_trailing_newline) {
+		output << '\n';
+	}
+
+	config_content = output.str();
+	return true;
+}
+}
+
 std::string VPNTask::OpenSSHTunnel(std::string ipv4, std::string port, int forward_port, std::string key)
 {
 	// Validate all inputs
@@ -18,7 +59,7 @@ std::string VPNTask::OpenSSHTunnel(std::string ipv4, std::string port, int forwa
 	return result.output;
 }
 
-VPNClientResult VPNTask::CreateVPNClient(const std::string& client_name)
+VPNClientResult VPNTask::CreateVPNClient(const std::string& client_name, bool debug_localhost_remote)
 {
 	VPNClientResult result;
 	result.success = false;
@@ -81,6 +122,14 @@ VPNClientResult VPNTask::CreateVPNClient(const std::string& client_name)
 	oss << ovpn_file.rdbuf();
 	std::string file_content = oss.str();
 	ovpn_file.close();
+
+	if (debug_localhost_remote) {
+		if (!ReplaceLastRemoteDirective(file_content)) {
+			result.error = "Failed to find remote directive in generated .ovpn content";
+			std::cerr << "[VPN] " << result.error << std::endl;
+			return result;
+		}
+	}
 
 	result.success = true;
 	result.filename = client_name + ".ovpn";

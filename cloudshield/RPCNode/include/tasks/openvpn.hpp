@@ -25,5 +25,5 @@ private:
 	static constexpr const char* OVPN_OUTPUT_DIR = "/root";
 public:
 	std::string OpenSSHTunnel(std::string ipv4, std::string port, int forward_port, std::string key);
-	VPNClientResult CreateVPNClient(const std::string& client_name);
+	VPNClientResult CreateVPNClient(const std::string& client_name, bool debug_localhost_remote = false);
 };

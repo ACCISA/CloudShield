@@ -1575,6 +1575,39 @@ def test_create_vpn_config_success(monkeypatch):
     )
 
 
+def test_create_vpn_config_debug_metadata(monkeypatch):
+    """When debug mode is enabled, metadata flag is forwarded to RPCNode."""
+    from tasks.dc_management import create_vpn_config_for_user
+
+    mock_channel = unittest.mock.MagicMock()
+    monkeypatch.setattr("tasks.dc_management.get_grpc_channel", lambda host: mock_channel)
+
+    mock_response = unittest.mock.MagicMock()
+    mock_response.status = vpn_service_pb2.SUCCESS
+    mock_response.filename = "alice.ovpn"
+    mock_response.content = b"ovpn-content"
+
+    mock_stub = unittest.mock.MagicMock()
+    mock_stub.CreateVPNClient.return_value = mock_response
+    monkeypatch.setattr(
+        "tasks.dc_management.vpn_pb2_grpc.VPNServiceStub",
+        lambda ch: mock_stub,
+    )
+
+    monkeypatch.setattr("tasks.dc_management.store_vpn_config", unittest.mock.MagicMock())
+
+    openvpn_node = unittest.mock.MagicMock()
+    openvpn_node.get_host.return_value = "172.23.0.12:50055"
+    nodes = {"OPENVPN": openvpn_node}
+    logger = unittest.mock.MagicMock()
+
+    result = create_vpn_config_for_user("org1", "alice", nodes, logger, debug_localhost_remote=True)
+
+    assert result["status"] == "SUCCESS"
+    call_kwargs = mock_stub.CreateVPNClient.call_args.kwargs
+    assert call_kwargs["metadata"] == (("debug-localhost-remote", "true"),)
+
+
 def test_create_vpn_config_grpc_non_success(monkeypatch):
     """Returns FAILED when gRPC returns a non-SUCCESS status."""
     from tasks.dc_management import create_vpn_config_for_user

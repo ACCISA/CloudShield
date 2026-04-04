@@ -468,7 +468,7 @@ def dc_update_file_share(
     return {"status": "UNKNOWN", "message": "Failed to update file share, reason unknown"}
 
 
-def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger):
+def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger, debug_localhost_remote: bool = False):
     """Call the OpenVPN gRPC node to generate a client .ovpn and store it in MongoDB.
 
     Returns:
@@ -484,7 +484,8 @@ def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger):
         stub = vpn_pb2_grpc.VPNServiceStub(channel)
 
         vpn_request = vpn_pb2.CreateVPNClientData(client_name=username)
-        vpn_response = stub.CreateVPNClient(vpn_request, timeout=120)
+        metadata = (("debug-localhost-remote", "true" if debug_localhost_remote else "false"),)
+        vpn_response = stub.CreateVPNClient(vpn_request, timeout=120, metadata=metadata)
 
         if vpn_response.status == vpn_pb2.SUCCESS:
             store_vpn_config(
