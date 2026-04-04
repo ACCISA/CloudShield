@@ -1218,7 +1218,7 @@ def provision_network_docker(org_data, region, templates_dir, generated_dir, cou
         build=False,
         envs={
             "OPENVPN_PORT": "1194",
-            "OPENVPN_PROTOCOL": "udp",
+            "OPENVPN_PROTOCOL": "tcp",
             "OPENVPN_CLIENT_NAME": "client1",
             "OPENVPN_DNS": container_dc_ip,
             "ORG_SUBNET_CIDR": org_subnet_cidr,

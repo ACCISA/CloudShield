@@ -5,7 +5,7 @@ exec > /var/log/openvpn-userdata.log 2>&1
 set -x
 
 openvpn_address="${openvpn_address:-${OPENVPN_ADDRESS:-}}"
-openvpn_protocol="${openvpn_protocol:-${OPENVPN_PROTOCOL:-udp}}"
+openvpn_protocol="${openvpn_protocol:-${OPENVPN_PROTOCOL:-tcp}}"
 openvpn_dns="${openvpn_dns:-${OPENVPN_DNS:-}}"
 openvpn_port="${openvpn_port:-${OPENVPN_PORT:-1194}}"
 openvpn_client_name="${openvpn_client_name:-${OPENVPN_CLIENT_NAME:-client1}}"
@@ -238,5 +238,4 @@ systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn 
 systemctl enable cs_rpc
 systemctl start cs_rpc
 touch "${MARKER}"
-
 
