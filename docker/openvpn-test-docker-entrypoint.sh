@@ -172,7 +172,6 @@ wget -q --tries=3 --timeout=10 https://git.io/vpn -O "${INSTALLER}"
 chmod +x "${INSTALLER}"
 
 sed -i 's/read -p "Option: " option/option=1/' "${INSTALLER}" || true
-sed -i 's/read -p "Protocol \[1\]: " protocol/protocol=1/' "${INSTALLER}" || true
 sed -i 's/read -p "Port \[1194\]: " port/port='"${openvpn_port}"'/' "${INSTALLER}" || true
 sed -i 's/read -p "DNS server \[1\]: " dns/dns=1/' "${INSTALLER}" || true
 sed -i 's/read -p "Name \[client\]: " unsanitized_client/unsanitized_client='"${openvpn_client_name}"'/' "${INSTALLER}" || true
@@ -238,4 +237,3 @@ systemctl restart openvpn-server@server || timeout 20 systemctl restart openvpn 
 systemctl enable cs_rpc
 systemctl start cs_rpc
 touch "${MARKER}"
-
