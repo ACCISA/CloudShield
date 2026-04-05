@@ -484,8 +484,14 @@ def create_vpn_config_for_user(org_id: str, username: str, nodes: dict, logger, 
         stub = vpn_pb2_grpc.VPNServiceStub(channel)
 
         vpn_request = vpn_pb2.CreateVPNClientData(client_name=username)
-        metadata = (("debug-localhost-remote", "true" if debug_localhost_remote else "false"),)
-        vpn_response = stub.CreateVPNClient(vpn_request, timeout=120, metadata=metadata)
+        if debug_localhost_remote:
+            vpn_response = stub.CreateVPNClient(
+                vpn_request,
+                timeout=120,
+                metadata=(("debug-localhost-remote", "true"),),
+            )
+        else:
+            vpn_response = stub.CreateVPNClient(vpn_request, timeout=120)
 
         if vpn_response.status == vpn_pb2.SUCCESS:
             store_vpn_config(

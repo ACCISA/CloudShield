@@ -1,6 +1,34 @@
 #include "tasks/openvpn.hpp"
 
 namespace {
+bool ReplaceRemoteHostPreserveArgs(std::string& remote_line)
+{
+	std::istringstream token_stream(remote_line);
+	std::vector<std::string> tokens;
+	std::string token;
+
+	while (token_stream >> token) {
+		tokens.push_back(token);
+	}
+
+	if (tokens.size() < 3 || tokens[0] != "remote") {
+		return false;
+	}
+
+	tokens[1] = "127.0.0.1";
+
+	std::ostringstream rebuilt;
+	for (size_t i = 0; i < tokens.size(); ++i) {
+		if (i > 0) {
+			rebuilt << ' ';
+		}
+		rebuilt << tokens[i];
+	}
+
+	remote_line = rebuilt.str();
+	return true;
+}
+
 bool ReplaceLastRemoteDirective(std::string& config_content)
 {
 	std::istringstream input(config_content);
@@ -22,7 +50,9 @@ bool ReplaceLastRemoteDirective(std::string& config_content)
 		return false;
 	}
 
-	lines[static_cast<size_t>(last_remote_index)] = "remote 127.0.0.1 1194";
+	if (!ReplaceRemoteHostPreserveArgs(lines[static_cast<size_t>(last_remote_index)])) {
+		return false;
+	}
 
 	const bool had_trailing_newline = !config_content.empty() && config_content.back() == '\n';
 	std::ostringstream output;

@@ -1567,6 +1567,8 @@ def test_create_vpn_config_success(monkeypatch):
     result = create_vpn_config_for_user("org1", "alice", nodes, logger)
 
     assert result["status"] == "SUCCESS"
+    call_kwargs = mock_stub.CreateVPNClient.call_args.kwargs
+    assert "metadata" not in call_kwargs
     mock_store.assert_called_once_with(
         org_id="org1",
         username="alice",
