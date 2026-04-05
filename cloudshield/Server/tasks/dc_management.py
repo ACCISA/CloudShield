@@ -36,6 +36,8 @@ UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
 USER_NOT_FOUND="User not found"
 INVALID_GROUP="invalid group name"
+INVENTORY_EMPTY_LOG = "Inventory is empty for org_id=%s"
+INVALID_USERNAME_PROGRESS = "invalid username"
 
 def validate_username(username: str, logger=None):
     """
@@ -97,7 +99,7 @@ def dc_create_file_share(
     nodes = get_server_nodes(org_id) or {}
 
     if not nodes:
-        logger.error("Inventory is empty for org_id=%s", org_id)
+        logger.error(INVENTORY_EMPTY_LOG, org_id)
     
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name, share_size="100M")
 
@@ -430,7 +432,7 @@ def dc_update_file_share(
     nodes = get_server_nodes(org_id) or {}
 
     if not nodes:
-        logger.error("Inventory is empty for org_id=%s", org_id)
+        logger.error(INVENTORY_EMPTY_LOG, org_id)
 
     request = infra_pb2.UpdateSambaFileShareData(
         share_name=share_name,
@@ -528,7 +530,7 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
 
     if not validate_username(username, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid username"
+            job.meta["progress"] = INVALID_USERNAME_PROGRESS
             job.save_meta()
         return {"message":f"the provider username is invalid (username={username})"}
     if not validate_password(password, logger=logger):
@@ -542,7 +544,7 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
     nodes = get_server_nodes(org_id) or {}
 
     if not nodes:
-        logger.error("Inventory is empty for org_id=%s", org_id)
+        logger.error(INVENTORY_EMPTY_LOG, org_id)
         return {"message":"empty inventory"}
 
     request = infra_pb2.AddDomainUserData(username=username, password=password)
@@ -594,7 +596,7 @@ def dc_add_user_to_group(org_id: str, username: str, group_name: str):
 
     if not validate_username(username, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid username"
+            job.meta["progress"] = INVALID_USERNAME_PROGRESS
             job.save_meta()
         return {"message": f"the username is invalid (username={username})"}
 
@@ -653,7 +655,7 @@ def dc_create_user_with_group(org_id: str, username: str, password: str, group_n
 
     if not validate_username(username, logger=logger):
         if job is not None:
-            job.meta["progress"] = "invalid username"
+            job.meta["progress"] = INVALID_USERNAME_PROGRESS
             job.save_meta()
         return {"message": f"the provider username is invalid (username={username})"}
 
