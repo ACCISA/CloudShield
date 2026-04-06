@@ -1,6 +1,7 @@
 from subprocess import CalledProcessError
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+from pathlib import Path
 
 import cloudshield.Cloud.docker_provisioner.provision as docker_provision
 
@@ -196,3 +197,10 @@ def test_provision_network_docker_sets_openvpn_protocol_to_tcp(monkeypatch, tmp_
 
     assert result is None
     assert captured_vpn_envs["OPENVPN_PROTOCOL"] == "tcp"
+
+
+def test_openvpn_template_service_defaults_to_tcp():
+    compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "OPENVPN_PROTOCOL=tcp" in compose_text
+    assert "openvpn_protocol=" not in compose_text

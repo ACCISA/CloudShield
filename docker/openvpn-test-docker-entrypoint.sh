@@ -4,16 +4,21 @@ set -euo pipefail
 exec > /var/log/openvpn-userdata.log 2>&1
 set -x
 
-openvpn_address="${openvpn_address:-${OPENVPN_ADDRESS:-}}"
-openvpn_protocol="${openvpn_protocol:-${OPENVPN_PROTOCOL:-tcp}}"
-openvpn_dns="${openvpn_dns:-${OPENVPN_DNS:-}}"
-openvpn_port="${openvpn_port:-${OPENVPN_PORT:-1194}}"
-openvpn_client_name="${openvpn_client_name:-${OPENVPN_CLIENT_NAME:-client1}}"
-openvpn_ip_choice="${openvpn_ip_choice:-${OPENVPN_IP_CHOICE:-1}}"
-openvpn_public_address="${openvpn_public_address:-${OPENVPN_PUBLIC_ADDRESS:-}}"
-org_subnet_cidr="${org_subnet_cidr:-${ORG_SUBNET_CIDR:-}}"
-openvpn_force_hosts="${openvpn_force_hosts:-${OPENVPN_FORCE_HOSTS:-}}"
-openvpn_force_routes="${openvpn_force_routes:-${OPENVPN_FORCE_ROUTES:-}}"
+openvpn_address="${OPENVPN_ADDRESS:-${openvpn_address:-}}"
+openvpn_protocol="${OPENVPN_PROTOCOL:-${openvpn_protocol:-tcp}}"
+openvpn_dns="${OPENVPN_DNS:-${openvpn_dns:-}}"
+openvpn_port="${OPENVPN_PORT:-${openvpn_port:-1194}}"
+openvpn_client_name="${OPENVPN_CLIENT_NAME:-${openvpn_client_name:-client1}}"
+openvpn_ip_choice="${OPENVPN_IP_CHOICE:-${openvpn_ip_choice:-1}}"
+openvpn_public_address="${OPENVPN_PUBLIC_ADDRESS:-${openvpn_public_address:-}}"
+org_subnet_cidr="${ORG_SUBNET_CIDR:-${org_subnet_cidr:-}}"
+openvpn_force_hosts="${OPENVPN_FORCE_HOSTS:-${openvpn_force_hosts:-}}"
+openvpn_force_routes="${OPENVPN_FORCE_ROUTES:-${openvpn_force_routes:-}}"
+
+if [ "${openvpn_protocol}" != "tcp" ]; then
+  echo "Forcing OpenVPN protocol to tcp for CloudShield provisioning"
+  openvpn_protocol="tcp"
+fi
 
 eth0_ip="$(ip -4 -o addr show dev eth0 | awk '{split($4,a,"/"); print a[1]; exit}' || true)"
 org_cidr="$(ip -4 route show dev eth0 | awk '/proto kernel/ && $1 ~ /^[0-9]+\./ {print $1; exit}' || true)"
@@ -45,6 +50,22 @@ SERVER_CONF="/etc/openvpn/server/server.conf"
 ensure_split_tunnel() {
   [ -f "${SERVER_CONF}" ] || return 0
   sed -i '/^[[:space:]]*push "redirect-gateway def1.*"[[:space:]]*$/d' "${SERVER_CONF}" || true
+}
+
+ensure_tcp_protocol() {
+  [ -f "${SERVER_CONF}" ] || return 0
+
+  sed -i 's/^proto .*/proto tcp/' "${SERVER_CONF}" || true
+  sed -i '/^explicit-exit-notify$/d' "${SERVER_CONF}" || true
+
+  if [ -f /etc/openvpn/server/client-common.txt ]; then
+    sed -i 's/^proto .*/proto tcp/' /etc/openvpn/server/client-common.txt || true
+  fi
+
+  for ovpn_file in /root/*.ovpn /home/*/*.ovpn /etc/openvpn/server/*.ovpn; do
+    [ -f "${ovpn_file}" ] || continue
+    sed -i 's/^proto .*/proto tcp/' "${ovpn_file}" || true
+  done
 }
 
 cidr_to_mask() {
@@ -152,6 +173,7 @@ ensure_client_remote_endpoint() {
 }
 
 if [ -f "${MARKER}" ] && [ -f "${SERVER_CONF}" ]; then
+  ensure_tcp_protocol
   ensure_client_remote_endpoint
   ensure_split_tunnel
   ensure_org_route_and_dns
@@ -227,6 +249,7 @@ chmod +x "${AUTO}"
 timeout 900 "${AUTO}"
 
 if [ -f "${SERVER_CONF}" ]; then
+  ensure_tcp_protocol
   ensure_client_remote_endpoint
   ensure_split_tunnel
   ensure_org_route_and_dns
