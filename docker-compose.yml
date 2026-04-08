@@ -53,9 +53,9 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - openvpn_port=${OPENVPN_PORT}
-      - openvpn_protocol=${OPENVPN_PROTOCOL}
-      - openvpn_client_name=${OPENVPN_CLIENT_NAME}
+      - OPENVPN_PORT=${OPENVPN_PORT:-1194}
+      - OPENVPN_PROTOCOL=tcp
+      - OPENVPN_CLIENT_NAME=${OPENVPN_CLIENT_NAME:-client1}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
 
