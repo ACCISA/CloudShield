@@ -1,3 +1,4 @@
+import os
 import re
 import uuid
 import base64
@@ -567,7 +568,8 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
         logger.info("Successfully added user")
 
         # Generate and store VPN config for the new user
-        vpn_result = create_vpn_config_for_user(org_id, username, nodes, logger)
+        is_local_depl = os.environ.get("LOCAL_DEPLOYMENT", False)
+        vpn_result = create_vpn_config_for_user(org_id, username, nodes, logger, debug_localhost_remote=is_local_depl)
         return {
             "status": "SUCCESS",
             "message": "Successfully added user",
