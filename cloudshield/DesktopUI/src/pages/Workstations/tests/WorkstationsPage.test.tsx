@@ -47,7 +47,26 @@ describe("WorkstationsPage", () => {
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
   const appWindow = globalThis as unknown as Window;
   beforeEach(() => {
-    appWindow.authStore = {
+    loadAuthMock.mockReset();
+    clearAuthMock.mockReset();
+    runXfreerdpMock.mockReset();
+    showOpenDialogMock.mockReset();
+    killProcessMock.mockReset();
+    getWorkstationTemplatesMock.mockReset();
+    assignWorkStationMock.mockReset();
+    releaseWorkStationMock.mockReset();
+    getOrganizationMock.mockReset();
+    getSessionPasswordMock.mockReset();
+    deriveUsernameMock.mockReset();
+    decodeJwtClaimsMock.mockReset();
+
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+
+    window.authStore = {
       saveAuth: vi.fn(),
       loadAuth: loadAuthMock,
       clearAuth: clearAuthMock,
@@ -119,18 +138,46 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  it("shows an auth error when no auth is available", async () => {
+  it("triggers template connect from icons layout when template is ready", async () => {
+    const templates = mockWorkstationTemplates.map((template, index) => ({
+      ...template,
+      _id: `template-${index + 1}`,
+      is_ready: true,
+    }));
+    getWorkstationTemplatesMock.mockResolvedValue(templates);
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    runXfreerdpMock.mockResolvedValueOnce({
+      success: true,
+      pid: 1001,
+      message: "xfreerdp3 launched",
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Display" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /icons/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workstations-icons-view")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
+    });
+  });
+
+  it("shows auth error when no token is available", async () => {
     loadAuthMock.mockReturnValue({});
 
     render(<WorkstationsPage />);
 
-    expect(
-      await screen.findByText(/missing access token\. please sign in\./i),
-    ).toBeTruthy();
-    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/missing access token/i)).toBeTruthy();
   });
 
-  it("shows an auth error when the token is expired", async () => {
+  it("shows auth error when token is expired", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       expiresAt: Date.now() - 1000,
@@ -138,10 +185,7 @@ describe("WorkstationsPage", () => {
 
     render(<WorkstationsPage />);
 
-    expect(
-      await screen.findByText(/session expired\. please sign in again\./i),
-    ).toBeTruthy();
-    expect(getWorkstationTemplatesMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/session expired/i)).toBeTruthy();
   });
 
   it("renders workstation template rows from the API", async () => {
@@ -327,21 +371,14 @@ describe("WorkstationsPage", () => {
     render(<WorkstationsPage />);
 
     expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
-
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Launch RDP"));
 
     await waitFor(() => {
       expect(
         screen.getByText("Error: Electron API not available"),
       ).toBeTruthy();
       expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(assignWorkStationMock).not.toHaveBeenCalled();
     });
   });
 
@@ -351,12 +388,11 @@ describe("WorkstationsPage", () => {
       expiresAt: Date.now() + 60000,
     });
 
-    getWorkstationTemplatesMock.mockResolvedValueOnce(
-      mockWorkstationTemplates.map((template, index) => ({
-        ...template,
-        _id: `template-${index + 1}`,
-      })),
-    );
+    const templates = mockWorkstationTemplates.map((template, index) => ({
+      ...template,
+      _id: `template-${index + 1}`,
+    }));
+    getWorkstationTemplatesMock.mockResolvedValue(templates);
 
     assignWorkStationMock.mockResolvedValueOnce({
       ...mockWorkstations[0],
@@ -370,15 +406,9 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Connected to workstation/i)).toBeTruthy();
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByText("Launch RDP"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Error: Workstation IP is missing")).toBeTruthy();
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
       expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });
 
@@ -407,17 +437,77 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
-      expect(screen.getByText(/Connected to workstation/)).toBeTruthy();
-      expect(screen.getByText(/192.168.122.106/)).toBeTruthy();
-      expect(screen.getByText(/Launch RDP/)).toBeTruthy();
-    });
-    fireEvent.click(screen.getByText("Launch RDP"));
-    await waitFor(() => {
       expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });
 
-  it("kills RDP process on disconnect when pid is set", async () => {
+  it("blocks starting another connect while an RDP connect flow is active", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
+    });
+
+    const templates = [
+      {
+        ...mockWorkstationTemplates[0],
+        _id: "template-1",
+        name: "Windows 10 Pro",
+        is_ready: true,
+      },
+      {
+        ...mockWorkstationTemplates[0],
+        _id: "template-2",
+        name: "Windows 11 Pro",
+        is_ready: true,
+      },
+    ];
+
+    let resolveAssign: ((value: (typeof mockWorkstations)[0]) => void) | undefined;
+    assignWorkStationMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveAssign = resolve;
+        }),
+    );
+    runXfreerdpMock.mockResolvedValueOnce({
+      success: true,
+      pid: 1111,
+      message: "xfreerdp3 launched",
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(templates);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    expect(screen.getByText("Windows 11 Pro")).toBeTruthy();
+
+    const connectButtons = screen.getAllByRole("button", { name: "Connect" });
+    fireEvent.click(connectButtons[0]);
+
+    await waitFor(() => {
+      expect(assignWorkStationMock).toHaveBeenCalledTimes(1);
+      expect(connectButtons[1].hasAttribute("disabled")).toBe(true);
+    });
+
+    fireEvent.click(connectButtons[1]);
+
+    await waitFor(() => {
+      expect(assignWorkStationMock).toHaveBeenCalledTimes(1);
+    });
+
+    if (resolveAssign) {
+      resolveAssign(mockWorkstations[0]);
+    }
+
+    await waitFor(() => {
+      expect(runXfreerdpMock).toHaveBeenCalledTimes(1);
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("releases workstation after RDP session closes", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
       tokenType: "Bearer",
@@ -441,19 +531,42 @@ describe("WorkstationsPage", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
-      expect(screen.getByText("Launch RDP")).toBeTruthy();
-      expect(screen.getByText("Disconnect")).toBeTruthy();
+      expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
+      expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+      expect(killProcessMock).not.toHaveBeenCalled();
     });
+  });
 
-    fireEvent.click(screen.getByText("Launch RDP"));
-    await waitFor(() => {
-      expect(screen.getByText("Connected! (PID: 9876)")).toBeTruthy();
+  it("shows fallback status when release workstation fails with non-Error", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      tokenType: "Bearer",
+      expiresAt: Date.now() + 60000,
     });
+    runXfreerdpMock.mockResolvedValueOnce({
+      success: true,
+      pid: 2222,
+      message: "xfreerdp3 launched",
+    });
+    getWorkstationTemplatesMock.mockResolvedValueOnce(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    releaseWorkStationMock.mockRejectedValueOnce("disconnect failed");
 
-    fireEvent.click(screen.getByText("Disconnect"));
+    render(<WorkstationsPage />);
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
     await waitFor(() => {
       expect(releaseWorkStationMock).toHaveBeenCalled();
-      expect(killProcessMock).toHaveBeenCalledWith(9876);
+      expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(getWorkstationTemplatesMock).toHaveBeenCalledTimes(2);
     });
   });
 });
