@@ -14,6 +14,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -39,6 +40,7 @@
     transform: translateY(30px) scale(0.96);
     opacity: 0;
   }
+
   to {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -260,11 +262,9 @@ fieldset.tickets-modal-form-group {
 
 /* Priority-specific colors */
 .tickets-modal-toggle-btn.selected.priority-low {
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.12),
-    rgba(59, 130, 246, 0.05)
-  );
+  background: linear-gradient(135deg,
+      rgba(59, 130, 246, 0.12),
+      rgba(59, 130, 246, 0.05));
   color: #60a5fa;
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
@@ -276,11 +276,9 @@ fieldset.tickets-modal-form-group {
 }
 
 .tickets-modal-toggle-btn.selected.priority-medium {
-  background: linear-gradient(
-    135deg,
-    rgba(251, 146, 60, 0.12),
-    rgba(251, 146, 60, 0.05)
-  );
+  background: linear-gradient(135deg,
+      rgba(251, 146, 60, 0.12),
+      rgba(251, 146, 60, 0.05));
   color: #fb923c;
   border-color: rgba(251, 146, 60, 0.4);
   box-shadow: 0 2px 8px rgba(251, 146, 60, 0.2);
@@ -292,11 +290,9 @@ fieldset.tickets-modal-form-group {
 }
 
 .tickets-modal-toggle-btn.selected.priority-high {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.12),
-    rgba(239, 68, 68, 0.05)
-  );
+  background: linear-gradient(135deg,
+      rgba(239, 68, 68, 0.12),
+      rgba(239, 68, 68, 0.05));
   color: #f87171;
   border-color: rgba(239, 68, 68, 0.4);
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);

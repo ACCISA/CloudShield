@@ -157,6 +157,25 @@ def test_create_share_inserts(monkeypatch):
     assert len(fake._docs) == 1
 
 
+def test_create_share_accepts_integer_sizes(monkeypatch):
+    import cloudshield.Server.services.shares_services as shares_services
+
+    fake = FakeCollection([])
+    monkeypatch.setattr(shares_services, "shares", fake)
+
+    result = shares_services.create_share(
+        org_id="org1",
+        name="Docs",
+        current_size=7,
+        max_size=9,
+    )
+
+    assert result["current_size"] == "7"
+    assert result["max_size"] == "9"
+    assert fake._docs[0]["current_size"] == "7"
+    assert fake._docs[0]["max_size"] == "9"
+
+
 def test_list_shares_sorted(monkeypatch):
     import cloudshield.Server.services.shares_services as shares_services
 

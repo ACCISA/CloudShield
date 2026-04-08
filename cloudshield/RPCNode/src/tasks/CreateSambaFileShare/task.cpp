@@ -13,10 +13,10 @@ is::Status _add_share_conf(std::string share_name)
 	if (out_file.is_open()) {
 
 		out_file << "[" << share_name << "]" << std::endl;
-		out_file << "	path = /srv/samba/shared/" << share_name << std::endl;
+		out_file << "	path = /srv/samba/shares/" << share_name << std::endl;
 		out_file << "	browseable = yes" << std::endl;
 		out_file << "	read only = no" << std::endl;
-		out_file << "	valid users = @\"Domain Users" << std::endl;
+		out_file << "	valid users = @\"Domain Users\"" << std::endl;
 		out_file << "	create mask = 0660" << std::endl;
 		out_file << "	directory mask = 2770" << std::endl;
 

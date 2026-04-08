@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { createTicket } from "../../api/ticketsApi";
 import CreateButton from "../common/CreateButton/CreateButton.jsx";
@@ -12,7 +12,29 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !isSubmitting) {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isSubmitting, onClose]);
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget && !isSubmitting) {
+      onClose?.();
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    if (event) event.preventDefault();
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     setError(null);
 
@@ -39,9 +61,18 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="tickets-modal-overlay">
-      <div className="tickets-modal-dialog">
-        <div>
+    <div 
+      className="tickets-modal-overlay"
+      onClick={handleBackdropClick}
+      role="presentation"
+    >
+      <div 
+        className="tickets-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-modal-title"
+      >
+        <form onSubmit={handleSubmit}>
           {/* HEADER */}
           <header className="tickets-modal-header">
             <nav className="tickets-modal-breadcrumb">
@@ -49,7 +80,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
                 Tickets
               </span>
               <span className="tickets-modal-breadcrumb-separator">›</span>
-              <span className="tickets-modal-breadcrumb-item active">
+              <span id="ticket-modal-title" className="tickets-modal-breadcrumb-item active">
                 Submit a Request
               </span>
             </nav>
@@ -180,7 +211,7 @@ const CreateTicketModal = ({ isOpen, onClose, onSuccess }) => {
               />
             </div>
           </footer>
-        </div>
+        </form>
       </div>
     </div>
   );

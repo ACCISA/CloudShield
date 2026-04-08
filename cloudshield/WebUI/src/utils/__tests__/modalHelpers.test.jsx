@@ -437,13 +437,19 @@ describe("modalHelpers", () => {
 
       const result = await fetchGroups("org1", "token1");
 
-      expect(result[0]).toEqual({
+      expect(result[0]).toMatchObject({
         id: "group_underscore",
         _id: "group_underscore",
         name: "Untitled Group",
         members: [], // Fallback triggered
+        memberCount: 0,
         users: [],
         files: [],
+        description: "",
+        group_image: null,
+        workstations: [],
+        file_shares: [],
+        members_info: [],
         org_id: "orgXYZ",
       });
     });
@@ -571,7 +577,7 @@ describe("modalHelpers", () => {
     it("should fetch and normalize workstations successfully", async () => {
       apiGet.mockResolvedValue({
         ok: true,
-        json: async () => mockWorkstations,
+        json: async () => ({ templates: mockWorkstations }),
       });
 
       const result = await fetchWorkstations("org123", "token123");
@@ -581,7 +587,12 @@ describe("modalHelpers", () => {
         name: "Workstation 1",
         online: true,
         ipAddress: "192.168.1.1",
+        source: "template",
       });
+      expect(apiGet).toHaveBeenCalledWith(
+        "/workstations/templates?org_id=org123",
+        expect.any(Object),
+      );
     });
 
     it("should call state setter if provided", async () => {
@@ -639,15 +650,53 @@ describe("modalHelpers", () => {
       expect(result).toEqual([]);
     });
 
+    it("should fall back to live workstation endpoint when templates are unavailable", async () => {
+      const notFound = new Error("Not Found");
+      notFound.status = 404;
+
+      apiGet
+        .mockRejectedValueOnce(notFound)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                _id: "live-1",
+                name: "Live workstation",
+                status: "online",
+              },
+            ],
+          }),
+        });
+
+      const result = await fetchWorkstations("org123", "token123");
+
+      expect(apiGet).toHaveBeenNthCalledWith(
+        1,
+        "/workstations/templates?org_id=org123",
+        expect.any(Object),
+      );
+      expect(apiGet).toHaveBeenNthCalledWith(
+        2,
+        "/workstations?org_id=org123",
+        expect.any(Object),
+      );
+      expect(result[0]).toMatchObject({
+        id: "live-1",
+        source: "workstation",
+        status: "connected",
+      });
+    });
+
     it("should normalize workstations data correctly", async () => {
       apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
-          workstations: [
+          templates: [
             {
               _id: "ws2",
               name: "Desktop",
-              status: "online",
+              is_ready: true,
               ipAddress: "10.0.0.1",
               org_id: "org456",
             },
@@ -660,6 +709,8 @@ describe("modalHelpers", () => {
         id: "ws2",
         _id: "ws2",
         name: "Desktop",
+        code: "WS-WS2",
+        status: "connected",
         online: true,
         ipAddress: "10.0.0.1",
       });
@@ -705,7 +756,13 @@ describe("modalHelpers", () => {
         name: "Designer",
         strength: "basic",
         usersCount: 2,
-        groups: ["group-1"],
+        groups: [
+          expect.objectContaining({
+            id: "group-1",
+            _id: "group-1",
+            name: "group-1",
+          }),
+        ],
         software: [{ _id: "sw-1", name: "Office" }],
         status: "connected",
         currentUser: expect.objectContaining({
@@ -1055,6 +1112,22 @@ describe("modalHelpers", () => {
         ]),
       );
       expect(openToast).not.toHaveBeenCalled();
+    });
+
+    it("should quietly fall back to mock software when endpoint is missing", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const notFound = new Error("Not Found");
+      notFound.status = 404;
+      apiGet.mockRejectedValue(notFound);
+
+      const result = await fetchSoftware("org123", "token123");
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "sw-excel", name: "Microsoft Excel" }),
+        ]),
+      );
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
 

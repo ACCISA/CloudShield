@@ -2,7 +2,11 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
+import WorkstationsPage, {
+  createWorkstationTemplate,
+  updateWorkstationTemplate,
+  deleteWorkstationTemplate,
+} from "../WorkstationsPage";
 import { fetchWorkstations } from "../../utils/modalHelpers.jsx";
 import * as clientApi from "../../api/client.js";
 
@@ -24,6 +28,12 @@ jest.mock("../../hooks/useThemeColors.js", () => ({
 
 jest.mock("../../utils/modalHelpers.jsx", () => ({
   fetchWorkstations: jest.fn(),
+}));
+
+jest.mock("../../api/client.js", () => ({
+  apiPost: jest.fn(),
+  apiPatch: jest.fn(),
+  apiDelete: jest.fn(),
 }));
 
 jest.mock("../../lib/safeAsync", () => ({
@@ -184,6 +194,10 @@ describe("createWorkstationTemplate", () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("posts full template payload to /api/workstations/templates", async () => {
     localStorage.setItem("jwt", "token-123");
     clientApi.apiPost.mockResolvedValue({
@@ -222,6 +236,7 @@ describe("WorkstationsPage", () => {
         code: "A",
         status: "connected",
         usersCount: 0,
+        source: "template",
       },
       {
         id: "w2",
@@ -229,12 +244,16 @@ describe("WorkstationsPage", () => {
         code: "B",
         status: "disconnected",
         usersCount: 0,
+        source: "template",
       },
     ]);
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
+    apiPost.mockResolvedValue({
       json: jest.fn().mockResolvedValue({ id: "new" }),
     });
+    apiPatch.mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ template: { _id: "w1" } }),
+    });
+    apiDelete.mockResolvedValue(null);
   });
 
   test("loads and renders workstation rows", async () => {
@@ -375,6 +394,10 @@ describe("WorkstationsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Workstation updated")).toBeInTheDocument();
     });
+    expect(apiPatch).toHaveBeenCalledWith(
+      "/workstations/templates/w1",
+      expect.any(Object),
+    );
     expect(dispatchSpy).toHaveBeenCalled();
 
     dispatchSpy.mockRestore();
@@ -475,6 +498,35 @@ describe("WorkstationsPage", () => {
       expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
       expect(screen.queryByTestId("workstation-modal")).not.toBeInTheDocument();
     });
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/templates/w1");
+
+    confirmSpy.mockRestore();
+  });
+
+  test("deletes live workstation rows through the live delete endpoint", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    fetchWorkstations.mockResolvedValueOnce([
+      {
+        id: "w1",
+        name: "Alpha",
+        code: "A",
+        status: "connected",
+        usersCount: 0,
+        source: "workstation",
+      },
+    ]);
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+    await user.click(screen.getByTestId("edit-w1"));
+    await user.click(screen.getByRole("button", { name: "delete-current" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("Alpha")).not.toBeInTheDocument(),
+    );
+    expect(apiDelete).toHaveBeenCalledWith("/workstations/w1");
 
     confirmSpy.mockRestore();
   });

@@ -2,6 +2,8 @@ import re
 import uuid
 import base64
 import grpc
+import os
+import subprocess
 from rq import get_current_job
 from google.protobuf import empty_pb2
 
@@ -36,6 +38,251 @@ UNEXPECTED_RESPONSE="Unexpected response"
 USER_ALREADY_EXISTS="User already exists"
 USER_NOT_FOUND="User not found"
 INVALID_GROUP="invalid group name"
+SHARE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def _is_docker_mode() -> bool:
+    return (os.environ.get("DEPLOYMENT_MODE") or "").strip().lower() == "docker"
+
+
+def _has_share_proxy_nodes(nodes) -> bool:
+    return bool(nodes) and "DOMAIN_CONTROLLER" in nodes and "OPENVPN" in nodes
+
+
+def _validate_share_name(share_name: str):
+    if not SHARE_NAME_RE.fullmatch((share_name or "").strip()):
+        raise ValueError(f"Invalid share name: {share_name!r}")
+
+
+def _run_docker_command(cmd: list[str], logger):
+    logger.debug("Running docker command: %s", " ".join(cmd))
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def _get_local_samba_container_name(logger) -> str:
+    result = _run_docker_command(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            "label=com.docker.compose.service=samba-test",
+            "--format",
+            "{{.Names}}",
+        ],
+        logger,
+    )
+    candidates = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if candidates:
+        return candidates[0]
+
+    fallback = _run_docker_command(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            "name=samba-test",
+            "--format",
+            "{{.Names}}",
+        ],
+        logger,
+    )
+    candidates = [line.strip() for line in fallback.stdout.splitlines() if line.strip()]
+    if candidates:
+        return candidates[0]
+
+    raise RuntimeError("No running samba-test container found")
+
+
+def _format_valid_users(users: list | None, groups: list | None) -> str:
+    entries = ['@"Domain Admins"']
+    for user in users or []:
+        if user:
+            normalized = str(user).strip()
+            if normalized and normalized not in entries:
+                entries.append(normalized)
+    for group in groups or []:
+        if not group:
+            continue
+        group_name = str(group).strip()
+        if " " in group_name:
+            entry = f'@"{group_name}"'
+        else:
+            entry = f"@{group_name}"
+        if entry not in entries:
+            entries.append(entry)
+    return ", ".join(entries)
+
+
+def _create_local_samba_share(share_name: str, users: list | None, groups: list | None, logger):
+    _validate_share_name(share_name)
+    container_name = _get_local_samba_container_name(logger)
+    valid_users = _format_valid_users(users, groups)
+
+    script = """
+from pathlib import Path
+import sys
+
+share_name = sys.argv[1]
+valid_users = sys.argv[2]
+share_path = Path("/srv/samba/shares") / share_name
+share_path.mkdir(parents=True, exist_ok=True)
+share_path.chmod(0o777)
+
+conf_path = Path("/etc/samba/smb.conf")
+header = f"[{share_name}]"
+lines = conf_path.read_text(encoding="utf-8").splitlines()
+for line in lines:
+    if line.strip().lower() == header.lower():
+        sys.exit(0)
+
+block = [
+    "",
+    header,
+    f"    path = {share_path}",
+    "    browseable = yes",
+    "    read only = no",
+    f"    valid users = {valid_users}",
+    "    force user = root",
+    "    force group = root",
+    "    create mask = 0770",
+    "    directory mask = 0770",
+]
+with conf_path.open("a", encoding="utf-8") as handle:
+    handle.write("\\n".join(block) + "\\n")
+"""
+
+    _run_docker_command(
+        ["docker", "exec", container_name, "python3", "-c", script, share_name, valid_users],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "testparm", "-s"],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "systemctl", "restart", "samba-ad-dc"],
+        logger,
+    )
+
+
+def _delete_local_samba_share(share_name: str, logger):
+    _validate_share_name(share_name)
+    container_name = _get_local_samba_container_name(logger)
+
+    script = """
+from pathlib import Path
+import shutil
+import sys
+
+share_name = sys.argv[1]
+conf_path = Path("/etc/samba/smb.conf")
+header = f"[{share_name}]"
+lines = conf_path.read_text(encoding="utf-8").splitlines()
+new_lines = []
+inside_block = False
+found = False
+
+for line in lines:
+    stripped = line.strip()
+    if stripped.lower() == header.lower():
+        inside_block = True
+        found = True
+        continue
+    if inside_block and stripped.startswith("[") and stripped.endswith("]"):
+        inside_block = False
+    if not inside_block:
+        new_lines.append(line)
+
+conf_path.write_text("\\n".join(new_lines).rstrip() + "\\n", encoding="utf-8")
+
+share_path = Path("/srv/samba/shares") / share_name
+if share_path.exists():
+    shutil.rmtree(share_path)
+    found = True
+
+raise SystemExit(0 if found else 3)
+"""
+
+    try:
+        _run_docker_command(
+            ["docker", "exec", container_name, "python3", "-c", script, share_name],
+            logger,
+        )
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode != 3:
+            raise
+        return False
+
+    _run_docker_command(
+        ["docker", "exec", container_name, "testparm", "-s"],
+        logger,
+    )
+    _run_docker_command(
+        ["docker", "exec", container_name, "systemctl", "restart", "samba-ad-dc"],
+        logger,
+    )
+    return True
+
+
+def _persist_local_share_create(org_id: str, share_name: str, users: list, groups: list, description: str, max_size: int, logger):
+    logger.warning(
+        "Using local docker fallback for file share create (org_id=%s, share_name=%s)",
+        org_id,
+        share_name,
+    )
+    try:
+        _create_local_samba_share(share_name, users, groups, logger)
+        effective_max_size = max_size if max_size is not None else "50"
+        mock_current_size = "7"
+        create_share(
+            org_id=org_id,
+            name=share_name,
+            users=users or [],
+            groups=groups or [],
+            description=description,
+            current_size=mock_current_size,
+            max_size=effective_max_size,
+        )
+    except Exception as exc:
+        logger.error("Failed to persist local docker file share: %s", exc)
+        return {
+            "status": "FAILED",
+            "message": "Failed to create local docker file share",
+        }
+    return {
+        "status": "SUCCESS",
+        "message": "Successfully created local docker file share",
+    }
+
+
+def _delete_local_share(org_id: str, share_name: str, logger):
+    logger.warning(
+        "Using local docker fallback for file share delete (org_id=%s, share_name=%s)",
+        org_id,
+        share_name,
+    )
+    try:
+        samba_deleted = _delete_local_samba_share(share_name, logger)
+        deleted = delete_share(org_id=org_id, name=share_name)
+    except Exception as exc:
+        logger.error("Failed to delete local docker file share: %s", exc)
+        return {
+            "status": "FAILED",
+            "message": "Failed to delete local docker file share",
+        }
+
+    if deleted or samba_deleted:
+        return {
+            "status": "SUCCESS",
+            "message": "Successfully deleted local docker file share",
+        }
+
+    return {"status": "SHARE_NOT_FOUND", "message": "Failed to find samba file share"}
 
 def validate_username(username: str, logger=None):
     """
@@ -98,13 +345,25 @@ def dc_create_file_share(
 
     if not nodes:
         logger.error("Inventory is empty for org_id=%s", org_id)
-    
+
+    if _is_docker_mode():
+        return _persist_local_share_create(
+            org_id,
+            share_name,
+            users,
+            groups,
+            description,
+            max_size,
+            logger,
+        )
+
     request = infra_pb2.CreateSambaFileShareData(share_name=share_name, share_size="100M")
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.CreateSambaFileShare", request=request)
 
     if proxy_response is None:
-        return PROXY_FAIL_MESSAGE
+        logger.error("Failed to proxy CreateSambaFileShare for org_id=%s share_name=%s", org_id, share_name)
+        raise RuntimeError(PROXY_FAIL_MESSAGE["message"])
 
 
     response = infra_pb2.CreateSambaFileShareDataAck()
@@ -155,8 +414,11 @@ def dc_delete_file_share(org_id: str, share_name: str, wipe_data: bool = False):
         job.meta["progress"] = "stating dc_delete_file_share"
         job.save_meta()
 
-    nodes = get_server_nodes(org_id)
-    
+    nodes = get_server_nodes(org_id) or {}
+
+    if _is_docker_mode():
+        return _delete_local_share(org_id, share_name, logger)
+
     request = infra_pb2.DeleteSambaFileShareData(share_name=share_name, wipe_data=wipe_data)
 
     proxy_response = proxy_rpc_request(nodes, method_name="infra_service.v1.InfraService.DeleteSambaFileShare", request=request)

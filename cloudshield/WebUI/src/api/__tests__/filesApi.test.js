@@ -17,6 +17,7 @@ global.localStorage = localStorageMock;
 import {
   fetchFileShares,
   createFileShare,
+  fetchJobStatus,
   updateFileShare,
   deleteFileShare,
   fetchUsers,
@@ -234,6 +235,69 @@ describe('filesApi', () => {
       await expect(
         createFileShare({ orgId: 'org123', name: 'NewShare' })
       ).rejects.toThrow('Bad Request');
+    });
+  });
+
+  describe('fetchJobStatus', () => {
+    it('should normalize a successful finished job', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'finished',
+          result: { status: 'SUCCESS', message: 'done' },
+        }),
+      });
+
+      const result = await fetchJobStatus('job123');
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/status/job123'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: { Authorization: 'Bearer test-jwt-token' },
+        })
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: 'succeeded',
+          message: 'done',
+        })
+      );
+    });
+
+    it('should normalize a finished job with FAILED result as failed', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'finished',
+          result: { status: 'FAILED', message: 'Failed to proxy rpc request' },
+        }),
+      });
+
+      const result = await fetchJobStatus('job456');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: 'failed',
+          message: 'Failed to proxy rpc request',
+        })
+      );
+    });
+
+    it('should treat 404 job lookup as still running', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'job not found' }),
+      });
+
+      const result = await fetchJobStatus('job404');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: 'running',
+        })
+      );
     });
   });
 

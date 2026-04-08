@@ -31,6 +31,189 @@ import "./WorkstationModal.css";
 
 const STEPS = ["Basic Info", "Users", "Groups", "Software"];
 
+function getModalItemId(item) {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item);
+  }
+
+  return String(
+    item.id ||
+      item._id ||
+      item.email ||
+      item.username ||
+      item.name ||
+      item.group_name ||
+      item.groupName ||
+      item.workstationName ||
+      item.hostname ||
+      "",
+  );
+}
+
+function getModalItemAliases(item) {
+  if (item === null || item === undefined) return [];
+  if (typeof item === "string" || typeof item === "number") {
+    return [String(item).toLowerCase()];
+  }
+
+  const aliases = [
+    item.id,
+    item._id,
+    item.email,
+    item.username,
+    item.name,
+    item.group_name,
+    item.groupName,
+    item.workstationName,
+    item.hostname,
+  ];
+
+  if (item.firstName || item.lastName) {
+    aliases.push(`${item.firstName || ""} ${item.lastName || ""}`.trim());
+  }
+
+  return Array.from(
+    new Set(
+      aliases
+        .filter(Boolean)
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function reconcileSelectedItems(selectedItems, availableItems, normalizeFallback) {
+  const available = Array.isArray(availableItems) ? availableItems : [];
+  const selected = Array.isArray(selectedItems) ? selectedItems : [];
+
+  if (selected.length === 0 || available.length === 0) {
+    return selected.map((item) => normalizeFallback(item));
+  }
+
+  const lookup = new Map();
+  available.forEach((item) => {
+    getModalItemAliases(item).forEach((alias) => {
+      if (!lookup.has(alias)) {
+        lookup.set(alias, item);
+      }
+    });
+  });
+
+  const seen = new Set();
+  const resolved = [];
+
+  selected.forEach((item) => {
+    const match = getModalItemAliases(item)
+      .map((alias) => lookup.get(alias))
+      .find(Boolean);
+    const normalized = match || normalizeFallback(item);
+    const key = getModalItemId(normalized) || getModalItemAliases(normalized)[0];
+
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    resolved.push(normalized);
+  });
+
+  return resolved;
+}
+
+function areSelectionsEqual(left, right) {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+
+  return left.every(
+    (item, index) => getModalItemId(item) === getModalItemId(right[index]),
+  );
+}
+
+function normalizeUserSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return {
+      id: value,
+      _id: value,
+      firstName: value,
+      lastName: "",
+      email: "",
+      title: "",
+    };
+  }
+
+  const id = getModalItemId(item);
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    firstName: item?.firstName || "",
+    lastName: item?.lastName || "",
+    email: item?.email || "",
+    title: item?.title || item?.role || "",
+  };
+}
+
+function normalizeGroupSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return {
+      id: value,
+      _id: value,
+      name: value,
+      groupName: value,
+      group_name: value,
+      memberCount: 0,
+      members: [],
+    };
+  }
+
+  const id = getModalItemId(item);
+  const members = Array.isArray(item?.members) ? item.members : [];
+  const memberCount =
+    typeof item?.memberCount === "number"
+      ? item.memberCount
+      : typeof item?.member_count === "number"
+        ? item.member_count
+        : typeof item?.members === "number"
+          ? item.members
+          : members.length;
+  const name = item?.name || item?.group_name || item?.groupName || id;
+
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    name,
+    groupName: name,
+    group_name: name,
+    members,
+    memberCount,
+  };
+}
+
+function normalizeSoftwareSelection(item) {
+  if (typeof item === "string" || typeof item === "number") {
+    const value = String(item);
+    return {
+      id: value,
+      _id: value,
+      name: value,
+      category: "",
+      picture: "",
+    };
+  }
+
+  const id = getModalItemId(item);
+  return {
+    ...item,
+    id,
+    _id: String(item?._id || id),
+    name: item?.name || id,
+    category: item?.category || item?.vendor || "",
+    picture: item?.picture || item?.image || "",
+  };
+}
+
 /**
  * WorkstationModal - Multi-step wizard for creating/editing workstations
  */
@@ -133,6 +316,69 @@ export default function WorkstationModal({
     setCurrentStep(0);
     setSearchTerms({ groups: "", users: "", software: "" });
   }, [open, workstationData, isEditMode]);
+
+  useEffect(() => {
+    if (!open || allUsers.length === 0) return;
+
+    setFormData((prev) => {
+      const nextUsers = reconcileSelectedItems(
+        prev.selectedUsers,
+        allUsers,
+        normalizeUserSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedUsers, nextUsers)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedUsers: nextUsers,
+      };
+    });
+  }, [open, allUsers]);
+
+  useEffect(() => {
+    if (!open || allGroups.length === 0) return;
+
+    setFormData((prev) => {
+      const nextGroups = reconcileSelectedItems(
+        prev.selectedGroups,
+        allGroups,
+        normalizeGroupSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedGroups, nextGroups)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedGroups: nextGroups,
+      };
+    });
+  }, [open, allGroups]);
+
+  useEffect(() => {
+    if (!open || allSoftware.length === 0) return;
+
+    setFormData((prev) => {
+      const nextSoftware = reconcileSelectedItems(
+        prev.selectedSoftware,
+        allSoftware,
+        normalizeSoftwareSelection,
+      );
+
+      if (areSelectionsEqual(prev.selectedSoftware, nextSoftware)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedSoftware: nextSoftware,
+      };
+    });
+  }, [open, allSoftware]);
 
   // Filter lists
   const filteredUsers = useMemo(
@@ -355,10 +601,6 @@ export default function WorkstationModal({
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
                 }}
-                style={{
-                  backgroundColor: "var(--text-primary)",
-                  color: "var(--bg-primary)",
-                }}
               >
                 Next
               </button>
@@ -367,10 +609,6 @@ export default function WorkstationModal({
                 className="workstation-modal-btn workstation-modal-btn-primary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                style={{
-                  backgroundColor: "var(--text-primary)",
-                  color: "var(--bg-primary)",
-                }}
                 style={{
                   backgroundColor: "var(--text-primary)",
                   color: "var(--bg-primary)",
@@ -613,14 +851,6 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
-                  <UploadIcon
-                    width={48}
-                    height={48}
-                    fill="var(--text-tertiary)"
-                  />
-                </span>
-                <span style={{ color: "var(--text-secondary)" }}>
-                  Upload Image
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Image
@@ -662,14 +892,6 @@ function BasicInfoStep({ formData, setFormData, handleImageUpload }) {
                     height={48}
                     fill="var(--text-tertiary)"
                   />
-                  <UploadIcon
-                    width={48}
-                    height={48}
-                    fill="var(--text-tertiary)"
-                  />
-                </span>
-                <span style={{ color: "var(--text-secondary)" }}>
-                  Upload Background
                 </span>
                 <span style={{ color: "var(--text-secondary)" }}>
                   Upload Background
@@ -708,7 +930,6 @@ function GenericSelectionStep({
   const isIndeterminate = hasSelected && !allAreSelected;
 
   const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
-  const singularType = type.endsWith("s") ? type.slice(0, -1) : type;
 
   const renderItem = (item) => {
     if (type === "users") {
@@ -717,10 +938,12 @@ function GenericSelectionStep({
           <DisplayIcon type="user" data={item} size="small" />
           <div className="workstation-modal-dropdown-item-info">
             <div className="workstation-modal-dropdown-item-name">
-              {item.firstName} {item.lastName}
+              {`${item.firstName || ""} ${item.lastName || ""}`.trim() ||
+                item.email ||
+                "Unknown User"}
             </div>
             <div className="workstation-modal-dropdown-item-detail">
-              {item.title}
+              {item.title || item.email || "No role assigned"}
             </div>
           </div>
         </>
@@ -734,7 +957,13 @@ function GenericSelectionStep({
               {item.name}
             </div>
             <div className="workstation-modal-dropdown-item-detail">
-              {item.members || 0} members
+              {item.memberCount ??
+                item.member_count ??
+                (typeof item.members === "number"
+                  ? item.members
+                  : item.members?.length) ??
+                0}{" "}
+              members
             </div>
           </div>
         </>
@@ -749,7 +978,9 @@ function GenericSelectionStep({
         <>
           <DisplayIcon type="user" data={item} size="small" />
           <span className="workstation-modal-selected-card-name">
-            {item.firstName} {item.lastName}
+            {`${item.firstName || ""} ${item.lastName || ""}`.trim() ||
+              item.email ||
+              "Unknown User"}
           </span>
         </>
       );
@@ -803,13 +1034,27 @@ function GenericSelectionStep({
           placeholder={`Search ${type}...`}
         />
 
-        {filteredItems.length > 0 && (
-          <div className="workstation-modal-dropdown">
-            {filteredItems.map((item) => {
-              const isSelected = selectedItems.some((i) => i.id === item.id);
+        <div className="workstation-modal-dropdown">
+          {filteredItems.length === 0 ? (
+            <div
+              className="workstation-modal-dropdown-item"
+              style={{
+                opacity: 0.7,
+                cursor: "default",
+                color: "var(--text-secondary)",
+              }}
+            >
+              No results
+            </div>
+          ) : (
+            filteredItems.map((item) => {
+              const itemId = getModalItemId(item);
+              const isSelected = selectedItems.some(
+                (i) => getModalItemId(i) === itemId,
+              );
               return (
                 <div
-                  key={item.id}
+                  key={itemId}
                   role="option"
                   tabIndex={0}
                   aria-selected={isSelected}
@@ -828,9 +1073,9 @@ function GenericSelectionStep({
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
 
       {selectedItems.length > 0 && (
@@ -840,11 +1085,14 @@ function GenericSelectionStep({
           </div>
           <div className="workstation-modal-selected-cards">
             {selectedItems.map((item) => (
-              <div key={item.id} className="workstation-modal-selected-card">
+              <div
+                key={getModalItemId(item)}
+                className="workstation-modal-selected-card"
+              >
                 <button
                   type="button"
                   className="workstation-modal-card-remove-btn"
-                  onClick={() => onRemove(item.id)}
+                  onClick={() => onRemove(getModalItemId(item))}
                 >
                   ×
                 </button>
@@ -924,15 +1172,27 @@ function SoftwareStep({
           placeholder="Search software..."
         />
 
-        {filteredItems.length > 0 && (
-          <div className="workstation-modal-dropdown">
-            {filteredItems.map((software) => {
+        <div className="workstation-modal-dropdown">
+          {filteredItems.length === 0 ? (
+            <div
+              className="workstation-modal-dropdown-item"
+              style={{
+                opacity: 0.7,
+                cursor: "default",
+                color: "var(--text-secondary)",
+              }}
+            >
+              No results
+            </div>
+          ) : (
+            filteredItems.map((software) => {
+              const softwareId = getModalItemId(software);
               const isSelected = selectedItems.some(
-                (s) => s.id === software.id,
+                (s) => getModalItemId(s) === softwareId,
               );
               return (
                 <div
-                  key={software.id}
+                  key={softwareId}
                   role="option"
                   tabIndex={0}
                   aria-selected={isSelected}
@@ -961,9 +1221,9 @@ function SoftwareStep({
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
 
       {selectedItems.length > 0 && (
@@ -974,13 +1234,13 @@ function SoftwareStep({
           <div className="workstation-modal-selected-cards">
             {selectedItems.map((software) => (
               <div
-                key={software.id}
+                key={getModalItemId(software)}
                 className="workstation-modal-selected-card"
               >
                 <button
                   type="button"
                   className="workstation-modal-card-remove-btn"
-                  onClick={() => onRemove(software.id)}
+                  onClick={() => onRemove(getModalItemId(software))}
                 >
                   ×
                 </button>

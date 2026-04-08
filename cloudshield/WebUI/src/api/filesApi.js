@@ -12,6 +12,45 @@ async function readApiData(response) {
   return response;
 }
 
+function normalizeJobStatusPayload(data = {}) {
+  const resultStatus = String(data?.result?.status || "").toLowerCase();
+  let status = data?.status;
+
+  if (status === "finished") {
+    status = ["failed", "unknown", "share_not_found"].includes(resultStatus)
+      ? "failed"
+      : "succeeded";
+  } else if (status === "failed") {
+    status = "failed";
+  } else if (["started", "queued", "deferred"].includes(status)) {
+    status = "running";
+  }
+
+  if (!status) {
+    if (["failed", "unknown", "share_not_found"].includes(resultStatus)) {
+      status = "failed";
+    } else if (resultStatus === "success") {
+      status = "succeeded";
+    } else {
+      status = "running";
+    }
+  }
+
+  const progressMessage =
+    typeof data?.progress === "string" ? data.progress : "";
+
+  return {
+    ...data,
+    status,
+    message:
+      data?.message ||
+      data?.result?.message ||
+      data?.error ||
+      progressMessage ||
+      "",
+  };
+}
+
 /**
  * Fetch all file shares for an organization
  */
@@ -45,6 +84,26 @@ export async function createFileShare({
 
   const response = await apiPost("/task/dc/create_file_share", body);
   return readApiData(response);
+}
+
+/**
+ * Fetch background job status for async file-share operations
+ */
+export async function fetchJobStatus(jobId) {
+  try {
+    const response = await apiGet(`/status/${encodeURIComponent(jobId)}`);
+    const data = await readApiData(response);
+    return normalizeJobStatusPayload(data);
+  } catch (error) {
+    if (error?.status === 404) {
+      return {
+        status: "running",
+        message: "Task is still starting.",
+        progress: "queued",
+      };
+    }
+    throw error;
+  }
 }
 
 /**
