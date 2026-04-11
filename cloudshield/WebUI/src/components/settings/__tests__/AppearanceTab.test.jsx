@@ -53,14 +53,18 @@ describe("AppearanceTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(mockClearPreview).toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancel" }),
+    ).not.toBeInTheDocument();
   });
 
   test("save persists language and updates theme", () => {
     render(<AppearanceTab />);
 
     fireEvent.click(screen.getByText("Always use light appearance"));
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "fr-FR" } });
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "fr-FR" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(mockUpdateTheme).toHaveBeenCalledWith("light");
@@ -80,7 +84,9 @@ describe("AppearanceTab", () => {
       jest.advanceTimersByTime(2000);
     });
 
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save changes" }),
+    ).toBeInTheDocument();
     jest.useRealTimers();
   });
 });
