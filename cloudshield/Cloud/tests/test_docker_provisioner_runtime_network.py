@@ -1,6 +1,7 @@
 from subprocess import CalledProcessError
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+from pathlib import Path
 
 import cloudshield.Cloud.docker_provisioner.provision as docker_provision
 
@@ -125,3 +126,81 @@ def test_provision_network_docker_calls_runtime_network_connect(monkeypatch, tmp
 
     assert result is None
     assert connected_networks == ["org-net"]
+
+
+def test_provision_network_docker_sets_openvpn_protocol_to_tcp(monkeypatch, tmp_path):
+    logger = MagicMock()
+    captured_vpn_envs = {}
+
+    class _FakeContainer:
+        def __init__(self, container_id, ip_address):
+            self.id = container_id
+            self.network_settings = SimpleNamespace(
+                networks={"org-net": SimpleNamespace(ip_address=ip_address)}
+            )
+
+        def reload(self):
+            return None
+
+    class _FakeCompose:
+        def build(self, services):
+            return None
+
+        def run(self, **kwargs):
+            if kwargs["service"] == "samba-test":
+                return _FakeContainer("samba-id", "172.23.2.10")
+            if kwargs["service"] == "openvpn-test":
+                captured_vpn_envs.update(kwargs["envs"])
+                return _FakeContainer("vpn-id", "172.23.2.20")
+            raise AssertionError(f"unexpected service: {kwargs['service']}")
+
+    class _FakeDockerClient:
+        def __init__(self, *args, **kwargs):
+            self.compose = _FakeCompose()
+
+        def ps(self):
+            return []
+
+    monkeypatch.setattr(
+        docker_provision,
+        "connect_runtime_containers_to_org_network",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        docker_provision,
+        "ensure_org_network_with_subnet",
+        lambda *_args, **_kwargs: ("org-net", "172.23.2.0/24", "172.23.2.1"),
+    )
+    monkeypatch.setattr(docker_provision, "_resolve_windows_iso_path", lambda _logger: str(tmp_path / "win.iso"))
+    monkeypatch.setattr(docker_provision, "_write_compose_override_for_org", lambda **_kwargs: None)
+    monkeypatch.setattr(docker_provision, "DockerClient", _FakeDockerClient)
+    monkeypatch.setattr(docker_provision, "setup_ssh_keys", lambda *_args, **_kwargs: ("pub", "priv"))
+    monkeypatch.setattr(docker_provision.Path, "mkdir", lambda self, parents=False, exist_ok=False: None)
+    monkeypatch.setattr(docker_provision, "_ensure_td_agents_dir", lambda *_args, **_kwargs: "/tmp/td-agents")
+    monkeypatch.setattr(docker_provision, "run_concurrent_tasks", lambda *_args, **_kwargs: False)
+
+    org_data = {
+        "org_id": "org1",
+        "domain_name": "cloudshield.local",
+        "realm_name": "CLOUDSHIELD.LOCAL",
+        "dc_admin_password": "Password123!",
+    }
+
+    result = docker_provision.provision_network_docker(
+        org_data=org_data,
+        region="ca-central-1",
+        templates_dir=str(tmp_path / "templates"),
+        generated_dir=str(tmp_path / "generated"),
+        count=1,
+        server_logger=logger,
+    )
+
+    assert result is None
+    assert captured_vpn_envs["OPENVPN_PROTOCOL"] == "tcp"
+
+
+def test_openvpn_template_service_defaults_to_tcp():
+    compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "OPENVPN_PROTOCOL=tcp" in compose_text
+    assert "openvpn_protocol=" not in compose_text
